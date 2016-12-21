@@ -23,24 +23,63 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
+import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.logging.Level.FINER;
+import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
+import com.google.common.base.Strings;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Sets;
+import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import java.io.PrintStream;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.annotation.Nullable;
-
-
+@Options(prefix = "termination")
 public class TerminationStatistics implements Statistics {
 
-  private int totalLoops;
+  @Option(
+      secure = true,
+      description =
+          "A human readable representation of the synthesized (non-)termination arguments is "
+              + "exported to this file."
+    )
+  @FileOption(Type.OUTPUT_FILE)
+  private Path resultFile = Paths.get("terminationAnalysisResult.txt");
+
+  private final int totalLoops;
+
+  private final Set<Loop> analysedLoops = Sets.newConcurrentHashSet();
 
   private final Timer totalTime = new Timer();
 
@@ -58,21 +97,26 @@ public class TerminationStatistics implements Statistics {
 
   private final Timer lassoTerminationTime = new Timer();
 
-  private final AtomicInteger totalLassos = new AtomicInteger();
+  private final Map<Loop, AtomicInteger> safetyAnalysisRunsPerLoop = Maps.newConcurrentMap();
 
-  private final AtomicInteger maxSafetyAnalysisRuns = new AtomicInteger();
-
-  private final AtomicInteger safetyAnalysisRunsCurrentLoop = new AtomicInteger();
-
-  private final AtomicInteger maxLassosPerLoop = new AtomicInteger();
-
-  private final AtomicInteger lassosCurrentLoop = new AtomicInteger();
+  private final Map<Loop, AtomicInteger> lassosPerLoop = Maps.newConcurrentMap();
 
   private final AtomicInteger maxLassosPerIteration = new AtomicInteger();
 
   private final AtomicInteger lassosCurrentIteration = new AtomicInteger();
 
-  public TerminationStatistics(int pTotalNumberOfLoops) {
+  private final Multimap<Loop, TerminationArgument> terminationArguments =
+      MultimapBuilder.linkedHashKeys().arrayListValues().build();
+
+  private final Map<Loop, NonTerminationArgument> nonTerminationArguments = Maps.newConcurrentMap();
+
+  private final LogManager logger;
+
+  public TerminationStatistics(
+      Configuration pConfig, LogManager pLogger, int pTotalNumberOfLoops)
+          throws InvalidConfigurationException {
+    pConfig.inject(this);
+    logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
   }
 
@@ -87,11 +131,14 @@ public class TerminationStatistics implements Statistics {
     loopTime.stopIfRunning();
   }
 
-  void analysisOfLoopStarted() {
+  void analysisOfLoopStarted(Loop pLoop) {
+    boolean newLoop = analysedLoops.add(pLoop);
+    checkState(newLoop);
     loopTime.start();
   }
 
-  void analysisOfLoopFinished() {
+  void analysisOfLoopFinished(Loop pLoop) {
+    checkState(analysedLoops.contains(pLoop));
     loopTime.stop();
     recursionTime.stopIfRunning();
     safetyAnalysisTime.stopIfRunning();
@@ -99,8 +146,6 @@ public class TerminationStatistics implements Statistics {
     lassoConstructionTime.stopIfRunning();
     lassoNonTerminationTime.stopIfRunning();
     lassoTerminationTime.stopIfRunning();
-    maxLassosPerLoop.accumulateAndGet(lassosCurrentLoop.getAndSet(0), Math::max);
-    maxSafetyAnalysisRuns.accumulateAndGet(safetyAnalysisRunsCurrentLoop.getAndSet(0), Math::max);
   }
 
   void analysisOfRecursionStarted() {
@@ -111,12 +156,15 @@ public class TerminationStatistics implements Statistics {
     recursionTime.stop();
   }
 
-  void safetyAnalysisStarted() {
-    safetyAnalysisRunsCurrentLoop.incrementAndGet();
+  void safetyAnalysisStarted(Loop pLoop) {
+    checkState(analysedLoops.contains(pLoop));
+    safetyAnalysisRunsPerLoop.computeIfAbsent(pLoop, l -> new AtomicInteger()).incrementAndGet();
     safetyAnalysisTime.start();
   }
 
-  void safetyAnalysisFinished() {
+  void safetyAnalysisFinished(Loop pLoop) {
+    checkState(analysedLoops.contains(pLoop));
+    checkState(safetyAnalysisRunsPerLoop.containsKey(pLoop));
     safetyAnalysisTime.stop();
   }
 
@@ -156,38 +204,74 @@ public class TerminationStatistics implements Statistics {
     lassoTerminationTime.stop();
   }
 
-  public void lassosConstructed(int numberOfLassos) {
-    totalLassos.addAndGet(numberOfLassos);
-    lassosCurrentLoop.addAndGet(numberOfLassos);
+  public void lassosConstructed(Loop pLoop, int numberOfLassos) {
+    lassosPerLoop.computeIfAbsent(pLoop, l -> new AtomicInteger()).addAndGet(numberOfLassos);
     lassosCurrentIteration.addAndGet(numberOfLassos);
   }
 
+  public void synthesizedTerminationArgument(Loop pLoop, TerminationArgument pTerminationArgument) {
+    checkState(analysedLoops.contains(pLoop));
+    terminationArguments.put(pLoop, pTerminationArgument);
+  }
+
+  public void synthesizedNonTerminationArgument(
+      Loop pLoop, NonTerminationArgument pNonTerminationArgument) {
+    nonTerminationArguments.put(pLoop, pNonTerminationArgument);
+  }
+
   @Override
-  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     pOut.println("Total time :                                        " + totalTime);
     pOut.println("Time for recursion analysis:                        " + recursionTime);
     pOut.println();
 
-    int loops = loopTime.getNumberOfIntervals();
+    int loops = analysedLoops.size();
     pOut.println("Number of analysed loops:                               " + valueWithPercentage(loops, totalLoops));
     pOut.println("Total time for loop analysis:                       " + loopTime);
     pOut.println("  Avg time per loop analysis:                       " + format(loopTime.getAvgTime()));
     pOut.println("  Max time per loop analysis:                       " + format(loopTime.getMaxTime()));
     pOut.println();
 
-    pOut.println("Number of safety analysis runs:                     " + format(safetyAnalysisTime.getNumberOfIntervals()));
+    int safetyAnalysisRuns =
+        safetyAnalysisRunsPerLoop.values().stream().mapToInt(AtomicInteger::get).sum();
+    assert safetyAnalysisRuns == safetyAnalysisTime.getNumberOfIntervals();
+    int maxSafetyAnalysisRuns =
+        safetyAnalysisRunsPerLoop.values().stream().mapToInt(AtomicInteger::get).max().orElse(0);
+    String loopsWithMaxSafetyAnalysisRuns =
+        safetyAnalysisRunsPerLoop
+        .entrySet()
+        .stream()
+        .filter(e -> e.getValue().get() == maxSafetyAnalysisRuns)
+        .map(Entry::getKey)
+        .map(l -> l.getLoopHeads().toString())
+        .collect(Collectors.joining(", "));
+    pOut.println("Number of safety analysis runs:                     " + format(safetyAnalysisRuns));
+    if (loops > 0) {
+      pOut.println("  Avg safety analysis run per loop:                 " + div(safetyAnalysisRuns, loops));
+    }
+    pOut.println("  Max safety analysis run per loop:                 " + format(maxSafetyAnalysisRuns) + " \t for loops " + loopsWithMaxSafetyAnalysisRuns);
+
     pOut.println("Total time for safety analysis:                     " + safetyAnalysisTime);
     pOut.println("  Avg time per safety analysis run:                 " + format(safetyAnalysisTime.getAvgTime()));
     pOut.println("  Max time per safety analysis run:                 " + format(safetyAnalysisTime.getMaxTime()));
     pOut.println();
 
     int iterations = lassoTime.getNumberOfIntervals();
-    int lassos = totalLassos.get();
+    int lassos = lassosPerLoop.values().stream().mapToInt(AtomicInteger::get).sum();
+    int maxLassosPerLoop = lassosPerLoop.values().stream().mapToInt(AtomicInteger::get).max().orElse(0);
+    String loopsWithMaxLassos =
+        lassosPerLoop
+        .entrySet()
+        .stream()
+        .filter(e -> e.getValue().get() == maxLassosPerLoop)
+        .map(Entry::getKey)
+        .map(l -> l.getLoopHeads().toString())
+        .collect(Collectors.joining(", "));
     pOut.println("Number of analysed lassos:                          " + format(lassos));
     if (loops > 0) {
       pOut.println("  Avg number of lassos per loop:                    " + div(lassos, loops));
     }
-    pOut.println("  Max number of lassos per loop:                    " + format(maxLassosPerLoop.get()));
+    pOut.println("  Max number of lassos per loop:                    " + format(maxLassosPerLoop) + " \t for loops " + loopsWithMaxLassos);
     if (loops > 0) {
       pOut.println("  Avg number of lassos per iteration:               " + div(lassos, iterations));
     }
@@ -206,6 +290,72 @@ public class TerminationStatistics implements Statistics {
     pOut.println("  Total time for termination analysis:              " + lassoTerminationTime);
     pOut.println("    Avg time for termination analysis per lasso:    " + format(lassoTerminationTime.getAvgTime()));
     pOut.println("    Max time for termination analysis per lasso:    " + format(lassoTerminationTime.getMaxTime()));
+    pOut.println();
+
+    int totoalTerminationArguments = terminationArguments.size();
+    int maxTerminationArgumentsPerLoop =
+        terminationArguments.asMap().values().stream().mapToInt(Collection::size).max().orElse(0);
+    String loopsWithMaxTerminationArguments =
+        terminationArguments
+        .asMap()
+        .entrySet()
+        .stream()
+        .filter(e -> e.getValue().size() == maxTerminationArgumentsPerLoop)
+        .map(Entry::getKey)
+        .map(l -> l.getLoopHeads().toString())
+        .collect(Collectors.joining(", "));
+    pOut.println("Total number of termination arguments:              " + format(totoalTerminationArguments));
+    if (loops > 0) {
+      pOut.println("  Avg termination arguments per loop:               " + div(totoalTerminationArguments, loops));
+    }
+    pOut.println("  Max termination arguments per loop:               " + format(maxTerminationArgumentsPerLoop) + " \t for loops " + loopsWithMaxTerminationArguments);
+
+
+    pOut.println();
+    Map<String, Integer> terminationArguementTypes = Maps.newHashMap();
+    for (TerminationArgument terminationArgument : terminationArguments.values()) {
+      String name = terminationArgument.getRankingFunction().getName();
+      terminationArguementTypes.merge(name, 1, Integer::sum);
+    }
+
+    for (Entry<String, Integer> terminationArgument : terminationArguementTypes.entrySet()) {
+      String name = terminationArgument.getKey();
+      String whiteSpaces = Strings.repeat(" ", 49 - name.length());
+      pOut.println("  " + name + ":" + whiteSpaces + format(terminationArgument.getValue()));
+    }
+
+    exportSynthesizedArguments();
+  }
+
+  private void exportSynthesizedArguments() {
+    if (resultFile != null) {
+      logger.logf(FINER, "Writing result of termination analysis into %s.", resultFile);
+
+      try (Writer writer = MoreFiles.openOutputFile(resultFile, UTF_8)) {
+        writer.append("Non-termination arguments:\n");
+        for (Entry<Loop, NonTerminationArgument> nonTerminationArgument :
+            nonTerminationArguments.entrySet()) {
+          writer.append(nonTerminationArgument.getKey().toString());
+          writer.append(":\n");
+          writer.append(nonTerminationArgument.getValue().toString());
+          writer.append('\n');
+        }
+
+        writer.append("\n\nTermination arguments:\n");
+        for (Loop loop : terminationArguments.keySet()) {
+          for (TerminationArgument terminationArgument : terminationArguments.get(loop)) {
+            writer.append(loop.toString());
+            writer.append(":\n");
+            writer.append(terminationArgument.toString());
+            writer.append('\n');
+          }
+          writer.append('\n');
+        }
+
+      } catch (IOException e) {
+        logger.logException(WARNING, e, "Could not export (non-)termination arguments.");
+      }
+    }
   }
 
   @Override

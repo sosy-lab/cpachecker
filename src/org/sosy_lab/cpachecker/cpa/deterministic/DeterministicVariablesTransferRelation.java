@@ -23,14 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.deterministic;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
 import static org.sosy_lab.cpachecker.util.LiveVariables.TO_EQUIV_WRAPPER;
 
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -39,8 +43,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
@@ -61,20 +67,12 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.livevar.DeclarationCollectingVisitor;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 public class DeterministicVariablesTransferRelation
   extends ForwardingTransferRelation<DeterministicVariablesState, DeterministicVariablesState, Precision> implements Statistics {
@@ -240,14 +238,23 @@ public class DeterministicVariablesTransferRelation
    * This method returns a collection of all variables occurring in the given expression.
    */
   private Collection<Wrapper<ASimpleDeclaration>> handleExpression(final AExpression expression) {
-    return from(acceptAll(expression)).transform(TO_EQUIV_WRAPPER).toSet();
+    return CFAUtils.traverseRecursively(expression)
+        .filter(AIdExpression.class)
+        .transform(AIdExpression::getDeclaration)
+        .transform(TO_EQUIV_WRAPPER)
+        .toSet();
   }
 
   /**
    * This method returns a collection of the variables occurring in the given left-hand-side expression.
    */
-  private Collection<Wrapper<ASimpleDeclaration>> handleLeftHandSide(final AExpression pLeftHandSide) {
-    return from(acceptLeft(pLeftHandSide)).transform(TO_EQUIV_WRAPPER).toSet();
+  private Collection<Wrapper<ASimpleDeclaration>> handleLeftHandSide(
+      final ALeftHandSide pLeftHandSide) {
+    return CFAUtils.traverseLeftHandSideRecursively(pLeftHandSide)
+        .filter(AIdExpression.class)
+        .transform(AIdExpression::getDeclaration)
+        .transform(TO_EQUIV_WRAPPER)
+        .toSet();
   }
 
   /**
@@ -319,47 +326,13 @@ public class DeterministicVariablesTransferRelation
     }
   }
 
-  /**
-   * This is a more specific version of the CIdExpressionVisitor. For ArraySubscriptexpressions
-   * we do only want the IdExpressions inside the ArrayExpression.
-   */
-  private static final class LeftHandSideIdExpressionVisitor extends DeclarationCollectingVisitor {
-    @Override
-    public Set<ASimpleDeclaration> visit(AArraySubscriptExpression pE) {
-      return pE.getArrayExpression().<Set<ASimpleDeclaration>,
-                                      Set<ASimpleDeclaration>,
-                                      Set<ASimpleDeclaration>,
-                                      RuntimeException,
-                                      RuntimeException,
-                                      LeftHandSideIdExpressionVisitor>accept_(this);
-    }
-  }
-
-  private static Set<ASimpleDeclaration> acceptLeft(AExpression exp) {
-    return exp.<Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                RuntimeException,
-                RuntimeException,
-                LeftHandSideIdExpressionVisitor>accept_(new LeftHandSideIdExpressionVisitor());
-  }
-
-  private static Set<ASimpleDeclaration> acceptAll(AExpression exp) {
-    return exp.<Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                Set<ASimpleDeclaration>,
-                RuntimeException,
-                RuntimeException,
-                DeclarationCollectingVisitor>accept_(new DeclarationCollectingVisitor());
-  }
-
   @Override
   public String getName() {
     return getClass().getSimpleName();
   }
 
   @Override
-  public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
 
     writer.put(numberOfAssumes)

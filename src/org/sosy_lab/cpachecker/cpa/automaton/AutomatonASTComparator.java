@@ -26,8 +26,13 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static org.sosy_lab.cpachecker.util.Pair.zipList;
 
 import com.google.common.annotations.VisibleForTesting;
-
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -63,14 +68,6 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
  */
@@ -85,7 +82,8 @@ class AutomatonASTComparator {
   private static final String NUMBERED_JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Num";
   private static final Pattern JOKER_PATTERN = Pattern.compile("\\$(\\d+|\\?)");
 
-  static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope) throws InvalidAutomatonException, InvalidConfigurationException {
+  static ASTMatcher generatePatternAST(String pPattern, CParser parser, Scope scope)
+      throws InvalidAutomatonException {
     return CParserUtils.parseSingleStatement(replaceJokersInPattern(pPattern), parser, scope)
         .accept(ASTMatcherGenerator.INSTANCE);
   }

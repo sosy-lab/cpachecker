@@ -23,6 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,18 +39,11 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.logging.Level;
 
 @Options(prefix="cpa.value")
 public class ValueAnalysisCPAStatistics implements Statistics {
@@ -67,7 +66,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatInt numberOfVariables       = new StatInt(StatKind.COUNT, "Number of variables");
     StatInt numberOfGlobalVariables = new StatInt(StatKind.COUNT, "Number of global variables");
 
@@ -92,7 +91,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
    *
    * @param reached the set of reached states.
    */
-  private void exportPrecision(ReachedSet reached) {
+  private void exportPrecision(UnmodifiableReachedSet reached) {
     VariableTrackingPrecision consolidatedPrecision =
         VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
     try (Writer writer = MoreFiles.openOutputFile(precisionFile, Charset.defaultCharset())) {

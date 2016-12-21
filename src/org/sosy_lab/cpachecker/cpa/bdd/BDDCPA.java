@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.io.PrintStream;
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,13 +54,10 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
-
-import java.io.PrintStream;
-import java.util.Collection;
 
 @Options(prefix="cpa.bdd")
 public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
@@ -70,10 +69,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
   private final NamedRegionManager manager;
   private final BitvectorManager bvmgr;
   private final PredicateManager predmgr;
-  private final AbstractDomain abstractDomain;
   private VariableTrackingPrecision precision;
-  private final MergeOperator mergeOperator;
-  private final StopOperator stopOperator;
   private final BDDTransferRelation transferRelation;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
@@ -94,9 +90,6 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
     RegionManager rmgr = new BDDManagerFactory(config, logger).createRegionManager();
 
-    abstractDomain    = DelegateAbstractDomain.<BDDState>getInstance();
-    stopOperator      = new StopSepOperator(abstractDomain);
-    mergeOperator     = (merge.equals("sep")) ? MergeSepOperator.getInstance() : new MergeJoinOperator(abstractDomain);
     precision         = VariableTrackingPrecision.createStaticPrecision(config, cfa.getVarClassification(), getClass());
 
     manager           = new NamedRegionManager(rmgr);
@@ -115,17 +108,19 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
+    return DelegateAbstractDomain.<BDDState>getInstance();
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    return (merge.equals("sep"))
+        ? MergeSepOperator.getInstance()
+        : new MergeJoinOperator(getAbstractDomain());
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stopOperator;
+    return new StopSepOperator(getAbstractDomain());
   }
 
   @Override
@@ -153,7 +148,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     statsCollection.add(new Statistics() {
 
       @Override
-      public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
         transferRelation.printStatistics(out);
       }
 

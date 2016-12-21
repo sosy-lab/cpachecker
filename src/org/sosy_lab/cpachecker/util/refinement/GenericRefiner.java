@@ -26,7 +26,12 @@ package org.sosy_lab.cpachecker.util.refinement;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.ForOverride;
-
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -58,13 +64,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * A generic refiner using a {@link VariableTrackingPrecision}.
@@ -400,13 +399,13 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
       }
 
       @Override
-      public void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
+      public void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
         GenericRefiner.this.printStatistics(pOut, pResult, pReached);
       }
     });
   }
 
-  private void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
+  private void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
     writer.put(refinementCounter)
         .put(numberOfTargets)
@@ -417,7 +416,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     printAdditionalStatistics(pOut, pResult, pReached); //hook
   }
 
-  protected abstract void printAdditionalStatistics(final PrintStream out, final Result pResult, final ReachedSet pReached);
+  protected abstract void printAdditionalStatistics(final PrintStream out, final Result pResult, final UnmodifiableReachedSet pReached);
 
   private int obtainErrorPathId(ARGPath path) {
     return path.toString().hashCode();

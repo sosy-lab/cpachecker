@@ -23,9 +23,9 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 public class StateFormulaConversionManager {
 
   @Option(description="Remove redundant items when abstract values.")
-  private boolean simplifyDotOutput = true;
+  private boolean simplifyDotOutput = false;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -177,7 +177,7 @@ public class StateFormulaConversionManager {
       extraPredicate = fmgr.instantiate(abstractState.getExtraInvariant(),
           abstractState.getSSA());
     } else {
-      extraPredicate = fmgr.getBooleanFormulaManager().makeBoolean(true);
+      extraPredicate = fmgr.getBooleanFormulaManager().makeTrue();
     }
     return new PathFormula(extraPredicate, abstractState.getSSA(),
         abstractState.getPointerTargetSet(), 1);

@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -38,11 +42,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeException> {
 
@@ -147,12 +146,16 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
 
     @Override
     public CEnumType visit(final CEnumType t) {
-      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
+      final CEnumType result = (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
              new CEnumType(!ignoreConst && t.isConst(),
                            !ignoreVolatile && t.isVolatile(),
                            t.getEnumerators(),
                            t.getName(),
                            t.getOrigName());
+      if (t.isBitField() && (!result.isBitField() || result.getBitFieldSize() != t.getBitFieldSize())) {
+        return result.withBitFieldSize(t.getBitFieldSize());
+      }
+      return result;
     }
 
     @Override
@@ -162,7 +165,7 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
 
     @Override
     public CSimpleType visit(final CSimpleType t) {
-      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
+      final CSimpleType result = (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
               new CSimpleType(!ignoreConst && t.isConst(),
                               !ignoreVolatile && t.isVolatile(),
                               t.getType(),
@@ -173,6 +176,10 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
                               t.isComplex(),
                               t.isImaginary(),
                               t.isLongLong());
+      if (t.isBitField() && (!result.isBitField() || result.getBitFieldSize() != t.getBitFieldSize())) {
+        return result.withBitFieldSize(t.getBitFieldSize());
+      }
+      return result;
     }
 
     @Override

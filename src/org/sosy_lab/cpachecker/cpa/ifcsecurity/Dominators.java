@@ -23,18 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
  * Algorithm after Lengauer and Tarjan
@@ -196,9 +194,7 @@ public class Dominators {
   private void step3(CFANode pNodeW) {
     NodeInfo infow = map.get(pNodeW);
     NodeInfo infopw = map.get(infow.parent);
-    Iterator<CFANode> iterator = infopw.bucket.iterator();
-    while (iterator.hasNext()) {
-      CFANode v = iterator.next();
+    for (CFANode v : infopw.bucket) {
       NodeInfo infov = map.get(v);
       CFANode u = eval(v);
       NodeInfo infou = map.get(u);

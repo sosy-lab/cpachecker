@@ -1,7 +1,10 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Function;
-
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,26 +45,22 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 import org.sosy_lab.cpachecker.util.templates.TemplatePrecision;
 import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Policy iteration CPA.
  */
-@Options(prefix="cpa.lpi", deprecatedPrefix="cpa.stator.policy")
+@Options(prefix="cpa.lpi")
 public class PolicyCPA extends SingleEdgeTransferRelation
     implements ConfigurableProgramAnalysisWithBAM,
+               AdjustableConditionCPA,
+               ReachedSetAdjustingCPA,
                StatisticsProvider,
                AbstractDomain,
                PrecisionAdjustment,
-               AdjustableConditionCPA,
-               ReachedSetAdjustingCPA,
-               MergeOperator {
+               MergeOperator,
+               AutoCloseable {
 
   @Option(secure=true,
       description="Cache formulas produced by path formula manager")
@@ -72,61 +71,73 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   private final LogManager logger;
   private final PolicyIterationStatistics statistics;
   private final StopOperator stopOperator;
+  private final Solver solver;
+  private final FormulaManagerView fmgr;
+  private final PathFormulaManager pfmgr;
+  private final StateFormulaConversionManager stateFormulaConversionManager;
+  private final TemplatePrecision templatePrecision;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
   }
 
+  @SuppressWarnings("unused")
   private PolicyCPA(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier shutdownNotifier,
-      CFA cfa,
-      SolverFactory pSolverFactory
-  ) throws InvalidConfigurationException {
+      CFA cfa)
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     logger = pLogger;
     config = pConfig;
 
-    Solver solver = pSolverFactory.getSolverCached(pConfig, pLogger, shutdownNotifier);
-    FormulaManagerView formulaManager = solver.getFormulaManager();
+    solver = Solver.create(config, pLogger, shutdownNotifier);
+    fmgr = solver.getFormulaManager();
     PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
-        formulaManager, pConfig, pLogger, shutdownNotifier, cfa,
+        fmgr, pConfig, pLogger, shutdownNotifier, cfa,
         AnalysisDirection.FORWARD);
-
     if (useCachingPathFormulaManager) {
       pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
     }
+    pfmgr = pathFormulaManager;
 
     statistics = new PolicyIterationStatistics(cfa);
     TemplateToFormulaConversionManager pTemplateToFormulaConversionManager =
         new TemplateToFormulaConversionManager(cfa, pLogger);
-    StateFormulaConversionManager stateFormulaConversionManager =
-        new StateFormulaConversionManager(
-            formulaManager,
+    stateFormulaConversionManager = new StateFormulaConversionManager(
+            fmgr,
             pTemplateToFormulaConversionManager, pConfig, cfa,
-            logger, shutdownNotifier, pathFormulaManager, solver);
+            logger, shutdownNotifier, pfmgr, solver);
     ValueDeterminationManager valueDeterminationFormulaManager =
         new ValueDeterminationManager(
-            config, formulaManager, pLogger, pathFormulaManager,
-            stateFormulaConversionManager, cfa.getLoopStructure().get(),
+            config, fmgr, pLogger, pfmgr,
+            stateFormulaConversionManager,
             pTemplateToFormulaConversionManager);
     FormulaLinearizationManager formulaLinearizationManager = new
-        FormulaLinearizationManager(formulaManager, statistics);
+        FormulaLinearizationManager(fmgr, statistics);
     PolyhedraWideningManager pPwm = new PolyhedraWideningManager(
         statistics, logger);
+    templatePrecision = new TemplatePrecision(
+        logger, config, cfa, pTemplateToFormulaConversionManager
+    );
 
     policyIterationManager = new PolicyIterationManager(
         pConfig,
-        formulaManager,
-        cfa, pathFormulaManager,
-        solver, pLogger, shutdownNotifier,
+        fmgr,
+        cfa,
+        pfmgr,
+        solver,
+        pLogger,
+        shutdownNotifier,
         valueDeterminationFormulaManager,
         statistics,
         formulaLinearizationManager,
         pPwm,
-        stateFormulaConversionManager, pTemplateToFormulaConversionManager);
+        stateFormulaConversionManager,
+        pTemplateToFormulaConversionManager,
+        templatePrecision);
     stopOperator = new StopSepOperator(this);
   }
 
@@ -241,20 +252,28 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
   @Override
   public boolean adjustPrecision() {
-    return policyIterationManager.adjustPrecision();
+    return templatePrecision.adjustPrecision();
+  }
+
+  boolean injectPrecisionFromInterpolant(CFANode pNode, Set<String> vars) {
+    return templatePrecision.injectPrecisionFromInterpolant(pNode, vars);
   }
 
   @Override
   public void adjustReachedSet(ReachedSet pReachedSet) {
-    policyIterationManager.adjustReachedSet(pReachedSet);
+    pReachedSet.clear();
   }
 
-  public LogManager getLogger() {
+  LogManager getLogger() {
     return logger;
   }
 
-  public Configuration getConfig() {
+  Configuration getConfig() {
     return config;
+  }
+
+  Solver getSolver() {
+    return solver;
   }
 
   @Override
@@ -267,11 +286,19 @@ public class PolicyCPA extends SingleEdgeTransferRelation
 
   @Override
   public Reducer getReducer() {
-    return new PolicyReducer();
+    return new PolicyReducer(policyIterationManager, fmgr, stateFormulaConversionManager, pfmgr);
   }
 
+  @Override
   public void setPartitioning(BlockPartitioning pPartitioning) {
     policyIterationManager.setPartitioning(pPartitioning);
   }
+
+
+  @Override
+  public void close() {
+    solver.close();
+  }
+
 }
 

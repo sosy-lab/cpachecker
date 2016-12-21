@@ -24,17 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.collect.FluentIterable;
-
-import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
-import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment.Builder;
-import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.Typed;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -44,8 +33,18 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
+import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment.Builder;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.Typed;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class CompoundIntervalFormulaManager {
@@ -72,6 +71,29 @@ public class CompoundIntervalFormulaManager {
     this.partialEvaluator = new PartialEvaluator(compoundIntervalManagerFactory, this);
   }
 
+  CompoundIntervalManagerFactory getCompoundIntervalManagerFactory() {
+    return compoundIntervalManagerFactory;
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj instanceof CompoundIntervalFormulaManager) {
+      CompoundIntervalFormulaManager other = (CompoundIntervalFormulaManager) pObj;
+      return compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory)
+          && evaluationVisitor.equals(other.evaluationVisitor)
+          && partialEvaluator.equals(other.partialEvaluator);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(compoundIntervalManagerFactory, evaluationVisitor, partialEvaluator);
+  }
+
   public static Set<MemoryLocation> collectVariableNames(NumeralFormula<CompoundInterval> pFormula) {
     return pFormula.accept(COLLECT_VARS_VISITOR);
   }
@@ -80,12 +102,20 @@ public class CompoundIntervalFormulaManager {
     return pFormula.accept(COLLECT_VARS_VISITOR);
   }
 
-  public CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula) {
+  private CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula) {
+    return evaluate(pFormula, false);
+  }
+
+  private CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula, boolean pDisableOverflowCheck) {
+    if (pDisableOverflowCheck) {
+      FormulaCompoundStateEvaluationVisitor evaluator = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory, false);
+      return pFormula.accept(evaluator, EMPTY_ENVIRONMENT);
+    }
     return pFormula.accept(evaluationVisitor, EMPTY_ENVIRONMENT);
   }
 
-  public boolean isDefinitelyTrue(NumeralFormula<CompoundInterval> pFormula) {
-    if (evaluate(pFormula).isDefinitelyTrue()) {
+  private boolean isDefinitelyTrue(NumeralFormula<CompoundInterval> pFormula) {
+    if (evaluate(pFormula, true).isDefinitelyTrue()) {
       return true;
     }
     return isDefinitelyTrue(fromNumeral(pFormula));
@@ -97,7 +127,7 @@ public class CompoundIntervalFormulaManager {
   }
 
   public boolean isDefinitelyFalse(NumeralFormula<CompoundInterval> pFormula) {
-    return evaluate(pFormula).isDefinitelyFalse();
+    return evaluate(pFormula, true).isDefinitelyFalse();
   }
 
   private boolean isDefinitelyFalse(BooleanFormula<CompoundInterval> pFormula) {
@@ -106,7 +136,7 @@ public class CompoundIntervalFormulaManager {
   }
 
   public boolean isDefinitelyBottom(NumeralFormula<CompoundInterval> pFormula) {
-    return evaluate(pFormula).isBottom();
+    return evaluate(pFormula, true).isBottom();
   }
 
   public boolean containsAllPossibleValues(NumeralFormula<CompoundInterval> pFormula) {
@@ -764,7 +794,7 @@ public class CompoundIntervalFormulaManager {
         if (otherValue != null) {
           newValue = union(value, p2.getOperand2());
           newValue = newValue.accept(new PartialEvaluator(compoundIntervalManagerFactory), evaluationVisitor);
-          CompoundInterval val = evaluate(newValue);
+          CompoundInterval val = evaluate(newValue, true);
           if (val.containsAllPossibleValues() && newValue instanceof Constant<?>) {
             return BooleanConstant.getTrue();
           }
@@ -888,7 +918,7 @@ public class CompoundIntervalFormulaManager {
   }
 
   private boolean isMinusOne(NumeralFormula<CompoundInterval> pFormula) {
-    CompoundInterval value = evaluate(pFormula);
+    CompoundInterval value = evaluate(pFormula, true);
     return value.isSingleton() && value.contains(BigInteger.valueOf(-1));
   }
 

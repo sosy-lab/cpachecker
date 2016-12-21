@@ -309,6 +309,23 @@ public final class CCompositeType implements CComplexType {
     return result;
   }
 
+  @Override
+  public boolean isBitField() {
+    return false;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return 0;
+  }
+
+  @Override
+  public CType withBitFieldSize(int pBitFieldSize) {
+    // Bit field size not supported
+    assert false;
+    return this;
+  }
+
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
 

@@ -23,35 +23,23 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import static com.google.common.collect.FluentIterable.from;
-import static com.google.common.collect.Iterables.transform;
-
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-
+import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatorVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -61,47 +49,93 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public enum CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String, RuntimeException> {
+public class CExpressionToOrinalCodeVisitor
+    implements CExpressionVisitor<String, RuntimeException> {
 
-  INSTANCE;
+  public static final CExpressionToOrinalCodeVisitor BASIC_TRANSFORMER =
+      new CExpressionToOrinalCodeVisitor();
+
+  private final Map<CExpression, String> subsitution;
+
+  private CExpressionToOrinalCodeVisitor() {
+    this(Collections.emptyMap());
+  }
+
+  private CExpressionToOrinalCodeVisitor(Map<CExpression, String> pSubsitution) {
+    subsitution = ImmutableMap.copyOf(pSubsitution);
+  }
+
+  public CExpressionToOrinalCodeVisitor substitute(CExpression pExpression, String pSubsitute) {
+    if (pSubsitute.equals(subsitution.get(Objects.requireNonNull(pExpression)))) {
+      return this;
+    }
+    ImmutableMap.Builder<CExpression, String> builder = ImmutableMap.builder();
+    for (Map.Entry<CExpression, String> entry : subsitution.entrySet()) {
+      if (!entry.getKey().equals(pExpression)) {
+        builder.put(entry.getKey(), entry.getValue());
+      }
+    }
+    builder.put(pExpression, pSubsitute);
+    return new CExpressionToOrinalCodeVisitor(builder.build());
+  }
 
   @Override
-  public String visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
-    CExpression arrayExpression = pIastArraySubscriptExpression.getArrayExpression();
+  public String visit(CArraySubscriptExpression pArraySubscriptExpression) {
+    String substitute = subsitution.get(pArraySubscriptExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+    CExpression arrayExpression = pArraySubscriptExpression.getArrayExpression();
     final String left;
     if (arrayExpression instanceof AArraySubscriptExpression) {
       left = arrayExpression.accept(this);
     } else {
-      left = CStatementToOriginalCodeVisitor.parenthesize(arrayExpression);
+      left = parenthesize(arrayExpression);
     }
-    CExpression subscriptExpression = pIastArraySubscriptExpression.getSubscriptExpression();
+    CExpression subscriptExpression = pArraySubscriptExpression.getSubscriptExpression();
     return left + "[" + subscriptExpression.accept(this) + "]";
   }
 
   @Override
-  public String visit(CFieldReference pIastFieldReference) {
-    final String left;
-    if (pIastFieldReference.getFieldOwner() instanceof CFieldReference) {
-      left = pIastFieldReference.getFieldOwner().accept(this);
-    } else {
-      left = CStatementToOriginalCodeVisitor.parenthesize(pIastFieldReference.getFieldOwner());
+  public String visit(CFieldReference pFieldReference) {
+    String substitute = subsitution.get(pFieldReference);
+    if (substitute != null) {
+      return substitute;
     }
-    String op = pIastFieldReference.isPointerDereference() ? "->" : ".";
-    return left + op  + pIastFieldReference.getFieldName();
+    final String left;
+    if (pFieldReference.getFieldOwner() instanceof CFieldReference) {
+      left = pFieldReference.getFieldOwner().accept(this);
+    } else {
+      left = parenthesize(pFieldReference.getFieldOwner());
+    }
+    String op = pFieldReference.isPointerDereference() ? "->" : ".";
+    return left + op + pFieldReference.getFieldName();
   }
 
   @Override
-  public String visit(CIdExpression pIastIdExpression) {
-    return pIastIdExpression.getDeclaration().getOrigName();
+  public String visit(CIdExpression pIdExpression) {
+    String substitute = subsitution.get(pIdExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+    return pIdExpression.getDeclaration().getOrigName();
   }
 
   @Override
   public String visit(CPointerExpression pPointerExpression) {
-    return "*" + CStatementToOriginalCodeVisitor.parenthesize(pPointerExpression.getOperand().accept(this));
+    String substitute = subsitution.get(pPointerExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+    return "*" + parenthesize(pPointerExpression.getOperand().accept(this));
   }
 
   @Override
   public String visit(CComplexCastExpression pComplexCastExpression) {
+    String substitute = subsitution.get(pComplexCastExpression);
+    if (substitute != null) {
+      return substitute;
+    }
     String operand = pComplexCastExpression.getOperand().accept(this);
     if (pComplexCastExpression.isRealCast()) {
       return "__real__ " + operand;
@@ -111,24 +145,35 @@ public enum CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String,
 
   @Override
   public String visit(CBinaryExpression pIastBinaryExpression) {
-    return CStatementToOriginalCodeVisitor.parenthesize(pIastBinaryExpression.getOperand1())
+    String substitute = subsitution.get(pIastBinaryExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+    return parenthesize(pIastBinaryExpression.getOperand1())
         + " "
         + pIastBinaryExpression.getOperator().getOperator()
         + " "
-        + CStatementToOriginalCodeVisitor.parenthesize(pIastBinaryExpression.getOperand2());
+        + parenthesize(pIastBinaryExpression.getOperand2());
   }
 
   @Override
-  public String visit(CCastExpression pIastCastExpression) {
-    CType type = pIastCastExpression.getExpressionType();
+  public String visit(CCastExpression pCastExpression) {
+    String substitute = subsitution.get(pCastExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+    CType type = pCastExpression.getExpressionType();
     final String typeCode = type.toASTString("");
-    return CStatementToOriginalCodeVisitor.parenthesize(typeCode)
-        + CStatementToOriginalCodeVisitor.parenthesize(pIastCastExpression.getOperand());
+    return parenthesize(typeCode) + parenthesize(pCastExpression.getOperand());
   }
 
   @Override
-  public String visit(CCharLiteralExpression pIastCharLiteralExpression) {
-    char c = pIastCharLiteralExpression.getCharacter();
+  public String visit(CCharLiteralExpression pCharLiteralExpression) {
+    String substitute = subsitution.get(pCharLiteralExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+    char c = pCharLiteralExpression.getCharacter();
     if (c >= ' ' && c < 128) {
       return "'" + c + "'";
     }
@@ -136,15 +181,24 @@ public enum CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String,
   }
 
   @Override
-  public String visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
-    return pIastFloatLiteralExpression.getValue().toString();
+  public String visit(CFloatLiteralExpression pFloatLiteralExpression) {
+    String substitute = subsitution.get(pFloatLiteralExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+    return pFloatLiteralExpression.getValue().toString();
   }
 
   @Override
-  public String visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
+  public String visit(CIntegerLiteralExpression pIntegerLiteralExpression) {
+    String substitute = subsitution.get(pIntegerLiteralExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+
     String suffix = "";
 
-    CType cType = pIastIntegerLiteralExpression.getExpressionType();
+    CType cType = pIntegerLiteralExpression.getExpressionType();
     if (cType instanceof CSimpleType) {
       CSimpleType type = (CSimpleType) cType;
       if (type.isUnsigned()) {
@@ -157,99 +211,69 @@ public enum CExpressionToOrinalCodeVisitor implements CExpressionVisitor<String,
       }
     }
 
-    return pIastIntegerLiteralExpression.getValue().toString() + suffix;
+    return pIntegerLiteralExpression.getValue().toString() + suffix;
   }
 
   @Override
-  public String visit(CStringLiteralExpression pIastStringLiteralExpression) {
-    // Includes quotation marks
-    return pIastStringLiteralExpression.getValue();
-  }
-
-  @Override
-  public String visit(CTypeIdExpression pIastTypeIdExpression) {
-    return pIastTypeIdExpression.getOperator().getOperator()
-        + CStatementToOriginalCodeVisitor.parenthesize(pIastTypeIdExpression.getType().getCanonicalType().toASTString(""));
-  }
-
-  @Override
-  public String visit(CUnaryExpression pIastUnaryExpression) {
-    UnaryOperator operator = pIastUnaryExpression.getOperator();
-    if (operator == UnaryOperator.SIZEOF) {
-      return operator.getOperator() + CStatementToOriginalCodeVisitor.parenthesize(pIastUnaryExpression.getOperand().accept(this));
+  public String visit(CStringLiteralExpression pStringLiteralExpression) {
+    String substitute = subsitution.get(pStringLiteralExpression);
+    if (substitute != null) {
+      return substitute;
     }
-    return operator.getOperator() + CStatementToOriginalCodeVisitor.parenthesize(pIastUnaryExpression.getOperand());
+    // Includes quotation marks
+    return pStringLiteralExpression.getValue();
   }
 
   @Override
-  public String visit(CImaginaryLiteralExpression pIastLiteralExpression) {
-    return pIastLiteralExpression.getValue().toString() + "i";
+  public String visit(CTypeIdExpression pTypeIdExpression) {
+    String substitute = subsitution.get(pTypeIdExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+    return pTypeIdExpression.getOperator().getOperator()
+        + parenthesize(pTypeIdExpression.getType().getCanonicalType().toASTString(""));
+  }
+
+  @Override
+  public String visit(CUnaryExpression pUnaryExpression) {
+    String substitute = subsitution.get(pUnaryExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+    UnaryOperator operator = pUnaryExpression.getOperator();
+    if (operator == UnaryOperator.SIZEOF) {
+      return operator.getOperator() + parenthesize(pUnaryExpression.getOperand().accept(this));
+    }
+    return operator.getOperator() + parenthesize(pUnaryExpression.getOperand());
+  }
+
+  @Override
+  public String visit(CImaginaryLiteralExpression pLiteralExpression) {
+    String substitute = subsitution.get(pLiteralExpression);
+    if (substitute != null) {
+      return substitute;
+    }
+    return pLiteralExpression.getValue().toString() + "i";
   }
 
   @Override
   public String visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
+    String substitute = subsitution.get(pAddressOfLabelExpression);
+    if (substitute != null) {
+      return substitute;
+    }
     return pAddressOfLabelExpression.toASTString();
   }
 
-  @SuppressWarnings("unused")
-  private static enum CInitializerToOriginalCodeVisitor implements CInitializerVisitor<String, RuntimeException> {
-
-    VISITOR_INSTANCE;
-
-    public static final Function<CInitializer, String> TO_CODE =
-        initializer -> initializer.accept(CInitializerToOriginalCodeVisitor.VISITOR_INSTANCE);
-
-    @Override
-    public String visit(CInitializerExpression pInitializerExpression) {
-      return pInitializerExpression.getExpression().accept(CExpressionToOrinalCodeVisitor.INSTANCE);
-    }
-
-    @Override
-    public String visit(CInitializerList pInitializerList) {
-      StringBuilder code = new StringBuilder();
-
-      code.append("{ ");
-      Joiner.on(", ").appendTo(code, transform(pInitializerList.getInitializers(), TO_CODE));
-      code.append(" }");
-
-      return code.toString();
-    }
-
-    @Override
-    public String visit(CDesignatedInitializer pCStructInitializerPart) {
-      return from(pCStructInitializerPart.getDesignators()).transform(DesignatorToOriginalCodeVisitor.TO_CODE).join(Joiner.on(""))
-          + " == " + pCStructInitializerPart.getRightHandSide().accept(this);
-    }
-
+  public String parenthesize(String pInput) {
+    return "(" + pInput + ")";
   }
 
-  private static enum DesignatorToOriginalCodeVisitor implements CDesignatorVisitor<String, RuntimeException> {
-
-    VISITOR_INSTANCE;
-
-    public static final Function<CDesignator, String> TO_CODE =
-        designator -> designator.accept(DesignatorToOriginalCodeVisitor.VISITOR_INSTANCE);
-
-    @Override
-    public String visit(CArrayDesignator pArrayDesignator) {
-      return "["
-          + pArrayDesignator.getSubscriptExpression().accept(CExpressionToOrinalCodeVisitor.INSTANCE)
-          + "]";
+  public String parenthesize(CExpression pInput) {
+    String result = pInput.accept(this);
+    if (pInput instanceof CIdExpression) {
+      return result;
     }
-
-    @Override
-    public String visit(CArrayRangeDesignator pArrayRangeDesignator) {
-      return "["
-          + pArrayRangeDesignator.getFloorExpression().accept(CExpressionToOrinalCodeVisitor.INSTANCE)
-          + " ... "
-              + pArrayRangeDesignator.getCeilExpression().accept(CExpressionToOrinalCodeVisitor.INSTANCE)
-          + "]";
-    }
-
-    @Override
-    public String visit(CFieldDesignator pFieldDesignator) {
-      return "."  + pFieldDesignator.getFieldName();
-    }
-
+    return parenthesize(result);
   }
 }

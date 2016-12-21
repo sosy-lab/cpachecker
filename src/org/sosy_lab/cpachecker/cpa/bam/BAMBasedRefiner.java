@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.MissingBlockException;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -150,7 +150,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   private ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet pMainReachedSet)
       throws MissingBlockException, InterruptedException {
     assert pMainReachedSet.asReachedSet().contains(target);
-    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa);
+    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
     return cexSubgraphComputer.computeCounterexampleSubgraph(target, pMainReachedSet);
   }
 }

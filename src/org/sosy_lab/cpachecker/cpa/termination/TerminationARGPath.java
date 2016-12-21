@@ -100,7 +100,7 @@ public class TerminationARGPath extends ARGPath {
         // add negated ranking relation before target state (non-termination label)
         if (AbstractStates.isTargetState(succ)) {
           CFAEdge negatedRankingRelationAssumeEdge =
-              terminationInformation.createNegatedRankingRelationAssumeEdge(curNode, nextNode);
+              terminationInformation.createRankingRelationAssumeEdge(curNode, nextNode, false);
 
           intermediateTermiantionEdges.add(negatedRankingRelationAssumeEdge);
           fullPathBuilder.add(negatedRankingRelationAssumeEdge);

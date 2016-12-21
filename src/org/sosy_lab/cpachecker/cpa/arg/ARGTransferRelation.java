@@ -23,17 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
@@ -92,29 +85,5 @@ public class ARGTransferRelation implements TransferRelation {
     throw new UnsupportedOperationException(
         "ARGCPA needs to be used as the outer-most CPA,"
         + " thus it does not support returning successors for a single edge.");
-  }
-
-  boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, ProofChecker wrappedProofChecker) throws CPATransferException, InterruptedException {
-    ARGState element = (ARGState)pElement;
-
-    assert Iterables.elementsEqual(element.getChildren(), pSuccessors);
-
-    AbstractState wrappedState = element.getWrappedState();
-    Multimap<CFAEdge, AbstractState> wrappedSuccessors = HashMultimap.create();
-    for (AbstractState absElement : pSuccessors) {
-      ARGState successorElem = (ARGState)absElement;
-      wrappedSuccessors.put(element.getEdgeToChild(successorElem), successorElem.getWrappedState());
-    }
-
-    if (pCfaEdge != null) {
-      return wrappedProofChecker.areAbstractSuccessors(wrappedState, pCfaEdge, wrappedSuccessors.get(pCfaEdge));
-    }
-
-    for (CFAEdge edge : getOutgoingEdges(element)) {
-      if (!wrappedProofChecker.areAbstractSuccessors(wrappedState, edge, wrappedSuccessors.get(edge))) {
-        return false;
-      }
-    }
-    return true;
   }
 }

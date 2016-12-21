@@ -29,7 +29,11 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,12 +62,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.logging.Level;
 
 public class BAMTransferRelation implements TransferRelation {
   final BAMDataManager data;
@@ -240,7 +238,7 @@ public class BAMTransferRelation implements TransferRelation {
    *
    * @return Set of states associated with the block exit.
    **/
-  protected Collection<? extends AbstractState> doRecursiveAnalysis(
+  protected Collection<AbstractState> doRecursiveAnalysis(
           final AbstractState initialState,
           final Precision pPrecision,
           final CFANode node)
@@ -267,7 +265,7 @@ public class BAMTransferRelation implements TransferRelation {
     stack.add(currentLevel);
     logger.log(Level.FINEST, "current Stack:", stack);
 
-    final Collection<? extends AbstractState> resultStates = analyseBlockAndExpand(
+    final Collection<AbstractState> resultStates = analyseBlockAndExpand(
         initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
 
     final Triple<AbstractState, Precision, Block> lastLevel = stack.remove(stack.size() - 1);
@@ -442,7 +440,7 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     assert reached != null;
-    data.initialStateToReachedSet.put(initialState, reached);
+    data.registerInitialState(initialState, reached);
 
     ARGState rootOfBlock = null;
     if (bamPccManager.isPCCEnabled()) {

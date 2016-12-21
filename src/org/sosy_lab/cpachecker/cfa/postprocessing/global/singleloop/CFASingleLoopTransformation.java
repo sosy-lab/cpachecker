@@ -98,7 +98,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -775,8 +774,10 @@ public class CFASingleLoopTransformation {
         FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION,
         ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, ImmutableList.<CParameterDeclaration>of());
     FunctionEntryNode artificialFunctionEntryNode =
-        new CFunctionEntryNode(FileLocation.DUMMY, artificialFunctionDeclaration,
-            artificialFunctionExitNode, Collections.<String>emptyList(),
+        new CFunctionEntryNode(
+            FileLocation.DUMMY,
+            artificialFunctionDeclaration,
+            artificialFunctionExitNode,
             Optional.empty());
     Set<CFANode> nodes = getAllNodes(pStartNode);
     for (CFANode node : nodes) {
@@ -1248,14 +1249,12 @@ public class CFASingleLoopTransformation {
             entryFileLocation,
             ((CFunctionEntryNode) oldEntryNode).getFunctionDefinition(),
             functionExitNode,
-            oldEntryNode.getFunctionParameterNames(),
             ((CFunctionEntryNode)oldEntryNode).getReturnVariable());
       } else if (oldEntryNode instanceof JMethodEntryNode) {
         functionEntryNode = new JMethodEntryNode(
             entryFileLocation,
             ((JMethodEntryNode) oldEntryNode).getFunctionDefinition(),
             functionExitNode,
-            oldEntryNode.getFunctionParameterNames(),
             ((JMethodEntryNode) oldEntryNode).getReturnVariable());
       } else {
         throw new AssertionError();

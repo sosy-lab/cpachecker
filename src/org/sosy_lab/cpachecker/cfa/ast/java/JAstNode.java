@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 
 /**
  * Interface for all AST Nodes of the Java AST.
@@ -31,4 +32,18 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
  */
 public interface JAstNode extends AAstNode {
 
+  <R, X extends Exception> R accept(JAstNodeVisitor<R, X> v) throws X;
+
+  @Deprecated // Call accept() directly
+  @Override
+  default <
+          R,
+          R1 extends R,
+          R2 extends R,
+          X1 extends Exception,
+          X2 extends Exception,
+          V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2>>
+      R accept_(V pV) throws X1, X2 {
+    return accept((JAstNodeVisitor<R2, X2>) pV);
+  }
 }

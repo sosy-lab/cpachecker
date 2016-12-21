@@ -29,7 +29,22 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.logging.Level;
+import javax.annotation.concurrent.GuardedBy;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -83,24 +98,6 @@ import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.logging.Level;
-
-import javax.annotation.concurrent.GuardedBy;
-
 /**
  * This is a CPA for collecting simple invariants about integer variables.
  */
@@ -124,7 +121,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     @Option(secure=true, description="determine variables relevant to the decision whether or not a target path assume edge is taken and limit the analyis to those variables.")
     private boolean analyzeRelevantVariablesOnly = true;
 
-    @Option(secure=true, description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that guessing interesting variables is disabled.")
+    @Option(secure=true, description="the maximum number of variables to consider as interesting. -1 one disables the limit, but this is not recommended. 0 means that no variables are considered to be interesting.")
     private volatile int interestingVariableLimit = 2;
 
     @Option(
@@ -286,7 +283,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     int interestingVariableLimit = options.interestingVariableLimit;
 
     // Determine the target locations
-    boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingVariableLimit != 0;
+    boolean determineTargetLocations = options.analyzeTargetPathsOnly || options.interestingVariableLimit > 0;
     if (determineTargetLocations) {
       targetLocations = targetLocationProvider.tryGetAutomatonTargetLocations(pNode, specification);
       determineTargetLocations = targetLocations != null;
@@ -318,8 +315,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       interestingVariables = new LinkedHashSet<>(this.interestingVariables);
     }
 
-    boolean guessInterestingInformation = interestingVariableLimit != 0;
-    if (guessInterestingInformation && !determineTargetLocations) {
+    if (interestingVariableLimit > 0 && !determineTargetLocations) {
       logManager.log(Level.WARNING, "Target states were not determined. Guessing interesting information is arbitrary.");
     }
 
@@ -348,7 +344,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       // Collect all variables related to variables found on relevant assume edges from other edges with a fix point iteration
       expandFixpoint(relevantVariables, targetLocations, -1);
       for (MemoryLocation variable : relevantVariables) {
-        if (interestingVariables.size() >= interestingVariableLimit) {
+        if (interestingVariableLimit >= 0 && interestingVariables.size() >= interestingVariableLimit) {
           break;
         }
         interestingVariables.add(variable);
@@ -370,7 +366,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       }
     }
 
-    relevantVariableLimitReached = interestingVariableLimit > interestingVariables.size();
+    relevantVariableLimitReached = interestingVariableLimit < 0 || interestingVariableLimit > interestingVariables.size();
 
     InvariantsPrecision precision = new InvariantsPrecision(relevantEdges,
         ImmutableSet.copyOf(limit(interestingVariables, interestingVariableLimit)),

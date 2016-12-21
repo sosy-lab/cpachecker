@@ -48,7 +48,7 @@ public class SMGSingleLinkedListFinderTest {
   public void simpleListTest() throws SMGInconsistentException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
-    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 16, 8, "pointer");
+    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 5, 128, 64, "pointer");
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder();
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
@@ -57,7 +57,7 @@ public class SMGSingleLinkedListFinderTest {
     Assert.assertTrue(candidate instanceof SMGSingleLinkedListCandidateSequence);
     SMGSingleLinkedListCandidateSequence sllCandidate = (SMGSingleLinkedListCandidateSequence)candidate;
     Assert.assertEquals(5, sllCandidate.getLength());
-    Assert.assertEquals(8, sllCandidate.getCandidate().getNfo());
+    Assert.assertEquals(64, sllCandidate.getCandidate().getNfo());
     SMGRegion expectedStart = (SMGRegion) smg.getPointer(root.getValue()).getObject();
     Assert.assertSame(expectedStart, sllCandidate.getCandidate().getStartObject());
   }
@@ -79,7 +79,7 @@ public class SMGSingleLinkedListFinderTest {
   public void nullifiedPointerInferenceTest() throws SMGInconsistentException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
-    TestHelpers.createGlobalList(smg, 2, 16, 8, "pointer");
+    TestHelpers.createGlobalList(smg, 2, 128, 64, "pointer");
 
     SMGSingleLinkedListFinder finder = new SMGSingleLinkedListFinder(2,2,2);
     Set<SMGAbstractionCandidate> candidates = finder.traverse(smg, null);
@@ -89,22 +89,22 @@ public class SMGSingleLinkedListFinderTest {
   @Test
   public void listWithInboundPointersTest() throws SMGInconsistentException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
-    Integer tail = TestHelpers.createList(smg, 4, 16, 8, "tail");
+    Integer tail = TestHelpers.createList(smg, 4, 128, 64, "tail");
 
-    SMGEdgeHasValue head = TestHelpers.createGlobalList(smg, 3, 16, 8, "head");
+    SMGEdgeHasValue head = TestHelpers.createGlobalList(smg, 3, 128, 64, "head");
 
-    SMGObject inside = new SMGRegion(16, "pointed_at");
-    SMGEdgeHasValue tailConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 8, inside, tail);
+    SMGObject inside = new SMGRegion(128, "pointed_at");
+    SMGEdgeHasValue tailConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, inside, tail);
 
     Integer addressOfInside = SMGValueFactory.getNewValue();
     SMGEdgePointsTo insidePT = new SMGEdgePointsTo(addressOfInside, inside, 0);
-    SMGRegion inboundPointer = new SMGRegion(8, "inbound_pointer");
+    SMGRegion inboundPointer = new SMGRegion(64, "inbound_pointer");
     SMGEdgeHasValue inboundPointerConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, inboundPointer, addressOfInside);
 
     SMGObject lastFromHead = smg.getPointer(head.getValue()).getObject();
     SMGEdgeHasValue connection = null;
     do {
-      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(lastFromHead).filterAtOffset(8);
+      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(lastFromHead).filterAtOffset(64);
       Set<SMGEdgeHasValue> connections = smg.getHVEdges(filter);
       connection = null;
       if (connections.size() > 0) {
@@ -117,9 +117,9 @@ public class SMGSingleLinkedListFinderTest {
       smg.removeHasValueEdge(hv);
     }
 
-    SMGEdgeHasValue headConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 8, lastFromHead, addressOfInside);
+    SMGEdgeHasValue headConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, lastFromHead, addressOfInside);
 
-    SMGRegion tailPointer = new SMGRegion(8, "tail_pointer");
+    SMGRegion tailPointer = new SMGRegion(64, "tail_pointer");
     SMGEdgeHasValue tailPointerConnection = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, tailPointer, tail);
 
     smg.addGlobalObject(tailPointer);

@@ -23,14 +23,6 @@ This allows you to view exactly what the reformatter changed after running it.
 Please do not use the Eclipse code formatter,
 it destroys a lot of meaningful manual formatting.
 
-We use javac, Google Error-Prone, the Eclipse Java Compiler, and FindBugs
-to findings bugs in the source, and we want to keep CPAchecker
-free of warnings from all these tools.
-You can run them all at once (plus the unit tests) with "ant all-checks".
-Our [BuildBot](https://buildbot.sosy-lab.org/buildbot/waterfall)
-will also execute them and send a mail to the developer list
-(cf. [`Mailing.md`](Mailing.md), please apply for membership if you commit to CPAchecker).
-
 Additional rules and hints:
 
 Spelling:

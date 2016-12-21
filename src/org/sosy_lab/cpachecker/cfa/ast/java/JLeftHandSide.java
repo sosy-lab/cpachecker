@@ -32,4 +32,8 @@ public interface JLeftHandSide extends JExpression, ALeftHandSide {
 
   public <R, X extends Exception> R accept(JLeftHandSideVisitor<R, X> pV) throws X;
 
+  @Override
+  default <R, X extends Exception> R accept(JExpressionVisitor<R, X> pV) throws X {
+    return accept((JLeftHandSideVisitor<R, X>) pV);
+  }
 }

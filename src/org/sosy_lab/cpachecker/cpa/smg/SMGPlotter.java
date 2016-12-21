@@ -25,7 +25,15 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
@@ -37,16 +45,6 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
@@ -316,14 +314,14 @@ public final class SMGPlotter {
   private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge, CLangSMG pSMG) {
     if (pEdge.getValue() == 0) {
       String newNull = newNullLabel();
-      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject()).getName() + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "B-" + (pEdge.getOffset() + pEdge.getSizeInBytes(pSMG.getMachineModel())) + "B]\"];";
+      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject()).getName() + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel())) + "b]\"];";
     } else {
-      return objectIndex.get(pEdge.getObject()).getName() + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "B-" + (pEdge.getOffset() + pEdge.getSizeInBytes(pSMG.getMachineModel())) + "B]\"];";
+      return objectIndex.get(pEdge.getObject()).getName() + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel())) + "b]\"];";
     }
   }
 
   private String smgPTEdgeAsDot(SMGEdgePointsTo pEdge) {
-    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "B, " + pEdge.getTargetSpecifier() + "\"];";
+    return "value_" + pEdge.getValue() + " -> " + objectIndex.get(pEdge.getObject()).getName() + "[label=\"+" + pEdge.getOffset() + "b, " + pEdge.getTargetSpecifier() + "\"];";
   }
 
   private static String smgValueAsDot(int value, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {

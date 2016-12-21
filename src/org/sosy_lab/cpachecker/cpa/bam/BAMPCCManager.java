@@ -174,6 +174,7 @@ public final class BAMPCCManager {
       //no call node, check if successors can be constructed with help of CFA edges
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
         // edge leads to node in inner block
+        @SuppressWarnings("deprecation")
         Block currentNodeBlock = partitioning.getBlockForReturnNode(node);
         if (currentNodeBlock != null && !currentBlock.equals(currentNodeBlock)
             && currentNodeBlock.getNodes().contains(leavingEdge.getSuccessor())) {

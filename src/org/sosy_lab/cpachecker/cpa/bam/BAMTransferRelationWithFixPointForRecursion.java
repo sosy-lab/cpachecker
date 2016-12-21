@@ -28,7 +28,13 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.collect.Iterables;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,15 +55,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.logging.Level;
-
-import javax.annotation.Nonnull;
 
 @Options(prefix="cpa.bam")
 public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRelation {
@@ -133,7 +130,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
     assert isHeadOfMainFunction(pHeadOfMainFunction) && stack.isEmpty();
 
-    Collection<? extends AbstractState> resultStates;
+    Collection<AbstractState> resultStates;
     int iterationCounter = 0;
     while (true) { // fixpoint-iteration to handle recursive functions
 
@@ -166,6 +163,13 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       if (!resultStatesChanged) {
         logger.log(Level.INFO, "fixpoint-iteration aborted, because we did not get new states (fixpoint reached).");
+
+        // the fixpoint algorithm should have coverage for all states and thus return zero new states.
+        // the initially computed successors from pHeadOfMainFunctionState are the successors for the CPA-algorithm.
+        ArrayList<AbstractState> exitStates = new ArrayList<>(((ARGState)pHeadOfMainFunctionState).getChildren());
+        assert getStatesNotCoveredBy(resultStates, exitStates).isEmpty() : "there should not be any new state.";
+        resultStates = exitStates;
+
         break;
       }
 
@@ -207,8 +211,10 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
           stack.subList(0, stack.size() - 1)) {
 
       if (level.getThird() == currentLevel.getThird()
-              // && level.getSecond().equals(currentLevel.getSecond())
-              && bamCPA.isCoveredBy(currentLevel.getFirst(), level.getFirst())) {
+          // && level.getSecond().equals(currentLevel.getSecond())
+          && bamCPA
+              .getWrappedCpa()
+              .isCoveredByRecursiveState(currentLevel.getFirst(), level.getFirst())) {
         // previously reached state contains 'less' information, it is a super-state of the currentState.
         // From currentState we could reach the levelState again (with further unrolling).
         // Thus we would have found an endless recursion (with current information (precision/state)).
@@ -247,7 +253,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       return true;
     }
     for (final AbstractState coveringState : coveringStates) {
-      if (bamCPA.isCoveredBy(baseState, coveringState)) {
+      if (bamCPA.getAbstractDomain().isLessOrEqual(baseState, coveringState)) {
         return true;
       }
     }
@@ -356,7 +362,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       logger.logf(Level.FINEST, "skipping recursive call with cached result (root is %s)", reached.getFirstState());
     }
 
-    data.initialStateToReachedSet.put(initialState, reached);
+    data.registerInitialState(initialState, reached);
 
     if (bamPccManager.isPCCEnabled()) {
       bamPccManager.addBlockAnalysisInfo(pReducedInitialState);

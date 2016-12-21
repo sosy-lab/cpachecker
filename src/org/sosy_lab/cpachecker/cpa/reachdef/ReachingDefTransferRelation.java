@@ -118,7 +118,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
-    logger.log(Level.FINE, "Compute succesor for ", pState, "along edge", pCfaEdge);
+    logger.log(Level.FINE, "Compute successor for ", pState, "along edge", pCfaEdge);
 
     if (localVariablesPerFunction == null) { throw new CPATransferException(
         "Incorrect initialization of reaching definition transfer relation."); }

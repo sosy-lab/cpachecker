@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 
 public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
@@ -220,5 +221,32 @@ public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
     }
 
     return pFilter.filterSet(getHvEdges());
+  }
+
+  @Override
+  public Set<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
+    Map<Integer, SMGEdgeHasValue> offsetToHveMap = objectToHveEdgeMap.get(pObject);
+    if (offsetToHveMap != null) {
+      return ImmutableSet.copyOf(offsetToHveMap.values());
+    }
+    return ImmutableSet.of();
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(objectToHveEdgeMap, valueToHveEdgeMap);
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj instanceof SMGHasValueEdgeAdjacencyList) {
+      SMGHasValueEdgeAdjacencyList other = (SMGHasValueEdgeAdjacencyList) pObj;
+      return objectToHveEdgeMap.equals(other.objectToHveEdgeMap)
+          && valueToHveEdgeMap.equals(other.valueToHveEdgeMap);
+    }
+    return false;
   }
 }

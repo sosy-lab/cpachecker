@@ -24,11 +24,22 @@
 package org.sosy_lab.cpachecker.cpa.apron;
 
 import apron.ApronException;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -57,25 +68,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
 
 @Options(prefix = "cpa.apron")
 public final class ApronCPA
@@ -221,7 +217,7 @@ public final class ApronCPA
     pStatsCollection.add(new Statistics() {
 
       @Override
-      public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
         if (precisionFile != null) {
           exportPrecision(pReached);
         }
@@ -242,7 +238,7 @@ public final class ApronCPA
    *
    * @param reached the set of reached states.
    */
-  private void exportPrecision(ReachedSet reached) {
+  private void exportPrecision(UnmodifiableReachedSet reached) {
     VariableTrackingPrecision consolidatedPrecision =
         VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
     try (Writer writer = MoreFiles.openOutputFile(precisionFile, Charset.defaultCharset())) {

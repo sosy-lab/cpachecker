@@ -32,11 +32,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -82,9 +83,11 @@ public interface PathFormulaManager {
    * @param pContext the context in which the variable should be created
    * @param pVarName the name of the variable
    * @param pType the type of the variable
+   * @param forcePointerDereference force the formula to make a pointer dereference (e.g. *UF main:x)
    * @return the created formula, which is always <b>instantiated</b>
    */
-  Formula makeFormulaForVariable(PathFormula pContext, String pVarName, CType pType);
+  Formula makeFormulaForVariable(
+      PathFormula pContext, String pVarName, CType pType, boolean forcePointerDereference);
 
   /**
    * Build a formula containing a predicate for all branching situations in the
@@ -138,4 +141,9 @@ public interface PathFormulaManager {
    * @return pF1.getFormula() and assumptions and not pF2.getFormula()
    */
   public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException;
+
+  /**
+   * Prints some information about the PathFormulaManager.
+   */
+  public void printStatistics(PrintStream out);
 }

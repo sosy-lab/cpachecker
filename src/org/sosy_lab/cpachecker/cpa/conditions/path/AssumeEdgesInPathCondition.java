@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
 import java.io.PrintStream;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -39,10 +38,10 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * A {@link PathCondition} where the condition is based on the number of assume
@@ -111,7 +110,7 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     out.println("Maximum length of a path: " + maxAssumeEdgesInPath);
     out.println("Threshold value:          " + threshold);
   }

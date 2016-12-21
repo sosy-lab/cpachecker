@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractLocationFormula
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractOptionalCallstackWraper;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.common.base.Function;
@@ -39,7 +40,27 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
+import com.google.errorprone.annotations.FormatMethod;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.StringReader;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -72,12 +93,13 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantChec
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -103,31 +125,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.solver.SolverException;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.BooleanFormulaManager;
-import org.sosy_lab.solver.visitors.DefaultBooleanFormulaVisitor;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.StringReader;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.predicate.invariants", deprecatedPrefix = "cpa.predicate")
 class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupplier {
@@ -257,7 +257,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private final ShutdownNotifier shutdownNotifier;
   private final Stats stats = new Stats();
 
-  private final Map<CFANode, BooleanFormula> loopFormulaCache = new HashMap<>();
   private final Map<CFANode, Set<BooleanFormula>> locationInvariantsCache = new HashMap<>();
 
   private final FormulaInvariantsSupplier globalInvariants;
@@ -303,14 +302,19 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
   @Override
   public BooleanFormula getInvariantFor(
-      CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
+      CFANode pNode,
+      Optional<CallstackStateEqualsWrapper> pCallstackInformation,
+      FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr,
+      PathFormula pContext) {
     BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
     Set<BooleanFormula> localInvariants =
         locationInvariantsCache.getOrDefault(pNode, ImmutableSet.of());
-    BooleanFormula globalInvariant = bfmgr.makeBoolean(true);
+    BooleanFormula globalInvariant = bfmgr.makeTrue();
 
     if (useGlobalInvariants) {
-      globalInvariant = globalInvariants.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
+      globalInvariant = globalInvariants.getInvariantFor(
+          pNode, pCallstackInformation, pFmgr, pPfmgr, pContext);
     }
 
     return bfmgr.and(globalInvariant, bfmgr.and(localInvariants));
@@ -422,10 +426,11 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       // TODO what if loop structure does not exist?
       if (cfa.getLoopStructure().get().getAllLoopHeads().contains(node)) {
         PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
-        argForPathFormulaBasedGeneration.add(Pair.of(predState.getPathFormula(), node));
+        argForPathFormulaBasedGeneration.add(
+            Pair.of(predState.getAbstractionFormula().getBlockFormula(), node));
       } else if (!node.equals(
           extractLocation(abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)))) {
-        argForPathFormulaBasedGeneration.add(Pair.<PathFormula, CFANode>of(null, node));
+        argForPathFormulaBasedGeneration.add(Pair.of(null, node));
       }
     }
 
@@ -464,7 +469,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                             pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
                         || wasSuccessful;
                 } else {
-                  addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+                  addResultToCache(bfmgr.makeTrue(), pair.getSecond());
                 }
               }
             break;
@@ -477,7 +482,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                             pair.getSecond(), pair.getFirst(), invariantShutdown.getNotifier())
                         || wasSuccessful;
                 } else {
-                  addResultToCache(bfmgr.makeBoolean(true), pair.getSecond());
+                  addResultToCache(bfmgr.makeTrue(), pair.getSecond());
                 }
               }
             break;
@@ -583,23 +588,17 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
       PointerTargetSet pts = pBlockFormula.getPointerTargetSet();
       SSAMap ssa = pBlockFormula.getSsa();
-      PathFormula loopFormula;
-
-      // we already found this loop and just need to update the SSA indices
-      if (loopFormulaCache.containsKey(pLocation)) {
-        loopFormula =
-            new PathFormula(fmgr.instantiate(loopFormulaCache.get(pLocation), ssa), ssa, pts, 0);
-      } else {
-        loopFormula =
-            new LoopTransitionFinder(
-                    config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, pInvariantShutdown)
-                .generateLoopTransition(ssa, pts, pLocation);
-        loopFormulaCache.put(pLocation, fmgr.uninstantiate(loopFormula.getFormula()));
-      }
+      PathFormula loopFormula =
+          new LoopTransitionFinder(
+                  config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, pInvariantShutdown)
+              .generateLoopTransition(ssa, pts, pLocation);
 
       Set<BooleanFormula> lemmas =
-          semiCNFConverter.toLemmas(
-              fmgr.uninstantiate(pBlockFormula.getFormula()), fmgr);
+          semiCNFConverter
+              .toLemmasInstantiated(pBlockFormula, fmgr)
+              .stream()
+              .map(s -> fmgr.uninstantiate(s))
+              .collect(Collectors.toSet());
 
       Set<BooleanFormula> inductiveLemmas =
           new InductiveWeakeningManager(config, solver, logger, shutdownNotifier)
@@ -610,6 +609,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         return false;
       } else {
         addResultToCache(bfmgr.and(inductiveLemmas), pLocation);
+        logger.log(Level.FINER, "Generated invariant: ", inductiveLemmas);
         return true;
       }
     } finally {
@@ -624,35 +624,24 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     try {
       stats.pfKindTime.start();
 
-      BooleanFormula cnfFormula =
-          bfmgr.and(semiCNFConverter.toLemmas(pPathFormula.getFormula(), fmgr));
-      Collection<BooleanFormula> conjuncts =
-          bfmgr.visit(
-              cnfFormula,
-              new DefaultBooleanFormulaVisitor<List<BooleanFormula>>() {
-                @Override
-                protected List<BooleanFormula> visitDefault() {
-                  return Collections.emptyList();
-                }
+      Set<BooleanFormula> conjuncts =
+          semiCNFConverter
+              .toLemmasInstantiated(pPathFormula, fmgr)
+              .stream()
+              .map(s -> fmgr.uninstantiate(s))
+              .collect(Collectors.toSet());
 
-                @Override
-                public List<BooleanFormula> visitAnd(List<BooleanFormula> operands) {
-                  return operands;
-                }
-              });
       final Map<String, BooleanFormula> formulaToRegion = new HashMap<>();
       StaticCandidateProvider candidateGenerator =
           new StaticCandidateProvider(
               from(conjuncts)
                   .transform(
-                      new Function<BooleanFormula, CandidateInvariant>() {
-                        @Override
-                        public CandidateInvariant apply(BooleanFormula pInput) {
-                          String dumpedFormula = fmgr.dumpFormula(pInput).toString();
-                          formulaToRegion.put(dumpedFormula, pInput);
-                          return makeLocationInvariant(pLocation, dumpedFormula);
-                        }
-                      }));
+                      (Function<BooleanFormula, CandidateInvariant>)
+                          pInput -> {
+                            String dumpedFormula = fmgr.dumpFormula(pInput).toString();
+                            formulaToRegion.put(dumpedFormula, pInput);
+                            return makeLocationInvariant(pLocation, dumpedFormula);
+                          }));
 
       new KInductionInvariantChecker(
               config,
@@ -665,7 +654,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
       Set<CandidateInvariant> invariants = candidateGenerator.getConfirmedCandidates();
 
-      BooleanFormula invariant = bfmgr.makeBoolean(true);
+      BooleanFormula invariant = bfmgr.makeTrue();
       for (CandidateInvariant candidate : invariants) {
         invariant = bfmgr.and(invariant, formulaToRegion.get(candidate.toString()));
       }
@@ -759,8 +748,14 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         // the last one will always be false, we don't need it here
         if (s != abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)) {
           CFANode location = extractLocation(s);
+          Optional<CallstackStateEqualsWrapper> callstack = extractOptionalCallstackWraper(s);
           PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
-          BooleanFormula invariant = invSup.getInvariantFor(location, fmgr, pfmgr, pas.getPathFormula());
+          BooleanFormula invariant = invSup.getInvariantFor(
+              location,
+              callstack,
+              fmgr,
+              pfmgr,
+              pas.getPathFormula());
           invariants.add(Pair.of(invariant, location));
           logger.log(Level.FINEST, "Invariant for location", location, "is", invariant);
         }
@@ -769,7 +764,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       boolean wasSuccessful =
           !from(invariants)
               .transform(Pair::getFirst)
-              .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
+              .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeTrue()));
 
       if (wasSuccessful) {
         from(invariants).transform(Pair::getFirst).copyInto(foundInvariants);
@@ -816,7 +811,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         boolean wasSuccessful =
             !from(invariants)
                 .transform(Pair::getFirst)
-                .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeBoolean(true)));
+                .allMatch(equalTo(fmgr.getBooleanFormulaManager().makeTrue()));
         if (wasSuccessful) {
           for (Pair<BooleanFormula, CFANode> invariant : invariants) {
             addResultToCache(fmgr.uninstantiate(invariant.getFirst()), invariant.getSecond());
@@ -899,7 +894,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   // the prefix is not filled up with trues if it is shorter than
                   // the path so we need to do it ourselves
                   while (pathFormula.size() < abstractionStatesTrace.size()) {
-                    pathFormula.add(bfmgr.makeBoolean(true));
+                    pathFormula.add(bfmgr.makeTrue());
                   }
                   interpolants =
                       imgr.buildCounterexampleTrace(
@@ -918,16 +913,14 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                 List<CandidateInvariant> invCandidates = new ArrayList<>();
                 // add false as last interpolant for the error location
                 interpolants = new ArrayList<>(interpolants);
-                interpolants.add(bfmgr.makeBoolean(false));
+                interpolants.add(bfmgr.makeFalse());
 
                 for (Pair<CFANode, BooleanFormula> nodeAndFormula :
                     Pair.<CFANode, BooleanFormula>zipList(abstractionNodes, interpolants)) {
                   invCandidates.add(
                       makeLocationInvariant(
                           nodeAndFormula.getFirst(),
-                          solver
-                              .getFormulaManager()
-                              .dumpFormula(nodeAndFormula.getSecond())
+                          fmgr.dumpFormula(fmgr.uninstantiate(nodeAndFormula.getSecond()))
                               .toString()));
                 }
                 return invCandidates;
@@ -997,11 +990,11 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                                   Level.WARNING,
                                   e,
                                   "Invariant could not be" + " retrieved from InvariantGenerator");
-                              return fmgr.getBooleanFormulaManager().makeBoolean(true);
+                              return fmgr.getBooleanFormulaManager().makeTrue();
                             }
                           }
                         })
-                    .or(fmgr.getBooleanFormulaManager().makeBoolean(true)),
+                    .or(fmgr.getBooleanFormulaManager().makeTrue()),
                 node));
       }
 
@@ -1055,6 +1048,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     }
 
     @Override
+    @FormatMethod
     public void logf(Level pPriority, String pFormat, Object... pArgs) {
       if (wouldBeLogged(pPriority)) {
         logger.logf(pPriority, pFormat, pArgs);
@@ -1096,7 +1090,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         new StatCounter("Invariant generation tries finishing in time");
 
     @Override
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       StatisticsWriter w0 = writingStatisticsTo(out);
 
       int numberOfInvGenTries = totalInvGenTries.getUpdateCount();
@@ -1135,6 +1129,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+    semiCNFConverter.collectStatistics(pStatsCollection);
   }
 
 }

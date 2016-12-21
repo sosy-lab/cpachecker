@@ -4,35 +4,55 @@
   <option name="-heap">13000M</option>
   <option name="-noout"/>
 
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
   <tasks name="BitVectors">
-    <includesfile>../programs/benchmarks/BitVectorsReach.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDrivers64">
-    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <exclude reason="timeout or recursive task">../programs/benchmarks/ldv-linux-4.2-rc1/*</exclude>
+    <exclude reason="timeout or recursive task">../programs/benchmarks/ldv-linux-3.16-rc1/205_9a_array_*safes_linux-3.16-rc1.tar.xz-205_9a-drivers--net*</exclude>
+    <exclude reason="timeout or recursive task">../programs/benchmarks/ldv-linux-3.14/linux-3.14__complex_emg__linux-usb-dev__*</exclude>
     <option name="-64"/>
   </tasks>
   <tasks name="ECA">
-    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem07_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem08_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem09_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem11_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem12_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem13_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem14_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem16_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem17_*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem19_*</exclude>
   </tasks>
   <tasks name="HeapManipulation">
-    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
-    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
-    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <exclude reason="timeout">../programs/benchmarks/product-lines/elevator*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/product-lines/email_spec3*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/product-lines/email_spec4*</exclude>
   </tasks>
   <tasks name="Sequentialized">
-    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-  </tasks>
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+    <exclude reason="timeout">../programs/benchmarks/seq-mthreaded/pals*</exclude>
   </tasks>
 
   <rundefinition>

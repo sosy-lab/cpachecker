@@ -31,7 +31,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
  * In the cfa, every method invocation in an expression is transformed to have its
  * own JMethodInvocationAssignmentStatement and a temporary variable to simplify analysis.
  */
-public class JMethodInvocationAssignmentStatement extends AFunctionCallAssignmentStatement implements JAssignment, JStatement, JMethodOrConstructorInvocation {
+public final class JMethodInvocationAssignmentStatement extends AFunctionCallAssignmentStatement
+    implements JAssignment, JStatement, JMethodOrConstructorInvocation {
 
   public JMethodInvocationAssignmentStatement(FileLocation pFileLocation, JLeftHandSide pLeftHandSide,
       JMethodInvocationExpression pRightHandSide) {

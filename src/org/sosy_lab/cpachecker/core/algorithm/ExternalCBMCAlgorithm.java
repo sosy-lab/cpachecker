@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -31,7 +32,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -46,10 +46,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CBMCExecutor;
-
-import com.google.common.collect.ImmutableSet;
 
 @Options()
 public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
@@ -149,6 +148,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     paramsList.add(Integer.toString(unwind));
     paramsList.add("--error-label");
     paramsList.add(errorLabel);
+    paramsList.add("--stop-on-fail");
 
     if (noUnwindingAssertions) {
       paramsList.add("--no-unwinding-assertions");
@@ -173,7 +173,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("Time for running CBMC: " + cbmcTime);
     }
   }

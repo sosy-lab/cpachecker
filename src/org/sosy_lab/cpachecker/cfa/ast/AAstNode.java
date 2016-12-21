@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
+
 public interface AAstNode {
 
   public FileLocation getFileLocation();
@@ -31,4 +34,20 @@ public interface AAstNode {
 
   public String toParenthesizedASTString() ;
 
+  /**
+   * Accept methods for visitors that works with AST nodes of all languages.
+   * It requires a visitor that implements the respective visitor interfaces
+   * for all languages.
+   * If you can, do not call this method but one of the normal "accept" methods.
+   * @param v The visitor.
+   * @return Returns the object returned by the visit method.
+   */
+  <
+          R,
+          R1 extends R,
+          R2 extends R,
+          X1 extends Exception,
+          X2 extends Exception,
+          V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2>>
+      R accept_(V v) throws X1, X2;
 }

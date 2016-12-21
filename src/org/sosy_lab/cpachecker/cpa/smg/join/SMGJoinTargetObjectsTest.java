@@ -43,15 +43,15 @@ public class SMGJoinTargetObjectsTest {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
-  final private SMGObject obj1 = new SMGRegion(8, "ze label");
+  final private SMGObject obj1 = new SMGRegion(64, "ze label");
   final private Integer value1 = SMGValueFactory.getNewValue();
   final private SMGEdgePointsTo pt1 = new SMGEdgePointsTo(value1, obj1, 0);
 
-  final private SMGObject obj2 = new SMGRegion(8, "ze label");
+  final private SMGObject obj2 = new SMGRegion(64, "ze label");
   final private Integer value2 = SMGValueFactory.getNewValue();
   final private SMGEdgePointsTo pt2 = new SMGEdgePointsTo(value2, obj2, 0);
 
-  final private SMGObject destObj = new SMGRegion(8, "destination");
+  final private SMGObject destObj = new SMGRegion(64, "destination");
 
   @Before
   public void setUp() {

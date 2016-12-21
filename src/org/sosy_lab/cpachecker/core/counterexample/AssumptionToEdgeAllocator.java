@@ -29,7 +29,20 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -101,27 +114,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Creates assumption along an error path based on a given {@link CFAEdge} edge
@@ -1336,7 +1334,7 @@ public class AssumptionToEdgeAllocator {
         return createUnknownValueLiterals();
       }
 
-      ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address);
+      ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address, machineModel);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
@@ -1357,7 +1355,7 @@ public class AssumptionToEdgeAllocator {
         return createUnknownValueLiterals();
       }
 
-      valueLiteral = ExplicitValueLiteral.valueOf(address);
+      valueLiteral = ExplicitValueLiteral.valueOf(address, machineModel);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
@@ -1422,7 +1420,7 @@ public class AssumptionToEdgeAllocator {
         return createUnknownValueLiterals();
       }
 
-      ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address);
+      ValueLiteral valueLiteral = ExplicitValueLiteral.valueOf(address, machineModel);
 
       ValueLiterals valueLiterals = new ValueLiterals(valueLiteral);
 
@@ -1535,16 +1533,15 @@ public class AssumptionToEdgeAllocator {
     }
 
     /**
-     * Creates a value literal for the given value and adds a cast if the value
-     * does not fit into the specified type.
+     * Creates a value literal for the given value or computes its wrap-around if it does not fit
+     * into the specified type.
      *
      * @param pIntegerValue the value.
      * @param pType the type.
-     *
      * @return the value literal.
      */
-    private ValueLiteral handlePotentialIntegerOverflow(BigInteger pIntegerValue, CSimpleType pType) {
-      ValueLiteral result = ExplicitValueLiteral.valueOf(pIntegerValue, pType);
+    private ValueLiteral handlePotentialIntegerOverflow(
+        BigInteger pIntegerValue, CSimpleType pType) {
 
       BigInteger lowerInclusiveBound = machineModel.getMinimalIntegerValue(pType);
       BigInteger upperInclusiveBound = machineModel.getMaximalIntegerValue(pType);
@@ -1556,10 +1553,28 @@ public class AssumptionToEdgeAllocator {
         if (assumeLinearArithmetics) {
           return UnknownValueLiteral.getInstance();
         }
-        result = result.addCast(pType);
+        LogManagerWithoutDuplicates logManager =
+            logger instanceof LogManagerWithoutDuplicates
+                ? (LogManagerWithoutDuplicates) logger
+                : new LogManagerWithoutDuplicates(logger);
+        Value value =
+            ExpressionValueVisitor.castCValue(
+                new NumericValue(pIntegerValue),
+                pType,
+                machineModel,
+                logManager,
+                FileLocation.DUMMY);
+        Number number = value.asNumericValue().getNumber();
+        final BigInteger valueAsBigInt;
+        if (number instanceof BigInteger) {
+          valueAsBigInt = (BigInteger) number;
+        } else {
+          valueAsBigInt = BigInteger.valueOf(number.longValue());
+        }
+        return ExplicitValueLiteral.valueOf(valueAsBigInt, pType);
       }
 
-      return result;
+      return ExplicitValueLiteral.valueOf(pIntegerValue, pType);
     }
 
     /**
@@ -1708,7 +1723,7 @@ public class AssumptionToEdgeAllocator {
             return;
           }
 
-          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
+          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress, machineModel);
         }
 
         Pair<CType, Address> visits = Pair.of(expectedType, fieldAddress);
@@ -1798,7 +1813,7 @@ public class AssumptionToEdgeAllocator {
             return false;
           }
 
-          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
+          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress, machineModel);
         }
 
         if (!valueLiteral.isUnknown()) {
@@ -1859,7 +1874,7 @@ public class AssumptionToEdgeAllocator {
             return null;
           }
 
-          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
+          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress, machineModel);
         }
 
         if (!valueLiteral.isUnknown()) {
@@ -1982,7 +1997,7 @@ public class AssumptionToEdgeAllocator {
             return;
           }
 
-          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress);
+          valueLiteral = ExplicitValueLiteral.valueOf(valueAddress, machineModel);
         }
 
 
@@ -2089,7 +2104,7 @@ public class AssumptionToEdgeAllocator {
       explicitValueLiteral = pValueLiteral;
     }
 
-    public static ValueLiteral valueOf(Address address) {
+    public static ValueLiteral valueOf(Address address, MachineModel pMachineModel) {
 
       if (address.isUnknown() || address.isSymbolic()) {
         return UnknownValueLiteral.getInstance();
@@ -2097,8 +2112,14 @@ public class AssumptionToEdgeAllocator {
 
       BigInteger value = address.getAddressValue();
 
-      CLiteralExpression lit = new CIntegerLiteralExpression(
-          FileLocation.DUMMY, CNumericTypes.LONG_LONG_INT, value);
+      CSimpleType type = CNumericTypes.LONG_LONG_INT;
+
+      BigInteger upperInclusiveBound = pMachineModel.getMaximalIntegerValue(type);
+      if (upperInclusiveBound.compareTo(value) < 0) {
+        type = CNumericTypes.UNSIGNED_LONG_LONG_INT;
+      }
+
+      CLiteralExpression lit = new CIntegerLiteralExpression(FileLocation.DUMMY, type, value);
       return new ExplicitValueLiteral(lit);
     }
 

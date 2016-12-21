@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor.ToFormulaExcept
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -111,12 +111,12 @@ public class ToFormulaVisitor
 
   @Override
   protected BooleanFormula cacheMissTrue() {
-    return formulaManagerView.getBooleanFormulaManager().makeBoolean(true);
+    return formulaManagerView.getBooleanFormulaManager().makeTrue();
   }
 
   @Override
   protected BooleanFormula cacheMissFalse() {
-    return formulaManagerView.getBooleanFormulaManager().makeBoolean(false);
+    return formulaManagerView.getBooleanFormulaManager().makeFalse();
   }
 
   public static class ToFormulaException extends Exception {

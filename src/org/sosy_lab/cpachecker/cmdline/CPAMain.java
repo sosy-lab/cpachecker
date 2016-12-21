@@ -26,12 +26,28 @@ package org.sosy_lab.cpachecker.cmdline;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.io.StringWriter;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.matheclipse.core.util.WriterOutputStream;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -56,24 +72,12 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.mav.ConditionalMAVListener;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.StringWriter;
-import java.net.URISyntaxException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Locale;
-import java.util.Map;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 public class CPAMain {
 
@@ -90,11 +94,13 @@ public class CPAMain {
     Configuration cpaConfig = null;
     LoggingOptions logOptions;
     String outputDirectory = null;
+    Set<SpecificationProperty> properties = null;
     try {
       try {
-        Pair<Configuration, String> p = createConfiguration(args);
-        cpaConfig = p.getFirst();
-        outputDirectory = p.getSecond();
+        Config p = createConfiguration(args);
+        cpaConfig = p.configuration;
+        outputDirectory = p.outputPath;
+        properties = p.properties;
       } catch (InvalidCmdlineArgumentException e) {
         ERROR_OUTPUT.println("Could not process command line arguments: " + e.getMessage());
         System.exit(ERROR_EXIT_CODE);
@@ -136,7 +142,7 @@ public class CPAMain {
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
 
-      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownManager);
+      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownManager, properties);
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
@@ -226,6 +232,34 @@ public class CPAMain {
 
     @Option(
       secure = true,
+      name = "witness.validation.file",
+      description = "The witness to validate."
+    )
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path witness = null;
+
+    @Option(
+      secure = true,
+      name = "witness.validation.violation.config",
+      description =
+          "When validating a violation witness, "
+              + "use this configuration file instead of the current one."
+    )
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path violationWitnessValidationConfig = null;
+
+    @Option(
+      secure = true,
+      name = "witness.validation.correctness.config",
+      description =
+          "When validating a correctness witness, "
+              + "use this configuration file instead of the current one."
+    )
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path correctnessWitnessValidationConfig = null;
+
+    @Option(
+      secure = true,
       name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
       description = "all used options are printed"
     )
@@ -276,13 +310,15 @@ public class CPAMain {
   }
 
   /**
-   * Parse the command line, read the configuration file,
-   * and setup the program-wide base paths.
-   * @return A Configuration object and the output directory.
+   * Parse the command line, read the configuration file, and setup the program-wide base paths.
+   *
+   * @return A Configuration object, the output directory, and the specification properties.
    */
-  private static Pair<Configuration, String> createConfiguration(String[] args) throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException {
+  private static Config createConfiguration(String[] args)
+      throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException {
     // if there are some command line arguments, process them
-    Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
+    Set<SpecificationProperty> properties = Sets.newHashSetWithExpectedSize(1);
+    Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args, properties);
 
     boolean secureMode = cmdLineOptions.remove(CmdLineArguments.SECURE_MODE_OPTION) != null;
     if (secureMode) {
@@ -311,55 +347,109 @@ public class CPAMain {
     // Check if we should switch to another config because we are analyzing memsafety properties.
     BootstrapOptions options = new BootstrapOptions();
     config.inject(options);
+    Consumer<ConfigurationBuilder> witnessFileOptionSetter = builder -> {};
+    if (options.witness != null) {
+      WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
+      ConfigurationBuilder witnessConfigBuilder = Configuration.builder();
+      final Path validationConfigFile;
+      switch (witnessType) {
+        case ERROR_WITNESS:
+          validationConfigFile = options.violationWitnessValidationConfig;
+          witnessFileOptionSetter =
+              builder -> {
+                String specificationOptionName = "specification";
+                String specs = cmdLineOptions.get(specificationOptionName);
+                specs = Joiner.on(',').join(specs, options.witness.toString());
+                builder.setOption(specificationOptionName, specs);
+              };
+          break;
+        case PROOF_WITNESS:
+          validationConfigFile = options.correctnessWitnessValidationConfig;
+          witnessFileOptionSetter =
+              builder ->
+                  builder.setOption(
+                      "invariantGeneration.kInduction.invariantsAutomatonFile",
+                      options.witness.toString());
+          break;
+        default:
+          throw new InvalidConfigurationException(
+              "Witness type "
+                  + witnessType
+                  + " of witness "
+                  + options.witness
+                  + " is not supported");
+      }
+      if (validationConfigFile == null) {
+        throw new InvalidConfigurationException(
+            "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
+      }
+      witnessConfigBuilder.loadFromFile(validationConfigFile);
+      witnessConfigBuilder
+          .setOptions(cmdLineOptions)
+          .clearOption("witness.validation.file")
+          .clearOption("witness.validation.violation.config")
+          .clearOption("witness.validation.correctness.config")
+          .clearOption("output.path")
+          .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(witnessConfigBuilder);
+      config = witnessConfigBuilder.build();
+      config.inject(options);
+    }
     if (options.checkMemsafety) {
       if (options.memsafetyConfig == null) {
         throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
       }
-      config = Configuration.builder()
-                            .loadFromFile(options.memsafetyConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("memorysafety.check")
-                            .clearOption("memorysafety.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
+      ConfigurationBuilder builder =
+          Configuration.builder()
+              .loadFromFile(options.memsafetyConfig)
+              .setOptions(cmdLineOptions)
+              .clearOption("memorysafety.check")
+              .clearOption("memorysafety.config")
+              .clearOption("output.disable")
+              .clearOption("output.path")
+              .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(builder);
+      config = builder.build();
     }
     if (options.checkOverflow) {
       if (options.overflowConfig == null) {
         throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
       }
-      config = Configuration.builder()
-                            .loadFromFile(options.overflowConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("overflow.check")
-                            .clearOption("overflow.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
+      ConfigurationBuilder builder =
+          Configuration.builder()
+              .loadFromFile(options.overflowConfig)
+              .setOptions(cmdLineOptions)
+              .clearOption("overflow.check")
+              .clearOption("overflow.config")
+              .clearOption("output.disable")
+              .clearOption("output.path")
+              .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(builder);
+      config = builder.build();
     }
     if (options.checkTermination) {
       if (options.terminationConfig == null) {
         throw new InvalidConfigurationException(
             "Verifying termination is not supported if option termination.config is not specified.");
       }
-      config = Configuration.builder()
-                            .loadFromFile(options.terminationConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("termination.check")
-                            .clearOption("termination.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
+      ConfigurationBuilder builder =
+          Configuration.builder()
+              .loadFromFile(options.terminationConfig)
+              .setOptions(cmdLineOptions)
+              .clearOption("termination.check")
+              .clearOption("termination.config")
+              .clearOption("output.disable")
+              .clearOption("output.path")
+              .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(builder);
+      config = builder.build();
     }
 
     if (options.printUsedOptions) {
       config.dumpUsedOptionsTo(System.out);
     }
 
-    return Pair.of(config, outputDirectory);
+    return new Config(config, outputDirectory, properties);
   }
 
   private static Pair<Configuration, String> setupPaths(Configuration pConfig,
@@ -431,7 +521,7 @@ public class CPAMain {
 
       stream.flush();
     } catch (Throwable t) {
-      closer.rethrow(t);
+      throw closer.rethrow(t);
 
     } finally {
       closer.close();
@@ -481,4 +571,20 @@ public class CPAMain {
   }
 
   private CPAMain() { } // prevent instantiation
+
+  private static class Config {
+
+    private final Configuration configuration;
+
+    private final String outputPath;
+
+    private final Set<SpecificationProperty> properties;
+
+    public Config(
+        Configuration pConfiguration, String pOutputPath, Set<SpecificationProperty> pProperties) {
+      configuration = pConfiguration;
+      outputPath = pOutputPath;
+      properties = ImmutableSet.copyOf(pProperties);
+    }
+  }
 }

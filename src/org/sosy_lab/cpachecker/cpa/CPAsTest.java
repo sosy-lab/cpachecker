@@ -30,7 +30,13 @@ import static com.google.common.truth.TruthJUnit.assume;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
-
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -71,16 +77,7 @@ import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompa
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.cpachecker.util.predicates.smt.SolverFactory;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RunWith(Parameterized.class)
 public class CPAsTest {
@@ -97,7 +94,7 @@ public class CPAsTest {
             .filter(ConfigurableProgramAnalysis.class::isAssignableFrom)
             .filter(candidate -> !candidate.isAnnotationPresent(Unmaintained.class))
             .filter(candidate -> !candidate.getPackage().isAnnotationPresent(Unmaintained.class))
-            .collect(Collectors.toCollection(() -> new HashSet<>()));
+            .collect(Collectors.toCollection(HashSet::new));
 
     // Filter CPAs that need child CPAs.
     cpas.remove(ARGCPA.class);
@@ -150,7 +147,7 @@ public class CPAsTest {
     tempFolder.newFile("immediatechecks.conf");
 
     cfa =
-        TestDataTools.toCFA(
+        TestDataTools.toSingleFunctionCFA(
             new CFACreator(config, logManager, shutdownNotifier),
             "  int a;",
             "  a = 1;",
@@ -177,7 +174,6 @@ public class CPAsTest {
               .set(cfa, CFA.class)
               .set(Specification.alwaysSatisfied(), Specification.class)
               .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
-              .set(new SolverFactory(), SolverFactory.class)
               .createInstance();
     } catch (LinkageError e) {
       assume().fail(e.getMessage());

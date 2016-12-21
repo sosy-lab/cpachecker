@@ -24,7 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.targetreachability;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,61 +36,35 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
-
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 /**
  * CPA which marks the nodes as skippable if they are not backwards reachable
  * from the target state.
  */
-@Options(prefix="cpa.property_reachability")
-public class TargetReachabilityCPA extends SingleEdgeTransferRelation
-    implements ConfigurableProgramAnalysis,
-               StatisticsProvider,
-               Statistics {
+@Options(prefix = "cpa.property_reachability")
+public class TargetReachabilityCPA extends AbstractCPA implements StatisticsProvider, Statistics {
   @Option(secure=true, description="Do not follow states which can not "
       + "syntactically lead to a target location")
   private boolean noFollowBackwardsUnreachable = true;
 
   private final Timer backwardsReachability = new Timer();
   private final ImmutableSet<CFANode> targetReachableFrom;
-
-  private final AbstractDomain abstractDomain;
-  private final MergeOperator mergeOperator;
-  private final StopOperator stopOperator;
 
   private TargetReachabilityCPA(
       Configuration pConfig,
@@ -96,12 +73,20 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
       CFA pCfa,
       Specification pSpecification)
       throws InvalidConfigurationException {
+    super(
+        "join",
+        "sep",
+        new FlatLatticeDomain(ReachabilityState.RELEVANT_TO_TARGET),
+        null /* never used */);
     pConfig.inject(this);
+    targetReachableFrom = getReachableNodes(shutdownNotifier, pLogger, pCfa, pSpecification);
+  }
 
-    abstractDomain = new FlatLatticeDomain(ReachabilityState.RELEVANT_TO_TARGET);
-    mergeOperator = new MergeJoinOperator(abstractDomain);
-    stopOperator = new StopSepOperator(abstractDomain);
-
+  private ImmutableSet<CFANode> getReachableNodes(
+      ShutdownNotifier shutdownNotifier,
+      LogManager pLogger,
+      CFA pCfa,
+      Specification pSpecification) {
     TargetLocationProvider targetProvider =
         new TargetLocationProviderImpl(shutdownNotifier, pLogger, pCfa);
     if (noFollowBackwardsUnreachable) {
@@ -117,9 +102,9 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
       } finally {
         backwardsReachability.stop();
       }
-      targetReachableFrom = builder.build();
+      return builder.build();
     } else {
-      targetReachableFrom = ImmutableSet.copyOf(pCfa.getAllNodes());
+      return ImmutableSet.copyOf(pCfa.getAllNodes());
     }
   }
 
@@ -128,28 +113,8 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
-  }
-
-  @Override
   public TransferRelation getTransferRelation() {
-    return this;
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return mergeOperator;
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return stopOperator;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
+    return new TargetReachabilityTransferRelation(targetReachableFrom);
   }
 
   @Override
@@ -159,30 +124,12 @@ public class TargetReachabilityCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public Precision getInitialPrecision(
-      CFANode node, StateSpacePartition partition) {
-    return SingletonPrecision.getInstance();
-  }
-
-  @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState state, Precision precision, CFAEdge cfaEdge)
-      throws CPATransferException, InterruptedException {
-    if (targetReachableFrom.contains(cfaEdge.getSuccessor())) {
-      return Collections.singleton(ReachabilityState.RELEVANT_TO_TARGET);
-    } else {
-      return Collections.singleton(ReachabilityState.IRRELEVANT_TO_TARGET);
-    }
-  }
-
-  @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(this);
   }
 
   @Override
-  public void printStatistics(
-      PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     out.println(
         "Time spent in pre-calculating backwards-reachable nodes: "
             + backwardsReachability.prettyFormat());

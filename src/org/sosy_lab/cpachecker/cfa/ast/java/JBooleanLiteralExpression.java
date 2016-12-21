@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 
-import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+
+import java.util.Objects;
 
 /**
  * This class represents the boolean literal AST node type.
@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  *   false
  *
  */
-public class JBooleanLiteralExpression extends ALiteralExpression implements JLiteralExpression {
+public final class JBooleanLiteralExpression extends ALiteralExpression
+    implements JLiteralExpression {
 
-
-  final Boolean value;
+  private final Boolean value;
 
   public JBooleanLiteralExpression(FileLocation pFileLocation,  boolean pValue) {
     super(pFileLocation, JSimpleType.getBoolean());
@@ -66,11 +66,6 @@ public class JBooleanLiteralExpression extends ALiteralExpression implements JLi
   @Override
   public JType getExpressionType() {
     return (JType) super.getExpressionType();
-  }
-
-  @Override
-  public <R, X extends Exception> R accept(JRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
   }
 
   @Override

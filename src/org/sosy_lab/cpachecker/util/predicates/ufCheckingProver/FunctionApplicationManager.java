@@ -26,10 +26,10 @@ package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 import java.math.BigInteger;
 import java.util.logging.Level;
@@ -97,7 +97,7 @@ public class FunctionApplicationManager {
     }
 
     logger.logf(Level.ALL, "ignoring UF '%s' with value '%s'.", entry, value);
-    return fmgr.getBooleanFormulaManager().makeBoolean(true);
+    return fmgr.getBooleanFormulaManager().makeTrue();
   }
 
   /** if the new valid result is equal to the old value, we return just TRUE, else we return the new assignment. */
@@ -106,7 +106,7 @@ public class FunctionApplicationManager {
       logger.logf(Level.ALL, "replacing UF '%s' with value '%s' through '%s'.", uf, value, newAssignment);
       return newAssignment;
     } else {
-      return fmgr.getBooleanFormulaManager().makeBoolean(true);
+      return fmgr.getBooleanFormulaManager().makeTrue();
     }
   }
 
@@ -132,7 +132,7 @@ public class FunctionApplicationManager {
 
       if (validResult == null) {
         // evaluation not possible, ignore UF
-        return fmgr.getBooleanFormulaManager().makeBoolean(true);
+        return fmgr.getBooleanFormulaManager().makeTrue();
       }
 
       Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUF(
@@ -165,7 +165,7 @@ public class FunctionApplicationManager {
 
       if (validResult == null) {
         // evaluation not possible, ignore UF
-        return fmgr.getBooleanFormulaManager().makeBoolean(true);
+        return fmgr.getBooleanFormulaManager().makeTrue();
       }
 
       Formula uf = fmgr.getFunctionFormulaManager().declareAndCallUF(

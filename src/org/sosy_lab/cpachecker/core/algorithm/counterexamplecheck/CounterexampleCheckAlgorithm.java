@@ -27,7 +27,15 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import com.google.common.base.Predicates;
-
+import com.google.common.collect.ImmutableList;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,31 +45,26 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.logging.Level;
-
-@Options(prefix="counterexample")
-public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvider, Statistics {
+@Options(prefix = "counterexample")
+public class CounterexampleCheckAlgorithm
+    implements Algorithm, StatisticsProvider, Statistics, ReachedSetUpdater {
 
   enum CounterexampleCheckerType {
     CBMC, CPACHECKER, CONCRETE_EXECUTION;
@@ -82,14 +85,21 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
                     + "checker can be used.")
   private CounterexampleCheckerType checkerType = CounterexampleCheckerType.CBMC;
 
-  public CounterexampleCheckAlgorithm(Algorithm algorithm,
-      ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA cfa, String filename) throws InvalidConfigurationException {
+  public CounterexampleCheckAlgorithm(
+      Algorithm algorithm,
+      ConfigurableProgramAnalysis pCpa,
+      Configuration config,
+      Specification pSpecification,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA cfa,
+      String filename)
+      throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;
-    config.inject(this);
+    config.inject(this, CounterexampleCheckAlgorithm.class);
 
-    if (!(pCpa instanceof ARGCPA)) {
+    if (!(pCpa instanceof ARGCPA || pCpa instanceof BAMCPA)) {
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
 
@@ -97,9 +107,11 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     case CBMC:
       checker = new CBMCChecker(config, logger, cfa);
       break;
-    case CPACHECKER:
-      checker = new CounterexampleCPAChecker(config, logger, pShutdownNotifier, cfa, filename);
-      break;
+      case CPACHECKER:
+        checker =
+            new CounterexampleCPAChecker(
+                config, pSpecification, logger, pShutdownNotifier, cfa, filename);
+        break;
     case CONCRETE_EXECUTION:
       checker = new ConcretePathExecutionChecker(config, logger, cfa);
       break;
@@ -118,15 +130,19 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
 
       ARGState lastState = (ARGState)reached.getLastState();
 
-      Deque<ARGState> errorStates = new ArrayDeque<>();
+      final List<ARGState> errorStates;
       if (lastState != null && lastState.isTarget()) {
-        errorStates.add(lastState);
+        errorStates =
+            checkedTargetStates.contains(lastState)
+                ? ImmutableList.of()
+                : ImmutableList.of(lastState);
       } else {
-        from(reached)
-          .transform(AbstractStates.toState(ARGState.class))
-          .filter(AbstractStates.IS_TARGET_STATE)
-          .filter(Predicates.not(Predicates.in(checkedTargetStates)))
-          .copyInto(errorStates);
+        errorStates =
+            from(reached)
+                .transform(AbstractStates.toState(ARGState.class))
+                .filter(AbstractStates.IS_TARGET_STATE)
+                .filter(Predicates.not(Predicates.in(checkedTargetStates)))
+                .toList();
       }
 
       if (errorStates.isEmpty()) {
@@ -138,27 +154,24 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
       checkTime.start();
       try {
         List<ARGState> infeasibleErrorPaths = new ArrayList<>();
-
         boolean foundCounterexample = false;
-        while (!errorStates.isEmpty()) {
-          ARGState errorState = errorStates.pollFirst();
-          if (!reached.contains(errorState)) {
-            // errorState was already removed due to earlier loop iterations
-            continue;
-          }
 
-          status =
-              AlgorithmStatus.SOUND_AND_PRECISE.withSound(
-                  checkCounterexample(errorState, reached, status.isSound(), infeasibleErrorPaths));
-          if (!infeasibleErrorPaths.contains(errorState)) {
+        for (ARGState errorState : errorStates) {
+          boolean counterexampleProvedFeasible = checkCounterexample(errorState, reached);
+          if (counterexampleProvedFeasible) {
             checkedTargetStates.add(errorState);
             foundCounterexample = true;
+            status = status.withPrecise(true);
+          } else {
+            infeasibleErrorPaths.add(errorState);
+            status = status.withSound(false);
           }
         }
 
         if (foundCounterexample) {
           break;
-        } else if (!infeasibleErrorPaths.isEmpty()) {
+        } else {
+          assert !infeasibleErrorPaths.isEmpty();
           throw new InfeasibleCounterexampleException(
               "Error path found, but identified as infeasible by counterexample check with "
                   + checkerType
@@ -172,34 +185,45 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
     return status;
   }
 
-  private boolean checkCounterexample(
-      ARGState errorState, ReachedSet reached, boolean sound, List<ARGState> pInfeasibleErrorStates)
+  private boolean checkCounterexample(ARGState errorState, ReachedSet reached)
       throws InterruptedException {
-    ARGState rootState = (ARGState)reached.getFirstState();
-
-    Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
 
     logger.log(Level.INFO, "Error path found, starting counterexample check with " + checkerType + ".");
-    boolean feasibility;
+    final boolean feasibility;
     try {
-      feasibility = checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
+      feasibility = checkErrorPaths(checker, errorState, reached);
     } catch (CPAException e) {
       logger.logUserException(Level.WARNING, e, "Counterexample found, but feasibility could not be verified");
-      pInfeasibleErrorStates.add(errorState);
       return false;
     }
 
     if (feasibility) {
       logger.log(Level.INFO, "Error path found and confirmed by counterexample check with " + checkerType + ".");
-      return sound;
 
     } else {
       numberOfInfeasiblePaths++;
       logger.log(Level.INFO, "Error path found but identified as infeasible.");
-      pInfeasibleErrorStates.add(errorState);
     }
+    return feasibility;
+  }
 
-    return false;
+  /**
+   * check whether there is a feasible counterexample in the reachedset.
+   *
+   * @param checker executes a precise counterexample-check
+   * @param errorState where the counterexample ends
+   * @param reached all reached states of the analysis, some of the states are part of the CEX path
+   */
+  protected boolean checkErrorPaths(
+      CounterexampleChecker checker,
+      ARGState errorState,
+      @SuppressWarnings("unused") ReachedSet reached)
+      throws CPAException, InterruptedException {
+
+    ARGState rootState = (ARGState) reached.getFirstState();
+    Set<ARGState> statesOnErrorPath = ARGUtils.getAllStatesOnPathsTo(errorState);
+
+    return checker.checkCounterexample(rootState, errorState, statesOnErrorPath);
   }
 
   @Override
@@ -211,8 +235,7 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result pResult,
-      ReachedSet pReached) {
+  public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
 
     out.println("Number of counterexample checks:    " + checkTime.getNumberOfIntervals());
     if (checkTime.getNumberOfIntervals() > 0) {
@@ -227,5 +250,19 @@ public class CounterexampleCheckAlgorithm implements Algorithm, StatisticsProvid
   @Override
   public String getName() {
     return "Counterexample-Check Algorithm";
+  }
+
+  @Override
+  public void register(ReachedSetUpdateListener pReachedSetUpdateListener) {
+    if (algorithm instanceof ReachedSetUpdater) {
+      ((ReachedSetUpdater) algorithm).register(pReachedSetUpdateListener);
+    }
+  }
+
+  @Override
+  public void unregister(ReachedSetUpdateListener pReachedSetUpdateListener) {
+    if (algorithm instanceof ReachedSetUpdater) {
+      ((ReachedSetUpdater) algorithm).unregister(pReachedSetUpdateListener);
+    }
   }
 }

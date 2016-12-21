@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="70 s" memlimit="5 GB" cpuCores="2">
+  <option name="-heap">4000M</option>
+  <option name="-noout"/>
+  <option name="-64"/>
+
+  <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
+
+  <tasks>  <!--  name="Termination-SV-COMP" -->
+    <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
+    <exclude>../programs/benchmarks/product-lines/*</exclude>
+    <exclude reason="flapping timeout">../programs/benchmarks/termination-memory-alloca/array02-alloca_true-termination.c.i</exclude>
+    <exclude reason="flapping timeout">../programs/benchmarks/termination-restricted-15/DivWithoutMinus_false-termination.c</exclude>
+    <exclude reason="flapping timeout">../programs/benchmarks/termination-15/array11_alloca_true-termination.c.i</exclude>
+    <exclude reason="timeout">../programs/benchmarks/termination-memory-alloca/b.*</exclude>
+    <exclude reason="timeout">../programs/benchmarks/termination-memory-alloca/c.*</exclude>
+  </tasks>
+  
+  <!--
+  <tasks name="Termination-Loop-SV-COMP">
+    <include>../programs/benchmarks/*loop*/*.i</include>
+  </tasks>
+  <tasks name="Unknown-SV-COMP">
+    <include>../programs/benchmarks/*/*unknown-termination*.i</include>
+  </tasks>
+  -->
+
+  <rundefinition> <!--  name="termination-predicate-default" -->
+    <option name="-terminationAnalysis"/>
+    <!-- SV-Comp files assume that malloc always succeeds -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <!-- __builtin_alloca is usedby some of the tasks-->
+    <option name="-setprop">cpa.predicate.memoryAllocationFunctions=malloc,__kmalloc,kmalloc,alloca,__builtin_alloca</option>
+  </rundefinition>
+  
+  <columns>
+    <column title="time for safety analysis">Total time for safety analysis</column>
+    <column title="time for lasso construction">Time for lassos construction</column>
+    <column title="time for non-termination analysis">Total time for non-termination analysis</column>
+    <column title="time for termination analysis">Total time for termination analysis</column>
+    <column title="lassos">Number of analysed lassos</column>
+  </columns>
+ 
+  
+</benchmark>

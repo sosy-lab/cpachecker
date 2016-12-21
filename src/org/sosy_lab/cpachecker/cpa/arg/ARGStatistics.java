@@ -31,33 +31,9 @@ import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
-import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -67,13 +43,36 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix="cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -104,7 +103,7 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
 
-  private final ARGCPA cpa;
+  protected final ConfigurableProgramAnalysis cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
@@ -112,18 +111,23 @@ public class ARGStatistics implements Statistics {
   private final ARGPathExporter argPathExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  private final LogManager logger;
+  protected final LogManager logger;
 
-  public ARGStatistics(Configuration config, LogManager pLogger, ARGCPA pCpa,
-      MachineModel pMachineModel, @Nullable CEXExporter pCexExporter,
-      ARGPathExporter pARGPathExporter) throws InvalidConfigurationException {
-    config.inject(this);
+  public ARGStatistics(
+      Configuration config,
+      LogManager pLogger,
+      ConfigurableProgramAnalysis pCpa,
+      Specification pSpecification,
+      CFA cfa)
+      throws InvalidConfigurationException {
+    config.inject(this, ARGStatistics.class); // needed for sub-classes
 
     logger = pLogger;
     cpa = pCpa;
-    assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, pMachineModel);
-    cexExporter = pCexExporter;
-    argPathExporter = pARGPathExporter;
+    assumptionToEdgeAllocator =
+        new AssumptionToEdgeAllocator(config, logger, cfa.getMachineModel());
+    cexExporter = new CEXExporter(config, logger, cfa, pSpecification, cpa);
+    argPathExporter = new ARGPathExporter(config, logger, pSpecification, cfa);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
       exportARG = false;
@@ -172,22 +176,21 @@ public class ARGStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream pOut, Result pResult,
-      ReachedSet pReached) {
-    if (cexExporter == null && !exportARG) {
+  public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+    if (cexExporter.dumpErrorPathImmediately() && !exportARG) {
       return;
     }
 
     final Map<ARGState, CounterexampleInfo> counterexamples = getAllCounterexamples(pReached);
 
-    if (cexExporter != null) {
+    if (!cexExporter.dumpErrorPathImmediately() && pResult == Result.FALSE) {
       for (Map.Entry<ARGState, CounterexampleInfo> cex : counterexamples.entrySet()) {
         cexExporter.exportCounterexample(cex.getKey(), cex.getValue());
       }
     }
 
     if (exportARG) {
-      exportARG(pReached, counterexamples);
+      exportARG(pReached, counterexamples, pResult);
     }
   }
 
@@ -210,8 +213,10 @@ public class ARGStatistics implements Statistics {
     return Paths.get(prefix + "-" + partitionKey + extension);
   }
 
-  private void exportARG(UnmodifiableReachedSet pReached,
-      final Map<ARGState, CounterexampleInfo> counterexamples) {
+  private void exportARG(
+      UnmodifiableReachedSet pReached,
+      final Map<ARGState, CounterexampleInfo> counterexamples,
+      Result pResult) {
     final Set<Pair<ARGState, ARGState>> allTargetPathEdges = new HashSet<>();
     for (CounterexampleInfo cex : counterexamples.values()) {
       allTargetPathEdges.addAll(cex.getTargetPath().getStatePairs());
@@ -219,25 +224,30 @@ public class ARGStatistics implements Statistics {
 
     // The state space might be partitioned ...
     // ... so we would export a separate ARG for each partition ...
-    boolean partitionedArg = AbstractStates.extractStateByType(
-        pReached.getFirstState(), PartitionState.class) != null;
+    boolean partitionedArg =
+        pReached.isEmpty()
+            || AbstractStates.extractStateByType(pReached.getFirstState(), PartitionState.class)
+                != null;
 
     final Set<ARGState> rootStates = partitionedArg
         ? ARGUtils.getRootStates(pReached)
         : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState: rootStates) {
-      exportARG0(rootState, Predicates.in(allTargetPathEdges));
+      exportARG0(rootState, Predicates.in(allTargetPathEdges), pResult);
     }
   }
 
   @SuppressWarnings("try")
-  private void exportARG0(final ARGState rootState, final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge) {
+  private void exportARG0(
+      final ARGState rootState,
+      final Predicate<Pair<ARGState, ARGState>> isTargetPathEdge,
+      Result pResult) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
 
-    if (proofWitness != null) {
+    if (proofWitness != null && pResult == Result.TRUE) {
       try (Writer w =
           MoreFiles.openOutputFile(
               adjustPathNameForPartitioning(rootState, proofWitness), StandardCharsets.UTF_8)) {
@@ -291,7 +301,7 @@ public class ARGStatistics implements Statistics {
   }
 
   private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final UnmodifiableReachedSet pReached) {
-    Map<ARGState, CounterexampleInfo> counterexamples = new HashMap<>();
+    ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
     for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
       ARGState s = (ARGState)targetState;
@@ -320,7 +330,7 @@ public class ARGStatistics implements Statistics {
       }
     }
 
-    return counterexamples;
+    return counterexamples.build();
   }
 
   private CFAPathWithAssumptions createAssignmentsForPath(ARGPath pPath) {
@@ -349,9 +359,16 @@ public class ARGStatistics implements Statistics {
     }
   }
 
+  public void exportCounterexampleOnTheFly(
+      ARGState pTargetState, CounterexampleInfo pCounterexampleInfo) throws InterruptedException {
+    if (cexExporter.dumpErrorPathImmediately()) {
+      cexExporter.exportCounterexampleIfRelevant(pTargetState, pCounterexampleInfo);
+    }
+  }
+
   public void printIterationStatistics(UnmodifiableReachedSet pReached) {
     if (dumpArgInEachCpaIteration) {
-      exportARG(pReached, getAllCounterexamples(pReached));
+      exportARG(pReached, getAllCounterexamples(pReached), CPAcheckerResult.Result.UNKNOWN);
     }
   }
 }

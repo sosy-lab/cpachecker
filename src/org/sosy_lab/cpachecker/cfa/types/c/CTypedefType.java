@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 /**
@@ -40,6 +39,7 @@ public final class CTypedefType implements CType, Serializable {
   private final CType realType; // the real type this typedef points to
   private boolean   isConst;
   private boolean   isVolatile;
+  private int hashCache = 0;
 
   public CTypedefType(final boolean pConst, final boolean pVolatile,
       final String pName, CType pRealType) {
@@ -50,6 +50,13 @@ public final class CTypedefType implements CType, Serializable {
     realType = checkNotNull(pRealType);
   }
 
+  @Override
+  public CType withBitFieldSize(int pBitFieldSize) {
+    if (isBitField() && getBitFieldSize() == pBitFieldSize) {
+      return this;
+    }
+    return new CTypedefType(isConst, isVolatile, name, realType.withBitFieldSize(pBitFieldSize));
+  }
   public String getName() {
     return name;
   }
@@ -69,7 +76,8 @@ public final class CTypedefType implements CType, Serializable {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + name
-        + " " + pDeclarator;
+        + " " + pDeclarator
+        + (isBitField() ? " : " + getBitFieldSize() : "");
   }
 
   @Override
@@ -94,13 +102,16 @@ public final class CTypedefType implements CType, Serializable {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(name);
-    result = prime * result + Objects.hashCode(isConst);
-    result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + Objects.hashCode(realType);
-    return result;
+    if (hashCache == 0) {
+      final int prime = 31;
+      int result = 7;
+      result = prime * result + Objects.hashCode(name);
+      result = prime * result + Objects.hashCode(isConst);
+      result = prime * result + Objects.hashCode(isVolatile);
+      result = prime * result + Objects.hashCode(realType);
+      hashCache = result;
+    }
+    return hashCache;
   }
 
   /**
@@ -121,7 +132,8 @@ public final class CTypedefType implements CType, Serializable {
     CTypedefType other = (CTypedefType) obj;
 
     return Objects.equals(name, other.name) && isConst == other.isConst
-           && isVolatile == other.isVolatile && Objects.equals(realType, other.realType);
+           && isVolatile == other.isVolatile
+           && Objects.equals(realType, other.realType);
   }
 
   @Override
@@ -132,5 +144,15 @@ public final class CTypedefType implements CType, Serializable {
   @Override
   public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
+  }
+
+  @Override
+  public boolean isBitField() {
+    return realType.isBitField();
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return realType.getBitFieldSize();
   }
 }

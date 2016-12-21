@@ -23,42 +23,74 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import java.io.Serializable;
-
 import com.google.common.annotations.VisibleForTesting;
 
-/** Class for retrieving fresh indices for an old value from an SSAMap, based on some increment. */
-public interface FreshValueProvider {
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.common.collect.PersistentSortedMaps;
 
-  /** get a new unused value based on the given one. */
-  public int getFreshValue(String variable, int value);
+import java.io.Serializable;
 
-  /** get a new provider, that is based on the current one and the given one. */
-  public FreshValueProvider merge(FreshValueProvider other);
+/**
+ * Generator of new fresh to-be-returned values for {@link SSAMap}.
+ **/
+public class FreshValueProvider implements Serializable {
 
+  private static final long serialVersionUID = 12359384095345L;
 
-  /** The default implementation returns always the old index plus default increment. */
-  public static class DefaultFreshValueProvider implements FreshValueProvider, Serializable {
+  // Default difference for two SSA-indexes of the same name.
+  @VisibleForTesting
+  static final int DEFAULT_INCREMENT = 1;
 
-    private static final long serialVersionUID = 8349867460915893626L;
-    // Default difference for two SSA-indizes of the same name.
-    @VisibleForTesting
-    public static final int DEFAULT_INCREMENT = 1;
+  private PersistentSortedMap<String, Integer> vars;
 
-    @Override
-    public int getFreshValue(String variable, int value) {
-      return value + DEFAULT_INCREMENT;
+  public FreshValueProvider() {
+    vars = PathCopyingPersistentTreeMap.of();
+  }
+
+  private FreshValueProvider(PersistentSortedMap<String, Integer> diffVars) {
+    this.vars = diffVars;
+  }
+
+  /**
+   * Get a new unused value based on the given one.
+   **/
+  int getFreshValue(String variable, int value) {
+    Integer currentValue = vars.get(variable);
+    if (currentValue != null && value < currentValue) {
+      value = currentValue;
     }
+    return value + DEFAULT_INCREMENT;
+  }
 
-    /** returns the current FreshValueProvider without a change. */
-    @Override
-    public FreshValueProvider merge(FreshValueProvider other) {
-      if (other instanceof DefaultFreshValueProvider) {
-        return this;
-      } else {
-        return other.merge(this); // endless recursion!!
-      }
+  /**
+   * Get a new provider, that is based on the current one and the given one.
+   *
+   * <p>Keeps the maximum to-be-generated index for each variable.
+   **/
+  public FreshValueProvider merge(FreshValueProvider other) {
+    if (vars.isEmpty() && other.vars.isEmpty()) {
+      return this;
     }
+    PersistentSortedMap<String, Integer> vars =
+        PersistentSortedMaps.merge(
+            this.vars, other.vars,
+            PersistentSortedMaps.getMaximumMergeConflictHandler());
+    return new FreshValueProvider(vars);
+  }
 
+  public void put(String variable, int index) {
+    vars = vars.putAndCopy(variable, index);
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    return other instanceof FreshValueProvider
+        && ((other == this) || vars.equals(((FreshValueProvider) other).vars));
+  }
+
+  @Override
+  public int hashCode() {
+    return vars.hashCode();
   }
 }

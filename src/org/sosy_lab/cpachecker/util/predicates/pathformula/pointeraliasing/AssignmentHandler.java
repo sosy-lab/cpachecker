@@ -32,7 +32,16 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
@@ -57,21 +66,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.function.BiConsumer;
-
-import javax.annotation.Nullable;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 /**
  * Implements a handler for assignments.
@@ -90,6 +88,7 @@ class AssignmentHandler {
   private final PointerTargetSetBuilder pts;
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
+  private final MemoryRegionManager regionMgr;
 
   /**
    * Creates a new AssignmentHandler.
@@ -103,7 +102,8 @@ class AssignmentHandler {
    * @param pErrorConditions Additional error conditions.
    */
   AssignmentHandler(CToFormulaConverterWithPointerAliasing pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
-      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
+      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions,
+      MemoryRegionManager pRegionMgr) {
     conv = pConv;
 
     typeHandler = pConv.typeHandler;
@@ -117,6 +117,7 @@ class AssignmentHandler {
     pts = pPts;
     constraints = pConstraints;
     errorConditions = pErrorConditions;
+    regionMgr = pRegionMgr;
   }
 
   /**
@@ -126,7 +127,7 @@ class AssignmentHandler {
    * @param lhsForChecking The left hand side of an assignment to check.
    * @param rhs Either {@code null} or the right hand side of the assignment.
    * @param batchMode A flag indicating batch mode.
-   * @param destroyedTypes Either {@code null} or a set of destroyed types.
+   * @param destroyedRegions Either {@code null} or a set of destroyed memory regions.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
@@ -137,29 +138,20 @@ class AssignmentHandler {
       final CType lhsType,
       final @Nullable CRightHandSide rhs,
       final boolean batchMode,
-      final @Nullable Set<CType> destroyedTypes)
+      final @Nullable Set<MemoryRegion> destroyedRegions)
       throws UnrecognizedCCodeException, InterruptedException {
     if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
-      return conv.bfmgr.makeBoolean(true);
+      return conv.bfmgr.makeTrue();
     }
 
     final CType rhsType =
         rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
-    final CExpressionVisitorWithPointerAliasing rhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
 
-    final Expression rhsExpression;
-    if (rhs == null) {
-      rhsExpression = Value.nondetValue();
-    } else {
-      CRightHandSide r = rhs;
-      if (r instanceof CExpression) {
-        r = conv.convertLiteralToFloatIfNecessary((CExpression)r, lhsType);
-      }
-      rhsExpression = r.accept(rhsVisitor);
-    }
+    final Expression rhsExpression = createRHSExpression(rhs, lhsType, rhsVisitor);
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
     pts.addEssentialFields(rhsVisitor.getUsedFields());
@@ -167,7 +159,7 @@ class AssignmentHandler {
     final Map<String, CType> rhsLearnedPointersTypes = rhsVisitor.getLearnedPointerTypes();
 
     // LHS handling
-    final CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
     final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
@@ -178,7 +170,7 @@ class AssignmentHandler {
         : PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
 
     if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
-      DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
+      DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
       memoryHandler.handleDeferredAllocationsInAssignment(
           lhs,
           rhs,
@@ -196,7 +188,7 @@ class AssignmentHandler {
                           rhsExpression,
                           pattern,
                           batchMode,
-                          destroyedTypes);
+                          destroyedRegions);
 
     for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
       pts.addField(field.getFirst(), field.getSecond());
@@ -204,15 +196,33 @@ class AssignmentHandler {
     return result;
   }
 
+  private Expression createRHSExpression(
+      CRightHandSide pRhs, CType pLhsType, CExpressionVisitorWithPointerAliasing pRhsVisitor)
+      throws UnrecognizedCCodeException {
+    if (pRhs == null) {
+      return Value.nondetValue();
+    }
+    CRightHandSide r = pRhs;
+    if (r instanceof CExpression) {
+      r = conv.convertLiteralToFloatIfNecessary((CExpression) r, pLhsType);
+    }
+    return r.accept(pRhsVisitor);
+  }
+
+  private CExpressionVisitorWithPointerAliasing newExpressionVisitor() {
+    return new CExpressionVisitorWithPointerAliasing(
+        conv, edge, function, ssa, constraints, errorConditions, pts, regionMgr);
+  }
+
   BooleanFormula handleAssignment(
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
       final @Nullable CRightHandSide rhs,
       final boolean batchMode,
-      final @Nullable Set<CType> destroyedTypes)
+      final @Nullable Set<MemoryRegion> destroyedRegions)
       throws UnrecognizedCCodeException, InterruptedException {
     return handleAssignment(
-        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, batchMode, destroyedTypes);
+        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, batchMode, destroyedRegions);
   }
 
   /**
@@ -248,23 +258,23 @@ class AssignmentHandler {
   private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
       final CLeftHandSide variable, final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCCodeException, InterruptedException {
-    CExpressionVisitorWithPointerAliasing lhsVisitor = new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints, errorConditions, pts);
+    CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
-    final Set<CType> updatedTypes = new HashSet<>();
-    BooleanFormula result = conv.bfmgr.makeBoolean(true);
+    final Set<MemoryRegion> updatedRegions = new HashSet<>();
+    BooleanFormula result = conv.bfmgr.makeTrue();
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CLeftHandSide lhs = assignment.getLeftHandSide();
       result = conv.bfmgr.and(result, handleAssignment(lhs, lhs,
                                                        assignment.getRightHandSide(),
                                                        lhsLocation.isAliased(), // Defer index update for UFs, but not for variables
-                                                       updatedTypes));
+                                                       updatedRegions));
     }
     if (lhsLocation.isAliased()) {
       finishAssignments(
           typeHandler.getSimplifiedType(variable),
           lhsLocation.asAliased(),
           PointerTargetPattern.forLeftHandSide(variable, typeHandler, edge, pts),
-          updatedTypes);
+          updatedRegions);
     }
     return result;
   }
@@ -297,14 +307,10 @@ class AssignmentHandler {
     final CType lhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getLeftHandSide());
     final CType rhsType = typeHandler.getSimplifiedType(pAssignments.get(0).getRightHandSide());
 
-    final CExpressionVisitorWithPointerAliasing rhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(conv, edge, function, ssa, constraints,
-            errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
     final Expression rhsValue = pAssignments.get(0).getRightHandSide().accept(rhsVisitor);
 
-    final CExpressionVisitorWithPointerAliasing lhsVisitor =
-        new CExpressionVisitorWithPointerAliasing(
-            conv, edge, function, ssa, constraints, errorConditions, pts);
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = pLeftHandSide.accept(lhsVisitor).asLocation();
 
     if (!rhsValue.isValue()
@@ -320,7 +326,11 @@ class AssignmentHandler {
       //    struct t t = { .s = s };
       return handleInitializationAssignmentsWithoutQuantifier(pLeftHandSide, pAssignments);
     } else {
-      final String targetName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(lhsType);
+      MemoryRegion region = lhsLocation.asAliased().getMemoryRegion();
+      if(region == null) {
+        region = regionMgr.makeMemoryRegion(lhsType);
+      }
+      final String targetName = regionMgr.getPointerAccessName(region);
       final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lhsType);
       final int oldIndex = conv.getIndex(targetName, lhsType, ssa);
       final int newIndex =
@@ -398,7 +408,7 @@ class AssignmentHandler {
    * @param lvalue The location of the lvalue.
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
-   * @param updatedTypes Either {@code null} or a set of updated types.
+   * @param updatedRegions Either {@code null} or a set of updated regions.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
@@ -410,20 +420,20 @@ class AssignmentHandler {
       final Expression rvalue,
       final @Nullable PointerTargetPattern pattern,
       final boolean useOldSSAIndices,
-      @Nullable Set<CType> updatedTypes)
+      @Nullable Set<MemoryRegion> updatedRegions)
       throws UnrecognizedCCodeException, InterruptedException {
     // Its a definite value assignment, a nondet assignment (SSA index update) or a nondet assignment among other
     // assignments to the same UF version (in this case an absense of aliasing should be somehow guaranteed, as in the
     // case of initialization assignments)
-    //assert rvalue != null || !useOldSSAIndices || updatedTypes != null; // otherwise the call is useless
+    //assert rvalue != null || !useOldSSAIndices || updatedRegions != null; // otherwise the call is useless
     checkNotNull(rvalue);
 
     checkIsSimplified(lvalueType);
 
-    if (lvalue.isAliased() && !isSimpleType(lvalueType) && updatedTypes == null) {
-      updatedTypes = new HashSet<>();
+    if (lvalue.isAliased() && !isSimpleType(lvalueType) && updatedRegions == null) {
+      updatedRegions = new HashSet<>();
     } else {
-      updatedTypes = null;
+      updatedRegions = null;
     }
     Set<Variable> updatedVariables = null;
     if (!lvalue.isAliased() && !isSimpleType(lvalueType)) {
@@ -433,16 +443,20 @@ class AssignmentHandler {
     final BooleanFormula result = makeDestructiveAssignment(lvalueType, rvalueType,
                                                             lvalue, rvalue,
                                                             useOldSSAIndices,
-                                                            updatedTypes,
+                                                            updatedRegions,
                                                             updatedVariables);
 
     if (!useOldSSAIndices) {
       if (lvalue.isAliased()) {
-        if (updatedTypes == null) {
+        if (updatedRegions == null) {
           assert isSimpleType(lvalueType) : "Should be impossible due to the first if statement";
-          updatedTypes = Collections.singleton(lvalueType);
+          MemoryRegion region = lvalue.asAliased().getMemoryRegion();
+          if(region == null) {
+            region = regionMgr.makeMemoryRegion(lvalueType);
+          }
+          updatedRegions = Collections.singleton(region);
         }
-        finishAssignments(lvalueType, lvalue.asAliased(), pattern, updatedTypes);
+        finishAssignments(lvalueType, lvalue.asAliased(), pattern, updatedRegions);
       } else { // Unaliased lvalue
         if (updatedVariables == null) {
           assert isSimpleType(lvalueType) : "Should be impossible due to the first if statement";
@@ -462,12 +476,17 @@ class AssignmentHandler {
       CType lvalueType,
       final AliasedLocation lvalue,
       final PointerTargetPattern pattern,
-      final Set<CType> updatedTypes)
+      final Set<MemoryRegion> updatedRegions)
       throws InterruptedException {
-    addRetentionForAssignment(lvalueType,
+    MemoryRegion region = lvalue.getMemoryRegion();
+    if(region == null) {
+      region = regionMgr.makeMemoryRegion(lvalueType);
+    }
+    addRetentionForAssignment(region,
+                              lvalueType,
                               lvalue.getAddress(),
-                              pattern, updatedTypes);
-    updateSSA(updatedTypes, ssa);
+                              pattern, updatedRegions);
+    updateSSA(updatedRegions, ssa);
   }
 
   /**
@@ -478,7 +497,7 @@ class AssignmentHandler {
    * @param lvalue The location of the lvalue.
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
-   * @param updatedTypes Either {@code null} or a set of updated types.
+   * @param updatedRegions Either {@code null} or a set of updated regions.
    * @param updatedVariables Either {@code null} or a set of updated variables.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
@@ -489,7 +508,7 @@ class AssignmentHandler {
       final Location lvalue,
       final Expression rvalue,
       final boolean useOldSSAIndices,
-      final @Nullable Set<CType> updatedTypes,
+      final @Nullable Set<MemoryRegion> updatedRegions,
       final @Nullable Set<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
     checkIsSimplified(lvalueType);
@@ -517,18 +536,18 @@ class AssignmentHandler {
           rvalueType,
           lvalueType);
 
-      OptionalInt lvalueLength = CTypeUtils.getArrayLength(lvalueArrayType);
+      OptionalInt lvalueLength = lvalueArrayType.getLengthAsInt();
       // Try to fix the length if it's unknown (or too big)
       // Also ignore the tail part of very long arrays to avoid very large formulae (imprecise!)
       if (!lvalueLength.isPresent() && rvalue.isLocation()) {
-        lvalueLength = CTypeUtils.getArrayLength((CArrayType) rvalueType);
+        lvalueLength = ((CArrayType) rvalueType).getLengthAsInt();
       }
       int length =
           lvalueLength.isPresent()
               ? Integer.min(options.maxArrayLength(), lvalueLength.getAsInt())
               : options.defaultArrayLength();
 
-      result = bfmgr.makeBoolean(true);
+      result = bfmgr.makeTrue();
       int offset = 0;
       for (int i = 0; i < length; ++i) {
         final Pair<AliasedLocation, CType> newLvalue = shiftArrayLvalue(lvalue.asAliased(), offset, lvalueElementType);
@@ -541,9 +560,9 @@ class AssignmentHandler {
                                                      newLvalue.getFirst(),
                                                      newRvalue.getFirst(),
                                                      useOldSSAIndices,
-                                                     updatedTypes,
+                                                     updatedRegions,
                                                      updatedVariables));
-         offset += conv.getSizeof(lvalueArrayType.getType());
+         offset += conv.getBitSizeof(lvalueArrayType.getType());
       }
       return result;
     } else if (lvalueType instanceof CCompositeType) {
@@ -559,10 +578,10 @@ class AssignmentHandler {
         throw new UnrecognizedCCodeException("Impossible structure assignment due to incompatible types:"
             + " assignment of " + rvalue + " with type "+ rvalueType + " to " + lvalue + " with type "+ lvalueType, edge);
       }
-      result = bfmgr.makeBoolean(true);
-      int offset = 0;
+      result = bfmgr.makeTrue();
       for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
+        final int offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
         final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
         // Optimizing away the assignments from uninitialized fields
         if (conv.isRelevantField(lvalueCompositeType, memberName)
@@ -584,7 +603,7 @@ class AssignmentHandler {
                         newLvalueType,
                         ssa)))) {
           final Pair<? extends Location, CType> newLvalue =
-                                         shiftCompositeLvalue(lvalue, offset, memberName, memberDeclaration.getType());
+                                         shiftCompositeLvalue(lvalueType, lvalue, offset, memberName, memberDeclaration.getType());
           final Pair<? extends Expression, CType> newRvalue =
                              shiftCompositeRvalue(rvalue, offset, memberName, rvalueType, memberDeclaration.getType());
 
@@ -594,12 +613,8 @@ class AssignmentHandler {
                                                        newLvalue.getFirst(),
                                                        newRvalue.getFirst(),
                                                        useOldSSAIndices,
-                                                       updatedTypes,
+                                                       updatedRegions,
                                                        updatedVariables));
-        }
-
-        if (lvalueCompositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += conv.getSizeof(memberDeclaration.getType());
         }
       }
       return result;
@@ -609,7 +624,7 @@ class AssignmentHandler {
                                              lvalue,
                                              rvalue,
                                              useOldSSAIndices,
-                                             updatedTypes,
+                                             updatedRegions,
                                              updatedVariables);
     }
   }
@@ -622,7 +637,7 @@ class AssignmentHandler {
    * @param lvalue The location of the lvalue.
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
-   * @param updatedTypes Either {@code null} or a set of updated types.
+   * @param updatedRegions Either {@code null} or a set of updated regions.
    * @param updatedVariables Either {@code null} or a set of updated variables.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
@@ -633,7 +648,7 @@ class AssignmentHandler {
       final Location lvalue,
       Expression rvalue,
       final boolean useOldSSAIndices,
-      final @Nullable Set<CType> updatedTypes,
+      final @Nullable Set<MemoryRegion> updatedRegions,
       final @Nullable Set<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
     checkIsSimplified(lvalueType);
@@ -646,26 +661,20 @@ class AssignmentHandler {
     Preconditions.checkArgument(isSimpleType(rvalueType),
                                 "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
 
-    final Formula value;
-    switch (rvalue.getKind()) {
-    case ALIASED_LOCATION:
-      value = conv.makeDereference(rvalueType, rvalue.asAliasedLocation().getAddress(), ssa, errorConditions);
-      break;
-    case UNALIASED_LOCATION:
-      value = conv.makeVariable(rvalue.asUnaliasedLocation().getVariableName(), rvalueType, ssa);
-      break;
-    case DET_VALUE:
-      value = rvalue.asValue().getValue();
-      break;
-    case NONDET:
-      value = null;
-      break;
-    default: throw new AssertionError();
-    }
-
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    final String targetName = !lvalue.isAliased() ? lvalue.asUnaliased().getVariableName() : CToFormulaConverterWithPointerAliasing.getPointerAccessName(lvalueType);
+    String targetName;
+    MemoryRegion region;
+    if(!lvalue.isAliased()) {
+      targetName = lvalue.asUnaliased().getVariableName();
+      region = null;
+    } else {
+      region = lvalue.asAliased().getMemoryRegion();
+      if(region == null) {
+        region = regionMgr.makeMemoryRegion(lvalueType);
+      }
+      targetName = regionMgr.getPointerAccessName(region);
+    }
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
     final int newIndex = useOldSSAIndices ?
@@ -673,13 +682,16 @@ class AssignmentHandler {
             conv.getFreshIndex(targetName, lvalueType, ssa);
     final BooleanFormula result;
 
-    rvalueType = implicitCastToPointer(rvalueType);
-    final Formula rhs = value != null ? conv.makeCast(rvalueType, lvalueType, value, constraints, edge) : null;
+    final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
+    final Formula rhs =
+        value.isPresent()
+            ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
+            : null;
     if (!lvalue.isAliased()) { // Unaliased LHS
       if (rhs != null) {
         result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
       } else {
-        result = bfmgr.makeBoolean(true);
+        result = bfmgr.makeTrue();
       }
 
       if (updatedVariables != null) {
@@ -692,15 +704,38 @@ class AssignmentHandler {
             conv.ptsMgr.makePointerAssignment(
                 targetName, targetType, oldIndex, newIndex, address, rhs);
       } else {
-        result = bfmgr.makeBoolean(true);
+        result = bfmgr.makeTrue();
       }
 
-      if (updatedTypes != null) {
-        updatedTypes.add(lvalueType);
+      if (updatedRegions != null) {
+        updatedRegions.add(region);
       }
     }
 
     return result;
+  }
+
+  private Optional<Formula> getValueFormula(CType pRValueType, Expression pRValue)
+      throws AssertionError {
+    switch (pRValue.getKind()) {
+      case ALIASED_LOCATION:
+        MemoryRegion region = pRValue.asAliasedLocation().getMemoryRegion();
+        if(region == null) {
+          region = regionMgr.makeMemoryRegion(pRValueType);
+        }
+        return Optional.of(
+            conv.makeDereference(
+                pRValueType, pRValue.asAliasedLocation().getAddress(), ssa, errorConditions, region));
+      case UNALIASED_LOCATION:
+        return Optional.of(
+            conv.makeVariable(pRValue.asUnaliasedLocation().getVariableName(), pRValueType, ssa));
+      case DET_VALUE:
+        return Optional.of(pRValue.asValue().getValue());
+      case NONDET:
+        return Optional.empty();
+      default:
+        throw new AssertionError();
+    }
   }
 
   /**
@@ -710,18 +745,19 @@ class AssignmentHandler {
    * @param lvalueType The LHS type of the current assignment.
    * @param startAddress The start address of the written heap region.
    * @param pattern The pattern matching the (potentially) written heap cells.
-   * @param typesToRetain The set of types which were affected by the assignment.
+   * @param regionsToRetain The set of regions which were affected by the assignment.
    */
   private void addRetentionForAssignment(
+      MemoryRegion region,
       CType lvalueType,
       final Formula startAddress,
       final PointerTargetPattern pattern,
-      final Set<CType> typesToRetain)
+      final Set<MemoryRegion> regionsToRetain)
       throws InterruptedException {
     checkNotNull(lvalueType);
     checkNotNull(startAddress);
     checkNotNull(pattern);
-    checkNotNull(typesToRetain);
+    checkNotNull(regionsToRetain);
 
     if (options.useArraysForHeap()) {
       // not necessary for heap-array encoding
@@ -729,20 +765,20 @@ class AssignmentHandler {
     }
 
     checkIsSimplified(lvalueType);
-    final int size = conv.getSizeof(lvalueType);
+    final int size = conv.getBitSizeof(lvalueType);
 
     if (options.useQuantifiersOnArrays()) {
       addRetentionConstraintsWithQuantifiers(
-          lvalueType, pattern, startAddress, size, typesToRetain);
+          lvalueType, pattern, startAddress, size, regionsToRetain);
     } else {
       addRetentionConstraintsWithoutQuantifiers(
-          lvalueType, pattern, startAddress, size, typesToRetain);
+          region, lvalueType, pattern, startAddress, size, regionsToRetain);
     }
   }
 
   /**
    * Add retention constraints as specified by
-   * {@link #addRetentionForAssignment(CType, Formula, PointerTargetPattern, Set)}
+   * {@link #addRetentionForAssignment(MemoryRegion, CType, Formula, PointerTargetPattern, Set)}
    * with the help of quantifiers.
    * Such a constraint is simply {@code forall i : !matches(i) => retention(i)}
    * where {@code matches(i)} specifies whether address {@code i} was written.
@@ -752,13 +788,13 @@ class AssignmentHandler {
       final PointerTargetPattern pattern,
       final Formula startAddress,
       final int size,
-      final Set<CType> types) {
+      final Set<MemoryRegion> regions) {
 
-    for (final CType type : types) {
-      final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
-      final int oldIndex = conv.getIndex(ufName, type, ssa);
-      final int newIndex = conv.getFreshIndex(ufName, type, ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(type);
+    for (final MemoryRegion region : regions) {
+      final String ufName = regionMgr.getPointerAccessName(region);
+      final int oldIndex = conv.getIndex(ufName, region.getType(), ssa);
+      final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
+      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
 
       // forall counter : !condition => retentionConstraint
       // is equivalent to:
@@ -787,57 +823,63 @@ class AssignmentHandler {
 
   /**
    * Add retention constraints as specified by
-   * {@link #addRetentionForAssignment(CType, Formula, PointerTargetPattern, Set)}
+   * {@link #addRetentionForAssignment(MemoryRegion, CType, Formula, PointerTargetPattern, Set)}
    * in a bounded way by manually iterating over all possibly written heap cells
    * and adding a constraint for each of them.
    */
   private void addRetentionConstraintsWithoutQuantifiers(
+      MemoryRegion region,
       CType lvalueType,
       final PointerTargetPattern pattern,
       final Formula startAddress,
       final int size,
-      final Set<CType> typesToRetain)
+      final Set<MemoryRegion> regionsToRetain)
       throws InterruptedException {
 
+    checkNotNull(region);
     if (isSimpleType(lvalueType)) {
-      addSimpleTypeRetentionConstraints(pattern, ImmutableSet.of(lvalueType), startAddress);
+      addSimpleTypeRetentionConstraints(pattern, ImmutableSet.of(region), startAddress);
 
     } else if (pattern.isExact()) {
-      addExactRetentionConstraints(pattern.withRange(size), typesToRetain);
+      addExactRetentionConstraints(pattern.withRange(size), regionsToRetain);
 
     } else if (pattern.isSemiExact()) {
       // For semiexact retention constraints we need the first element type of the composite
       if (lvalueType instanceof CArrayType) {
         lvalueType = checkIsSimplified(((CArrayType) lvalueType).getType());
+        region = regionMgr.makeMemoryRegion(lvalueType);
       } else { // CCompositeType
-        lvalueType = checkIsSimplified(((CCompositeType) lvalueType).getMembers().get(0).getType());
+        CCompositeTypeMemberDeclaration memberDeclaration = ((CCompositeType) lvalueType).getMembers().get(0);
+        region = regionMgr.makeMemoryRegion(lvalueType, checkIsSimplified(memberDeclaration.getType()), memberDeclaration.getName());
       }
-      addSemiexactRetentionConstraints(pattern, lvalueType, startAddress, size, typesToRetain);
+      //for lvalueType
+      addSemiexactRetentionConstraints(pattern, region, startAddress, size, regionsToRetain);
 
     } else { // Inexact pointer target pattern
-      addInexactRetentionConstraints(startAddress, size, typesToRetain);
+      addInexactRetentionConstraints(startAddress, size, regionsToRetain);
     }
   }
 
   /**
    * Create formula constraints that retain values from the current SSA index to the next one.
-   * @param types The set of types for which constraints should be created.
+   * @param regions The set of regions for which constraints should be created.
    * @param targetLookup A function that gives the PointerTargets for a type for which constraints should be created.
    * @param constraintConsumer A function that accepts a Formula with the address of the current target and the respective constraint.
    */
   private void makeRetentionConstraints(
-      final Set<CType> types,
-      final Function<CType, ? extends Iterable<PointerTarget>> targetLookup,
+      final Set<MemoryRegion> regions,
+      final Function<MemoryRegion, ? extends Iterable<PointerTarget>> targetLookup,
       final BiConsumer<Formula, BooleanFormula> constraintConsumer)
       throws InterruptedException {
 
-    for (final CType type : types) {
-      final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
-      final int oldIndex = conv.getIndex(ufName, type, ssa);
-      final int newIndex = conv.getFreshIndex(ufName, type, ssa);
-      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(type);
+    for (final MemoryRegion region : regions) {
+      final String ufName = regionMgr.getPointerAccessName(region);
+      final int oldIndex = conv.getIndex(ufName, region.getType(), ssa);
+      final int newIndex = conv.getFreshIndex(ufName, region.getType(), ssa);
+      final FormulaType<?> targetType = conv.getFormulaTypeFromCType(region.getType());
 
-      for (final PointerTarget target : targetLookup.apply(type)) {
+      for (final PointerTarget target : targetLookup.apply(region)) {
+        regionMgr.addTargetToStats(edge, ufName, target);
         conv.shutdownNotifier.shutdownIfNecessary();
         final Formula targetAddress = conv.makeFormulaForTarget(target);
         constraintConsumer.accept(
@@ -855,19 +897,19 @@ class AssignmentHandler {
    * for cells that might be matched by the pattern.
    */
   private void addSimpleTypeRetentionConstraints(
-      final PointerTargetPattern pattern, final Set<CType> types, final Formula startAddress)
+      final PointerTargetPattern pattern, final Set<MemoryRegion> regions, final Formula startAddress)
       throws InterruptedException {
     if (!pattern.isExact()) {
       makeRetentionConstraints(
-          types,
-          type -> pts.getMatchingTargets(type, pattern),
+          regions,
+          region -> pts.getMatchingTargets(region, pattern),
           (targetAddress, constraint) -> {
             final BooleanFormula updateCondition = fmgr.makeEqual(targetAddress, startAddress);
             constraints.addConstraint(bfmgr.or(updateCondition, constraint));
           });
     }
 
-    addExactRetentionConstraints(pattern, types);
+    addExactRetentionConstraints(pattern, regions);
   }
 
   /**
@@ -876,10 +918,10 @@ class AssignmentHandler {
    * All heap cells where the pattern does not match retained.
    */
   private void addExactRetentionConstraints(
-      final Predicate<PointerTarget> pattern, final Set<CType> types) throws InterruptedException {
+      final Predicate<PointerTarget> pattern, final Set<MemoryRegion> regions) throws InterruptedException {
     makeRetentionConstraints(
-        types,
-        type -> pts.getNonMatchingTargets(type, pattern),
+        regions,
+        region -> pts.getNonMatchingTargets(region, pattern),
         (targetAddress, constraint) -> constraints.addConstraint(constraint));
   }
 
@@ -891,12 +933,12 @@ class AssignmentHandler {
    */
   private void addSemiexactRetentionConstraints(
       final PointerTargetPattern pattern,
-      final CType firstElementType,
+      final MemoryRegion firstElementRegion,
       final Formula startAddress,
       final int size,
-      final Set<CType> types)
+      final Set<MemoryRegion> regions)
       throws InterruptedException {
-    for (final PointerTarget target : pts.getMatchingTargets(firstElementType, pattern)) {
+    for (final PointerTarget target : pts.getMatchingTargets(firstElementRegion, pattern)) {
       final Formula candidateAddress = conv.makeFormulaForTarget(target);
       final BooleanFormula negAntecedent =
           bfmgr.not(fmgr.makeEqual(candidateAddress, startAddress));
@@ -905,8 +947,8 @@ class AssignmentHandler {
 
       List<BooleanFormula> consequent = new ArrayList<>();
       makeRetentionConstraints(
-          types,
-          type -> pts.getNonMatchingTargets(type, exact),
+          regions,
+          region -> pts.getNonMatchingTargets(region, exact),
           (targetAddress, constraint) -> consequent.add(constraint));
       constraints.addConstraint(bfmgr.or(negAntecedent, bfmgr.and(consequent)));
     }
@@ -918,11 +960,11 @@ class AssignmentHandler {
    * For every heap cell we add a conditional constraint to retain it.
    */
   private void addInexactRetentionConstraints(
-      final Formula startAddress, final int size, final Set<CType> types)
+      final Formula startAddress, final int size, final Set<MemoryRegion> regions)
       throws InterruptedException {
     makeRetentionConstraints(
-        types,
-        type -> pts.getAllTargets(type),
+        regions,
+        region -> pts.getAllTargets(region),
         (targetAddress, constraint) -> {
           final BooleanFormula updateCondition =
               fmgr.makeElementIndexConstraint(targetAddress, startAddress, size, false);
@@ -933,13 +975,13 @@ class AssignmentHandler {
   /**
    * Updates the SSA map.
    *
-   * @param types A set of types that should be added to the SSA map.
+   * @param regions A set of regions that should be added to the SSA map.
    * @param ssa The current SSA map.
    */
-  private void updateSSA(final Set<CType> types, final SSAMapBuilder ssa) {
-    for (final CType type : types) {
-      final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
-      conv.makeFreshIndex(ufName, type, ssa);
+  private void updateSSA(final Set<MemoryRegion> regions, final SSAMapBuilder ssa) {
+    for (final MemoryRegion region : regions) {
+      final String ufName = regionMgr.getPointerAccessName(region);
+      conv.makeFreshIndex(ufName, region.getType(), ssa);
     }
   }
 
@@ -1005,15 +1047,17 @@ class AssignmentHandler {
    * @param memberType The type of the member.
    * @return A tuple of location and type after the shift.
    */
-  private Pair<? extends Location, CType> shiftCompositeLvalue(final Location lvalue,
+  private Pair<? extends Location, CType> shiftCompositeLvalue(final CType lvalueType,
+                                                               final Location lvalue,
                                                                final int offset,
                                                                final String memberName,
                                                                final CType memberType) {
     final CType newLvalueType = checkIsSimplified(memberType);
     if (lvalue.isAliased()) {
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
-      final AliasedLocation newLvalue = Location.ofAddress(fmgr.makePlus(lvalue.asAliased().getAddress(),
-                                                                         offsetFormula));
+      final MemoryRegion region = regionMgr.makeMemoryRegion(lvalueType, newLvalueType, memberName);
+      final AliasedLocation newLvalue = Location.ofAddressWithRegion(fmgr.makePlus(lvalue.asAliased().getAddress(),
+                                                                         offsetFormula), region);
       return Pair.of(newLvalue, newLvalueType);
 
     } else {
@@ -1044,8 +1088,9 @@ class AssignmentHandler {
     switch (rvalue.getKind()) {
     case ALIASED_LOCATION: {
       final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
-      final AliasedLocation newRvalue = Location.ofAddress(fmgr.makePlus(rvalue.asAliasedLocation().getAddress(),
-                                                                         offsetFormula));
+      final MemoryRegion region = regionMgr.makeMemoryRegion(rvalueType, newLvalueType, memberName);
+      final AliasedLocation newRvalue = Location.ofAddressWithRegion(fmgr.makePlus(rvalue.asAliasedLocation().getAddress(),
+                                                                         offsetFormula), region);
       return Pair.of(newRvalue, newLvalueType);
     }
     case UNALIASED_LOCATION: {

@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
@@ -36,32 +36,52 @@ public class FileLocation implements Serializable {
 
   private static final long serialVersionUID = 6652099907084949014L;
 
-  private final int endingLine;
   private final String fileName;
   private final String niceFileName;
-  private final int length;
-  private final int offset;
-  private final int startingLine;
-  private final int startingLineInOrigin;
 
-  public FileLocation(int pEndingLine, String pFileName, int pLength,
-      int pOffset, int pStartingLine) {
-    this(pEndingLine, pFileName, pFileName, pLength, pOffset, pStartingLine, pStartingLine);
+  private final int offset;
+  private final int length;
+
+  private final int startingLine;
+  private final int endingLine;
+
+  private final int startingLineInOrigin;
+  private final int endingLineInOrigin;
+
+  public FileLocation(
+      String pFileName, int pOffset, int pLength, int pStartingLine, int pEndingLine) {
+    this(
+        pFileName,
+        pFileName,
+        pOffset,
+        pLength,
+        pStartingLine,
+        pEndingLine,
+        pStartingLine,
+        pEndingLine);
   }
 
-  public FileLocation(int pEndingLine, String pFileName, String pNiceFileName,
-      int pLength, int pOffset, int pStartingLine, int pStartingLineInOrigin) {
-    endingLine = pEndingLine;
+  public FileLocation(
+      String pFileName,
+      String pNiceFileName,
+      int pOffset,
+      int pLength,
+      int pStartingLine,
+      int pEndingLine,
+      int pStartingLineInOrigin,
+      int pEndingLineInOrigin) {
     fileName = checkNotNull(pFileName);
     niceFileName = checkNotNull(pNiceFileName);
-    length = pLength;
     offset = pOffset;
+    length = pLength;
     startingLine = pStartingLine;
+    endingLine = pEndingLine;
     startingLineInOrigin = pStartingLineInOrigin;
+    endingLineInOrigin = pEndingLineInOrigin;
   }
 
   public static final FileLocation DUMMY =
-      new FileLocation(0, "<none>", 0, 0, 0) {
+      new FileLocation("<none>", 0, 0, 0, 0) {
         private static final long serialVersionUID = -3012034075570811723L;
 
         @Override
@@ -71,7 +91,7 @@ public class FileLocation implements Serializable {
       };
 
   public static final FileLocation MULTIPLE_FILES =
-      new FileLocation(0, "<multiple files>", 0, 0, 0) {
+      new FileLocation("<multiple files>", 0, 0, 0, 0) {
         private static final long serialVersionUID = -1725179775900132985L;
 
         @Override
@@ -88,6 +108,7 @@ public class FileLocation implements Serializable {
     int startingLine = Integer.MAX_VALUE;
     int startingLineInOrigin = Integer.MAX_VALUE;
     int endingLine = Integer.MIN_VALUE;
+    int endingLineInOrigin = Integer.MIN_VALUE;
     for (FileLocation loc : locations) {
       if (loc == DUMMY) {
         continue;
@@ -102,37 +123,55 @@ public class FileLocation implements Serializable {
       startingLine = Math.min(startingLine, loc.getStartingLineNumber());
       startingLineInOrigin = Math.min(startingLineInOrigin, loc.getStartingLineInOrigin());
       endingLine = Math.max(endingLine, loc.getEndingLineNumber());
+      endingLineInOrigin = Math.max(endingLineInOrigin, loc.getEndingLineInOrigin());
     }
 
     if (fileName == null) {
       // only DUMMY elements
       return DUMMY;
     }
-    return new FileLocation(endingLine, fileName, niceFileName, 0, 0, startingLine, startingLineInOrigin);
-  }
-
-  public int getStartingLineInOrigin() {
-    return startingLineInOrigin;
-  }
-
-  public int getEndingLineNumber() {
-    return endingLine;
+    return new FileLocation(
+        fileName,
+        niceFileName,
+        0,
+        0,
+        startingLine,
+        endingLine,
+        startingLineInOrigin,
+        endingLineInOrigin);
   }
 
   public String getFileName() {
     return fileName;
   }
 
-  public int getNodeLength() {
-    return length;
+  @VisibleForTesting
+  public String getNiceFileName() {
+    return niceFileName;
   }
 
   public int getNodeOffset() {
     return offset;
   }
 
+  public int getNodeLength() {
+    return length;
+  }
+
   public int getStartingLineNumber() {
     return startingLine;
+  }
+
+  public int getEndingLineNumber() {
+    return endingLine;
+  }
+
+  public int getStartingLineInOrigin() {
+    return startingLineInOrigin;
+  }
+
+  public int getEndingLineInOrigin() {
+    return endingLineInOrigin;
   }
 
   /* (non-Javadoc)
@@ -142,11 +181,11 @@ public class FileLocation implements Serializable {
   public int hashCode() {
     final int prime = 31;
     int result = 7;
-    result = prime * result + endingLine;
     result = prime * result + Objects.hashCode(fileName);
-    result = prime * result + length;
     result = prime * result + offset;
+    result = prime * result + length;
     result = prime * result + startingLine;
+    result = prime * result + endingLine;
     return result;
   }
 
@@ -165,11 +204,11 @@ public class FileLocation implements Serializable {
 
     FileLocation other = (FileLocation) obj;
 
-    return other.endingLine == endingLine
-            && other.startingLine == startingLine
-            && other.length == length
-            && other.offset == offset
-            && Objects.equals(other.fileName, fileName);
+    return other.offset == offset
+        && other.length == length
+        && other.startingLine == startingLine
+        && other.endingLine == endingLine
+        && Objects.equals(other.fileName, fileName);
   }
 
   @Override
@@ -177,11 +216,10 @@ public class FileLocation implements Serializable {
     String prefix = niceFileName.isEmpty()
         ? ""
         : niceFileName + ", ";
-    if (startingLine == endingLine) {
+    if (startingLineInOrigin == endingLineInOrigin) {
       return prefix + "line " + startingLineInOrigin;
     } else {
-      // TODO ending line number could be wrong
-      return prefix + "lines " + startingLineInOrigin + "-" + (endingLine -startingLine+startingLineInOrigin);
+      return prefix + "lines " + startingLineInOrigin + "-" + endingLineInOrigin;
     }
   }
 }

@@ -32,7 +32,14 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.CopyOnWriteSortedMap;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -62,20 +69,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nullable;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 /**
  * A manager for pointer target sets.
@@ -133,6 +130,7 @@ class PointerTargetSetManager {
   private final @Nullable ArrayFormulaManagerView afmgr;
   private final FunctionFormulaManagerView ffmgr;
   private final TypeHandlerWithPointerAliasing typeHandler;
+  private final MemoryRegionManager regionMgr;
 
   /**
    * Creates a new PointerTargetSetManager.
@@ -146,7 +144,8 @@ class PointerTargetSetManager {
       FormulaEncodingWithPointerAliasingOptions pOptions,
       FormulaManagerView pFormulaManager,
       TypeHandlerWithPointerAliasing pTypeHandler,
-      ShutdownNotifier pShutdownNotifier) {
+      ShutdownNotifier pShutdownNotifier,
+      MemoryRegionManager pRegionMgr) {
     options = pOptions;
     formulaManager = pFormulaManager;
     bfmgr = formulaManager.getBooleanFormulaManager();
@@ -154,11 +153,12 @@ class PointerTargetSetManager {
     ffmgr = formulaManager.getFunctionFormulaManager();
     typeHandler = pTypeHandler;
     shutdownNotifier = pShutdownNotifier;
+    regionMgr = pRegionMgr;
   }
 
   /**
    * Make a formula that represents a pointer access.
-   * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
+   * @param targetName The name of the pointer access symbol as returned by {@link MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param targetType The formula type of the value
    * @param ssaIndex The SSA index for targetName
    * @param address The address to access
@@ -182,7 +182,7 @@ class PointerTargetSetManager {
 
   /**
    * Make a formula that represents a pointer access.
-   * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
+   * @param targetName The name of the pointer access symbol as returned by {@link MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param targetType The formula type of the value
    * @param address The address to access
    * @return A formula representing {@code targetName[address]}
@@ -203,7 +203,7 @@ class PointerTargetSetManager {
 
   /**
    * Create a formula that represents an assignment to a value via a pointer.
-   * @param targetName The name of the pointer access symbol as returned by {@link CToFormulaConverterWithPointerAliasing#getPointerAccessName(CType)}
+   * @param targetName The name of the pointer access symbol as returned by {@link MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param pTargetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
@@ -351,19 +351,19 @@ class PointerTargetSetManager {
       // Trivial case: either no allocations on one branch at all, or no difference.
       // Just take the first non-null value, the second is either equal or null.
       lastBase = (pts1.getLastBase() != null) ? pts1.getLastBase() : pts2.getLastBase();
-      basesMergeFormula = bfmgr.makeBoolean(true);
+      basesMergeFormula = bfmgr.makeTrue();
 
     } else if (basesOnlyPts1.isEmpty()) {
       assert pts2.getBases().keySet().containsAll(pts1.getBases().keySet());
       // One branch has a strict superset of the allocations of the other.
       lastBase = pts2.getLastBase();
-      basesMergeFormula = bfmgr.makeBoolean(true);
+      basesMergeFormula = bfmgr.makeTrue();
 
     } else if (basesOnlyPts2.isEmpty()) {
       assert pts1.getBases().keySet().containsAll(pts2.getBases().keySet());
       // One branch has a strict superset of the allocations of the other.
       lastBase = pts1.getLastBase();
-      basesMergeFormula = bfmgr.makeBoolean(true);
+      basesMergeFormula = bfmgr.makeTrue();
 
     } else {
       // Otherwise we have no possibility to determine which base to use as lastBase,
@@ -389,7 +389,7 @@ class PointerTargetSetManager {
 
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultPTSBuilder =
-          new RealPointerTargetSetBuilder(resultPTS, formulaManager, typeHandler, this, options);
+          new RealPointerTargetSetBuilder(resultPTS, formulaManager, typeHandler, this, options, regionMgr);
       for (final Pair<CCompositeType, String> sharedField : sharedFields) {
         resultPTSBuilder.addField(sharedField.getFirst(), sharedField.getSecond());
       }
@@ -415,9 +415,9 @@ class PointerTargetSetManager {
      */
     @Override
     public CType resolveConflict(final String key, final CType type1, final CType type2) {
-      if (isFakeBaseType(type1)) {
+      if (isFakeBaseType(type1) || type1.isIncomplete()) {
         return type2;
-      } else if (isFakeBaseType(type2)) {
+      } else if (isFakeBaseType(type2) || type2.isIncomplete()) {
         return type1;
       }
       int currentFieldIndex = 0;
@@ -523,7 +523,7 @@ class PointerTargetSetManager {
    */
   private BooleanFormula makeValueImportConstraints(final PersistentSortedMap<String, CType> newBases,
       final List<Pair<CCompositeType, String>> sharedFields, final SSAMapBuilder ssa) {
-    BooleanFormula mergeFormula = bfmgr.makeBoolean(true);
+    BooleanFormula mergeFormula = bfmgr.makeTrue();
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey())
           && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
@@ -535,7 +535,7 @@ class PointerTargetSetManager {
                                                                         base.getKey(),
                                                                         base.getValue(),
                                                                         sharedFields,
-                                                                        ssa));
+                                                                        ssa, null));
       }
     }
     return mergeFormula;
@@ -556,22 +556,24 @@ class PointerTargetSetManager {
       final String variablePrefix,
       final CType variableType,
       final List<Pair<CCompositeType, String>> sharedFields,
-      final SSAMapBuilder ssa) {
+      final SSAMapBuilder ssa,
+      final MemoryRegion region) {
 
     assert !CTypeUtils.containsArrayOutsideFunctionParameter(variableType)
         : "Array access can't be encoded as a variable";
 
-    BooleanFormula result = bfmgr.makeBoolean(true);
+    BooleanFormula result = bfmgr.makeTrue();
 
     if (variableType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) variableType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-      int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
+        final int offset = typeHandler.getBitOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
         if (ssa.getIndex(newPrefix) > 0) {
+          MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberType, memberName);
           sharedFields.add(Pair.of(compositeType, memberName));
           result = bfmgr.and(
               result,
@@ -585,18 +587,20 @@ class PointerTargetSetManager {
                   newPrefix,
                   memberType,
                   sharedFields,
-                  ssa
+                  ssa,
+                  newRegion
               )
           );
-        }
-        if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += typeHandler.getSizeof(memberType);
         }
       }
     } else {
       if (ssa.getIndex(variablePrefix) > 0) {
+        MemoryRegion newRegion = region;
+        if(newRegion == null) {
+          newRegion = regionMgr.makeMemoryRegion(variableType);
+        }
         final FormulaType<?> variableFormulaType = typeHandler.getFormulaTypeFromCType(variableType);
-        result = bfmgr.and(result, formulaManager.makeEqual(makeDereference(variableType, address, ssa),
+        result = bfmgr.and(result, formulaManager.makeEqual(makeDereference(variableType, address, ssa, newRegion),
                                                   formulaManager.makeVariable(variableFormulaType,
                                                                     variablePrefix,
                                                                     ssa.getIndex(variablePrefix))));
@@ -615,8 +619,8 @@ class PointerTargetSetManager {
    * @return A formula for the dereference of the type.
    */
   private <I extends Formula> Formula makeDereference(
-      final CType type, final I address, final SSAMapBuilder ssa) {
-    final String ufName = CToFormulaConverterWithPointerAliasing.getPointerAccessName(type);
+      final CType type, final I address, final SSAMapBuilder ssa, MemoryRegion region) {
+    final String ufName = regionMgr.getPointerAccessName(region);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
     return makePointerDereference(ufName, returnType, index, address);
@@ -641,7 +645,7 @@ class PointerTargetSetManager {
               ? options.defaultAllocationSize()
               : typeHandler.getSizeof(lastType);
       final Formula rhs = formulaManager.makePlus(formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(lastBase)),
-                                                  formulaManager.makeNumber(pointerType, lastSize));
+                                                  formulaManager.makeNumber(pointerType, lastSize * typeHandler.getBitsPerByte()));
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding
       return formulaManager.makeAnd(formulaManager.makeGreaterThan(rhs, formulaManager.makeNumber(pointerType, 0L), true),
                                     formulaManager.makeGreaterOrEqual(newBaseFormula, rhs, true));
@@ -654,24 +658,26 @@ class PointerTargetSetManager {
    * Adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
    *
    * @param base The name of the base.
-   * @param targetType The type of the target.
+   * @param region The region of the target.
    * @param containerType The type of the container, might be {@code null}.
    * @param properOffset The offset.
    * @param containerOffset The offset in the container.
    * @param targets The map of available targets.
+   * @param regionMgr The region manager.
    * @return The new map of targets.
    */
   @CheckReturnValue
   private static PersistentSortedMap<String, PersistentList<PointerTarget>> addToTarget(final String base,
-                         final CType targetType,
+                         final MemoryRegion region,
                          final @Nullable CType containerType,
                          final int properOffset,
                          final int containerOffset,
-                         final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
-    final String type = CTypeUtils.typeToString(targetType);
-    PersistentList<PointerTarget> targetsForType =
-        targets.getOrDefault(type, PersistentLinkedList.of());
-    return targets.putAndCopy(type, targetsForType.with(new PointerTarget(base,
+                         final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+                         MemoryRegionManager regionMgr) {
+    String regionName = regionMgr.getPointerAccessName(region);
+    PersistentList<PointerTarget> targetsForRegion =
+        targets.getOrDefault(regionName, PersistentLinkedList.of());
+    return targets.putAndCopy(regionName, targetsForRegion.with(new PointerTarget(base,
                                                                              containerType,
                                                                              properOffset,
                                                                              containerOffset)));
@@ -694,6 +700,7 @@ class PointerTargetSetManager {
   @CheckReturnValue
   PersistentSortedMap<String, PersistentList<PointerTarget>> addToTargets(
       final String base,
+      final @Nullable MemoryRegion region,
       final CType cType,
       final @Nullable CType containerType,
       final int properOffset,
@@ -713,25 +720,28 @@ class PointerTargetSetManager {
       final int length = CTypeUtils.getArrayLength(arrayType, options);
       int offset = 0;
       for (int i = 0; i < length; ++i) {
-        targets = addToTargets(base, arrayType.getType(), arrayType, offset, containerOffset + properOffset, targets, fields);
-        offset += typeHandler.getSizeof(arrayType.getType());
+        //TODO: create region with arrayType.getType()
+        targets = addToTargets(base, null, arrayType.getType(), arrayType, offset, containerOffset + properOffset, targets, fields);
+        offset += typeHandler.getBitSizeof(arrayType.getType());
       }
     } else if (cType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) cType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       final String type = CTypeUtils.typeToString(compositeType);
       typeHandler.addCompositeTypeToCache(compositeType);
-      int offset = 0;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        final int offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
         if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
-          targets = addToTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
-        }
-        if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += typeHandler.getSizeof(memberDeclaration.getType());
+          MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration.getType(), memberDeclaration.getName());
+          targets = addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
         }
       }
     } else {
-      targets = addToTarget(base, cType, containerType, properOffset, containerOffset, targets);
+      MemoryRegion newRegion = region;
+      if(newRegion == null) {
+        newRegion = regionMgr.makeMemoryRegion(cType);
+      }
+      targets = addToTarget(base, newRegion, containerType, properOffset, containerOffset, targets, regionMgr);
     }
 
     return targets;
@@ -754,7 +764,7 @@ class PointerTargetSetManager {
     for (final Map.Entry<String, CType> entry : bases.entrySet()) {
       String name = entry.getKey();
       CType type = checkIsSimplified(entry.getValue());
-      targets = addToTargets(name, type, null, 0, 0, targets, fields);
+      targets = addToTargets(name, null, type, null, 0, 0, targets, fields);
     }
     return targets;
   }

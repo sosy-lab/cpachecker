@@ -24,16 +24,20 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
 
+import java.io.Serializable;
+import java.util.Comparator;
 
 public abstract class SMGObject {
   private final int size;
   private final String label;
   private final int level;
   private final SMGObjectKind kind;
+  private static int count;
+  private final int id;
 
 
 
-  static private final SMGObject nullObject = new SMGObject(0, "NULL", SMGObjectKind.NULL) {
+  private static final SMGObject NULL_OBJECT = new SMGObject(0, "NULL", SMGObjectKind.NULL) {
 
     @Override
     public String toString() {
@@ -60,7 +64,7 @@ public abstract class SMGObject {
   };
 
   static public SMGObject getNullObject() {
-    return nullObject;
+    return NULL_OBJECT;
   }
 
   public SMGObjectKind getKind() {
@@ -68,24 +72,23 @@ public abstract class SMGObject {
   }
 
   protected SMGObject(int pSize, String pLabel, SMGObjectKind pKind) {
-    size = pSize;
-    label = pLabel;
-    level = 0;
-    kind = pKind;
+    this(pSize, pLabel, 0, pKind);
   }
 
   protected SMGObject(int pSize, String pLabel, int pLevel, SMGObjectKind pKind) {
+    this(pSize, pLabel, pLevel, pKind, getNewId());
+  }
+
+  protected SMGObject(SMGObject pOther) {
+    this(pOther.size, pOther.label, pOther.level, pOther.kind, pOther.id);
+  }
+
+  private SMGObject(int pSize, String pLabel, int pLevel, SMGObjectKind pKind, int pId) {
     size = pSize;
     label = pLabel;
     level = pLevel;
     kind = pKind;
-  }
-
-  protected SMGObject(SMGObject pOther) {
-    size = pOther.size;
-    label = pOther.label;
-    level = pOther.level;
-    kind = pOther.kind;
+    id = pId;
   }
 
   public abstract SMGObject copy();
@@ -101,11 +104,11 @@ public abstract class SMGObject {
   }
 
   public boolean notNull() {
-    return (! equals(nullObject));
+    return (! equals(NULL_OBJECT));
   }
 
   public boolean isAbstract() {
-    if (equals(nullObject)) {
+    if (equals(NULL_OBJECT)) {
       return false;
     }
 
@@ -140,5 +143,24 @@ public abstract class SMGObject {
 
   public int getLevel() {
     return level;
+  }
+
+  private static int getNewId() {
+    count++;
+    return count;
+  }
+
+  public int getId() {
+    return id;
+  }
+
+  public static class SMGObjectComparator implements Serializable, Comparator<SMGObject> {
+
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    public int compare(SMGObject o1, SMGObject o2) {
+      return Integer.compare(o1.getId(), o2.getId());
+    }
   }
 }

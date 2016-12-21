@@ -92,11 +92,11 @@ public class SMGStateTest {
     SMGValueFactory.getNewValue();
     SMGValueFactory.getNewValue();
 
-    SMGRegion l1 = new SMGRegion(12, "l1");
-    SMGRegion l2 = new SMGRegion(12, "l2");
-    SMGRegion l3 = new SMGRegion(12, "l3");
-    SMGRegion l4 = new SMGRegion(12, "l4");
-    SMGRegion l5 = new SMGRegion(12, "l5");
+    SMGRegion l1 = new SMGRegion(96, "l1");
+    SMGRegion l2 = new SMGRegion(96, "l2");
+    SMGRegion l3 = new SMGRegion(96, "l3");
+    SMGRegion l4 = new SMGRegion(96, "l4");
+    SMGRegion l5 = new SMGRegion(96, "l5");
 
     SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, 7);
     SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, 0, l2, 8);
@@ -156,9 +156,9 @@ public class SMGStateTest {
     Map<SMGKnownSymValue, SMGKnownExpValue> empty = new java.util.HashMap<>();
     SMGState smg1State = new SMGState(logger, true,
         true, SMGRuntimeCheck.NONE, smg1,
-        new AtomicInteger(1), 0, empty, 4, false, false);
+        new AtomicInteger(1), 0, empty, 32, false, false);
 
-    SMGObject head = smg1State.addGlobalVariable(8, "head");
+    SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, 5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
@@ -193,7 +193,7 @@ public class SMGStateTest {
 
     CLangSMG heap = new CLangSMG(MachineModel.LINUX32);
 
-   SMGObject dls = new SMGDoublyLinkedList(12, 0, 0, 4, 0, 0);
+   SMGObject dls = new SMGDoublyLinkedList(96, 0, 0, 4, 0, 0);
    SMGEdgeHasValue dlsN = new SMGEdgeHasValue(pointerType, 0, dls, 5);
    SMGEdgeHasValue dlsP = new SMGEdgeHasValue(pointerType, 4, dls, 5);
    heap.addHeapObject(dls);
@@ -206,11 +206,11 @@ public class SMGStateTest {
    heap.addPointsToEdge(new SMGEdgePointsTo(6, dls, 0, SMGTargetSpecifier.FIRST));
    heap.addPointsToEdge(new SMGEdgePointsTo(7, dls, 0, SMGTargetSpecifier.LAST));
 
-   SMGRegion l1 = new SMGRegion(12, "l1", 1);
-   SMGRegion l2 = new SMGRegion(12, "l2", 1);
-   SMGRegion l3 = new SMGRegion(12, "l3", 1);
-   SMGRegion l4 = new SMGRegion(12, "l4", 1);
-   SMGRegion l5 = new SMGRegion(12, "l5", 1);
+   SMGRegion l1 = new SMGRegion(96, "l1", 1);
+   SMGRegion l2 = new SMGRegion(96, "l2", 1);
+   SMGRegion l3 = new SMGRegion(96, "l3", 1);
+   SMGRegion l4 = new SMGRegion(96, "l4", 1);
+   SMGRegion l5 = new SMGRegion(96, "l5", 1);
 
    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, 13);
    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, 0, l2, 8);
@@ -272,10 +272,10 @@ public class SMGStateTest {
     Map<SMGKnownSymValue, SMGKnownExpValue> empty = new java.util.HashMap<>();
     SMGState smg1State = new SMGState(logger, true,
         true, SMGRuntimeCheck.NONE, heap,
-        new AtomicInteger(1), 0, empty, 4, false, false);
+        new AtomicInteger(1), 0, empty, 32, false, false);
 
     smg1State.addStackFrame(functionDeclaration3);
-    SMGObject head = smg1State.addGlobalVariable(8, "head");
+    SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, 5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));

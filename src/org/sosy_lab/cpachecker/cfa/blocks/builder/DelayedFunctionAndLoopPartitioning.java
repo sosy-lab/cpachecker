@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import java.util.Set;
-
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+
+import java.util.Set;
 
 
 /**
@@ -42,18 +44,19 @@ public class DelayedFunctionAndLoopPartitioning extends FunctionAndLoopPartition
 
   private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
 
-  public DelayedFunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
-    super(pLogger, pCfa);
+  public DelayedFunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig)
+      throws InvalidConfigurationException {
+    super(pLogger, pCfa, pConfig);
   }
 
   @Override
-  protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    if (pNode instanceof FunctionEntryNode) {
-      Set<CFANode> blockNodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pNode);
-      return removeInitialDeclarations(pNode, blockNodes);
+  protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
+    if (pBlockHead instanceof FunctionEntryNode) {
+      Set<CFANode> blockNodes = TRAVERSE_CFA_INSIDE_FUNCTION.collectNodesReachableFrom(pBlockHead);
+      return removeInitialDeclarations(pBlockHead, blockNodes);
     }
 
-    return super.getBlockForNode(pNode);
+    return super.getBlockForNode(pBlockHead);
   }
 
   private Set<CFANode> removeInitialDeclarations(CFANode functionNode, Set<CFANode> functionBody) {

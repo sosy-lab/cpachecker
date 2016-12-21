@@ -23,14 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.sosy_lab.cpachecker.util.Pair;
-
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 
 public class CSourceOriginMapping {
@@ -39,31 +37,96 @@ public class CSourceOriginMapping {
   // from its lines to the tuple of (originalFile, lineDelta).
   // The full mapping is a map with those RangeMaps as values,
   // one for each input file.
-  private final Map<String, RangeMap<Integer, Pair<String, Integer>>> mapping = new HashMap<>();
+  private final Map<String, RangeMap<Integer, CodePosition>> mapping = new HashMap<>();
 
-  void mapInputLineRangeToDelta(String inputFilename, String originFilename, int fromInputLineNumber, int toInputLineNumber, int deltaLinesToOrigin) {
-    RangeMap<Integer, Pair<String, Integer>> fileMapping = mapping.get(inputFilename);
+  void mapInputLineRangeToDelta(
+      String pAnalysisFileName,
+      String pOriginFileName,
+      int pFromAnalysisCodeLineNumber,
+      int pToAnalysisCodeLineNumber,
+      int pLineDeltaToOrigin) {
+    RangeMap<Integer, CodePosition> fileMapping = mapping.get(pAnalysisFileName);
     if (fileMapping == null) {
       fileMapping = TreeRangeMap.create();
-      mapping.put(inputFilename, fileMapping);
+      mapping.put(pAnalysisFileName, fileMapping);
     }
 
-    Range<Integer> lineRange = Range.openClosed(fromInputLineNumber-1, toInputLineNumber);
-    fileMapping.put(lineRange, Pair.of(originFilename, deltaLinesToOrigin));
+    Range<Integer> lineRange =
+        Range.closedOpen(pFromAnalysisCodeLineNumber, pToAnalysisCodeLineNumber);
+    fileMapping.put(lineRange, CodePosition.of(pOriginFileName, pLineDeltaToOrigin));
   }
 
-  public Pair<String, Integer> getOriginLineFromAnalysisCodeLine(
-      String analysisFile, int analysisCodeLine) {
-    RangeMap<Integer, Pair<String, Integer>> fileMapping = mapping.get(analysisFile);
+  /**
+   * Given a line number and file name for the analyzed code, retrieve the corresponding file name
+   * and line number in the original code (e.g., before preprocessing).
+   *
+   * @param pAnalysisFileName the name of the analyzed file.
+   * @param pAnalysisCodeLine the line number in the analyzed file.
+   * @return the corresponding file name and line number in the original code (e.g., before
+   *     preprocessing).
+   */
+  public CodePosition getOriginLineFromAnalysisCodeLine(
+      String pAnalysisFileName, int pAnalysisCodeLine) {
+    RangeMap<Integer, CodePosition> fileMapping = mapping.get(pAnalysisFileName);
 
     if (fileMapping != null) {
-      Pair<String, Integer> originFileAndLineDelta = fileMapping.get(analysisCodeLine);
+      CodePosition originFileAndLineDelta = fileMapping.get(pAnalysisCodeLine);
 
       if (originFileAndLineDelta != null) {
-        return Pair.of(originFileAndLineDelta.getFirst(),
-            analysisCodeLine + originFileAndLineDelta.getSecond());
+        return originFileAndLineDelta.addToLineNumber(pAnalysisCodeLine);
       }
     }
-    return Pair.of(analysisFile, analysisCodeLine);
+    return CodePosition.of(pAnalysisFileName, pAnalysisCodeLine);
+  }
+
+  /** Code position in terms of file name and absolute or relative line number. */
+  public static class CodePosition {
+
+    private final String fileName;
+
+    private final int lineNumber;
+
+    private CodePosition(String pFileName, int pLineNumber) {
+      fileName = pFileName;
+      lineNumber = pLineNumber;
+    }
+
+    public String getFileName() {
+      return fileName;
+    }
+
+    public int getLineNumber() {
+      return lineNumber;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof CodePosition) {
+        CodePosition other = (CodePosition) pObj;
+        return lineNumber == other.lineNumber && fileName.equals(other.fileName);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(fileName, lineNumber);
+    }
+
+    public CodePosition withFileName(String pFileName) {
+      return of(pFileName, lineNumber);
+    }
+
+    public CodePosition addToLineNumber(int pDelta) {
+      return of(fileName, lineNumber + pDelta);
+    }
+
+    public static CodePosition of(String pFileName, int pLineNumber) {
+      return new CodePosition(pFileName, pLineNumber);
+    }
+
   }
 }

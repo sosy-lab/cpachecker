@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -41,13 +42,15 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstractionCandida
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
-import com.google.common.base.Function;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import java.util.Set;
 
 public class SMGJoinAbstractionManager {
+
+  private final MachineModel machineModel;
 
   private final SMGObject smgObject1;
   private final SMGObject smgObject2;
@@ -58,8 +61,9 @@ public class SMGJoinAbstractionManager {
   @SuppressWarnings("unused")
   private final SMG destSMG;
 
-  public SMGJoinAbstractionManager(SMGObject pRootInSMG1, SMGObject pRootInSMG2, SMG pInputSMG1,
+  public SMGJoinAbstractionManager(MachineModel pMachineModel, SMGObject pRootInSMG1, SMGObject pRootInSMG2, SMG pInputSMG1,
       SMG pInputSMG2, SMGObject pDestObject, SMG pDestSMG) {
+    machineModel = pMachineModel;
     smgObject1 = pRootInSMG1;
     smgObject2 = pRootInSMG2;
     inputSMG1 = pInputSMG1;
@@ -91,7 +95,7 @@ public class SMGJoinAbstractionManager {
 
     if (destObject instanceof GenericAbstraction) {
       GenericAbstractionCandidateTemplate template =
-          ((GenericAbstraction) destObject).createCandidateTemplate();
+          ((GenericAbstraction) destObject).createCandidateTemplate(machineModel);
       return Optional.of(template);
     } else if (pAlreadyFoundCandidates.isEmpty()) {
       return calculateSimpleTemplateAbstractionFromObject();
@@ -132,7 +136,7 @@ public class SMGJoinAbstractionManager {
     }
 
     GenericAbstractionCandidateTemplate result = GenericAbstractionCandidateTemplate
-        .createSimpleInductiveGenericAbstractionTemplate(sharedFields, sharedIPointer,
+        .createSimpleInductiveGenericAbstractionTemplate(machineModel, sharedFields, sharedIPointer,
             sharedOPointer, nonSharedOPointer, root);
     return Optional.of(result);
   }
@@ -261,7 +265,7 @@ public class SMGJoinAbstractionManager {
         pAlreadyFoundCandidates.values().iterator().next().iterator().next();
 
     if (template instanceof GenericAbstractionCandidate) {
-      return Optional.of(((GenericAbstractionCandidate) template).createTemplate());
+      return Optional.of(((GenericAbstractionCandidate) template).createTemplate(machineModel));
     } else {
       return Optional.empty();
     }

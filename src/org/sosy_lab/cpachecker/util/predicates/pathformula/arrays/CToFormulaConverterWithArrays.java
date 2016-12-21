@@ -50,9 +50,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.solver.api.ArrayFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Formula;
+import org.sosy_lab.java_smt.api.ArrayFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 import java.util.Optional;
 import java.util.logging.Level;
@@ -113,13 +113,9 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
   private <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArrayVariable(String pName,
       CType pType, SSAMapBuilder pSsa, boolean bMakeFresh) {
 
-    if (bMakeFresh) {
-      int freshIndex = makeFreshIndex(pName, pType, pSsa);
-      return (ArrayFormula<TI, TE>) fmgr.makeVariable(this.getFormulaTypeFromCType(pType), pName, freshIndex);
-    } else {
-      int useIndex = getIndex(pName, pType, pSsa);
-      return (ArrayFormula<TI, TE>) fmgr.makeVariable(this.getFormulaTypeFromCType(pType), pName, useIndex);
-    }
+    int index = bMakeFresh ? makeFreshIndex(pName, pType, pSsa) : getIndex(pName, pType, pSsa);
+    return (ArrayFormula<TI, TE>)
+        fmgr.makeVariable(this.getFormulaTypeFromCType(pType), pName, index);
   }
 
   @SuppressWarnings("unchecked")
@@ -162,7 +158,7 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
 
       // TODO: How can we handle this case better?
       logger.logOnce(Level.WARNING, "Result might be unsound. Aliasing of array variables detected!", pEdge.getRawStatement());
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
 
     } else if (pLhs instanceof CArraySubscriptExpression) {
 
@@ -173,7 +169,7 @@ public class CToFormulaConverterWithArrays extends CtoFormulaConverter {
       if (lhsExpr.getArrayExpression() instanceof CArraySubscriptExpression) {
         logger.logOnce(Level.WARNING, "Result might be unsound. Unsupported "
             + "multi-dimensional arrays found!", pEdge.getRawStatement());
-        return bfmgr.makeBoolean(true);
+        return bfmgr.makeTrue();
       }
 
       // .getArrayExpression() provides a CIdExpression

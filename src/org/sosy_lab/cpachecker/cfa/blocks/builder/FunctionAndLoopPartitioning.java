@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
-import java.util.Set;
-
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+
+import java.util.Set;
 
 
 /**
@@ -38,26 +40,19 @@ public class FunctionAndLoopPartitioning extends PartitioningHeuristic {
   private FunctionPartitioning functionPartitioning;
   private LoopPartitioning loopPartitioning;
 
-  public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa) {
-    super(pLogger, pCfa);
-    functionPartitioning = new FunctionPartitioning(pLogger, pCfa);
-    loopPartitioning = new LoopPartitioning(pLogger, pCfa);
+  public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig)
+      throws InvalidConfigurationException {
+    super(pLogger, pCfa, pConfig);
+    functionPartitioning = new FunctionPartitioning(pLogger, pCfa, pConfig);
+    loopPartitioning = new LoopPartitioning(pLogger, pCfa, pConfig);
   }
 
   @Override
-  protected boolean shouldBeCached(CFANode pNode) {
-    return functionPartitioning.shouldBeCached(pNode) || loopPartitioning.shouldBeCached(pNode);
-  }
-
-  @Override
-  protected Set<CFANode> getBlockForNode(CFANode pNode) {
-    // TODO what to do if both want to cache it?
-    if (functionPartitioning.shouldBeCached(pNode)) {
-      return functionPartitioning.getBlockForNode(pNode);
-    } else if (loopPartitioning.shouldBeCached(pNode)) {
-      return loopPartitioning.getBlockForNode(pNode);
-    } else {
-      throw new AssertionError("node should not be cached: " + pNode);
+  protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
+    Set<CFANode> nodes = functionPartitioning.getBlockForNode(pBlockHead);
+    if (nodes == null) {
+      nodes = loopPartitioning.getBlockForNode(pBlockHead);
     }
+    return nodes;
   }
 }

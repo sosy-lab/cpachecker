@@ -31,12 +31,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView.Theory;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingArrayFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingBitvectorFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.WrappingFormula.WrappingFloatingPointFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaManager;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FormulaType.ArrayFormulaType;
-import org.sosy_lab.solver.api.FormulaType.BitvectorType;
-import org.sosy_lab.solver.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaManager;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 import java.util.List;
 

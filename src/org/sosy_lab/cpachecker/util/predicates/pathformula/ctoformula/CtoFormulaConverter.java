@@ -31,7 +31,15 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -71,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -105,21 +114,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
-import org.sosy_lab.solver.api.BitvectorFormula;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.FloatingPointFormula;
-import org.sosy_lab.solver.api.Formula;
-import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FunctionDeclaration;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
 
 /**
  * Class containing all the code that converts C code into a formula.
@@ -127,21 +127,37 @@ import java.util.logging.Level;
 public class CtoFormulaConverter {
 
   // list of functions that are pure (no side-effects from the perspective of this analysis)
-  public static final Set<String> PURE_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("abort", "exit", "__assert_fail", "__VERIFIER_error",
-          "free", "kfree",
-          "fprintf", "printf", "puts", "printk", "sprintf", "swprintf",
-          "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr"
-          );
+  static final Set<String> PURE_EXTERNAL_FUNCTIONS =
+      ImmutableSet.of(
+          "abort",
+          "exit",
+          "__assert_fail",
+          "__VERIFIER_error",
+          "free",
+          "kfree",
+          "fprintf",
+          "printf",
+          "puts",
+          "printk",
+          "sprintf",
+          "swprintf",
+          "strcasecmp",
+          "strchr",
+          "strcmp",
+          "strlen",
+          "strncmp",
+          "strrchr",
+          "strstr");
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  public static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of("fesetround", "floating-point rounding modes");
+  static final Map<String, String> UNSUPPORTED_FUNCTIONS =
+      ImmutableMap.of("fesetround", "floating-point rounding modes");
 
   //names for special variables needed to deal with functions
   @Deprecated
-  public static final String RETURN_VARIABLE_NAME = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
+  private static final String RETURN_VARIABLE_NAME =
+      VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
   public static final String PARAM_VARIABLE_NAME = "__param__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
@@ -209,6 +225,17 @@ public class CtoFormulaConverter {
           String.format(msg, args),
           edge.getDescription());
     }
+  }
+
+  /**
+   * Returns the size in bits of the given type.
+   * Always use this method instead of machineModel.getSizeOf,
+   * because this method can handle dereference-types.
+   * @param pType the type to calculate the size of.
+   * @return the size in bits of the given type.
+   */
+  public int getBitSizeof(CType pType) {
+    return typeHandler.getBitSizeof(pType);
   }
 
   /**
@@ -410,10 +437,15 @@ public class CtoFormulaConverter {
    * @param pContextPTS the PointerTargetSet which should be used for formula generation
    * @param pVarName the name of the variable
    * @param pType the type of the variable
+   * @param forcePointerDereference (only used in CToFormulaConverterWithPointerAliasing)
    * @return the created formula
    */
   public Formula makeFormulaForVariable(
-      SSAMap pContextSSA, PointerTargetSet pContextPTS, String pVarName, CType pType) {
+      SSAMap pContextSSA,
+      PointerTargetSet pContextPTS,
+      String pVarName,
+      CType pType,
+      boolean forcePointerDereference) {
     Preconditions.checkArgument(!(pType instanceof CEnumType));
 
     SSAMapBuilder ssa = pContextSSA.builder();
@@ -621,7 +653,7 @@ public class CtoFormulaConverter {
       }
     }
 
-    if (getSizeof(fromType) == getSizeof(toType)) {
+    if (getBitSizeof(fromType) == getBitSizeof(toType)) {
       // We can most likely just ignore this cast
       logger.logfOnce(Level.WARNING, "Ignoring cast from %s to %s.", fromType, toType);
       return formula;
@@ -749,8 +781,13 @@ public class CtoFormulaConverter {
     // param-constraints must be added _before_ handling the edge (some lines below),
     // because this edge could write a global value.
     if (edge.getPredecessor() instanceof CFunctionEntryNode) {
-      addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, (CFunctionEntryNode)edge.getPredecessor());
+      final CFunctionEntryNode entryNode = (CFunctionEntryNode) edge.getPredecessor();
+      addParameterConstraints(edge, function, ssa, pts, constraints, errorConditions, entryNode);
       addGlobalAssignmentConstraints(edge, function, ssa, pts, constraints, errorConditions, PARAM_VARIABLE_NAME, false);
+
+      if (entryNode.getNumEnteringEdges() == 0) {
+        handleEntryFunctionParameters(entryNode, ssa, constraints);
+      }
     }
 
     // handle the edge
@@ -780,16 +817,31 @@ public class CtoFormulaConverter {
     return new PathFormula(newFormula, newSsa, newPts, newLength);
   }
 
+  /**
+   * Ensure parameters of entry function are added to the SSAMap.
+   * Otherwise they would be missing and (un)instantiate would not work correctly,
+   * leading to a wrong analysis if their value is relevant.
+   * TODO: This would be also necessary when the analysis starts in the middle of a CFA.
+   *
+   * Also add range constraints for these non-deterministic parameters to strengthen analysis.
+   */
+  private void handleEntryFunctionParameters(
+      final CFunctionEntryNode entryNode, final SSAMapBuilder ssa, final Constraints constraints) {
+    for (CParameterDeclaration param : entryNode.getFunctionDefinition().getParameters()) {
+      // has side-effect of adding to SSAMap!
+      final Formula var = makeFreshVariable(param.getQualifiedName(), param.getType(), ssa);
+
+      if (options.addRangeConstraintsForNondet()) {
+        addRangeConstraint(var, param.getType(), constraints);
+      }
+    }
+  }
 
   /**
    * Create and add constraints about parameters: param1=tmp_param1, param2=tmp_param2, ...
    * The tmp-variables are also used before the function-entry as "argument-constraints".
    *
    * This function is usually only relevant with options.useParameterVariables().
-   * We also add the same constraints for the entry function, though,
-   * to ensure that the parameters of the entry function have been assigned once
-   * and are in the SSAMap (otherwise instantiate and uninstantiate will be wrong).
-   * TODO: This would be also necessary when the analysis starts in the middle of a CFA.
    */
   private void addParameterConstraints(final CFAEdge edge, final String function,
                                        final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
@@ -797,8 +849,7 @@ public class CtoFormulaConverter {
                                        final CFunctionEntryNode entryNode)
           throws UnrecognizedCCodeException, InterruptedException {
 
-    if (options.useParameterVariables()
-        || entryNode.getNumEnteringEdges() == 0 /* entry function */ ) {
+    if (options.useParameterVariables()) {
       for (CParameterDeclaration formalParam : entryNode.getFunctionParameters()) {
 
         // create expressions for each formal param: "f::x" --> "f::x__param__"
@@ -889,7 +940,7 @@ public class CtoFormulaConverter {
     }
 
     case BlankEdge: {
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     case FunctionCallEdge: {
@@ -933,7 +984,7 @@ public class CtoFormulaConverter {
       }
 
       // side-effect free statement, ignore
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
   }
 
@@ -946,7 +997,7 @@ public class CtoFormulaConverter {
     if (!(edge.getDeclaration() instanceof CVariableDeclaration)) {
       // struct prototype, function declaration, typedef etc.
       logfOnce(Level.FINEST, edge, "Ignoring declaration");
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     CVariableDeclaration decl = (CVariableDeclaration)edge.getDeclaration();
@@ -955,22 +1006,10 @@ public class CtoFormulaConverter {
     if (!isRelevantVariable(decl)) {
       logger.logfOnce(Level.FINEST, "%s: Ignoring declaration of unused variable: %s",
           decl.getFileLocation(), decl.toASTString());
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
-    CType declarationType = decl.getType().getCanonicalType();
-    if (declarationType instanceof CArrayType) {
-      CType elementType = ((CArrayType)declarationType).getType();
-      if (elementType instanceof CSimpleType && ((CSimpleType)elementType).getType().isFloatingPointType()) {
-
-        CExpression length = ((CArrayType)declarationType).getLength();
-        if (length instanceof CIntegerLiteralExpression) {
-          if (((CIntegerLiteralExpression) length).getValue().longValue() > 100) {
-            throw new UnsupportedCCodeException("large floating-point array", edge);
-          }
-        }
-      }
-    }
+    checkForLargeArray(edge, decl.getType().getCanonicalType());
 
     if (options.useParameterVariablesForGlobals() && decl.isGlobal()) {
       globalDeclarations.add(decl);
@@ -997,7 +1036,7 @@ public class CtoFormulaConverter {
 
     // if there is an initializer associated to this variable,
     // take it into account
-    BooleanFormula result = bfmgr.makeBoolean(true);
+    BooleanFormula result = bfmgr.makeTrue();
 
     if (decl.getInitializer() instanceof CInitializerList) {
       // If there is an initializer, all fields/elements not mentioned
@@ -1029,6 +1068,34 @@ public class CtoFormulaConverter {
     return result;
   }
 
+  /**
+   * Check whether a large array is declared and abort analysis in this case. This is a heuristic
+   * for SV-COMP to avoid wasting a lot of time for programs we probably cannot handle anyway or
+   * returning a wrong answer.
+   */
+  protected void checkForLargeArray(final CDeclarationEdge declarationEdge, CType declarationType)
+      throws UnsupportedCCodeException {
+    if (!options.shouldAbortOnLargeArrays() || !(declarationType instanceof CArrayType)) {
+      return;
+    }
+    CArrayType arrayType = (CArrayType) declarationType;
+    CType elementType = arrayType.getType();
+
+    if (elementType instanceof CSimpleType
+        && ((CSimpleType) elementType).getType().isFloatingPointType()) {
+      if (arrayType.getLengthAsInt().orElse(0) > 100) {
+        throw new UnsupportedCCodeException("large floating-point array", declarationEdge);
+      }
+    }
+
+    if (elementType instanceof CSimpleType
+        && ((CSimpleType) elementType).getType() == CBasicType.INT) {
+      if (arrayType.getLengthAsInt().orElse(0) >= 10000) {
+        throw new UnsupportedCCodeException("large integer array", declarationEdge);
+      }
+    }
+  }
+
   protected BooleanFormula makeExitFunction(
       final CFunctionSummaryEdge ce, final String calledFunction,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
@@ -1040,7 +1107,7 @@ public class CtoFormulaConverter {
     CFunctionCall retExp = ce.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
       // this should be a void return, just do nothing...
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
 
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
@@ -1126,7 +1193,7 @@ public class CtoFormulaConverter {
     }
 
     int i = 0;
-    BooleanFormula result = bfmgr.makeBoolean(true);
+    BooleanFormula result = bfmgr.makeTrue();
     for (CParameterDeclaration formalParam : formalParams) {
       CExpression paramExpression = actualParams.get(i++);
       CIdExpression lhs = new CIdExpression(paramExpression.getFileLocation(), formalParam);
@@ -1157,7 +1224,7 @@ public class CtoFormulaConverter {
           throws UnrecognizedCCodeException, InterruptedException {
     if (!assignment.isPresent()) {
       // this is a return from a void function, do nothing
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     } else {
 
       return makeAssignment(assignment.get().getLeftHandSide(), assignment.get().getRightHandSide(),
@@ -1200,7 +1267,7 @@ public class CtoFormulaConverter {
 
     if (!isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     CType lhsType = lhs.getExpressionType().getCanonicalType();
@@ -1208,7 +1275,7 @@ public class CtoFormulaConverter {
     if (lhsType instanceof CArrayType) {
       // Probably a (string) initializer, ignore assignments to arrays
       // as they cannot behandled precisely anyway.
-      return bfmgr.makeBoolean(true);
+      return bfmgr.makeTrue();
     }
 
     if (rhs instanceof CExpression) {
@@ -1430,7 +1497,6 @@ public class CtoFormulaConverter {
     CCompositeType structType = (CCompositeType)fieldRef.getExpressionType().getCanonicalType();
 
     // f is now the structure, access it:
-    int bitsPerByte = machineModel.getSizeofCharInBits();
 
     int offset;
     switch (structType.getKind()) {
@@ -1438,19 +1504,19 @@ public class CtoFormulaConverter {
       offset = 0;
       break;
     case STRUCT:
-      offset = getFieldOffset(structType, fExp.getFieldName()) * bitsPerByte;
+      offset = getFieldOffset(structType, fExp.getFieldName());
       break;
     default:
       throw new UnrecognizedCCodeException("Unexpected field access", fExp);
     }
 
     CType type = fExp.getExpressionType();
-    int fieldSize = getSizeof(type) * bitsPerByte;
+    int fieldSize = getBitSizeof(type);
 
     // Crude hack for unions with zero-sized array fields produced by LDV
     // (ldv-consumption/32_7a_cilled_true_linux-3.8-rc1-32_7a-fs--ceph--ceph.ko-ldv_main7_sequence_infinite_withcheck_stateful.cil.out.c)
     if (fieldSize == 0 && structType.getKind() == ComplexTypeKind.UNION) {
-      fieldSize = getSizeof(fieldRef.getExpressionType());
+      fieldSize = getBitSizeof(fieldRef.getExpressionType());
     }
 
     // we assume that only CSimpleTypes can be unsigned
@@ -1466,7 +1532,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Returns the offset of the given field in the given struct in bytes.
+   * Returns the offset of the given field in the given struct in bits.
    *
    * This function does not handle UNIONs or ENUMs!
    */
@@ -1477,7 +1543,7 @@ public class CtoFormulaConverter {
         return off;
       }
 
-      off += getSizeof(member.getType());
+      off += getBitSizeof(member.getType());
     }
 
     throw new AssertionError("field " + fieldName + " was not found in " + structType);
@@ -1515,4 +1581,11 @@ public class CtoFormulaConverter {
       InterruptedException e) throws T {
     throw (T) e;
   }
+
+  /**
+   * Prints some information about the RegionManager.
+   *
+   * @param out - output stream
+   */
+  public void printStatistics(PrintStream out) {}
 }

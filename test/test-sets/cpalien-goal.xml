@@ -15,7 +15,7 @@
   <tasks name="cpalien-label-goal">
     <includesfile>../programs/cpalien/cpalien-label-goal.set</includesfile>
     <option name="-CPAlien-label"/>
-    <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/PropertyUnreachCall.prp</propertyfile>
   </tasks>
 
   <rundefinition name="cpalien">

@@ -26,7 +26,12 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Lists;
-
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -34,24 +39,30 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.annotation.Nonnull;
-
-public class CallstackState implements AbstractState, Partitionable,
-AbstractQueryableState, Serializable {
+/**
+ * Abstract state that stores callstack information by maintaning a single-linked list of states
+ * that represents the current callstack.
+ *
+ * Note that whenever a new state is created, this represents a new, unique, entry of a function.
+ * Two separate entries of the same function are not considered equal,
+ * even if the function names and call nodes of the two callstacks match.
+ * Cf. {@link CallstackTest#testCallstackPreventsUndesiredCoverage()} for an example.
+ * (Because of this this class must inherit the identity-based
+ * {@link #equals(Object)} and {@link #hashCode()} from Object.)
+ */
+public class CallstackState
+    implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
 
   private static final long serialVersionUID = 3629687385150064994L;
 
-  protected final CallstackState previousState;
+  protected final @Nullable CallstackState previousState;
   protected final String currentFunction;
   protected transient CFANode callerNode;
   private final int depth;
 
-  public CallstackState(CallstackState pPreviousElement, @Nonnull String pFunction,
+  public CallstackState(
+      @Nullable CallstackState pPreviousElement,
+      @Nonnull String pFunction,
       @Nonnull CFANode pCallerNode) {
 
     previousState = pPreviousElement;

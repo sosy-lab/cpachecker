@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.base.Preconditions;
-
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
-
-import java.math.BigInteger;
 
 public class BitVectorInfo implements TypeInfo {
 
@@ -125,15 +123,19 @@ public class BitVectorInfo implements TypeInfo {
           return FloatingPointTypeInfo.DOUBLE;
         }
       }
-      int sizeInChars = 0;
       CType cType = (CType) type;
-      if (!cType.isIncomplete()) {
-        sizeInChars = cType.accept(new BaseSizeofVisitor(pMachineModel));
+      if (cType.isBitField()) {
+        size = cType.getBitFieldSize();
+      } else {
+        int sizeInChars = 0;
+        if (!cType.isIncomplete()) {
+          sizeInChars = cType.accept(new BaseSizeofVisitor(pMachineModel));
+        }
+        if (sizeInChars == 0) {
+          sizeInChars = pMachineModel.getSizeofPtr();
+        }
+        size = sizeInChars * pMachineModel.getSizeofCharInBits();
       }
-      if (sizeInChars == 0) {
-        sizeInChars = pMachineModel.getSizeofPtr();
-      }
-      size = sizeInChars * pMachineModel.getSizeofCharInBits();
       assert size >= 0;
       signed = (type instanceof CSimpleType) && pMachineModel.isSigned((CSimpleType) type);
     } else if (type instanceof JSimpleType) {

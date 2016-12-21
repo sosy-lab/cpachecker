@@ -28,8 +28,8 @@ import static com.google.common.base.Preconditions.checkState;
 import java.util.List;
 import java.util.Map;
 
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.solver.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

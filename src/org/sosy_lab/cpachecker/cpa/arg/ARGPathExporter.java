@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -39,24 +38,41 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import com.google.common.collect.TreeMultimap;
-
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import javax.annotation.Nullable;
+import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -78,6 +94,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -87,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -94,53 +112,46 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.cpa.arg.graphExport.Edge;
-import org.sosy_lab.cpachecker.cpa.arg.graphExport.TransitionCondition;
+import org.sosy_lab.cpachecker.cpa.arg.graphexport.Edge;
+import org.sosy_lab.cpachecker.cpa.arg.graphexport.TransitionCondition;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-import javax.xml.parsers.ParserConfigurationException;
-
 @Options(prefix = "cpa.arg.witness")
 public class ARGPathExporter {
+
+  private static final EnumSet<KeyDef> INSUFFICIENT_KEYS =
+      EnumSet.of(
+          KeyDef.SOURCECODE,
+          KeyDef.ORIGINLINE,
+          KeyDef.ORIGINFILE,
+          KeyDef.OFFSET,
+          KeyDef.LINECOLS,
+          KeyDef.ASSUMPTIONSCOPE,
+          KeyDef.ASSUMPTIONRESULTFUNCTION);
 
   private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<ARGState, ARGState>() {
 
@@ -185,8 +196,6 @@ public class ARGPathExporter {
   )
   private boolean revertThreadFunctionRenaming = false;
 
-  private final LogManager logger;
-
   private final CFA cfa;
 
   private final MachineModel machineModel;
@@ -198,45 +207,22 @@ public class ARGPathExporter {
   private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
   private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
-  /**
-   * This is a temporary hack to easily obtain specification and verification tasks.
-   * TODO: Move the witness export out of the ARG CPA after the new error report has been integrated
-   * and obtain the values without this hack.
-   */
-  @Options
-  private static class HackyOptions {
-
-    @Option(secure=true, name="analysis.programNames",
-        description="A String, denoting the programs to be analyzed")
-    private String programs;
-
-    @Option(secure=true, name="properties",
-        description="List of property files (INTERNAL USAGE ONLY - DO NOT USE)")
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private List<Path> propertyFiles = ImmutableList.of();
-
-    @Option(secure=true,
-        name="cpa.predicate.handlePointerAliasing",
-        description = "Handle aliasing of pointers. "
-        + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
-    private boolean handlePointerAliasing = true;
-  }
-
-  private final HackyOptions hackyOptions = new HackyOptions();
+  private final VerificationTaskMetaData verificationTaskMetaData;
 
   public ARGPathExporter(
       final Configuration pConfig,
       final LogManager pLogger,
-      CFA pCFA)
+      final Specification pSpecification,
+      final CFA pCFA)
       throws InvalidConfigurationException {
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
-    pConfig.inject(hackyOptions);
     this.cfa = pCFA;
     this.machineModel = pCFA.getMachineModel();
     this.language = pCFA.getLanguage();
-    this.logger = pLogger;
     this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
+    this.verificationTaskMetaData =
+        new VerificationTaskMetaData(pConfig, Optional.of(pSpecification));
   }
 
   public void writeErrorWitness(
@@ -248,7 +234,7 @@ public class ARGPathExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName, GraphType.ERROR_WITNESS);
+    WitnessWriter writer = new WitnessWriter(defaultFileName, WitnessType.ERROR_WITNESS);
     writer.writePath(
         pTarget,
         pRootState,
@@ -332,7 +318,7 @@ public class ARGPathExporter {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer =
-        new WitnessWriter(defaultFileName, GraphType.PROOF_WITNESS, pInvariantProvider);
+        new WitnessWriter(defaultFileName, WitnessType.PROOF_WITNESS, pInvariantProvider);
     writer.writePath(
         pTarget,
         pRootState,
@@ -364,29 +350,33 @@ public class ARGPathExporter {
 
   private class WitnessWriter implements EdgeAppender {
 
-    private final Multimap<String, NodeFlag> nodeFlags = TreeMultimap.create();
+    private final Multimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
     private final Multimap<String, Property> violatedProperties = HashMultimap.create();
     private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 
-    private final Multimap<String, Edge> leavingEdges = TreeMultimap.create();
-    private final Multimap<String, Edge> enteringEdges = TreeMultimap.create();
+    private final Multimap<String, Edge> leavingEdges = LinkedHashMultimap.create();
+    private final Multimap<String, Edge> enteringEdges = LinkedHashMultimap.create();
 
     private final Map<String, ExpressionTree<Object>> stateInvariants = Maps.newLinkedHashMap();
     private final Map<String, String> stateScopes = Maps.newLinkedHashMap();
 
+    private final Map<Edge, CFANode> loopHeadEnteringEdges = Maps.newHashMap();
+
     private final String defaultSourcefileName;
-    private final GraphType graphType;
+    private final WitnessType graphType;
 
     private final InvariantProvider invariantProvider;
 
     private boolean isFunctionScope = false;
 
-    public WitnessWriter(@Nullable String pDefaultSourcefileName, GraphType pGraphType) {
+    public WitnessWriter(@Nullable String pDefaultSourcefileName, WitnessType pGraphType) {
       this(pDefaultSourcefileName, pGraphType, InvariantProvider.TrueInvariantProvider.INSTANCE);
     }
 
     public WitnessWriter(
-        String pDefaultSourceFileName, GraphType pGraphType, InvariantProvider pInvariantProvider) {
+        String pDefaultSourceFileName,
+        WitnessType pGraphType,
+        InvariantProvider pInvariantProvider) {
       this.defaultSourcefileName = pDefaultSourceFileName;
       this.graphType = pGraphType;
       this.invariantProvider = pInvariantProvider;
@@ -406,6 +396,12 @@ public class ARGPathExporter {
       TransitionCondition desc = constructTransitionCondition(pFrom, pTo, pEdge, pFromState, pValueMap);
 
       Edge edge = new Edge(pFrom, pTo, desc);
+      if (desc.getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
+        Optional<CFANode> loopHead = entersLoop(pEdge);
+        if (loopHead.isPresent()) {
+          loopHeadEnteringEdges.put(edge, loopHead.get());
+        }
+      }
 
       putEdge(edge);
     }
@@ -443,11 +439,11 @@ public class ARGPathExporter {
         final Optional<Collection<ARGState>> pFromState,
         final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
-      TransitionCondition result = new TransitionCondition();
+      TransitionCondition result = TransitionCondition.empty();
 
-      if (graphType != GraphType.ERROR_WITNESS) {
+      if (graphType != WitnessType.ERROR_WITNESS) {
         ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
-        if (exportInvariant(pEdge.getSuccessor())) {
+        if (exportInvariant(pEdge)) {
           invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
         }
         putStateInvariant(pTo, invariant);
@@ -455,12 +451,12 @@ public class ARGPathExporter {
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
-      if (pEdge.getSuccessor().isLoopStart()) {
-        nodeFlags.put(pTo, NodeFlag.ISLOOPSTART);
-      }
-
       if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
         return result;
+      }
+
+      if (entersLoop(pEdge).isPresent()) {
+        result = result.putAndCopy(KeyDef.ENTERLOOPHEAD, "true");
       }
 
       if (exportFunctionCallsAndReturns) {
@@ -491,33 +487,29 @@ public class ARGPathExporter {
                           .anyMatch(
                               sibling -> sibling.getRawStatement().startsWith("pointer call")))) {
             // remove all info from transitionCondition
-            return new TransitionCondition();
+            return TransitionCondition.empty();
           }
           AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
           result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
         }
       }
 
-      if (exportLineNumbers) {
-        Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-        if (locations.size() > 0) {
-          FileLocation l = locations.iterator().next();
-          if (!l.getFileName().equals(defaultSourcefileName)) {
-            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
-          }
-          result = result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
+      Optional<FileLocation> minFileLocation = getMinFileLocation(pEdge);
+      if (exportLineNumbers && minFileLocation.isPresent()) {
+        FileLocation min = minFileLocation.get();
+        if (!min.getFileName().equals(defaultSourcefileName)) {
+          result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
+        result =
+            result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(min.getStartingLineInOrigin()));
       }
 
-      if (exportOffset) {
-        Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-        if (locations.size() > 0) {
-          FileLocation l = locations.iterator().next();
-          if (!l.getFileName().equals(defaultSourcefileName)) {
-            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
-          }
-          result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(l.getNodeOffset()));
+      if (exportOffset && minFileLocation.isPresent()) {
+        FileLocation min = minFileLocation.get();
+        if (!min.getFileName().equals(defaultSourcefileName)) {
+          result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
+        result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
       }
 
       if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
@@ -525,6 +517,22 @@ public class ARGPathExporter {
       }
 
       return result;
+    }
+
+    private Optional<FileLocation> getMinFileLocation(CFAEdge pEdge) {
+      Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+      if (locations.size() > 0) {
+        Iterator<FileLocation> locationIterator = locations.iterator();
+        FileLocation min = locationIterator.next();
+        while (locationIterator.hasNext()) {
+          FileLocation l = locationIterator.next();
+          if (l.getNodeOffset() < min.getNodeOffset()) {
+            min = l;
+          }
+        }
+        return Optional.of(min);
+      }
+      return Optional.empty();
     }
 
     private TransitionCondition extractTransitionForStates(
@@ -536,6 +544,8 @@ public class ARGPathExporter {
         TransitionCondition result) {
 
       List<ExpressionTree<Object>> code = new ArrayList<>();
+      Optional<AIdExpression> resultVariable = Optional.empty();
+      Optional<String> resultFunction = Optional.empty();
       String functionName = pEdge.getPredecessor().getFunctionName();
       boolean isFunctionScope = this.isFunctionScope;
 
@@ -606,7 +616,7 @@ public class ARGPathExporter {
           }
 
           // Do not export our own temporary variables
-          Predicate<CIdExpression> isTmpVariable =
+          Predicate<AIdExpression> isTmpVariable =
               idExpression ->
                   idExpression
                       .getDeclaration()
@@ -621,6 +631,42 @@ public class ARGPathExporter {
                           && !CFAUtils.getIdExpressionsOfExpression(
                                   (CExpression) statement.getExpression())
                               .anyMatch(isTmpVariable));
+
+          // Export function return value for cases where it is not explicitly assigned to a variable
+          if (pEdge instanceof AStatementEdge) {
+            AStatementEdge edge = (AStatementEdge) pEdge;
+            if (edge.getStatement() instanceof AFunctionCallAssignmentStatement) {
+              AFunctionCallAssignmentStatement assignment =
+                  (AFunctionCallAssignmentStatement) edge.getStatement();
+              if (assignment.getLeftHandSide() instanceof AIdExpression
+                  && assignment.getFunctionCallExpression().getFunctionNameExpression()
+                      instanceof AIdExpression) {
+                AIdExpression idExpression = (AIdExpression) assignment.getLeftHandSide();
+                if (isTmpVariable.apply(idExpression)) {
+                  assignments =
+                      Collections2.filter(
+                          cfaEdgeWithAssignments.getExpStmts(),
+                          statement ->
+                              statement.getExpression() instanceof CExpression
+                                  && !CFAUtils.getIdExpressionsOfExpression(
+                                          (CExpression) statement.getExpression())
+                                      .anyMatch(
+                                          id ->
+                                              isTmpVariable.apply(id) && !id.equals(idExpression)));
+                  resultVariable = Optional.of(idExpression);
+                  AIdExpression resultFunctionName =
+                      (AIdExpression)
+                          assignment.getFunctionCallExpression().getFunctionNameExpression();
+                  if (resultFunctionName.getDeclaration() != null) {
+                    resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
+                  } else {
+                    resultFunction = Optional.of(resultFunctionName.getName());
+                  }
+                }
+              }
+            }
+          }
+          assert resultVariable.isPresent() == resultFunction.isPresent();
 
           if (!assignments.isEmpty()) {
             code.add(
@@ -637,16 +683,20 @@ public class ARGPathExporter {
         }
       }
 
-      if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
+      if (graphType != WitnessType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
         ExpressionTree<Object> invariant = factory.or(code);
+        CExpressionToOrinalCodeVisitor transformer =
+            resultVariable.isPresent()
+                ? CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER.substitute(
+                    (CIdExpression) resultVariable.get(), "\\result")
+                : CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER;
         final Function<Object, String> converter =
             new Function<Object, String>() {
 
               @Override
               public String apply(Object pLeafExpression) {
                 if (pLeafExpression instanceof CExpression) {
-                  return ((CExpression) pLeafExpression)
-                      .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+                  return ((CExpression) pLeafExpression).accept(transformer);
                 }
                 if (pLeafExpression == null) {
                   return "(0)";
@@ -674,6 +724,9 @@ public class ARGPathExporter {
             functionName = CFACloner.extractFunctionName(functionName);
           }
           result = result.putAndCopy(KeyDef.ASSUMPTIONSCOPE, functionName);
+        }
+        if (resultFunction.isPresent()) {
+          result = result.putAndCopy(KeyDef.ASSUMPTIONRESULTFUNCTION, resultFunction.get());
         }
       }
 
@@ -805,27 +858,7 @@ public class ARGPathExporter {
       try {
         doc =
             new GraphMlBuilder(
-                graphType,
-                defaultSourcefileName,
-                language,
-                machineModel,
-                hackyOptions.handlePointerAliasing ? "precise" : "simple",
-                FluentIterable.from(hackyOptions.propertyFiles)
-                    .transform(
-                        new Function<Path, String>() {
-
-                          @Override
-                          public String apply(Path pArg0) {
-                            try {
-                              return MoreFiles.toString(pArg0, Charsets.UTF_8).trim();
-                            } catch (IOException e) {
-                              logger.logUserException(
-                                  Level.WARNING, e, "Could not export specification to witness.");
-                              return "Unknown specification";
-                            }
-                          }
-                        }),
-                hackyOptions.programs);
+                graphType, defaultSourcefileName, language, machineModel, verificationTaskMetaData);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }
@@ -877,7 +910,7 @@ public class ARGPathExporter {
 
       // Merge nodes with empty or repeated edges
       Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier =
-          () -> Iterables.filter(leavingEdges.values(), isEdgeRedundant).iterator();
+          () -> FluentIterable.from(leavingEdges.values()).filter(isEdgeRedundant).iterator();
 
       Iterator<Edge> redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
       while (redundantEdgeIterator.hasNext()) {
@@ -898,6 +931,8 @@ public class ARGPathExporter {
         while (!waitlist.isEmpty()) {
           String source = waitlist.pop();
           for (Edge edge : leavingEdges.get(source)) {
+            setLoopHeadInvariantIfApplicable(edge.target);
+
             Element targetNode = nodes.get(edge.target);
             if (targetNode == null) {
               targetNode = createNewNode(doc, edge.target);
@@ -914,6 +949,41 @@ public class ARGPathExporter {
       doc.appendTo(pTarget);
     }
 
+    private void setLoopHeadInvariantIfApplicable(String pTarget) {
+      if (!ExpressionTrees.getTrue().equals(getStateInvariant(pTarget))) {
+        return;
+      }
+      ExpressionTree<Object> loopHeadInvariant = ExpressionTrees.getFalse();
+      String scope = null;
+      for (Edge enteringEdge : enteringEdges.get(pTarget)) {
+        if (enteringEdge.label.getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
+          CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
+          if (loopHead != null) {
+            String functionName = loopHead.getFunctionName();
+            if (scope == null) {
+              scope = functionName;
+            } else if (!scope.equals(functionName)) {
+              return;
+            }
+            for (CFAEdge enteringCFAEdge : CFAUtils.enteringEdges(loopHead)) {
+              loopHeadInvariant =
+                  Or.of(
+                      loopHeadInvariant,
+                      invariantProvider.provideInvariantFor(enteringCFAEdge, Optional.empty()));
+            }
+          } else {
+            return;
+          }
+        } else {
+          return;
+        }
+      }
+      stateInvariants.put(pTarget, loopHeadInvariant);
+      if (scope != null) {
+        stateScopes.put(pTarget, scope);
+      }
+    }
+
     private ExpressionTree<Object> addInvariantsData(
         GraphMlBuilder pDoc, Element pNode, String pStateId) {
       ExpressionTree<Object> tree = getStateInvariant(pStateId);
@@ -927,6 +997,10 @@ public class ARGPathExporter {
       return tree;
     }
 
+    private boolean hasFlagsOrProperties(String pNode) {
+      return !nodeFlags.get(pNode).isEmpty() || !violatedProperties.get(pNode).isEmpty();
+    }
+
     private final Predicate<String> isNodeRedundant =
         new Predicate<String>() {
 
@@ -935,10 +1009,7 @@ public class ARGPathExporter {
             if (!ExpressionTrees.getTrue().equals(getStateInvariant(pNode))) {
               return false;
             }
-            if (!nodeFlags.get(pNode).isEmpty()) {
-              return false;
-            }
-            if (!violatedProperties.get(pNode).isEmpty()) {
+            if (hasFlagsOrProperties(pNode)) {
               return false;
             }
             if (enteringEdges.get(pNode).isEmpty()) {
@@ -992,10 +1063,16 @@ public class ARGPathExporter {
               return true;
             }
 
-            if (Iterables.all(leavingEdges.get(pEdge.source),
+            if (Iterables.all(
+                leavingEdges.get(pEdge.source),
                 pLeavingEdge -> pLeavingEdge.label.getMapping().isEmpty())) {
               return true;
             }
+
+            if (INSUFFICIENT_KEYS.containsAll(pEdge.label.getMapping().keySet())) {
+              return true;
+            }
+
             return false;
           }
         };
@@ -1037,7 +1114,13 @@ public class ARGPathExporter {
       // Add them as entering edges to their target nodes
       for (Edge leavingEdge : leavingEdgesToMove) {
         TransitionCondition label = pEdge.label.putAllAndCopy(leavingEdge.label);
-        putEdge(new Edge(source, leavingEdge.target, label));
+        Edge replacementEdge = new Edge(source, leavingEdge.target, label);
+        putEdge(replacementEdge);
+        CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
+        if (loopHead != null) {
+          loopHeadEnteringEdges.remove(leavingEdge);
+          loopHeadEnteringEdges.put(replacementEdge, loopHead);
+        }
       }
 
       // Move the entering edges
@@ -1053,10 +1136,21 @@ public class ARGPathExporter {
       for (Edge enteringEdge : enteringEdgesToMove) {
         if (!pEdge.equals(enteringEdge)) {
           TransitionCondition label = pEdge.label.putAllAndCopy(enteringEdge.label);
-          putEdge(new Edge(enteringEdge.source, source, label));
+          Edge replacementEdge = new Edge(enteringEdge.source, source, label);
+          putEdge(replacementEdge);
+          CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
+          if (loopHead != null) {
+            loopHeadEnteringEdges.remove(enteringEdge);
+            loopHeadEnteringEdges.put(replacementEdge, loopHead);
+          }
         }
       }
 
+    }
+
+    private ExpressionTree<Object> getTargetStateInvariant(String pTargetState) {
+      ExpressionTree<Object> targetStateInvariant = getStateInvariant(pTargetState);
+      return targetStateInvariant;
     }
 
     /** Merge two expressionTrees for source and target.
@@ -1070,10 +1164,7 @@ public class ARGPathExporter {
       if (ExpressionTrees.getTrue().equals(targetTree)
           && !ExpressionTrees.getTrue().equals(sourceTree)
           && (targetScope == null || targetScope.equals(sourceScope))) {
-        ExpressionTree<Object> newTargetTree = ExpressionTrees.getFalse();
-        for (Edge e : enteringEdges.get(target)) {
-          newTargetTree = factory.or(newTargetTree, getStateInvariant(e.source));
-        }
+        ExpressionTree<Object> newTargetTree = getTargetStateInvariant(target);
         newTargetTree = simplifier.simplify(factory.and(targetTree, newTargetTree));
         stateInvariants.put(target, newTargetTree);
         targetTree = newTargetTree;
@@ -1222,17 +1313,25 @@ public class ARGPathExporter {
     }
   }
 
-  private boolean exportInvariant(CFANode pReferenceNode) {
+  private boolean exportInvariant(CFAEdge pEdge) {
+    if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
+      return false;
+    }
+    if (entersLoop(pEdge).isPresent()) {
+      return true;
+    }
+
+    CFANode referenceNode = pEdge.getSuccessor();
     Queue<CFANode> waitlist = Queues.newArrayDeque();
     Set<CFANode> visited = Sets.newHashSet();
-    waitlist.offer(pReferenceNode);
-    visited.add(pReferenceNode);
-    for (CFAEdge assumeEdge : CFAUtils.enteringEdges(pReferenceNode).filter(AssumeEdge.class)) {
+    waitlist.offer(referenceNode);
+    visited.add(referenceNode);
+    for (CFAEdge assumeEdge : CFAUtils.enteringEdges(referenceNode).filter(AssumeEdge.class)) {
       if (visited.add(assumeEdge.getPredecessor())) {
         waitlist.offer(assumeEdge.getPredecessor());
       }
     }
-    Predicate<CFAEdge> epsilonEdge = pEdge -> !(pEdge instanceof AssumeEdge);
+    Predicate<CFAEdge> epsilonEdge = edge -> !(edge instanceof AssumeEdge);
     Predicate<CFANode> loopProximity =
         cfa.getAllLoopHeads().isPresent()
             ? pNode -> cfa.getAllLoopHeads().get().contains(pNode) || pNode.isLoopStart()
@@ -1388,6 +1487,38 @@ public class ARGPathExporter {
       });
     }
 
+  }
+
+  private Optional<CFANode> entersLoop(CFAEdge pEdge) {
+    class EnterLoopVisitor implements CFAVisitor {
+
+      private CFANode loopHead;
+
+      @Override
+      public TraversalProcess visitNode(CFANode pNode) {
+        if (pNode.isLoopStart()) {
+          loopHead = pNode;
+          return TraversalProcess.ABORT;
+        }
+        if (pNode.getNumLeavingEdges() > 1) {
+          return TraversalProcess.SKIP;
+        }
+        return TraversalProcess.CONTINUE;
+      }
+
+      @Override
+      public TraversalProcess visitEdge(CFAEdge pEdge) {
+        return AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)
+            ? TraversalProcess.CONTINUE
+            : TraversalProcess.SKIP;
+      }
+    }
+    EnterLoopVisitor enterLoopVisitor = new EnterLoopVisitor();
+    CFATraversal.dfs()
+        .ignoreFunctionCalls()
+        .ignoreSummaryEdges()
+        .traverse(pEdge.getSuccessor(), enterLoopVisitor);
+    return Optional.ofNullable(enterLoopVisitor.loopHead);
   }
 
 }

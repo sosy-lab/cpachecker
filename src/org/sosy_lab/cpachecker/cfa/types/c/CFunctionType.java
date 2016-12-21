@@ -25,20 +25,14 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.transform;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 public class CFunctionType extends AFunctionType implements CType {
 
@@ -87,16 +81,15 @@ public class CFunctionType extends AFunctionType implements CType {
   }
 
   @Override
-  public String toString() {
-    return toASTString(Strings.nullToEmpty(getName()), Functions.toStringFunction());
-  }
-
-  @Override
   public String toASTString(final String pDeclarator) {
-    return toASTString(pDeclarator, pInput -> pInput.toASTString(""));
+    return toASTString(
+        pDeclarator,
+        Lists.transform(getParameters(), pInput -> pInput.toASTString("")));
   }
 
-  public String toASTString(final String pDeclarator, final Function<? super CType, String> pTypeToString) {
+  String toASTString(
+      final String pDeclarator,
+      final Iterable<?> pParameters) {
     checkNotNull(pDeclarator);
     final StringBuilder lASTString = new StringBuilder();
 
@@ -106,9 +99,6 @@ public class CFunctionType extends AFunctionType implements CType {
     if (isVolatile()) {
       lASTString.append("volatile ");
     }
-
-    lASTString.append(pTypeToString.apply(getReturnType()));
-    lASTString.append(" ");
 
     if (pDeclarator.startsWith("*")) {
       // this is a function pointer, insert parentheses
@@ -120,7 +110,7 @@ public class CFunctionType extends AFunctionType implements CType {
     }
 
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(getParameters(), pTypeToString));
+    Joiner.on(", ").appendTo(lASTString, pParameters);
     if (takesVarArgs()) {
       if (!getParameters().isEmpty()) {
         lASTString.append(", ");
@@ -129,7 +119,9 @@ public class CFunctionType extends AFunctionType implements CType {
     }
     lASTString.append(")");
 
-    return lASTString.toString();
+    // The return type can span the rest of the type, so we cannot prefix but need this trick.
+    String nameAndParams = lASTString.toString();
+    return getReturnType().toASTString(nameAndParams);
   }
 
   @Override
@@ -199,5 +191,22 @@ public class CFunctionType extends AFunctionType implements CType {
         getReturnType().getCanonicalType(),
         newParameterTypes.build(),
         takesVarArgs());
+  }
+
+  @Override
+  public boolean isBitField() {
+    return false;
+  }
+
+  @Override
+  public int getBitFieldSize() {
+    return 0;
+  }
+
+  @Override
+  public CType withBitFieldSize(int pBitFieldSize) {
+    // Bit field size not supported
+    assert false;
+    return this;
   }
 }

@@ -25,23 +25,22 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.List;
+import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 
+import java.util.List;
 import java.util.Optional;
-import com.google.common.collect.ImmutableList;
 
 
 public abstract class FunctionEntryNode extends CFANode {
 
   private final FileLocation location;
   private final AFunctionDeclaration functionDefinition;
-  private final List<String> parameterNames;
   private final Optional<? extends AVariableDeclaration> returnVariable;
 
   // Check if call edges are added in the second pass
@@ -49,13 +48,11 @@ public abstract class FunctionEntryNode extends CFANode {
 
   protected FunctionEntryNode(final FileLocation pFileLocation, String pFunctionName,
       FunctionExitNode pExitNode, final AFunctionDeclaration pFunctionDefinition,
-      final List<String> pParameterNames,
       final Optional<? extends AVariableDeclaration> pReturnVariable) {
 
     super(pFunctionName);
     location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
-    parameterNames = ImmutableList.copyOf(pParameterNames);
     exitNode = pExitNode;
     returnVariable = checkNotNull(pReturnVariable);
   }
@@ -73,7 +70,7 @@ public abstract class FunctionEntryNode extends CFANode {
   }
 
   public List<String> getFunctionParameterNames() {
-    return parameterNames;
+    return Lists.transform(functionDefinition.getParameters(), AParameterDeclaration::getName);
   }
 
   public abstract List<? extends AParameterDeclaration> getFunctionParameters();

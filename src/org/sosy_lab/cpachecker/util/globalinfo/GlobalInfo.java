@@ -23,20 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.globalinfo;
 
+import com.google.common.base.Preconditions;
+import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
-import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
-import java.util.Optional;
-import com.google.common.base.Preconditions;
 
 
 public class GlobalInfo {
@@ -54,27 +53,27 @@ public class GlobalInfo {
 
   }
 
-  public static GlobalInfo getInstance() {
+  public static synchronized GlobalInfo getInstance() {
     if (instance == null) {
       instance = new GlobalInfo();
     }
     return instance;
   }
 
-  public void storeCFA(CFA cfa) {
+  public synchronized void storeCFA(CFA cfa) {
     cfaInfo = new CFAInfo(cfa);
   }
 
-  public Optional<CFAInfo> getCFAInfo() {
+  public synchronized Optional<CFAInfo> getCFAInfo() {
     return Optional.ofNullable(cfaInfo);
   }
 
 
-  public Optional<ConfigurableProgramAnalysis> getCPA() {
+  public synchronized Optional<ConfigurableProgramAnalysis> getCPA() {
     return Optional.ofNullable(cpa);
   }
 
-  public void setUpInfoFromCPA(ConfigurableProgramAnalysis cpa) {
+  public synchronized void setUpInfoFromCPA(ConfigurableProgramAnalysis cpa) {
     this.cpa = cpa;
     absManager = null;
     apronManager = null;
@@ -102,30 +101,30 @@ public class GlobalInfo {
     }
   }
 
-  public AutomatonInfo getAutomatonInfo() {
+  public synchronized AutomatonInfo getAutomatonInfo() {
     Preconditions.checkState(automatonInfo != null);
     return automatonInfo;
   }
 
-  public FormulaManagerView getPredicateFormulaManagerView() {
+  public synchronized FormulaManagerView getPredicateFormulaManagerView() {
     Preconditions.checkState(predicateFormulaManagerView != null);
     return predicateFormulaManagerView;
   }
 
-  public AbstractionManager getAbstractionManager() {
+  public synchronized AbstractionManager getAbstractionManager() {
     Preconditions.checkState(absManager != null);
     return absManager;
   }
 
-  public ApronManager getApronManager() {
+  public synchronized ApronManager getApronManager() {
     return apronManager;
   }
 
-  public LogManager getApronLogManager() {
+  public synchronized LogManager getApronLogManager() {
     return apronLogger;
   }
 
-  public FormulaManagerView getAssumptionStorageFormulaManager() {
+  public synchronized FormulaManagerView getAssumptionStorageFormulaManager() {
     Preconditions.checkState(assumptionFormulaManagerView != null);
     return assumptionFormulaManagerView;
   }

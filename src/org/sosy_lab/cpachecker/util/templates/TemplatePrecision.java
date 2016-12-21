@@ -24,14 +24,32 @@
 package org.sosy_lab.cpachecker.util.templates;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -67,20 +85,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 /**
  * Precision object for template-based analysis.
  */
@@ -92,10 +96,17 @@ public class TemplatePrecision implements Precision {
 
   @Option(secure=true, description="Generate templates from all program "
       + "statements")
-  private boolean generateFromStatements = true;
+  private boolean generateFromStatements = false;
 
   @Option(secure=true, description="Maximum size for the generated template")
   private int maxExpressionSize = 1;
+
+  @Option(secure=true, description="Perform refinement using enumerative template synthesis.")
+  private boolean performEnumerativeRefinement = true;
+
+  @Option(secure=true, description="Generate difference constraints."
+      + "This option is redundant for `maxExpressionSize` >= 2.")
+  private boolean generateDifferences = false;
 
   @Option(secure=true, description="Allowed coefficients in a template.")
   private Set<Rational> allowedCoefficients = ImmutableSet.of(
@@ -117,10 +128,18 @@ public class TemplatePrecision implements Precision {
           + "generated templates. Required for summaries computation.")
   private boolean includeFunctionParameters = false;
 
+
   public enum VarFilteringStrategy {
 
     /**
+     * Generate only templates from variables contained in the created interpolants.
+     */
+    INTERPOLATION_BASED,
+
+    /**
      * Generate only templates where all variables are alive.
+     * Complete for integers and octagons. Can be extended to more complicated cases using
+     * projection.
      */
     ALL_LIVE,
 
@@ -139,9 +158,15 @@ public class TemplatePrecision implements Precision {
   private final LogManager logger;
 
   private final ImmutableSet<Template> extractedFromAssertTemplates;
-  private final ImmutableSet<Template> extractedTemplates;
+  private ImmutableSet<Template> extractedTemplates;
   private final Set<Template> extraTemplates;
   private final Set<Template> generatedTemplates;
+
+  /**
+   * Variables contained in the interpolant.
+   */
+  private final Multimap<CFANode, ASimpleDeclaration> varsInInterpolant;
+
   private final TemplateToFormulaConversionManager
       templateToFormulaConversionManager;
 
@@ -211,6 +236,7 @@ public class TemplatePrecision implements Precision {
       }
     }
     functionParameters = builder.build();
+    varsInInterpolant = HashMultimap.create();
   }
 
   /**
@@ -240,11 +266,12 @@ public class TemplatePrecision implements Precision {
         Ordering.from(
             Comparator.<Template>comparingInt(
                 (template) -> template.getLinearExpression().size())
+                .thenComparingInt(t -> t.toString().trim().startsWith("-") ? 1 : 0)
                 .thenComparing(Template::toString))
-            .immutableSortedCopy(outBuild);
+                .immutableSortedCopy(outBuild);
 
     cache.putAll(node, sortedTemplates);
-    return cache.get(node);
+    return sortedTemplates;
   }
 
 
@@ -255,7 +282,7 @@ public class TemplatePrecision implements Precision {
    */
   private Set<Template> generateTemplates(final CFANode node) {
 
-    Set<ASimpleDeclaration> varsForNode = getVarsForNode(node);
+    Collection<ASimpleDeclaration> varsForNode = getVarsForNode(node);
     Set<CIdExpression> vars = varsForNode.stream()
         .filter(this::shouldProcessVariable)
         .map(
@@ -304,7 +331,25 @@ public class TemplatePrecision implements Precision {
       returned.addAll(generated);
     }
 
+    if (generateDifferences) {
+      returned.addAll(generateDifferenceTemplates(vars));
+    }
+
     return returned;
+  }
+
+  private Set<Template> generateDifferenceTemplates(Collection<CIdExpression> vars) {
+    List<LinearExpression<CIdExpression>> out = new ArrayList<>();
+    for (CIdExpression v1 : vars) {
+      for (CIdExpression v2 : vars) {
+        out.add(LinearExpression.ofVariable(v1).sub(LinearExpression.ofVariable(v2)));
+      }
+    }
+    out = filterToSameType(out);
+    return out.stream()
+        .filter(t -> !t.isEmpty())
+        .map(t -> Template.of(t))
+        .collect(Collectors.toSet());
   }
 
   /**
@@ -592,6 +637,35 @@ public class TemplatePrecision implements Precision {
     generatedTemplates.addAll(templates);
   }
 
+  public boolean injectPrecisionFromInterpolant(CFANode pNode, Set<String> usedVars) {
+    LiveVariables liveVars = cfa.getLiveVariables().get();
+
+    FluentIterable<ASimpleDeclaration> liveAtLocation = liveVars.getAllLiveVariables();
+    Map<String, ASimpleDeclaration> map = new HashMap<>();
+    for (ASimpleDeclaration decl : liveAtLocation) {
+      map.put(decl.getQualifiedName(), decl);
+    }
+
+    List<ASimpleDeclaration> out = usedVars.stream()
+        .filter(v -> map.containsKey(v))
+        .map(v -> map.get(v))
+        .collect(Collectors.toList());
+    boolean returned = varsInInterpolant.putAll(pNode, out);
+    logger.log(Level.FINE, "Generated vars", out);
+    logger.log(Level.FINE, "Got input", usedVars);
+    if (returned) {
+      // Invalidate the cache.
+      cache.removeAll(pNode);
+    }
+    return returned;
+  }
+
+  /**
+   * Generate a new set of templates for each location subject to a higher precision.
+   * Invalidates the cache of already generated templates.
+   *
+   * @return Whether the number of templates was changed.
+   */
   public boolean adjustPrecision() {
     boolean changed = false;
     for (Template t : generatedTemplates) {
@@ -604,6 +678,18 @@ public class TemplatePrecision implements Precision {
             generatedTemplates);
         generatedTemplates.clear();
         return true;
+      }
+
+      if (!generateFromStatements) {
+        logger.log(Level.INFO, "Template Refinement: Generating templates from all program "
+            + "statements.");
+        generateFromStatements = true;
+        extractedTemplates = ImmutableSet.copyOf(extractTemplates());
+        return true;
+      }
+
+      if (!performEnumerativeRefinement) {
+        return false;
       }
 
       if (maxExpressionSize == 1) {
@@ -634,7 +720,17 @@ public class TemplatePrecision implements Precision {
     }
   }
 
+  /**
+   * Add template {@code t} to a set {@code extraTemplates}.
+   * Ignore the template if it is not valid.
+   *
+   * @return Whether the template was added.
+   */
   private boolean addTemplateToExtra(Template t) {
+    return shouldAddTemplate(t) && extraTemplates.add(t);
+  }
+
+  private boolean shouldAddTemplate(Template t) {
     // Do not add intervals.
     if (t.size() == 1) {
       return false;
@@ -645,21 +741,22 @@ public class TemplatePrecision implements Precision {
       if (templateToFormulaConversionManager.isOverflowing(t, e.getValue())) {
         return false;
       } else if (templateConstantThreshold != -1 &&
-          e.getValue().compareTo(Rational.ofLong(templateConstantThreshold)) >= 1) {
+          e.getValue().abs().compareTo(Rational.ofLong(templateConstantThreshold)) >= 1) {
         return false;
       }
     }
-
-    return extraTemplates.add(t);
+    return true;
   }
 
 
-  public Set<ASimpleDeclaration> getVarsForNode(CFANode node) {
+  private Collection<ASimpleDeclaration> getVarsForNode(CFANode node) {
     if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
       return Sets.union(
           cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet(),
           functionParameters.getOrDefault(node.getFunctionName(), ImmutableSet.of())
       );
+    } else if (varFiltering == VarFilteringStrategy.INTERPOLATION_BASED) {
+      return varsInInterpolant.get(node);
     } else {
       return allVariables;
     }

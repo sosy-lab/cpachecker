@@ -23,9 +23,24 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import com.google.common.base.Functions;
-import com.google.common.collect.Iterables;
+import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.CallToReturnEdge;
+import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionReturnEdge;
+import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.ReturnStatementEdge;
+import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
+import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import com.google.common.base.Functions;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -34,6 +49,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.core.AnalysisNotifier;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -50,20 +67,14 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -93,8 +104,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult,
-        ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("Number of iterations:            " + countIterations);
       if (countIterations == 0) {
         // Statistics not relevant, prevent division by zero
@@ -256,7 +266,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       }
 
     }
-    return status;
+
+    return status.withProgramNeverTerminates(isProgramNeverTerminating(reachedSet));
   }
 
   /**
@@ -300,7 +311,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     stats.countSuccessors += numSuccessors;
     stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-    for (AbstractState successor : Iterables.consumingIterable(successors)) {
+    for (Iterator<? extends AbstractState> it = successors.iterator(); it.hasNext();) {
+      AbstractState successor = it.next();
       shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINER, "Considering successor of current state");
       logger.log(Level.ALL, "Successor of", state, "\nis", successor);
@@ -347,7 +359,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           // add the new state
           reachedSet.add(successor, successorPrecision);
 
-          if (!successors.isEmpty()) {
+          if (it.hasNext()) {
             // re-add the old state to the waitlist, there are unhandled
             // successors left that otherwise would be forgotten
             reachedSet.reAddToWaitlist(state);
@@ -423,6 +435,50 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     return false;
+  }
+
+  private boolean isProgramNeverTerminating(final ReachedSet reachedSet) {
+    LocationState locationState =
+        extractStateByType(reachedSet.getFirstState(), LocationState.class);
+
+    // Consider only forward analysis and a fully explored state space.
+    if (!reachedSet.hasWaitingState()
+            && locationState != null
+            && locationState.getClass().equals(LocationState.class)) {
+
+      String entryFunctionName = locationState.getLocationNode().getFunctionName();
+
+      // The program never terminates if no program end state is in the reached set.
+      for (AbstractState state : reachedSet) {
+        if (asIterable(state)
+            .filter(AutomatonState.class)
+            .anyMatch(as -> as.getInternalStateName().equals("STOP"))) {
+          return false; // sink state ==> terminating
+        }
+        if (isTargetState(state)) {
+          return false; // target state ==> terminating
+        }
+        if (asIterable(state)
+            .filter(LocationState.class)
+            .transform(LocationState::getLocationNode)
+            .filter(n -> n.getFunctionName().equals(entryFunctionName))
+            .transformAndConcat(n -> CFAUtils.allEnteringEdges(n))
+            .transform(CFAEdge::getEdgeType)
+            .anyMatch(
+                et ->
+                    et.equals(FunctionReturnEdge)
+                        || et.equals(ReturnStatementEdge)
+                        || et.equals(CallToReturnEdge))) {
+          return false; // main exit state ==> terminating
+        }
+        if (extractLocation(state) instanceof CFATerminationNode) {
+          return false; // terminating state after __VERIFIER_assume ==> terminating
+        }
+      }
+      return true; // no terminating state found ==> never terminating
+    } else {
+      return false;
+    }
   }
 
   @Override

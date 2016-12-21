@@ -25,18 +25,18 @@ package org.sosy_lab.cpachecker.cpa.coverage;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 
 class CoverageData {
@@ -84,7 +84,7 @@ class CoverageData {
     final FileCoverage infos = getFileInfoTarget(loc, infosPerFile);
 
     final int startingLine = loc.getStartingLineInOrigin();
-    final int endingLine = loc.getEndingLineNumber() - loc.getStartingLineNumber() + loc.getStartingLineInOrigin();
+    final int endingLine = loc.getEndingLineInOrigin();
 
     infos.addExistingFunction(functionName, startingLine, endingLine);
 
@@ -109,7 +109,7 @@ class CoverageData {
     final FileCoverage collector = getFileInfoTarget(loc, infosPerFile);
 
     final int startingLine = loc.getStartingLineInOrigin();
-    final int endingLine = loc.getEndingLineNumber() - loc.getStartingLineNumber() + loc.getStartingLineInOrigin();
+    final int endingLine = loc.getEndingLineInOrigin();
 
     for (int line = startingLine; line <= endingLine; line++) {
       collector.addExistingLine(line);

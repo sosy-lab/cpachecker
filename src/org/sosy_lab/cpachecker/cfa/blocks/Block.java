@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
 
-import java.util.Collections;
-import java.util.Set;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
  * Represents a block as described in the BAM paper.
@@ -40,8 +37,11 @@ public class Block {
   private final ImmutableSet<CFANode> returnNodes;
   private final ImmutableSet<CFANode> nodes;
 
-  public Block(Set<ReferencedVariable> pReferencedVariables,
-      Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes, Set<CFANode> allNodes) {
+  public Block(
+      Iterable<ReferencedVariable> pReferencedVariables,
+      Set<CFANode> pCallNodes,
+      Set<CFANode> pReturnNodes,
+      Iterable<CFANode> allNodes) {
 
     referencedVariables = ImmutableSet.copyOf(pReferencedVariables);
     callNodes = ImmutableSet.copyOf(pCallNodes);
@@ -50,7 +50,7 @@ public class Block {
   }
 
   public Set<CFANode> getCallNodes() {
-    return Collections.unmodifiableSet(callNodes);
+    return callNodes;
   }
 
   public CFANode getCallNode() {

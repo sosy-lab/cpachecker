@@ -24,18 +24,58 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.math.BigDecimal;
-
 import org.sosy_lab.cpachecker.cfa.ast.AFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CFloatLiteralExpression extends AFloatLiteralExpression implements CLiteralExpression {
 
+  private static final BigDecimal APPROX_INFINITY = BigDecimal.valueOf(Double.MAX_VALUE).add(BigDecimal.valueOf(Double.MAX_VALUE));
+
   public CFloatLiteralExpression(FileLocation pFileLocation,
                                     CType pType,
                                     BigDecimal pValue) {
-    super(pFileLocation, pType, pValue);
+    super(pFileLocation, pType, adjustPrecision(pValue, pType));
+  }
 
+  private static BigDecimal adjustPrecision(BigDecimal pValue, CType pType) {
+    BigDecimal value = pValue;
+    if (pType instanceof CSimpleType) {
+      CBasicType basicType = ((CSimpleType) pType).getType();
+      switch (basicType) {
+        case FLOAT:
+          float fValue = pValue.floatValue();
+          if (Float.isNaN(fValue)) {
+            return value;
+          }
+          if (Float.isInfinite(fValue)) {
+            if (fValue < 0) {
+              return APPROX_INFINITY.negate();
+            }
+            return APPROX_INFINITY;
+          }
+          value = BigDecimal.valueOf(fValue);
+          break;
+        case DOUBLE:
+          double dValue = pValue.doubleValue();
+          if (Double.isNaN(dValue)) {
+            return value;
+          }
+          if (Double.isInfinite(dValue)) {
+            if (dValue < 0) {
+              return APPROX_INFINITY.negate();
+            }
+            return APPROX_INFINITY;
+          }
+          value = BigDecimal.valueOf(dValue);
+          break;
+        default:
+          break;
+      }
+    }
+    return value;
   }
 
   @Override
@@ -56,11 +96,6 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression imple
   @Override
   public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
-  }
-
-  @Override
-  public String toASTString() {
-    return getValue().toString();
   }
 
   @Override
