@@ -46,9 +46,6 @@
       <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
       <!-- SV-Comp files assume that malloc always succeeds -->
       <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-      <exclude>../programs/benchmarks/list-properties/list_search_false-unreach-call.i</exclude>
-      <exclude>../programs/benchmarks/list-properties/list_search_true-unreach-call.i</exclude>
-      <exclude>../programs/benchmarks/list-properties/splice_true-unreach-call.i</exclude>
       <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
       <exclude>../programs/benchmarks/seq-pthread/*</exclude>
       <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</exclude>
@@ -62,7 +59,7 @@
     </tasks>
     <tasks>
       <includesfile>integration-DeviceDriversLinux64.set</includesfile>
-      <propertyfile>../programs/benchmarks/ReachReach.prp</propertyfile>
+      <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
       <option name="-skipRecursion"/>
       <option name="-64"/>
       <option name="-setprop">analysis.checkCounterexamples=true</option>
