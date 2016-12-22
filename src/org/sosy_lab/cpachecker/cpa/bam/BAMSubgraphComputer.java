@@ -159,7 +159,9 @@ public class BAMSubgraphComputer {
         // children are a normal successors -> create an connection from parent to children
         for (final BackwardARGState newChild : childrenInSubgraph) {
           assert !currentState.getEdgesToChild(newChild.getARGState()).isEmpty()
-              : "unexpected ARG state: parent has no edge to child.";
+              : String.format(
+                  "unexpected ARG state: parent has no edge to child: %s -/-> %s",
+                  currentState, newChild.getARGState());
           newChild.addParent(newCurrentState);
         }
       }

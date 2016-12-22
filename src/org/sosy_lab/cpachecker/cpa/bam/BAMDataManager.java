@@ -207,7 +207,7 @@ public class BAMDataManager {
   }
 
   ReachedSet getReachedSetForInitialState(AbstractState state) {
-    assert initialStateToReachedSet.containsKey(state);
+    assert initialStateToReachedSet.containsKey(state) : "no initial state for a block: " + state;
     return initialStateToReachedSet.get(state);
   }
 
