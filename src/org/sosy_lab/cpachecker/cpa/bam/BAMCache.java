@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -143,7 +144,15 @@ public class BAMCache {
     final Collection<AbstractState> returnStates = pair.getSecond();
 
     if (reached != null && returnStates != null) { // we have reached-set and elements
-      assert allStatesContainedInReachedSet(returnStates, reached) : "output-states must be in reached-set";
+      assert Iterables.all(returnStates, s -> !((ARGState) s).isDestroyed())
+          : "do not use destroyed states: " + returnStates;
+      assert allStatesContainedInReachedSet(returnStates, reached)
+          : "output-states must be in reached-set: "
+              + returnStates
+              + " not available in reachedset with root "
+              + reached.getFirstState()
+              + " and last state "
+              + reached.getLastState();
       fullCacheHits++;
     } else if (reached != null) { // we have cached a partly computed reached-set
       partialCacheHits++;
