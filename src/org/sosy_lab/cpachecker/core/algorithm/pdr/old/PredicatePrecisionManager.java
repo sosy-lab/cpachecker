@@ -21,17 +21,22 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.pdr;
+package org.sosy_lab.cpachecker.core.algorithm.pdr.old;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -41,6 +46,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class PredicatePrecisionManager {
 
+  private final FormulaManagerView fmgr;
+  private final BooleanFormulaManager bfmgr;
   private final PredicateAbstractionManager pamgr;
   private final Map<CFANode, Collection<AbstractionPredicate>> abstractionPredicates;
 
@@ -50,18 +57,32 @@ public class PredicatePrecisionManager {
    *
    * @param pAbstractionDelegate the component that computes the abstractions
    */
-  public PredicatePrecisionManager(PredicateAbstractionManager pAbstractionDelegate) {
+  public PredicatePrecisionManager(
+      FormulaManagerView pFmgr, PredicateAbstractionManager pAbstractionDelegate) {
+    fmgr = pFmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
     pamgr = pAbstractionDelegate;
     abstractionPredicates = Maps.newHashMap();
   }
 
   private void refinePredicates(CFANode pLocation, BooleanFormula pInterpolant) {
     // TODO also add atoms/conjuncts ?
-    AbstractionPredicate newPredicate = pamgr.getPredicateFor(pInterpolant);
     if (!abstractionPredicates.containsKey(pLocation)) {
       abstractionPredicates.put(pLocation, Lists.newLinkedList());
     }
-    abstractionPredicates.get(pLocation).add(newPredicate);
+    assert fmgr.isPurelyConjunctive(pInterpolant);
+
+    List<BooleanFormula> symbolicVariables =
+        abstractionPredicates
+            .get(pLocation)
+            .stream()
+            .map(AbstractionPredicate::getSymbolicVariable)
+            .collect(Collectors.toList());
+    for (AbstractionPredicate ap : pamgr.getPredicatesForAtomsOf(pInterpolant)) { // TODO atoms ok?
+      if (!symbolicVariables.contains(bfmgr.not(ap.getSymbolicVariable()))) {
+        abstractionPredicates.get(pLocation).add(ap);
+      }
+    }
   }
 
   /**
@@ -89,7 +110,32 @@ public class PredicatePrecisionManager {
    */
   public BooleanFormula computeAbstraction(CFANode pLocation, BooleanFormula pBaseFormula)
       throws InterruptedException, SolverException {
-    return pamgr.computeAbstraction(
-        pBaseFormula, abstractionPredicates.getOrDefault(pLocation, Collections.emptyList()));
+    if (!abstractionPredicates.containsKey(pLocation)) {
+      abstractionPredicates.put(pLocation, Lists.newLinkedList());
+      addDefaultPreds(pLocation, pBaseFormula);
+    }
+    return pamgr.computeAbstraction(pBaseFormula, abstractionPredicates.get(pLocation));
+  }
+
+  // Add predicates of the following type : for all variables v1, v2 in formula -> (v1 < v2)
+  private void addDefaultPreds(CFANode pLocation, BooleanFormula pBaseFormula) {
+    List<String> varNames = Lists.newArrayList(fmgr.extractVariableNames(pBaseFormula));
+    if (varNames.size() == 1) {
+      AbstractionPredicate newPredicate = pamgr.getPredicateFor(pBaseFormula);
+      abstractionPredicates.get(pLocation).add(newPredicate);
+      return;
+    }
+
+    BitvectorFormulaManagerView bvfmgr = fmgr.getBitvectorFormulaManager();
+    for (int i = 0; i < varNames.size() - 1; ++i) {
+      for (int j = i + 1; j < varNames.size(); ++j) {
+        BitvectorFormula var1 = bvfmgr.makeVariable(32, varNames.get(i)); // TODO ??
+        BitvectorFormula var2 = bvfmgr.makeVariable(32, varNames.get(j));
+
+        BooleanFormula var1LessThanVar2 = bvfmgr.lessThan(var1, var2, true); // TODO signed ?
+        AbstractionPredicate newPredicate = pamgr.getPredicateFor(var1LessThanVar2);
+        abstractionPredicates.get(pLocation).add(newPredicate);
+      }
+    }
   }
 }

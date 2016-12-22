@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class BackwardTransition {
+public class ForwardTransition {
 
   private static final Predicate<AbstractState> IS_BLOCK_START =
       pInput -> AbstractStates.extractStateByType(pInput, BlockCountState.class).isStopState();
@@ -89,12 +89,13 @@ public class BackwardTransition {
               new CacheLoader<CFANode, Iterable<Block>>() {
 
                 @Override
-                public Iterable<Block> load(CFANode pCacheKey) throws CPAException, InterruptedException {
-                  return getBlocksTo0(pCacheKey);
+                public Iterable<Block> load(CFANode pCacheKey)
+                    throws CPAException, InterruptedException {
+                  return getBlocksFrom0(pCacheKey);
                 }
               });
 
-  public BackwardTransition(
+  public ForwardTransition(
       ReachedSetFactory pReachedSetFactory, ConfigurableProgramAnalysis pCPA, Algorithm pAlgorithm)
       throws InvalidConfigurationException {
 
@@ -127,36 +128,31 @@ public class BackwardTransition {
   /**
    * Gets all blocks from predecessors to the given successor location.
    *
-   * A cache will be used to store results and retrieve previously computed
-   * blocks from.
+   * <p>A cache will be used to store results and retrieve previously computed blocks from.
    *
    * @param pSuccessorLocation the successor location of the resulting blocks.
    * @return all blocks from predecessors to the given successor location.
-   * @throws CPAException if the analysis creating the blocks encounters an
-   * exception.
+   * @throws CPAException if the analysis creating the blocks encounters an exception.
    * @throws InterruptedException if block creation was interrupted.
    */
-  public FluentIterable<Block> getBlocksTo(CFANode pSuccessorLocation)
+  public FluentIterable<Block> getBlocksFrom(CFANode pSuccessorLocation)
       throws CPAException, InterruptedException {
-    return getBlocksTo(pSuccessorLocation, true);
+    return getBlocksFrom(pSuccessorLocation, true);
   }
 
   /**
    * Gets all blocks from predecessors to the given successor location.
    *
    * @param pSuccessorLocation the successor location of the resulting blocks.
-   * @param pUseCache whether to store the results in or retrieve them from a
-   * cache.
-   *
+   * @param pUseCache whether to store the results in or retrieve them from a cache.
    * @return all blocks from predecessors to the given successor location.
-   * @throws CPAException if the analysis creating the blocks encounters an
-   * exception.
+   * @throws CPAException if the analysis creating the blocks encounters an exception.
    * @throws InterruptedException if block creation was interrupted.
    */
-  public FluentIterable<Block> getBlocksTo(CFANode pSuccessorLocation, boolean pUseCache)
+  public FluentIterable<Block> getBlocksFrom(CFANode pSuccessorLocation, boolean pUseCache)
       throws CPAException, InterruptedException {
     if (!pUseCache) {
-      return getBlocksTo0(pSuccessorLocation);
+      return getBlocksFrom0(pSuccessorLocation);
     }
     try {
       return FluentIterable.from(cache.get(pSuccessorLocation));
@@ -166,12 +162,15 @@ public class BackwardTransition {
     }
   }
 
-  private FluentIterable<Block> getBlocksTo0(CFANode pSuccessorLocation)
+  private FluentIterable<Block> getBlocksFrom0(CFANode pSuccessorLocation)
       throws CPAException, InterruptedException {
     ReachedSet reachedSet = reachedSetFactory.create();
     initializeFor(reachedSet, pSuccessorLocation);
     AbstractState initialState = reachedSet.getFirstState();
-    algorithm.run(reachedSet);
+    while (reachedSet.hasWaitingState()) {
+      algorithm.run(reachedSet);
+    }
+
     return FluentIterable.from(reachedSet)
         .filter(IS_BLOCK_START)
         .transform(
@@ -179,17 +178,17 @@ public class BackwardTransition {
                 new BlockImpl(
                     initialState,
                     blockStartState,
-                    AnalysisDirection.BACKWARD,
+                    AnalysisDirection.FORWARD,
                     getReachedSet(
                         initialState, blockStartState, reachedSet, asAbstractState(reachedSet))));
   }
 
-  public FluentIterable<Block> getBlocksTo(Iterable<CFANode> pSuccessorLocations)
+  public FluentIterable<Block> getBlocksFrom(Iterable<CFANode> pSuccessorLocations)
       throws CPAException, InterruptedException {
-    return getBlocksTo(pSuccessorLocations, Predicates.alwaysTrue());
+    return getBlocksFrom(pSuccessorLocations, Predicates.alwaysTrue());
   }
 
-  public FluentIterable<Block> getBlocksTo(
+  public FluentIterable<Block> getBlocksFrom(
       Iterable<CFANode> pSuccessorLocations, Predicate<AbstractState> pFilterPredecessors)
       throws CPAException, InterruptedException {
 
@@ -205,7 +204,8 @@ public class BackwardTransition {
     // the initial state is unambiguous and can be created with less effort
     CFANode firstSuccessorLocation = successorLocationIterator.next();
     if (!successorLocationIterator.hasNext()) {
-      return getBlocksTo(firstSuccessorLocation).filter(Blocks.applyToPredecessor(pFilterPredecessors));
+      return getBlocksFrom(firstSuccessorLocation)
+          .filter(Blocks.applyToPredecessor(pFilterPredecessors));
     }
     reachedSet = reachedSetFactory.create();
     initializeFor(reachedSet, firstSuccessorLocation);
@@ -235,7 +235,7 @@ public class BackwardTransition {
                                     new BlockImpl(
                                         initialState,
                                         blockStartState,
-                                        AnalysisDirection.BACKWARD,
+                                        AnalysisDirection.FORWARD,
                                         getReachedSet(
                                             initialState,
                                             blockStartState,
@@ -327,12 +327,12 @@ public class BackwardTransition {
 
     @Override
     public AbstractState getPredecessor() {
-      return direction == AnalysisDirection.FORWARD ? firstState : lastState;
+      return direction == AnalysisDirection.BACKWARD ? lastState : firstState;
     }
 
     @Override
     public AbstractState getSuccessor() {
-      return direction == AnalysisDirection.FORWARD ? lastState : firstState;
+      return direction == AnalysisDirection.BACKWARD ? firstState : lastState;
     }
 
     private PredicateAbstractState getLastPredicateAbstractState() {
@@ -399,13 +399,27 @@ public class BackwardTransition {
     }
 
     @Override
+    public boolean equalsIgnoreReachedSet(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof BlockImpl) {
+        BlockImpl other = (BlockImpl) pObj;
+        return direction == other.direction
+            && firstState.equals(other.firstState)
+            && lastState.equals(other.lastState);
+      }
+      return false;
+    }
+
+    @Override
     public int hashCode() {
       return Objects.hash(direction, firstState, lastState, reachedSet);
     }
 
     @Override
     public String toString() {
-      return BackwardTransition.toString(this);
+      return ForwardTransition.toString(this);
     }
 
     @Override

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.pdr;
+package org.sosy_lab.cpachecker.core.algorithm.pdr.old;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,10 +44,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.PDRSat.ConsecutionResult;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.BackwardTransition;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.old.PDRSat.ConsecutionResult;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Blocks;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.ForwardTransition;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -100,7 +99,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  private final BackwardTransition backwardTransition;
+  private final ForwardTransition backwardTransition;
   private final Algorithm algorithm;
   private final Configuration config;
   private final PDRStatistics stats;
@@ -132,7 +131,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
 
     cfa = pCFA;
-    backwardTransition = new BackwardTransition(pReachedSetFactory, pCPA, pAlgorithm);
+    backwardTransition = new ForwardTransition(pReachedSetFactory, pCPA, pAlgorithm);
     algorithm = pAlgorithm;
     config = pConfig;
 
@@ -144,8 +143,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     solver = predCpa.getSolver();
     fmgr = solver.getFormulaManager();
     pfmgr = predCpa.getPathFormulaManager();
-    predicateManager = new PredicatePrecisionManager(predCpa.getPredicateManager());
-
+    predicateManager = new PredicatePrecisionManager(fmgr, predCpa.getPredicateManager());
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
     stats = new PDRStatistics();
@@ -176,7 +174,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // Check for 1-step counterexamples
-    for (Block block : backwardTransition.getBlocksTo(pErrorLocations, IS_MAIN_ENTRY)) {
+    for (Block block : backwardTransition.getBlocksFrom(pErrorLocations, IS_MAIN_ENTRY)) {
       if (!solver.isUnsat(block.getFormula())) {
         logger.log(
             Level.INFO, "Found 1-step counterexample :", " \nTransition : \n", block.getFormula());
@@ -208,11 +206,12 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
        */
       while (!shutdownNotifier.shouldShutdown()) {
         frameSet.openNextFrameSet();
+        logger.log(Level.INFO, "New frontier : " + frameSet.getMaxLevel());
         if (!strengthen(errorLocations, pReachedSet)) {
           logger.log(Level.INFO, "Found errorpath. Program has a bug.");
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-        if (isFrameSetConvergent()) {
+        if (frameSet.propagate(pdrSolver, shutdownNotifier)) {
           logger.log(Level.INFO, "Program is safe.");
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
@@ -235,7 +234,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
           CPAException {
 
     for (CFANode errorLoc : pErrorLocations) {
-      for (Block block : backwardTransition.getBlocksTo(errorLoc)) {
+      for (Block block : backwardTransition.getBlocksFrom(errorLoc)) {
         CFANode errorPredecessorLoc = block.getPredecessorLocation();
 
         // Ask for state with transition to errorLoc (Counterexample To Inductiveness)
@@ -269,6 +268,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     while (!proofObligationQueue.isEmpty()) {
       ProofObligation p =
           proofObligationQueue.poll(); // Inspect proof obligation with lowest frame level.
+      logger.log(Level.INFO, "Current obligation : ", p);
 
       // Frame level 0 => program start location reached => counterexample found
       if (p.getFrameLevel() == 0) {
@@ -281,43 +281,55 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
        *  Yes -> add negation of provided blockable states to frames.
        *  No -> recur on provided predecessor.
        */
-      for (Block block : backwardTransition.getBlocksTo(p.getLocation())) {
+      for (Block block : backwardTransition.getBlocksFrom(p.getLocation())) {
         ConsecutionResult result =
             pdrSolver.consecution(p.getFrameLevel() - 1, block, p.getState());
 
         if (result.consecutionSuccess()) {
           BooleanFormula blockableStates = result.getResultFormula();
+          logger.log(
+              Level.INFO,
+              "Blocking states : ",
+              blockableStates,
+              ", at location : ",
+              p.getLocation(),
+              ", at level : ",
+              p.getFrameLevel(),
+              ", via location : ",
+              block.getPredecessorLocation());
           frameSet.blockStates(blockableStates, p.getFrameLevel(), p.getLocation());
         } else {
           BooleanFormula predecessorState = result.getResultFormula();
           CFANode predLocation = block.getPredecessorLocation();
+          logger.log(Level.INFO, "Found predecessor via ", predLocation);
 
           ProofObligation blockPredecessorState =
               new ProofObligation(p.getFrameLevel() - 1, predLocation, predecessorState, p);
           proofObligationQueue.offer(blockPredecessorState);
           proofObligationQueue.offer(p);
+          logger.log(Level.INFO, "Queue : ", proofObligationQueue);
         }
       }
     }
     return true;
   }
 
-  /**
-   * Checks if, for every location, any two neighboring frame sets are equal.
-   * This signals termination of the algorithm and correctness of the checked program.
-   */
-  private boolean isFrameSetConvergent() {
-    for (int currentLevel = 1; currentLevel <= frameSet.getMaxLevel(); ++currentLevel) {
-      Map<CFANode, Set<BooleanFormula>> statesAtCurrentLevel =
-          frameSet.getStatesForAllLocations(currentLevel);
-      Map<CFANode, Set<BooleanFormula>> statesAtNextLevel =
-          frameSet.getStatesForAllLocations(currentLevel + 1);
-      if (statesAtCurrentLevel.equals(statesAtNextLevel)) {
-        return true;
-      }
-    }
-    return false;
-  }
+  //  /**
+  //   * Checks if, for every location, any two neighboring frame sets are equal.
+  //   * This signals termination of the algorithm and correctness of the checked program.
+  //   */
+  //  private boolean isFrameSetConvergent() {
+  //    for (int currentLevel = 1; currentLevel <= frameSet.getMaxLevel(); ++currentLevel) {
+  //      Map<CFANode, Set<BooleanFormula>> statesAtCurrentLevel =
+  //          frameSet.getStatesForAllLocations(currentLevel);
+  //      Map<CFANode, Set<BooleanFormula>> statesAtNextLevel =
+  //          frameSet.getStatesForAllLocations(currentLevel + 1);
+  //      if (statesAtCurrentLevel.equals(statesAtNextLevel)) {
+  //        return true;
+  //      }
+  //    }
+  //    return false;
+  //  }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
@@ -350,15 +362,15 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
     // Reconstruct error trace from start location to direct error predecessor.
     List<Block> blocks = Lists.newArrayList();
-    CFANode previousSuccessorLocation = pFinalFailingObligation.getLocation();
+    CFANode previousSuccessorLocation = pFinalFailingObligation.getLocation(); // Startloc
     ProofObligation currentObligation = pFinalFailingObligation;
     while (currentObligation.getCause().isPresent()) {
-      currentObligation = currentObligation.getCause().get();
-      CFANode predecessorLocation = previousSuccessorLocation;
-      CFANode successorLocation = currentObligation.getLocation();
-      FluentIterable<Block> connectingBlocks =
+      currentObligation = currentObligation.getCause().get(); // level 1 at loc1
+      CFANode predecessorLocation = previousSuccessorLocation; // loc0
+      CFANode successorLocation = currentObligation.getLocation(); // loc1
+      FluentIterable<Block> connectingBlocks = // getTo succ- filter those where pred = loc0
           backwardTransition
-              .getBlocksTo(successorLocation, false)
+              .getBlocksFrom(successorLocation, false)
               .filter(Blocks.applyToPredecessorLocation(l -> l.equals(predecessorLocation)));
       blocks.add(Iterables.getOnlyElement(connectingBlocks));
       previousSuccessorLocation = successorLocation;
@@ -368,7 +380,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     CFANode directErrorPredecessor = previousSuccessorLocation;
     FluentIterable<Block> blockToErrorLocation =
         backwardTransition
-            .getBlocksTo(pErrorLocation)
+            .getBlocksFrom(pErrorLocation)
             .filter(Blocks.applyToPredecessorLocation(l -> l.equals(directErrorPredecessor)));
     blocks.add(Iterables.getOnlyElement(blockToErrorLocation));
 

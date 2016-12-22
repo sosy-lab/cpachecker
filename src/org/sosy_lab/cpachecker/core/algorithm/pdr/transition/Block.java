@@ -114,4 +114,14 @@ public interface Block {
    * @return the reached set the block was created from.
    */
   ReachedSet getReachedSet();
+
+  /**
+   * Checks for equality just like the regular equals method inherited from Object, but ignores the
+   * reached sets.
+   *
+   * @param pObject any Object that is to be checked for equality with this block.
+   * @return true, if this block and {@code pObject} are equal without considering their reached
+   *     sets and false otherwise.
+   */
+  boolean equalsIgnoreReachedSet(Object pObject);
 }

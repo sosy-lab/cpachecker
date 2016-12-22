@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.pdr;
+package org.sosy_lab.cpachecker.core.algorithm.pdr.old;
 
 import java.io.PrintStream;
 import javax.annotation.Nullable;

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.pdr;
+package org.sosy_lab.cpachecker.core.algorithm.pdr.old;
 
 import com.google.common.collect.Lists;
 import java.util.List;
@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -181,17 +182,17 @@ public class PDRSat {
       if (concreteFail) {
 
         // Real predecessor exists
-        Model model = pAbstrProver.getModel();
+        Model model = pConcrProver.getModel(); // TODO correct prover?
         BooleanFormula concretePred = getSatisfyingState(model, pBlock.getUnprimedContext());
 
         return new ConsecutionResult(false, concretePred); // Return predecessor
       } else {
-
         /*
          *  Abstract transition possible without concrete counterpart. Abstraction is too broad.
          *  Interpolate and refine abstraction.
          */
-        BooleanFormula interpolant = pConcrProver.getInterpolant(partAforInterpolation);
+        BooleanFormula interpolant =
+            fmgr.uninstantiate(pConcrProver.getInterpolant(partAforInterpolation));
         toBeBlocked =
             abstractionManager // TODO correct ?
                 .refineAndComputeAbstraction(successorLocation, concrete, bfmgr.not(interpolant));
@@ -242,7 +243,6 @@ public class PDRSat {
       }
       prover.push(pBlock.getFormula());
       prover.push(PDRUtils.asPrimed(bfmgr.not(pFormula), pBlock, fmgr));
-
       return prover.isUnsat();
     }
   }
@@ -264,8 +264,9 @@ public class PDRSat {
    * formula is uninstantiated.
    */
   private BooleanFormula getSatisfyingState(Model pModel, PathFormula pUnprimedContext) {
+    BitvectorFormulaManagerView bvfmgr = fmgr.getBitvectorFormulaManager();
     BooleanFormula satisfyingState = bfmgr.makeTrue();
-    // TODO context always unprimed? (see case without not(s))
+
     for (String variableName : pUnprimedContext.getSsa().allVariables()) {
 
       // Make variable
@@ -276,14 +277,11 @@ public class PDRSat {
 
       // Make value
       BitvectorFormula value =
-          fmgr.getBitvectorFormulaManager()
-              .makeBitvector(fmgr.getFormulaType(unprimedVar), pModel.evaluate(unprimedVar));
+          bvfmgr.makeBitvector(fmgr.getFormulaType(unprimedVar), pModel.evaluate(unprimedVar));
 
       // Conjoin (variable=value) to existing formula
       satisfyingState =
-          bfmgr.and(
-              satisfyingState,
-              fmgr.getBitvectorFormulaManager().equal(fmgr.uninstantiate(unprimedVar), value));
+          bfmgr.and(satisfyingState, bvfmgr.equal(fmgr.uninstantiate(unprimedVar), value));
     }
 
     return satisfyingState;

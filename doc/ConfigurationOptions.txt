@@ -2629,6 +2629,11 @@ pcc.strategy = no default value
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
 
+# Simplifies the global transition relation by keeping only those transitions
+# whose corresponding blocks are backwards reachable from the target
+# locations.
+pdr.removeRedundantTransitions = false
+
 # whether to track relevant variables only at the exact program location
 # (sharing=location), or within their respective (function-/global-) scope
 # (sharing=scoped).

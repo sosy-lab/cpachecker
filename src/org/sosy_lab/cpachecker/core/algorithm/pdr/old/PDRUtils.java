@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.pdr;
+package org.sosy_lab.cpachecker.core.algorithm.pdr.old;
 
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -48,7 +48,7 @@ public final class PDRUtils {
    */
   public static BooleanFormula asPrimed(
       BooleanFormula pFormula, Block pBlock, FormulaManagerView pFmgr) {
-    return pFmgr.instantiate(pFormula, pBlock.getPrimedContext().getSsa());
+    return null;
   }
 
   /**
@@ -63,6 +63,7 @@ public final class PDRUtils {
    */
   public static BooleanFormula asUnprimed(
       BooleanFormula pFormula, Block pBlock, FormulaManagerView pFmgr) {
-    return pFmgr.instantiate(pFormula, pBlock.getUnprimedContext().getSsa());
+    return null;
   }
+
 }

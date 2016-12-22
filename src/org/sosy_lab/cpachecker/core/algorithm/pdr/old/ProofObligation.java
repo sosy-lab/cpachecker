@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.pdr;
+package org.sosy_lab.cpachecker.core.algorithm.pdr.old;
 
 import com.google.common.base.Optional;
 import java.util.Objects;
@@ -141,7 +141,7 @@ public class ProofObligation implements Comparable<ProofObligation> {
 
   @Override
   public String toString() {
-    return String.format("Level = %s, Location = %s, State = %s", frameLevel, location, state);
+    return String.format("{Level = %s, Location = %s, State = %s}", frameLevel, location, state);
   }
 
   @Override

@@ -21,13 +21,12 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.pdr;
+package org.sosy_lab.cpachecker.core.algorithm.pdr.old;
 
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,8 +35,8 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.BackwardTransition;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.ForwardTransition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -65,17 +64,18 @@ public class DynamicFrameSet implements FrameSet {
   private int currentMaxLevel;
 
   private final BooleanFormulaManager bfmgr;
-  private final BackwardTransition backwardTransition;
+  private final ForwardTransition backwardTransition;
 
   /**
    * Creates a new DynamicFrameSet.
+   *
    * @param pStartLocation the program start location
    * @param pFmgr the formula manager used as basis for most internal operations
    * @param pBackwardTransition the backward transition used to calculate predecessor blocks and
-   * path formulas
+   *     path formulas
    */
   public DynamicFrameSet(
-      CFANode pStartLocation, FormulaManagerView pFmgr, BackwardTransition pBackwardTransition) {
+      CFANode pStartLocation, FormulaManagerView pFmgr, ForwardTransition pBackwardTransition) {
     currentMaxLevel = 0;
     frames = Maps.newHashMap();
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -128,7 +128,7 @@ public class DynamicFrameSet implements FrameSet {
      *  Initially start with states at the specified level
      *  and add all states of higher levels afterwards (delta encoding)
      */
-    Set<BooleanFormula> states = frames.get(pLocation).get(pLevel).getStates();
+    Set<BooleanFormula> states = new HashSet<>(frames.get(pLocation).get(pLevel).getStates());
     for (int i = pLevel + 1; i <= currentMaxLevel; ++i) {
       states.addAll(frames.get(pLocation).get(i).getStates());
     }
@@ -178,12 +178,13 @@ public class DynamicFrameSet implements FrameSet {
       // For each location to propagate TO
       for (Map.Entry<CFANode, List<ApproximationFrame>> mapEntry : frames.entrySet()) {
         CFANode propTarget = mapEntry.getKey();
-        FluentIterable<Block> blocksToPropTarget = backwardTransition.getBlocksTo(propTarget);
-        FluentIterable<BooleanFormula> allClausesInPropTargetPreds = blocksToPropTarget
-            .transform(Block::getPredecessorLocation)
-            .transformAndConcat(loc -> getStatesForLocation(loc, lvl));
+        FluentIterable<Block> blocksToPropTarget = backwardTransition.getBlocksFrom(propTarget);
+        FluentIterable<BooleanFormula> clausesToPropagate =
+            blocksToPropTarget
+                .transform(Block::getPredecessorLocation)
+                .transformAndConcat(loc -> frames.get(loc).get(lvl).getStates());
 
-        for (BooleanFormula clause : allClausesInPropTargetPreds) {
+        for (BooleanFormula clause : clausesToPropagate) {
           boolean canPropFromAllPreds = true;
 
           // Check if propagation possible FROM ALL predecessors
@@ -197,7 +198,7 @@ public class DynamicFrameSet implements FrameSet {
 
           // Add TO successor location if all predecessors allowed propagation
           if (canPropFromAllPreds) {
-            blockStates(clause, lvl + 1, propTarget);
+            frames.get(propTarget).get(lvl + 1).addState(bfmgr.and(bfmgr.makeTrue(), clause));
           }
         }
       }
@@ -206,7 +207,8 @@ public class DynamicFrameSet implements FrameSet {
        *  Early termination if layer at current iteration became empty for all locations.
        *  Propagation not continued beyond that iteration.
        */
-      if (clearRedundantClauses(lvl + 1, pPDRSat, pShutdownNotifier)) {
+      if (clearRedundantClauses(
+          lvl, pPDRSat, pShutdownNotifier)) { // TODO level = lvl for new version
         return true;
       }
     }
@@ -218,64 +220,104 @@ public class DynamicFrameSet implements FrameSet {
     return false;
   }
 
+  //  /**
+  //   * For each location, goes over all frame clauses for levels <= pMaxCheckedLevel
+  //   * and removes redundant ones. If some frame below pMaxCheckedLevel became empty
+  //   * for all locations, returns true, else false.
+  //   */
+  //  private boolean clearRedundantClauses2(int pMaxCheckedLevel, PDRSat pPDRSat, ShutdownNotifier pShutdownNotifier)
+  //      throws SolverException, InterruptedException {
+  //
+  //    // For all levels till provided maximum
+  //    for (int frameLevel = 0; frameLevel <= pMaxCheckedLevel; ++frameLevel) {
+  //
+  //      // For all frames per location
+  //      for (Map.Entry<CFANode, List<ApproximationFrame>> mapEntry : frames.entrySet()) {
+  //        List<ApproximationFrame> framesForCurrentLoc = mapEntry.getValue();
+  //
+  //        // TODO deep copy like below necessary?
+  //        Set<BooleanFormula> potentiallySubsumingClauses = Sets.newHashSet();
+  //        for (BooleanFormula clause : framesForCurrentLoc.get(frameLevel).getStates()) {
+  //          potentiallySubsumingClauses.add(bfmgr.and(clause, bfmgr.makeTrue()));
+  //        }
+  //
+  //        // For all clauses in frame at current level at current location
+  //        for (BooleanFormula maybeSubsumingClause : potentiallySubsumingClauses) {
+  //
+  //          // For all levels up to current
+  //          for (int searchedLevel = frameLevel; searchedLevel >= 0; --searchedLevel) {
+  //            ApproximationFrame checkedLayer = framesForCurrentLoc.get(searchedLevel);
+  //            Set<BooleanFormula> checkedClauses = checkedLayer.getStates();
+  //
+  //            // Be careful to not subsume itself
+  //            if (searchedLevel == frameLevel) {
+  //              checkedClauses.remove(maybeSubsumingClause);
+  //            }
+  //
+  //            // For all clauses to be checked against
+  //            Iterator<BooleanFormula> it = checkedClauses.iterator();
+  //            while (it.hasNext()) {
+  //
+  //              // Finally check redundancy
+  //              if (pPDRSat.subsumes(maybeSubsumingClause, it.next())) {
+  //                it.remove();
+  //                pShutdownNotifier.shutdownIfNecessary();
+  //              }
+  //            }
+  //          }
+  //        }
+  //      }
+  //
+  //      // Check if layer at current iteration became empty for all locations.
+  //      int lvl = frameLevel;
+  //      if (frames.entrySet()
+  //          .stream()
+  //          .map(entry -> entry.getValue().get(lvl))
+  //          .allMatch(ApproximationFrame::isEmpty)) {
+  //        return true;
+  //      }
+  //    }
+  //    return false;
+  //  }
+
   /**
-   * For each location, goes over all frame clauses for levels <= pMaxCheckedLevel
-   * and removes redundant ones. If some frame below pMaxCheckedLevel became empty
-   * for all locations, returns true, else false.
+   * Removes clauses from all frames at level pCheckedLevel if some clause at pCheckedLevel + 1
+   * subsumes them.
    */
-  private boolean clearRedundantClauses(int pMaxCheckedLevel, PDRSat pPDRSat, ShutdownNotifier pShutdownNotifier)
+  private boolean clearRedundantClauses(
+      int pCheckedLevel, PDRSat pPDRSat, ShutdownNotifier pShutdownNotifier)
       throws SolverException, InterruptedException {
 
-    // For all levels till provided maximum
-    for (int frameLevel = 0; frameLevel <= pMaxCheckedLevel; ++frameLevel) {
+    // For all frames per location
+    for (Map.Entry<CFANode, List<ApproximationFrame>> mapEntry : frames.entrySet()) {
+      List<ApproximationFrame> framesForCurrentLoc = mapEntry.getValue();
+      ApproximationFrame checkedLayer = framesForCurrentLoc.get(pCheckedLevel);
+      Set<BooleanFormula> checkedClauses = checkedLayer.getStates();
 
-      // For all frames per location
-      for (Map.Entry<CFANode, List<ApproximationFrame>> mapEntry : frames.entrySet()) {
-        List<ApproximationFrame> framesForCurrentLoc = mapEntry.getValue();
+      Set<BooleanFormula> clausesAbove = getStatesForLocation(mapEntry.getKey(), pCheckedLevel + 1);
 
-        // TODO deep copy like below necessary?
-        Set<BooleanFormula> potentiallySubsumingClauses = Sets.newHashSet();
-        for (BooleanFormula clause : framesForCurrentLoc.get(frameLevel).getStates()) {
-          potentiallySubsumingClauses.add(bfmgr.and(clause, bfmgr.makeTrue()));
-        }
+      // For all clauses that potentially subsume the checked ones
+      for (BooleanFormula maybeSubsumingClause : clausesAbove) {
 
-        // For all clauses in frame at current level at current location
-        for (BooleanFormula maybeSubsumingClause : potentiallySubsumingClauses) {
+        // For all clauses to be checked against
+        Iterator<BooleanFormula> it = checkedClauses.iterator();
+        while (it.hasNext()) {
 
-          // For all levels up to current
-          for (int searchedLevel = frameLevel; searchedLevel >= 0; --searchedLevel) {
-            ApproximationFrame checkedLayer = framesForCurrentLoc.get(searchedLevel);
-            Set<BooleanFormula> checkedClauses = checkedLayer.getStates();
-
-            // Be careful to not subsume itself
-            if (searchedLevel == frameLevel) {
-              checkedClauses.remove(maybeSubsumingClause);
-            }
-
-            // For all clauses to be checked against
-            Iterator<BooleanFormula> it = checkedClauses.iterator();
-            while (it.hasNext()) {
-
-              // Finally check redundancy
-              if (pPDRSat.subsumes(maybeSubsumingClause, it.next())) {
-                it.remove();
-                pShutdownNotifier.shutdownIfNecessary();
-              }
-            }
+          // Finally check redundancy
+          if (pPDRSat.subsumes(maybeSubsumingClause, it.next())) {
+            it.remove();
+            pShutdownNotifier.shutdownIfNecessary();
           }
         }
       }
-
-      // Check if layer at current iteration became empty for all locations.
-      int lvl = frameLevel;
-      if (frames.entrySet()
-          .stream()
-          .map(entry -> entry.getValue().get(lvl))
-          .allMatch(ApproximationFrame::isEmpty)) {
-        return true;
-      }
     }
-    return false;
+
+    // Check if layer became empty for all locations.
+    return frames
+        .values()
+        .stream()
+        .map(frames -> frames.get(pCheckedLevel))
+        .allMatch(ApproximationFrame::isEmpty);
   }
 
   @Override
@@ -287,11 +329,27 @@ public class DynamicFrameSet implements FrameSet {
 
       for (int level = 0; level <= currentMaxLevel + 1; ++level) {
         Set<BooleanFormula> states = getStatesForLocation(location, level);
-        stringRepresentation
-            .append("\n   Level : ")
-            .append(level)
-            .append("\n      ")
-            .append(states);
+        stringRepresentation.append("\n   Level : ").append(level).append("\n");
+        for (BooleanFormula state : states) {
+          stringRepresentation.append("      ").append(state).append("\n");
+        }
+      }
+    }
+    return stringRepresentation.toString();
+  }
+
+  public String deltaLayersToString() {
+    StringBuilder stringRepresentation = new StringBuilder("Frame set as delta layers : ");
+
+    for (CFANode location : frames.keySet()) {
+      stringRepresentation.append("\n").append(location).append(" ->");
+
+      for (int level = 0; level <= currentMaxLevel + 1; ++level) {
+        Set<BooleanFormula> states = frames.get(location).get(level).getStates();
+        stringRepresentation.append("\n   Level : ").append(level).append("\n");
+        for (BooleanFormula state : states) {
+          stringRepresentation.append("      ").append(state).append("\n");
+        }
       }
     }
     return stringRepresentation.toString();
