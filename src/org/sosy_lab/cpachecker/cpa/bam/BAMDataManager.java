@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -216,11 +217,34 @@ public class BAMDataManager {
 
 
   AbstractState getReducedStateForExpandedState(AbstractState state) {
-    assert expandedStateToReducedState.containsKey(state);
+    assert expandedStateToReducedState.containsKey(state) : "no match for state: " + state;
     return expandedStateToReducedState.get(state);
   }
 
   boolean hasExpandedState(AbstractState state) {
     return expandedStateToReducedState.containsKey(state);
+  }
+
+  static int getId(AbstractState state) {
+    return ((ARGState) state).getStateId();
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder str = new StringBuilder("BAM DATA MANAGER\n");
+
+    str.append("initial state to (first state of) reached set:\n");
+    for (Entry<AbstractState, ReachedSet> entry : initialStateToReachedSet.entrySet()) {
+      str.append(
+          String.format(
+              "    %s -> %s\n", getId(entry.getKey()), getId((entry.getValue()).getFirstState())));
+    }
+
+    str.append("expanded state to reduced state:\n");
+    for (Entry<AbstractState, AbstractState> entry : expandedStateToReducedState.entrySet()) {
+      str.append(String.format("    %s -> %s\n", getId(entry.getKey()), getId(entry.getValue())));
+    }
+
+    return str.toString();
   }
 }
