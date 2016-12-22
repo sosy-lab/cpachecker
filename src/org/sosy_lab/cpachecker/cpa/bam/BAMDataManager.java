@@ -231,18 +231,18 @@ public class BAMDataManager {
 
   @Override
   public String toString() {
-    StringBuilder str = new StringBuilder("BAM DATA MANAGER\n");
+    StringBuilder str = new StringBuilder("BAM DATA MANAGER%n");
 
-    str.append("initial state to (first state of) reached set:\n");
+    str.append("initial state to (first state of) reached set:%n");
     for (Entry<AbstractState, ReachedSet> entry : initialStateToReachedSet.entrySet()) {
       str.append(
           String.format(
-              "    %s -> %s\n", getId(entry.getKey()), getId((entry.getValue()).getFirstState())));
+              "    %s -> %s%n", getId(entry.getKey()), getId((entry.getValue()).getFirstState())));
     }
 
     str.append("expanded state to reduced state:\n");
     for (Entry<AbstractState, AbstractState> entry : expandedStateToReducedState.entrySet()) {
-      str.append(String.format("    %s -> %s\n", getId(entry.getKey()), getId(entry.getValue())));
+      str.append(String.format("    %s -> %s%n", getId(entry.getKey()), getId(entry.getValue())));
     }
 
     return str.toString();
