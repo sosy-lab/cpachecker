@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -60,26 +60,26 @@ public class BAMDataManager {
    * Mapping of non-reduced initial states
    * to {@link ReachedSet}.
    **/
-  private final Map<AbstractState, ReachedSet> initialStateToReachedSet = new HashMap<>();
+  private final Map<AbstractState, ReachedSet> initialStateToReachedSet = new LinkedHashMap<>();
 
   /**
    * Mapping from expanded states at the end of the block to corresponding
    * reduced states, from which the key state was originally expanded.
    * */
-  private final Map<AbstractState, AbstractState> expandedStateToReducedState = new HashMap<>();
+  private final Map<AbstractState, AbstractState> expandedStateToReducedState = new LinkedHashMap<>();
 
   /**
    * Mapping from expanded states at a block-end to
    * inner blocks of the corresponding reduced state,
    * from which the key was originally expanded.
    **/
-  private final Map<AbstractState, Block> expandedStateToBlock = new HashMap<>();
+  private final Map<AbstractState, Block> expandedStateToBlock = new LinkedHashMap<>();
 
   /**
    * Mapping from expanded states at a block-end to
    * corresponding expanded precisions.
    **/
-  final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new HashMap<>();
+  final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new LinkedHashMap<>();
 
   public BAMDataManager(
       BAMCache pArgCache,
