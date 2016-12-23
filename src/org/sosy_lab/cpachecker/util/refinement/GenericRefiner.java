@@ -53,8 +53,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -177,8 +175,8 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     List<ARGPath> targetPaths = pathExtractor.getTargetPaths(targets);
 
     if (!madeProgress(targetPaths.get(0))) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample,
-          targetPaths.get(0));
+      //throw new RefinementFailedException(Reason.RepeatedCounterexample,
+      //    targetPaths.get(0));
     }
 
     return performRefinementForPaths(pReached, targets, targetPaths);
@@ -236,7 +234,7 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
     }
 
     if (repeatingCEX) {
-      throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
+      // throw new RefinementFailedException(Reason.RepeatedCounterexample, targetPathToUse);
     }
 
     return performRefinementForPaths(pReached, targets, Lists.newArrayList(targetPathToUse));
