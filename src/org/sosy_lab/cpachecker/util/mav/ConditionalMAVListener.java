@@ -63,6 +63,7 @@ public class ConditionalMAVListener implements AnalysisListener {
   private Configuration config;
   private CFA cfa;
 
+
   public ConditionalMAVListener(Configuration config, LogManager logger)
       throws InvalidConfigurationException {
     this.logger = logger;

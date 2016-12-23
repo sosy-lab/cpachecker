@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,6 +45,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class AnalysisNotifier {
   private AnalysisNotifier() {
     listeners = new ArrayList<>();
+    properties = new ArrayList<>();
   }
 
   private static AnalysisNotifier singleton;
@@ -57,10 +60,32 @@ public class AnalysisNotifier {
 
   private boolean isEnabled = false;
   private List<AnalysisListener> listeners;
+  private List<String> properties; // These properties are obtained from *.prp files.
 
   public void register(AnalysisListener listener) {
     isEnabled=true;
     listeners.add(listener);
+  }
+
+  public void onPropertyParse(String pPropertyName) {
+    properties.add(pPropertyName);
+  }
+
+  public boolean isAddExistedAutomaton() {
+    return !properties.isEmpty();
+  }
+
+  public Reader getAutomatonReader() {
+    String automatonDescription;
+    automatonDescription = "CONTROL AUTOMATON MAV_ERROR_FUNCTIONS\n" +
+        "INITIAL STATE Init;\n" +
+        "STATE USEFIRST Init:\n";
+    for (String propertyName : properties) {
+      automatonDescription += "  MATCH {" + propertyName + "()} -> ERROR(\"" + propertyName + "\");\n";
+    }
+    automatonDescription += "END AUTOMATON\n";
+    Reader reader = new StringReader(automatonDescription);
+    return reader;
   }
 
   public static interface AnalysisListener  {

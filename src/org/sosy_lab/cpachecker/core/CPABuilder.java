@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core;
 
 import java.io.IOException;
+import java.io.Reader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -47,6 +48,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
@@ -65,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
@@ -200,7 +203,13 @@ public class CPABuilder {
           automata = graphmlParser.parseAutomatonFile(specFile);
 
         } else {
-          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+          if (AnalysisNotifier.getInstance().isAddExistedAutomaton()) {
+            // Create automaton from *.prp file for MAV.
+            Reader reader = AnalysisNotifier.getInstance().getAutomatonReader();
+            automata = AutomatonParser.parseAutomaton(reader, Optional.of(Paths.get("")), config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+          } else {
+            automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+          }
         }
 
         AnalysisNotifier.getInstance().onSpecificationAutomatonCreate(automata);

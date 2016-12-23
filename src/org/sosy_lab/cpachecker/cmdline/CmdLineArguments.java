@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.Files;
 import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
+import org.sosy_lab.cpachecker.core.AnalysisNotifier;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
@@ -407,6 +408,9 @@ class CmdLineArguments {
 
               newValue = getSpecifications(options, properties);
 
+              if (AnalysisNotifier.getInstance().isAddExistedAutomaton()) {
+                newValue = null;
+              }
             } else {
               ERROR_OUTPUT.println("The property file " + newValue + " does not exist.");
               System.exit(ERROR_EXIT_CODE);

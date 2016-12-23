@@ -74,6 +74,7 @@ public class CPAMain {
     Configuration cpaConfig = null;
     LogManager logManager = null;
     String outputDirectory = null;
+    AnalysisNotifier analysisNotifier = AnalysisNotifier.getInstance();
     try {
       try {
         Pair<Configuration, String> p = createConfiguration(args);
@@ -99,7 +100,6 @@ public class CPAMain {
     // create everything
     final ShutdownManager shutdownManager = ShutdownManager.create();
     final ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
-    AnalysisNotifier analysisNotifier = AnalysisNotifier.getInstance();
     CPAchecker cpachecker = null;
     ProofGenerator proofGenerator = null;
     ResourceLimitChecker limits = null;
