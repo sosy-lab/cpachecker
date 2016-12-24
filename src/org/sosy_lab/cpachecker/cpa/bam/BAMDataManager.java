@@ -233,7 +233,7 @@ public class BAMDataManager {
   public String toString() {
     StringBuilder str = new StringBuilder("BAM DATA MANAGER\n");
 
-    str.append("initial state to (first state of) reached set:%n");
+    str.append("initial state to (first state of) reached set:\n");
     for (Entry<AbstractState, ReachedSet> entry : initialStateToReachedSet.entrySet()) {
       str.append(
           String.format(
