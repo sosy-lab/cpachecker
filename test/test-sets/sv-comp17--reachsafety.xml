@@ -3,7 +3,9 @@
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="4">
   <option name="-heap">10000M</option>
 
+  <!-- Witness files are several GB in total, ignore them for now. Currently our BuildBot cannot handle this.
   <resultfiles>**.graphml</resultfiles>
+  -->
 
   <tasks name="ReachSafety-ArraysReach">
     <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
