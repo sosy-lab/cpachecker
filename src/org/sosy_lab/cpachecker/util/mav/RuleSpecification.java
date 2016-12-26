@@ -100,6 +100,18 @@ public class RuleSpecification {
     return specificationStatus;
   }
 
+  public String getVerdict() {
+    // Represent internal verdicts into general format.
+    switch (specificationStatus) {
+    case SAFE:
+      return "TRUE";
+    case UNSAFE:
+      return "FALSE";
+    default:
+      return "UNKNOWN";
+    }
+  }
+
   public SpecificationKey getSpecificationKey() {
     return specificationKey;
   }

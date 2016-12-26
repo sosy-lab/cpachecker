@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import java.io.PrintStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -98,6 +99,7 @@ public class AnalysisNotifier {
         throws CPAException;
     public void onPrecisionIncrementCreate(AdjustablePrecision pAdjustablePrecision);
     public AlgorithmStatus onRestartInOneRun(AlgorithmStatus pStatus, Algorithm algorithm, ReachedSet reached) throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException;
+    public void printResults(PrintStream pOut);
   }
 
   public void beforeAbstractionStep(ReachedSet pReachedSet) throws CPAException {
@@ -172,6 +174,14 @@ public class AnalysisNotifier {
       return status;
     }
     return pStatus;
+  }
+
+  public void printResults(PrintStream pOut) {
+    if(isEnabled) {
+      for(AnalysisListener e : listeners) {
+         e.printResults(pOut);
+      }
+    }
   }
 
 }

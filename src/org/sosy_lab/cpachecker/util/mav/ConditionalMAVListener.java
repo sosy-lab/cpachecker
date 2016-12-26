@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.mav;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.logging.Level;
 
@@ -387,6 +388,11 @@ public class ConditionalMAVListener implements AnalysisListener {
     } while (!isCompleted);
 
     return status;
+  }
+
+  @Override
+  public void printResults(PrintStream pOut) {
+    mav.printResults(pOut);
   }
 
 }

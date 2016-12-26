@@ -466,11 +466,7 @@ public class MultiAspectVerification {
 
   public void printToFile() throws CPAException {
     if (resultsFile == null) {
-      PrintStream outputStream = System.out;
-      // TODO: add more options for outputStream
-      outputStream.print(toString());
-      outputStream.println("LCA=" + lastSpecificationKey);
-      outputStream.println();
+      // Do not print verdicts in file.
       return;
     }
     try {
@@ -511,6 +507,12 @@ public class MultiAspectVerification {
       result = result + differentSpecification.toString() + "\n";
     }
     return result;
+  }
+
+  public void printResults(PrintStream pOut) {
+    for (RuleSpecification differentSpecification : ruleSpecifications.values()) {
+      pOut.println(String.format("\tProperty %s: %s", differentSpecification.getSpecificationKey().getId(), differentSpecification.getVerdict()));
+    }
   }
 
   public void updateTime(SpecificationKey targetErrorLabel) throws CPAException {

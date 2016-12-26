@@ -103,6 +103,8 @@ public class CPAcheckerResult {
 
     out.print("Verification result: ");
     out.println(getResultString());
+
+    AnalysisNotifier.getInstance().printResults(out);
   }
 
   public String getResultString() {
