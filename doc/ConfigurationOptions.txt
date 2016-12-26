@@ -234,6 +234,9 @@ analysis.stopAfterError = true
 # create summary call statement edges
 analysis.summaryEdges = false
 
+# resource limit for the block
+analysis.traversal.blockResourceLimit = 100000
+
 # traverse in the order defined by the values of an automaton variable
 analysis.traversal.byAutomatonVariable = no default value
 
@@ -244,6 +247,10 @@ analysis.traversal.order = DFS
 # handle abstract states with more automaton matches first? (only if
 # AutomatonCPA enabled)
 analysis.traversal.useAutomatonInformation = false
+
+# use blocks and set resource limits for its traversal, blocks are handled in
+# DFS order
+analysis.traversal.useBlocks = false
 
 # handle states with a deeper callstack first
 # This needs the CallstackCPA instance to have any effect.
