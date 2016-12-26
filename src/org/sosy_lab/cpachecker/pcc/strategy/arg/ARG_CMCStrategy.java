@@ -26,7 +26,18 @@ package org.sosy_lab.cpachecker.pcc.strategy.arg;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
-
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.zip.ZipInputStream;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -49,20 +60,6 @@ import org.sosy_lab.cpachecker.pcc.strategy.util.cmc.PartialCPABuilder;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
-
-import javax.annotation.Nullable;
 
 public class ARG_CMCStrategy extends AbstractStrategy {
 
@@ -159,7 +156,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
   private boolean checkAndReadSequentially() {
     try {
-      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig);
+      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
       List<ARGState> incompleteStates = new ArrayList<>();
       ConfigurableProgramAnalysis cpa;
 
@@ -235,7 +232,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   private boolean checkAndReadInterleaved() throws InterruptedException, CPAException {
     final ConfigurableProgramAnalysis[] cpas = new ConfigurableProgramAnalysis[roots.length];
     try {
-      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig);
+      final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
       final AtomicBoolean checkResult = new AtomicBoolean(true);
       final Semaphore partitionsAvailable = new Semaphore(0);
 

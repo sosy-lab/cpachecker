@@ -24,7 +24,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import com.google.common.collect.Maps;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -75,17 +84,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
 
 
 public class ProofSlicer {
@@ -414,7 +412,8 @@ public class ProofSlicer {
 
     ReachedSet returnReached;
     try {
-      returnReached = new ReachedSetFactory(Configuration.defaultConfiguration()).create();
+      //TODO: pass logger
+      returnReached = new ReachedSetFactory(Configuration.defaultConfiguration(), null).create();
       // add root
       returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
       // add remaining elements

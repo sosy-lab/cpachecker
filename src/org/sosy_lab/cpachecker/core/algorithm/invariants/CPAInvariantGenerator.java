@@ -204,7 +204,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
-    reachedSetFactory = new ReachedSetFactory(invariantConfig);
+    reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     cfa = pCFA;
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)

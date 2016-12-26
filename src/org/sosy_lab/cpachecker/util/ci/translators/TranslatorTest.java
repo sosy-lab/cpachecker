@@ -24,7 +24,13 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import com.google.common.truth.Truth;
-
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -70,14 +76,6 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 
 public class TranslatorTest {
 
@@ -295,7 +293,7 @@ public class TranslatorTest {
                 .set(new AggregatedReachedSets(), AggregatedReachedSets.class)
                 .setShutdownNotifier(ShutdownNotifier.createDummy())
                 .set(TestDataTools.makeCFA("void main(){}"), CFA.class)
-                .set(new ReachedSetFactory(config), ReachedSetFactory.class)
+                .set(new ReachedSetFactory(config, logger), ReachedSetFactory.class)
                 .set(Specification.alwaysSatisfied(), Specification.class)
                 .createInstance();
     FormulaManagerView fmv = predicateCpa.getSolver().getFormulaManager();

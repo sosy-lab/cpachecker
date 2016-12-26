@@ -192,7 +192,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     List<AbstractState> initialStates = initStates.getSecond();
 
     try {
-      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config).create());
+      pReceivedReachedSet.setDelegate(new ReachedSetFactory(config, logger).create());
     } catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Creating reached set which should contain combined ARG fails.");
       return false;

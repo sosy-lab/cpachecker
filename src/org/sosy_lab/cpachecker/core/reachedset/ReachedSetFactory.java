@@ -28,8 +28,10 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonFailedMatchesWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.AutomatonMatchesWaitlist;
+import org.sosy_lab.cpachecker.core.waitlist.BlockConfiguration;
 import org.sosy_lab.cpachecker.core.waitlist.BlockWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.CallstackSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.ExplicitSortedWaitlist;
@@ -97,10 +99,6 @@ public class ReachedSetFactory {
       description = "use blocks and set resource limits for its traversal, blocks are handled in DFS order")
   boolean useBlocks = false;
 
-  @Option(secure=true, name = "traversal.blockResourceLimit",
-      description = "resource limit for the block")
-  int blockResourceLimit = 100000;
-
   @Option(secure=true, name = "reachedSet",
       description = "which reached set implementation to use?"
       + "\nNORMAL: just a simple set"
@@ -111,8 +109,15 @@ public class ReachedSetFactory {
       + "(maybe faster for some special analyses which use merge_sep and stop_sep")
   ReachedSetType reachedSet = ReachedSetType.PARTITIONED;
 
-  public ReachedSetFactory(Configuration config) throws InvalidConfigurationException {
-    config.inject(this);
+  private BlockConfiguration blockConfig;
+  private LogManager logger;
+
+  public ReachedSetFactory(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+    pConfig.inject(this);
+    logger = pLogger;
+    if(useBlocks) {
+      blockConfig = new BlockConfiguration(pConfig);
+    }
   }
 
   public ReachedSet create() {
@@ -147,7 +152,7 @@ public class ReachedSetFactory {
       waitlistFactory = ThreadingSortedWaitlist.factory(waitlistFactory);
     }
     if (useBlocks) {
-      waitlistFactory = BlockWaitlist.factory(waitlistFactory, blockResourceLimit);
+      waitlistFactory = BlockWaitlist.factory(waitlistFactory, blockConfig, logger);
     }
 
     switch (reachedSet) {

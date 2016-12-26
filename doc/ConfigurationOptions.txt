@@ -237,6 +237,9 @@ analysis.summaryEdges = false
 # resource limit for the block
 analysis.traversal.blockResourceLimit = 100000
 
+# save resources for the block if it is empty
+analysis.traversal.blockSaveResources = true
+
 # traverse in the order defined by the values of an automaton variable
 analysis.traversal.byAutomatonVariable = no default value
 

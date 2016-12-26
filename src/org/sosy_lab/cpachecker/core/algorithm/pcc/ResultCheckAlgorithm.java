@@ -233,7 +233,7 @@ public class ResultCheckAlgorithm implements Algorithm, StatisticsProvider {
     if(checkerConfig != null) {
       try {
         checkConfig = Configuration.builder().copyFrom(config).loadFromFile(checkerConfig).build();
-        ReachedSetFactory factory = new ReachedSetFactory(checkConfig);
+        ReachedSetFactory factory = new ReachedSetFactory(checkConfig, logger);
         checkerCPA =
             new CPABuilder(checkConfig, logger, shutdownNotifier, factory)
                 .buildCPAs(analyzedProgram, specification, new AggregatedReachedSets());

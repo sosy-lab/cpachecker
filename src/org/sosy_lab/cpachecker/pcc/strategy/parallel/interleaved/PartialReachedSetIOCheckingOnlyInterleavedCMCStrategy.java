@@ -24,7 +24,17 @@
 package org.sosy_lab.cpachecker.pcc.strategy.parallel.interleaved;
 
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.zip.ZipInputStream;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,19 +60,6 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
-
-import javax.annotation.Nullable;
 
 // FIXME unsound strategy
 public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends AbstractStrategy {
@@ -116,7 +113,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
       Thread readingThread =
           new Thread(
               new ProofPartReader(automatonAvailable, partitionsAvailable, checkResult, ioHelpers, cpas, roots,
-                  new ReachedSetFactory(config)));
+                  new ReachedSetFactory(config, logger)));
       try {
         readingThread.start();
 
