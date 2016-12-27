@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.summary.blocks;
 
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -100,7 +101,7 @@ public class Block {
    * were read inside the block.
    * Includes modifications by inner blocks.
    */
-  Set<String> getReadVariables() {
+  Collection<Wrapper<ASimpleDeclaration>> getReadVariables() {
     return readVariables;
   }
 
@@ -108,7 +109,7 @@ public class Block {
    * @return All variables modified inside the block.
    * Includes modifications by called blocks.
    */
-  Set<String> getModifiedVariables() {
+  Collection<Wrapper<ASimpleDeclaration>> getModifiedVariables() {
     return modifiedVariables;
   }
 }
