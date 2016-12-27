@@ -598,7 +598,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
         "analysis.programNames",
         "cpa.callstack.skipRecursion",
         "cpa.callstack.skipVoidRecursion",
-        "cpa.callstack.skipFunctionPointerRecursion");
+        "cpa.callstack.skipFunctionPointerRecursion",
+        "witness.strictChecking",
+        "witness.checkProgramHash");
     for (String copyOption : copyOptions) {
       configBuilder.copyOptionFromIfPresent(pConfig, copyOption);
     }
