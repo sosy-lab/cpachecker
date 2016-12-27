@@ -47,7 +47,7 @@ public class ARGStopSep implements StopOperator, ForcedCoveringStopOperator {
 
   @Option(secure=true,
   description="inform ARG CPA if it is run in a CPA enabled analysis because then it must"
-    + "behave differntly during merge.")
+    + "behave differently during merge.")
   private boolean inCPAEnabledAnalysis = false;
 
   private final StopOperator wrappedStop;
