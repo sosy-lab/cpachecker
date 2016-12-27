@@ -35,8 +35,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -52,6 +50,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
@@ -74,7 +74,6 @@ public class TopLevelSummaryCPA implements ConfigurableProgramAnalysis,
                                            StatisticsProvider {
 
   private final UseSummaryCPA wrapped;
-  private final BlockPartitioning blockPartitioning;
   private final Multimap<String, Summary> summaryMapping;
   private final SummaryManager wrappedSummaryManager;
   private final AbstractDomain wrappedAbstractDomain;
@@ -83,21 +82,19 @@ public class TopLevelSummaryCPA implements ConfigurableProgramAnalysis,
   private final LogManager logger;
   private final MergeOperator wrappedMergeOperator;
   private final StopOperator wrappedStopOperator;
-
   private final List<SummaryComputationRequest> summaryComputationRequests;
+  private final BlockManager blockManager;
 
   public TopLevelSummaryCPA(
       ConfigurableProgramAnalysis pWrapped,
       Multimap<String, Summary> pSummaryMapping,
-      BlockPartitioning pBlockPartitioning,
-      LogManager pLogger) throws InvalidConfigurationException {
+      BlockManager pBlockManager,
+      LogManager pLogger) throws InvalidConfigurationException, CPATransferException {
     summaryMapping = pSummaryMapping;
     Preconditions.checkArgument(pWrapped instanceof UseSummaryCPA,
         "Top-level CPA for summary computation has to implement UseSummaryCPA.");
     wrapped = (UseSummaryCPA) pWrapped;
     wrappedSummaryManager = wrapped.getSummaryManager();
-    blockPartitioning = pBlockPartitioning;
-    wrappedSummaryManager.setBlockPartitioning(blockPartitioning);
     wrappedAbstractDomain = wrapped.getAbstractDomain();
     wrappedTransferRelation = wrapped.getTransferRelation();
     wrappedPrecisionAdjustment = wrapped.getPrecisionAdjustment();
@@ -105,6 +102,7 @@ public class TopLevelSummaryCPA implements ConfigurableProgramAnalysis,
     wrappedStopOperator = wrapped.getStopOperator();
     logger = pLogger;
     summaryComputationRequests = new ArrayList<>();
+    blockManager = pBlockManager;
   }
 
   public List<SummaryComputationRequest> getSummaryComputationRequests() {
@@ -136,13 +134,23 @@ public class TopLevelSummaryCPA implements ConfigurableProgramAnalysis,
       AbstractState state, Precision precision) throws CPAException, InterruptedException {
 
     CFANode node = AbstractStates.extractLocation(state);
-    if (blockPartitioning.isReturnNode(node)) {
+    Block block = blockManager.getBlockForNode(node);
+
+    if (block.getExitNode() == node) {
 
       // Analysis only goes up to the block end.
       return Collections.emptyList();
-    } else if (blockPartitioning.isOuterCallNode(node) && !isMain(node)) {
+    } else if (
+        node.getNumLeavingEdges() == 1 &&
+            blockManager.getBlockForNode(node.getLeavingEdge(0).getSuccessor()) != block
+        ) {
 
       logger.log(Level.INFO, "IDENTIFIED CALL NODE", node);
+
+      // todo: avoid repetition
+      Block calledBlock = blockManager.getBlockForNode(
+          node.getLeavingEdge(0).getSuccessor()
+      );
 
       // Attempt to calculate a postcondition using summaries
       // we have.
@@ -151,22 +159,13 @@ public class TopLevelSummaryCPA implements ConfigurableProgramAnalysis,
           node,
           precision,
           state,
-          blockPartitioning.getBlockForOuterCallNode(node)
+          calledBlock
       );
     } else {
 
       // Simply delegate.
       return wrappedTransferRelation.getAbstractSuccessors(state, precision);
     }
-  }
-
-  /**
-   * @return whether {@code node} is a program entry point.
-   */
-  private boolean isMain(CFANode node) {
-
-    // Do not request a recursive computation on the first block in the program.
-    return node.getNumEnteringEdges() == 0 && node.getEnteringSummaryEdge() == null;
   }
 
   private Collection<? extends AbstractState> applySummaries(

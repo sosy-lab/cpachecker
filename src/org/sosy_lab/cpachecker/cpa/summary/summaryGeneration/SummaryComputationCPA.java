@@ -38,17 +38,12 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.ExtendedBlockPartitioningBuilder;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionPartitioning;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
@@ -77,6 +72,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
@@ -105,22 +101,15 @@ public class SummaryComputationCPA
                MergeOperator,
                StatisticsProvider {
 
+  // todo: this flag is ugly
   @Option(secure=true, description="Whether summaries should be merged")
   private boolean joinSummaries = false;
-
-  @Option(
-      secure = true,
-      description = "Factory for the class which partitions the CFA "
-          + "into blocks."
-  )
-  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
-  private PartitioningHeuristic.Factory partitioningHeuristicFactory = FunctionPartitioning::new;
 
   private final TopLevelSummaryCPA wrapped;
 
   private final CPAAlgorithmFactory algorithmFactory;
   private final ReachedSetFactory reachedSetFactory;
-  private final BlockPartitioning blockPartitioning;
+  private final BlockManager blockManager;
   private final SummaryManager wrappedSummaryManager;
   private final StopOperator wrappedStopOperator;
   private final MergeOperator wrappedMergeOperator;
@@ -142,7 +131,8 @@ public class SummaryComputationCPA
       CFA pCfa,
       ShutdownNotifier pShutdownNotifier,
       ReachedSetFactory pReachedSetFactory,
-      ConfigurableProgramAnalysis pWrapped) throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis pWrapped)
+      throws InvalidConfigurationException, CPATransferException {
     super(pWrapped);
     pConfig.inject(this);
     reachedSetFactory = pReachedSetFactory;
@@ -152,14 +142,11 @@ public class SummaryComputationCPA
             + " has to implement the SummaryCPA interface.");
 
     computedSummaries = LinkedHashMultimap.create();
-    PartitioningHeuristic heuristic = partitioningHeuristicFactory.create(
-        pLogger, pCfa, pConfig
-    );
-    blockPartitioning = heuristic.buildPartitioning(pCfa, new ExtendedBlockPartitioningBuilder());
     logger = pLogger;
     statistics = new SummaryComputationStatistics();
+    blockManager = new BlockManager(pCfa, pConfig, pLogger);
     wrapped = new TopLevelSummaryCPA(
-        pWrapped, computedSummaries, blockPartitioning, pLogger);
+        pWrapped, computedSummaries, blockManager, pLogger);
     wrappedSummaryManager = wrapped.getSummaryManager();
     wrappedMergeOperator = wrapped.getMergeOperator();
     wrappedStopOperator = wrapped.getStopOperator();
@@ -179,7 +166,7 @@ public class SummaryComputationCPA
     reached.add(entryState, entryPrecision);
 
     return SummaryComputationState.initial(
-        blockPartitioning.getMainBlock(),
+        blockManager.getBlockForNode(node),
         entryState,
         entryPrecision,
         reached);
@@ -264,8 +251,8 @@ public class SummaryComputationCPA
       assert lastState != null;
       returnStates = ImmutableList.of(lastState);
     } else {
-      returnStates = AbstractStates.filterLocations(
-          reached, summaryComputationState.getBlock().getReturnNodes()
+      returnStates = AbstractStates.filterLocation(
+          reached, summaryComputationState.getBlock().getExitNode()
       ).filter(ARGState.class).filter(s -> s.getChildren().isEmpty()).toList();
     }
 
@@ -436,8 +423,9 @@ public class SummaryComputationCPA
 
       // well isn't that fantastic, now we have two things to merge:
       // entry node and the calling context.
-
-      if (mergedEntryState == sState2.getEntryState()) {
+      if (mergedEntryState == sState1.getEntryState()) {
+        return state1;
+      } else if (mergedEntryState == sState2.getEntryState()) {
         return state2;
       } else {
 

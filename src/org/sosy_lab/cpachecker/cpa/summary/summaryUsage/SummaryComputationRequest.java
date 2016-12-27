@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.summary.summaryUsage;
 
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 
 /**
  * Request for the summary computation.

@@ -27,10 +27,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -145,6 +145,4 @@ public class CallstackCPASummaryManager implements SummaryManager {
           '}';
     }
   }
-
-
 }

@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.summary.interfaces;
 
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -33,6 +31,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
@@ -163,5 +163,5 @@ public interface SummaryManager {
    * Communicate the block partitioning to the configurable
    * program analysis.
    */
-  default void setBlockPartitioning(BlockPartitioning pPartitioning) {}
+  default void setBlockManager(BlockManager pManager) {}
 }

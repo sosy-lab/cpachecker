@@ -34,10 +34,10 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -87,7 +87,9 @@ public class IntervalCPASummaryManager implements SummaryManager {
     IntervalAnalysisState clone = IntervalAnalysisState.copyOf(iState);
 
     iState.getIntervalMap().keySet().stream()
-        .filter(v -> !pBlock.referencesVar(v))
+
+        // todo: types do not match.
+        .filter(v -> !pBlock.getReadVariables().contains(v))
         .forEach(v -> clone.removeInterval(v));
     logger.log(Level.INFO, "Weakened ", iState, " to ", clone);
     return clone;
