@@ -148,13 +148,8 @@ public final class AbstractStates {
   public static final Function<AbstractState, CFANode> EXTRACT_LOCATION =
       AbstractStates::extractLocation;
 
-  public static Iterable<AbstractState> filterLocation(Iterable<AbstractState> pStates, CFANode pLoc) {
-    if (pStates instanceof LocationMappedReachedSet) {
-      // only do this for LocationMappedReachedSet, not for all ReachedSet,
-      // because this method is imprecise for the rest
-      return ((LocationMappedReachedSet)pStates).getReached(pLoc);
-    }
-
+  public static FluentIterable<AbstractState> filterLocation(Iterable<AbstractState> pStates,
+                                                            CFANode pLoc) {
     Predicate<AbstractState> statesWithRightLocation =
         Predicates.compose(equalTo(pLoc), AbstractStates::extractLocation);
     return FluentIterable.from(pStates).filter(statesWithRightLocation);
