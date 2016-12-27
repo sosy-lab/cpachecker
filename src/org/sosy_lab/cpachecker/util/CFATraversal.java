@@ -27,6 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -140,15 +141,26 @@ public class CFATraversal {
    * It will not call the visitor for them, and it will not follow this edge
    * during traversing. Thus it will always stay inside the current function.
    */
-  @SuppressWarnings("unchecked")
   public CFATraversal ignoreFunctionCalls() {
     return new CFATraversal(edgeSupplier,
         successorSupplier,
-        Predicates.<CFAEdge>or(
-            ignoreEdge,
-            Predicates.instanceOf(FunctionCallEdge.class),
-            Predicates.instanceOf(FunctionReturnEdge.class)
-            ));
+        e -> ignoreEdge.apply(e)
+            || e instanceof FunctionCallEdge
+            || e instanceof FunctionReturnEdge);
+  }
+
+  /**
+   * Returns a new instance of this class which behaves exactly like the current
+   * instance, except it ignores all return statements
+   * going outside of the function of interest.
+   */
+  @SuppressWarnings("unchecked")
+  public CFATraversal ignoreReturnOutsideOf(String functionName) {
+    return new CFATraversal(edgeSupplier,
+        successorSupplier,
+        e -> ignoreEdge.apply(e)
+          || (e instanceof FunctionReturnEdge
+                && e.getPredecessor().getFunctionName().equals(functionName)));
   }
 
   /**
@@ -491,6 +503,106 @@ public class CFATraversal {
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
       return delegate.visitNode(pNode);
+    }
+  }
+
+  // todo: OKAY now how do we tell the summarizing visitor to ignore going
+  //
+
+  /**
+   * Traverse the CFA, *including* function calls, yet on return edge, return only to functions
+   * we have already been to using 1-string call approach (our abstract state
+   * is effectively last element in a stack).
+   * That provides a very simplistic yet quite useful abstraction.
+   *
+   * <p>Otherwise, inter-procedural traversal quickly traverses entire CFA, even unreachable
+   * parts (e.g. consider a {@code log()} function called from everywhere).
+   */
+  public abstract static class SummarizingVisitor implements CFAVisitor {
+    final Set<CFAEdge> visitedEdges = new HashSet<>();
+    @Override
+    public TraversalProcess visitEdge(CFAEdge edge) {
+      if (visitedEdges.contains(edge)) {
+        return TraversalProcess.SKIP;
+      }
+      if (edge instanceof FunctionCallEdge) {
+        return onCallEdge(edge);
+
+      } else if (edge instanceof FunctionReturnEdge) {
+        return onReturnEdge(edge);
+      } else if (edge instanceof FunctionSummaryEdge) {
+        return TraversalProcess.SKIP;
+      } else {
+        visitedEdges.add(edge);
+        return TraversalProcess.CONTINUE;
+      }
+    }
+
+    abstract TraversalProcess onCallEdge(CFAEdge callEdge);
+
+    abstract TraversalProcess onReturnEdge(CFAEdge returnEdge);
+
+    @Override
+    public TraversalProcess visitNode(CFANode node) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    public ImmutableSet<CFAEdge> getVisitedEdges() {
+      return ImmutableSet.copyOf(visitedEdges);
+    }
+  }
+
+  /**
+   * Jump only to join points which are reachable.
+   */
+  public static final class SummarizingVisitorForward extends SummarizingVisitor {
+    private final Set<CFANode> expectedJoinNodes = new HashSet<>();
+
+    @Override
+    TraversalProcess onCallEdge(CFAEdge callEdge) {
+      visitedEdges.add(callEdge);
+      expectedJoinNodes.add(callEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor());
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    TraversalProcess onReturnEdge(CFAEdge returnEdge) {
+      if (expectedJoinNodes.contains(returnEdge.getSuccessor())) {
+        visitedEdges.add(returnEdge);
+        return TraversalProcess.CONTINUE;
+      } else {
+
+        // Returning to a function we can never get to.
+        return TraversalProcess.SKIP;
+      }
+    }
+  }
+
+  /**
+   * Jump only to callsites which are reachable.
+   */
+  public static final class SummarizingVisitorBackwards extends SummarizingVisitor {
+
+    private final Set<CFANode> expectedCallsites = new HashSet<>();
+
+    @Override
+    TraversalProcess onReturnEdge(CFAEdge edge) {
+      CFANode callsite = edge.getSuccessor().getEnteringSummaryEdge().getPredecessor();
+      expectedCallsites.add(callsite);
+      visitedEdges.add(edge);
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    TraversalProcess onCallEdge(CFAEdge edge) {
+      if (expectedCallsites.contains(edge.getPredecessor())) {
+        visitedEdges.add(edge);
+        return TraversalProcess.CONTINUE;
+      } else {
+
+        // Returning to a function we can never get to.
+        return TraversalProcess.SKIP;
+      }
     }
   }
 }
