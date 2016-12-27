@@ -51,12 +51,16 @@ public class BlockManager {
   private final CFA cfa;
   private final LiveVariablesManager liveVariablesManager;
   private final ImmutableMap<FunctionEntryNode, Block> blockData;
+  private final ImmutableMap<CFANode, Block> blockToNode;
 
   public BlockManager(
       CFA pCfa,
       Configuration pConfiguration,
       LogManager pLogManager
       ) throws InvalidConfigurationException, CPATransferException {
+
+    // todo: probably really bad to throw CPATransferException in constructor.
+    // can we see what actual exceptions are thrown?..
     cfa = pCfa;
     liveVariablesManager = new LiveVariablesManager(
         cfa.getVarClassification(),
@@ -66,10 +70,22 @@ public class BlockManager {
         pLogManager
     );
     blockData = computeBlocks();
+    ImmutableMap.Builder<CFANode, Block> blockNodeMappingBuilder =
+        ImmutableMap.builder();
+    blockData.values().stream().forEach(
+        b -> b.getInnerNodes().forEach(
+            n -> blockNodeMappingBuilder.put(n, b)
+        )
+    );
+    blockToNode = blockNodeMappingBuilder.build();
   }
 
   public ImmutableMap<FunctionEntryNode, Block> getBlockData() {
     return blockData;
+  }
+
+  public Block getBlockForNode(CFANode pNode) {
+    return blockToNode.get(pNode);
   }
 
   private ImmutableMap<FunctionEntryNode, Block> computeBlocks() throws CPATransferException {

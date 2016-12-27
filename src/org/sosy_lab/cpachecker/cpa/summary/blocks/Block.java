@@ -35,8 +35,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * A single {@link org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary}
  * summarizes all possible computations done inside the block
  * (including all nested blocks).
- *
- * todo: how does it work with function pointers?
  */
 public class Block {
 
@@ -67,32 +65,36 @@ public class Block {
    * @return set of nodes composing the interior of the node.
    * Does not include called blocks.
    */
-  Set<CFANode> getInnerNodes() {
+  public Set<CFANode> getInnerNodes() {
     return innerNodes;
   }
 
-  boolean hasRecursion() {
+  /**
+   * @return Whether this block is involved in a
+   * (mutual) recursion.
+   */
+  public boolean hasRecursion() {
     return hasRecursion;
   }
 
   /**
    * @return unique function entry node.
    */
-  CFANode getEntryNode() {
+  public CFANode getEntryNode() {
     return entryNode;
   }
 
   /**
    * @return unique function exit node.
    */
-  CFANode getExitNode() {
+  public CFANode getExitNode() {
     return exitNode;
   }
 
   /**
    * @return function name associated with the block.
    */
-  String getFunctionName() {
+  public String getFunctionName() {
     return entryNode.getFunctionName();
   }
 
@@ -101,7 +103,7 @@ public class Block {
    * were read inside the block.
    * Includes modifications by inner blocks.
    */
-  Collection<Wrapper<ASimpleDeclaration>> getReadVariables() {
+  public Collection<Wrapper<ASimpleDeclaration>> getReadVariables() {
     return readVariables;
   }
 
@@ -109,7 +111,7 @@ public class Block {
    * @return All variables modified inside the block.
    * Includes modifications by called blocks.
    */
-  Collection<Wrapper<ASimpleDeclaration>> getModifiedVariables() {
+  public Collection<Wrapper<ASimpleDeclaration>> getModifiedVariables() {
     return modifiedVariables;
   }
 }
