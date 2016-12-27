@@ -39,11 +39,11 @@ import java.util.Objects;
 class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Graphable {
 
   private final BitSet liveVars;
-  private final LiveVariablesTransferRelation manager;
+  private final LiveVariablesManager manager;
 
   private LiveVariablesState(
       BitSet pLiveVariables,
-      LiveVariablesTransferRelation pManager) {
+      LiveVariablesManager pManager) {
     manager = pManager;
     checkNotNull(pLiveVariables);
     liveVars = pLiveVariables;
@@ -51,13 +51,13 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
 
   static LiveVariablesState empty(
       int totalNoVars,
-      LiveVariablesTransferRelation pManager) {
+      LiveVariablesManager pManager) {
     return new LiveVariablesState(new BitSet(totalNoVars), pManager);
   }
 
   static LiveVariablesState of(
       BitSet pLiveVars,
-      LiveVariablesTransferRelation pManager
+      LiveVariablesManager pManager
   ) {
     return new LiveVariablesState((BitSet) pLiveVars.clone(), pManager);
   }
@@ -70,12 +70,12 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
    */
   static LiveVariablesState ofUnique(
       BitSet pLiveVars,
-      LiveVariablesTransferRelation pManager
+      LiveVariablesManager pManager
   ) {
     return new LiveVariablesState(pLiveVars, pManager);
   }
 
-  LiveVariablesState(int totalNoVars, LiveVariablesTransferRelation pManager) {
+  LiveVariablesState(int totalNoVars, LiveVariablesManager pManager) {
     liveVars = new BitSet(totalNoVars);
     manager = pManager;
   }
@@ -161,6 +161,10 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
 
   BitSet getDataCopy() {
     return (BitSet) liveVars.clone();
+  }
+
+  BitSet getData() {
+    return liveVars;
   }
 
   @Override

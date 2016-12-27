@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -101,7 +102,7 @@ import javax.annotation.Nullable;
  * C-Programs addressed variables (e.g. &a) are considered as being always live.
  */
 @Options(prefix="cpa.liveVar")
-public class LiveVariablesTransferRelation extends ForwardingTransferRelation<LiveVariablesState, LiveVariablesState, Precision> {
+public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariablesState, LiveVariablesState, Precision> {
 
   private final Map<CFANode, BitSet> liveVariables = new HashMap<>();
 
@@ -120,11 +121,12 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   private final LogManager logger;
   private final CFA cfa;
 
-  public LiveVariablesTransferRelation(
+  public LiveVariablesManager(
       Optional<VariableClassification> pVarClass,
       Configuration pConfig,
       Language pLang,
-      CFA pCFA, LogManager pLogger) throws InvalidConfigurationException {
+      CFA pCFA,
+      LogManager pLogger) throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
     cfa = pCFA;
@@ -175,6 +177,44 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     addressedOrGlobalVars.or(globalVars);
   }
 
+  /**
+   * @return All variables read by instructions associated with {@code pEdge}.
+   */
+  public Collection<Wrapper<ASimpleDeclaration>> getReadVars(CFAEdge pEdge)
+      throws CPATransferException {
+
+    // Assume that none of the variables are live,
+    // see what variables become live after processing the statement.
+    LiveVariablesState state = LiveVariablesState.empty(
+        noVars, this);
+
+    LiveVariablesState successor = getAbstractSuccessorsForEdge(
+        state, SingletonPrecision.getInstance(), pEdge
+    ).iterator().next();
+    return dataToVars(successor.getData());
+  }
+
+  /**
+   * @return All variables modified by instructions associated with {@code pEdge}.
+   */
+  public Collection<Wrapper<ASimpleDeclaration>> getKilledVars(CFAEdge pEdge)
+      throws CPATransferException {
+    BitSet full = new BitSet(noVars);
+
+    // Assume that all variables are live, see what variables stop
+    // being live after the statement.
+    full.flip(0, noVars);
+    LiveVariablesState state = LiveVariablesState.of(full, this);
+    LiveVariablesState successor = getAbstractSuccessorsForEdge(
+        state, SingletonPrecision.getInstance(), pEdge
+    ).iterator().next();
+
+    // Reverse the logic: get all bits associated with killed variables.
+    BitSet data = successor.getData();
+    data.flip(0, noVars);
+    return dataToVars(data);
+  }
+
   public LiveVariablesState getInitialState(CFANode pNode) {
     if (pNode instanceof FunctionExitNode) {
       FunctionExitNode eNode = (FunctionExitNode) pNode;
@@ -205,7 +245,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     }
   }
 
-  public ImmutableList<Wrapper<ASimpleDeclaration>> gatherAllDeclarations(CFA pCFA) {
+  private ImmutableList<Wrapper<ASimpleDeclaration>> gatherAllDeclarations(CFA pCFA) {
     Set<Wrapper<ASimpleDeclaration>> allDecls = new HashSet<>();
     for (CFANode node : pCFA.getAllNodes()) {
 

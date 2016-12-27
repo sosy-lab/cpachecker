@@ -66,10 +66,9 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
   private String stopType = "SEP";
 
   private final AbstractDomain domain;
-  private final LiveVariablesTransferRelation transfer;
+  private final LiveVariablesManager transfer;
   private final MergeOperator merge;
   private final StopOperator stop;
-  private final LogManager logger;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LiveVariablesCPA.class);
@@ -80,15 +79,14 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
                            final CFA cfa) throws InvalidConfigurationException {
     pConfig.inject(this, LiveVariablesCPA.class);
 
-    logger = pLogger;
     domain = DelegateAbstractDomain.<LiveVariablesState>getInstance();
 
     if (!cfa.getVarClassification().isPresent() && cfa.getLanguage() == Language.C) {
       throw new AssertionError("Without information of the variable classification"
           + " the live variables analysis cannot be used.");
     }
-    transfer = new LiveVariablesTransferRelation(
-        cfa.getVarClassification(), pConfig, cfa.getLanguage(), cfa, logger);
+    transfer = new LiveVariablesManager(
+        cfa.getVarClassification(), pConfig, cfa.getLanguage(), cfa, pLogger);
 
     if (mergeType.equals("SEP")) {
       merge = MergeSepOperator.getInstance();
