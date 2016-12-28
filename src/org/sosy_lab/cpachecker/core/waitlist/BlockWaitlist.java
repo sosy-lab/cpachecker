@@ -130,6 +130,10 @@ public class BlockWaitlist implements Waitlist {
         return null;
       }
     }
+
+    int size() {
+      return mainWaitlist.size();
+    }
   }
 
   private static class BKey implements Comparable<BKey> {
@@ -210,9 +214,9 @@ public class BlockWaitlist implements Waitlist {
     wrappedWaitlist = Preconditions.checkNotNull(pSecondaryStrategy);
     config = pConfig;
     logger = pLogger;
-    int size = config.blockFunctionPatterns.size();
+    int len = config.blockFunctionPatterns.size();
     int i=0;
-    ldvPattern = new Pattern[size];
+    ldvPattern = new Pattern[len];
     for(String p : config.blockFunctionPatterns) {
       ldvPattern[i] = Pattern.compile(p.replaceAll("%", ".*"));
       i++;
@@ -239,7 +243,6 @@ public class BlockWaitlist implements Waitlist {
       }
       activeBlocksMap.put(key, b);
     }
-    size++;
     b.addStateToMain(pState);
   }
 
@@ -329,6 +332,7 @@ public class BlockWaitlist implements Waitlist {
 
     CallstackState cs = retreiveCallstack(pState);
 
+    logger.log(Level.FINE, "Add" + key + "[" + cs.getCurrentFunction() + "], size=" + size);
     if(inactiveBlocksMap.containsKey(key)) {
       //TODO: optimization - do not add
       Block block = inactiveBlocksMap.get(key);
@@ -337,7 +341,7 @@ public class BlockWaitlist implements Waitlist {
       Block b = activeBlocksMap.get(key);
       if(b!=null) {
         b.addStateToMain(pState);
-        logger.log(Level.FINE, "Add" + key + "[" + cs.getCurrentFunction() + "] resources=" + b.countResources);
+        logger.log(Level.FINE, "Resources=" + b.countResources);
         logger.log(Level.FINE, "Callstack=" + cs);
         if(b.checkResources()) {
           //stop analysis for the current block
@@ -369,8 +373,8 @@ public class BlockWaitlist implements Waitlist {
     if(!b) {
       return false;
     }
-    logger.log(Level.FINE, "Remove[" + block.name + "] resources=" + block.countResources);
     size--;
+    logger.log(Level.FINE, "Remove[" + block.name + "] resources=" + block.countResources + ", size=" + size);
     return true;
   }
 
@@ -389,13 +393,14 @@ public class BlockWaitlist implements Waitlist {
     }
 
     if(unknownIfHasInactive && isEmptyMap()) {
-      throw new RuntimeException("Waitlist contains only inactive blocks " + inactiveBlocksMap.keySet());
+      logger.log(Level.FINE, "active blocks=" + activeBlocksMap.keySet());
+      throw new RuntimeException("Waitlist of size=" + size + " contains only inactive blocks " + inactiveBlocksMap.keySet());
     }
     assert !isEmpty();
     Entry<BKey, Block> highestEntry = activeBlocksMap.lastEntry();
     AbstractState state = highestEntry.getValue().popState();
-    logger.log(Level.FINE, "Pop" + highestEntry.getKey() + " resources=" + highestEntry.getValue().countResources);
     size--;
+    logger.log(Level.FINE, "Pop" + highestEntry.getKey() + " resources=" + highestEntry.getValue().countResources + ", size=" + size);
 
     return state;
   }
@@ -428,8 +433,20 @@ public class BlockWaitlist implements Waitlist {
     return true;
   }
 
+  private int countSize() {
+    int size = 0;
+    for(Block b : activeBlocksMap.values()) {
+      size += b.size();
+    }
+    for(Block b : inactiveBlocksMap.values()) {
+      size += b.size();
+    }
+    return size;
+  }
+
   @Override
   public boolean isEmpty() {
+    assert size==countSize() : "size mismatch, size=" + size + ", countSize=" + countSize();
     if(unknownIfHasInactive) {
       return size==0;
     }
