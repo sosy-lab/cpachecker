@@ -46,7 +46,7 @@ public class BlockConfiguration {
 
   @Option(secure=true, name="blockFunctionPatterns", description = "Patterns for detecting block starts (ldv_ like functions)")
   ImmutableSet<String> blockFunctionPatterns = ImmutableSet.of(
-      "ldv_.*_instance_.*", "ldv_dispatch_register.*", "ldv_dispatch_deregister.*");
+      "ldv_%_instance_%", "ldv_dispatch_register%", "ldv_dispatch_deregister%");
 
   public BlockConfiguration(Configuration config) throws InvalidConfigurationException {
     config.inject(this);

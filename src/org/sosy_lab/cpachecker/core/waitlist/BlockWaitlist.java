@@ -214,7 +214,7 @@ public class BlockWaitlist implements Waitlist {
     int i=0;
     ldvPattern = new Pattern[size];
     for(String p : config.blockFunctionPatterns) {
-      ldvPattern[i] = Pattern.compile(p);
+      ldvPattern[i] = Pattern.compile(p.replaceAll("%", ".*"));
       i++;
     }
   }
