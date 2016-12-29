@@ -303,8 +303,8 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
     try:
         with open(filePath, 'rt') as file:
             # Parse first part of information about hosts until first blank line
+            line = file.readline().strip()
             while True:
-                line = file.readline().strip()
                 if not line:
                     break
                 name = line.split("=")[-1].strip()
@@ -313,7 +313,16 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
                 cpuName = file.readline().split("=")[-1].strip()
                 frequency = file.readline().split("=")[-1].strip()
                 cores = file.readline().split("=")[-1].strip()
-                output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
+                turboBoostSupported = False
+                turboBoostEnabled = False
+                line = file.readline().strip()
+                if line.startswith('turboboost-supported='):
+                    turboBoostSupported = line.split("=")[1].lower() == 'true'
+                    line = file.readline().strip()
+                if line.startswith('turboboost-enabled='):
+                    turboBoostEnabled = line.split("=")[1].lower() == 'true'
+                    line = file.readline().strip()
+                output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name, None, {}, turboBoostEnabled if turboBoostSupported else None)
 
             # Ignore second part of information about runs
             # (we read the run-to-host mapping from the .data file for each run).
