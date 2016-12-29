@@ -50,13 +50,15 @@ public interface SummaryManager {
    * @param pBlock The block for which the summary was calculated.
    *               Contains information obtained from the dataflow analysis,
    *               which is useful for summary application.
+   * @param pCallSite Node from where the block was called from outside.
    * @return resulting state
    */
   AbstractState getAbstractSuccessorForSummary(
       AbstractState pFunctionCallState,
       Precision pFunctionCallPrecision,
       List<Summary> pSummaries,
-      Block pBlock)
+      Block pBlock,
+      CFANode pCallSite)
       throws CPAException, InterruptedException;
 
   /**

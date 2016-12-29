@@ -62,13 +62,17 @@ public class ARGSummaryManager implements SummaryManager {
 
   @Override
   public AbstractState getAbstractSuccessorForSummary(
-      AbstractState pState, Precision pPrecision, List<Summary> pSummaries, Block pBlock)
+      AbstractState pState,
+      Precision pPrecision,
+      List<Summary> pSummaries,
+      Block pBlock,
+      CFANode pCallsite)
       throws CPAException, InterruptedException {
     ARGState aState = (ARGState) pState;
 
     AbstractState successor =
         wrapped.getAbstractSuccessorForSummary(
-            aState.getWrappedState(), pPrecision, pSummaries, pBlock
+            aState.getWrappedState(), pPrecision, pSummaries, pBlock, pCallsite
         );
     // todo: should the parent element be null? In BAMReducer it is.
     return new ARGState(successor, null);

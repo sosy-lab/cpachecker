@@ -236,7 +236,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
     }
 
     AbstractState out = wrappedSummaryManager.getAbstractSuccessorForSummary(
-        pCallsite, pPrecision, summaries, pBlock
+        pCallsite, pPrecision, summaries, pBlock, AbstractStates.extractLocation(pCallsite)
     );
 
     logger.log(Level.INFO, "Successor of the state", pCallsite, "after summary application "

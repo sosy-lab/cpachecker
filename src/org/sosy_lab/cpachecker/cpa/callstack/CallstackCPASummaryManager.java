@@ -47,7 +47,8 @@ public class CallstackCPASummaryManager implements SummaryManager {
       AbstractState state,
       Precision precision,
       List<Summary> pSummary,
-      Block pBlock)
+      Block pBlock,
+      CFANode pCallsite)
       throws CPATransferException, InterruptedException {
 
     // Summary application leaves the callstack invariant

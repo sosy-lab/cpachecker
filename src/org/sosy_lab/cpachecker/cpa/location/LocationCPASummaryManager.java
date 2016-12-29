@@ -55,7 +55,8 @@ public class LocationCPASummaryManager implements SummaryManager {
       AbstractState state,
       Precision precision,
       List<Summary> pSummary,
-      Block pBlock) throws CPATransferException, InterruptedException {
+      Block pBlock,
+      CFANode pCallsite) throws CPATransferException, InterruptedException {
 
 //    Preconditions.checkState(!pSummary.isEmpty());
 //    Preconditions.checkArgument(pSummary.stream().allMatch(s -> s.equals(pSummary.get(0))));

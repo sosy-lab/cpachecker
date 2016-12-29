@@ -54,7 +54,8 @@ public class AutomatonSummaryManager implements SummaryManager {
       AbstractState pFunctionCallState,
       Precision pFunctionCallPrecision,
       List<Summary> pSummaries,
-      Block pBlock) throws CPAException, InterruptedException {
+      Block pBlock,
+      CFANode pCallsite) throws CPAException, InterruptedException {
 
     // todo: what do we do with the summaries here?
     // calculate the postconditions from the states at function exit?

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import com.google.common.collect.FluentIterable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -35,9 +36,12 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
@@ -49,9 +53,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class IntervalCPASummaryManager implements SummaryManager {
 
   private final LogManager logger;
+  private final TransferRelation transferRelation;
 
-  IntervalCPASummaryManager(LogManager pLogger) {
+  IntervalCPASummaryManager(LogManager pLogger, TransferRelation pTransferRelation) {
     logger = pLogger;
+    transferRelation = pTransferRelation;
   }
 
   @Override
@@ -59,30 +65,56 @@ public class IntervalCPASummaryManager implements SummaryManager {
       AbstractState pFunctionCallState,
       Precision pFunctionCallPrecision,
       List<Summary> pSummaries,
-      Block pBlock)
+      Block pBlock,
+      CFANode pCallSite)
       throws CPAException, InterruptedException {
 
     // Propagate the intervals for those variables invariant
     // under the function call, use summary for others.
 
-    // todo: less ugly way... how to rely on the assumption that only a single summary exists?
+    // todo: how to rely on the assumption that only a single summary exists?
     // Maybe just assert that?
     IntervalSummary iSummary = (IntervalSummary) pSummaries.get(0);
     for (Summary s : pSummaries.subList(1, pSummaries.size())) {
       iSummary = merge(iSummary, s);
     }
 
-    // todo: take variables modified inside the block into account when applying the summary.
+    // todo: remove all vars modified inside the block.
+    IntervalAnalysisState copy = IntervalAnalysisState.copyOf(
+        (IntervalAnalysisState) pFunctionCallState);
 
-    IntervalAnalysisState copy = getWeakenedCallState(
-        pFunctionCallState, pFunctionCallPrecision, pBlock);
+    Collection<? extends AbstractState> out =
+        transferRelation.getAbstractSuccessorsForEdge(
+            iSummary.getStateAtExit(),
+            SingletonPrecision.getInstance(),
+            findJoinEdge(pBlock, pCallSite)
+        );
+    assert out.size() == 1;
 
-    iSummary.getStateAtExit().getIntervalMap().forEach(
+    IntervalAnalysisState joinedState = (IntervalAnalysisState) out.iterator().next();
+    joinedState.getIntervalMap().forEach(
         (var, interval) -> copy.addInterval(var, interval, -1)
     );
+
     logger.log(Level.INFO, "Postcondition after application of the summary",
         iSummary, "to state", pFunctionCallState, "is", copy);
     return copy;
+  }
+
+  /**
+   * @return the edge going back into the calling function.
+   */
+  private CFAEdge findJoinEdge(Block pBlock, CFANode pCallsite) {
+    CFANode exitNode = pBlock.getExitNode();
+    CFANode joinNode = pCallsite.getLeavingSummaryEdge().getSuccessor();
+
+    for (int i=0; i<exitNode.getNumLeavingEdges(); i++) {
+      CFAEdge leavingEdge = exitNode.getLeavingEdge(i);
+      if (leavingEdge.getSuccessor() == joinNode) {
+        return leavingEdge;
+      }
+    }
+    throw new UnsupportedOperationException("Unexpected state");
   }
 
   @Override

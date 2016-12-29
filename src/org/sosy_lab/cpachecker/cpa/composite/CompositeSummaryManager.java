@@ -76,7 +76,11 @@ public class CompositeSummaryManager implements SummaryManager {
 
   @Override
   public AbstractState getAbstractSuccessorForSummary(
-      AbstractState state, Precision precision, List<Summary> pSummary, Block pBlock)
+      AbstractState state,
+      Precision precision,
+      List<Summary> pSummary,
+      Block pBlock,
+      CFANode pCallsite)
       throws CPAException, InterruptedException {
 
     CompositePrecision cPrecision = (CompositePrecision) precision;
@@ -90,7 +94,7 @@ public class CompositeSummaryManager implements SummaryManager {
           .filter(CompositeSummary.class)
           .transform(c -> c.get(idx)).toList();
       AbstractState successor = managers.get(idx).getAbstractSuccessorForSummary(
-          cState.get(idx), cPrecision.get(idx), projectedSummaries, pBlock
+          cState.get(idx), cPrecision.get(idx), projectedSummaries, pBlock, pCallsite
       );
       contained.add(successor);
     }
