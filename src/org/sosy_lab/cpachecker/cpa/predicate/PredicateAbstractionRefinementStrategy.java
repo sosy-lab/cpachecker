@@ -586,15 +586,14 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     // find all distinct precisions to merge them
     Set<Precision> precisions = Sets.newIdentityHashSet();
-    Set<ARGState> subgraph = refinementRoot.getSubgraph();
-    for (ARGState state : subgraph) {
+    if (reached instanceof BAMReachedSet) {
+      //Special hack: in this case getPrecision collects total precision itself
+      return Precisions.extractPrecisionByType(reached.getPrecision(refinementRoot), VariableTrackingPrecision.class);
+    }
+    for (ARGState state : refinementRoot.getSubgraph()) {
       if (!state.isCovered()) {
         // covered states are not in reached set
         precisions.add(reached.getPrecision(state));
-        if (reached instanceof BAMReachedSet) {
-          //Special hack: in this case getPrecision collects total precision itself
-          break;
-        }
       }
     }
 
