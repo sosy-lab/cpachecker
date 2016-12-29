@@ -253,11 +253,15 @@ public class ValueAnalysisRefiner
    */
   private PredicatePrecision mergePredicatePrecisionsForSubgraph(
       final ARGState pRefinementRoot, final ARGReachedSet pReached) {
-    UnmodifiableReachedSet reached = pReached.asReachedSet();
-    return PredicatePrecision.unionOf(
-        from(pRefinementRoot.getSubgraph())
-            .filter(not(ARGState::isCovered))
-            .transform(reached::getPrecision));
+      UnmodifiableReachedSet reached = pReached.asReachedSet();
+      if (pReached instanceof BAMReachedSet) {
+        return Precisions.extractPrecisionByType(reached.getPrecision(pRefinementRoot), PredicatePrecision.class);
+      } else {
+        return PredicatePrecision.unionOf(
+            from(pRefinementRoot.getSubgraph())
+                .filter(not(ARGState::isCovered))
+                .transform(reached::getPrecision));
+      }
     }
 
   private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,
