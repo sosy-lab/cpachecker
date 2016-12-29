@@ -66,8 +66,7 @@ class SummaryComputationState implements
   private final transient boolean hasWaitingState;
   private final transient boolean isTarget;
   private final transient ImmutableSet<Property> violatedProperties;
-  private final transient CFANode entryNode;
-  private final boolean finishedComputation;
+  private final transient int reachedSize;
 
   private SummaryComputationState(
       Block pBlock,
@@ -78,7 +77,7 @@ class SummaryComputationState implements
       boolean pHasWaitingState,
       boolean pIsTarget,
       ImmutableSet<Property> pViolatedProperties,
-      boolean isFinished,
+      int pReachedSize,
       SummaryComputationState pParent) {
 
     block = pBlock;
@@ -90,12 +89,11 @@ class SummaryComputationState implements
     isTarget = pIsTarget;
     violatedProperties = pViolatedProperties;
     parent = pParent;
-    entryNode = AbstractStates.extractLocation(entryState);
-    finishedComputation = false;
+    reachedSize = pReachedSize;
   }
 
-  public boolean isFinished() {
-    return finishedComputation;
+  public int getReachedSize() {
+    return reachedSize;
   }
 
   /**
@@ -158,11 +156,15 @@ class SummaryComputationState implements
       ReachedSet pReached
   ) {
     return new SummaryComputationState(
-        pBlock, Optional.empty(), pEntryState, pPrecision, pReached,
+        pBlock,
+        Optional.empty(),
+        pEntryState,
+        pPrecision,
+        pReached,
         false,
         false,
         ImmutableSet.of(),
-        false,
+        1,
         null);
   }
 
@@ -185,9 +187,7 @@ class SummaryComputationState implements
         pReached,
         pInnerAnalysisHasWaitingState, pIsTarget,
         ImmutableSet.copyOf(pViolatedProperties),
-
-        // todo: ? what should it be set to?..
-        false,
+        pReached.size(),
         parent);
   }
 
@@ -198,7 +198,8 @@ class SummaryComputationState implements
   SummaryComputationState withUpdatedTargetable(
       boolean pInnerAnalysisHasWaitingState,
       boolean pIsTarget,
-      Set<Property> pViolatedProperties
+      Set<Property> pViolatedProperties,
+      int pReachedSize
   ) {
     return new SummaryComputationState(
         block,
@@ -208,10 +209,11 @@ class SummaryComputationState implements
         reached,
         pInnerAnalysisHasWaitingState, pIsTarget,
         ImmutableSet.copyOf(pViolatedProperties),
-        finishedComputation, parent);
+        pReachedSize,
+        parent);
   }
 
-  SummaryComputationState withUnfinished() {
+  SummaryComputationState withNewReachedSize(int pReachedSize) {
     return new SummaryComputationState(
         block,
         Optional.ofNullable(callingContext),
@@ -221,15 +223,12 @@ class SummaryComputationState implements
         hasWaitingState,
         isTarget,
         violatedProperties,
-        false, parent);
+        pReachedSize,
+        parent);
   }
 
   @Override
   public Object getPartitionKey() {
-
-    // Partition by the function for which we compute this summary.
-
-    // todo: might make more sense to partition for block instead?
     return block;
   }
 

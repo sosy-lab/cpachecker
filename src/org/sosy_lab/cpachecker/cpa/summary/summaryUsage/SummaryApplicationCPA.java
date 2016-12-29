@@ -66,11 +66,11 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  *
  * <p>Operates over wrapped states directly.
  */
-public class TopLevelSummaryCPA implements ConfigurableProgramAnalysis,
-                                           PrecisionAdjustment,
-                                           AbstractDomain,
-                                           TransferRelation,
-                                           StatisticsProvider {
+public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
+                                              PrecisionAdjustment,
+                                              AbstractDomain,
+                                              TransferRelation,
+                                              StatisticsProvider {
 
   private final UseSummaryCPA wrapped;
   private final Multimap<String, Summary> summaryMapping;
@@ -84,7 +84,7 @@ public class TopLevelSummaryCPA implements ConfigurableProgramAnalysis,
   private final List<SummaryComputationRequest> summaryComputationRequests;
   private final BlockManager blockManager;
 
-  public TopLevelSummaryCPA(
+  public SummaryApplicationCPA(
       ConfigurableProgramAnalysis pWrapped,
       Multimap<String, Summary> pSummaryMapping,
       BlockManager pBlockManager,

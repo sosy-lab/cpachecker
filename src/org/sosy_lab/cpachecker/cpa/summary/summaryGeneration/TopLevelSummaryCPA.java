@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
 import org.sosy_lab.cpachecker.cpa.summary.summaryUsage.SummaryComputationRequest;
-import org.sosy_lab.cpachecker.cpa.summary.summaryUsage.TopLevelSummaryCPA;
+import org.sosy_lab.cpachecker.cpa.summary.summaryUsage.SummaryApplicationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -93,7 +93,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  *
  */
 @Options(prefix="cpa.summary")
-public class SummaryComputationCPA
+public class TopLevelSummaryCPA
     extends AbstractSingleWrapperCPA
     implements ConfigurableProgramAnalysis,
                AbstractDomain,
@@ -106,7 +106,7 @@ public class SummaryComputationCPA
   @Option(secure=true, description="Whether summaries should be merged")
   private boolean joinSummaries = false;
 
-  private final TopLevelSummaryCPA wrapped;
+  private final SummaryApplicationCPA wrapped;
 
   private final CPAAlgorithmFactory algorithmFactory;
   private final ReachedSetFactory reachedSetFactory;
@@ -127,7 +127,7 @@ public class SummaryComputationCPA
    */
   private final Multimap<String, Summary> computedSummaries;
 
-  public SummaryComputationCPA(
+  public TopLevelSummaryCPA(
       LogManager pLogger,
       Configuration pConfig,
       CFA pCfa,
@@ -148,7 +148,7 @@ public class SummaryComputationCPA
     logger = pLogger;
     statistics = new SummaryComputationStatistics();
     blockManager = new BlockManager(pCfa, pConfig, pLogger);
-    wrapped = new TopLevelSummaryCPA(
+    wrapped = new SummaryApplicationCPA(
         pWrapped, computedSummaries, blockManager, pLogger);
     wrappedSummaryManager = wrapped.getSummaryManager();
     wrappedMergeOperator = wrapped.getMergeOperator();
@@ -238,7 +238,7 @@ public class SummaryComputationCPA
     // would get stuck in the infinite loop otherwise.
     if (!toReturn.isEmpty()) {
 
-      toReturn.add(summaryComputationState.withUnfinished());
+      toReturn.add(summaryComputationState.withNewReachedSize(reached.size()));
       logger.log(Level.INFO, "Re-requesting intraprocedural for '",
           summaryComputationState.getFunctionName(), "'");
     }
@@ -269,8 +269,9 @@ public class SummaryComputationCPA
 
       logger.log(Level.INFO, "Has target state = " + hasTargetState,
           " has waiting state = " + hasWaitingState + " returning same state");
-      return Collections.singleton(summaryComputationState.withUpdatedTargetable(
-              hasWaitingState, hasTargetState, pViolatedProperties));
+      return Collections.singleton(
+          summaryComputationState.withUpdatedTargetable(
+              hasWaitingState, hasTargetState, pViolatedProperties, reached.size()));
     }
 
     toReEnqueue.forEach(e -> reached.reAddToWaitlist(e));
@@ -376,49 +377,29 @@ public class SummaryComputationCPA
   @Override
   public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
+    SummaryComputationState sState1 = (SummaryComputationState) state1;
+    SummaryComputationState sState2 = (SummaryComputationState) state2;
+
+    if (sState1.isTarget()) {
+
+      // Do not cover target states.
+      return false;
+    }
+
+    if (sState1.getEntryState() == sState2.getEntryState()
+        && sState1.getReachedSize() == sState2.getReachedSize()) {
+      return true;
+    }
+
+    if (joinSummaries && wrapped.getStopOperator().stop(
+        sState1.getEntryState(),
+        Collections.singleton(sState2.getEntryState()),
+        sState2.getEntryPrecision()
+    )) {
+      return true;
+    }
+
     return false;
-//    SummaryComputationState sState1 = (SummaryComputationState) state1;
-//    SummaryComputationState sState2 = (SummaryComputationState) state2;
-//
-//    // todo: probably would have to duplicate some
-//    // of the logic from ARGStopSep class,
-//    // especially if we want to start visualizing the dependencies between summaries.
-//
-//    if (sState1.isTarget()) {
-//
-//      // Do not cover target states.
-//      return false;
-//    }
-//
-//    if (!sState1.isFinished() || !sState2.isFinished()) {
-//      // Do not cover unfinished computations.
-//      return false;
-//    }
-//
-//    // todo: what if we are re-adding the same state?
-//    // that should actually be uncovered.
-//    // or should we force that to be uncovered?
-//    // they *would* have the same entry state!!
-//
-//    if (sState1.getEntryState() == sState2.getEntryState()) {
-//
-//      // todo: not 100% sure it makes sense....
-//      return true;
-//    }
-//
-//    // todo: for now don't do extra coverage...
-//    // actually, the statement below is merely an optimization.
-//    // hmm if we handle the states with deeper callstack
-//    // first that *might* solve our problem.
-//    if (joinSummaries
-//        && wrapped.getAbstractDomain().isLessOrEqual(
-//            sState1.getEntryState(), sState2.getEntryState())) {
-//
-//      // Stronger precondition: already subsumed by the existing summary.
-//      return true;
-//    }
-//
-//    return false;
   }
 
   @Override
@@ -426,63 +407,8 @@ public class SummaryComputationCPA
       AbstractState state1, AbstractState state2, Precision precision)
       throws CPAException, InterruptedException {
 
+    // todo: merge summary computation requests for performance is "joinSummaries" is set.
     return state2;
-
-//
-//    // todo: check coverage as well?
-//
-//    SummaryComputationState sState1 = (SummaryComputationState) state1;
-//    SummaryComputationState sState2 = (SummaryComputationState) state2;
-//
-//    if (!sState2.isFinished() || !sState1.isFinished()) {
-//      return sState2;
-//    }
-//
-//    Preconditions.checkArgument(sState1.getBlock() == sState2.getBlock());
-//    Preconditions.checkState(!sState1.hasWaitingState() && !sState2.hasWaitingState()
-//      && !sState1.isTarget() && !sState2.isTarget());
-//
-//    if (!sState1.getCallingContext().isPresent()) {
-//      Preconditions.checkState(!sState2.getCallingContext().isPresent());
-//
-//      // There should always be at most one summary computation request for the
-//      // main entry function.
-//      // todo: not sure it's the case, we should be able to pick up and continue the analysis
-//      // from "main".
-//      return sState1;
-//    }
-//
-//    if (joinSummaries) {
-//      AbstractState mergedEntryState = wrappedMergeOperator.merge(
-//          sState1.getEntryState(),
-//          sState2.getEntryState(),
-//          precision
-//      );
-//
-//      if (mergedEntryState == sState1.getEntryState()) {
-//        return state1;
-//      } else if (mergedEntryState == sState2.getEntryState()) {
-//        return state2;
-//      } else {
-//
-//        ReachedSet reached = reachedSetFactory.create();
-//        reached.add(mergedEntryState, precision);
-//
-//        return SummaryComputationState.of(
-//            sState1.getBlock(),
-//            wrappedMergeOperator.merge(
-//                sState1.getCallingContext().get(), sState2.getCallingContext().get(), precision
-//            ),
-//            mergedEntryState,
-//            precision,
-//            reached,
-//            false,
-//            false,
-//            ImmutableSet.of());
-//      }
-//    } else {
-//      return state2;
-//    }
   }
 
   @Override
@@ -549,7 +475,7 @@ public class SummaryComputationCPA
   }
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(SummaryComputationCPA.class);
+    return AutomaticCPAFactory.forType(TopLevelSummaryCPA.class);
   }
 
   @Override

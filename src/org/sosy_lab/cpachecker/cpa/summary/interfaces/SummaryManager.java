@@ -79,6 +79,7 @@ public interface SummaryManager {
   /**
    * Project summary to the function precondition: state at the
    * call node <em>outside</em> of the function.
+   * todo: is that what the implementation doing though?..
    *
    * @param pSummary Function summary
    * @return Projection of the summary to the function entry point:
@@ -150,12 +151,11 @@ public interface SummaryManager {
   boolean isDescribedBy(Summary pSummary1,
                         Summary pSummary2) throws CPAException, InterruptedException;
 
-  /**
-   * Communicate the block partitioning to the configurable
-   * program analysis.
-   */
-  default void setBlockManager(BlockManager pManager) {}
 
+  /**
+   * @return whether {@code pSummary} is general enough to describe the condition at the
+   * callsite {@code pCallSite}.
+   */
   default boolean isSummaryCoveringCallsite(
       Summary pSummary,
       AbstractState pCallsite,
@@ -166,4 +166,10 @@ public interface SummaryManager {
         projectToCallsite(pSummary)
     );
   }
+
+  /**
+   * Communicate the block partitioning to the configurable
+   * program analysis.
+   */
+  default void setBlockManager(BlockManager pManager) {}
 }
