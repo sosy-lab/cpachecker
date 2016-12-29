@@ -72,8 +72,8 @@ public class BlockManager {
     blockData = computeBlocks();
     ImmutableMap.Builder<CFANode, Block> blockNodeMappingBuilder =
         ImmutableMap.builder();
-    blockData.values().stream().forEach(
-        b -> b.getInnerNodes().forEach(
+    blockData.values().forEach(
+        b -> b.getOwnNodes().forEach(
             n -> blockNodeMappingBuilder.put(n, b)
         )
     );
@@ -85,7 +85,9 @@ public class BlockManager {
   }
 
   public Block getBlockForNode(CFANode pNode) {
-    return blockToNode.get(pNode);
+    Block out = blockToNode.get(pNode);
+    assert out != null;
+    return out;
   }
 
   private ImmutableMap<FunctionEntryNode, Block> computeBlocks() throws CPATransferException {
@@ -116,6 +118,10 @@ public class BlockManager {
         e -> e.getPredecessor()
     ).collect(Collectors.toSet());
 
+    Set<CFANode> ownNodes = cfa.getAllNodes().stream().filter(
+        n -> n.getFunctionName().equals(functionName)
+    ).collect(Collectors.toSet());
+
     Set<Wrapper<ASimpleDeclaration>> readVars = new HashSet<>();
     Set<Wrapper<ASimpleDeclaration>> modifiedVars = new HashSet<>();
 
@@ -127,7 +133,13 @@ public class BlockManager {
     }
 
     return new Block(
-        innerNodes, modifiedVars, readVars, entry, entry.getExitNode(), hasRecursion
+        innerNodes,
+        ownNodes,
+        modifiedVars,
+        readVars,
+        entry,
+        entry.getExitNode(),
+        hasRecursion
     );
   }
 

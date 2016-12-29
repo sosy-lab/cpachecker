@@ -45,15 +45,17 @@ public class Block {
   private final ImmutableSet<Wrapper<ASimpleDeclaration>> readVariables;
   private final CFANode entryNode;
   private final CFANode exitNode;
+  private final Set<CFANode> ownNodes;
 
   public Block(
       Set<CFANode> pInnerNodes,
-      Set<Wrapper<ASimpleDeclaration>> pModifiedVariables,
+      Set<CFANode> pOwnNodes, Set<Wrapper<ASimpleDeclaration>> pModifiedVariables,
       Set<Wrapper<ASimpleDeclaration>> pReadVariables,
       CFANode pEntryNode,
       CFANode pExitNode,
       boolean pHasRecursion) {
     innerNodes = ImmutableSet.copyOf(pInnerNodes);
+    ownNodes = pOwnNodes;
     readVariables = ImmutableSet.copyOf(pReadVariables);
     hasRecursion = pHasRecursion;
     modifiedVariables = ImmutableSet.copyOf(pModifiedVariables);
@@ -63,10 +65,17 @@ public class Block {
 
   /**
    * @return set of nodes composing the interior of the node.
-   * Does not include called blocks.
+   * <b>Does</b> include called blocks.
    */
   public Set<CFANode> getInnerNodes() {
     return innerNodes;
+  }
+
+  /**
+   * @return set of nodes inside the block, <b>not</b> including called blocks.
+   */
+  public Set<CFANode> getOwnNodes() {
+    return ownNodes;
   }
 
   /**
@@ -113,5 +122,13 @@ public class Block {
    */
   public Collection<Wrapper<ASimpleDeclaration>> getModifiedVariables() {
     return modifiedVariables;
+  }
+
+  @Override
+  public String toString() {
+    return "Block{" +
+        "functionName=" + getFunctionName() +
+        ", entryNode=" + entryNode +
+        ", exitNode=" + exitNode + '}';
   }
 }
