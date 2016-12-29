@@ -64,6 +64,10 @@ public class IntervalSummariesTest {
     check("recursive_sum_false_assert.c");
   }
 
+  @Test public void nobasecase_true_assert() throws Exception {
+    check("nobasecase_true_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(
         filename,
