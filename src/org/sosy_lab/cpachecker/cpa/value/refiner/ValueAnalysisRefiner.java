@@ -225,14 +225,15 @@ public class ValueAnalysisRefiner
       final ARGState pRefinementRoot,
       final ARGReachedSet pReached
   ) {
+
+    if (pReached instanceof BAMReachedSet) {
+      //Special hack: in this case getPrecision collects total precision itself
+      return Precisions.extractPrecisionByType(pReached.asReachedSet().getPrecision(pRefinementRoot), VariableTrackingPrecision.class);
+    }
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
     for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       uniquePrecisions.add(extractValuePrecision(pReached, descendant));
-      if (pReached instanceof BAMReachedSet) {
-        //Special hack: in this case getPrecision collects total precision itself
-        break;
-      }
     }
 
     // join all unique precisions into a single precision
