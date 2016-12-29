@@ -93,7 +93,7 @@ public class CallstackState
   }
 
   /** for logging and debugging */
-  private List<String> getStack() {
+  List<String> getStack() {
     final List<String> stack = new ArrayList<>();
     CallstackState state = this;
     while (state != null) {
