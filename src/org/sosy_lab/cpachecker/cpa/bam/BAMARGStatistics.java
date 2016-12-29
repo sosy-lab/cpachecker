@@ -77,7 +77,7 @@ public class BAMARGStatistics extends ARGStatistics {
     if (pReached.size() <= 1) {
       if (pResult == Result.TRUE) {
         //BAM may return TRUE if the program will never terminate, try to print correctness witness
-        //This is an evil code, but there will be a dead line in a week...
+        //This is an evil code, but there will be a deadline in a week...
         ReachedSet set = bamCpa.getData().getReachedSetForInitialState(pReached.getFirstState());
         pMainReachedSet = new ARGReachedSet(set, (ARGCPA) cpa, 0);
         root = (ARGState)set.getFirstState();

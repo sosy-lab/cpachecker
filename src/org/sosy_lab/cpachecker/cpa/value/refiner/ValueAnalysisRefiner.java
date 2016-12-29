@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -228,6 +229,10 @@ public class ValueAnalysisRefiner
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
     for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
       uniquePrecisions.add(extractValuePrecision(pReached, descendant));
+      if (pReached instanceof BAMReachedSet) {
+        //Special hack: in this case getPrecision collects total precision itself
+        break;
+      }
     }
 
     // join all unique precisions into a single precision

@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -560,10 +561,14 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    */
   private PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
-    return PredicatePrecision.unionOf(
-        from(refinementRoot.getSubgraph())
-            .filter(not(ARGState::isCovered))
-            .transform(reached::getPrecision));
+    if (reached instanceof BAMReachedSet) {
+      return Precisions.extractPrecisionByType(reached.getPrecision(refinementRoot), PredicatePrecision.class);
+    } else {
+      return PredicatePrecision.unionOf(
+          from(refinementRoot.getSubgraph())
+              .filter(not(ARGState::isCovered))
+              .transform(reached::getPrecision));
+    }
   }
 
   private boolean isValuePrecisionAvailable(final ARGReachedSet pReached, ARGState root) {
@@ -581,10 +586,15 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     // find all distinct precisions to merge them
     Set<Precision> precisions = Sets.newIdentityHashSet();
-    for (ARGState state : refinementRoot.getSubgraph()) {
+    Set<ARGState> subgraph = refinementRoot.getSubgraph();
+    for (ARGState state : subgraph) {
       if (!state.isCovered()) {
         // covered states are not in reached set
         precisions.add(reached.getPrecision(state));
+        if (reached instanceof BAMReachedSet) {
+          //Special hack: in this case getPrecision collects total precision itself
+          break;
+        }
       }
     }
 
