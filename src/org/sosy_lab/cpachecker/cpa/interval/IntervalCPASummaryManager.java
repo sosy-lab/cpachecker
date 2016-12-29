@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
@@ -49,7 +50,7 @@ public class IntervalCPASummaryManager implements SummaryManager {
 
   private final LogManager logger;
 
-  public IntervalCPASummaryManager(LogManager pLogger) {
+  IntervalCPASummaryManager(LogManager pLogger) {
     logger = pLogger;
   }
 
@@ -64,12 +65,14 @@ public class IntervalCPASummaryManager implements SummaryManager {
     // Propagate the intervals for those variables invariant
     // under the function call, use summary for others.
 
-    // todo: less ugly way... maybe should just hardcode a single summary.
+    // todo: less ugly way... how to rely on the assumption that only a single summary exists?
+    // Maybe just assert that?
     IntervalSummary iSummary = (IntervalSummary) pSummaries.get(0);
     for (Summary s : pSummaries.subList(1, pSummaries.size())) {
       iSummary = merge(iSummary, s);
     }
 
+    // todo: take variables modified inside the block into account when applying the summary.
 
     IntervalAnalysisState copy = getWeakenedCallState(
         pFunctionCallState, pFunctionCallPrecision, pBlock);
@@ -77,6 +80,8 @@ public class IntervalCPASummaryManager implements SummaryManager {
     iSummary.getStateAtExit().getIntervalMap().forEach(
         (var, interval) -> copy.addInterval(var, interval, -1)
     );
+    logger.log(Level.INFO, "Postcondition after application of the summary",
+        iSummary, "to state", pFunctionCallState, "is", copy);
     return copy;
   }
 
@@ -86,10 +91,14 @@ public class IntervalCPASummaryManager implements SummaryManager {
     IntervalAnalysisState iState = (IntervalAnalysisState) pState;
     IntervalAnalysisState clone = IntervalAnalysisState.copyOf(iState);
 
-    iState.getIntervalMap().keySet().stream()
+    // todo: seems to be buggy, maybe does not take into account the variable
+    // todo: renaming when applying function calls.
 
-        // todo: types do not match.
-        .filter(v -> !pBlock.getReadVariables().contains(v))
+    Set<String> readVarNames = pBlock.getReadVariables().stream()
+        .map(w -> w.get().getQualifiedName()).collect(Collectors.toSet());
+
+    iState.getIntervalMap().keySet().stream()
+        .filter(v -> readVarNames.contains(v))
         .forEach(v -> clone.removeInterval(v));
     logger.log(Level.INFO, "Weakened ", iState, " to ", clone);
     return clone;
@@ -118,12 +127,11 @@ public class IntervalCPASummaryManager implements SummaryManager {
   ) {
     IntervalAnalysisState iCallState = (IntervalAnalysisState) pCallState;
 
+    assert !pReturnStates.isEmpty();
     Stream<IntervalAnalysisState> stream = StreamSupport.stream(
         FluentIterable.from(pReturnStates).filter(IntervalAnalysisState.class).spliterator(),
         false);
-
     Optional<IntervalAnalysisState> out = stream.reduce((a, b) -> a.join(b));
-    Preconditions.checkState(out.isPresent());
 
     return Collections.singletonList(new IntervalSummary(iCallState, out.get()));
   }
@@ -138,6 +146,19 @@ public class IntervalCPASummaryManager implements SummaryManager {
     return new IntervalSummary(
         iSummary1.getStateAtEntry().join(iSummary2.getStateAtEntry()),
         iSummary2.getStateAtExit().join(iSummary2.getStateAtExit())
+    );
+  }
+
+  @Override
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
+      throws CPAException, InterruptedException {
+    IntervalSummary iSummary1 = (IntervalSummary) pSummary1;
+    IntervalSummary iSummary2 = (IntervalSummary) pSummary2;
+
+    return iSummary1.getStateAtEntry().isLessOrEqual(
+        iSummary2.getStateAtEntry()
+    ) && iSummary2.getStateAtExit().isLessOrEqual(
+        iSummary1.getStateAtExit()
     );
   }
 

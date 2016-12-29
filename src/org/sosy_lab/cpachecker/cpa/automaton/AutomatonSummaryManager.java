@@ -104,6 +104,12 @@ public class AutomatonSummaryManager implements SummaryManager {
     return pSummary2;
   }
 
+  @Override
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
+      throws CPAException, InterruptedException {
+    return pSummary1.equals(pSummary2);
+  }
+
   // todo: why not have the same summary class for everything then?
 
   private static class AutomatonSummary implements Summary {

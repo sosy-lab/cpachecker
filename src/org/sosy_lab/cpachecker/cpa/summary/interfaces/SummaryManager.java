@@ -61,7 +61,8 @@ public interface SummaryManager {
 
   /**
    * Weaken the call state (the successor from which is associated
-   * with {@link FunctionEntryNode}).
+   * with {@link FunctionEntryNode}), by removing all information not
+   * relevant to the function being called.
    *
    * @param pState state associated with a call node.
    * @param pPrecision precision associated with {@code pState}
@@ -144,24 +145,25 @@ public interface SummaryManager {
    * <p>An implementation of this interface might be able to provide a
    * more efficient comparison.
    *
-   *
    * @return whether {@code pSummary1} is described by {@code pSummary2}.
    */
-  default boolean isDescribedBy(Summary pSummary1,
-                                Summary pSummary2,
-                                AbstractDomain domain) throws CPAException, InterruptedException {
-    return domain.isLessOrEqual(
-        projectToCallsite(pSummary1),
-        projectToCallsite(pSummary2)
-    ) && domain.isLessOrEqual(
-        projectToPostcondition(pSummary2),
-        projectToPostcondition(pSummary1)
-    );
-  }
+  boolean isDescribedBy(Summary pSummary1,
+                        Summary pSummary2) throws CPAException, InterruptedException;
 
   /**
    * Communicate the block partitioning to the configurable
    * program analysis.
    */
   default void setBlockManager(BlockManager pManager) {}
+
+  default boolean isSummaryCoveringCallsite(
+      Summary pSummary,
+      AbstractState pCallsite,
+      AbstractDomain pAbstractDomain
+  ) throws CPAException, InterruptedException {
+    return pAbstractDomain.isLessOrEqual(
+        pCallsite,
+        projectToCallsite(pSummary)
+    );
+  }
 }

@@ -28,11 +28,13 @@ import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -99,6 +101,23 @@ public class CallstackCPASummaryManager implements SummaryManager {
 
     // Do not merge states.
     return pSummary2;
+  }
+
+  @Override
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
+      throws CPAException, InterruptedException {
+    return pSummary1.equals(pSummary2);
+  }
+
+  @Override
+  public boolean isSummaryCoveringCallsite(
+      Summary pSummary,
+      AbstractState pCallsite,
+      AbstractDomain pAbstractDomain
+  ) throws CPAException, InterruptedException {
+
+    // todo: any cases where it's not the case?
+    return true;
   }
 
   /**

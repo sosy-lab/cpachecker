@@ -23,17 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import com.google.common.base.Preconditions;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -56,12 +57,15 @@ public class LocationCPASummaryManager implements SummaryManager {
       List<Summary> pSummary,
       Block pBlock) throws CPATransferException, InterruptedException {
 
-    Preconditions.checkState(!pSummary.isEmpty());
-    Preconditions.checkArgument(pSummary.stream().allMatch(s -> s.equals(pSummary.get(0))));
+//    Preconditions.checkState(!pSummary.isEmpty());
+//    Preconditions.checkArgument(pSummary.stream().allMatch(s -> s.equals(pSummary.get(0))));
+//
+//    LocationSummary lSummary = (LocationSummary) pSummary.get(0);
 
-    LocationSummary lSummary = (LocationSummary) pSummary.get(0);
+    LocationState lState = (LocationState) state;
+    CFANode node = lState.getLocationNode();
 
-    return locationStateFactory.getState(lSummary.getExitNode());
+    return locationStateFactory.getState(node.getLeavingSummaryEdge().getSuccessor());
   }
 
 
@@ -103,6 +107,22 @@ public class LocationCPASummaryManager implements SummaryManager {
 
     // Do not merge states.
     return pSummary2;
+  }
+
+  @Override
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
+      throws CPAException, InterruptedException {
+    return pSummary1.equals(pSummary2);
+  }
+
+  @Override
+  public boolean isSummaryCoveringCallsite(
+      Summary pSummary,
+      AbstractState pCallsite,
+      AbstractDomain pAbstractDomain
+  ) throws CPAException, InterruptedException {
+    // todo: any other verdicts?..
+    return true;
   }
 
   private static class LocationSummary implements Summary {

@@ -167,10 +167,9 @@ public class CompositeSummaryManager implements SummaryManager {
 
 
   @Override
-  public boolean isDescribedBy(Summary pSummary1,
-                               Summary pSummary2,
-                               AbstractDomain pAbstractDomain) throws CPAException,
-                                                                      InterruptedException {
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
+      throws CPAException, InterruptedException {
+
     CompositeSummary cSummary1 = (CompositeSummary) pSummary1;
     CompositeSummary cSummary2 = (CompositeSummary) pSummary2;
     for (int i=0; i<managers.size(); i++) {
@@ -198,12 +197,11 @@ public class CompositeSummaryManager implements SummaryManager {
     List<Summary> mergedSummaries = new ArrayList<>(managers.size());
     for (int i = 0; i < managers.size(); i++) {
       SummaryManager mgr = managers.get(i);
-      AbstractDomain domain = domains.get(i);
       Summary s1 = cSummary1.get(i);
       Summary s2 = cSummary2.get(i);
       Summary merged = mgr.merge(s1, s2);
 
-      if (!mgr.isDescribedBy(s1, merged, domain)) {
+      if (!mgr.isDescribedBy(s1, merged)) {
 
         // The result does not cover s1 => might as well perform splitting on the
         // entire state-space.
@@ -219,6 +217,27 @@ public class CompositeSummaryManager implements SummaryManager {
       return cSummary2;
     }
     return new CompositeSummary(mergedSummaries);
+  }
+
+  @Override
+  public boolean isSummaryCoveringCallsite(
+      Summary pSummary,
+      AbstractState pCallsite,
+      AbstractDomain pAbstractDomain
+  ) throws CPAException, InterruptedException {
+
+    CompositeSummary cSummary = (CompositeSummary) pSummary;
+    CompositeState cState = (CompositeState) pCallsite;
+
+    for (int i=0; i<managers.size(); i++) {
+      if (!managers.get(i).isSummaryCoveringCallsite(
+          cSummary.get(i),
+          cState.get(i),
+          domains.get(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static class CompositeSummary implements Summary {

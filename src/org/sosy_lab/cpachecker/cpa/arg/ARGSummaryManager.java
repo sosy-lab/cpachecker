@@ -100,10 +100,8 @@ public class ARGSummaryManager implements SummaryManager {
   }
 
   @Override
-  public boolean isDescribedBy(Summary pSummary1,
-                                Summary pSummary2,
-                                AbstractDomain pAbstractDomain) throws CPAException,
-                                                                       InterruptedException {
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
+      throws CPAException, InterruptedException {
     return wrappedAbstractDomain.isLessOrEqual(
         wrapped.projectToCallsite(pSummary1),
         wrapped.projectToCallsite(pSummary2)
@@ -138,5 +136,22 @@ public class ARGSummaryManager implements SummaryManager {
   public Summary merge(
       Summary pSummary1, Summary pSummary2) throws CPAException, InterruptedException {
     return wrapped.merge(pSummary1, pSummary2);
+  }
+
+  @Override
+  public boolean isSummaryCoveringCallsite(
+      Summary pSummary,
+      AbstractState pCallsite,
+      AbstractDomain pAbstractDomain
+  ) throws CPAException, InterruptedException {
+
+    // todo: why not use the stop operator instead?
+    ARGState aState = (ARGState) pCallsite;
+
+    return wrapped.isSummaryCoveringCallsite(
+        pSummary,
+        aState.getWrappedState(),
+        wrappedAbstractDomain
+    );
   }
 }

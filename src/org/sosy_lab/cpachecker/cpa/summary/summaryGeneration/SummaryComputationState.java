@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PriorityProvidingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -40,10 +41,11 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * State representing a (partially) computed function summary.
+ *
+ * // todo: how to enforce iteration order based on stack size???
  */
-class SummaryComputationState implements AbstractState,
-               Partitionable,
-               Targetable {
+class SummaryComputationState implements
+                              AbstractState, Partitionable, Targetable, PriorityProvidingState{
 
   /**
    * Block associated with the summary.
@@ -52,6 +54,7 @@ class SummaryComputationState implements AbstractState,
   private final AbstractState entryState;
   private final Precision entryPrecision;
   private final @Nullable AbstractState callingContext;
+  private final @Nullable SummaryComputationState parent;
 
   /**
    */
@@ -64,6 +67,7 @@ class SummaryComputationState implements AbstractState,
   private final transient boolean isTarget;
   private final transient ImmutableSet<Property> violatedProperties;
   private final transient CFANode entryNode;
+  private final boolean finishedComputation;
 
   private SummaryComputationState(
       Block pBlock,
@@ -73,7 +77,9 @@ class SummaryComputationState implements AbstractState,
       ReachedSet pReached,
       boolean pHasWaitingState,
       boolean pIsTarget,
-      ImmutableSet<Property> pViolatedProperties) {
+      ImmutableSet<Property> pViolatedProperties,
+      boolean isFinished,
+      SummaryComputationState pParent) {
 
     block = pBlock;
     entryState = pEntryState;
@@ -83,9 +89,14 @@ class SummaryComputationState implements AbstractState,
     hasWaitingState = pHasWaitingState;
     isTarget = pIsTarget;
     violatedProperties = pViolatedProperties;
+    parent = pParent;
     entryNode = AbstractStates.extractLocation(entryState);
+    finishedComputation = false;
   }
 
+  public boolean isFinished() {
+    return finishedComputation;
+  }
 
   /**
    * @return calling context for the summary,
@@ -148,9 +159,11 @@ class SummaryComputationState implements AbstractState,
   ) {
     return new SummaryComputationState(
         pBlock, Optional.empty(), pEntryState, pPrecision, pReached,
-        false, false,
-        ImmutableSet.of()
-    );
+        false,
+        false,
+        ImmutableSet.of(),
+        false,
+        null);
   }
 
   public static SummaryComputationState of(
@@ -161,7 +174,8 @@ class SummaryComputationState implements AbstractState,
       ReachedSet pReached,
       boolean pInnerAnalysisHasWaitingState,
       boolean pIsTarget,
-      Set<Property> pViolatedProperties
+      Set<Property> pViolatedProperties,
+      SummaryComputationState parent
   ) {
     return new SummaryComputationState(
         pBlock,
@@ -170,7 +184,11 @@ class SummaryComputationState implements AbstractState,
         pPrecision,
         pReached,
         pInnerAnalysisHasWaitingState, pIsTarget,
-        ImmutableSet.copyOf(pViolatedProperties));
+        ImmutableSet.copyOf(pViolatedProperties),
+
+        // todo: ? what should it be set to?..
+        false,
+        parent);
   }
 
   /**
@@ -189,7 +207,21 @@ class SummaryComputationState implements AbstractState,
         entryPrecision,
         reached,
         pInnerAnalysisHasWaitingState, pIsTarget,
-        ImmutableSet.copyOf(pViolatedProperties));
+        ImmutableSet.copyOf(pViolatedProperties),
+        finishedComputation, parent);
+  }
+
+  SummaryComputationState withUnfinished() {
+    return new SummaryComputationState(
+        block,
+        Optional.ofNullable(callingContext),
+        entryState,
+        entryPrecision,
+        reached,
+        hasWaitingState,
+        isTarget,
+        violatedProperties,
+        false, parent);
   }
 
   @Override
@@ -198,7 +230,7 @@ class SummaryComputationState implements AbstractState,
     // Partition by the function for which we compute this summary.
 
     // todo: might make more sense to partition for block instead?
-    return entryNode;
+    return block;
   }
 
   @Override
@@ -223,5 +255,18 @@ class SummaryComputationState implements AbstractState,
 
   public boolean hasWaitingState() {
     return hasWaitingState;
+  }
+
+  /**
+   * States with larger callstack should be considered <b>first</b>.
+   */
+  @Override
+  public int getPriority() {
+    if (parent == null) {
+      return 0;
+    } else {
+      // todo: store, do not recompute.
+      return 1 + parent.getPriority();
+    }
   }
 }
