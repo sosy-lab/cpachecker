@@ -12,6 +12,6 @@ int sum(int i) {
 
 int main() {
   int i = __VERIFIER_nondet_int();
-  int sum = sum(i);
-  assert(sum >= 0);
+  int out = sum(i);
+  assert(out >= 0);
 }
