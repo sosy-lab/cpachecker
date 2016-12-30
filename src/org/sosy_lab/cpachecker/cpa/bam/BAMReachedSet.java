@@ -139,7 +139,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         //the initial state
         return GET_PRECISION.apply(state);
       }
-      d
       while (!worklist.isEmpty()) {
         currentBARGstate = worklist.poll();
 
