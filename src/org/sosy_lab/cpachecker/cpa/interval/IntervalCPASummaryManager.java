@@ -137,18 +137,6 @@ public class IntervalCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public AbstractState projectToCallsite(Summary pSummary) {
-    IntervalSummary iSummary = (IntervalSummary) pSummary;
-    return iSummary.getStateAtEntry();
-  }
-
-  @Override
-  public AbstractState projectToPostcondition(Summary pSummary) {
-    IntervalSummary iSummary = (IntervalSummary) pSummary;
-    return iSummary.getStateAtExit();
-  }
-
-  @Override
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
       Precision pEntryPrecision,
@@ -192,6 +180,16 @@ public class IntervalCPASummaryManager implements SummaryManager {
     ) && iSummary2.getStateAtExit().isLessOrEqual(
         iSummary1.getStateAtExit()
     );
+  }
+
+  @Override
+  public boolean isSummaryApplicableAtCallsite(Summary pSummary, AbstractState pCallsite)
+      throws CPAException, InterruptedException {
+    IntervalAnalysisState iState = (IntervalAnalysisState) pCallsite;
+    IntervalSummary iSummary = (IntervalSummary) pSummary;
+
+    // todo: when is renaming done?
+    return iState.isLessOrEqual(iSummary.getStateAtEntry());
   }
 
   private static class IntervalSummary implements Summary {

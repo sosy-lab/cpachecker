@@ -35,11 +35,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
@@ -52,8 +50,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CompositeSummaryManager implements SummaryManager {
 
   private final List<SummaryManager> managers;
-  private final List<AbstractDomain> domains;
-  private final List<StopOperator> stopOperators;
 
   CompositeSummaryManager(List<ConfigurableProgramAnalysis> pCpas) {
     ImmutableList<UseSummaryCPA> summaryCPAs =
@@ -65,12 +61,6 @@ public class CompositeSummaryManager implements SummaryManager {
                 s -> !(s instanceof UseSummaryCPA)).findAny());
     managers = summaryCPAs.stream().map(
         cpa -> cpa.getSummaryManager()
-    ).collect(Collectors.toList());
-    domains = summaryCPAs.stream().map(
-        cpa -> cpa.getAbstractDomain()
-    ).collect(Collectors.toList());
-    stopOperators = summaryCPAs.stream().map(
-        cpa -> cpa.getStopOperator()
     ).collect(Collectors.toList());
   }
 
@@ -115,28 +105,6 @@ public class CompositeSummaryManager implements SummaryManager {
   }
 
   @Override
-  public CompositeState projectToCallsite(Summary pSummary) {
-    CompositeSummary cSummary = (CompositeSummary) pSummary;
-    return new CompositeState(
-        IntStream.range(0, managers.size()).mapToObj(
-            i -> managers.get(i).projectToCallsite(
-                cSummary.get(i)
-            )).collect(Collectors.toList())
-    );
-  }
-
-  @Override
-  public CompositeState projectToPostcondition(Summary pSummary) {
-    CompositeSummary cSummary = (CompositeSummary) pSummary;
-    return new CompositeState(
-        IntStream.range(0, managers.size()).mapToObj(
-            i -> managers.get(i).projectToPostcondition(
-                cSummary.get(i)
-            )).collect(Collectors.toList())
-        );
-  }
-
-  @Override
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
       Precision pEntryPrecision,
@@ -177,13 +145,9 @@ public class CompositeSummaryManager implements SummaryManager {
     CompositeSummary cSummary1 = (CompositeSummary) pSummary1;
     CompositeSummary cSummary2 = (CompositeSummary) pSummary2;
     for (int i=0; i<managers.size(); i++) {
-      if (!domains.get(i).isLessOrEqual(
-          managers.get(i).projectToCallsite(cSummary1.get(i)),
-          managers.get(i).projectToCallsite(cSummary2.get(i))
-      ) && domains.get(i).isLessOrEqual(
-          managers.get(i).projectToPostcondition(cSummary1.get(i)),
-          managers.get(i).projectToPostcondition(cSummary2.get(i))
-      )) {
+      if (!managers.get(i).isDescribedBy(
+          cSummary1.get(i),
+          cSummary2.get(i))) {
         return false;
       }
     }
@@ -224,20 +188,18 @@ public class CompositeSummaryManager implements SummaryManager {
   }
 
   @Override
-  public boolean isSummaryCoveringCallsite(
+  public boolean isSummaryApplicableAtCallsite(
       Summary pSummary,
-      AbstractState pCallsite,
-      AbstractDomain pAbstractDomain
+      AbstractState pCallsite
   ) throws CPAException, InterruptedException {
 
     CompositeSummary cSummary = (CompositeSummary) pSummary;
     CompositeState cState = (CompositeState) pCallsite;
 
     for (int i=0; i<managers.size(); i++) {
-      if (!managers.get(i).isSummaryCoveringCallsite(
+      if (!managers.get(i).isSummaryApplicableAtCallsite(
           cSummary.get(i),
-          cState.get(i),
-          domains.get(i))) {
+          cState.get(i))) {
         return false;
       }
     }

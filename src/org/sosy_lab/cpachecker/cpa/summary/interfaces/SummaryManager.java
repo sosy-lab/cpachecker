@@ -27,7 +27,6 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -77,29 +76,6 @@ public interface SummaryManager {
       Precision pPrecision,
       Block pBlock
   );
-
-  /**
-   * Project summary to the function precondition: state at the
-   * call node <em>outside</em> of the function.
-   * todo: is that what the implementation doing though?..
-   *
-   * @param pSummary Function summary
-   * @return Projection of the summary to the function entry point:
-   * the summary precondition.
-   */
-  AbstractState projectToCallsite(Summary pSummary);
-
-  /**
-   * Project the summary to the postcondition: state at the return
-   * node <em>inside</em> of the function.
-   *
-   * // todo: the name is not very consistent with {@link #projectToCallsite(Summary)}
-   *
-   * @param pSummary Function summary
-   * @return Projection of the summary to the return site:
-   * the summary postcondition.
-   */
-  AbstractState projectToPostcondition(Summary pSummary);
 
   /**
    * Generate summaries from the result of the intraprocedural analysis,
@@ -157,17 +133,13 @@ public interface SummaryManager {
   /**
    * @return whether {@code pSummary} is general enough to describe the condition at the
    * callsite {@code pCallSite}.
+   * Note that {@code pCallsite} is outside of the called block.
+   * // todo: when is renaming actually applied?
    */
-  default boolean isSummaryCoveringCallsite(
+  boolean isSummaryApplicableAtCallsite(
       Summary pSummary,
-      AbstractState pCallsite,
-      AbstractDomain pAbstractDomain
-  ) throws CPAException, InterruptedException {
-    return pAbstractDomain.isLessOrEqual(
-        pCallsite,
-        projectToCallsite(pSummary)
-    );
-  }
+      AbstractState pCallsite
+  ) throws CPAException, InterruptedException; // todo: exceptions necessary?
 
   /**
    * Communicate the block partitioning to the configurable

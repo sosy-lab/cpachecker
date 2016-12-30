@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
@@ -77,18 +76,6 @@ public class LocationCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public AbstractState projectToCallsite(Summary pSummary) {
-    LocationSummary lSummary = (LocationSummary) pSummary;
-    return locationStateFactory.getState(lSummary.getEntryNode());
-  }
-
-  @Override
-  public AbstractState projectToPostcondition(Summary pSummary) {
-    LocationSummary lSummary = (LocationSummary) pSummary;
-    return locationStateFactory.getState(lSummary.getExitNode());
-  }
-
-  @Override
   public List<Summary> generateSummaries(
       AbstractState pCallState,
       Precision pEntryPrecision,
@@ -117,12 +104,12 @@ public class LocationCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public boolean isSummaryCoveringCallsite(
+  public boolean isSummaryApplicableAtCallsite(
       Summary pSummary,
-      AbstractState pCallsite,
-      AbstractDomain pAbstractDomain
+      AbstractState pCallsite
   ) throws CPAException, InterruptedException {
-    // todo: any other verdicts?..
+    // todo: any other verdicts?.. todo: compare the actual location.
+    // take into the account that the nodes do not match precisely.
     return true;
   }
 

@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
@@ -72,20 +71,6 @@ public class CallstackCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public AbstractState projectToCallsite(Summary pSummary) {
-    CallstackSummary cSummary = (CallstackSummary) pSummary;
-    return new CallstackState(
-        null, cSummary.getFunctionName(), cSummary.getEntryNode());
-  }
-
-  @Override
-  public AbstractState projectToPostcondition(Summary pSummary) {
-    CallstackSummary cSummary = (CallstackSummary) pSummary;
-    return new CallstackState(
-        null, cSummary.getFunctionName(), cSummary.getEntryNode());
-  }
-
-  @Override
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
       Precision pEntryPrecision,
@@ -111,13 +96,12 @@ public class CallstackCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public boolean isSummaryCoveringCallsite(
+  public boolean isSummaryApplicableAtCallsite(
       Summary pSummary,
-      AbstractState pCallsite,
-      AbstractDomain pAbstractDomain
+      AbstractState pCallsite
   ) throws CPAException, InterruptedException {
 
-    // todo: any cases where it's not the case?
+    // todo: any cases where it's not the case? probably should actually check.
     return true;
   }
 

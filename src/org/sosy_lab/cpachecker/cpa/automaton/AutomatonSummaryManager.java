@@ -86,18 +86,6 @@ public class AutomatonSummaryManager implements SummaryManager {
   }
 
   @Override
-  public AbstractState projectToCallsite(Summary pSummary) {
-    AutomatonSummary aSummary = (AutomatonSummary) pSummary;
-    return aSummary.getEntryState();
-  }
-
-  @Override
-  public AbstractState projectToPostcondition(Summary pSummary) {
-    AutomatonSummary aSummary = (AutomatonSummary) pSummary;
-    return aSummary.getExitState();
-  }
-
-  @Override
   public Summary merge(
       Summary pSummary1, Summary pSummary2) throws CPAException, InterruptedException {
 
@@ -109,6 +97,13 @@ public class AutomatonSummaryManager implements SummaryManager {
   public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
       throws CPAException, InterruptedException {
     return pSummary1.equals(pSummary2);
+  }
+
+  @Override
+  public boolean isSummaryApplicableAtCallsite(
+      Summary pSummary, AbstractState pCallsite) throws CPAException, InterruptedException {
+    AutomatonSummary aSummary = (AutomatonSummary) pSummary;
+    return aSummary.getEntryState().equals(pCallsite);
   }
 
   // todo: why not have the same summary class for everything then?

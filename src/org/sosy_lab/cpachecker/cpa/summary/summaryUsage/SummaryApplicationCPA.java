@@ -193,7 +193,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
     // We can return multiple postconditions, one for each matching summary.
     for (Summary summary : summaries) {
-      if (wrappedSummaryManager.isSummaryCoveringCallsite(summary, pCallsite, wrappedAbstractDomain)) {
+      if (wrappedSummaryManager.isSummaryApplicableAtCallsite(summary, pCallsite)) {
         matchingSummaries.add(summary);
       }
     }
