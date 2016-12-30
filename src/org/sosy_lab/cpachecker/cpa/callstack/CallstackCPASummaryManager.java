@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class CallstackCPASummaryManager implements SummaryManager {
 
   @Override
-  public AbstractState getAbstractSuccessorForSummary(
+  public List<AbstractState> getAbstractSuccessorsForSummary(
       AbstractState state,
       Precision precision,
       List<Summary> pSummary,
@@ -52,7 +52,7 @@ public class CallstackCPASummaryManager implements SummaryManager {
 
     // Summary application leaves the callstack invariant
     // (we have entered the function and we have left the function)
-    return state;
+    return Collections.singletonList(state);
   }
 
   @Override

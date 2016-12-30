@@ -208,8 +208,6 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
       Collection<? extends AbstractState> entryState =
           wrappedTransferRelation.getAbstractSuccessors(weakenedCallState, pPrecision);
-
-      // todo: would be nice to remove this assumption.
       Preconditions.checkState(entryState.size() == 1,
           "Processing function call edge should create a unique successor");
 
@@ -235,14 +233,13 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
       return Collections.emptyList();
     }
 
-    AbstractState out = wrappedSummaryManager.getAbstractSuccessorForSummary(
+    Collection<? extends AbstractState> out = wrappedSummaryManager.getAbstractSuccessorsForSummary(
         pCallsite, pPrecision, summaries, pBlock, AbstractStates.extractLocation(pCallsite)
     );
+    logger.log(Level.INFO, "Successors of the state", pCallsite, "after summary application "
+        + "are\n\n", out);
 
-    logger.log(Level.INFO, "Successor of the state", pCallsite, "after summary application "
-        + "is\n\n", out);
-
-    return Collections.singleton(out);
+    return out;
   }
 
   @Override

@@ -35,8 +35,10 @@ import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-// todo: starts to have way to many methods as well,
-// maybe now projections could be removed.
+/**
+ * An interface for {@link org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis}
+ * to generate, compare and use summaries.
+ */
 public interface SummaryManager {
 
   /**
@@ -45,14 +47,14 @@ public interface SummaryManager {
    * @param pFunctionCallState Initial state, associated with a function call.
    *               Usually has an outgoing {@link FunctionCallEdge}.
    * @param pFunctionCallPrecision Analysis precision at the to-state.
-   * @param pSummaries Summaries which hold for the callsite.
+   * @param pSummaries All summaries which hold for the callsite.
    * @param pBlock The block for which the summary was calculated.
    *               Contains information obtained from the dataflow analysis,
    *               which is useful for summary application.
    * @param pCallSite Node from where the block was called from outside.
    * @return resulting state
    */
-  AbstractState getAbstractSuccessorForSummary(
+  List<? extends AbstractState> getAbstractSuccessorsForSummary(
       AbstractState pFunctionCallState,
       Precision pFunctionCallPrecision,
       List<Summary> pSummaries,
@@ -116,13 +118,7 @@ public interface SummaryManager {
   Summary merge(Summary pSummary1, Summary pSummary2) throws CPAException, InterruptedException;
 
   /**
-   * <p>Coverage relation for summaries: precondition may be weakened,
-   * postcondition may be strengthened.
-   * There is no point in storing a summary with a stronger precondition
-   * and a weaker postcondition of an already existing one.
-   *
-   * <p>An implementation of this interface might be able to provide a
-   * more efficient comparison.
+   * A summary is described by another summary iff it allows more behaviors.
    *
    * @return whether {@code pSummary1} is described by {@code pSummary2}.
    */
@@ -134,7 +130,6 @@ public interface SummaryManager {
    * @return whether {@code pSummary} is general enough to describe the condition at the
    * callsite {@code pCallSite}.
    * Note that {@code pCallsite} is outside of the called block.
-   * // todo: when is renaming actually applied?
    */
   boolean isSummaryApplicableAtCallsite(
       Summary pSummary,

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.location;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -50,22 +51,18 @@ public class LocationCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public AbstractState getAbstractSuccessorForSummary(
+  public List<AbstractState> getAbstractSuccessorsForSummary(
       AbstractState state,
       Precision precision,
       List<Summary> pSummary,
       Block pBlock,
       CFANode pCallsite) throws CPATransferException, InterruptedException {
 
-//    Preconditions.checkState(!pSummary.isEmpty());
-//    Preconditions.checkArgument(pSummary.stream().allMatch(s -> s.equals(pSummary.get(0))));
-//
-//    LocationSummary lSummary = (LocationSummary) pSummary.get(0);
-
     LocationState lState = (LocationState) state;
     CFANode node = lState.getLocationNode();
 
-    return locationStateFactory.getState(node.getLeavingSummaryEdge().getSuccessor());
+    return Collections.singletonList(
+        locationStateFactory.getState(node.getLeavingSummaryEdge().getSuccessor()));
   }
 
 
@@ -130,7 +127,7 @@ public class LocationCPASummaryManager implements SummaryManager {
     }
 
     @Override
-    public boolean equals(Object pO) {
+    public boolean equals(@Nullable Object pO) {
       if (this == pO) {
         return true;
       }

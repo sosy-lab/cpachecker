@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -55,7 +56,7 @@ public class ARGSummaryManager implements SummaryManager {
   }
 
   @Override
-  public AbstractState getAbstractSuccessorForSummary(
+  public List<? extends AbstractState> getAbstractSuccessorsForSummary(
       AbstractState pState,
       Precision pPrecision,
       List<Summary> pSummaries,
@@ -64,12 +65,9 @@ public class ARGSummaryManager implements SummaryManager {
       throws CPAException, InterruptedException {
     ARGState aState = (ARGState) pState;
 
-    AbstractState successor =
-        wrapped.getAbstractSuccessorForSummary(
-            aState.getWrappedState(), pPrecision, pSummaries, pBlock, pCallsite
-        );
-    // todo: should the parent element be null? In BAMReducer it is.
-    return new ARGState(successor, null);
+    return wrapped.getAbstractSuccessorsForSummary(
+          aState.getWrappedState(), pPrecision, pSummaries, pBlock, pCallsite
+      ).stream().map(s -> new ARGState(s, null)).collect(Collectors.toList());
   }
 
   @Override

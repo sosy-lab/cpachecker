@@ -65,7 +65,7 @@ public class CompositeSummaryManager implements SummaryManager {
   }
 
   @Override
-  public AbstractState getAbstractSuccessorForSummary(
+  public List<? extends AbstractState> getAbstractSuccessorsForSummary(
       AbstractState state,
       Precision precision,
       List<Summary> pSummary,
@@ -77,18 +77,22 @@ public class CompositeSummaryManager implements SummaryManager {
     CompositeState cState = (CompositeState) state;
     Preconditions.checkState(cState.getNumberOfStates() == managers.size());
 
-    List<AbstractState> contained = new ArrayList<>(managers.size());
+    List<List<? extends AbstractState>> contained = new ArrayList<>(managers.size());
     for (int i=0; i<managers.size(); i++) {
       int idx = i;
       List<Summary> projectedSummaries = FluentIterable.from(pSummary)
           .filter(CompositeSummary.class)
           .transform(c -> c.get(idx)).toList();
-      AbstractState successor = managers.get(idx).getAbstractSuccessorForSummary(
-          cState.get(idx), cPrecision.get(idx), projectedSummaries, pBlock, pCallsite
-      );
-      contained.add(successor);
+
+      List<? extends AbstractState> successors =
+          managers.get(idx).getAbstractSuccessorsForSummary(
+              cState.get(idx), cPrecision.get(idx), projectedSummaries, pBlock, pCallsite
+          );
+      contained.add(successors);
     }
-    return new CompositeState(contained);
+
+    return Lists.cartesianProduct(contained).stream()
+        .map(l -> new CompositeState(l)).collect(Collectors.toList());
   }
 
   @Override

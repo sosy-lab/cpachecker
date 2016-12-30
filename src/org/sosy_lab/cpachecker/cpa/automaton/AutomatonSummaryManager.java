@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.FluentIterable;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -37,20 +38,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Summary manager for automaton CPA.
- *
- * // todo: what IS the summarization relation for the automaton?
- * basically it's the memoization of the transition.
- * seems like we are reimplementing again the logic already found in BAM..
  */
 public class AutomatonSummaryManager implements SummaryManager {
 
-  // todo: might make more sense if
-  // we do the dumbest implementation first?..
-  // this is annoying without the base implementation
-  // (make summary a base class?...)
-
   @Override
-  public AbstractState getAbstractSuccessorForSummary(
+  public List<AbstractState> getAbstractSuccessorsForSummary(
       AbstractState pFunctionCallState,
       Precision pFunctionCallPrecision,
       List<Summary> pSummaries,
@@ -61,7 +53,7 @@ public class AutomatonSummaryManager implements SummaryManager {
     // calculate the postconditions from the states at function exit?
     // or assume if there was a violation it was already recorded by now?
     // todo: confusing.
-    return pFunctionCallState;
+    return Collections.singletonList(pFunctionCallState);
   }
 
   @Override

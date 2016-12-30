@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import com.google.common.collect.FluentIterable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Summary manager for the interval CPA.
@@ -61,7 +63,7 @@ public class IntervalCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public AbstractState getAbstractSuccessorForSummary(
+  public List<AbstractState> getAbstractSuccessorsForSummary(
       AbstractState pFunctionCallState,
       Precision pFunctionCallPrecision,
       List<Summary> pSummaries,
@@ -69,16 +71,20 @@ public class IntervalCPASummaryManager implements SummaryManager {
       CFANode pCallSite)
       throws CPAException, InterruptedException {
 
-    // Propagate the intervals for those variables invariant
-    // under the function call, use summary for others.
-
-    // todo: how to rely on the assumption that only a single summary exists?
-    // Maybe just assert that?
-    IntervalSummary iSummary = (IntervalSummary) pSummaries.get(0);
-    for (Summary s : pSummaries.subList(1, pSummaries.size())) {
-      iSummary = merge(iSummary, s);
+    List<AbstractState> out = new ArrayList<>(pSummaries.size());
+    for (Summary s : pSummaries) {
+      out.add(getAbstractSuccessorForSummary(
+          pFunctionCallState, (IntervalSummary) s, pBlock, pCallSite
+      ));
     }
+    return out;
+  }
 
+  private IntervalAnalysisState getAbstractSuccessorForSummary(
+      AbstractState pFunctionCallState,
+      IntervalSummary iSummary,
+      Block pBlock,
+      CFANode pCallSite) throws CPATransferException, InterruptedException {
     // todo: remove all vars modified inside the block.
     IntervalAnalysisState copy = IntervalAnalysisState.copyOf(
         (IntervalAnalysisState) pFunctionCallState);
@@ -122,9 +128,6 @@ public class IntervalCPASummaryManager implements SummaryManager {
       AbstractState pState, Precision pPrecision, Block pBlock) {
     IntervalAnalysisState iState = (IntervalAnalysisState) pState;
     IntervalAnalysisState clone = IntervalAnalysisState.copyOf(iState);
-
-    // todo: seems to be buggy, maybe does not take into account the variable
-    // todo: renaming when applying function calls.
 
     Set<String> readVarNames = pBlock.getReadVariables().stream()
         .map(w -> w.get().getQualifiedName()).collect(Collectors.toSet());
