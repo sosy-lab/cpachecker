@@ -62,15 +62,15 @@ public class Template {
 
   public Kind getKind() {
     int s = linearExpression.size();
-    Iterator<Rational> it = linearExpression.getMap().values().iterator();
 
-    if (s == 1 && it.next().equals(Rational.ONE)) {
+    if (s == 1 && getIterator().next().equals(Rational.ONE)) {
       return Kind.UPPER_BOUND;
 
-    } else if (s == 1 && it.next().equals(Rational.NEG_ONE)) {
+    } else if (s == 1 && getIterator().next().equals(Rational.NEG_ONE)) {
       return Kind.NEG_LOWER_BOUND;
 
     } else if (s == 2) {
+      Iterator<Rational> it = getIterator();
       Rational a = it.next();
       Rational b = it.next();
       if (a.equals(Rational.ONE) && b.equals(Rational.ONE)) {
@@ -83,6 +83,10 @@ public class Template {
       }
     }
     return Kind.COMPLEX;
+  }
+
+  private Iterator<Rational> getIterator() {
+    return linearExpression.getMap().values().iterator();
   }
 
   public LinearExpression<CIdExpression> getLinearExpression() {
@@ -115,10 +119,7 @@ public class Template {
     if (this == o) {
       return true;
     }
-    if (o == null) {
-      return false;
-    }
-    if (o.getClass() != this.getClass()) {
+    if (!(o instanceof Template)) {
       return false;
     }
     Template other = (Template) o;

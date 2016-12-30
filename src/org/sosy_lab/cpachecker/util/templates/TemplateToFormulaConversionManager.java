@@ -162,6 +162,10 @@ public class TemplateToFormulaConversionManager {
     return (CSimpleType) sum.getExpressionType();
   }
 
+  /**
+   * Get the size of the bitvector required to represent the template {@code t},
+   * as given by the size of the element requiring most bits in {@code t}.
+   */
   private int getBitvectorSize(Template t, PathFormulaManager pfmgr,
                                PathFormula contextFormula, FormulaManagerView fmgr) {
     int length = 0;
