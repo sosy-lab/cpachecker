@@ -41,7 +41,7 @@ public class LDDAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) throws CPAException {
+  public boolean isLessOrEqual(AbstractState newElement, AbstractState reachedState) {
     if (this.topState.equals(reachedState) || newElement.equals(reachedState)) { return true; }
     if (newElement instanceof LDDAbstractState && reachedState instanceof LDDAbstractState) {
       LDDAbstractState lddElement1 = (LDDAbstractState) newElement;

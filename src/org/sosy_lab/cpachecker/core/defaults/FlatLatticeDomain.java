@@ -68,7 +68,7 @@ public class FlatLatticeDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState newState, AbstractState reachedState) throws CPAException {
+  public boolean isLessOrEqual(AbstractState newState, AbstractState reachedState) {
     return (mTopState.equals(reachedState) || newState.equals(reachedState));
   }
 }

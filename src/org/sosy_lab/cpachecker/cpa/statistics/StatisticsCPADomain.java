@@ -41,7 +41,7 @@ public class StatisticsCPADomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws InterruptedException {
     StatisticsState state1 = (StatisticsState) pState1;
     StatisticsState state2 = (StatisticsState) pState2;
 

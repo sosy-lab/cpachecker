@@ -36,7 +36,7 @@ public class CallstackPCCAbstractDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws InterruptedException {
     if (pState1 instanceof CallstackState && pState2 instanceof CallstackState) {
       return isLessOrEqual((CallstackState) pState1, (CallstackState) pState2);
     }

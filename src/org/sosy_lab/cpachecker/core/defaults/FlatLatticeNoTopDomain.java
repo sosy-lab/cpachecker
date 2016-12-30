@@ -41,8 +41,7 @@ public class FlatLatticeNoTopDomain implements AbstractDomain {
 
   @Override
   public boolean isLessOrEqual(
-      AbstractState state1, AbstractState state2)
-      throws CPAException, InterruptedException {
+      AbstractState state1, AbstractState state2) {
     return state1.equals(state2);
   }
 }

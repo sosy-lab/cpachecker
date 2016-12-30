@@ -140,9 +140,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
 
   @Override
   public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
-      throws CPAException, InterruptedException {
-    return manager.isLessOrEqual((SlicingState)state1,
-        (SlicingState)state2);
+      throws InterruptedException {
+    return manager.isLessOrEqual((SlicingState)state1, (SlicingState)state2);
   }
 
   @Override

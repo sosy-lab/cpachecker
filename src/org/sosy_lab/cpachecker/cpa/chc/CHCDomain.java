@@ -37,7 +37,7 @@ public class CHCDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState state1, AbstractState state2) throws CPAException {
+  public boolean isLessOrEqual(AbstractState state1, AbstractState state2) {
     CHCState crstate1 = (CHCState) state1;
     CHCState crstate2 = (CHCState) state2;
 

@@ -120,8 +120,7 @@ public final class ABECPA
   @Override
   @SuppressWarnings("unchecked")
   public boolean isLessOrEqual(
-      AbstractState state1, AbstractState state2)
-      throws CPAException, InterruptedException {
+      AbstractState state1, AbstractState state2) {
     return manager.isLessOrEqual((ABEState<A>) state1, (ABEState<A>) state2);
   }
 

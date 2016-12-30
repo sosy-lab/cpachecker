@@ -54,7 +54,7 @@ public enum PointerDomain implements AbstractDomain {
   }
 
   @Override
-  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2) throws InterruptedException {
     if (pState1 == pState2) {
       return true;
     }

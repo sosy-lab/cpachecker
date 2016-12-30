@@ -22,7 +22,7 @@ public interface IFormulaSlicingManager extends StatisticsProvider {
   SlicingState getInitialState(CFANode node);
 
   boolean isLessOrEqual(SlicingState pState1,
-      SlicingState pState2) throws InterruptedException, CPAException;
+      SlicingState pState2) throws InterruptedException;
 
   Optional<PrecisionAdjustmentResult> prec(SlicingState pState, UnmodifiableReachedSet pStates,
       AbstractState pFullState) throws CPAException, InterruptedException;
