@@ -23,48 +23,43 @@
  */
 package org.sosy_lab.cpachecker.util.templates;
 
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-
 /**
  * Converting {@link Template} to {@link Formula}.
  */
 public class TemplateToFormulaConversionManager {
-  private final CFA cfa;
+  private final MachineModel machineModel;
 
-  private static final CFAEdge dummyEdge = new BlankEdge("",
-      FileLocation.DUMMY,
-      new CFANode("dummy-1"), new CFANode("dummy-2"), "Dummy Edge");
+  private static final CExpression dummyExpression = CIntegerLiteralExpression.ZERO;
 
   private final Map<ToFormulaCacheKey, Formula> toFormulaCache =
       new HashMap<>();
   private final CBinaryExpressionBuilder expressionBuilder;
 
-  public TemplateToFormulaConversionManager(CFA pCfa, LogManager logger) {
-    cfa = pCfa;
-    expressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+  public TemplateToFormulaConversionManager(
+      MachineModel pMachineModel,
+      LogManager logger) {
+    machineModel = pMachineModel;
+    expressionBuilder = new CBinaryExpressionBuilder(pMachineModel, logger);
   }
 
   /**
@@ -89,18 +84,12 @@ public class TemplateToFormulaConversionManager {
     Formula sum = null;
     int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula,fmgr);
 
-    for (Entry<CIdExpression, Rational> entry : template.getLinearExpression()) {
+    for (Entry<TVariable, Rational> entry : template.getLinearExpression()) {
       Rational coeff = entry.getValue();
-      CIdExpression declaration = entry.getKey();
+      TVariable variable = entry.getKey();
 
-      final Formula item;
-      try {
-        Formula f = pfmgr.expressionToFormula(
-            contextFormula, declaration, dummyEdge);
-        item = normalizeLength(f, maxBitvectorSize, fmgr);
-      } catch (UnrecognizedCCodeException e) {
-        throw new UnsupportedOperationException();
-      }
+      Formula f = variable.toFormula(pfmgr, contextFormula);
+      Formula item = normalizeLength(f, maxBitvectorSize, fmgr);
 
       final Formula multipliedItem;
       if (coeff.equals(Rational.ZERO)) {
@@ -128,9 +117,9 @@ public class TemplateToFormulaConversionManager {
   public boolean isOverflowing(Template template, Rational v) {
     CSimpleType templateType = getTemplateType(template);
     if (templateType.getType().isIntegerType()) {
-      BigInteger maxValue = cfa.getMachineModel()
+      BigInteger maxValue = machineModel
           .getMaximalIntegerValue(templateType);
-      BigInteger minValue = cfa.getMachineModel()
+      BigInteger minValue = machineModel
           .getMinimalIntegerValue(templateType);
 
       // The bound obtained is larger than the highest representable
@@ -144,41 +133,37 @@ public class TemplateToFormulaConversionManager {
   }
 
   private CSimpleType getTemplateType(Template t) {
-    CExpression sum = null;
-
-    // also note: there is an overall _expression_ type.
-    // Wonder how that one is computed --- it actually depends on the order of
-    // the operands.
-    for (Entry<CIdExpression, Rational> e: t.getLinearExpression()) {
-      CIdExpression expr = e.getKey();
-      if (sum == null) {
-        sum = expr;
+    CType out = null;
+    for (Entry<TVariable, Rational> e: t.getLinearExpression()) {
+      if (out == null) {
+        out = e.getKey().getType();
       } else {
-        sum = expressionBuilder.buildBinaryExpressionUnchecked(
-            sum, expr, BinaryOperator.PLUS);
+        out = expressionBuilder.getCalculationTypeForBinaryOperationUnchecked(
+            out,
+            e.getKey().getType(),
+            BinaryOperator.PLUS,
+            dummyExpression,
+            dummyExpression
+        );
       }
     }
-    assert sum != null;
-    return (CSimpleType) sum.getExpressionType();
+    assert out != null;
+    return (CSimpleType) out;
   }
 
   /**
    * Get the size of the bitvector required to represent the template {@code t},
    * as given by the size of the element requiring most bits in {@code t}.
    */
-  private int getBitvectorSize(Template t, PathFormulaManager pfmgr,
-                               PathFormula contextFormula, FormulaManagerView fmgr) {
+  private int getBitvectorSize(Template t,
+                               PathFormulaManager pfmgr,
+                               PathFormula contextFormula,
+                               FormulaManagerView fmgr) {
     int length = 0;
 
     // Figure out the maximum bitvector size.
-    for (Entry<CIdExpression, Rational> entry : t.getLinearExpression()) {
-      Formula item;
-      try {
-        item = pfmgr.expressionToFormula(
-            contextFormula, entry.getKey(), dummyEdge);
-      } catch (UnrecognizedCCodeException e) {
-        throw new UnsupportedOperationException();
-      }
+    for (Entry<TVariable, Rational> entry : t.getLinearExpression()) {
+      Formula item = entry.getKey().toFormula(pfmgr, contextFormula);
       if (!(item instanceof BitvectorFormula)) {
         continue;
       }
@@ -190,7 +175,8 @@ public class TemplateToFormulaConversionManager {
     return length;
   }
 
-  private Formula normalizeLength(Formula f, int maxBitvectorSize,
+  private Formula normalizeLength(Formula f,
+                                  int maxBitvectorSize,
                                   FormulaManagerView fmgr) {
     if (!(f instanceof BitvectorFormula)) {
       return f;

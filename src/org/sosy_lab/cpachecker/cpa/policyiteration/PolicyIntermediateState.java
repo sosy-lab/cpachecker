@@ -22,11 +22,11 @@ public final class PolicyIntermediateState extends PolicyState {
    */
   private final PolicyAbstractedState startingAbstraction;
 
-  private @Nullable transient ImmutableList<ValueAssignment> counterexample = null;
   /**
    * Meta-information for determining the coverage.
    */
   private @Nullable transient PolicyIntermediateState mergedInto = null;
+  private @Nullable transient ImmutableList<ValueAssignment> counterexample = null;
   private transient int hashCache = 0;
 
   private PolicyIntermediateState(
@@ -48,11 +48,14 @@ public final class PolicyIntermediateState extends PolicyState {
         node, pPathFormula, generatingState);
   }
 
-  public void setCounterexample(ImmutableList<ValueAssignment> pCounterexample) {
+  /**
+   * Set the transient counterexample information for visualization purposes.
+   */
+  void setCounterexample(ImmutableList<ValueAssignment> pCounterexample) {
     counterexample = pCounterexample;
   }
 
-  public PolicyIntermediateState withPathFormula(
+  PolicyIntermediateState withPathFormula(
       PathFormula pPathFormula
   ) {
     return new PolicyIntermediateState(
@@ -60,18 +63,18 @@ public final class PolicyIntermediateState extends PolicyState {
     );
   }
 
-  public void setMergedInto(PolicyIntermediateState other) {
+  void setMergedInto(PolicyIntermediateState other) {
     mergedInto = other;
   }
 
-  public boolean isMergedInto(PolicyIntermediateState other) {
+  boolean isMergedInto(PolicyIntermediateState other) {
     return other == mergedInto;
   }
 
   /**
    * @return Starting {@link PolicyAbstractedState} for the starting location.
    */
-  public PolicyAbstractedState getBackpointerState() {
+  PolicyAbstractedState getBackpointerState() {
     return startingAbstraction;
   }
 

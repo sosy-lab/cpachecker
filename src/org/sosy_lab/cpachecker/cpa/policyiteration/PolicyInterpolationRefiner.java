@@ -255,7 +255,7 @@ public class PolicyInterpolationRefiner implements Refiner {
   private Set<String> getRelevantInstantiatedVars(PolicyAbstractedState pState) {
     Set<String> usedVars = pState.getAbstraction().keySet().stream()
         .flatMap(t -> t.getLinearExpression().getMap().keySet().stream())
-        .map(id -> id.getDeclaration().getQualifiedName())
+        .map(id -> id.getName())
         .collect(Collectors.toSet());
     return fmgr.instantiate(usedVars, pState.getSSA());
   }

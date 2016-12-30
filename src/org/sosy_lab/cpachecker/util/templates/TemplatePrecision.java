@@ -45,7 +45,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -79,7 +78,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -184,13 +182,6 @@ public class TemplatePrecision implements Precision {
       ArrayListMultimap.create();
   private final ImmutableSet<ASimpleDeclaration> allVariables;
 
-  /**
-   * Mapping from function name to a set of function parameters.
-   * Variables represented parameters should be kept in precision
-   * at the return node in order to compute summaries.
-   */
-  private final ImmutableMap<String, Set<ASimpleDeclaration>> functionParameters;
-
   public TemplatePrecision(
       LogManager pLogger,
       Configuration pConfig,
@@ -235,7 +226,6 @@ public class TemplatePrecision implements Precision {
         builder.put(node.getFunctionName(), qualifiedNames);
       }
     }
-    functionParameters = builder.build();
     varsInInterpolant = HashMultimap.create();
   }
 
@@ -308,15 +298,15 @@ public class TemplatePrecision implements Precision {
     for (Set<CIdExpression> variables : combinations) {
 
       // For of every variable: instantiate with every coefficient.
-      List<List<LinearExpression<CIdExpression>>> out =
+      List<List<LinearExpression<CIdVariable>>> out =
           variables.stream().map(
               x -> allowedCoefficients.stream().map(
-                  coeff -> LinearExpression.monomial(x, coeff)
+                  coeff -> LinearExpression.monomial(new CIdVariable(x), coeff)
               ).collect(Collectors.toList())
           ).collect(Collectors.toList());
 
       // Convert to a list of all possible linear expressions.
-      List<LinearExpression<CIdExpression>> linearExpressions =
+      List<LinearExpression<CIdVariable>> linearExpressions =
           Lists.cartesianProduct(out).stream().map(
               list -> list.stream().reduce(
                   LinearExpression.empty(), LinearExpression::add)
@@ -339,10 +329,11 @@ public class TemplatePrecision implements Precision {
   }
 
   private Set<Template> generateDifferenceTemplates(Collection<CIdExpression> vars) {
-    List<LinearExpression<CIdExpression>> out = new ArrayList<>();
+    List<LinearExpression<CIdVariable>> out = new ArrayList<>();
     for (CIdExpression v1 : vars) {
       for (CIdExpression v2 : vars) {
-        out.add(LinearExpression.ofVariable(v1).sub(LinearExpression.ofVariable(v2)));
+        out.add(LinearExpression.ofVariable(new CIdVariable(v1))
+            .sub(LinearExpression.ofVariable(new CIdVariable(v2))));
       }
     }
     out = filterToSameType(out);
@@ -356,13 +347,13 @@ public class TemplatePrecision implements Precision {
    * Filter out the redundant expressions: that is, expressions already
    * contained in the list with a multiplier {@code >= 1}.
    */
-  private List<LinearExpression<CIdExpression>> filterRedundantExpressions(
-      List<LinearExpression<CIdExpression>> pLinearExpressions
+  private List<LinearExpression<CIdVariable>> filterRedundantExpressions(
+      List<LinearExpression<CIdVariable>> pLinearExpressions
   ) {
     Predicate<Optional<Rational>> existsAndMoreThanOne =
         (coeff -> coeff.isPresent() && coeff.get().compareTo(Rational.ONE) > 0);
     return pLinearExpressions.stream().filter(
-            l -> !pLinearExpressions.stream().anyMatch(
+            l -> pLinearExpressions.stream().noneMatch(
                 l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))
             )
         ).collect(Collectors.toList());
@@ -372,15 +363,13 @@ public class TemplatePrecision implements Precision {
    * Filter out the expressions where not all variables inside have the
    * same type.
    */
-  private List<LinearExpression<CIdExpression>> filterToSameType(
-      List<LinearExpression<CIdExpression>> pLinearExpressions
+  private List<LinearExpression<CIdVariable>> filterToSameType(
+      List<LinearExpression<CIdVariable>> pLinearExpressions
   ) {
-    Function<CIdExpression, CBasicType> getType =
-        x -> ((CSimpleType)x.getDeclaration().getType()).getType();
     return pLinearExpressions.stream().filter(
             expr -> expr.getMap().keySet().stream().allMatch(
-                x -> getType.apply(x).equals(
-                    getType.apply(expr.iterator().next().getKey())
+                x -> x.getType().getType().equals(
+                    expr.iterator().next().getKey().getType().getType()
                 )
             )
         ).collect(Collectors.toList());
@@ -453,22 +442,19 @@ public class TemplatePrecision implements Precision {
   }
 
   private boolean shouldUseTemplate(Template t, CFANode node) {
+
     if (varFiltering == VarFilteringStrategy.ALL) {
       return true;
     }
     LiveVariables liveVariables = cfa.getLiveVariables().get();
-    for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
-      CIdExpression id = e.getKey();
+    for (Entry<? extends TVariable, Rational> e : t.getLinearExpression()) {
+      TVariable id = e.getKey();
       if (varFiltering == VarFilteringStrategy.ONE_LIVE &&
-          !liveVariables.isVariableLive(id.getDeclaration(), node)) {
+          !liveVariables.isVariableLive(id.getName(), node)) {
         return true;
       }
       if (varFiltering == VarFilteringStrategy.ALL_LIVE
-          && !liveVariables.isVariableLive(id.getDeclaration(), node)
-
-          // Enforce inclusion of function parameters.
-          && !functionParameters.getOrDefault(node.getFunctionName(), ImmutableSet.of())
-            .contains(id.getDeclaration())) {
+          && !liveVariables.isVariableLive(id.getName(), node)) {
         return false;
       }
     }
@@ -533,7 +519,7 @@ public class TemplatePrecision implements Precision {
           return out;
         }
 
-        Template tLhs = Template.of(LinearExpression.ofVariable(id));
+        Template tLhs = Template.of(LinearExpression.ofVariable(new CIdVariable(id)));
         Optional<Template> x =
             expressionToSingleTemplate(assignment.getRightHandSide()).flatMap(
                 t -> t.getLinearExpression().isEmpty() ? Optional.empty() : Optional.of(t)
@@ -600,8 +586,8 @@ public class TemplatePrecision implements Precision {
       // Otherwise just add/subtract templates.
       if (templateA.isPresent() && templateB.isPresent()
           && binaryExpression.getCalculationType() instanceof CSimpleType) {
-        LinearExpression<CIdExpression> a = templateA.get().getLinearExpression();
-        LinearExpression<CIdExpression> b = templateB.get().getLinearExpression();
+        LinearExpression<TVariable> a = templateA.get().getLinearExpression();
+        LinearExpression<TVariable> b = templateB.get().getLinearExpression();
 
         // Calculation type is the casting of both types to a suitable "upper"
         // type.
@@ -621,7 +607,7 @@ public class TemplatePrecision implements Precision {
     } else if (expression instanceof CIdExpression
         && expression.getExpressionType() instanceof CSimpleType) {
       CIdExpression idExpression = (CIdExpression)expression;
-      return Optional.of(Template.of(LinearExpression.ofVariable(idExpression)));
+      return Optional.of(Template.of(LinearExpression.ofVariable(new CIdVariable(idExpression))));
     } else {
       return Optional.empty();
     }
@@ -735,7 +721,7 @@ public class TemplatePrecision implements Precision {
     if (t.size() == 1) {
       return false;
     }
-    for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
+    for (Entry<TVariable, Rational> e : t.getLinearExpression()) {
 
       // Do not add templates whose coefficients are already overflowing.
       if (templateToFormulaConversionManager.isOverflowing(t, e.getValue())) {
@@ -751,10 +737,7 @@ public class TemplatePrecision implements Precision {
 
   private Collection<ASimpleDeclaration> getVarsForNode(CFANode node) {
     if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
-      return Sets.union(
-          cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet(),
-          functionParameters.getOrDefault(node.getFunctionName(), ImmutableSet.of())
-      );
+      return cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet();
     } else if (varFiltering == VarFilteringStrategy.INTERPOLATION_BASED) {
       return varsInInterpolant.get(node);
     } else {

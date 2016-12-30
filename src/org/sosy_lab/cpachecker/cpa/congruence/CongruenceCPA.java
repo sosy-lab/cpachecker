@@ -90,7 +90,7 @@ public class CongruenceCPA
       pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
     }
     TemplateToFormulaConversionManager templateToFormulaConversionManager =
-        new TemplateToFormulaConversionManager(pCFA, pLogger);
+        new TemplateToFormulaConversionManager(pCFA.getMachineModel(), pLogger);
     statistics = new CongruenceStatistics();
     CongruenceManager congruenceManager = new CongruenceManager(
         pConfiguration, solver, templateToFormulaConversionManager,

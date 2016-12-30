@@ -18,6 +18,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
+import org.sosy_lab.cpachecker.util.templates.CIdVariable;
+import org.sosy_lab.cpachecker.util.templates.TVariable;
 import org.sosy_lab.cpachecker.util.templates.Template;
 
 import java.util.Map;
@@ -36,16 +38,14 @@ public class PolyhedraWideningManagerTest {
   }
 
   @Test public void test_polyhedra() {
-    // FIXME Tests should not rely on a user manually checking log message
-    // but instead use proper assertions, otherwise they are useless as regression tests.
     CIdExpression x, y;
     x = makeVar("x", CNumericTypes.INT);
     y = makeVar("y", CNumericTypes.INT);
 
     // Point 1: (x=0 /\ y=0).
     Map<Template, Rational> point1, point2;
-    LinearExpression<CIdExpression> linX = LinearExpression.ofVariable(x);
-    LinearExpression<CIdExpression> linY = LinearExpression.ofVariable(y);
+    LinearExpression<TVariable> linX = LinearExpression.ofVariable(new CIdVariable(x));
+    LinearExpression<TVariable> linY = LinearExpression.ofVariable(new CIdVariable(y));
 
     point1 = ImmutableMap.of(
       Template.of(linX), Rational.ZERO,

@@ -27,17 +27,14 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 /**
  * Linear expression over program variables.
  */
 public class Template {
-  private final LinearExpression<CIdExpression> linearExpression;
+  private final LinearExpression<TVariable> linearExpression;
 
   /**
    * Template type.
@@ -56,8 +53,9 @@ public class Template {
     COMPLEX
   }
 
-  private Template(LinearExpression<CIdExpression> pLinearExpression) {
-    linearExpression = pLinearExpression;
+  @SuppressWarnings("unchecked")
+  private Template(LinearExpression<? extends TVariable> pLinearExpression) {
+    linearExpression = (LinearExpression<TVariable>) pLinearExpression;
   }
 
   public Kind getKind() {
@@ -89,28 +87,22 @@ public class Template {
     return linearExpression.getMap().values().iterator();
   }
 
-  public LinearExpression<CIdExpression> getLinearExpression() {
+  public LinearExpression<TVariable> getLinearExpression() {
     return linearExpression;
   }
 
   public boolean isUnsigned() {
-    for (Entry<CIdExpression, Rational> e: linearExpression) {
-      CIdExpression expr = e.getKey();
-      CSimpleType type = (CSimpleType)expr.getExpressionType();
-      if (!type.isUnsigned()) {
-        return false;
-      }
-    }
-    return true;
+    return linearExpression.getMap().keySet()
+        .stream().allMatch(k -> k.getType().isUnsigned());
   }
 
   public boolean isIntegral() {
     return linearExpression.getMap().entrySet().stream()
         .allMatch(e -> e.getValue().isIntegral()
-            && ((CSimpleType)e.getKey().getExpressionType()).getType().isIntegerType());
+            && e.getKey().getType().getType().isIntegerType());
   }
 
-  public static Template of(LinearExpression<CIdExpression> expr) {
+  public static Template of(LinearExpression<? extends TVariable> expr) {
     return new Template(expr);
   }
 
@@ -143,13 +135,13 @@ public class Template {
   @Override
   public String toString() {
     // Sort by .getQualifiedName() first.
-    List<CIdExpression> keys = new ArrayList<>(linearExpression.getMap().keySet());
-    keys.sort(Comparator.comparing(pO -> pO.getDeclaration().getQualifiedName()));
+    List<TVariable> keys = new ArrayList<>(linearExpression.getMap().keySet());
+    keys.sort(Comparator.comparing(pO -> pO.getName()));
 
     StringBuilder b = new StringBuilder();
-    for (CIdExpression var : keys) {
+    for (TVariable var : keys) {
       Rational coeff = linearExpression.getCoeff(var);
-      LinearExpression.writeMonomial(var.getDeclaration().getQualifiedName(), coeff, b);
+      LinearExpression.writeMonomial(var.getName(), coeff, b);
     }
     return b.toString();
   }

@@ -21,19 +21,18 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyAbstractedState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.ApronManager.AbstractDomain;
+import org.sosy_lab.cpachecker.util.templates.TVariable;
 import org.sosy_lab.cpachecker.util.templates.Template;
 
 public class PolyhedraWideningManager {
 
   private final Manager manager;
-  private final Map<String, CIdExpression> types;
+  private final Map<String, TVariable> types;
   private final PolicyIterationStatistics statistics;
   private final LogManager logger;
 
@@ -140,7 +139,7 @@ public class PolyhedraWideningManager {
 
   private Template ofExpression(Lincons1 expr) {
     expr.minimize();
-    LinearExpression<CIdExpression> out = LinearExpression.empty();
+    LinearExpression<TVariable> out = LinearExpression.empty();
 
     for (Linterm1 term : expr.getLinterms()) {
       String varName = term.getVariable();
@@ -173,15 +172,15 @@ public class PolyhedraWideningManager {
 
   private Linexpr1 fromLinearExpression(
       Environment environment,
-      LinearExpression<CIdExpression> input) {
+      LinearExpression<TVariable> input) {
     Linexpr1 expr = new Linexpr1(environment, input.size());
     expr.setCst(ofRational(Rational.ZERO));
 
-    for (Entry<CIdExpression, Rational> e : input) {
-      CIdExpression id = e.getKey();
+    for (Entry<TVariable, Rational> e : input) {
       Rational bound = e.getValue();
+      TVariable id = e.getKey();
 
-      String varName = id.getDeclaration().getQualifiedName();
+      String varName = id.getName();
       types.put(varName, id);
       expr.setCoeff(varName, ofRational(bound));
     }
@@ -190,9 +189,9 @@ public class PolyhedraWideningManager {
 
 
   private Environment generateEnvironment(Environment environment, Template t) {
-    for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
-      CIdExpression id = e.getKey();
-      String varName = id.getDeclaration().getQualifiedName();
+    for (Entry<TVariable, Rational> e : t.getLinearExpression()) {
+      TVariable id = e.getKey();
+      String varName = id.getName();
       types.put(varName, id);
       if (!environment.hasVar(varName)) {
         if (isIntegral(id)) {
@@ -209,8 +208,7 @@ public class PolyhedraWideningManager {
     return new MpqScalar(r.getNum(), r.getDen());
   }
 
-  private boolean isIntegral(CIdExpression id) {
-    CSimpleType type = (CSimpleType) id.getExpressionType();
-    return type.getType().isIntegerType();
+  private boolean isIntegral(TVariable id) {
+    return id.getType().getType().isIntegerType();
   }
 }
