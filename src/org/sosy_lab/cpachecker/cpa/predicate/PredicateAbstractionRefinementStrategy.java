@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSet;
+import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSet.UnmodifiableBAMReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
@@ -561,7 +561,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    */
   private PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
-    if (reached instanceof BAMReachedSet) {
+    if (reached instanceof UnmodifiableBAMReachedSet) {
       return Precisions.extractPrecisionByType(reached.getPrecision(refinementRoot), PredicatePrecision.class);
     } else {
       return PredicatePrecision.unionOf(
@@ -586,7 +586,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
     // find all distinct precisions to merge them
     Set<Precision> precisions = Sets.newIdentityHashSet();
-    if (reached instanceof BAMReachedSet) {
+    if (reached instanceof UnmodifiableBAMReachedSet) {
       //Special hack: in this case getPrecision collects total precision itself
       return Precisions.extractPrecisionByType(reached.getPrecision(refinementRoot), VariableTrackingPrecision.class);
     }

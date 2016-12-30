@@ -62,12 +62,308 @@ import org.sosy_lab.cpachecker.util.Precisions;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
+  public class UnmodifiableBAMReachedSet implements UnmodifiableReachedSet {
+    private final Collection<AbstractState> subgraph =
+        Collections.unmodifiableCollection(rootOfSubgraph.getSubgraph());
+
+    @Override
+    public Collection<AbstractState> asCollection() {
+      return subgraph;
+    }
+
+    @Override
+    public Iterator<AbstractState> iterator() {
+      return subgraph.iterator();
+    }
+
+    @Override
+    public Collection<Precision> getPrecisions() {
+      return Collections2.transform(subgraph, GET_PRECISION);
+    }
+
+    @Override
+    public Collection<AbstractState> getReached(AbstractState state) {
+      throw new UnsupportedOperationException("should not be needed");
+    }
+
+    @Override
+    public Collection<AbstractState> getReached(CFANode location) {
+      throw new UnsupportedOperationException("should not be needed");
+    }
+
+    @Override
+    public AbstractState getFirstState() {
+      return rootOfSubgraph;
+    }
+
+    @Override
+    public AbstractState getLastState() {
+      return path.getLastState();
+    }
+
+    @Override
+    public boolean hasWaitingState() {
+      // BAM-reached-set has no waiting states
+      return false;
+    }
+
+    @Override
+    public Collection<AbstractState> getWaitlist() {
+      // BAM-reached-set has no waiting states
+      return Collections.emptySet();
+    }
+
+    @Override
+    public Precision getPrecision(AbstractState state) {
+
+      if (!collectPreisionFromAllSubgraph) {
+        return GET_PRECISION.apply(state);
+      }
+
+      if (stateToCollectedPrecision.containsKey(state)) {
+        return stateToCollectedPrecision.get(state);
+      }
+
+      assert state instanceof BackwardARGState;
+      //There may be returning
+      Set<ARGState> foundStates = new HashSet<>();
+      Queue<BackwardARGState> worklist = new LinkedList<>();
+      Set<BackwardARGState> targetStates = new TreeSet<>();
+      targetStates.add((BackwardARGState) state);
+      BackwardARGState currentBARGstate = (BackwardARGState)state;
+      ARGState currentState = currentBARGstate.getARGState();
+      foundStates.add(currentState);
+      worklist.add((BackwardARGState) state);
+
+      if (currentState.getParents().isEmpty()) {
+        //the initial state
+        return GET_PRECISION.apply(state);
+      }
+      d
+      while (!worklist.isEmpty()) {
+        currentBARGstate = worklist.poll();
+
+        for (ARGState child : currentBARGstate.getChildren()) {
+          if (!foundStates.contains(child)) {
+            foundStates.add(child);
+            worklist.add((BackwardARGState)child);
+          }
+          currentState = currentBARGstate.getARGState();
+          ARGState argChild = ((BackwardARGState)child).getARGState();
+          if (!currentState.getChildren().contains(argChild)) {
+            //entry or exit node of a block
+            if (AbstractStates.extractLocation(currentState) instanceof CFunctionEntryNode) {
+              continue;
+            }
+            boolean parentIsFound = false;
+            for (ARGState entryState : argChild.getParents()) {
+              if (foundStates.contains(entryState)) {
+                //We do not miss the state at precision collection
+                parentIsFound = true;
+                break;
+              }
+            }
+            if (!parentIsFound) {
+              targetStates.add((BackwardARGState)child);
+            }
+          }
+        }
+      }
+      VariableTrackingPrecision newValuePrecision = null;
+      Collection<PredicatePrecision> predicatePrecisions = new HashSet<>();
+      Precision replacedPrecision = null;
+
+      for (BackwardARGState targetState : targetStates) {
+        ARGState argState = (targetState).getARGState();
+
+        ReachedSet currentReachedSet = getReachedSet(targetState);
+        if (currentReachedSet == null) {
+          //The main reached set can not be extracted.
+          //return GET_PRECISION.apply(state);
+        } else {
+          Precision targetPrecision = currentReachedSet.getPrecision(argState);
+          if (stateToCollectedPrecision.containsKey(targetState)) {
+            replacedPrecision = stateToCollectedPrecision.get(targetState);
+          } else {
+            replacedPrecision = collectPrecision(currentReachedSet, argState, targetPrecision, new HashSet<>());
+          }
+          if (targetStates.size() == 1) {
+            stateToCollectedPrecision.put((BackwardARGState) state, replacedPrecision);
+            return replacedPrecision;
+          } else {
+            stateToCollectedPrecision.put(targetState, replacedPrecision);
+            VariableTrackingPrecision obtainedVPrecision = Precisions.extractPrecisionByType(replacedPrecision, VariableTrackingPrecision.class);
+            if (newValuePrecision == null) {
+              newValuePrecision = obtainedVPrecision;
+            } else {
+              if (!newValuePrecision.tracksTheSameVariablesAs(obtainedVPrecision)) {
+                newValuePrecision = newValuePrecision.join(obtainedVPrecision);
+              }
+            }
+            PredicatePrecision newPPrecision = Precisions.extractPrecisionByType(replacedPrecision, PredicatePrecision.class);
+            if (!newPPrecision.isEmpty()) {
+              predicatePrecisions.add(newPPrecision);
+            }
+          }
+        }
+      }
+
+      if (replacedPrecision != null) {
+        VariableTrackingPrecision initialValuePrecision = Precisions.extractPrecisionByType(replacedPrecision, VariableTrackingPrecision.class);
+        PredicatePrecision newPredicatePrecision = PredicatePrecision.unionOf(predicatePrecisions);
+
+        if (newValuePrecision != null && !newValuePrecision.tracksTheSameVariablesAs(initialValuePrecision)) {
+          replacedPrecision = Precisions.replaceByType(replacedPrecision, newValuePrecision, VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+        }
+        replacedPrecision = Precisions.replaceByType(replacedPrecision, newPredicatePrecision, Predicates.instanceOf(PredicatePrecision.class));
+        stateToCollectedPrecision.put((BackwardARGState) state, replacedPrecision);
+        return replacedPrecision;
+      }
+      /*if (data.hasInitialState(argState)) {
+        ReachedSet rSet = data.getReachedSetForInitialState(argState);
+        Precision prec = rSet.getPrecision(rSet.getLastState());
+        return prec;
+        //PredicatePrecision pPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
+        //VariableTrackingPrecision vPrec = Precisions.extractPrecisionByType(prec, VariableTrackingPrecision.class);
+      }*/
+      return GET_PRECISION.apply(state);
+    }
+
+    @Override
+    public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
+      subgraph.forEach(state -> pAction.accept(state, GET_PRECISION.apply(state)));
+    }
+
+    @Override
+    public boolean contains(AbstractState state) {
+      return subgraph.contains(state);
+    }
+
+    @Override
+    public boolean isEmpty() {
+      return subgraph.isEmpty();
+    }
+
+    @Override
+    public int size() {
+      throw new UnsupportedOperationException("should not be needed");
+    }
+
+    private Precision collectPrecision(ReachedSet reached, AbstractState state, Precision pTargetPrecision,
+        Collection<ReachedSet> handledSets) {
+
+      VariableTrackingPrecision valuePrecision = null;
+      Collection<PredicatePrecision> predicatePrecisions = new HashSet<>();
+      Queue<ARGState> worklist = new LinkedList<>();
+      Set<ARGState> handledStates = new HashSet<>();
+      BAMDataManager data = bamCpa.getData();
+      ARGState currentState;
+      Precision currentPrecision;
+
+      worklist.add((ARGState) state);
+      handledStates.add((ARGState) state);
+
+      while (!worklist.isEmpty()) {
+        currentState = worklist.poll();
+        if (currentState.isCovered() || currentState.isDestroyed()) {
+          continue;
+        }
+
+        currentPrecision = reached.getPrecision(currentState);
+        VariableTrackingPrecision newVPrecision = Precisions.extractPrecisionByType(currentPrecision, VariableTrackingPrecision.class);
+        if (valuePrecision == null) {
+          valuePrecision = newVPrecision;
+        } else {
+          if (!valuePrecision.tracksTheSameVariablesAs(newVPrecision)) {
+            valuePrecision = valuePrecision.join(newVPrecision);
+          }
+        }
+        PredicatePrecision newPPrecision = Precisions.extractPrecisionByType(currentPrecision, PredicatePrecision.class);
+        if (!newPPrecision.isEmpty()) {
+          predicatePrecisions.add(newPPrecision);
+        }
+        for (ARGState child : currentState.getChildren()) {
+          if (!handledStates.contains(child)) {
+            handledStates.add(child);
+            worklist.add(child);
+          }
+        }
+        if (data.hasInitialState(currentState)) {
+          ReachedSet other = data.getReachedSetForInitialState(currentState);
+          if (!handledSets.contains(other)) {
+            Precision pPrecision;
+            if (collectedPrecision.containsKey(other)) {
+              pPrecision = collectedPrecision.get(other);
+            } else {
+
+              AbstractState reducedState = other.getFirstState();
+              handledSets.add(other);
+              pPrecision = collectPrecision(other, reducedState, pTargetPrecision, handledSets);
+              collectedPrecision.put(reached, pPrecision);
+
+            }
+            newVPrecision = Precisions.extractPrecisionByType(pPrecision, VariableTrackingPrecision.class);
+            if (valuePrecision == null) {
+              valuePrecision = newVPrecision;
+            } else {
+              if (!valuePrecision.tracksTheSameVariablesAs(newVPrecision)) {
+                valuePrecision = valuePrecision.join(newVPrecision);
+              }
+            }
+            newPPrecision = Precisions.extractPrecisionByType(pPrecision, PredicatePrecision.class);
+            if (!newPPrecision.isEmpty()) {
+              predicatePrecisions.add(newPPrecision);
+            }
+          }
+        }
+      }
+      VariableTrackingPrecision initialValuePrecision = Precisions.extractPrecisionByType(pTargetPrecision, VariableTrackingPrecision.class);
+      PredicatePrecision newPredicatePrecision = PredicatePrecision.unionOf(predicatePrecisions);
+
+      if (valuePrecision != null && !valuePrecision.tracksTheSameVariablesAs(initialValuePrecision)) {
+        pTargetPrecision = Precisions.replaceByType(pTargetPrecision, valuePrecision, VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+      }
+      pTargetPrecision = Precisions.replaceByType(pTargetPrecision, newPredicatePrecision, Predicates.instanceOf(PredicatePrecision.class));
+      return pTargetPrecision;
+    }
+
+    private ReachedSet getReachedSet(BackwardARGState state) {
+      BackwardARGState currentState = state;
+      ARGState currentARG;
+      ARGState targetState = state.getARGState();
+      Queue<ARGState> worklist = new LinkedList<>();
+      Set<ARGState> handledStates = new HashSet<>();
+      BAMDataManager data = bamCpa.getData();
+      worklist.add(currentState);
+      handledStates.add(currentState);
+
+      while (!worklist.isEmpty()) {
+        currentState = (BackwardARGState) worklist.poll();
+        currentARG = currentState.getARGState();
+        if (data.hasInitialState(currentARG)) {
+          ReachedSet rSet = data.getReachedSetForInitialState(currentARG);
+          if (rSet.contains(targetState)) {
+            return rSet;
+          }
+        }
+        for (ARGState parent : currentState.getParents()) {
+          if (!handledStates.contains(parent)) {
+            handledStates.add(parent);
+            worklist.add(parent);
+          }
+        }
+      }
+      return null;
+    }
+  }
+
   private final BAMCPA bamCpa;
   private final ARGPath path;
   private final ARGState rootOfSubgraph;
   private final Timer removeCachedSubtreeTimer;
   private final boolean collectPreisionFromAllSubgraph;
   private final Map<ReachedSet, Precision> collectedPrecision;
+  private final Map<BackwardARGState, Precision> stateToCollectedPrecision;
 
   private final Function<AbstractState, Precision> GET_PRECISION = new Function<AbstractState, Precision>() {
     @Nullable
@@ -89,6 +385,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
     this.collectPreisionFromAllSubgraph = bamCpa.collectPrecisionFromAllSubgraph();
     this.collectedPrecision = new HashMap<>();
+    this.stateToCollectedPrecision = new HashMap<>();
 
     assert rootOfSubgraph.getSubgraph().containsAll(path.asStatesList()) : "path should traverse reachable states";
     assert pRootOfSubgraph == path.getFirstState() : "path should start with root-state";
@@ -96,282 +393,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @Override
   public UnmodifiableReachedSet asReachedSet() {
-    return new UnmodifiableReachedSet() {
-
-      private final Collection<AbstractState> subgraph =
-          Collections.unmodifiableCollection(rootOfSubgraph.getSubgraph());
-
-      @Override
-      public Collection<AbstractState> asCollection() {
-        return subgraph;
-      }
-
-      @Override
-      public Iterator<AbstractState> iterator() {
-        return subgraph.iterator();
-      }
-
-      @Override
-      public Collection<Precision> getPrecisions() {
-        return Collections2.transform(subgraph, GET_PRECISION);
-      }
-
-      @Override
-      public Collection<AbstractState> getReached(AbstractState state) {
-        throw new UnsupportedOperationException("should not be needed");
-      }
-
-      @Override
-      public Collection<AbstractState> getReached(CFANode location) {
-        throw new UnsupportedOperationException("should not be needed");
-      }
-
-      @Override
-      public AbstractState getFirstState() {
-        return rootOfSubgraph;
-      }
-
-      @Override
-      public AbstractState getLastState() {
-        return path.getLastState();
-      }
-
-      @Override
-      public boolean hasWaitingState() {
-        // BAM-reached-set has no waiting states
-        return false;
-      }
-
-      @Override
-      public Collection<AbstractState> getWaitlist() {
-        // BAM-reached-set has no waiting states
-        return Collections.emptySet();
-      }
-
-      @Override
-      public Precision getPrecision(AbstractState state) {
-
-        if (!collectPreisionFromAllSubgraph) {
-          return GET_PRECISION.apply(state);
-        }
-
-        assert state instanceof BackwardARGState;
-
-        //There may be returning
-        Set<ARGState> foundStates = new HashSet<>();
-        Queue<BackwardARGState> worklist = new LinkedList<>();
-        Set<BackwardARGState> targetStates = new TreeSet<>();
-        targetStates.add((BackwardARGState) state);
-        BackwardARGState currentBARGstate = (BackwardARGState)state;
-        ARGState currentState = currentBARGstate.getARGState();
-        foundStates.add(currentState);
-        worklist.add((BackwardARGState) state);
-
-        if (currentState.getParents().isEmpty()) {
-          //the initial state
-          return GET_PRECISION.apply(state);
-        }
-
-        while (!worklist.isEmpty()) {
-          currentBARGstate = worklist.poll();
-
-          for (ARGState child : currentBARGstate.getChildren()) {
-            if (!foundStates.contains(child)) {
-              foundStates.add(child);
-              worklist.add((BackwardARGState)child);
-            }
-            currentState = currentBARGstate.getARGState();
-            ARGState argChild = ((BackwardARGState)child).getARGState();
-            if (!currentState.getChildren().contains(argChild)) {
-              //entry or exit node of a block
-              if (AbstractStates.extractLocation(currentState) instanceof CFunctionEntryNode) {
-                continue;
-              }
-              boolean parentIsFound = false;
-              for (ARGState entryState : argChild.getParents()) {
-                if (foundStates.contains(entryState)) {
-                  //We do not miss the state at precision collection
-                  parentIsFound = true;
-                  break;
-                }
-              }
-              if (!parentIsFound) {
-                targetStates.add((BackwardARGState)child);
-              }
-            }
-          }
-        }
-        Collection<VariableTrackingPrecision> valuePrecisions = new HashSet<>();
-        Collection<PredicatePrecision> predicatePrecisions = new HashSet<>();
-        Precision replacedPrecision = null;
-
-        for (BackwardARGState targetState : targetStates) {
-          ARGState argState = (targetState).getARGState();
-
-          ReachedSet currentReachedSet = getReachedSet(targetState);
-          if (currentReachedSet == null) {
-            //The main reached set can not be extracted.
-            //return GET_PRECISION.apply(state);
-          } else {
-            Precision targetPrecision = currentReachedSet.getPrecision(argState);
-            replacedPrecision = collectPrecision(currentReachedSet, argState, targetPrecision, new HashSet<>());
-            if (targetStates.size() == 1) {
-              return replacedPrecision;
-            } else {
-              VariableTrackingPrecision newVPrecision = Precisions.extractPrecisionByType(replacedPrecision, VariableTrackingPrecision.class);
-              if (!newVPrecision.isEmpty()) {
-                valuePrecisions.add(newVPrecision);
-              }
-              PredicatePrecision newPPrecision = Precisions.extractPrecisionByType(replacedPrecision, PredicatePrecision.class);
-              if (!newPPrecision.isEmpty()) {
-                predicatePrecisions.add(newPPrecision);
-              }
-            }
-          }
-        }
-        if (replacedPrecision != null) {
-          VariableTrackingPrecision initialValuePrecision = Precisions.extractPrecisionByType(replacedPrecision, VariableTrackingPrecision.class);
-          PredicatePrecision newPredicatePrecision = PredicatePrecision.unionOf(predicatePrecisions);
-          VariableTrackingPrecision newValuePrecision = initialValuePrecision;
-
-          for (VariableTrackingPrecision prec : valuePrecisions) {
-            newValuePrecision = newValuePrecision.join(prec);
-          }
-          replacedPrecision = Precisions.replaceByType(replacedPrecision, newValuePrecision, VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
-          replacedPrecision = Precisions.replaceByType(replacedPrecision, newPredicatePrecision, Predicates.instanceOf(PredicatePrecision.class));
-          return replacedPrecision;
-        }
-        /*if (data.hasInitialState(argState)) {
-          ReachedSet rSet = data.getReachedSetForInitialState(argState);
-          Precision prec = rSet.getPrecision(rSet.getLastState());
-          return prec;
-          //PredicatePrecision pPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
-          //VariableTrackingPrecision vPrec = Precisions.extractPrecisionByType(prec, VariableTrackingPrecision.class);
-        }*/
-        return GET_PRECISION.apply(state);
-      }
-
-      @Override
-      public void forEach(BiConsumer<? super AbstractState, ? super Precision> pAction) {
-        subgraph.forEach(state -> pAction.accept(state, GET_PRECISION.apply(state)));
-      }
-
-      @Override
-      public boolean contains(AbstractState state) {
-        return subgraph.contains(state);
-      }
-
-      @Override
-      public boolean isEmpty() {
-        return subgraph.isEmpty();
-      }
-
-      @Override
-      public int size() {
-        throw new UnsupportedOperationException("should not be needed");
-      }
-
-      private Precision collectPrecision(ReachedSet reached, AbstractState state, Precision pTargetPrecision,
-          Collection<ReachedSet> handledSets) {
-
-        Collection<VariableTrackingPrecision> valuePrecisions = new HashSet<>();
-        Collection<PredicatePrecision> predicatePrecisions = new HashSet<>();
-        Queue<ARGState> worklist = new LinkedList<>();
-        Set<ARGState> handledStates = new HashSet<>();
-        BAMDataManager data = bamCpa.getData();
-        ARGState currentState;
-        Precision currentPrecision;
-
-        worklist.add((ARGState) state);
-        handledStates.add((ARGState) state);
-
-        while (!worklist.isEmpty()) {
-          currentState = worklist.poll();
-          if (currentState.isCovered() || currentState.isDestroyed()) {
-            continue;
-          }
-
-          currentPrecision = reached.getPrecision(currentState);
-          VariableTrackingPrecision newVPrecision = Precisions.extractPrecisionByType(currentPrecision, VariableTrackingPrecision.class);
-          if (!newVPrecision.isEmpty()) {
-            valuePrecisions.add(newVPrecision);
-          }
-          PredicatePrecision newPPrecision = Precisions.extractPrecisionByType(currentPrecision, PredicatePrecision.class);
-          if (!newPPrecision.isEmpty()) {
-            predicatePrecisions.add(newPPrecision);
-          }
-          for (ARGState child : currentState.getChildren()) {
-            if (!handledStates.contains(child)) {
-              handledStates.add(child);
-              worklist.add(child);
-            }
-          }
-          if (data.hasInitialState(currentState)) {
-            ReachedSet other = data.getReachedSetForInitialState(currentState);
-            if (!handledSets.contains(other)) {
-              Precision pPrecision;
-              if (collectedPrecision.containsKey(other)) {
-                pPrecision = collectedPrecision.get(other);
-              } else {
-
-                AbstractState reducedState = other.getFirstState();
-                handledSets.add(other);
-                pPrecision = collectPrecision(other, reducedState, pTargetPrecision, handledSets);
-                collectedPrecision.put(reached, pPrecision);
-
-              }
-              newVPrecision = Precisions.extractPrecisionByType(pPrecision, VariableTrackingPrecision.class);
-              if (!newVPrecision.isEmpty()) {
-                valuePrecisions.add(newVPrecision);
-              }
-              newPPrecision = Precisions.extractPrecisionByType(pPrecision, PredicatePrecision.class);
-              if (!newPPrecision.isEmpty()) {
-                predicatePrecisions.add(newPPrecision);
-              }
-            }
-          }
-        }
-        VariableTrackingPrecision initialValuePrecision = Precisions.extractPrecisionByType(pTargetPrecision, VariableTrackingPrecision.class);
-        PredicatePrecision newPredicatePrecision = PredicatePrecision.unionOf(predicatePrecisions);
-        VariableTrackingPrecision newValuePrecision = initialValuePrecision;
-
-        for (VariableTrackingPrecision prec : valuePrecisions) {
-          newValuePrecision = newValuePrecision.join(prec);
-        }
-        pTargetPrecision = Precisions.replaceByType(pTargetPrecision, newValuePrecision, VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
-        pTargetPrecision = Precisions.replaceByType(pTargetPrecision, newPredicatePrecision, Predicates.instanceOf(PredicatePrecision.class));
-        return pTargetPrecision;
-      }
-
-      private ReachedSet getReachedSet(BackwardARGState state) {
-        BackwardARGState currentState = state;
-        ARGState currentARG;
-        ARGState targetState = state.getARGState();
-        Queue<ARGState> worklist = new LinkedList<>();
-        Set<ARGState> handledStates = new HashSet<>();
-        BAMDataManager data = bamCpa.getData();
-        worklist.add(currentState);
-        handledStates.add(currentState);
-
-        while (!worklist.isEmpty()) {
-          currentState = (BackwardARGState) worklist.poll();
-          currentARG = currentState.getARGState();
-          if (data.hasInitialState(currentARG)) {
-            ReachedSet rSet = data.getReachedSetForInitialState(currentARG);
-            if (rSet.contains(targetState)) {
-              return rSet;
-            }
-          }
-          for (ARGState parent : currentState.getParents()) {
-            if (!handledStates.contains(parent)) {
-              handledStates.add(parent);
-              worklist.add(parent);
-            }
-          }
-        }
-        return null;
-      }
-    };
+    return new UnmodifiableBAMReachedSet();
   }
 
   @SuppressWarnings("unchecked")
