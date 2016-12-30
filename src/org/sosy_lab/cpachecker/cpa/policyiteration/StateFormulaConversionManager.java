@@ -45,6 +45,9 @@ public class StateFormulaConversionManager {
   @Option(description="Remove redundant items when abstract values.")
   private boolean simplifyDotOutput = false;
 
+  @Option(description="Display formulas associated with intermediate states in DOT output.")
+  private boolean displayFormulasInDotOutput = false;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final TemplateToFormulaConversionManager
@@ -77,6 +80,10 @@ public class StateFormulaConversionManager {
     pfmgr = pPfmgr;
     solver = pSolver;
     dotWriter = new PolicyDotWriter();
+  }
+
+  boolean shouldDisplayFormulasInDotOutput() {
+    return displayFormulasInDotOutput;
   }
 
   /**

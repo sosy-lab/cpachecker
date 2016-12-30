@@ -110,10 +110,14 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public String toDOTLabel() {
-    if (counterexample == null) {
+    if (counterexample != null) {
+      return Joiner.on('\n').join(counterexample);
+    }
+    if (startingAbstraction.getManager().shouldDisplayFormulasInDotOutput()) {
+      return pathFormula.toString();
+    } else {
       return "";
     }
-    return Joiner.on('\n').join(counterexample);
   }
 
   @Override

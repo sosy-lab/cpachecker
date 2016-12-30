@@ -83,6 +83,10 @@ public final class PolicyAbstractedState extends PolicyState
     sibling = pSibling;
   }
 
+  StateFormulaConversionManager getManager() {
+    return manager;
+  }
+
   public Optional<PolicyAbstractedState> getSibling() {
     return Optional.ofNullable(sibling);
   }
