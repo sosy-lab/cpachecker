@@ -250,8 +250,12 @@ public class CBinaryExpressionBuilder {
    * @param op2 for logging only
    */
   @VisibleForTesting
-  CType getResultTypeForBinaryOperation(final CType pType1, final CType pType2,
-      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) throws UnrecognizedCCodeException {
+  CType getResultTypeForBinaryOperation(
+      final CType pType1,
+      final CType pType2,
+      final BinaryOperator pBinOperator,
+      final CExpression op1,
+      final CExpression op2) throws UnrecognizedCCodeException {
     /*
      * ISO-C99 (6.5.8 #6): Relational operators
      * Each of the operators <, >, <=, and >= shall yield 1
@@ -284,7 +288,30 @@ public class CBinaryExpressionBuilder {
   }
 
   /**
-   * private method, only visible for Junit-test.
+   * Public wrapper around {@link #getCalculationTypeForBinaryOperation(CType, CType, BinaryOperator, CExpression, CExpression)}
+   * Should only be used when the types are guaranteed to work out.
+   *
+   * @param pType1 type of the first operand
+   * @param pType2 type of the second operand
+   * @param pBinOperator for logging only
+   * @param op1 for logging only
+   * @param op2 for logging only
+   * @return resulting calculation type
+   */
+  public CType getCalculationTypeForBinaryOperationUnchecked(
+      CType pType1,
+      CType pType2,
+      final BinaryOperator pBinOperator,
+      final CExpression op1,
+      final CExpression op2) {
+    try {
+      return getCalculationTypeForBinaryOperation(pType1, pType2, pBinOperator, op1, op2);
+    } catch (UnrecognizedCCodeException pE) {
+      throw new UnsupportedOperationException("Unexpected exception", pE);
+    }
+  }
+
+  /**
    * <p>
    * This method returns the "common real type" of a binary expression.
    * For detail see ISO-C-Standard:
@@ -301,8 +328,12 @@ public class CBinaryExpressionBuilder {
    * @param op2 for logging only
    */
   @VisibleForTesting
-  CType getCalculationTypeForBinaryOperation(CType pType1, CType pType2,
-      final BinaryOperator pBinOperator, final CExpression op1, final CExpression op2) throws UnrecognizedCCodeException {
+  CType getCalculationTypeForBinaryOperation(
+      CType pType1,
+      CType pType2,
+      final BinaryOperator pBinOperator,
+      final CExpression op1,
+      final CExpression op2) throws UnrecognizedCCodeException {
 
     /* CalculationType of SHIFT is the type of the first operand.
      *
