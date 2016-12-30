@@ -1,15 +1,23 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.ABSTRACTION_REQUIRED;
-import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.BOUND_COMPUTED;
-import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
 import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -17,12 +25,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -40,7 +45,6 @@ import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningMa
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -61,21 +65,6 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
 
 /**
  * Main logic in a single class.
@@ -132,13 +121,6 @@ public class PolicyIterationManager {
   @Option(secure=true, description="Generate new templates using polyhedra convex hull")
   private boolean generateTemplatesUsingConvexHull = false;
 
-  @Option(secure=true, description="Use caching optimization solver")
-  private boolean useCachingOptSolver = false;
-
-  @Option(secure=true, description="Compute abstraction for larger templates "
-      + "using decomposition")
-  private boolean computeAbstractionByDecomposition = false;
-
   @Option(secure=true, description="Number of value determination steps allowed before widening is run."
       + " Value of '-1' runs value determination until convergence.")
   private int wideningThreshold = -1;
@@ -167,7 +149,6 @@ public class PolicyIterationManager {
   private final RCNFManager rcnfManager;
   private final TemplatePrecision initialPrecision;
   private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
-  @Nullable private BlockPartitioning partitioning;
 
   public PolicyIterationManager(
       Configuration pConfig,
@@ -300,11 +281,6 @@ public class PolicyIterationManager {
       final UnmodifiableReachedSet states,
       final AbstractState pArgState) throws CPAException, InterruptedException {
 
-    if (inputState.isAbstract()) {
-
-      // TODO: might have to change sibling and locationID if we are coming from BAM.
-      return Optional.of(inputState);
-    }
     Preconditions.checkState(!inputState.isAbstract());
 
     PolicyIntermediateState iState = inputState.asIntermediate();
@@ -435,14 +411,10 @@ public class PolicyIterationManager {
     if (sibling.isPresent()) {
       locationID = sibling.get().getLocationID();
     } else {
-      locationID = getFreshLocationID();
+      locationID = locationIDGenerator.getFreshId();
       logger.log(Level.INFO, "Generating new location ID", locationID, " for node ", node);
     }
     return locationID;
-  }
-
-  int getFreshLocationID() {
-    return locationIDGenerator.getFreshId();
   }
 
   /**
@@ -749,13 +721,9 @@ public class PolicyIterationManager {
       if ((bound.isPresent()
               && !templateToFormulaConversionManager.isOverflowing(template, bound.get()))
           || unsignedAndLower) {
-        Rational boundValue;
-        if (bound.isPresent() && unsignedAndLower) {
-          boundValue = Rational.max(bound.get(), Rational.ZERO);
-        } else if (bound.isPresent()){
-          boundValue = bound.get();
-        } else {
-          boundValue = Rational.ZERO;
+        Rational boundValue = bound.orElse(Rational.ZERO);
+        if (unsignedAndLower) {
+          boundValue = Rational.max(boundValue, Rational.ZERO);
         }
 
         try (Model model = optEnvironment.getModel()) {
@@ -795,13 +763,9 @@ public class PolicyIterationManager {
   }
 
   private final Map<Formula, Set<String>> functionNamesCache = new HashMap<>();
+
   private Set<String> extractFunctionNames(Formula f) {
-    Set<String> out = functionNamesCache.get(f);
-    if (out == null) {
-      out = fmgr.extractFunctionNames(f);
-      functionNamesCache.put(f, out);
-    }
-    return out;
+    return functionNamesCache.computeIfAbsent(f, k -> fmgr.extractFunctionNames(f));
   }
 
   /**
@@ -831,7 +795,7 @@ public class PolicyIterationManager {
 
     final Map<Template, PolicyBound> abstraction = new HashMap<>();
 
-    try (OptimizationProverEnvironment optEnvironment = newOptProver()) {
+    try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
       optEnvironment.push();
       optEnvironment.addConstraint(startConstraints);
@@ -846,33 +810,6 @@ public class PolicyIterationManager {
         Formula objective = templateToFormulaConversionManager.toFormula(
             pfmgr, fmgr, template, p);
         Set<String> objectiveVars = extractFunctionNames(objective);
-
-        if (computeAbstractionByDecomposition) {
-          Pair<DecompositionStatus, PolicyBound> res = computeByDecomposition(
-              template, p, lemmas, startConstraintLemmas, abstraction);
-          switch (res.getFirstNotNull()) {
-            case BOUND_COMPUTED:
-
-              // Put the computed bound.
-              PolicyBound bound = res.getSecondNotNull();
-              if (checkPolicyInitialCondition) {
-                bound = updatePolicyBoundDependencies(bound, objective);
-              }
-              abstraction.put(template, bound);
-              continue;
-            case UNBOUNDED:
-
-              // Any of the components is unbounded => the sum is unbounded as
-              // well.
-              continue;
-            case ABSTRACTION_REQUIRED:
-
-              // Continue with abstraction.
-              break;
-            default:
-              throw new UnsupportedOperationException("Unexpected case");
-          }
-        }
 
         Set<BooleanFormula> slicedConstraint = computeRelevantSubset(
             lemmas, startConstraintLemmas, objectiveVars);
@@ -912,15 +849,11 @@ public class PolicyIterationManager {
 
         switch (status) {
           case OPT:
-
             Optional<Rational> bound = optEnvironment.upper(handle, EPSILON);
             Optional<PolicyBound> policyBound = getPolicyBound(
                 template, precision, optEnvironment, bound, annotatedFormula,
                 p, generatorState, objective);
-            if (policyBound.isPresent()) {
-              abstraction.put(template, policyBound.get());
-            }
-
+            policyBound.ifPresent(pPolicyBound -> abstraction.put(template, pPolicyBound));
             logger.log(Level.FINE, "Got bound: ", bound);
             break;
 
@@ -941,7 +874,6 @@ public class PolicyIterationManager {
     }
 
     statistics.updateCounter.add(locationID);
-
     return PolicyAbstractedState.of(
         abstraction,
         generatorState.getNode(),
@@ -953,136 +885,6 @@ public class PolicyIterationManager {
         Optional.of(generatorState),
         pSibling);
   }
-
-  private OptimizationProverEnvironment newOptProver() {
-    if (useCachingOptSolver) {
-      return solver.newCachedOptEnvironment();
-    } else {
-      return solver.newOptEnvironment();
-    }
-  }
-
-  private PolicyBound updatePolicyBoundDependencies(
-      PolicyBound bound, Formula objective
-  ) throws SolverException, InterruptedException {
-    statistics.checkIndependenceTimer.start();
-    try {
-      if (solver.isUnsat(bfmgr.and(
-          bound.getFormula().getFormula(),
-          fmgr.makeGreaterThan(
-              objective,
-              fmgr.makeNumber(objective, bound.getBound()), true)
-      ))) {
-        return bound.withNoDependencies();
-      } else {
-        return bound;
-      }
-    } finally {
-      statistics.checkIndependenceTimer.stop();
-    }
-  }
-
-  enum DecompositionStatus {
-    BOUND_COMPUTED,
-    ABSTRACTION_REQUIRED,
-    UNBOUNDED,
-  }
-
-  /**
-   * Tries to shortcut an abstraction computation.
-   *
-   * @param lemmas Input in RCNF form.
-   */
-  private Pair<DecompositionStatus, PolicyBound> computeByDecomposition(
-      Template pTemplate,
-      PathFormula pFormula,
-      Set<BooleanFormula> lemmas,
-      Set<BooleanFormula> startConstraintLemmas,
-      Map<Template, PolicyBound> currentAbstraction) {
-
-    if (pTemplate.size() == 1) {
-      return Pair.of(ABSTRACTION_REQUIRED, null);
-    }
-
-    // Slices and bounds for all template sub-components.
-    List<Set<BooleanFormula>> slices = new ArrayList<>(pTemplate.size());
-    List<PolicyBound> policyBounds = new ArrayList<>();
-    List<Rational> coefficients = new ArrayList<>();
-
-    for (Entry<CIdExpression, Rational> e : pTemplate.getLinearExpression()) {
-      CIdExpression c = e.getKey();
-      Rational r = e.getValue();
-      LinearExpression<CIdExpression> le = LinearExpression.ofVariable(c);
-
-      Template singleton;
-      if (r.signum() < 0) {
-        singleton = Template.of(le.negate());
-      } else {
-        singleton = Template.of(le);
-      }
-
-      Set<String> variables = extractFunctionNames(
-          templateToFormulaConversionManager.toFormula(pfmgr, fmgr, singleton, pFormula)
-      );
-
-      // Subset of lemmas relevant to the set |variables|.
-      Set<BooleanFormula> lemmasSubset = computeRelevantSubset(
-          lemmas, startConstraintLemmas, variables);
-      slices.add(lemmasSubset);
-      policyBounds.add(currentAbstraction.get(singleton));
-      coefficients.add(r);
-    }
-
-    // Fast-fail iff not all lemmas in slices are disjoint: a simple quadratic
-    // test.
-    for (int sliceIdx=0; sliceIdx<slices.size(); sliceIdx++) {
-      for (int otherSliceIdx=sliceIdx+1; otherSliceIdx<slices.size(); otherSliceIdx++) {
-        Set<BooleanFormula> sliceA = slices.get(sliceIdx);
-        Set<BooleanFormula> sliceB = slices.get(otherSliceIdx);
-        if (!Sets.intersection(sliceA, sliceB).isEmpty()) {
-          return Pair.of(ABSTRACTION_REQUIRED, null);
-        }
-      }
-    }
-
-    // One unbounded => all unbounded (sign is taken into account).
-    if (policyBounds.stream().filter(policyBound -> policyBound == null)
-        .iterator().hasNext()) {
-      return Pair.of(UNBOUNDED, null);
-    }
-
-    // Abstraction required if not all predecessors, SSA forms,
-    // and pointer target sets are the same.
-    PolicyBound firstBound = policyBounds.get(0);
-    for (PolicyBound bound : policyBounds) {
-      if (!bound.getPredecessor().equals(firstBound.getPredecessor())
-          || !bound.getFormula().getSsa().equals(firstBound.getFormula().getSsa())
-          || !bound.getFormula().getPointerTargetSet().equals(firstBound
-                .getFormula().getPointerTargetSet())) {
-        return Pair.of(ABSTRACTION_REQUIRED, null);
-      }
-    }
-
-    Set<Template> allDependencies = new HashSet<>();
-    Set<BooleanFormula> policies = new HashSet<>();
-    Rational combinedBound = Rational.ZERO;
-    for (int i=0; i<policyBounds.size(); i++) {
-      PolicyBound bound = policyBounds.get(i);
-      combinedBound = combinedBound.plus(
-          bound.getBound().times(coefficients.get(i)));
-      allDependencies.addAll(bound.getDependencies());
-      policies.add(bound.getFormula().getFormula());
-    }
-    BooleanFormula policy = bfmgr.and(policies);
-
-    return Pair.of(BOUND_COMPUTED, PolicyBound.of(
-        firstBound.getFormula().updateFormula(policy),
-        combinedBound,
-        firstBound.getPredecessor(),
-        allDependencies
-    ));
-  }
-
 
   /**
    * @param supportingLemmas Closure computation should be done with respect
@@ -1206,13 +1008,6 @@ public class PolicyIterationManager {
   ) {
 
     CFANode node = iState.getNode();
-
-    // If BAM is enabled, and we are at the start/end of the partition,
-    // abstraction is necessary.
-    if (partitioning != null &&
-        (partitioning.isCallNode(node) || partitioning.isReturnNode(node))) {
-      return true;
-    }
 
     switch (abstractionLocations) {
       case ALL:
@@ -1348,11 +1143,4 @@ public class PolicyIterationManager {
     return bfmgr.and(constraints);
   }
 
-  /**
-   * Ugly hack for communicating with
-   * {@link org.sosy_lab.cpachecker.cpa.bam.BAMCPA}.
-   */
-  void setPartitioning(BlockPartitioning pPartitioning) {
-    partitioning = pPartitioning;
-  }
 }

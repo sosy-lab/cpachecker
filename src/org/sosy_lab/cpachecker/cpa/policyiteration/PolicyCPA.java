@@ -12,7 +12,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -22,12 +21,11 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -53,7 +51,7 @@ import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager
  */
 @Options(prefix="cpa.lpi")
 public class PolicyCPA extends SingleEdgeTransferRelation
-    implements ConfigurableProgramAnalysisWithBAM,
+    implements ConfigurableProgramAnalysis,
                AdjustableConditionCPA,
                ReachedSetAdjustingCPA,
                StatisticsProvider,
@@ -283,17 +281,6 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         (PolicyState) state1, (PolicyState) state2
     );
   }
-
-  @Override
-  public Reducer getReducer() {
-    return new PolicyReducer(policyIterationManager, fmgr, stateFormulaConversionManager, pfmgr);
-  }
-
-  @Override
-  public void setPartitioning(BlockPartitioning pPartitioning) {
-    policyIterationManager.setPartitioning(pPartitioning);
-  }
-
 
   @Override
   public void close() {
