@@ -23,34 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.templates;
 
-import com.google.common.collect.Iterables;
-
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.stream.Stream;
-
 /**
  * Linear expression over program variables.
  */
 public class Template {
-  // todo: switch to MemoryLocation, additionally track type.
   private final LinearExpression<CIdExpression> linearExpression;
-
-  public Stream<String> getUsedVars() {
-    return linearExpression.getMap().keySet()
-        .stream()
-        .map(s -> s.getDeclaration().getQualifiedName());
-  }
 
   /**
    * Template type.
@@ -74,7 +61,28 @@ public class Template {
   }
 
   public Kind getKind() {
-    return getKind(linearExpression);
+    int s = linearExpression.size();
+    Iterator<Rational> it = linearExpression.getMap().values().iterator();
+
+    if (s == 1 && it.next().equals(Rational.ONE)) {
+      return Kind.UPPER_BOUND;
+
+    } else if (s == 1 && it.next().equals(Rational.NEG_ONE)) {
+      return Kind.NEG_LOWER_BOUND;
+
+    } else if (s == 2) {
+      Rational a = it.next();
+      Rational b = it.next();
+      if (a.equals(Rational.ONE) && b.equals(Rational.ONE)) {
+        return Kind.SUM;
+      } else if (a.equals(Rational.NEG_ONE) && b.equals(Rational.NEG_ONE)) {
+        return Kind.NEG_SUM_LOWER_BOUND;
+      } else if ((a.equals(Rational.ONE) && b.equals(Rational.NEG_ONE))
+          || (a.equals(Rational.NEG_ONE) && b.equals(Rational.ONE))) {
+        return Kind.DIFFERENCE;
+      }
+    }
+    return Kind.COMPLEX;
   }
 
   public LinearExpression<CIdExpression> getLinearExpression() {
@@ -93,46 +101,13 @@ public class Template {
   }
 
   public boolean isIntegral() {
-    for (Entry<CIdExpression, Rational> e : linearExpression) {
-      Rational coeff = e.getValue();
-      CIdExpression id = e.getKey();
-      if (!(coeff.isIntegral() &&
-          ((CSimpleType)id.getExpressionType()).getType().isIntegerType())) {
-        return false;
-      }
-    }
-    return true;
+    return linearExpression.getMap().entrySet().stream()
+        .allMatch(e -> e.getValue().isIntegral()
+            && ((CSimpleType)e.getKey().getExpressionType()).getType().isIntegerType());
   }
 
   public static Template of(LinearExpression<CIdExpression> expr) {
     return new Template(expr);
-  }
-
-  private static Kind getKind(LinearExpression<CIdExpression> expr) {
-    int s = expr.size();
-    if (s == 1
-        && Objects.equals(Iterables.getOnlyElement(expr).getValue(), Rational.ONE)) {
-
-      return Kind.UPPER_BOUND;
-    } else if (s == 1
-        && Objects.equals(Iterables.getOnlyElement(expr).getValue(), Rational.NEG_ONE)) {
-
-      return Kind.NEG_LOWER_BOUND;
-    } else if (s == 2) {
-      Iterator<Entry<CIdExpression, Rational>> it = expr.iterator();
-      Rational a = it.next().getValue();
-      Rational b = it.next().getValue();
-      if (Objects.equals(a, Rational.ONE) && Objects.equals(b, Rational.ONE)) {
-        return Kind.SUM;
-      } else if (Objects.equals(a, Rational.NEG_ONE)
-          && Objects.equals(b, Rational.NEG_ONE)) {
-        return Kind.NEG_SUM_LOWER_BOUND;
-      } else if ((Objects.equals(a, Rational.ONE) && Objects.equals(b, Rational.NEG_ONE))
-          || (Objects.equals(a, Rational.NEG_ONE) && Objects.equals(b, Rational.ONE))) {
-        return Kind.DIFFERENCE;
-      }
-    }
-    return Kind.COMPLEX;
   }
 
   @Override
@@ -166,26 +141,14 @@ public class Template {
    */
   @Override
   public String toString() {
-
     // Sort by .getQualifiedName() first.
-    Map<String, CIdExpression> mapping = new HashMap<>();
-    ArrayList<String> varNames = new ArrayList<>();
-
-    for (Entry<CIdExpression, Rational> monomial : linearExpression) {
-      CIdExpression key = monomial.getKey();
-      String varName = key.getDeclaration().getQualifiedName();
-
-      mapping.put(varName, key);
-      varNames.add(varName);
-    }
-
-    Collections.sort(varNames);
+    List<CIdExpression> keys = new ArrayList<>(linearExpression.getMap().keySet());
+    keys.sort(Comparator.comparing(pO -> pO.getDeclaration().getQualifiedName()));
 
     StringBuilder b = new StringBuilder();
-    for (String varName : varNames) {
-      Rational coeff = linearExpression.getCoeff(mapping.get(varName));
-
-      LinearExpression.writeMonomial(varName, coeff, b);
+    for (CIdExpression var : keys) {
+      Rational coeff = linearExpression.getCoeff(var);
+      LinearExpression.writeMonomial(var.getDeclaration().getQualifiedName(), coeff, b);
     }
     return b.toString();
   }

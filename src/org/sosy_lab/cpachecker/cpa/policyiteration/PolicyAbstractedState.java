@@ -27,7 +27,7 @@ public final class PolicyAbstractedState extends PolicyState
   /**
    * Finite bounds for templates: binds each template from above.
    */
-  private final ImmutableMap<Template, PolicyBound> upperBounds;
+  private final ImmutableMap<Template, PolicyBound> abstraction;
 
   /**
    * Expected starting {@link PointerTargetSet} and {@link SSAMap}.
@@ -56,7 +56,7 @@ public final class PolicyAbstractedState extends PolicyState
   /**
    * A pointer to the sibling state.
    *
-   * <p>Only valid for states on which value determination was just performed.
+   * <p>Only exists for states on which value determination was just performed.
    */
   private final transient @Nullable PolicyAbstractedState sibling;
 
@@ -64,7 +64,7 @@ public final class PolicyAbstractedState extends PolicyState
 
   private PolicyAbstractedState(
       CFANode node,
-      Map<Template, PolicyBound> pUpperBounds,
+      Map<Template, PolicyBound> pAbstraction,
       int pLocationID,
       StateFormulaConversionManager pManager,
       SSAMap pSsaMap,
@@ -77,7 +77,7 @@ public final class PolicyAbstractedState extends PolicyState
     pointerTargetSet = pPointerTargetSet;
     extraInvariant = pPredicate;
     generator = pGenerator;
-    upperBounds = ImmutableMap.copyOf(pUpperBounds);
+    abstraction = ImmutableMap.copyOf(pAbstraction);
     locationID = pLocationID;
     manager = pManager;
     sibling = pSibling;
@@ -131,7 +131,7 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   public ImmutableMap<Template, PolicyBound> getAbstraction() {
-    return upperBounds;
+    return abstraction;
   }
 
   BooleanFormula getExtraInvariant() {
@@ -151,7 +151,7 @@ public final class PolicyAbstractedState extends PolicyState
    * <code>e</code> or an empty optional if it is unbounded.
    */
   Optional<PolicyBound> getBound(Template e) {
-    return Optional.ofNullable(upperBounds.get(e));
+    return Optional.ofNullable(abstraction.get(e));
   }
 
   /**
@@ -197,7 +197,7 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   public int size() {
-    return upperBounds.size();
+    return abstraction.size();
   }
 
   @Override
@@ -209,7 +209,7 @@ public final class PolicyAbstractedState extends PolicyState
   public String toDOTLabel() {
     return String.format(
         "(node=%s, locID=%s)%s%n",
-        getNode(), locationID, manager.toDOTLabel(upperBounds)
+        getNode(), locationID, manager.toDOTLabel(abstraction)
     );
   }
 
@@ -221,12 +221,12 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toString() {
     return String.format("(loc=%s, node=%s)%s", locationID, getNode(),
-        upperBounds);
+        abstraction);
   }
 
   @Override
   public Iterator<Entry<Template, PolicyBound>> iterator() {
-    return upperBounds.entrySet().iterator();
+    return abstraction.entrySet().iterator();
   }
 
   Optional<PolicyIntermediateState> getGeneratingState() {
@@ -249,7 +249,7 @@ public final class PolicyAbstractedState extends PolicyState
       return false;
     }
     PolicyAbstractedState entries = (PolicyAbstractedState) pO;
-    return Objects.equals(upperBounds, entries.upperBounds) &&
+    return Objects.equals(abstraction, entries.abstraction) &&
         Objects.equals(ssaMap, entries.ssaMap) &&
         Objects.equals(pointerTargetSet, entries.pointerTargetSet) &&
         Objects.equals(extraInvariant, entries.extraInvariant) &&
@@ -261,7 +261,7 @@ public final class PolicyAbstractedState extends PolicyState
     if (hashCache == 0) {
       hashCache = Objects.hash(
           getNode(),
-          upperBounds,
+          abstraction,
           ssaMap,
           pointerTargetSet,
           extraInvariant);

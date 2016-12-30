@@ -650,6 +650,7 @@ public class PolicyIterationManager {
         }
         optEnvironment.pop();
       }
+
     } catch(SolverException e){
       throw new CPATransferException("Failed maximization ", e);
     } finally{
@@ -825,14 +826,15 @@ public class PolicyIterationManager {
         // Skip updates if the edge does not have any variables mentioned in the
         // template.
         if (bfmgr.isTrue(f)) {
-          if (generatorState.getBackpointerState().getAbstraction().get(template) == null) {
+          Optional<PolicyBound> backpointerBound =
+              generatorState.getBackpointerState().getBound(template);
 
-            // Unbounded.
+          // Unbounded.
+          if (!backpointerBound.isPresent()) {
             continue;
+          } else {
+            abstraction.put(template, backpointerBound.get());
           }
-
-          PolicyBound bound = generatorState.getBackpointerState().getAbstraction().get(template);
-          abstraction.put(template, bound);
         }
 
         optEnvironment.addConstraint(annotatedFormula);
