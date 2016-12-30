@@ -39,10 +39,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -54,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 
 
@@ -154,17 +157,90 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
         assert state instanceof BackwardARGState;
 
-        ARGState argState = ((BackwardARGState)state).getARGState();
+        //There may be returning
+        Set<ARGState> foundStates = new HashSet<>();
+        Queue<BackwardARGState> worklist = new LinkedList<>();
+        Set<BackwardARGState> targetStates = new TreeSet<>();
+        targetStates.add((BackwardARGState) state);
+        BackwardARGState currentBARGstate = (BackwardARGState)state;
+        ARGState currentState = currentBARGstate.getARGState();
+        foundStates.add(currentState);
+        worklist.add((BackwardARGState) state);
 
-        ReachedSet currentReachedSet = getReachedSet((BackwardARGState) state);
-        if (currentReachedSet == null) {
-          //The main reached set can not be extracted.
-        } else {
-          Precision targetPrecision = currentReachedSet.getPrecision(argState);
-          Precision newPrecision = collectPrecision(currentReachedSet, argState, targetPrecision, new HashSet<>());
-          return newPrecision;
+        if (currentState.getParents().isEmpty()) {
+          //the initial state
+          return GET_PRECISION.apply(state);
         }
 
+        while (!worklist.isEmpty()) {
+          currentBARGstate = worklist.poll();
+
+          for (ARGState child : currentBARGstate.getChildren()) {
+            if (!foundStates.contains(child)) {
+              foundStates.add(child);
+              worklist.add((BackwardARGState)child);
+            }
+            currentState = currentBARGstate.getARGState();
+            ARGState argChild = ((BackwardARGState)child).getARGState();
+            if (!currentState.getChildren().contains(argChild)) {
+              //entry or exit node of a block
+              if (AbstractStates.extractLocation(currentState) instanceof CFunctionEntryNode) {
+                continue;
+              }
+              boolean parentIsFound = false;
+              for (ARGState entryState : argChild.getParents()) {
+                if (foundStates.contains(entryState)) {
+                  //We do not miss the state at precision collection
+                  parentIsFound = true;
+                  break;
+                }
+              }
+              if (!parentIsFound) {
+                targetStates.add((BackwardARGState)child);
+              }
+            }
+          }
+        }
+        Collection<VariableTrackingPrecision> valuePrecisions = new HashSet<>();
+        Collection<PredicatePrecision> predicatePrecisions = new HashSet<>();
+        Precision replacedPrecision = null;
+
+        for (BackwardARGState targetState : targetStates) {
+          ARGState argState = (targetState).getARGState();
+
+          ReachedSet currentReachedSet = getReachedSet(targetState);
+          if (currentReachedSet == null) {
+            //The main reached set can not be extracted.
+            //return GET_PRECISION.apply(state);
+          } else {
+            Precision targetPrecision = currentReachedSet.getPrecision(argState);
+            replacedPrecision = collectPrecision(currentReachedSet, argState, targetPrecision, new HashSet<>());
+            if (targetStates.size() == 1) {
+              return replacedPrecision;
+            } else {
+              VariableTrackingPrecision newVPrecision = Precisions.extractPrecisionByType(replacedPrecision, VariableTrackingPrecision.class);
+              if (!newVPrecision.isEmpty()) {
+                valuePrecisions.add(newVPrecision);
+              }
+              PredicatePrecision newPPrecision = Precisions.extractPrecisionByType(replacedPrecision, PredicatePrecision.class);
+              if (!newPPrecision.isEmpty()) {
+                predicatePrecisions.add(newPPrecision);
+              }
+            }
+          }
+        }
+        if (replacedPrecision != null) {
+          VariableTrackingPrecision initialValuePrecision = Precisions.extractPrecisionByType(replacedPrecision, VariableTrackingPrecision.class);
+          PredicatePrecision newPredicatePrecision = PredicatePrecision.unionOf(predicatePrecisions);
+          VariableTrackingPrecision newValuePrecision = initialValuePrecision;
+
+          for (VariableTrackingPrecision prec : valuePrecisions) {
+            newValuePrecision = newValuePrecision.join(prec);
+          }
+          replacedPrecision = Precisions.replaceByType(replacedPrecision, newValuePrecision, VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
+          replacedPrecision = Precisions.replaceByType(replacedPrecision, newPredicatePrecision, Predicates.instanceOf(PredicatePrecision.class));
+          return replacedPrecision;
+        }
         /*if (data.hasInitialState(argState)) {
           ReachedSet rSet = data.getReachedSetForInitialState(argState);
           Precision prec = rSet.getPrecision(rSet.getLastState());
