@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -301,19 +302,10 @@ public class TopLevelSummaryCPA
       generatedSummaries = Collections.emptyList();
     }
 
-    boolean changed = false;
-
     for (Summary s : generatedSummaries) {
-      changed |= storeGeneratedSummary(s, functionName);
-//      storeGeneratedSummary(s, functionName);
+      //noinspection ResultOfMethodCallIgnored
+      storeGeneratedSummary(s, functionName);
     }
-
-//    // todo: if the generated summary
-//    if (!changed) {
-//
-//      // The summary was subsumed by the existing ones.
-//      return toReturn;
-//    }
 
     return toReturn;
   }
@@ -331,6 +323,7 @@ public class TopLevelSummaryCPA
    *
    * @return whether the collection was changed (if not, the summary was subsumed).
    */
+  @CanIgnoreReturnValue
   private boolean storeGeneratedSummary(
       Summary generatedSummary, String functionName)
       throws CPAException, InterruptedException {
@@ -354,9 +347,6 @@ public class TopLevelSummaryCPA
     boolean add = true;
     for (Summary existingSummary : matchingSummaries) {
 
-      // todo: STOP operator should be used instead.
-      // would actually make the API nicer as well.
-
       if (wrappedSummaryManager.isDescribedBy(generatedSummary, existingSummary)) {
 
         // Summary is subsumed, do nothing.
@@ -366,8 +356,6 @@ public class TopLevelSummaryCPA
     }
     if (add) {
       matchingSummaries.add(generatedSummary);
-
-      // todo: what about the matching case?..
       return true;
     } else {
       return false;

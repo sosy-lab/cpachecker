@@ -42,7 +42,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public interface SummaryManager {
 
   /**
-   * Calculate the abstract successors subject to a summary {@code pSummary}
+   * Calculate the abstract successors subject to a list of summaries {@code pSummaries},
+   * <b>assuming</b> they are all applicable at the callsite.
    *
    * @param pFunctionCallState Initial state, associated with a function call.
    *               Usually has an outgoing {@link FunctionCallEdge}.

@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import java.util.stream.IntStream;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -155,7 +154,6 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
           calledBlock
       );
     } else {
-      assertSameFunc(node);
 
       // Simply delegate.
       return wrappedTransferRelation.getAbstractSuccessors(state, precision);
@@ -168,13 +166,6 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
     }
     return Optional.of(pNode.getLeavingEdge(0));
   }
-
-  private void assertSameFunc(CFANode pNode) {
-    assert IntStream.range(0, pNode.getNumLeavingEdges())
-        .mapToObj(i -> pNode.getLeavingEdge(i))
-        .allMatch(e -> e.getSuccessor().getFunctionName().equals(pNode.getFunctionName()));
-  }
-
   /**
    * @param pCallsite State <b>outside</b> of the called block,
    *                  from where it was currently called.
@@ -187,8 +178,6 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
   ) throws CPAException, InterruptedException {
 
     List<Summary> summaries = ImmutableList.copyOf(summaryMapping.get(calledFunctionName));
-
-
     List<Summary> matchingSummaries = new ArrayList<>();
 
     // We can return multiple postconditions, one for each matching summary.
@@ -200,12 +189,15 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
     if (matchingSummaries.isEmpty()) {
       logger.log(Level.INFO, "No matching summary found for '",
-          calledFunctionName, "', requesting summary computation.");
+          calledFunctionName, "', requesting summary computation. Assuming for now the call is "
+              + "unreachable.");
 
+      // Weaken the call state.
       AbstractState weakenedCallState = wrappedSummaryManager.getWeakenedCallState(
           pCallsite, pPrecision, pBlock
       );
 
+      // Generate the state associated with the function entry.
       Collection<? extends AbstractState> entryState =
           wrappedTransferRelation.getAbstractSuccessors(weakenedCallState, pPrecision);
       Preconditions.checkState(entryState.size() == 1,
@@ -217,29 +209,16 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
           entryState.iterator().next(),
           pPrecision,
           pBlock));
+      return Collections.emptyList();
     } else {
       logger.log(Level.INFO, "Found matching summaries", matchingSummaries);
+      Collection<? extends AbstractState> out = wrappedSummaryManager.getAbstractSuccessorsForSummary(
+          pCallsite, pPrecision, summaries, pBlock, AbstractStates.extractLocation(pCallsite)
+      );
+      logger.log(Level.INFO, "Successors of the state", pCallsite, "after summary application "
+          + "are\n\n", out);
+      return out;
     }
-
-    if (summaries.isEmpty()) {
-
-      logger.log(Level.INFO, "No summaries were found for the called function '"
-              + pBlock.getFunctionName() + "', assuming the call from '",
-          AbstractStates.extractLocation(pCallsite).getFunctionName()
-              + "' is unreachable, will try later.");
-
-      // No summaries at all is equivalent to having a "bottom" summary.
-      // Hence no successors are returned.
-      return Collections.emptyList();
-    }
-
-    Collection<? extends AbstractState> out = wrappedSummaryManager.getAbstractSuccessorsForSummary(
-        pCallsite, pPrecision, summaries, pBlock, AbstractStates.extractLocation(pCallsite)
-    );
-    logger.log(Level.INFO, "Successors of the state", pCallsite, "after summary application "
-        + "are\n\n", out);
-
-    return out;
   }
 
   @Override
