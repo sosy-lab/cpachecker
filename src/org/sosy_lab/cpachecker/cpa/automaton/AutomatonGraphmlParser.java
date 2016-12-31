@@ -411,7 +411,6 @@ public class AutomatonGraphmlParser {
           }
         }
 
-        Element sourceStateNode = docDat.getNodeWithId(sourceStateId);
         Element targetStateNode = docDat.getNodeWithId(targetStateId);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
