@@ -131,6 +131,7 @@ import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -328,7 +329,13 @@ public class AutomatonGraphmlParser {
         enteringEdges.put(targetStateId, stateTransitionEdge);
 
         Element sourceStateNode = docDat.getNodeWithId(sourceStateId);
+        if (sourceStateNode == null) {
+          throw new WitnessParseException(String.format("Source %s of transition %s does not exist.", sourceStateId, transitionToString(stateTransitionEdge)));
+        }
         Element targetStateNode = docDat.getNodeWithId(targetStateId);
+        if (targetStateNode == null) {
+          throw new WitnessParseException(String.format("Target %s of transition %s does not exist.", targetStateId, transitionToString(stateTransitionEdge)));
+        }
         EnumSet<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceStateNode);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
         if (targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
@@ -404,6 +411,7 @@ public class AutomatonGraphmlParser {
           }
         }
 
+        Element sourceStateNode = docDat.getNodeWithId(sourceStateId);
         Element targetStateNode = docDat.getNodeWithId(targetStateId);
         EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
 
@@ -774,6 +782,20 @@ public class AutomatonGraphmlParser {
     } catch (CParserException e) {
       throw new InvalidConfigurationException("The witness automaton contains invalid C code!", e);
     }
+  }
+
+  private static String transitionToString(Node pStateTransitionEdge) {
+    if (pStateTransitionEdge == null) {
+      return "null";
+    }
+    NamedNodeMap attributes = pStateTransitionEdge.getAttributes();
+    if (attributes != null) {
+      Node id = attributes.getNamedItem("id");
+      if (id != null) {
+        return id.getNodeValue();
+      }
+    }
+    return pStateTransitionEdge.toString();
   }
 
   private static void checkRequiredField(Node pGraphNode, KeyDef pKey)
@@ -1514,9 +1536,7 @@ public class AutomatonGraphmlParser {
     }
 
     private Element getNodeWithId(String nodeId) {
-      Element result = getIdToNodeMap().get(nodeId);
-      Preconditions.checkNotNull(result, "Node not found. Id: " + nodeId);
-      return result;
+      return getIdToNodeMap().get(nodeId);
     }
 
     private String getDataValueWithDefault(
@@ -1704,7 +1724,7 @@ public class AutomatonGraphmlParser {
     private static final long serialVersionUID = -6357416712866877118L;
 
     public WitnessParseException(String pMessage) {
-      super(pMessage);
+      super("Cannot parse witness: " + pMessage);
     }
 
   }
