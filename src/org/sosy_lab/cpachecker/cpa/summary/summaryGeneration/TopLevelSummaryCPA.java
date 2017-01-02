@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -78,8 +77,8 @@ import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
-import org.sosy_lab.cpachecker.cpa.summary.summaryUsage.SummaryComputationRequest;
 import org.sosy_lab.cpachecker.cpa.summary.summaryUsage.SummaryApplicationCPA;
+import org.sosy_lab.cpachecker.cpa.summary.summaryUsage.SummaryComputationRequest;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -113,8 +112,6 @@ public class TopLevelSummaryCPA
   private final ReachedSetFactory reachedSetFactory;
   private final BlockManager blockManager;
   private final SummaryManager wrappedSummaryManager;
-  private final StopOperator wrappedStopOperator;
-  private final MergeOperator wrappedMergeOperator;
   private final SummaryComputationStatistics statistics;
   private final LogManager logger;
   private final CFA cfa;
@@ -152,8 +149,6 @@ public class TopLevelSummaryCPA
     wrapped = new SummaryApplicationCPA(
         pWrapped, computedSummaries, blockManager, pLogger);
     wrappedSummaryManager = wrapped.getSummaryManager();
-    wrappedMergeOperator = wrapped.getMergeOperator();
-    wrappedStopOperator = wrapped.getStopOperator();
 
     algorithmFactory = new CPAAlgorithmFactory(
         wrapped, pLogger, pConfig, pShutdownNotifier
@@ -195,7 +190,6 @@ public class TopLevelSummaryCPA
     ReachedSet reached = summaryComputationState.getReached();
     logger.log(Level.INFO, "Processing computation request for '",
         functionName, "', current reachedSet size is " + reached.size());
-
     CPAAlgorithm algorithm = algorithmFactory.newInstance();
 
     // todo: check the algorithm status. What about termination? That can be used as well.
@@ -207,7 +201,9 @@ public class TopLevelSummaryCPA
     // Requests for summary computation is not empty:
     // put the new requests into the priority queue,
     // as well as the updated request for the currently processed function.
+    // Coverage within the computation requests is taken care of using the domain.
     List<SummaryComputationState> toReturn = new ArrayList<>();
+    logger.log(Level.INFO, "# requests made: " + wrapped.getSummaryComputationRequests().size());
     for (SummaryComputationRequest req : Iterables.consumingIterable(
                                   wrapped.getSummaryComputationRequests())) {
       ReachedSet newReached = reachedSetFactory.create();
@@ -228,8 +224,8 @@ public class TopLevelSummaryCPA
       toReEnqueue.add(req.getCallingContext());
 
       logger.log(Level.INFO,
-          "Intraprocedural requested for function ", scs.getFunctionName()
-            + " with entry state ", req.getFunctionEntryState());
+          "Intraprocedural analysis requested for function '", scs.getFunctionName()
+            + "' with entry state:\n", req.getFunctionEntryState());
       toReturn.add(scs);
     }
 
@@ -240,7 +236,7 @@ public class TopLevelSummaryCPA
     if (!toReturn.isEmpty()) {
 
       toReturn.add(summaryComputationState.withNewReachedSize(reached.size()));
-      logger.log(Level.INFO, "Re-requesting intraprocedural for '",
+      logger.log(Level.INFO, "Re-requesting intraprocedural analysis for '",
           summaryComputationState.getFunctionName(), "'");
     }
 
@@ -265,7 +261,6 @@ public class TopLevelSummaryCPA
       ).filter(ARGState.class).filter(s -> s.getChildren().isEmpty()).toList();
     }
 
-
     if (hasTargetState || hasWaitingState) {
 
       logger.log(Level.INFO, "Has target state = " + hasTargetState,
@@ -281,16 +276,29 @@ public class TopLevelSummaryCPA
     // and there was a way to a "return" node.
     Collection<? extends Summary> generatedSummaries;
     if (!returnStates.isEmpty() &&
-        !summaryComputationState.getBlock().getFunctionName().equals(
+        !summaryComputationState.getBlock().getName().equals(
             cfa.getMainFunction().getFunctionName())) {
+
+      // We actually need states associated with the "join" nodes: one transition after the ones
+      // associated with the "return" nodes.
+      List<AbstractState> joinedStates = new ArrayList<>(returnStates.size());
+      List<Precision> joinedPrecisions = new ArrayList<>(returnStates.size());
+      for (AbstractState s : returnStates) {
+        Precision p = reached.getPrecision(s);
+        for (AbstractState n : wrapped.getDelegatedSuccessors(s, p)) {
+
+          joinedStates.add(n);
+
+          // todo: account for the precision being possibly adjusted, need to take the new one.
+          joinedPrecisions.add(p);
+        }
+      }
 
       generatedSummaries = wrappedSummaryManager.generateSummaries(
           summaryComputationState.getCallingContext().get(),
           summaryComputationState.getEntryPrecision(),
-          returnStates,
-          returnStates.stream().map(
-              s -> reached.getPrecision(s)
-          ).collect(Collectors.toList()),
+          joinedStates,
+          joinedPrecisions,
           summaryComputationState.getEntryLocation(),
           summaryComputationState.getBlock()
       );
@@ -375,15 +383,17 @@ public class TopLevelSummaryCPA
     }
 
     if (sState1.getEntryState() == sState2.getEntryState()
-        && sState1.getReachedSize() == sState2.getReachedSize()) {
+        && sState1.getReachedSize() <= sState2.getReachedSize()) {
       return true;
     }
 
-    if (joinSummaries && wrapped.getStopOperator().stop(
-        sState1.getEntryState(),
-        Collections.singleton(sState2.getEntryState()),
-        sState2.getEntryPrecision()
-    )) {
+    // todo: what about the size of the reached set?
+    // we assume with a set exploration order, bigger=better?
+    if (joinSummaries
+        && wrapped.getStopOperator().stop(
+            sState1.getEntryState(), Collections.singleton(sState2.getEntryState()),
+        sState2.getEntryPrecision())
+        && sState1.getReachedSize() <= sState2.getReachedSize()) {
       return true;
     }
 

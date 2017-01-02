@@ -60,11 +60,11 @@ public class CallstackCPASummaryManager implements SummaryManager {
       AbstractState pState, Precision pPrecision, Block pBlock) {
     CallstackState cState = (CallstackState) pState;
     if (cState.getDepth() == 1) {
-      return cState;
+      return pState;
     } else {
 
       return new CallstackState(
-      // Remove all the frames except for the very last one.
+          // Remove all the frames except for the very last one.
           null, cState.getCurrentFunction(), cState.getCallNode()
       );
     }
@@ -73,12 +73,14 @@ public class CallstackCPASummaryManager implements SummaryManager {
   @Override
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
-      Precision pEntryPrecision,
-      List<? extends AbstractState> pReturnState,
-      List<Precision> pReturnPrecision,
+      Precision pCallPrecision,
+      List<? extends AbstractState> pJoinStates,
+      List<Precision> pJoinPrecisions,
       CFANode pEntryNode,
       Block pBlock) {
-    return Collections.singletonList(new CallstackSummary(pEntryNode));
+
+    CallstackState cCallstackState = (CallstackState) pCallState;
+    return Collections.singletonList(new CallstackSummary(cCallstackState));
   }
 
   @Override
@@ -101,8 +103,10 @@ public class CallstackCPASummaryManager implements SummaryManager {
       AbstractState pCallsite
   ) throws CPAException, InterruptedException {
 
-    // todo: any cases where it's not the case? probably should actually check.
-    return true;
+    CallstackSummary cSummary = (CallstackSummary) pSummary;
+    CallstackState cCallsite = (CallstackState) pCallsite;
+
+    return cCallsite.sameStateInProofChecking(cSummary.getCallsiteCallstack());
   }
 
   /**
@@ -111,18 +115,14 @@ public class CallstackCPASummaryManager implements SummaryManager {
    */
   private static class CallstackSummary implements Summary {
 
-    private final CFANode entryNode;
+    private final CallstackState callsiteCallstack;
 
-    private CallstackSummary(CFANode pEntryNode) {
-      entryNode = pEntryNode;
+    private CallstackSummary(CallstackState pCallsiteCallstack) {
+      callsiteCallstack = pCallsiteCallstack;
     }
 
-    public CFANode getEntryNode() {
-      return entryNode;
-    }
-
-    public String getFunctionName() {
-      return entryNode.getFunctionName();
+    public CallstackState getCallsiteCallstack() {
+      return callsiteCallstack;
     }
 
     @Override
@@ -134,19 +134,17 @@ public class CallstackCPASummaryManager implements SummaryManager {
         return false;
       }
       CallstackSummary that = (CallstackSummary) pO;
-      return Objects.equals(entryNode, that.entryNode);
+      return callsiteCallstack.sameStateInProofChecking(that.callsiteCallstack);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(entryNode);
+      return Objects.hash(callsiteCallstack);
     }
 
     @Override
     public String toString() {
-      return "CallstackSummary{" +
-          "entryNode=" + entryNode +
-          '}';
+      return "CallstackSummary{callsiteStack=" + callsiteCallstack.getStack() + '}';
     }
   }
 }

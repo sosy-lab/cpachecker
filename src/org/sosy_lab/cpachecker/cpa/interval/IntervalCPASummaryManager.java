@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -34,15 +32,11 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
@@ -55,11 +49,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class IntervalCPASummaryManager implements SummaryManager {
 
   private final LogManager logger;
-  private final TransferRelation transferRelation;
 
-  IntervalCPASummaryManager(LogManager pLogger, TransferRelation pTransferRelation) {
+  IntervalCPASummaryManager(LogManager pLogger) {
     logger = pLogger;
-    transferRelation = pTransferRelation;
   }
 
   @Override
@@ -74,7 +66,7 @@ public class IntervalCPASummaryManager implements SummaryManager {
     List<AbstractState> out = new ArrayList<>(pSummaries.size());
     for (Summary s : pSummaries) {
       out.add(getAbstractSuccessorForSummary(
-          pFunctionCallState, (IntervalSummary) s, pBlock, pCallSite
+          pFunctionCallState, (IntervalSummary) s
       ));
     }
     return out;
@@ -82,49 +74,24 @@ public class IntervalCPASummaryManager implements SummaryManager {
 
   private IntervalAnalysisState getAbstractSuccessorForSummary(
       AbstractState pFunctionCallState,
-      IntervalSummary iSummary,
-      Block pBlock,
-      CFANode pCallSite) throws CPATransferException, InterruptedException {
+      IntervalSummary iSummary) throws CPATransferException, InterruptedException {
     // todo: remove all vars modified inside the block.
     IntervalAnalysisState copy = IntervalAnalysisState.copyOf(
         (IntervalAnalysisState) pFunctionCallState);
 
-    Collection<? extends AbstractState> out =
-        transferRelation.getAbstractSuccessorsForEdge(
-            iSummary.getStateAtExit(),
-            SingletonPrecision.getInstance(),
-            findJoinEdge(pBlock, pCallSite)
-        );
-    assert out.size() == 1;
+    IntervalAnalysisState joinedState = iSummary.getStateAtJoin();
 
-    IntervalAnalysisState joinedState = (IntervalAnalysisState) out.iterator().next();
     joinedState.getIntervalMap().forEach(
         (var, interval) -> copy.addInterval(var, interval, -1)
     );
 
-    logger.log(Level.INFO, "Postcondition after application of the summary",
-        iSummary, "to state", pFunctionCallState, "is", copy);
+    logger.log(Level.INFO, "Postcondition after application of the summary\n",
+        iSummary, "to state\n", pFunctionCallState, "is\n", copy);
     return copy;
   }
 
-  /**
-   * @return the edge going back into the calling function.
-   */
-  private CFAEdge findJoinEdge(Block pBlock, CFANode pCallsite) {
-    CFANode exitNode = pBlock.getExitNode();
-    CFANode joinNode = pCallsite.getLeavingSummaryEdge().getSuccessor();
-
-    for (int i=0; i<exitNode.getNumLeavingEdges(); i++) {
-      CFAEdge leavingEdge = exitNode.getLeavingEdge(i);
-      if (leavingEdge.getSuccessor() == joinNode) {
-        return leavingEdge;
-      }
-    }
-    throw new UnsupportedOperationException("Unexpected state");
-  }
-
   @Override
-  public IntervalAnalysisState getWeakenedCallState(
+  public AbstractState getWeakenedCallState(
       AbstractState pState, Precision pPrecision, Block pBlock) {
     IntervalAnalysisState iState = (IntervalAnalysisState) pState;
     IntervalAnalysisState clone = IntervalAnalysisState.copyOf(iState);
@@ -142,21 +109,20 @@ public class IntervalCPASummaryManager implements SummaryManager {
   @Override
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
-      Precision pEntryPrecision,
-      List<? extends AbstractState> pReturnStates,
-      List<Precision> pReturnPrecisions,
+      Precision pCallPrecision,
+      List<? extends AbstractState> pJoinStates,
+      List<Precision> pJoinPrecisions,
       CFANode pEntryNode,
       Block pBlock
   ) {
-    IntervalAnalysisState iCallState = (IntervalAnalysisState) pCallState;
+    IntervalAnalysisState iCallstackState = (IntervalAnalysisState) pCallState;
 
-    assert !pReturnStates.isEmpty();
-    Stream<IntervalAnalysisState> stream = StreamSupport.stream(
-        FluentIterable.from(pReturnStates).filter(IntervalAnalysisState.class).spliterator(),
-        false);
+    assert !pJoinStates.isEmpty();
+    Stream<IntervalAnalysisState> stream =
+        pJoinStates.stream().map(s -> (IntervalAnalysisState) s);
+
     Optional<IntervalAnalysisState> out = stream.reduce((a, b) -> a.join(b));
-
-    return Collections.singletonList(new IntervalSummary(iCallState, out.get()));
+    return Collections.singletonList(new IntervalSummary(iCallstackState, out.get()));
   }
 
   @Override
@@ -167,8 +133,8 @@ public class IntervalCPASummaryManager implements SummaryManager {
     IntervalSummary iSummary1 = (IntervalSummary) pSummary1;
     IntervalSummary iSummary2 = (IntervalSummary) pSummary2;
     return new IntervalSummary(
-        iSummary1.getStateAtEntry().join(iSummary2.getStateAtEntry()),
-        iSummary2.getStateAtExit().join(iSummary2.getStateAtExit())
+        iSummary1.getStateAtCallsite().join(iSummary2.getStateAtCallsite()),
+        iSummary2.getStateAtJoin().join(iSummary2.getStateAtJoin())
     );
   }
 
@@ -178,21 +144,19 @@ public class IntervalCPASummaryManager implements SummaryManager {
     IntervalSummary iSummary1 = (IntervalSummary) pSummary1;
     IntervalSummary iSummary2 = (IntervalSummary) pSummary2;
 
-    return iSummary1.getStateAtEntry().isLessOrEqual(
-        iSummary2.getStateAtEntry()
-    ) && iSummary2.getStateAtExit().isLessOrEqual(
-        iSummary1.getStateAtExit()
+    return iSummary1.getStateAtCallsite().isLessOrEqual(
+        iSummary2.getStateAtCallsite()
+    ) && iSummary2.getStateAtJoin().isLessOrEqual(
+        iSummary1.getStateAtJoin()
     );
   }
 
   @Override
-  public boolean isSummaryApplicableAtCallsite(Summary pSummary, AbstractState pCallsite)
-      throws CPAException, InterruptedException {
+  public boolean isSummaryApplicableAtCallsite(Summary pSummary, AbstractState pCallsite) {
     IntervalAnalysisState iState = (IntervalAnalysisState) pCallsite;
     IntervalSummary iSummary = (IntervalSummary) pSummary;
 
-    // todo: when is renaming done?
-    return iState.isLessOrEqual(iSummary.getStateAtEntry());
+    return iState.isLessOrEqual(iSummary.getStateAtCallsite());
   }
 
   private static class IntervalSummary implements Summary {
@@ -200,26 +164,26 @@ public class IntervalCPASummaryManager implements SummaryManager {
     /**
      * Intervals over parameters, read global variables.
      */
-    private final IntervalAnalysisState stateAtEntry;
+    private final IntervalAnalysisState stateAtCallsite;
 
     /**
      * Intervals over returned variable, changed global variables.
      */
-    private final IntervalAnalysisState stateAtExit;
+    private final IntervalAnalysisState stateAtJoin;
 
     private IntervalSummary(
-        IntervalAnalysisState pStateAtEntry,
-        IntervalAnalysisState pStateAtExit) {
-      stateAtEntry = pStateAtEntry;
-      stateAtExit = pStateAtExit;
+        IntervalAnalysisState pStateAtCallsite,
+        IntervalAnalysisState pStateAtJoin) {
+      stateAtCallsite = pStateAtCallsite;
+      stateAtJoin = pStateAtJoin;
     }
 
-    IntervalAnalysisState getStateAtEntry() {
-      return stateAtEntry;
+    IntervalAnalysisState getStateAtCallsite() {
+      return stateAtCallsite;
     }
 
-    IntervalAnalysisState getStateAtExit() {
-      return stateAtExit;
+    IntervalAnalysisState getStateAtJoin() {
+      return stateAtJoin;
     }
 
     @Override
@@ -231,20 +195,19 @@ public class IntervalCPASummaryManager implements SummaryManager {
         return false;
       }
       IntervalSummary that = (IntervalSummary) pO;
-      return Objects.equals(stateAtEntry, that.stateAtEntry) &&
-          Objects.equals(stateAtExit, that.stateAtExit);
+      return Objects.equals(stateAtCallsite, that.stateAtCallsite) &&
+          Objects.equals(stateAtJoin, that.stateAtJoin);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(stateAtEntry, stateAtExit);
+      return Objects.hash(stateAtCallsite, stateAtJoin);
     }
 
     @Override
     public String toString() {
       return "IntervalSummary{" +
-          "stateAtEntry=" + stateAtEntry +
-          ", stateAtExit=" + stateAtExit + '}';
+          "stateAtJoin=" + stateAtJoin + '}';
     }
   }
 }

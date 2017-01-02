@@ -125,6 +125,6 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
   @Override
   public SummaryManager getSummaryManager() {
-    return new IntervalCPASummaryManager(logger, getTransferRelation());
+    return new IntervalCPASummaryManager(logger);
   }
 }

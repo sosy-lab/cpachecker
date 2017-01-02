@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -52,15 +52,8 @@ public class CompositeSummaryManager implements SummaryManager {
   private final List<SummaryManager> managers;
 
   CompositeSummaryManager(List<ConfigurableProgramAnalysis> pCpas) {
-    ImmutableList<UseSummaryCPA> summaryCPAs =
-        FluentIterable.from(pCpas).filter(UseSummaryCPA.class)
-            .toList();
-    Preconditions.checkArgument(summaryCPAs.size() == pCpas.size(),
-        "Not all CPAs implement UseSummaryCPA,"
-            + " the offending element is " + pCpas.stream().filter(
-                s -> !(s instanceof UseSummaryCPA)).findAny());
-    managers = summaryCPAs.stream().map(
-        cpa -> cpa.getSummaryManager()
+    managers = pCpas.stream().map(
+        cpa -> ((UseSummaryCPA) cpa).getSummaryManager()
     ).collect(Collectors.toList());
   }
 
@@ -80,9 +73,8 @@ public class CompositeSummaryManager implements SummaryManager {
     List<List<? extends AbstractState>> contained = new ArrayList<>(managers.size());
     for (int i=0; i<managers.size(); i++) {
       int idx = i;
-      List<Summary> projectedSummaries = FluentIterable.from(pSummary)
-          .filter(CompositeSummary.class)
-          .transform(c -> c.get(idx)).toList();
+      List<Summary> projectedSummaries = pSummary.stream()
+          .map(c -> ((CompositeSummary) c).get(idx)).collect(Collectors.toList());
 
       List<? extends AbstractState> successors =
           managers.get(idx).getAbstractSuccessorsForSummary(
@@ -111,18 +103,13 @@ public class CompositeSummaryManager implements SummaryManager {
   @Override
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
-      Precision pEntryPrecision,
-      List<? extends AbstractState> pReturnStates,
-      List<Precision> pReturnPrecisions,
+      Precision pCallPrecision,
+      List<? extends AbstractState> pJoinStates,
+      List<Precision> pJoinPrecisions,
       CFANode pEntryNode,
       Block pBlock) {
     CompositeState cEntryState = (CompositeState) pCallState;
-    CompositePrecision cEntryPrecision = (CompositePrecision) pEntryPrecision;
-
-    FluentIterable<CompositeState> cReturnStates = FluentIterable.from(pReturnStates)
-        .filter(CompositeState.class);
-    FluentIterable<CompositePrecision> cReturnPrecisions = FluentIterable.from(pReturnPrecisions)
-        .filter(CompositePrecision.class);
+    CompositePrecision cEntryPrecision = (CompositePrecision) pCallPrecision;
 
     List<List<? extends Summary>> computed = new ArrayList<>(managers.size());
     for (int i=0; i<managers.size(); i++) {
@@ -130,8 +117,10 @@ public class CompositeSummaryManager implements SummaryManager {
       computed.add(managers.get(i).generateSummaries(
             cEntryState.get(i),
             cEntryPrecision.get(i),
-            cReturnStates.transform(s -> s.get(idx)).toList(),
-            cReturnPrecisions.transform(s -> s.get(idx)).toList(),
+            pJoinStates.stream()
+                .map(s -> ((CompositeState) s).get(idx)).collect(Collectors.toList()),
+            pJoinPrecisions.stream()
+                .map(s -> ((CompositePrecision) s).get(idx)).collect(Collectors.toList()),
             pEntryNode,
             pBlock
         ));
@@ -201,9 +190,7 @@ public class CompositeSummaryManager implements SummaryManager {
     CompositeState cState = (CompositeState) pCallsite;
 
     for (int i=0; i<managers.size(); i++) {
-      if (!managers.get(i).isSummaryApplicableAtCallsite(
-          cSummary.get(i),
-          cState.get(i))) {
+      if (!managers.get(i).isSummaryApplicableAtCallsite(cSummary.get(i), cState.get(i))) {
         return false;
       }
     }
@@ -242,7 +229,7 @@ public class CompositeSummaryManager implements SummaryManager {
     @Override
     public String toString() {
       return "CompositeSummary{" +
-          "summaries=" + summaries + '}';
+          "summaries=" + Joiner.on('\n').join(summaries) + '}';
     }
   }
 }

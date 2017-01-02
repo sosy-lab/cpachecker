@@ -52,7 +52,8 @@ public interface SummaryManager {
    * @param pBlock The block for which the summary was calculated.
    *               Contains information obtained from the dataflow analysis,
    *               which is useful for summary application.
-   * @param pCallSite Node from where the block was called from outside.
+   * @param pCallSite Node from where the block was called from outside,
+   *                  associated with {@code pFunctionCallState}.
    * @return resulting state
    */
   List<? extends AbstractState> getAbstractSuccessorsForSummary(
@@ -90,20 +91,21 @@ public interface SummaryManager {
    *
    * @param pCallState Summary precondition, associated with
    *                   the call node, which is about to jump into the block.
-   * @param pEntryPrecision Entry precision associated with
+   * @param pCallPrecision Precision associated with
    *                        {@code pCallState}.
-   * @param pReturnStates Return states associated with the block return.
-   * @param pReturnPrecisions Return precisions associated with {@code pReturnState},
-   *                         in the same order as {@code pReturnStates}.
+   * @param pJoinStates Return states associated with the "join" states:
+   *                    one transition after the exit state of the block.
+   * @param pJoinPrecisions Return precisions associated with {@code pJoinStates},
+   *                         in the same order as {@code pJoinStates}.
    * @param pBlock The block for which the summary is generated.
    * @param pEntryNode Entry node for the summarized block.
    * @return summaries which describe the result.
    */
   List<? extends Summary> generateSummaries(
       AbstractState pCallState,
-      Precision pEntryPrecision,
-      List<? extends AbstractState> pReturnStates,
-      List<Precision> pReturnPrecisions,
+      Precision pCallPrecision,
+      List<? extends AbstractState> pJoinStates,
+      List<Precision> pJoinPrecisions,
       CFANode pEntryNode,
       Block pBlock
   );

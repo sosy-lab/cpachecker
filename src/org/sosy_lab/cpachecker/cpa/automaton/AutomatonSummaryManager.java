@@ -59,14 +59,14 @@ public class AutomatonSummaryManager implements SummaryManager {
   @Override
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
-      Precision pEntryPrecision,
-      List<? extends AbstractState> pReturnStates,
-      List<Precision> pReturnPrecisions,
+      Precision pCallPrecision,
+      List<? extends AbstractState> pJoinStates,
+      List<Precision> pJoinPrecisions,
       CFANode pEntryNode,
       Block pBlock) {
 
     AutomatonState aCallState = (AutomatonState) pCallState;
-    return FluentIterable.from(pReturnStates)
+    return FluentIterable.from(pJoinStates)
         .filter(AutomatonState.class)
         .transform(r -> new AutomatonSummary(aCallState, r)).toList();
   }
@@ -93,7 +93,7 @@ public class AutomatonSummaryManager implements SummaryManager {
 
   @Override
   public boolean isSummaryApplicableAtCallsite(
-      Summary pSummary, AbstractState pCallsite) throws CPAException, InterruptedException {
+      Summary pSummary, AbstractState pCallsite) {
     AutomatonSummary aSummary = (AutomatonSummary) pSummary;
     return aSummary.getEntryState().equals(pCallsite);
   }

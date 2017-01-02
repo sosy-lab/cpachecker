@@ -43,24 +43,45 @@ public class Block {
 
   private final ImmutableSet<Wrapper<ASimpleDeclaration>> modifiedVariables;
   private final ImmutableSet<Wrapper<ASimpleDeclaration>> readVariables;
-  private final CFANode entryNode;
+
+  private final CFANode startNode;
   private final CFANode exitNode;
-  private final Set<CFANode> ownNodes;
+  private final ImmutableSet<CFANode> startPredecessors;
+  private final ImmutableSet<CFANode> exitSuccessors;
+  private final ImmutableSet<CFANode> ownNodes;
 
   public Block(
       Set<CFANode> pInnerNodes,
       Set<CFANode> pOwnNodes, Set<Wrapper<ASimpleDeclaration>> pModifiedVariables,
       Set<Wrapper<ASimpleDeclaration>> pReadVariables,
-      CFANode pEntryNode,
+      CFANode pStartNode,
       CFANode pExitNode,
-      boolean pHasRecursion) {
+      boolean pHasRecursion,
+      Set<CFANode> pStartPredecessors,
+      Set<CFANode> pExitSuccessors) {
     innerNodes = ImmutableSet.copyOf(pInnerNodes);
-    ownNodes = pOwnNodes;
+    ownNodes = ImmutableSet.copyOf(pOwnNodes);
     readVariables = ImmutableSet.copyOf(pReadVariables);
     hasRecursion = pHasRecursion;
     modifiedVariables = ImmutableSet.copyOf(pModifiedVariables);
-    entryNode = pEntryNode;
+    startNode = pStartNode;
     exitNode = pExitNode;
+    startPredecessors = ImmutableSet.copyOf(pStartPredecessors);
+    exitSuccessors = ImmutableSet.copyOf(pExitSuccessors);
+  }
+
+  /**
+   * @return all predecessors of the start node.
+   */
+  public Set<CFANode> getStartPredecessors() {
+    return startPredecessors;
+  }
+
+  /**
+   * @return all successors of the exit node.
+   */
+  public Set<CFANode> getExitSuccessors() {
+    return exitSuccessors;
   }
 
   /**
@@ -89,8 +110,8 @@ public class Block {
   /**
    * @return unique function entry node.
    */
-  public CFANode getEntryNode() {
-    return entryNode;
+  public CFANode getStartNode() {
+    return startNode;
   }
 
   /**
@@ -103,8 +124,8 @@ public class Block {
   /**
    * @return function name associated with the block.
    */
-  public String getFunctionName() {
-    return entryNode.getFunctionName();
+  public String getName() {
+    return startNode.getFunctionName();
   }
 
   /**
@@ -127,8 +148,8 @@ public class Block {
   @Override
   public String toString() {
     return "Block{" +
-        "functionName=" + getFunctionName() +
-        ", entryNode=" + entryNode +
+        "functionName=" + getName() +
+        ", startNode=" + startNode +
         ", exitNode=" + exitNode + '}';
   }
 }

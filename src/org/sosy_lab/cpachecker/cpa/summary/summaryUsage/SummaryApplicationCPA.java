@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.summary.summaryUsage;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,7 +36,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -129,30 +127,21 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
     CFANode node = AbstractStates.extractLocation(state);
     Block block = blockManager.getBlockForNode(node);
-    Optional<CFAEdge> successorEdge = getSuccessorEdge(node);
+    Optional<Block> blockToEnter = blockManager.blockToEnter(node);
 
     if (block.getExitNode() == node) {
 
-      logger.log(Level.INFO, "Leaving function ", block.getFunctionName());
-
-      // Analysis only goes up to the block end.
+      logger.log(Level.INFO, "Leaving the block '",
+          block.getName(), "', not computing the successors.");
       return Collections.emptyList();
-    } else if (successorEdge.isPresent()
 
-        // todo: more generic check. Should/could be given by the block information.
-        && successorEdge.get() instanceof FunctionCallEdge) {
-
-      Block calledBlock = blockManager.getBlockForNode(successorEdge.get().getSuccessor());
+    } else if (blockToEnter.isPresent()) {
 
       // Attempt to calculate a postcondition using summaries
       // we have.
-      // If our summaries are not sufficient, request a generation of a new one.
-      return applySummaries(
-          calledBlock.getFunctionName(),
-          precision,
-          state,
-          calledBlock
-      );
+      // If our summaries do not cover the callsite request the generation
+      // of the new ones.
+      return applySummaries(state, precision, blockToEnter.get());
     } else {
 
       // Simply delegate.
@@ -160,29 +149,35 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
     }
   }
 
-  private Optional<CFAEdge> getSuccessorEdge(CFANode pNode) {
-    if (pNode.getNumLeavingEdges() != 1) {
-      return Optional.empty();
-    }
-    return Optional.of(pNode.getLeavingEdge(0));
+  public Collection<? extends AbstractState> getDelegatedSuccessors(
+      AbstractState pState, Precision pPrecision) throws CPATransferException, InterruptedException {
+    return wrappedTransferRelation.getAbstractSuccessors(pState, pPrecision);
   }
+
   /**
    * @param pCallsite State <b>outside</b> of the called block,
    *                  from where it was currently called.
+   * @param pPrecision Precision associated with the state {@code pCallsite}.
+   * @param pBlock Block we are just outside of (one more transition should make it inside).
    */
   private Collection<? extends AbstractState> applySummaries(
-      String calledFunctionName,
-      Precision pPrecision,
       AbstractState pCallsite,
+      Precision pPrecision,
       Block pBlock
   ) throws CPAException, InterruptedException {
 
-    List<Summary> summaries = ImmutableList.copyOf(summaryMapping.get(calledFunctionName));
+    String calledFunctionName = pBlock.getName();
+    Collection<Summary> summaries = summaryMapping.get(calledFunctionName);
     List<Summary> matchingSummaries = new ArrayList<>();
+
+    // Weaken the call state.
+    AbstractState weakenedCallState = wrappedSummaryManager.getWeakenedCallState(
+        pCallsite, pPrecision, pBlock
+    );
 
     // We can return multiple postconditions, one for each matching summary.
     for (Summary summary : summaries) {
-      if (wrappedSummaryManager.isSummaryApplicableAtCallsite(summary, pCallsite)) {
+      if (wrappedSummaryManager.isSummaryApplicableAtCallsite(summary, weakenedCallState)) {
         matchingSummaries.add(summary);
       }
     }
@@ -191,11 +186,6 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
       logger.log(Level.INFO, "No matching summary found for '",
           calledFunctionName, "', requesting summary computation. Assuming for now the call is "
               + "unreachable.");
-
-      // Weaken the call state.
-      AbstractState weakenedCallState = wrappedSummaryManager.getWeakenedCallState(
-          pCallsite, pPrecision, pBlock
-      );
 
       // Generate the state associated with the function entry.
       Collection<? extends AbstractState> entryState =
@@ -213,8 +203,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
     } else {
       logger.log(Level.INFO, "Found matching summaries", matchingSummaries);
       Collection<? extends AbstractState> out = wrappedSummaryManager.getAbstractSuccessorsForSummary(
-          pCallsite, pPrecision, summaries, pBlock, AbstractStates.extractLocation(pCallsite)
-      );
+          pCallsite, pPrecision, matchingSummaries, pBlock, AbstractStates.extractLocation(pCallsite));
       logger.log(Level.INFO, "Successors of the state", pCallsite, "after summary application "
           + "are\n\n", out);
       return out;

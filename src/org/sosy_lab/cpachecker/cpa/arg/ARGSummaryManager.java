@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -89,19 +88,18 @@ public class ARGSummaryManager implements SummaryManager {
   @Override
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
-      Precision pEntryPrecision,
-      List<? extends AbstractState> pReturnStates,
-      List<Precision> pReturnPrecision,
+      Precision pCallPrecision,
+      List<? extends AbstractState> pJoinStates,
+      List<Precision> pJoinPrecisions,
       CFANode pEntryNode,
       Block pBlock) {
 
     ARGState aEntryState = (ARGState) pCallState;
-    FluentIterable<ARGState> aExitStates = FluentIterable.from(pReturnStates).filter(ARGState.class);
     return wrapped.generateSummaries(
         aEntryState.getWrappedState(),
-        pEntryPrecision,
-        aExitStates.transform(a -> a.getWrappedState()).toList(),
-        pReturnPrecision,
+        pCallPrecision,
+        pJoinStates.stream().map(a -> ((ARGState) a).getWrappedState()).collect(Collectors.toList()),
+        pJoinPrecisions,
         pEntryNode,
         pBlock
     );

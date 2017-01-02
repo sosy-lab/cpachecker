@@ -28,14 +28,13 @@ import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Operating over summaries for {@link LocationCPA}.
@@ -52,13 +51,13 @@ public class LocationCPASummaryManager implements SummaryManager {
 
   @Override
   public List<AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState state,
-      Precision precision,
+      AbstractState pCallState,
+      Precision pCallPrecision,
       List<Summary> pSummary,
       Block pBlock,
-      CFANode pCallsite) throws CPATransferException, InterruptedException {
+      CFANode pCallsite) {
 
-    LocationState lState = (LocationState) state;
+    LocationState lState = (LocationState) pCallState;
     CFANode node = lState.getLocationNode();
 
     return Collections.singletonList(
@@ -75,15 +74,20 @@ public class LocationCPASummaryManager implements SummaryManager {
   @Override
   public List<Summary> generateSummaries(
       AbstractState pCallState,
-      Precision pEntryPrecision,
-      List<? extends AbstractState> pReturnState,
-      List<Precision> pReturnPrecision,
+      Precision pCallPrecision,
+      List<? extends AbstractState> pJoinStates,
+      List<Precision> pJoinPrecisions,
       CFANode pEntryNode,
       Block pBlock) {
 
-    assert pEntryNode instanceof FunctionEntryNode;
-    FunctionEntryNode eNode = (FunctionEntryNode) pEntryNode;
-    return Collections.singletonList(new LocationSummary(eNode));
+
+    LocationState joinState = (LocationState) pJoinStates.iterator().next();
+    assert pJoinStates.stream()
+        .allMatch(s -> AbstractStates.extractLocation(s) == joinState.getLocationNode());
+
+    return Collections.singletonList(
+        new LocationSummary(joinState.getLocationNode())
+    );
   }
 
   @Override
@@ -105,25 +109,23 @@ public class LocationCPASummaryManager implements SummaryManager {
       Summary pSummary,
       AbstractState pCallsite
   ) throws CPAException, InterruptedException {
-    // todo: any other verdicts?.. todo: compare the actual location.
-    // take into the account that the nodes do not match precisely.
-    return true;
+    LocationSummary lSummary = (LocationSummary) pSummary;
+    LocationState lState = (LocationState) pCallsite;
+
+    return lSummary.getJoinNode() ==
+        lState.getLocationNode().getLeavingSummaryEdge().getSuccessor();
   }
 
   private static class LocationSummary implements Summary {
 
-    private final FunctionEntryNode entryNode;
+    private final CFANode joinNode;
 
-    private LocationSummary(FunctionEntryNode pEntryNode) {
-      entryNode = pEntryNode;
+    private LocationSummary(CFANode pJoinNode) {
+      joinNode = pJoinNode;
     }
 
-    CFANode getEntryNode() {
-      return entryNode;
-    }
-
-    CFANode getExitNode() {
-      return entryNode.getExitNode();
+    CFANode getJoinNode() {
+      return joinNode;
     }
 
     @Override
@@ -135,12 +137,18 @@ public class LocationCPASummaryManager implements SummaryManager {
         return false;
       }
       LocationSummary that = (LocationSummary) pO;
-      return Objects.equals(entryNode, that.entryNode);
+      return Objects.equals(joinNode, that.joinNode);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(entryNode);
+      return Objects.hash(joinNode);
+    }
+
+    @Override
+    public String toString() {
+      return "LocationSummary{joinNode=" + joinNode + ", callNode=" +
+          joinNode.getEnteringSummaryEdge().getPredecessor() + '}';
     }
   }
 }

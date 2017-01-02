@@ -27,8 +27,10 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -51,7 +53,9 @@ public class BlockManager {
   private final CFA cfa;
   private final LiveVariablesManager liveVariablesManager;
   private final ImmutableMap<FunctionEntryNode, Block> blockData;
-  private final ImmutableMap<CFANode, Block> blockToNode;
+  private final ImmutableMap<CFANode, Block> nodeToBlock;
+  private final ImmutableMap<CFANode, Block> entryPredecessorsToBlock;
+  private final ImmutableMap<CFANode, Block> exitSuccessorsToBlock;
 
   public BlockManager(
       CFA pCfa,
@@ -59,7 +63,7 @@ public class BlockManager {
       LogManager pLogManager
       ) throws InvalidConfigurationException, CPATransferException {
 
-    // todo: probably really bad to throw CPATransferException in constructor.
+    // todo: probably really bad to throw CPATransferException in the constructor.
     // can we see what actual exceptions are thrown?..
     cfa = pCfa;
     liveVariablesManager = new LiveVariablesManager(
@@ -77,7 +81,31 @@ public class BlockManager {
             n -> blockNodeMappingBuilder.put(n, b)
         )
     );
-    blockToNode = blockNodeMappingBuilder.build();
+    nodeToBlock = blockNodeMappingBuilder.build();
+    ImmutableMap.Builder<CFANode, Block> entryPredecessorsBuilder =
+        ImmutableMap.builder();
+    blockData.values().forEach(
+        b -> b.getStartPredecessors().forEach(
+            n -> entryPredecessorsBuilder.put(n, b)
+        )
+    );
+    entryPredecessorsToBlock = entryPredecessorsBuilder.build();
+    ImmutableMap.Builder<CFANode, Block> exitSuccessorsBuilder =
+        ImmutableMap.builder();
+    blockData.values().forEach(
+        b -> b.getExitSuccessors().forEach(
+            n -> exitSuccessorsBuilder.put(n, b)
+        )
+    );
+    exitSuccessorsToBlock = exitSuccessorsBuilder.build();
+  }
+
+  public Optional<Block> blockToEnter(CFANode pNode) {
+    return Optional.ofNullable(entryPredecessorsToBlock.get(pNode));
+  }
+
+  public Optional<Block> blockLeftBefore(CFANode pNode) {
+    return Optional.ofNullable(exitSuccessorsToBlock.get(pNode));
   }
 
   public ImmutableMap<FunctionEntryNode, Block> getBlockData() {
@@ -85,7 +113,7 @@ public class BlockManager {
   }
 
   public Block getBlockForNode(CFANode pNode) {
-    Block out = blockToNode.get(pNode);
+    Block out = nodeToBlock.get(pNode);
     assert out != null;
     return out;
   }
@@ -125,12 +153,19 @@ public class BlockManager {
     Set<Wrapper<ASimpleDeclaration>> readVars = new HashSet<>();
     Set<Wrapper<ASimpleDeclaration>> modifiedVars = new HashSet<>();
 
-    // todo: less repetitions for blocks with deep nesting.
+    // todo: less computation repetition for blocks with deep nesting.
     // currently this is very inefficient.
     for (CFAEdge edge : innerEdges) {
       readVars.addAll(liveVariablesManager.getReadVars(edge));
       modifiedVars.addAll(liveVariablesManager.getKilledVars(edge));
     }
+
+    CFANode exit = entry.getExitNode();
+
+    Set<CFANode> startPredecessors = IntStream.range(0, entry.getNumEnteringEdges())
+        .mapToObj(i -> entry.getEnteringEdge(i).getPredecessor()).collect(Collectors.toSet());
+    Set<CFANode> exitSuccessors = IntStream.range(0, exit.getNumLeavingEdges())
+        .mapToObj(i -> exit.getLeavingEdge(i).getSuccessor()).collect(Collectors .toSet());
 
     return new Block(
         innerNodes,
@@ -138,9 +173,10 @@ public class BlockManager {
         modifiedVars,
         readVars,
         entry,
-        entry.getExitNode(),
-        hasRecursion
-    );
+        exit,
+        hasRecursion,
+        startPredecessors,
+        exitSuccessors);
   }
 
 }
