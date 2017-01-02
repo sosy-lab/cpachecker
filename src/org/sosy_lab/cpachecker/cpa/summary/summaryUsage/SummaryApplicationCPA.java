@@ -127,7 +127,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
     CFANode node = AbstractStates.extractLocation(state);
     Block block = blockManager.getBlockForNode(node);
-    Optional<Block> blockToEnter = blockManager.blockToEnter(node);
+    Optional<CFAEdge> newBlockCall = blockManager.findCallToBlock(node);
 
     if (block.getExitNode() == node) {
 
@@ -135,13 +135,17 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
           block.getName(), "', not computing the successors.");
       return Collections.emptyList();
 
-    } else if (blockToEnter.isPresent()) {
+    } else if (newBlockCall.isPresent()) {
 
       // Attempt to calculate a postcondition using summaries
       // we have.
       // If our summaries do not cover the callsite request the generation
       // of the new ones.
-      return applySummaries(node, state, precision, blockToEnter.get());
+      return applySummaries(
+          newBlockCall.get(),
+          state,
+          precision,
+          blockManager.getBlockForNode(newBlockCall.get().getSuccessor()));
     } else {
 
       // Simply delegate.
@@ -155,13 +159,15 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
   }
 
   /**
+   * @param pCFAEdge Call to {@code pBlock}.
+   *
    * @param pCallsite State <b>outside</b> of the called block,
    *                  from where it was currently called.
    * @param pPrecision Precision associated with the state {@code pCallsite}.
    * @param pBlock Block we are just outside of (one more transition should make it inside).
    */
   private Collection<? extends AbstractState> applySummaries(
-      CFANode pCallNode,
+      CFAEdge pCFAEdge,
       AbstractState pCallsite,
       Precision pPrecision,
       Block pBlock
@@ -173,7 +179,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
     // Weaken the call state.
     AbstractState weakenedCallState = wrappedSummaryManager.getWeakenedCallState(
-        pCallsite, pPrecision, pCallNode, pBlock
+        pCallsite, pPrecision, pCFAEdge, pBlock
     );
 
     // We can return multiple postconditions, one for each matching summary.

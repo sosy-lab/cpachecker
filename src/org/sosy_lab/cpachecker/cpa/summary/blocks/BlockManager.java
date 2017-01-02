@@ -54,7 +54,7 @@ public class BlockManager {
   private final CFA cfa;
   private final LiveVariablesManager liveVariablesManager;
   private final ImmutableMap<CFANode, Block> nodeToBlock;
-  private final ImmutableMap<CFANode, Block> entryPredecessorsToBlock;
+  private final ImmutableMap<CFANode, CFAEdge> callsToBlock;
 
   public BlockManager(
       CFA pCfa,
@@ -81,25 +81,22 @@ public class BlockManager {
         )
     );
     nodeToBlock = blockNodeMappingBuilder.build();
-    ImmutableMap.Builder<CFANode, Block> entryPredecessorsBuilder =
+
+    ImmutableMap.Builder<CFANode, CFAEdge> incomingTransitionsBuilder =
         ImmutableMap.builder();
     blockData.values().forEach(
-        b -> b.getStartPredecessors().forEach(
-            n -> entryPredecessorsBuilder.put(n, b)
+        b -> b.getCalls().forEach(
+            e -> incomingTransitionsBuilder.put(e.getPredecessor(), e)
         )
     );
-    entryPredecessorsToBlock = entryPredecessorsBuilder.build();
-    ImmutableMap.Builder<CFANode, Block> exitSuccessorsBuilder =
-        ImmutableMap.builder();
-    blockData.values().forEach(
-        b -> b.getExitSuccessors().forEach(
-            n -> exitSuccessorsBuilder.put(n, b)
-        )
-    );
+    callsToBlock = incomingTransitionsBuilder.build();
   }
 
-  public Optional<Block> blockToEnter(CFANode pNode) {
-    return Optional.ofNullable(entryPredecessorsToBlock.get(pNode));
+  /**
+   * @return edge iff {@code pNode} has a successor which is a block entry.
+   */
+  public Optional<CFAEdge> findCallToBlock(CFANode pNode) {
+    return Optional.ofNullable(callsToBlock.get(pNode));
   }
 
   public Block getBlockForNode(CFANode pNode) {
@@ -151,10 +148,8 @@ public class BlockManager {
 
     CFANode exit = entry.getExitNode();
 
-    Set<CFANode> startPredecessors = IntStream.range(0, entry.getNumEnteringEdges())
-        .mapToObj(i -> entry.getEnteringEdge(i).getPredecessor()).collect(Collectors.toSet());
-    Set<CFANode> exitSuccessors = IntStream.range(0, exit.getNumLeavingEdges())
-        .mapToObj(i -> exit.getLeavingEdge(i).getSuccessor()).collect(Collectors .toSet());
+    Set<CFAEdge> incomingTransitions = IntStream.range(0, entry.getNumEnteringEdges())
+        .mapToObj(i -> entry.getEnteringEdge(i)).collect(Collectors.toSet());
 
     ImmutableSetMultimap.Builder<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToReadVars =
         ImmutableSetMultimap.builder();
@@ -175,8 +170,7 @@ public class BlockManager {
         entry,
         exit,
         hasRecursion,
-        startPredecessors,
-        exitSuccessors,
+        incomingTransitions,
         callEdgeToReadVars.build(),
         callEdgeToModifiedVars.build());
   }

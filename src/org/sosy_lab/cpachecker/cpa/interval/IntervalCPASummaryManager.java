@@ -31,7 +31,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
@@ -94,13 +93,11 @@ public class IntervalCPASummaryManager implements SummaryManager {
 
   @Override
   public AbstractState getWeakenedCallState(
-      AbstractState pCallState, Precision pPrecision, CFANode pCallNode, Block pBlock) {
+      AbstractState pCallState, Precision pPrecision, CFAEdge pCallEdge, Block pBlock) {
     IntervalAnalysisState iState = (IntervalAnalysisState) pCallState;
     IntervalAnalysisState clone = IntervalAnalysisState.copyOf(iState);
 
-    Set<String> readVarNames = pBlock.getReadVariablesForCallEdge(
-        findEnteringEdge(pCallNode, pBlock.getStartNode())
-    ).stream()
+    Set<String> readVarNames = pBlock.getReadVariablesForCallEdge(pCallEdge).stream()
         .map(w -> w.get().getQualifiedName()).collect(Collectors.toSet());
 
     logger.log(Level.INFO, "Vars read inside the block", pBlock, "are: ", readVarNames);
@@ -110,13 +107,6 @@ public class IntervalCPASummaryManager implements SummaryManager {
         .forEach(v -> clone.removeInterval(v));
     logger.log(Level.INFO, "Weakened ", iState, " to ", clone);
     return clone;
-  }
-
-  private CFAEdge findEnteringEdge(CFANode callNode, CFANode entryNode) {
-    return IntStream.range(0, callNode.getNumLeavingEdges())
-        .mapToObj(i -> callNode.getLeavingEdge(i))
-        .filter(e -> e.getSuccessor() == entryNode)
-        .findAny().get();
   }
 
   @Override

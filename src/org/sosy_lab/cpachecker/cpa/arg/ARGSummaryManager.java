@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import com.google.common.base.Preconditions;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -71,10 +72,10 @@ public class ARGSummaryManager implements SummaryManager {
 
   @Override
   public AbstractState getWeakenedCallState(
-      AbstractState pCallState, Precision pPrecision, CFANode pCallNode, Block pBlock) {
+      AbstractState pCallState, Precision pPrecision, CFAEdge pCFAEdge, Block pBlock) {
     ARGState aState = (ARGState) pCallState;
     return new ARGState(
-        wrapped.getWeakenedCallState(aState.getWrappedState(), pPrecision, pCallNode, pBlock),
+        wrapped.getWeakenedCallState(aState.getWrappedState(), pPrecision, pCFAEdge, pBlock),
         null
     );
   }

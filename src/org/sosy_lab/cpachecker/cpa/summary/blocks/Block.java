@@ -49,8 +49,7 @@ public class Block {
 
   private final CFANode startNode;
   private final CFANode exitNode;
-  private final ImmutableSet<CFANode> startPredecessors;
-  private final ImmutableSet<CFANode> exitSuccessors;
+  private final ImmutableSet<CFAEdge> incomingTransitions;
   private final ImmutableSet<CFANode> ownNodes;
   private final ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToReadVars;
   private final ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToModifiedVars;
@@ -63,8 +62,7 @@ public class Block {
       CFANode pStartNode,
       CFANode pExitNode,
       boolean pHasRecursion,
-      Set<CFANode> pStartPredecessors,
-      Set<CFANode> pExitSuccessors,
+      Set<CFAEdge> pIncomingTransitions,
       ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> pCallEdgeToReadVars,
       ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> pCallEdgeToModifiedVars) {
     innerNodes = ImmutableSet.copyOf(pInnerNodes);
@@ -74,24 +72,16 @@ public class Block {
     modifiedVariables = ImmutableSet.copyOf(pModifiedVariables);
     startNode = pStartNode;
     exitNode = pExitNode;
-    startPredecessors = ImmutableSet.copyOf(pStartPredecessors);
-    exitSuccessors = ImmutableSet.copyOf(pExitSuccessors);
+    incomingTransitions = ImmutableSet.copyOf(pIncomingTransitions);
     callEdgeToReadVars = pCallEdgeToReadVars;
     callEdgeToModifiedVars = pCallEdgeToModifiedVars;
   }
 
   /**
-   * @return all predecessors of the start node.
+   * @return all incoming edges
    */
-  public Set<CFANode> getStartPredecessors() {
-    return startPredecessors;
-  }
-
-  /**
-   * @return all successors of the exit node.
-   */
-  public Set<CFANode> getExitSuccessors() {
-    return exitSuccessors;
+  public Set<CFAEdge> getCalls() {
+    return incomingTransitions;
   }
 
   /**

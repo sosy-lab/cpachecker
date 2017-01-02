@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.summary.interfaces;
 
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -71,7 +72,7 @@ public interface SummaryManager {
    *
    * @param pCallState state associated with a call node.
    * @param pPrecision precision associated with {@code pCallState}
-   * @param pCallNode CFA node associated with {@code pCallState}
+   * @param pCallEdge Edge associated with the call inside the block.
    * @param pBlock block for which the function is computed.
    *
    * @return Abstract states associated with a block entry node.
@@ -79,7 +80,7 @@ public interface SummaryManager {
   AbstractState getWeakenedCallState(
       AbstractState pCallState,
       Precision pPrecision,
-      CFANode pCallNode,
+      CFAEdge pCallEdge,
       Block pBlock
   );
 

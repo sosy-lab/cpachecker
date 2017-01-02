@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -91,14 +92,14 @@ public class CompositeSummaryManager implements SummaryManager {
   public AbstractState getWeakenedCallState(
       AbstractState pCallState,
       Precision pPrecision,
-      CFANode pCallNode,
+      CFAEdge pCallEdge,
       Block pBlock) {
     CompositeState cState = (CompositeState) pCallState;
     CompositePrecision cPrecision = (CompositePrecision) pPrecision;
     List<AbstractState> weakened = IntStream.range(0, managers.size())
         .mapToObj(i ->
             managers.get(i).getWeakenedCallState(
-                cState.get(i), cPrecision.get(i), pCallNode, pBlock
+                cState.get(i), cPrecision.get(i), pCallEdge, pBlock
             )).collect(Collectors.toList());
     return new CompositeState(weakened);
   }
