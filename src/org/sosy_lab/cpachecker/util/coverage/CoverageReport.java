@@ -148,10 +148,12 @@ public class CoverageReport {
         //Cover all edges from reached nodes
         //It is less precise, but without ARG it is impossible to know what path we chose
         CFANode node = AbstractStates.extractLocation(state);
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFAEdge edge = node.getLeavingEdge(i);
-          if (reachedNodes.contains(edge.getSuccessor())) {
-            handleCoveredEdge(edge, infosPerFile);
+        if (node != null) {
+          for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+            CFAEdge edge = node.getLeavingEdge(i);
+            if (reachedNodes.contains(edge.getSuccessor())) {
+              handleCoveredEdge(edge, infosPerFile);
+            }
           }
         }
       }
