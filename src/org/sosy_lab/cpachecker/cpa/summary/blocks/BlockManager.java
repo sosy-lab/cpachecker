@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.summary.blocks;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -52,10 +53,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.SummarizingVisitorForward;
 public class BlockManager {
   private final CFA cfa;
   private final LiveVariablesManager liveVariablesManager;
-  private final ImmutableMap<FunctionEntryNode, Block> blockData;
   private final ImmutableMap<CFANode, Block> nodeToBlock;
   private final ImmutableMap<CFANode, Block> entryPredecessorsToBlock;
-  private final ImmutableMap<CFANode, Block> exitSuccessorsToBlock;
 
   public BlockManager(
       CFA pCfa,
@@ -73,7 +72,7 @@ public class BlockManager {
         cfa,
         pLogManager
     );
-    blockData = computeBlocks();
+    ImmutableMap<FunctionEntryNode, Block> blockData = computeBlocks();
     ImmutableMap.Builder<CFANode, Block> blockNodeMappingBuilder =
         ImmutableMap.builder();
     blockData.values().forEach(
@@ -97,19 +96,10 @@ public class BlockManager {
             n -> exitSuccessorsBuilder.put(n, b)
         )
     );
-    exitSuccessorsToBlock = exitSuccessorsBuilder.build();
   }
 
   public Optional<Block> blockToEnter(CFANode pNode) {
     return Optional.ofNullable(entryPredecessorsToBlock.get(pNode));
-  }
-
-  public Optional<Block> blockLeftBefore(CFANode pNode) {
-    return Optional.ofNullable(exitSuccessorsToBlock.get(pNode));
-  }
-
-  public ImmutableMap<FunctionEntryNode, Block> getBlockData() {
-    return blockData;
   }
 
   public Block getBlockForNode(CFANode pNode) {
@@ -119,7 +109,6 @@ public class BlockManager {
   }
 
   private ImmutableMap<FunctionEntryNode, Block> computeBlocks() throws CPATransferException {
-    // todo: do not compute dataflow facts for "main".
     ImmutableMap.Builder<FunctionEntryNode, Block> out = ImmutableMap.builder();
     for (FunctionEntryNode e : cfa.getAllFunctionHeads()) {
       out.put(e, ofFunctionEntryNode(e));
@@ -167,6 +156,17 @@ public class BlockManager {
     Set<CFANode> exitSuccessors = IntStream.range(0, exit.getNumLeavingEdges())
         .mapToObj(i -> exit.getLeavingEdge(i).getSuccessor()).collect(Collectors .toSet());
 
+    ImmutableSetMultimap.Builder<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToReadVars =
+        ImmutableSetMultimap.builder();
+    ImmutableSetMultimap.Builder<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToModifiedVars =
+        ImmutableSetMultimap.builder();
+
+    for (int i=0; i<entry.getNumEnteringEdges(); i++) {
+      CFAEdge edge = entry.getEnteringEdge(i);
+      callEdgeToReadVars.putAll(edge, liveVariablesManager.getReadVars(edge));
+      callEdgeToModifiedVars.putAll(edge, liveVariablesManager.getKilledVars(edge));
+    }
+
     return new Block(
         innerNodes,
         ownNodes,
@@ -176,7 +176,9 @@ public class BlockManager {
         exit,
         hasRecursion,
         startPredecessors,
-        exitSuccessors);
+        exitSuccessors,
+        callEdgeToReadVars.build(),
+        callEdgeToModifiedVars.build());
   }
 
 }

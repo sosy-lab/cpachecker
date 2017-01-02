@@ -69,15 +69,17 @@ public interface SummaryManager {
    * with {@link FunctionEntryNode}), by removing all information not
    * relevant to the function being called.
    *
-   * @param pState state associated with a call node.
-   * @param pPrecision precision associated with {@code pState}
+   * @param pCallState state associated with a call node.
+   * @param pPrecision precision associated with {@code pCallState}
+   * @param pCallNode CFA node associated with {@code pCallState}
    * @param pBlock block for which the function is computed.
    *
    * @return Abstract states associated with a block entry node.
    */
   AbstractState getWeakenedCallState(
-      AbstractState pState,
+      AbstractState pCallState,
       Precision pPrecision,
+      CFANode pCallNode,
       Block pBlock
   );
 
@@ -125,8 +127,7 @@ public interface SummaryManager {
    *
    * @return whether {@code pSummary1} is described by {@code pSummary2}.
    */
-  boolean isDescribedBy(Summary pSummary1,
-                        Summary pSummary2) throws CPAException, InterruptedException;
+  boolean isDescribedBy(Summary pSummary1, Summary pSummary2);
 
 
   /**

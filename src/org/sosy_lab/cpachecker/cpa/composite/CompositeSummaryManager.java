@@ -89,13 +89,16 @@ public class CompositeSummaryManager implements SummaryManager {
 
   @Override
   public AbstractState getWeakenedCallState(
-      AbstractState pState, Precision pPrecision, Block pBlock) {
-    CompositeState cState = (CompositeState) pState;
+      AbstractState pCallState,
+      Precision pPrecision,
+      CFANode pCallNode,
+      Block pBlock) {
+    CompositeState cState = (CompositeState) pCallState;
     CompositePrecision cPrecision = (CompositePrecision) pPrecision;
     List<AbstractState> weakened = IntStream.range(0, managers.size())
         .mapToObj(i ->
             managers.get(i).getWeakenedCallState(
-                cState.get(i), cPrecision.get(i), pBlock
+                cState.get(i), cPrecision.get(i), pCallNode, pBlock
             )).collect(Collectors.toList());
     return new CompositeState(weakened);
   }
@@ -132,12 +135,11 @@ public class CompositeSummaryManager implements SummaryManager {
 
 
   @Override
-  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
-      throws CPAException, InterruptedException {
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2) {
 
     CompositeSummary cSummary1 = (CompositeSummary) pSummary1;
     CompositeSummary cSummary2 = (CompositeSummary) pSummary2;
-    for (int i=0; i<managers.size(); i++) {
+    for (int i = 0; i < managers.size(); i++) {
       if (!managers.get(i).isDescribedBy(
           cSummary1.get(i),
           cSummary2.get(i))) {

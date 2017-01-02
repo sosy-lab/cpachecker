@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -57,10 +56,10 @@ public class CallstackCPASummaryManager implements SummaryManager {
 
   @Override
   public AbstractState getWeakenedCallState(
-      AbstractState pState, Precision pPrecision, Block pBlock) {
-    CallstackState cState = (CallstackState) pState;
+      AbstractState pCallState, Precision pPrecision, CFANode pCallNode, Block pBlock) {
+    CallstackState cState = (CallstackState) pCallState;
     if (cState.getDepth() == 1) {
-      return pState;
+      return pCallState;
     } else {
 
       return new CallstackState(
@@ -92,8 +91,7 @@ public class CallstackCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
-      throws CPAException, InterruptedException {
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2) {
     return pSummary1.equals(pSummary2);
   }
 

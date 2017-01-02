@@ -66,6 +66,14 @@ public class IntervalSummariesTest {
     check("nobasecase_true_assert.c");
   }
 
+  @Test public void check_in_func_true_assert() throws Exception {
+    check("check_in_func_true_assert.c");
+  }
+
+  @Test public void check_in_func_false_assert() throws Exception {
+    check("check_in_func_false_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(
         filename,

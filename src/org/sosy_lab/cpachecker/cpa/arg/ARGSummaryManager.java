@@ -71,17 +71,16 @@ public class ARGSummaryManager implements SummaryManager {
 
   @Override
   public AbstractState getWeakenedCallState(
-      AbstractState pState, Precision pPrecision, Block pBlock) {
-    ARGState aState = (ARGState) pState;
+      AbstractState pCallState, Precision pPrecision, CFANode pCallNode, Block pBlock) {
+    ARGState aState = (ARGState) pCallState;
     return new ARGState(
-        wrapped.getWeakenedCallState(aState.getWrappedState(), pPrecision, pBlock),
+        wrapped.getWeakenedCallState(aState.getWrappedState(), pPrecision, pCallNode, pBlock),
         null
     );
   }
 
   @Override
-  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
-      throws CPAException, InterruptedException {
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2) {
     return wrapped.isDescribedBy(pSummary1, pSummary2);
   }
 

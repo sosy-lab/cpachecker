@@ -73,8 +73,8 @@ public class AutomatonSummaryManager implements SummaryManager {
 
   @Override
   public AbstractState getWeakenedCallState(
-      AbstractState pState, Precision pPrecision, Block pBlock) {
-    return pState;
+      AbstractState pCallState, Precision pPrecision, CFANode pCallNode, Block pBlock) {
+    return pCallState;
   }
 
   @Override
@@ -86,37 +86,31 @@ public class AutomatonSummaryManager implements SummaryManager {
   }
 
   @Override
-  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
-      throws CPAException, InterruptedException {
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2) {
     return pSummary1.equals(pSummary2);
   }
 
   @Override
-  public boolean isSummaryApplicableAtCallsite(
-      Summary pSummary, AbstractState pCallsite) {
+  public boolean isSummaryApplicableAtCallsite(Summary pSummary, AbstractState pCallsite) {
     AutomatonSummary aSummary = (AutomatonSummary) pSummary;
-    return aSummary.getEntryState().equals(pCallsite);
+    return aSummary.getCallState().equals(pCallsite);
   }
 
-  // todo: why not have the same summary class for everything then?
-
   private static class AutomatonSummary implements Summary {
+    private final AutomatonState callState;
+    private final AutomatonState joinState;
 
-    // todo: the automaton states at function entry and exit.
-    private final AutomatonState entryState;
-    private final AutomatonState exitState;
-
-    private AutomatonSummary(AutomatonState pEntryState, AutomatonState pExitState) {
-      entryState = pEntryState;
-      exitState = pExitState;
+    private AutomatonSummary(AutomatonState pCallState, AutomatonState pJoinState) {
+      callState = pCallState;
+      joinState = pJoinState;
     }
 
-    public AutomatonState getEntryState() {
-      return entryState;
+    public AutomatonState getCallState() {
+      return callState;
     }
 
-    public AutomatonState getExitState() {
-      return exitState;
+    public AutomatonState getJoinState() {
+      return joinState;
     }
 
     @Override
@@ -128,20 +122,20 @@ public class AutomatonSummaryManager implements SummaryManager {
         return false;
       }
       AutomatonSummary that = (AutomatonSummary) pO;
-      return Objects.equals(entryState, that.entryState) &&
-          Objects.equals(exitState, that.exitState);
+      return Objects.equals(callState, that.callState) &&
+          Objects.equals(joinState, that.joinState);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(entryState, exitState);
+      return Objects.hash(callState, joinState);
     }
 
     @Override
     public String toString() {
       return "AutomatonSummary{" +
-          "entryState=" + entryState +
-          ", exitState=" + exitState +
+          "callState=" + callState +
+          ", joinState=" + joinState +
           '}';
     }
   }

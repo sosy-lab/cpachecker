@@ -141,7 +141,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
       // we have.
       // If our summaries do not cover the callsite request the generation
       // of the new ones.
-      return applySummaries(state, precision, blockToEnter.get());
+      return applySummaries(node, state, precision, blockToEnter.get());
     } else {
 
       // Simply delegate.
@@ -161,6 +161,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
    * @param pBlock Block we are just outside of (one more transition should make it inside).
    */
   private Collection<? extends AbstractState> applySummaries(
+      CFANode pCallNode,
       AbstractState pCallsite,
       Precision pPrecision,
       Block pBlock
@@ -172,7 +173,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
     // Weaken the call state.
     AbstractState weakenedCallState = wrappedSummaryManager.getWeakenedCallState(
-        pCallsite, pPrecision, pBlock
+        pCallsite, pPrecision, pCallNode, pBlock
     );
 
     // We can return multiple postconditions, one for each matching summary.

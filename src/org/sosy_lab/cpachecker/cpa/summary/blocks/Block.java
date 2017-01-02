@@ -25,9 +25,12 @@ package org.sosy_lab.cpachecker.cpa.summary.blocks;
 
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
@@ -49,16 +52,21 @@ public class Block {
   private final ImmutableSet<CFANode> startPredecessors;
   private final ImmutableSet<CFANode> exitSuccessors;
   private final ImmutableSet<CFANode> ownNodes;
+  private final ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToReadVars;
+  private final ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToModifiedVars;
 
   public Block(
       Set<CFANode> pInnerNodes,
-      Set<CFANode> pOwnNodes, Set<Wrapper<ASimpleDeclaration>> pModifiedVariables,
+      Set<CFANode> pOwnNodes,
+      Set<Wrapper<ASimpleDeclaration>> pModifiedVariables,
       Set<Wrapper<ASimpleDeclaration>> pReadVariables,
       CFANode pStartNode,
       CFANode pExitNode,
       boolean pHasRecursion,
       Set<CFANode> pStartPredecessors,
-      Set<CFANode> pExitSuccessors) {
+      Set<CFANode> pExitSuccessors,
+      ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> pCallEdgeToReadVars,
+      ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> pCallEdgeToModifiedVars) {
     innerNodes = ImmutableSet.copyOf(pInnerNodes);
     ownNodes = ImmutableSet.copyOf(pOwnNodes);
     readVariables = ImmutableSet.copyOf(pReadVariables);
@@ -68,6 +76,8 @@ public class Block {
     exitNode = pExitNode;
     startPredecessors = ImmutableSet.copyOf(pStartPredecessors);
     exitSuccessors = ImmutableSet.copyOf(pExitSuccessors);
+    callEdgeToReadVars = pCallEdgeToReadVars;
+    callEdgeToModifiedVars = pCallEdgeToModifiedVars;
   }
 
   /**
@@ -135,6 +145,14 @@ public class Block {
    */
   public Collection<Wrapper<ASimpleDeclaration>> getReadVariables() {
     return readVariables;
+  }
+
+  public Set<Wrapper<ASimpleDeclaration>> getReadVariablesForCallEdge(CFAEdge pEdge) {
+    return Sets.union(callEdgeToReadVars.get(pEdge), readVariables);
+  }
+
+  public Set<Wrapper<ASimpleDeclaration>> getModifiedVariablesForCallEdge(CFAEdge pEdge) {
+    return Sets.union(callEdgeToModifiedVars.get(pEdge), modifiedVariables);
   }
 
   /**

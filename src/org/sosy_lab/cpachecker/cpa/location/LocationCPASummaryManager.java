@@ -67,8 +67,8 @@ public class LocationCPASummaryManager implements SummaryManager {
 
   @Override
   public AbstractState getWeakenedCallState(
-      AbstractState pState, Precision pPrecision, Block pBlock) {
-    return pState;
+      AbstractState pCallState, Precision pPrecision, CFANode pCallNode, Block pBlock) {
+    return pCallState;
   }
 
   @Override
@@ -99,8 +99,7 @@ public class LocationCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2)
-      throws CPAException, InterruptedException {
+  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2) {
     return pSummary1.equals(pSummary2);
   }
 
