@@ -100,13 +100,10 @@ public class CallstackCPASummaryManager implements SummaryManager {
   @Override
   public boolean isSummaryApplicableAtCallsite(
       Summary pSummary,
-      AbstractState pCallsite
-  ) throws CPAException, InterruptedException {
-
+      AbstractState pCallsite) {
     CallstackSummary cSummary = (CallstackSummary) pSummary;
     CallstackState cCallsite = (CallstackState) pCallsite;
-
-    return cCallsite.sameStateInProofChecking(cSummary.getCallsiteCallstack());
+    return cCallsite.equalsByValue(cSummary.getCallsiteCallstack());
   }
 
   /**
@@ -121,7 +118,7 @@ public class CallstackCPASummaryManager implements SummaryManager {
       callsiteCallstack = pCallsiteCallstack;
     }
 
-    public CallstackState getCallsiteCallstack() {
+    CallstackState getCallsiteCallstack() {
       return callsiteCallstack;
     }
 
@@ -134,7 +131,7 @@ public class CallstackCPASummaryManager implements SummaryManager {
         return false;
       }
       CallstackSummary that = (CallstackSummary) pO;
-      return callsiteCallstack.sameStateInProofChecking(that.callsiteCallstack);
+      return callsiteCallstack.equalsByValue(that.callsiteCallstack);
     }
 
     @Override

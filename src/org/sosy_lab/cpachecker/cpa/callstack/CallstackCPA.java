@@ -110,7 +110,7 @@ public class CallstackCPA extends AbstractCPA
     for (AbstractState e1 : pSuccessors) {
       found = false;
       for (AbstractState e2 : computedSuccessors) {
-        if (((CallstackState) e1).sameStateInProofChecking((CallstackState) e2)) {
+        if (((CallstackState) e1).equalsByValue((CallstackState) e2)) {
           found = true;
           break;
         }
@@ -123,7 +123,7 @@ public class CallstackCPA extends AbstractCPA
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     return (getAbstractDomain().isLessOrEqual(pElement, pOtherElement)) || ((CallstackState) pElement)
-        .sameStateInProofChecking((CallstackState) pOtherElement);
+        .equalsByValue((CallstackState) pOtherElement);
   }
 
   @Override

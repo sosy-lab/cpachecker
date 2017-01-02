@@ -117,12 +117,12 @@ public class CallstackState
         + "], stack " + getStack();
   }
 
-  public boolean sameStateInProofChecking(CallstackState pOther) {
+  public boolean equalsByValue(CallstackState pOther) {
     if (pOther.callerNode == callerNode
         && pOther.depth == depth
         && pOther.currentFunction.equals(currentFunction)
         && (pOther.previousState == previousState || (previousState != null && pOther.previousState != null && previousState
-            .sameStateInProofChecking(pOther.previousState)))) { return true; }
+            .equalsByValue(pOther.previousState)))) { return true; }
     return false;
   }
 
