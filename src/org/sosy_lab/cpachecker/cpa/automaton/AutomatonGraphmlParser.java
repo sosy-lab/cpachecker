@@ -232,7 +232,7 @@ public class AutomatonGraphmlParser {
         .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
             pInputSource,
             inputStream -> parseAutomatonFile(inputStream),
-            e -> new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e));
+            e -> new WitnessParseException(ACCESS_ERROR_MESSAGE, e));
   }
 
   /**
@@ -775,11 +775,11 @@ public class AutomatonGraphmlParser {
       return result;
 
     } catch (ParserConfigurationException | SAXException e) {
-      throw new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e);
+      throw new WitnessParseException(ACCESS_ERROR_MESSAGE, e);
     } catch (InvalidAutomatonException e) {
-      throw new InvalidConfigurationException("The witness automaton provided is invalid!", e);
+      throw new WitnessParseException("The witness automaton provided is invalid!", e);
     } catch (CParserException e) {
-      throw new InvalidConfigurationException("The witness automaton contains invalid C code!", e);
+      throw new WitnessParseException("The witness automaton contains invalid C code!", e);
     }
   }
 
@@ -1603,10 +1603,10 @@ public class AutomatonGraphmlParser {
     try {
       return isGraphmlAutomaton(pPath);
     } catch (FileNotFoundException e) {
-      throw new InvalidConfigurationException(
+      throw new WitnessParseException(
           "Invalid witness file provided! File not found: " + pPath);
     } catch (IOException e) {
-      throw new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e);
+      throw new WitnessParseException(ACCESS_ERROR_MESSAGE, e);
     }
   }
 
@@ -1642,7 +1642,7 @@ public class AutomatonGraphmlParser {
             handlePotentiallyGZippedInput(
                 MoreFiles.asByteSource(pPath),
                 inputStream -> getWitnessType(inputStream),
-                e -> new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e));
+                e -> new WitnessParseException(ACCESS_ERROR_MESSAGE, e));
   }
 
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
@@ -1654,7 +1654,7 @@ public class AutomatonGraphmlParser {
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
       doc = docBuilder.parse(pInputStream);
     } catch (ParserConfigurationException | SAXException e) {
-      throw new InvalidConfigurationException(ACCESS_ERROR_MESSAGE, e);
+      throw new WitnessParseException(ACCESS_ERROR_MESSAGE, e);
     }
     doc.getDocumentElement().normalize();
 
@@ -1720,10 +1720,16 @@ public class AutomatonGraphmlParser {
 
   public static class WitnessParseException extends InvalidConfigurationException {
 
+    private static final String PARSE_EXCEPTION_MESSAGE_PREFIX = "Cannot parse witness: ";
+
     private static final long serialVersionUID = -6357416712866877118L;
 
     public WitnessParseException(String pMessage) {
-      super("Cannot parse witness: " + pMessage);
+      super(PARSE_EXCEPTION_MESSAGE_PREFIX + pMessage);
+    }
+
+    public WitnessParseException(String pMessage, Exception pCause) {
+      super(PARSE_EXCEPTION_MESSAGE_PREFIX + pMessage, pCause);
     }
 
   }
