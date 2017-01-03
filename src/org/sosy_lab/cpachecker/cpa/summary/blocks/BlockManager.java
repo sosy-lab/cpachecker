@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cpa.livevar.LiveVariablesManager;
+import org.sosy_lab.cpachecker.cpa.livevar.ReadModifyManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.SummarizingVisitor;
@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.SummarizingVisitorForward;
  */
 public class BlockManager {
   private final CFA cfa;
-  private final LiveVariablesManager liveVariablesManager;
+  private final ReadModifyManager readModifyManager;
   private final ImmutableMap<CFANode, Block> nodeToBlock;
   private final ImmutableMap<CFANode, CFAEdge> callsToBlock;
 
@@ -65,7 +65,7 @@ public class BlockManager {
     // todo: probably really bad to throw CPATransferException in the constructor.
     // can we see what actual exceptions are thrown?..
     cfa = pCfa;
-    liveVariablesManager = new LiveVariablesManager(
+    readModifyManager = new ReadModifyManager(
         cfa.getVarClassification(),
         pConfiguration,
         cfa.getLanguage(),
@@ -142,8 +142,8 @@ public class BlockManager {
     // todo: less computation repetition for blocks with deep nesting.
     // currently this is very inefficient.
     for (CFAEdge edge : innerEdges) {
-      readVars.addAll(liveVariablesManager.getReadVars(edge));
-      modifiedVars.addAll(liveVariablesManager.getKilledVars(edge));
+      readVars.addAll(readModifyManager.getReadVars(edge));
+      modifiedVars.addAll(readModifyManager.getKilledVars(edge));
     }
 
     CFANode exit = entry.getExitNode();
@@ -158,8 +158,8 @@ public class BlockManager {
 
     for (int i=0; i<entry.getNumEnteringEdges(); i++) {
       CFAEdge edge = entry.getEnteringEdge(i);
-      callEdgeToReadVars.putAll(edge, liveVariablesManager.getReadVars(edge));
-      callEdgeToModifiedVars.putAll(edge, liveVariablesManager.getKilledVars(edge));
+      callEdgeToReadVars.putAll(edge, readModifyManager.getReadVars(edge));
+      callEdgeToModifiedVars.putAll(edge, readModifyManager.getKilledVars(edge));
     }
 
     return new Block(

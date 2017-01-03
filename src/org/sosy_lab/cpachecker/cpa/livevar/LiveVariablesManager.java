@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.livevar;
 import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
 
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -88,7 +87,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -109,14 +107,14 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
       + " analysis it is important to assume that all global variables are live. In contrast"
       + " to that, while doing a global analysis, we do not need to assume global"
       + " variables being live.")
-  private boolean assumeGlobalVariablesAreAlwaysLive = true;
+  boolean assumeGlobalVariablesAreAlwaysLive = true;
 
   private final ImmutableList<Wrapper<ASimpleDeclaration>> allDeclarations;
   private final Map<Wrapper<? extends ASimpleDeclaration>, Integer> declarationListPos;
-  private final int noVars;
+  final int noVars;
 
   private final BitSet addressedOrGlobalVars;
-  private final LogManager logger;
+  final LogManager logger;
   private final CFA cfa;
 
   public LiveVariablesManager(
@@ -125,7 +123,7 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
       Language pLang,
       CFA pCFA,
       LogManager pLogger) throws InvalidConfigurationException {
-    pConfig.inject(this);
+    pConfig.inject(this, LiveVariablesManager.class);
     logger = pLogger;
     cfa = pCFA;
 
@@ -173,48 +171,6 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
 
     addressedOrGlobalVars = (BitSet) addressedVars.clone();
     addressedOrGlobalVars.or(globalVars);
-  }
-
-  /**
-   * @return All variables read by instructions associated with {@code pEdge}.
-   */
-  public Collection<Wrapper<ASimpleDeclaration>> getReadVars(CFAEdge pEdge)
-      throws CPATransferException {
-
-    // Assume that none of the variables are live,
-    // see what variables become live after processing the statement.
-    LiveVariablesState state = LiveVariablesState.empty(
-        noVars, this);
-
-    LiveVariablesState successor = getAbstractSuccessorsForEdge(
-        state, SingletonPrecision.getInstance(), pEdge
-    ).iterator().next();
-    return dataToVars(successor.getData());
-  }
-
-  /**
-   * @return All variables modified by instructions associated with {@code pEdge}.
-   */
-  public Collection<Wrapper<ASimpleDeclaration>> getKilledVars(CFAEdge pEdge)
-      throws CPATransferException {
-    Preconditions.checkState(!assumeGlobalVariablesAreAlwaysLive,
-        "assumeGlobalVariablesAreAlwaysLive option should be disabled, "
-            + "otherwise this computation might return incorrect results.");
-
-    BitSet full = new BitSet(noVars);
-
-    // Assume that all variables are live, see what variables stop
-    // being live after the statement.
-    full.flip(0, noVars);
-    LiveVariablesState state = LiveVariablesState.of(full, this);
-    LiveVariablesState successor = getAbstractSuccessorsForEdge(
-        state, SingletonPrecision.getInstance(), pEdge
-    ).iterator().next();
-
-    // Reverse the logic: get all bits associated with killed variables.
-    BitSet data = successor.getData();
-    data.flip(0, noVars);
-    return dataToVars(data);
   }
 
   public LiveVariablesState getInitialState(CFANode pNode) {
@@ -381,8 +337,9 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
 
   @Override
   protected LiveVariablesState handleFunctionCallEdge(FunctionCallEdge cfaEdge,
-      List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
-      String calledFunctionName) throws CPATransferException {
+                                                      List<? extends AExpression> arguments,
+                                                      List<? extends AParameterDeclaration> parameters,
+                                                      String calledFunctionName) {
     /* This analysis is (mostly) used during cfa creation, when no edges between
      * different functions exist, thus this function is mainly unused. However
      * for the purpose of having a complete CPA which works on the graph with
@@ -463,7 +420,7 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
     return builder.build();
   }
 
-  Collection<Wrapper<ASimpleDeclaration>> dataToVars(BitSet data) {
+  protected Collection<Wrapper<ASimpleDeclaration>> dataToVars(BitSet data) {
     ArrayList<Wrapper<ASimpleDeclaration>> out = new ArrayList<>();
     for (int i = data.nextSetBit(0); i >= 0; i = data.nextSetBit(i + 1)) {
       out.add(allDeclarations.get(i));
@@ -472,10 +429,7 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
     return out;
   }
 
-  private void handleAssignment(AAssignment assignment,
-                                              BitSet writeInto) {
-
-
+  private void handleAssignment(AAssignment assignment, BitSet writeInto) {
     final ALeftHandSide lhs = assignment.getLeftHandSide();
 
     boolean isLhsAlwaysLive = isAlwaysLive(lhs);
@@ -524,40 +478,44 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
       throw new AssertionError("Unhandled assignment type.");
     }
 
-    // if the assigned variable is always live we add it to the live variables
-    // additionally to the rightHandSide variables
     if (isLhsAlwaysLive) {
+
+      // If the assigned variable is always live we add it to the live variables
+      // additionally to the rightHandSide variables
       writeInto.or(assignedVariable);
       writeInto.or(newLiveVars);
 
-      // if lhs is live all variables on the rightHandSide
+    } else if (isLhsLive) {
+
+      // If lhs is live all variables on the rightHandSide
       // have to get live, parameters of function calls always have to get live,
       // because the function needs those for assigning their variables
-    } else if (isLhsLive) {
 
       // for example an array access *(arr + offset) = 2;
       if (assignedVariable.cardinality() > 1) {
         newLiveVars.or(assignedVariable);
         writeInto.or(newLiveVars);
 
-        // when there is a field reference, an array access or a pointer expression,
-        // and the assigned variable was live before, we need to let it also be
-        // live afterwards
       } else if (lhs instanceof CFieldReference
           || lhs instanceof AArraySubscriptExpression
           || lhs instanceof CPointerExpression) {
+
+        // When there is a field reference, an array access or a pointer expression,
+        // and the assigned variable was live before, we need to let it also be
+        // live afterwards
         writeInto.or(newLiveVars);
 
-        // no special case here, the assigned variable is not live anymore
       } else {
+
+        // No special case here, the assigned variable is not live anymore
         writeInto.andNot(assignedVariable);
         writeInto.or(newLiveVars);
       }
-
-      // if the leftHandSide is not life, but there is a pointer dereference
-      // we need to make the leftHandSide life. Thus afterwards everything from
-      // this statement is life.
     } else  {
+
+      // If the leftHandSide is not live, but there is a pointer dereference
+      // we need to make the leftHandSide live. Thus afterwards everything from
+      // this statement is live.
       assert lhsIsPointerDereference;
       writeInto.or(assignedVariable);
       writeInto.or(newLiveVars);
@@ -595,12 +553,11 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
    * Checks if a leftHandSide variable is live at a given location:
    * this means it either is always live, or it is live in the current state.
    */
-  private boolean isLeftHandSideLive(ALeftHandSide expression) {
+  protected boolean isLeftHandSideLive(ALeftHandSide expression) {
     BitSet lhs = new BitSet(noVars);
     handleLeftHandSide(expression, lhs);
     return isAlwaysLive(expression) || state.containsAny(lhs);
   }
-
 
   /**
    * Mark all declarations occurring inside the expression as live.
