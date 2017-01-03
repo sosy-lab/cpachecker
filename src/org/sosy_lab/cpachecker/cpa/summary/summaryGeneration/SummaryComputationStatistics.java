@@ -23,38 +23,68 @@
  */
 package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import java.io.IOException;
 import java.io.PrintStream;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 
 /**
  * Statistics on summary generation.
  */
+@Options(prefix="cpa.summary")
 public class SummaryComputationStatistics implements Statistics {
 
-  // todo: we need statistics on cache coherence, to see whether summary was
-  // used.
-  // #cache hits / #cache misses? What are the good numbers to record?
+  @Option(secure=true, name="file",
+      description="export summary requests as a .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path dotFile = Paths.get("SummaryRequests.dot");
 
-  // or does a TopLevelCPA decide on this?
-  // btw the latter is a misleading name, since it's not actually top-level in the
-  // configuration.
+  private final Multimap<String, Summary> computedSummaries;
 
-  int noTimesSummaryRequested = 0;
-  private final AtomicInteger summaryCacheHit = new AtomicInteger(0);
-
-  public void recordSummaryCacheHit() {
-    summaryCacheHit.incrementAndGet();
+  SummaryComputationStatistics(
+      Multimap<String, Summary> pComputedSummaries,
+      Configuration pConfiguration) throws InvalidConfigurationException {
+    computedSummaries = Multimaps.unmodifiableMultimap(pComputedSummaries);
+    pConfiguration.inject(this);
   }
 
   @Override
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
+    out.println("Summaries generated: ");
+    out.println(
+        computedSummaries.asMap().entrySet().stream().map(
+            e -> e.getKey() + ":\n\n" + Joiner.on("\n*").join(
+                e.getValue()
+            )
+        ).reduce(String::concat)
+    );
 
-
+    if (dotFile != null) {
+      try {
+        try (Writer w = MoreFiles.openOutputFile(dotFile, Charset.defaultCharset())) {
+          SummaryGenToDotWriter.write(w, (SummaryComputationState) reached.getFirstState());
+        }
+      } catch (IOException pE) {
+        out.println("Failed writing dotfile");
+      }
+    }
   }
 
   @Override

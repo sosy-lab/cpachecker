@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -144,7 +143,7 @@ public class TopLevelSummaryCPA
 
     computedSummaries = LinkedHashMultimap.create();
     logger = pLogger;
-    statistics = new SummaryComputationStatistics();
+    statistics = new SummaryComputationStatistics(computedSummaries, pConfig);
     blockManager = new BlockManager(pCfa, pConfig, pLogger);
     wrapped = new SummaryApplicationCPA(
         pWrapped, computedSummaries, blockManager, pLogger);
@@ -192,7 +191,7 @@ public class TopLevelSummaryCPA
         functionName, "', current reachedSet size is " + reached.size());
     CPAAlgorithm algorithm = algorithmFactory.newInstance();
 
-    // todo: check the algorithm status. What about termination? That can be used as well.
+    // todo: check the algorithm status.
     AlgorithmStatus status = algorithm.run(reached);
     assert status.isSound();
 
@@ -203,7 +202,7 @@ public class TopLevelSummaryCPA
     // as well as the updated request for the currently processed function.
     // Coverage within the computation requests is taken care of using the domain.
     List<SummaryComputationState> toReturn = new ArrayList<>();
-    logger.log(Level.INFO, "# requests made: " + wrapped.getSummaryComputationRequests().size());
+
     for (SummaryComputationRequest req : Iterables.consumingIterable(
                                   wrapped.getSummaryComputationRequests())) {
       ReachedSet newReached = reachedSetFactory.create();
@@ -217,15 +216,15 @@ public class TopLevelSummaryCPA
           false,
           false,
           ImmutableSet.of(),
-          summaryComputationState);
+          summaryComputationState,
+          req.getCallEdge());
 
-      // Make sure that we restart the computation at those states,
-      // now with summaries already generated.
+      // Make sure that we restart the computation at calling contexts
+      // *after* the summaries are generated.
       toReEnqueue.add(req.getCallingContext());
 
       logger.log(Level.INFO,
-          "Intraprocedural analysis requested for function '", scs.getFunctionName()
-            + "' with entry state:\n", req.getFunctionEntryState());
+          "Intraprocedural analysis requested for function '", scs.getFunctionName() + "'");
       toReturn.add(scs);
     }
 
@@ -238,8 +237,9 @@ public class TopLevelSummaryCPA
       toReturn.add(summaryComputationState.withNewReachedSize(reached.size()));
       logger.log(Level.INFO, "Re-requesting intraprocedural analysis for '",
           summaryComputationState.getFunctionName(), "'");
+    } else {
+      summaryComputationState.setFullyExplored();
     }
-
 
     // We assume the wrapped state is an ARGState.
     ARGState lastState = (ARGState) reached.getLastState();
@@ -312,7 +312,7 @@ public class TopLevelSummaryCPA
 
     for (Summary s : generatedSummaries) {
       //noinspection ResultOfMethodCallIgnored
-      storeGeneratedSummary(s, functionName);
+      storeGeneratedSummary(summaryComputationState, s, functionName);
     }
 
     return toReturn;
@@ -326,6 +326,9 @@ public class TopLevelSummaryCPA
    * The logic duplicates that of {@link CPAAlgorithm}
    * for the merge and the subsequent coverage check.
    *
+   *
+   * @param pSummaryComputationState Summary computation state which resulted in this
+   *                                 summary generation.
    * @param generatedSummary Summary which was generated.
    * @param functionName Name of the function for the generated summary.
    *
@@ -333,9 +336,10 @@ public class TopLevelSummaryCPA
    */
   @CanIgnoreReturnValue
   private boolean storeGeneratedSummary(
-      Summary generatedSummary, String functionName)
+      SummaryComputationState pSummaryComputationState,
+      Summary generatedSummary,
+      String functionName)
       throws CPAException, InterruptedException {
-
 
     // Do the merge.
     Collection<Summary> matchingSummaries = computedSummaries.get(functionName);
@@ -344,10 +348,13 @@ public class TopLevelSummaryCPA
     for (Summary existingSummary : matchingSummaries) {
       Summary merged = wrappedSummaryManager.merge(generatedSummary, existingSummary);
       if (merged != existingSummary) {
-        toRemove.add(existingSummary);
+        toRemove.add(existingSummary); // todo: the problem is at this point we forgot the
+                                       // computation request.
+                                       // then the visualization does not take merges into account.
         toAdd.add(merged);
       }
     }
+
     matchingSummaries.removeAll(toRemove);
     matchingSummaries.addAll(toAdd);
 
@@ -364,6 +371,7 @@ public class TopLevelSummaryCPA
     }
     if (add) {
       matchingSummaries.add(generatedSummary);
+      pSummaryComputationState.setGeneratedSummary(generatedSummary);
       return true;
     } else {
       return false;
@@ -382,18 +390,14 @@ public class TopLevelSummaryCPA
       return false;
     }
 
-    if (sState1.getEntryState() == sState2.getEntryState()
-        && sState1.getReachedSize() <= sState2.getReachedSize()) {
-      return true;
-    }
+    if ((sState1.getEntryState() == sState2.getEntryState()
+        || (joinSummaries && wrapped.getStopOperator().stop(
+            sState1.getEntryState(),
+            Collections.singleton(sState2.getEntryState()), sState2.getEntryPrecision())))
 
-    // todo: what about the size of the reached set?
-    // we assume with a set exploration order, bigger=better?
-    if (joinSummaries
-        && wrapped.getStopOperator().stop(
-            sState1.getEntryState(), Collections.singleton(sState2.getEntryState()),
-        sState2.getEntryPrecision())
+        // todo: is size enough? we assume with a set exploration order, bigger=better?
         && sState1.getReachedSize() <= sState2.getReachedSize()) {
+      sState1.setCoveredBy(sState2);
       return true;
     }
 
@@ -405,7 +409,7 @@ public class TopLevelSummaryCPA
       AbstractState state1, AbstractState state2, Precision precision)
       throws CPAException, InterruptedException {
 
-    // todo: merge summary computation requests for performance is "joinSummaries" is set.
+    // todo: merge summary computation requests for performance when "joinSummaries" is set.
     return state2;
   }
 

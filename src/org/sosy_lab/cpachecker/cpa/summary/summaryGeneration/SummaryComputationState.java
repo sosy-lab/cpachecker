@@ -23,13 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PriorityProvidingState;
@@ -37,15 +47,20 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
+import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * State representing a (partially) computed function summary.
- *
- * // todo: how to enforce iteration order based on stack size???
  */
 class SummaryComputationState implements
-                              AbstractState, Partitionable, Targetable, PriorityProvidingState{
+                              AbstractState,
+                              Partitionable,
+                              Targetable,
+                              PriorityProvidingState,
+                              AbstractStateWithLocation,
+                              Graphable
+{
 
   /**
    * Block associated with the summary.
@@ -55,6 +70,11 @@ class SummaryComputationState implements
   private final Precision entryPrecision;
   private final @Nullable AbstractState callingContext;
   private final @Nullable SummaryComputationState parent;
+
+  /**
+   * Calling edge from {@code parent} to the entrance of {@code block}.
+   */
+  private final @Nullable CFAEdge callEdge;
 
   /**
    */
@@ -68,6 +88,18 @@ class SummaryComputationState implements
   private final transient ImmutableSet<Property> violatedProperties;
   private final transient int reachedSize;
 
+  /**
+   * Meta-information for visualization.
+   * todo: change to collection for performance
+   */
+  private final Set<SummaryComputationState> children = new HashSet<>(1);
+  private transient SummaryComputationState coveredBy = null;
+  private final transient Set<SummaryComputationState> coveredByThis = new HashSet<>();
+  private final int stateId;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private transient boolean fullyExplored = false;
+  private transient Summary generatedSummary = null;
+
   private SummaryComputationState(
       Block pBlock,
       Optional<AbstractState> pCallingContext,
@@ -78,7 +110,8 @@ class SummaryComputationState implements
       boolean pIsTarget,
       ImmutableSet<Property> pViolatedProperties,
       int pReachedSize,
-      SummaryComputationState pParent) {
+      @Nullable SummaryComputationState pParent,
+      @Nullable CFAEdge pCallEdge) {
 
     block = pBlock;
     entryState = pEntryState;
@@ -88,11 +121,52 @@ class SummaryComputationState implements
     hasWaitingState = pHasWaitingState;
     isTarget = pIsTarget;
     violatedProperties = pViolatedProperties;
-    parent = pParent;
     reachedSize = pReachedSize;
+    callEdge = pCallEdge;
+    parent = pParent;
+    if (parent != null) {
+      parent.addToChildren(this);
+    }
+    stateId = idGenerator.getFreshId();
   }
 
-  public int getReachedSize() {
+  /**
+   * Set that no more successors are necessary.
+   */
+  void setFullyExplored() {
+    fullyExplored = true;
+  }
+
+  void setGeneratedSummary(Summary pGeneratedSummary) {
+    generatedSummary = pGeneratedSummary;
+  }
+
+  public int getStateId() {
+    return stateId;
+  }
+
+  public Collection<SummaryComputationState> getChildren() {
+    return Collections.unmodifiableSet(children);
+  }
+
+  private void addToChildren(SummaryComputationState pChild) {
+    children.add(pChild);
+  }
+
+  void setCoveredBy(SummaryComputationState pCoveredBy) {
+    coveredBy = pCoveredBy;
+    coveredBy.coveredByThis.add(this);
+  }
+
+  public boolean isCovered() {
+    return coveredBy != null;
+  }
+
+  public Set<SummaryComputationState> getCoveredByThis() {
+    return Collections.unmodifiableSet(coveredByThis);
+  }
+
+  int getReachedSize() {
     return reachedSize;
   }
 
@@ -100,21 +174,21 @@ class SummaryComputationState implements
    * @return calling context for the summary,
    * empty for the entry function.
    */
-  public Optional<AbstractState> getCallingContext() {
+  Optional<AbstractState> getCallingContext() {
     return Optional.ofNullable(callingContext);
   }
 
   /**
    * @return syntactical bounds for the summarized block.
    */
-  public Block getBlock() {
+  Block getBlock() {
     return block;
   }
 
   /**
    * @return function name of the summarized function.
    */
-  public String getFunctionName() {
+  String getFunctionName() {
     return AbstractStates.extractLocation(entryState).getFunctionName();
   }
 
@@ -126,7 +200,7 @@ class SummaryComputationState implements
    *
    * @return reached set representing computation in progress for summary derivation.
    */
-  public ReachedSet getReached() {
+  ReachedSet getReached() {
     return reached;
   }
 
@@ -134,18 +208,18 @@ class SummaryComputationState implements
    * @return state associated with {@link org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode},
    * first state in the function.
    */
-  public AbstractState getEntryState() {
+  AbstractState getEntryState() {
     return entryState;
   }
 
-  public CFANode getEntryLocation() {
+  CFANode getEntryLocation() {
     return AbstractStates.extractLocation(entryState);
   }
 
   /**
    * @return precision associated with {@link #getEntryState()}.
    */
-  public Precision getEntryPrecision() {
+  Precision getEntryPrecision() {
     return entryPrecision;
   }
 
@@ -165,6 +239,7 @@ class SummaryComputationState implements
         false,
         ImmutableSet.of(),
         1,
+        null,
         null);
   }
 
@@ -177,7 +252,8 @@ class SummaryComputationState implements
       boolean pInnerAnalysisHasWaitingState,
       boolean pIsTarget,
       Set<Property> pViolatedProperties,
-      SummaryComputationState parent
+      SummaryComputationState parent,
+      CFAEdge pCallEdge
   ) {
     return new SummaryComputationState(
         pBlock,
@@ -188,7 +264,8 @@ class SummaryComputationState implements
         pInnerAnalysisHasWaitingState, pIsTarget,
         ImmutableSet.copyOf(pViolatedProperties),
         pReached.size(),
-        parent);
+        parent,
+        pCallEdge);
   }
 
   /**
@@ -210,7 +287,8 @@ class SummaryComputationState implements
         pInnerAnalysisHasWaitingState, pIsTarget,
         ImmutableSet.copyOf(pViolatedProperties),
         pReachedSize,
-        parent);
+        parent,
+        callEdge);
   }
 
   SummaryComputationState withNewReachedSize(int pReachedSize) {
@@ -224,7 +302,8 @@ class SummaryComputationState implements
         isTarget,
         violatedProperties,
         pReachedSize,
-        parent);
+        this, // todo?
+        callEdge);
   }
 
   @Override
@@ -265,7 +344,74 @@ class SummaryComputationState implements
       return 0;
     } else {
       // todo: store, do not recompute.
+      if (parent.getEntryState() == entryState) {
+
+        // todo: covers all cases?
+        return parent.getPriority();
+      }
       return 1 + parent.getPriority();
     }
+  }
+
+  @Override
+  public String toDOTLabel() {
+    String out = String.format("Summary (size=%d, depth=%s): entry=%s",
+        reachedSize,
+        getPriority(),
+        ((Graphable) entryState).toDOTLabel()
+    );
+    if (generatedSummary != null) {
+      out += "\n generated=" + generatedSummary.toString();
+    }
+    return out;
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return isTarget;
+  }
+
+  @Override
+  public CFANode getLocationNode() {
+    return block.getStartNode();
+  }
+
+  @Override
+  public Iterable<CFANode> getLocationNodes() {
+    return Collections.singleton(getLocationNode());
+  }
+
+  @Override
+  public Iterable<CFAEdge> getOutgoingEdges() {
+
+    // todo: this should probably reflect something different: namely, all function
+    // calls from this location that lead to edges being computed.
+    return block.getStartNode().getLeavingEdges().collect(Collectors.toList());
+  }
+
+  @Override
+  public Iterable<CFAEdge> getIngoingEdges() {
+    return block.getStartNode().getEnteringEdges().collect(Collectors.toList());
+  }
+
+  SummaryComputationState getParent() {
+    return parent;
+  }
+
+  CFAEdge getCallEdge() {
+    return callEdge;
+  }
+
+  public List<CFAEdge> getEdgesToChild(SummaryComputationState pSuccessorState) {
+    if (pSuccessorState.getParent() == this
+        && pSuccessorState.getCallEdge() != null) {
+      return ImmutableList.of(pSuccessorState.getCallEdge());
+    } else {
+      return ImmutableList.of();
+    }
+  }
+
+  public boolean isFullyExplored() {
+    return fullyExplored;
   }
 }

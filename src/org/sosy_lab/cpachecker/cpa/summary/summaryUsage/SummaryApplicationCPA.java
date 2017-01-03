@@ -159,7 +159,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
   }
 
   /**
-   * @param pCFAEdge Call to {@code pBlock}.
+   * @param pCallEdge Call to {@code pBlock}.
    *
    * @param pCallsite State <b>outside</b> of the called block,
    *                  from where it was currently called.
@@ -167,7 +167,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
    * @param pBlock Block we are just outside of (one more transition should make it inside).
    */
   private Collection<? extends AbstractState> applySummaries(
-      CFAEdge pCFAEdge,
+      CFAEdge pCallEdge,
       AbstractState pCallsite,
       Precision pPrecision,
       Block pBlock
@@ -179,7 +179,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
     // Weaken the call state.
     AbstractState weakenedCallState = wrappedSummaryManager.getWeakenedCallState(
-        pCallsite, pPrecision, pCFAEdge, pBlock
+        pCallsite, pPrecision, pCallEdge, pBlock
     );
 
     // We can return multiple postconditions, one for each matching summary.
@@ -205,12 +205,13 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
           pCallsite,
           entryState.iterator().next(),
           pPrecision,
-          pBlock));
+          pBlock,
+          pCallEdge));
       return Collections.emptyList();
     } else {
       logger.log(Level.INFO, "Found matching summaries", matchingSummaries);
       Collection<? extends AbstractState> out = wrappedSummaryManager.getAbstractSuccessorsForSummary(
-          pCallsite, pPrecision, matchingSummaries, pBlock, AbstractStates.extractLocation(pCallsite));
+          pCallsite, pPrecision, matchingSummaries, pBlock, pCallEdge);
       logger.log(Level.INFO, "Successors of the state", pCallsite, "after summary application "
           + "are\n\n", out);
       return out;

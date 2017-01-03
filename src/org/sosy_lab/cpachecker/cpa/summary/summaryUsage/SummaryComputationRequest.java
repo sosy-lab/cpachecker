@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.summary.summaryUsage;
 
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
@@ -36,16 +37,26 @@ public class SummaryComputationRequest {
   private final AbstractState functionEntryState;
   private final Precision functionEntryPrecision;
   private final Block block;
+  private final CFAEdge callEdge;
 
   SummaryComputationRequest(
       AbstractState pCallingContext,
       AbstractState pFunctionEntryState,
       Precision pFunctionEntryPrecision,
-      Block pBlock) {
+      Block pBlock, CFAEdge pCallEdge) {
     functionEntryState = pFunctionEntryState;
     functionEntryPrecision = pFunctionEntryPrecision;
     callingContext = pCallingContext;
     block = pBlock;
+    callEdge = pCallEdge;
+  }
+
+  /**
+   * @return calling edge from {@link #getCallingContext()}
+   * to the entry point of the {@link #getBlock()}.
+   */
+  public CFAEdge getCallEdge() {
+    return callEdge;
   }
 
   /**
