@@ -47,38 +47,50 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 /**
  * Summary manager for the interval CPA.
  */
-public class IntervalCPASummaryManager implements SummaryManager {
+public class IntervalsSummaryManager implements SummaryManager {
 
   private final LogManager logger;
 
-  IntervalCPASummaryManager(LogManager pLogger) {
+  IntervalsSummaryManager(LogManager pLogger) {
     logger = pLogger;
   }
 
   @Override
   public List<AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState pFunctionCallState,
-      Precision pFunctionCallPrecision,
+      AbstractState pCallState,
+      Precision pCallPrecision,
       List<Summary> pSummaries,
       Block pBlock,
-      CFANode pCallSite)
+      CFAEdge pCallEdge)
       throws CPAException, InterruptedException {
 
     List<AbstractState> out = new ArrayList<>(pSummaries.size());
     for (Summary s : pSummaries) {
       out.add(getAbstractSuccessorForSummary(
-          pFunctionCallState, (IntervalSummary) s
+          (IntervalAnalysisState) pCallState, (IntervalSummary) s, pBlock, pCallEdge
       ));
     }
     return out;
   }
 
   private IntervalAnalysisState getAbstractSuccessorForSummary(
-      AbstractState pFunctionCallState,
-      IntervalSummary iSummary) throws CPATransferException, InterruptedException {
-    // todo: remove all vars modified inside the block.
-    IntervalAnalysisState copy = IntervalAnalysisState.copyOf(
-        (IntervalAnalysisState) pFunctionCallState);
+      IntervalAnalysisState pCallState,
+      IntervalSummary iSummary,
+      Block pBlock,
+      CFAEdge pCallEdge) throws CPATransferException, InterruptedException {
+    IntervalAnalysisState copy = IntervalAnalysisState.copyOf(pCallState);
+
+    // todo: this does not seem to be working.
+    Set<String> modifiedVarNames = pBlock.getModifiedVariablesForCallEdge(pCallEdge).stream()
+        .map(w -> w.get().getQualifiedName()).collect(Collectors.toSet());
+
+    logger.log(Level.INFO, "Variables modified inside the block", pBlock, "are", modifiedVarNames);
+
+    // Remove all intervals associated with variables potentially modified inside the called
+    // function.
+    pCallState.getIntervalMap().keySet().stream()
+        .filter(v -> modifiedVarNames.contains(v))
+        .forEach(v -> copy.removeInterval(v));
 
     IntervalAnalysisState joinedState = iSummary.getStateAtJoin();
 
@@ -87,7 +99,7 @@ public class IntervalCPASummaryManager implements SummaryManager {
     );
 
     logger.log(Level.INFO, "Postcondition after application of the summary\n",
-        iSummary, "to state\n", pFunctionCallState, "is\n", copy);
+        iSummary, "to state\n", pCallState, "is\n", copy);
     return copy;
   }
 
@@ -208,7 +220,8 @@ public class IntervalCPASummaryManager implements SummaryManager {
 
     @Override
     public String toString() {
-      return "IntervalSummary{stateAtJoin=" + stateAtJoin + '}';
+      return "IntervalSummary{stateAtCall=" + stateAtCallsite
+          + ", stateAtJoin=" + stateAtJoin + '}';
     }
   }
 }
