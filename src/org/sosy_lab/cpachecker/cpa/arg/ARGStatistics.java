@@ -63,7 +63,6 @@ import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -303,8 +302,7 @@ public class ARGStatistics implements Statistics {
   private Map<ARGState, CounterexampleInfo> getAllCounterexamples(final UnmodifiableReachedSet pReached) {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
-    for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
-      ARGState s = (ARGState)targetState;
+    for (ARGState s : from(pReached).filter(IS_TARGET_STATE).filter(ARGState.class)) {
       CounterexampleInfo cex = s.getCounterexampleInformation().orElse(null);
       if (cex == null) {
         ARGPath path = ARGUtils.getOnePathTo(s);
