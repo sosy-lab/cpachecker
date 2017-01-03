@@ -359,6 +359,7 @@ def parseCloudRunResultFile(filePath):
             elif key == 'exitcode':
                 values['exitcode'] = int(value)
             elif (key == "host" or key == "terminationreason" or
+                  key.startswith("cpuenergy") or
                   key.startswith("energy-") or key.startswith("cputime-cpu")):
                 values[key] = value
             elif key not in IGNORED_VALUES:

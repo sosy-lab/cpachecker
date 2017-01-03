@@ -246,6 +246,7 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
             elif key == "exitcode":
                 result_values["exitcode"] = int(value)
             elif (key == "terminationreason" or
+                  key.startswith("cpuenergy") or
                   key.startswith("energy-") or key.startswith("cputime-cpu")):
                 result_values[key] = value
             elif key not in IGNORED_VALUES:
