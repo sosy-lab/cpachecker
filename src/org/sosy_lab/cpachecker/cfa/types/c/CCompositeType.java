@@ -45,8 +45,8 @@ public final class CCompositeType implements CComplexType {
   private transient List<CCompositeTypeMemberDeclaration> members = null;
   private final String name;
   private final String origName;
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final boolean isConst;
+  private final boolean isVolatile;
 
   public CCompositeType(
       final boolean pConst,

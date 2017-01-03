@@ -37,8 +37,8 @@ public final class CTypedefType implements CType, Serializable {
   private static final long serialVersionUID = -3461236537115147688L;
   private final String name; // the typedef name
   private final CType realType; // the real type this typedef points to
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final boolean isConst;
+  private final boolean isVolatile;
   private int hashCache = 0;
 
   public CTypedefType(final boolean pConst, final boolean pVolatile,

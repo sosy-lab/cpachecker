@@ -47,8 +47,8 @@ public final class CEnumType implements CComplexType {
   private final ImmutableList<CEnumerator> enumerators;
   private final String name;
   private final String origName;
-  private boolean isConst;
-  private boolean isVolatile;
+  private final boolean isConst;
+  private final boolean isVolatile;
   private Integer bitFieldSize;
   private int hashCache = 0;
 

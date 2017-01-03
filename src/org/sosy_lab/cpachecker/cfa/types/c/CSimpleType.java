@@ -45,8 +45,8 @@ public final class CSimpleType implements CType, Serializable {
   private final boolean isComplex;
   private final boolean isImaginary;
   private final boolean isLongLong;
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final boolean isConst;
+  private final boolean isVolatile;
   private Integer bitFieldSize;
 
 

@@ -38,8 +38,8 @@ public final class CPointerType implements CType, Serializable {
   public static final CPointerType POINTER_TO_CONST_CHAR = new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false));
 
   private final CType type;
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final boolean isConst;
+  private final boolean isVolatile;
 
   public CPointerType(final boolean pConst, final boolean pVolatile,
       final CType pType) {
