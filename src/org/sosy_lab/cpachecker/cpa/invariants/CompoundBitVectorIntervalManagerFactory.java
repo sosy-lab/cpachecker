@@ -28,7 +28,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
+@SuppressWarnings("ImmutableEnumChecker") // enum used as stateful factory
 public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalManagerFactory {
 
   ALLOW_SIGNED_WRAP_AROUND {

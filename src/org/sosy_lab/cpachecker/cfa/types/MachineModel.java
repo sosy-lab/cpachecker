@@ -481,7 +481,9 @@ public enum MachineModel {
     return result;
   }
 
-  private final CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor = new BaseSizeofVisitor(this);
+  @SuppressWarnings("ImmutableEnumChecker")
+  private final CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor =
+      new BaseSizeofVisitor(this);
 
   public static class BaseSizeofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
     private final MachineModel model;
@@ -649,7 +651,9 @@ public enum MachineModel {
     }
   }
 
-  private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor = new BaseAlignofVisitor(this);
+  @SuppressWarnings("ImmutableEnumChecker")
+  private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor =
+      new BaseAlignofVisitor(this);
 
   public static class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
     private final MachineModel model;
