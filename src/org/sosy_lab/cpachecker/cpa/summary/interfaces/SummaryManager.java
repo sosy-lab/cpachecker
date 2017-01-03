@@ -39,6 +39,15 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 /**
  * An interface for {@link org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis}
  * to generate, compare and use summaries.
+ *
+ * <p>The following vocabulary is used:
+ * <ul>
+ *   <li>The state initiating the call in the outer function, is the <em>call</em> state.</li>
+ *   <li>First state in the called function is the <em>entry</em> state.</li>
+ *   <li>Last state in the called function is the <em>returned</em> state.</li>
+ *   <li>The state in the outer function to which the control gets back into is the
+ *   <em>joined</em> state.</li>
+ * </ul>
  */
 public interface SummaryManager {
 
@@ -46,23 +55,22 @@ public interface SummaryManager {
    * Calculate the abstract successors subject to a list of summaries {@code pSummaries},
    * <b>assuming</b> they are all applicable at the callsite.
    *
-   * @param pFunctionCallState Initial state, associated with a function call.
+   * @param pCallState Initial state, associated with a function call.
    *               Usually has an outgoing {@link FunctionCallEdge}.
-   * @param pFunctionCallPrecision Analysis precision at the to-state.
+   * @param pCallPrecision Analysis precision at the to-state.
    * @param pSummaries All summaries which hold for the callsite.
    * @param pBlock The block for which the summary was calculated.
    *               Contains information obtained from the dataflow analysis,
    *               which is useful for summary application.
-   * @param pCallSite Node from where the block was called from outside,
-   *                  associated with {@code pFunctionCallState}.
+   * @param pCallEdge Call edge, which successor is the entry node of {@code pBlock}.
    * @return resulting state
    */
   List<? extends AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState pFunctionCallState,
-      Precision pFunctionCallPrecision,
+      AbstractState pCallState,
+      Precision pCallPrecision,
       List<Summary> pSummaries,
       Block pBlock,
-      CFANode pCallSite)
+      CFAEdge pCallEdge)
       throws CPAException, InterruptedException;
 
   /**
