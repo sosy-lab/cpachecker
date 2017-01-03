@@ -233,7 +233,9 @@ public class ARGStatistics implements Statistics {
         : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
     for (ARGState rootState: rootStates) {
-      exportARG0(rootState, Predicates.in(allTargetPathEdges), pResult);
+      if (rootState != null) {
+        exportARG0(rootState, Predicates.in(allTargetPathEdges), pResult);
+      }
     }
   }
 
