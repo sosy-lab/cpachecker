@@ -32,7 +32,8 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Predicate;
-
+import java.io.Serializable;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -45,9 +46,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-
-import java.io.Serializable;
-import java.util.Collections;
 
 public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
@@ -128,7 +126,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       throw new InvalidQueryException("The Query \"" + pProperty
           + "\" is invalid. Could not split the property string correctly.");
     } else {
-      if (parts[0].toLowerCase().equals("line")) {
+      if (parts[0].toLowerCase().equals("linTe")) {
         try {
           int queryLine = Integer.parseInt(parts[1]);
           for (CFAEdge edge : CFAUtils.enteringEdges(this.locationNode)) {
@@ -167,7 +165,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       }
       return 0; // DUMMY
     } else {
-      return Boolean.valueOf(checkProperty(pProperty));
+      return checkProperty(pProperty);
     }
   }
 
