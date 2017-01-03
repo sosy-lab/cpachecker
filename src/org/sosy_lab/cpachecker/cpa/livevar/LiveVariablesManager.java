@@ -26,13 +26,25 @@ package org.sosy_lab.cpachecker.cpa.livevar;
 import static org.sosy_lab.cpachecker.util.LiveVariables.LIVE_DECL_EQUIVALENCE;
 
 import com.google.common.base.Equivalence.Wrapper;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -82,20 +94,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * This transfer relation computes the live variables for each location. For
@@ -199,6 +197,10 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
    */
   public Collection<Wrapper<ASimpleDeclaration>> getKilledVars(CFAEdge pEdge)
       throws CPATransferException {
+    Preconditions.checkState(!assumeGlobalVariablesAreAlwaysLive,
+        "assumeGlobalVariablesAreAlwaysLive option should be disabled, "
+            + "otherwise this computation might return incorrect results.");
+
     BitSet full = new BitSet(noVars);
 
     // Assume that all variables are live, see what variables stop
