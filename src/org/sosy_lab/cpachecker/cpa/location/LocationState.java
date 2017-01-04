@@ -126,7 +126,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       throw new InvalidQueryException("The Query \"" + pProperty
           + "\" is invalid. Could not split the property string correctly.");
     } else {
-      if (parts[0].toLowerCase().equals("linTe")) {
+      if (parts[0].toLowerCase().equals("line")) {
         try {
           int queryLine = Integer.parseInt(parts[1]);
           for (CFAEdge edge : CFAUtils.enteringEdges(this.locationNode)) {
