@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -107,8 +106,7 @@ public class LocationCPASummaryManager implements SummaryManager {
   @Override
   public boolean isSummaryApplicableAtCallsite(
       Summary pSummary,
-      AbstractState pCallsite
-  ) throws CPAException, InterruptedException {
+      AbstractState pCallsite) {
     LocationSummary lSummary = (LocationSummary) pSummary;
     LocationState lState = (LocationState) pCallsite;
 
@@ -147,8 +145,8 @@ public class LocationCPASummaryManager implements SummaryManager {
 
     @Override
     public String toString() {
-      return "LocationSummary{joinNode=" + joinNode + ", callNode=" +
-          joinNode.getEnteringSummaryEdge().getPredecessor() + '}';
+      return "LocationSummary{callNode=" +
+          joinNode.getEnteringSummaryEdge().getPredecessor() + ", joinNode=" + joinNode + '}';
     }
   }
 }

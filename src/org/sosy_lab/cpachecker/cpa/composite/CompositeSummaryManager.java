@@ -60,15 +60,15 @@ public class CompositeSummaryManager implements SummaryManager {
 
   @Override
   public List<? extends AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState state,
-      Precision precision,
+      AbstractState pCallState,
+      Precision pCallPrecision,
       List<Summary> pSummary,
       Block pBlock,
-      CFANode pCallsite)
+      CFAEdge pCallEdge)
       throws CPAException, InterruptedException {
 
-    CompositePrecision cPrecision = (CompositePrecision) precision;
-    CompositeState cState = (CompositeState) state;
+    CompositePrecision cPrecision = (CompositePrecision) pCallPrecision;
+    CompositeState cState = (CompositeState) pCallState;
     Preconditions.checkState(cState.getNumberOfStates() == managers.size());
 
     List<List<? extends AbstractState>> contained = new ArrayList<>(managers.size());
@@ -79,7 +79,7 @@ public class CompositeSummaryManager implements SummaryManager {
 
       List<? extends AbstractState> successors =
           managers.get(idx).getAbstractSuccessorsForSummary(
-              cState.get(idx), cPrecision.get(idx), projectedSummaries, pBlock, pCallsite
+              cState.get(idx), cPrecision.get(idx), projectedSummaries, pBlock, pCallEdge
           );
       contained.add(successors);
     }
@@ -186,8 +186,7 @@ public class CompositeSummaryManager implements SummaryManager {
   @Override
   public boolean isSummaryApplicableAtCallsite(
       Summary pSummary,
-      AbstractState pCallsite
-  ) throws CPAException, InterruptedException {
+      AbstractState pCallsite) {
 
     CompositeSummary cSummary = (CompositeSummary) pSummary;
     CompositeState cState = (CompositeState) pCallsite;

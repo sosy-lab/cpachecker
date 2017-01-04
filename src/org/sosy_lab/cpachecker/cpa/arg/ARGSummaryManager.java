@@ -57,16 +57,16 @@ public class ARGSummaryManager implements SummaryManager {
 
   @Override
   public List<? extends AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState pState,
-      Precision pPrecision,
+      AbstractState pCallState,
+      Precision pCallPrecision,
       List<Summary> pSummaries,
       Block pBlock,
-      CFANode pCallsite)
+      CFAEdge pCallEdge)
       throws CPAException, InterruptedException {
-    ARGState aState = (ARGState) pState;
+    ARGState aState = (ARGState) pCallState;
 
     return wrapped.getAbstractSuccessorsForSummary(
-          aState.getWrappedState(), pPrecision, pSummaries, pBlock, pCallsite
+          aState.getWrappedState(), pCallPrecision, pSummaries, pBlock, pCallEdge
       ).stream().map(s -> new ARGState(s, null)).collect(Collectors.toList());
   }
 
@@ -114,8 +114,7 @@ public class ARGSummaryManager implements SummaryManager {
   @Override
   public boolean isSummaryApplicableAtCallsite(
       Summary pSummary,
-      AbstractState pCallsite
-  ) throws CPAException, InterruptedException {
+      AbstractState pCallsite) {
 
     ARGState aState = (ARGState) pCallsite;
     return wrapped.isSummaryApplicableAtCallsite(

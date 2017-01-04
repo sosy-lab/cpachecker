@@ -147,7 +147,7 @@ public interface SummaryManager {
   boolean isSummaryApplicableAtCallsite(
       Summary pSummary,
       AbstractState pCallsite
-  ) throws CPAException, InterruptedException; // todo: exceptions necessary?
+  );
 
   /**
    * Communicate the block partitioning to the configurable
