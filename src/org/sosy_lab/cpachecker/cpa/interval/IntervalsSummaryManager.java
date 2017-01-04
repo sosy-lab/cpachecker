@@ -160,8 +160,8 @@ public class IntervalsSummaryManager implements SummaryManager {
 
     return iSummary1.getStateAtCallsite().isLessOrEqual(
         iSummary2.getStateAtCallsite()
-    ) && iSummary2.getStateAtJoin().isLessOrEqual(
-        iSummary1.getStateAtJoin()
+    ) && iSummary1.getStateAtJoin().isLessOrEqual(
+        iSummary2.getStateAtJoin()
     );
   }
 
