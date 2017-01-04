@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -89,6 +88,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private final ARGStatistics stats;
   private ARGSummaryManager argSummaryManager;
   private final ConfigurableProgramAnalysis wrapped;
+  private final AbstractDomain domain;
 
   private ARGCPA(
       ConfigurableProgramAnalysis cpa,
@@ -103,11 +103,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     wrapped = cpa;
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
+    domain = new ARGAbstractDomain(wrapped.getAbstractDomain());
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return new FlatLatticeDomain();
+    return domain;
   }
 
   @Override
