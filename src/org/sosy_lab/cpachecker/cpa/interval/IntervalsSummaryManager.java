@@ -149,7 +149,7 @@ public class IntervalsSummaryManager implements SummaryManager {
     IntervalSummary iSummary2 = (IntervalSummary) pSummary2;
     return new IntervalSummary(
         iSummary1.getStateAtCallsite().join(iSummary2.getStateAtCallsite()),
-        iSummary2.getStateAtJoin().join(iSummary2.getStateAtJoin())
+        iSummary1.getStateAtJoin().join(iSummary2.getStateAtJoin())
     );
   }
 
