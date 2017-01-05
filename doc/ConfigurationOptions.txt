@@ -1236,12 +1236,12 @@ cpa.lpi.checkPolicyInitialCondition = true
 # Check target states reachability
 cpa.lpi.checkTargetStates = true
 
-# Compute abstraction for larger templates using decomposition
-cpa.lpi.computeAbstractionByDecomposition = false
-
 # Do not compute the abstraction until strengthen is called. This speeds up
 # the computation, but does not let other CPAs use the output of LPI.
 cpa.lpi.delayAbstractionUntilStrengthen = false
+
+# Display formulas associated with intermediate states in DOT output.
+cpa.lpi.displayFormulasInDotOutput = false
 
 # Value to substitute for the epsilon
 cpa.lpi.epsilon = Rational.ONE
@@ -1268,9 +1268,6 @@ cpa.lpi.toLemmasAlgorithm = "RCNF"
 # Number of refinements after which the unrolling depth is increased.Set to
 # -1 to never increase the depth.
 cpa.lpi.unrollingRefinementThreshold = 2
-
-# Use caching optimization solver
-cpa.lpi.useCachingOptSolver = false
 
 # Cache formulas produced by path formula manager
 cpa.lpi.useCachingPathFormulaManager = true
@@ -2114,6 +2111,9 @@ cpa.statistics.metric.structVariablesCount = true
 
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
+
+# export summary requests as a .dot file
+cpa.summary.file = "SummaryRequests.dot"
 
 # Whether summaries should be merged
 cpa.summary.joinSummaries = false
