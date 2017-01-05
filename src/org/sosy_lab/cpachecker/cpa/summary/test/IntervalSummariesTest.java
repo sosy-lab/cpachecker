@@ -82,6 +82,14 @@ public class IntervalSummariesTest {
     check("globals_modified_false_assert.c");
   }
 
+  @Test public void counting_true_assert() throws Exception {
+    check("counting_true_assert.c");
+  }
+
+  @Test public void counting_false_assert() throws Exception {
+    check("counting_false_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(
         filename,
