@@ -322,7 +322,9 @@ public class Interval implements Serializable{
   /**
    * This method determines if this interval contains another interval.
    *
-   * The method still returns true, if the borders match. An empty interval does not contain any interval and is not contained in any interval either. So if the callee or parameter is an empty interval, this method will return false.
+   * The method still returns true, if the borders match.
+   * An empty interval does not contain any interval and is not contained in any interval either.
+   * So if the callee or parameter is an empty interval, this method will return false.
    *
    * @param other the other interval
    * @return true if this interval contains the other interval, else false
