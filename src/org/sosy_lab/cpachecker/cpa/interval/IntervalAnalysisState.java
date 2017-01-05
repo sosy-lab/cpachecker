@@ -143,7 +143,8 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
       return this;
     }
     // only add the interval if it is not already present
-    if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval)) {
+    Interval oldInterval = intervals.get(variableName);
+    if (oldInterval == null || !oldInterval.equals(interval)) {
       int referenceCount = getReferenceCount(variableName);
 
       if (pThreshold == -1 || referenceCount < pThreshold) {
@@ -151,7 +152,9 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
 
         intervals = intervals.putAndCopy(variableName, interval);
       } else {
-        removeInterval(variableName);
+        if (oldInterval == null || !oldInterval.contains(interval)) {
+          removeInterval(variableName);
+        }
       }
     }
 
