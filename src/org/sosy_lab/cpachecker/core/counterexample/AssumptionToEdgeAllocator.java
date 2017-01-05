@@ -1461,6 +1461,10 @@ public class AssumptionToEdgeAllocator {
 
       if (pValue instanceof Rational) {
         double val = ((Rational) pValue).doubleValue();
+        if (Double.isInfinite(val) || Double.isNaN(val)) {
+          // TODO return correct value
+          return UnknownValueLiteral.getInstance();
+        }
         return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
 
       } else if (pValue instanceof Double) {
