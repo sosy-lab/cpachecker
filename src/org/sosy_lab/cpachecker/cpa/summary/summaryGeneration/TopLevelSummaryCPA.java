@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -257,9 +258,9 @@ public class TopLevelSummaryCPA extends AbstractSingleWrapperCPA
 
     } else {
 
-      returnStates = AbstractStates.filterLocation(
+      returnStates = FluentIterable.from(AbstractStates.filterLocation(
           reached, summaryComputationState.getBlock().getExitNode()
-      ).filter(ARGState.class).filter(s -> s.getChildren().isEmpty()).toList();
+      )).filter(ARGState.class).filter(s -> s.getChildren().isEmpty()).toList();
     }
 
     // Generate the summaries if we're not in the outer function,
