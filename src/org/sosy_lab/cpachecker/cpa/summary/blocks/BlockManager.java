@@ -85,7 +85,7 @@ public class BlockManager {
     ImmutableMap.Builder<CFANode, CFAEdge> incomingTransitionsBuilder =
         ImmutableMap.builder();
     blockData.values().forEach(
-        b -> b.getCalls().forEach(
+        b -> b.getCallEdges().forEach(
             e -> incomingTransitionsBuilder.put(e.getPredecessor(), e)
         )
     );

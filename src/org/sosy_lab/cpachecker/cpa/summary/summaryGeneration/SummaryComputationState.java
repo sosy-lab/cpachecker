@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * State representing a (partially) computed function summary.
@@ -70,6 +69,7 @@ class SummaryComputationState implements
   private final Precision entryPrecision;
   private final @Nullable AbstractState callingContext;
   private final @Nullable SummaryComputationState parent;
+  private final long summaryStorageTimestamp;
 
   /**
    * Calling edge from {@code parent} to the entrance of {@code block}.
@@ -77,8 +77,15 @@ class SummaryComputationState implements
   private final @Nullable CFAEdge callEdge;
 
   /**
+   * Reached set for the associated call.
    */
   private final transient ReachedSet reached;
+
+
+  /**
+   * Unique identifier.
+   */
+  private final int stateId;
 
   /**
    * Transient properties derived from reached set.
@@ -86,19 +93,17 @@ class SummaryComputationState implements
   private final transient boolean hasWaitingState;
   private final transient boolean isTarget;
   private final transient ImmutableSet<Property> violatedProperties;
-  private final transient int reachedSize;
 
   /**
-   * Meta-information for visualization.
-   * todo: change to collection for performance
+   * Transient properties for graph generation.
    */
-  private final Set<SummaryComputationState> children = new HashSet<>(1);
-  private transient SummaryComputationState coveredBy = null;
+  private final transient Set<SummaryComputationState> children = new HashSet<>(1);
   private final transient Set<SummaryComputationState> coveredByThis = new HashSet<>();
-  private final int stateId;
-  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
-  private transient boolean fullyExplored = false;
+  private transient SummaryComputationState coveredBy = null;
+  private transient boolean isExpanded = false;
   private transient Summary generatedSummary = null;
+
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   private SummaryComputationState(
       Block pBlock,
@@ -109,9 +114,9 @@ class SummaryComputationState implements
       boolean pHasWaitingState,
       boolean pIsTarget,
       ImmutableSet<Property> pViolatedProperties,
-      int pReachedSize,
       @Nullable SummaryComputationState pParent,
-      @Nullable CFAEdge pCallEdge) {
+      @Nullable CFAEdge pCallEdge,
+      long pSummaryStorageTimestamp) {
 
     block = pBlock;
     entryState = pEntryState;
@@ -121,20 +126,24 @@ class SummaryComputationState implements
     hasWaitingState = pHasWaitingState;
     isTarget = pIsTarget;
     violatedProperties = pViolatedProperties;
-    reachedSize = pReachedSize;
     callEdge = pCallEdge;
     parent = pParent;
+    summaryStorageTimestamp = pSummaryStorageTimestamp;
     if (parent != null) {
       parent.addToChildren(this);
     }
     stateId = idGenerator.getFreshId();
   }
 
+  long getSummaryStorageTimestamp() {
+    return summaryStorageTimestamp;
+  }
+
   /**
    * Set that no more successors are necessary.
    */
-  void setFullyExplored() {
-    fullyExplored = true;
+  void setIsExpanded() {
+    isExpanded = true;
   }
 
   void setGeneratedSummary(Summary pGeneratedSummary) {
@@ -166,10 +175,6 @@ class SummaryComputationState implements
     return Collections.unmodifiableSet(coveredByThis);
   }
 
-  int getReachedSize() {
-    return reachedSize;
-  }
-
   /**
    * @return calling context for the summary,
    * empty for the entry function.
@@ -186,17 +191,10 @@ class SummaryComputationState implements
   }
 
   /**
-   * @return function name of the summarized function.
-   */
-  String getFunctionName() {
-    return AbstractStates.extractLocation(entryState).getFunctionName();
-  }
-
-  /**
    * Reached set, representing the state of the summary computation.
    * Optimization which avoid the redundant computation,
    * as the summary can be recomputed from the
-   * {@link #getEntryState()} and {@link #get}.
+   * {@link #getEntryState()}.
    *
    * @return reached set representing computation in progress for summary derivation.
    */
@@ -210,10 +208,6 @@ class SummaryComputationState implements
    */
   AbstractState getEntryState() {
     return entryState;
-  }
-
-  CFANode getEntryLocation() {
-    return AbstractStates.extractLocation(entryState);
   }
 
   /**
@@ -238,9 +232,9 @@ class SummaryComputationState implements
         false,
         false,
         ImmutableSet.of(),
-        1,
         null,
-        null);
+        null,
+        0);
   }
 
   public static SummaryComputationState of(
@@ -253,7 +247,8 @@ class SummaryComputationState implements
       boolean pIsTarget,
       Set<Property> pViolatedProperties,
       SummaryComputationState parent,
-      CFAEdge pCallEdge
+      CFAEdge pCallEdge,
+      long pSummaryStorageTimestamp
   ) {
     return new SummaryComputationState(
         pBlock,
@@ -263,9 +258,9 @@ class SummaryComputationState implements
         pReached,
         pInnerAnalysisHasWaitingState, pIsTarget,
         ImmutableSet.copyOf(pViolatedProperties),
-        pReached.size(),
         parent,
-        pCallEdge);
+        pCallEdge,
+        pSummaryStorageTimestamp);
   }
 
   /**
@@ -276,7 +271,7 @@ class SummaryComputationState implements
       boolean pInnerAnalysisHasWaitingState,
       boolean pIsTarget,
       Set<Property> pViolatedProperties,
-      int pReachedSize
+      long pSummaryStorageTimestamp
   ) {
     return new SummaryComputationState(
         block,
@@ -286,12 +281,18 @@ class SummaryComputationState implements
         reached,
         pInnerAnalysisHasWaitingState, pIsTarget,
         ImmutableSet.copyOf(pViolatedProperties),
-        pReachedSize,
         parent,
-        callEdge);
+        callEdge,
+        pSummaryStorageTimestamp);
   }
 
-  SummaryComputationState withNewReachedSize(int pReachedSize) {
+  /**
+   * Create a new summary computation state with a new timestamp.
+   */
+  SummaryComputationState withNewTimestamp(
+      long pSummaryStorageTimestamp,
+      SummaryComputationState pParentState
+      ) {
     return new SummaryComputationState(
         block,
         Optional.ofNullable(callingContext),
@@ -301,9 +302,9 @@ class SummaryComputationState implements
         hasWaitingState,
         isTarget,
         violatedProperties,
-        pReachedSize,
-        this, // todo?
-        callEdge);
+        pParentState,
+        null,
+        pSummaryStorageTimestamp);
   }
 
   @Override
@@ -313,11 +314,8 @@ class SummaryComputationState implements
 
   @Override
   public String toString() {
-    return "SummaryComputationState{" +
-        "node=" +
-        ", entryState=" + entryState +
-        ", entryPrecision=" + entryPrecision +
-        '}';
+    return "SummaryComputationState{id=" + getStateId() +
+      ", entryState=" + entryState + '}';
   }
 
   @Override
@@ -335,29 +333,16 @@ class SummaryComputationState implements
     return hasWaitingState;
   }
 
-  /**
-   * States with larger callstack should be considered <b>first</b>.
-   */
   @Override
   public int getPriority() {
-    if (parent == null) {
-      return 0;
-    } else {
-      // todo: store, do not recompute.
-      if (parent.getEntryState() == entryState) {
-
-        // todo: covers all cases?
-        return parent.getPriority();
-      }
-      return 1 + parent.getPriority();
-    }
+    // todo: figure out a good iteration order.
+    return - getStateId();
   }
 
   @Override
   public String toDOTLabel() {
-    String out = String.format("Summary (size=%d, depth=%s): entry=%s",
-        reachedSize,
-        getPriority(),
+    String out = String.format("Summary (timestamp=%s): entry=%s",
+        getSummaryStorageTimestamp(),
         ((Graphable) entryState).toDOTLabel()
     );
     if (generatedSummary != null) {
@@ -383,9 +368,6 @@ class SummaryComputationState implements
 
   @Override
   public Iterable<CFAEdge> getOutgoingEdges() {
-
-    // todo: this should probably reflect something different: namely, all function
-    // calls from this location that lead to edges being computed.
     return block.getStartNode().getLeavingEdges().collect(Collectors.toList());
   }
 
@@ -411,7 +393,7 @@ class SummaryComputationState implements
     }
   }
 
-  public boolean isFullyExplored() {
-    return fullyExplored;
+  public boolean isExpanded() {
+    return isExpanded;
   }
 }

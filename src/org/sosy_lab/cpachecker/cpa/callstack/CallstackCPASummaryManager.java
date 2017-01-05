@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,22 +35,22 @@ import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
- * Summary manager for the CallstackCPA.
+ * Summary manager for the CallstackCPA: uses dumb do-nothing summary.
  */
 public class CallstackCPASummaryManager implements SummaryManager {
 
   @Override
   public List<AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState state,
-      Precision precision,
+      AbstractState pCallState,
+      Precision pCallPrecision,
       List<Summary> pSummary,
       Block pBlock,
-      CFANode pCallsite)
+      CFAEdge pCallEdge)
       throws CPATransferException, InterruptedException {
 
     // Summary application leaves the callstack invariant
     // (we have entered the function and we have left the function)
-    return Collections.singletonList(state);
+    return Collections.singletonList(pCallState);
   }
 
   @Override
@@ -60,7 +58,7 @@ public class CallstackCPASummaryManager implements SummaryManager {
       AbstractState pCallState, Precision pPrecision, CFAEdge pCFAEdge, Block pBlock) {
     CallstackState cState = (CallstackState) pCallState;
     if (cState.getDepth() == 1) {
-      return pCallState;
+      return cState;
     } else {
 
       return new CallstackState(
@@ -74,73 +72,35 @@ public class CallstackCPASummaryManager implements SummaryManager {
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
       Precision pCallPrecision,
-      List<? extends AbstractState> pJoinStates,
+      List<? extends AbstractState> pReturnStates,
       List<Precision> pJoinPrecisions,
-      CFANode pEntryNode,
+      CFANode pCallNode,
       Block pBlock) {
-
-    CallstackState cCallstackState = (CallstackState) pCallState;
-    return Collections.singletonList(new CallstackSummary(cCallstackState));
+    return Collections.singletonList(dumbSummary);
   }
 
   @Override
   public Summary merge(
       Summary pSummary1, Summary pSummary2) {
-
-    // Do not merge states.
     return pSummary2;
   }
 
   @Override
   public boolean isDescribedBy(Summary pSummary1, Summary pSummary2) {
-    return pSummary1.equals(pSummary2);
+    return true;
   }
 
   @Override
-  public boolean isSummaryApplicableAtCallsite(
-      Summary pSummary,
-      AbstractState pCallsite) {
-    CallstackSummary cSummary = (CallstackSummary) pSummary;
-    CallstackState cCallsite = (CallstackState) pCallsite;
-    return cCallsite.equalsByValue(cSummary.getCallsiteCallstack());
+  public boolean isCallsiteLessThanSummary(
+      AbstractState pCallsite, Summary pSummary) {
+    return true;
   }
 
-  /**
-   * Callstack is the same at the function entry and exit:
-   * hence having a single state is enough.
-   */
-  private static class CallstackSummary implements Summary {
-
-    private final CallstackState callsiteCallstack;
-
-    private CallstackSummary(CallstackState pCallsiteCallstack) {
-      callsiteCallstack = pCallsiteCallstack;
-    }
-
-    CallstackState getCallsiteCallstack() {
-      return callsiteCallstack;
-    }
-
-    @Override
-    public boolean equals(@Nullable Object pO) {
-      if (this == pO) {
-        return true;
-      }
-      if (pO == null || getClass() != pO.getClass()) {
-        return false;
-      }
-      CallstackSummary that = (CallstackSummary) pO;
-      return callsiteCallstack.equalsByValue(that.callsiteCallstack);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(callsiteCallstack);
-    }
-
+  private final Summary dumbSummary = new Summary() {
     @Override
     public String toString() {
-      return "CallstackSummary{callsiteStack=" + callsiteCallstack.getStack() + '}';
+      return "";
     }
-  }
+  };
+
 }

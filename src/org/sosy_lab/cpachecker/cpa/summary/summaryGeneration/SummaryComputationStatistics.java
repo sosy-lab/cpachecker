@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.summary.summaryGeneration;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -41,7 +38,6 @@ import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 
 /**
  * Statistics on summary generation.
@@ -54,12 +50,12 @@ public class SummaryComputationStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dotFile = Paths.get("SummaryRequests.dot");
 
-  private final Multimap<String, Summary> computedSummaries;
+  private final SummaryStorage summaryStorage;
 
   SummaryComputationStatistics(
-      Multimap<String, Summary> pComputedSummaries,
+      SummaryStorage pSummaryStorage,
       Configuration pConfiguration) throws InvalidConfigurationException {
-    computedSummaries = Multimaps.unmodifiableMultimap(pComputedSummaries);
+    summaryStorage = pSummaryStorage;
     pConfiguration.inject(this);
   }
 
@@ -68,13 +64,7 @@ public class SummaryComputationStatistics implements Statistics {
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
     out.println("Summaries generated: ");
-    out.println(
-        computedSummaries.asMap().entrySet().stream().map(
-            e -> e.getKey() + ":\n\n" + Joiner.on("\n*").join(
-                e.getValue()
-            )
-        ).reduce(String::concat)
-    );
+    out.println(summaryStorage.toString());
 
     if (dotFile != null) {
       try {

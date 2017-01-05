@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.cpa.summary.summaryUsage;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
+import org.sosy_lab.cpachecker.cpa.summary.summaryGeneration.SummaryStorage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -70,7 +71,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
                                               StatisticsProvider {
 
   private final UseSummaryCPA wrapped;
-  private final Multimap<String, Summary> summaryMapping;
+  private final SummaryStorage summaryStorage;
   private final SummaryManager wrappedSummaryManager;
   private final AbstractDomain wrappedAbstractDomain;
   private final TransferRelation wrappedTransferRelation;
@@ -83,10 +84,10 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
   public SummaryApplicationCPA(
       ConfigurableProgramAnalysis pWrapped,
-      Multimap<String, Summary> pSummaryMapping,
+      SummaryStorage pSummaryStorage,
       BlockManager pBlockManager,
       LogManager pLogger) throws InvalidConfigurationException, CPATransferException {
-    summaryMapping = pSummaryMapping;
+    summaryStorage = pSummaryStorage;
     Preconditions.checkArgument(pWrapped instanceof UseSummaryCPA,
         "Top-level CPA for summary computation has to implement UseSummaryCPA.");
     wrapped = (UseSummaryCPA) pWrapped;
@@ -173,8 +174,8 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
       Block pBlock
   ) throws CPAException, InterruptedException {
 
-    String calledFunctionName = pBlock.getName();
-    Collection<Summary> summaries = summaryMapping.get(calledFunctionName);
+    Collection<Summary> summaries = summaryStorage.get(
+        wrappedSummaryManager.getCallstatePartition(pCallsite));
     List<Summary> matchingSummaries = new ArrayList<>();
 
     // Weaken the call state.
@@ -184,14 +185,18 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
     // We can return multiple postconditions, one for each matching summary.
     for (Summary summary : summaries) {
-      if (wrappedSummaryManager.isSummaryApplicableAtCallsite(summary, weakenedCallState)) {
+      if (wrappedSummaryManager.isCallsiteLessThanSummary(weakenedCallState, summary)) {
         matchingSummaries.add(summary);
       }
     }
 
+    List<Summary> soundMatchingSummaries = summaries.stream()
+        .filter(s -> summaryStorage.isSound(s)).collect(Collectors.toList());
+
+    // todo: refactor, this conditional is a mess.
     if (matchingSummaries.isEmpty()) {
       logger.log(Level.INFO, "No matching summary found for '",
-          calledFunctionName, "', requesting summary computation. Assuming for now the call is "
+          pBlock, "', requesting summary computation. Assuming for now the call is "
               + "unreachable.");
 
       // Generate the state associated with the function entry.
@@ -206,14 +211,38 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
           entryState.iterator().next(),
           pPrecision,
           pBlock,
-          pCallEdge));
+          pCallEdge,
+          false));
       return Collections.emptyList();
+
+    } else if (!soundMatchingSummaries.isEmpty()) {
+      logger.log(Level.INFO, "Sound matching summaries found, using that.",
+          soundMatchingSummaries);
+      Collection<? extends AbstractState> out = wrappedSummaryManager.getAbstractSuccessorsForSummary(
+          pCallsite, pPrecision, soundMatchingSummaries, pBlock, pCallEdge);
+      logger.log(Level.INFO, "Successors of the state", pCallsite, "after summary application "
+          + "are\n\n", out);
+      return out;
     } else {
+
       logger.log(Level.INFO, "Found matching summaries", matchingSummaries);
       Collection<? extends AbstractState> out = wrappedSummaryManager.getAbstractSuccessorsForSummary(
           pCallsite, pPrecision, matchingSummaries, pBlock, pCallEdge);
       logger.log(Level.INFO, "Successors of the state", pCallsite, "after summary application "
           + "are\n\n", out);
+
+
+      Collection<? extends AbstractState> entryState =
+          wrappedTransferRelation.getAbstractSuccessors(weakenedCallState, pPrecision);
+      Preconditions.checkState(entryState.size() == 1,
+          "Processing function call edge should create a unique successor");
+      summaryComputationRequests.add(new SummaryComputationRequest(
+          pCallsite,
+          entryState.iterator().next(),
+          pPrecision,
+          pBlock,
+          pCallEdge,
+          true));
       return out;
     }
   }

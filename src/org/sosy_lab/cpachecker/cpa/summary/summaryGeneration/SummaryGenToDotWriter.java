@@ -190,11 +190,11 @@ public class SummaryGenToDotWriter {
     sb.append("}\n");
   }
 
-  private static String escapeLabelString(final String rawString) {
+  private String escapeLabelString(final String rawString) {
     return rawString;
   }
 
-  private static String determineStateHint(final SummaryComputationState currentElement) {
+  private String determineStateHint(final SummaryComputationState currentElement) {
 
     final String stateNodeId = Integer.toString(currentElement.getStateId());
     final String hintNodeId = stateNodeId + "hint";
@@ -276,7 +276,7 @@ public class SummaryGenToDotWriter {
       return "red";
     }
 
-    if (!currentElement.isFullyExplored()) {
+    if (!currentElement.isExpanded()) {
       return "orange";
     }
 

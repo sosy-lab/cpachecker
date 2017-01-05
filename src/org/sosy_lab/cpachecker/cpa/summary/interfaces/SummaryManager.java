@@ -30,10 +30,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 
 /**
@@ -52,6 +52,34 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public interface SummaryManager {
 
   /**
+   * Generate summaries from the result of the intraprocedural analysis.
+   * A {@link UseSummaryCPA} may choose to generate as
+   * many summaries as it wishes.
+   * Implementation can assume that {@link #getWeakenedCallState}
+   * was already called on the {@code pCallState}.
+   *
+   * @param pCallState Summary precondition, associated with
+   *                   the call node, which is about to jump into the block.
+   * @param pCallPrecision Precision associated with
+   *                        {@code pCallState}.
+   * @param pReturnStates Return states associated with the <em>return</em> node.
+   *                      one transition after the exit state of the block.
+   * @param pJoinPrecisions Return precisions associated with {@code pReturnStates},
+   *                         in the same order as {@code pReturnStates}.
+   * @param pBlock The block for which the summary is generated.
+   * @param pCallNode Call node with an outgoing edge to the summarized block.
+   * @return summaries which describe the result.
+   */
+  List<? extends Summary> generateSummaries(
+      AbstractState pCallState,
+      Precision pCallPrecision,
+      List<? extends AbstractState> pReturnStates,
+      List<Precision> pJoinPrecisions,
+      CFANode pCallNode,
+      Block pBlock
+  ) throws CPATransferException;
+
+  /**
    * Calculate the abstract successors subject to a list of summaries {@code pSummaries},
    * <b>assuming</b> they are all applicable at the callsite.
    *
@@ -63,7 +91,7 @@ public interface SummaryManager {
    *               Contains information obtained from the dataflow analysis,
    *               which is useful for summary application.
    * @param pCallEdge Call edge, which successor is the entry node of {@code pBlock}.
-   * @return resulting state
+   * @return resulting states associated with the <em>join</em> node.
    */
   List<? extends AbstractState> getAbstractSuccessorsForSummary(
       AbstractState pCallState,
@@ -92,34 +120,6 @@ public interface SummaryManager {
       Block pBlock
   );
 
-  /**
-   * Generate summaries from the result of the intraprocedural analysis,
-   * represented by the {@link ReachedSet} {@code pReached}.
-   * A {@link UseSummaryCPA} may choose to generate as
-   * many summaries as it wishes.
-   * Implementation can assume that {@link #getWeakenedCallState}
-   * was already called on the {@code pCallState}.
-   *
-   * @param pCallState Summary precondition, associated with
-   *                   the call node, which is about to jump into the block.
-   * @param pCallPrecision Precision associated with
-   *                        {@code pCallState}.
-   * @param pJoinStates Return states associated with the "join" states:
-   *                    one transition after the exit state of the block.
-   * @param pJoinPrecisions Return precisions associated with {@code pJoinStates},
-   *                         in the same order as {@code pJoinStates}.
-   * @param pBlock The block for which the summary is generated.
-   * @param pEntryNode Entry node for the summarized block.
-   * @return summaries which describe the result.
-   */
-  List<? extends Summary> generateSummaries(
-      AbstractState pCallState,
-      Precision pCallPrecision,
-      List<? extends AbstractState> pJoinStates,
-      List<Precision> pJoinPrecisions,
-      CFANode pEntryNode,
-      Block pBlock
-  );
 
   /**
    * Optionally merge two summaries, same interface as
@@ -138,16 +138,32 @@ public interface SummaryManager {
    */
   boolean isDescribedBy(Summary pSummary1, Summary pSummary2);
 
-
   /**
    * @return whether {@code pSummary} is general enough to describe the condition at the
    * callsite {@code pCallSite}.
    * Note that {@code pCallsite} is outside of the called block.
    */
-  boolean isSummaryApplicableAtCallsite(
-      Summary pSummary,
-      AbstractState pCallsite
-  );
+  boolean isCallsiteLessThanSummary(AbstractState pCallsite, Summary pSummary);
+
+  /**
+   * A summary {@code pSummary} is applicable at the callsite {@code pCallstate}
+   * only if {@link #getCallstatePartition(AbstractState pCallstate)}
+   * is equal to {@code getSummaryPartition(pSummary)}.
+   */
+  default String getSummaryPartition(Summary pSummary) {
+    return "";
+  }
+
+  /**
+   * Partition for the callstack,
+   * should be consistent with {@link #getSummaryPartition(Summary)}
+   *
+   * @see #getSummaryPartition(Summary)
+   */
+  default String getCallstatePartition(AbstractState pCallstate) {
+    return "";
+  }
+
 
   /**
    * Communicate the block partitioning to the configurable

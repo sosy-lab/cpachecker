@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Summary manager for {@link ARGCPA}.
@@ -89,18 +90,18 @@ public class ARGSummaryManager implements SummaryManager {
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
       Precision pCallPrecision,
-      List<? extends AbstractState> pJoinStates,
+      List<? extends AbstractState> pReturnStates,
       List<Precision> pJoinPrecisions,
-      CFANode pEntryNode,
-      Block pBlock) {
+      CFANode pCallNode,
+      Block pBlock) throws CPATransferException {
 
     ARGState aEntryState = (ARGState) pCallState;
     return wrapped.generateSummaries(
         aEntryState.getWrappedState(),
         pCallPrecision,
-        pJoinStates.stream().map(a -> ((ARGState) a).getWrappedState()).collect(Collectors.toList()),
+        pReturnStates.stream().map(a -> ((ARGState) a).getWrappedState()).collect(Collectors.toList()),
         pJoinPrecisions,
-        pEntryNode,
+        pCallNode,
         pBlock
     );
   }
@@ -112,14 +113,23 @@ public class ARGSummaryManager implements SummaryManager {
   }
 
   @Override
-  public boolean isSummaryApplicableAtCallsite(
-      Summary pSummary,
-      AbstractState pCallsite) {
+  public boolean isCallsiteLessThanSummary(
+      AbstractState pCallsite, Summary pSummary) {
 
     ARGState aState = (ARGState) pCallsite;
-    return wrapped.isSummaryApplicableAtCallsite(
-        pSummary,
-        aState.getWrappedState()
+    return wrapped.isCallsiteLessThanSummary(
+        aState.getWrappedState(), pSummary
     );
+  }
+
+  @Override
+  public String getSummaryPartition(Summary pSummary) {
+    return wrapped.getSummaryPartition(pSummary);
+  }
+
+  @Override
+  public String getCallstatePartition(AbstractState pCallstate) {
+    ARGState aState = (ARGState) pCallstate;
+    return wrapped.getCallstatePartition(aState.getWrappedState());
   }
 }

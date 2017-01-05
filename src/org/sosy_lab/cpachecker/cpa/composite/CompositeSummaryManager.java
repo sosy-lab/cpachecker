@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
  * Summary manager for the {@link CompositeCPA}.
@@ -108,10 +109,10 @@ public class CompositeSummaryManager implements SummaryManager {
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
       Precision pCallPrecision,
-      List<? extends AbstractState> pJoinStates,
+      List<? extends AbstractState> pReturnStates,
       List<Precision> pJoinPrecisions,
-      CFANode pEntryNode,
-      Block pBlock) {
+      CFANode pCallNode,
+      Block pBlock) throws CPATransferException {
     CompositeState cEntryState = (CompositeState) pCallState;
     CompositePrecision cEntryPrecision = (CompositePrecision) pCallPrecision;
 
@@ -121,11 +122,11 @@ public class CompositeSummaryManager implements SummaryManager {
       computed.add(managers.get(i).generateSummaries(
             cEntryState.get(i),
             cEntryPrecision.get(i),
-            pJoinStates.stream()
+            pReturnStates.stream()
                 .map(s -> ((CompositeState) s).get(idx)).collect(Collectors.toList()),
             pJoinPrecisions.stream()
                 .map(s -> ((CompositePrecision) s).get(idx)).collect(Collectors.toList()),
-            pEntryNode,
+          pCallNode,
             pBlock
         ));
     }
@@ -184,19 +185,34 @@ public class CompositeSummaryManager implements SummaryManager {
   }
 
   @Override
-  public boolean isSummaryApplicableAtCallsite(
-      Summary pSummary,
-      AbstractState pCallsite) {
+  public boolean isCallsiteLessThanSummary(
+      AbstractState pCallsite, Summary pSummary) {
 
     CompositeSummary cSummary = (CompositeSummary) pSummary;
     CompositeState cState = (CompositeState) pCallsite;
 
     for (int i=0; i<managers.size(); i++) {
-      if (!managers.get(i).isSummaryApplicableAtCallsite(cSummary.get(i), cState.get(i))) {
+      if (!managers.get(i).isCallsiteLessThanSummary(cState.get(i), cSummary.get(i))) {
         return false;
       }
     }
     return true;
+  }
+
+  @Override
+  public String getSummaryPartition(Summary pSummary) {
+    CompositeSummary cSummary = (CompositeSummary) pSummary;
+    return IntStream.range(0, managers.size())
+        .mapToObj(i -> managers.get(i).getSummaryPartition(cSummary.get(i)))
+        .reduce(String::concat).get();
+  }
+
+  @Override
+  public String getCallstatePartition(AbstractState pAbstractState) {
+    CompositeState cState = (CompositeState) pAbstractState;
+    return IntStream.range(0, managers.size())
+        .mapToObj(i -> managers.get(i).getCallstatePartition(cState.get(i)))
+        .reduce(String::concat).get();
   }
 
   private static class CompositeSummary implements Summary {

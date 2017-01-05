@@ -27,16 +27,16 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -92,8 +92,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  *
  */
 @Options(prefix="cpa.summary")
-public class TopLevelSummaryCPA
-    extends AbstractSingleWrapperCPA
+public class TopLevelSummaryCPA extends AbstractSingleWrapperCPA
     implements ConfigurableProgramAnalysis,
                AbstractDomain,
                TransferRelation,
@@ -114,15 +113,15 @@ public class TopLevelSummaryCPA
   private final SummaryComputationStatistics statistics;
   private final LogManager logger;
   private final CFA cfa;
+  private final SummaryWaitlist summaryWaitlist;
 
   /**
    * Function name to stored summaries mapping.
-   * Order-preserving multimap.
    *
    * <p>Maintains an invariant that no stored summary strictly
    * subsumes the other one.
    */
-  private final Multimap<String, Summary> computedSummaries;
+  private final SummaryStorage summaryStorage;
 
   public TopLevelSummaryCPA(
       LogManager pLogger,
@@ -141,17 +140,18 @@ public class TopLevelSummaryCPA
             + pWrapped.getClass().toString()
             + " has to implement the SummaryCPA interface.");
 
-    computedSummaries = LinkedHashMultimap.create();
+    summaryStorage = new SummaryStorage();
     logger = pLogger;
-    statistics = new SummaryComputationStatistics(computedSummaries, pConfig);
+    statistics = new SummaryComputationStatistics(summaryStorage, pConfig);
     blockManager = new BlockManager(pCfa, pConfig, pLogger);
     wrapped = new SummaryApplicationCPA(
-        pWrapped, computedSummaries, blockManager, pLogger);
+        pWrapped, summaryStorage, blockManager, pLogger);
     wrappedSummaryManager = wrapped.getSummaryManager();
 
     algorithmFactory = new CPAAlgorithmFactory(
         wrapped, pLogger, pConfig, pShutdownNotifier
     );
+    summaryWaitlist = new SummaryWaitlist(wrappedSummaryManager, wrapped.getAbstractDomain());
   }
 
   @Override
@@ -182,64 +182,56 @@ public class TopLevelSummaryCPA
   }
 
   private Collection<SummaryComputationState> getAbstractSuccessors0(
-      SummaryComputationState summaryComputationState)
+      final SummaryComputationState summaryComputationState)
       throws CPAException, InterruptedException {
 
-    String functionName = summaryComputationState.getFunctionName();
+    // todo: need a way to visualize each individual analysis!!
     ReachedSet reached = summaryComputationState.getReached();
-    logger.log(Level.INFO, "Processing computation request for '",
-        functionName, "', current reachedSet size is " + reached.size());
+
+    logger.log(Level.INFO, "Processing computation request for stateId=",
+        summaryComputationState.getStateId(),
+        "blockName='",
+        summaryComputationState.getBlock().getName(), "'");
     CPAAlgorithm algorithm = algorithmFactory.newInstance();
 
     // todo: check the algorithm status.
     AlgorithmStatus status = algorithm.run(reached);
     assert status.isSound();
 
-    List<AbstractState> toReEnqueue = new ArrayList<>();
-
     // Requests for summary computation is not empty:
     // put the new requests into the priority queue,
     // as well as the updated request for the currently processed function.
     // Coverage within the computation requests is taken care of using the domain.
     List<SummaryComputationState> toReturn = new ArrayList<>();
+    boolean allCallsCovered = wrapped.getSummaryComputationRequests().isEmpty();
 
     for (SummaryComputationRequest req : Iterables.consumingIterable(
                                   wrapped.getSummaryComputationRequests())) {
-      ReachedSet newReached = reachedSetFactory.create();
-      newReached.add(req.getFunctionEntryState(), req.getFunctionEntryPrecision());
-      SummaryComputationState scs = SummaryComputationState.of(
-          req.getBlock(),
-          req.getCallingContext(),
-          req.getFunctionEntryState(),
-          req.getFunctionEntryPrecision(),
-          newReached,
-          false,
-          false,
-          ImmutableSet.of(),
-          summaryComputationState,
-          req.getCallEdge());
 
-      // Make sure that we restart the computation at calling contexts
-      // *after* the summaries are generated.
-      toReEnqueue.add(req.getCallingContext());
+      if (!req.isUnsoundSummaryAvailable()) {
+        ReachedSet newReached = reachedSetFactory.create();
+        newReached.add(req.getFunctionEntryState(), req.getFunctionEntryPrecision());
+        SummaryComputationState scs = SummaryComputationState.of(
+            req.getBlock(),
+            req.getCallingContext(),
+            req.getFunctionEntryState(),
+            req.getFunctionEntryPrecision(),
+            newReached,
+            false,
+            false,
+            ImmutableSet.of(),
+            summaryComputationState,
+            req.getCallEdge(),
+            summaryStorage.getTimestamp());
 
-      logger.log(Level.INFO,
-          "Intraprocedural analysis requested for function '", scs.getFunctionName() + "'");
-      toReturn.add(scs);
+        toReturn.add(scs);
+      }
+
+      summaryWaitlist.registerDependency(
+          req.getCallingContext(), summaryComputationState
+      );
     }
-
-    // Re-add the summary computation state to the reached set:
-    // we want to compute the summary for that one.
-    // Important: *relies* on the correct computation order,
-    // would get stuck in the infinite loop otherwise.
-    if (!toReturn.isEmpty()) {
-
-      toReturn.add(summaryComputationState.withNewReachedSize(reached.size()));
-      logger.log(Level.INFO, "Re-requesting intraprocedural analysis for '",
-          summaryComputationState.getFunctionName(), "'");
-    } else {
-      summaryComputationState.setFullyExplored();
-    }
+    summaryComputationState.setIsExpanded();
 
     // We assume the wrapped state is an ARGState.
     ARGState lastState = (ARGState) reached.getLastState();
@@ -254,23 +246,21 @@ public class TopLevelSummaryCPA
 
     if (hasTargetState || hasWaitingState) {
       assert lastState != null;
-      returnStates = ImmutableList.of(lastState);
-    } else {
-      returnStates = AbstractStates.filterLocation(
-          reached, summaryComputationState.getBlock().getExitNode()
-      ).filter(ARGState.class).filter(s -> s.getChildren().isEmpty()).toList();
-    }
-
-    if (hasTargetState || hasWaitingState) {
-
       logger.log(Level.INFO, "Has target state = " + hasTargetState,
           " has waiting state = " + hasWaitingState + " returning same state");
       return Collections.singleton(
           summaryComputationState.withUpdatedTargetable(
-              hasWaitingState, hasTargetState, pViolatedProperties, reached.size()));
-    }
+              hasWaitingState,
+              hasTargetState,
+              pViolatedProperties,
+              summaryStorage.getTimestamp()));
 
-    toReEnqueue.forEach(e -> reached.reAddToWaitlist(e));
+    } else {
+
+      returnStates = AbstractStates.filterLocation(
+          reached, summaryComputationState.getBlock().getExitNode()
+      ).filter(ARGState.class).filter(s -> s.getChildren().isEmpty()).toList();
+    }
 
     // Generate the summaries if we're not in the outer function,
     // and there was a way to a "return" node.
@@ -279,27 +269,12 @@ public class TopLevelSummaryCPA
         !summaryComputationState.getBlock().getName().equals(
             cfa.getMainFunction().getFunctionName())) {
 
-      // We actually need states associated with the "join" nodes: one transition after the ones
-      // associated with the "return" nodes.
-      List<AbstractState> joinedStates = new ArrayList<>(returnStates.size());
-      List<Precision> joinedPrecisions = new ArrayList<>(returnStates.size());
-      for (AbstractState s : returnStates) {
-        Precision p = reached.getPrecision(s);
-        for (AbstractState n : wrapped.getDelegatedSuccessors(s, p)) {
-
-          joinedStates.add(n);
-
-          // todo: account for the precision being possibly adjusted, need to take the new one.
-          joinedPrecisions.add(p);
-        }
-      }
-
       generatedSummaries = wrappedSummaryManager.generateSummaries(
           summaryComputationState.getCallingContext().get(),
           summaryComputationState.getEntryPrecision(),
-          joinedStates,
-          joinedPrecisions,
-          summaryComputationState.getEntryLocation(),
+          returnStates,
+          returnStates.stream().map(s -> reached.getPrecision(s)).collect(Collectors.toList()),
+          AbstractStates.extractLocation(summaryComputationState.getCallingContext().get()),
           summaryComputationState.getBlock()
       );
       logger.log(Level.INFO, "Generated summaries: ", generatedSummaries);
@@ -310,16 +285,27 @@ public class TopLevelSummaryCPA
       generatedSummaries = Collections.emptyList();
     }
 
+    Set<Summary> storedSummaries = new HashSet<>();
+
     for (Summary s : generatedSummaries) {
-      //noinspection ResultOfMethodCallIgnored
-      storeGeneratedSummary(summaryComputationState, s, functionName);
+      storedSummaries.addAll(
+          storeGeneratedSummary(summaryComputationState, s, allCallsCovered)
+      );
     }
+
+    // Re-enqueue states.
+    Collection<SummaryComputationState> toRecompute =
+        summaryWaitlist.getToRecompute(
+            storedSummaries,
+            summaryStorage.getTimestamp(),
+            summaryComputationState);
+    toReturn.addAll(toRecompute);
 
     return toReturn;
   }
 
   /**
-   * Store the generated summary in the {@link #computedSummaries} datastructure.
+   * Store the generated summary in the {@link #summaryStorage} datastructure.
    *
    * <p>Merges the summary with the existing ones,
    * and additionally perform the coverage check.
@@ -330,33 +316,49 @@ public class TopLevelSummaryCPA
    * @param pSummaryComputationState Summary computation state which resulted in this
    *                                 summary generation.
    * @param generatedSummary Summary which was generated.
-   * @param functionName Name of the function for the generated summary.
+   * @param isSound Whether the summary is sound: this is true iff
+   *                the summary correctly over-approximates all the possible
+   *                computations within the block
+   *                and does not require further computation requests.
    *
    * @return whether the collection was changed (if not, the summary was subsumed).
    */
   @CanIgnoreReturnValue
-  private boolean storeGeneratedSummary(
+  private Set<Summary> storeGeneratedSummary(
       SummaryComputationState pSummaryComputationState,
       Summary generatedSummary,
-      String functionName)
+      boolean isSound)
       throws CPAException, InterruptedException {
 
+    Set<Summary> out = new HashSet<>();
+
     // Do the merge.
-    Collection<Summary> matchingSummaries = computedSummaries.get(functionName);
+    String partition = wrappedSummaryManager.getSummaryPartition(generatedSummary);
+
+    Collection<Summary> matchingSummaries = summaryStorage.get(partition);
+
     List<Summary> toRemove = new ArrayList<>();
+
     List<Summary> toAdd = new ArrayList<>();
     for (Summary existingSummary : matchingSummaries) {
       Summary merged = wrappedSummaryManager.merge(generatedSummary, existingSummary);
       if (merged != existingSummary) {
-        toRemove.add(existingSummary); // todo: the problem is at this point we forgot the
-                                       // computation request.
-                                       // then the visualization does not take merges into account.
+        toRemove.add(existingSummary);
         toAdd.add(merged);
+
+        // todo: how to visualized merged summaries?
+        pSummaryComputationState.setGeneratedSummary(generatedSummary);
+
+        // The join of two sound summaries is also sound.
+        if (isSound && summaryStorage.isSound(existingSummary)) {
+          summaryStorage.addToSound(merged);
+        }
       }
     }
 
-    matchingSummaries.removeAll(toRemove);
-    matchingSummaries.addAll(toAdd);
+    summaryStorage.removeAll(partition, toRemove);
+    summaryStorage.addAll(partition, toAdd);
+    out.addAll(toAdd);
 
     // Do the coverage computation.
     boolean add = true;
@@ -370,12 +372,12 @@ public class TopLevelSummaryCPA
       }
     }
     if (add) {
-      matchingSummaries.add(generatedSummary);
+      out.add(generatedSummary);
+      summaryStorage.add(partition, generatedSummary, isSound);
       pSummaryComputationState.setGeneratedSummary(generatedSummary);
-      return true;
-    } else {
-      return false;
     }
+
+    return out;
   }
 
   @Override
@@ -391,11 +393,9 @@ public class TopLevelSummaryCPA
     }
 
     if ((sState1.getEntryState() == sState2.getEntryState()
-
-        // todo: is size enough? we assume with a set exploration order, bigger=better?
-        && sState1.getReachedSize() <= sState2.getReachedSize()) {
         || (joinSummaries && wrapped.getAbstractDomain().isLessOrEqual(
               sState1.getEntryState(), sState2.getEntryState())))
+        && sState1.getSummaryStorageTimestamp() <= sState2.getSummaryStorageTimestamp()) {
       sState1.setCoveredBy(sState2);
       return true;
     }

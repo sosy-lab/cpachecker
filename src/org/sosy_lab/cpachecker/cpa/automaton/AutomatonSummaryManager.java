@@ -23,11 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import com.google.common.collect.FluentIterable;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,37 +36,32 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Summary manager for automaton CPA.
+ * For now using dumb do-nothing summary,
+ * since we have separate handling for targetable states anyway.
+ *
+ * todo: proper summarization.
  */
 public class AutomatonSummaryManager implements SummaryManager {
 
   @Override
   public List<AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState pFunctionCallState,
-      Precision pFunctionCallPrecision,
+      AbstractState pCallState,
+      Precision pCallPrecision,
       List<Summary> pSummaries,
       Block pBlock,
-      CFANode pCallsite) throws CPAException, InterruptedException {
-
-    // todo: what do we do with the summaries here?
-    // calculate the postconditions from the states at function exit?
-    // or assume if there was a violation it was already recorded by now?
-    // todo: confusing.
-    return Collections.singletonList(pFunctionCallState);
+      CFAEdge pCallEdge) throws CPAException, InterruptedException {
+    return Collections.singletonList(pCallState);
   }
 
   @Override
   public List<? extends Summary> generateSummaries(
       AbstractState pCallState,
       Precision pCallPrecision,
-      List<? extends AbstractState> pJoinStates,
+      List<? extends AbstractState> pReturnStates,
       List<Precision> pJoinPrecisions,
-      CFANode pEntryNode,
+      CFANode pCallNode,
       Block pBlock) {
-
-    AutomatonState aCallState = (AutomatonState) pCallState;
-    return FluentIterable.from(pJoinStates)
-        .filter(AutomatonState.class)
-        .transform(r -> new AutomatonSummary(aCallState, r)).toList();
+    return Collections.singletonList(dumbSummary);
   }
 
   @Override
@@ -81,63 +73,25 @@ public class AutomatonSummaryManager implements SummaryManager {
   @Override
   public Summary merge(
       Summary pSummary1, Summary pSummary2) throws CPAException, InterruptedException {
-
-    // States are not joined.
     return pSummary2;
   }
 
   @Override
   public boolean isDescribedBy(Summary pSummary1, Summary pSummary2) {
-    return pSummary1.equals(pSummary2);
+    return true;
   }
 
   @Override
-  public boolean isSummaryApplicableAtCallsite(Summary pSummary, AbstractState pCallsite) {
-    AutomatonSummary aSummary = (AutomatonSummary) pSummary;
-    return aSummary.getCallState().equals(pCallsite);
+  public boolean isCallsiteLessThanSummary(
+      AbstractState pCallsite,
+      Summary pSummary) {
+    return true;
   }
 
-  private static class AutomatonSummary implements Summary {
-    private final AutomatonState callState;
-    private final AutomatonState joinState;
-
-    private AutomatonSummary(AutomatonState pCallState, AutomatonState pJoinState) {
-      callState = pCallState;
-      joinState = pJoinState;
-    }
-
-    public AutomatonState getCallState() {
-      return callState;
-    }
-
-    public AutomatonState getJoinState() {
-      return joinState;
-    }
-
-    @Override
-    public boolean equals(@Nullable Object pO) {
-      if (this == pO) {
-        return true;
-      }
-      if (pO == null || getClass() != pO.getClass()) {
-        return false;
-      }
-      AutomatonSummary that = (AutomatonSummary) pO;
-      return Objects.equals(callState, that.callState) &&
-          Objects.equals(joinState, that.joinState);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(callState, joinState);
-    }
-
+  private final Summary dumbSummary = new Summary() {
     @Override
     public String toString() {
-      return "AutomatonSummary{" +
-          "callState=" + callState +
-          ", joinState=" + joinState +
-          '}';
+      return "";
     }
-  }
+  };
 }

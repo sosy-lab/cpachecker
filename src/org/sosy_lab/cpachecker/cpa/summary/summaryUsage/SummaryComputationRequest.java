@@ -38,17 +38,23 @@ public class SummaryComputationRequest {
   private final Precision functionEntryPrecision;
   private final Block block;
   private final CFAEdge callEdge;
+  private final boolean unsoundSummaryAvailable;
 
   SummaryComputationRequest(
       AbstractState pCallingContext,
       AbstractState pFunctionEntryState,
       Precision pFunctionEntryPrecision,
-      Block pBlock, CFAEdge pCallEdge) {
+      Block pBlock, CFAEdge pCallEdge, boolean pUnsoundSummaryAvailable) {
     functionEntryState = pFunctionEntryState;
     functionEntryPrecision = pFunctionEntryPrecision;
     callingContext = pCallingContext;
     block = pBlock;
     callEdge = pCallEdge;
+    unsoundSummaryAvailable = pUnsoundSummaryAvailable;
+  }
+
+  public boolean isUnsoundSummaryAvailable() {
+    return unsoundSummaryAvailable;
   }
 
   /**

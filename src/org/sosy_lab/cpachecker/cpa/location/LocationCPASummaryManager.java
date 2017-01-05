@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Operating over summaries for {@link LocationCPA}.
@@ -55,7 +54,7 @@ public class LocationCPASummaryManager implements SummaryManager {
       Precision pCallPrecision,
       List<Summary> pSummary,
       Block pBlock,
-      CFANode pCallsite) {
+      CFAEdge pCallEdge) {
 
     LocationState lState = (LocationState) pCallState;
     CFANode node = lState.getLocationNode();
@@ -75,19 +74,16 @@ public class LocationCPASummaryManager implements SummaryManager {
   public List<Summary> generateSummaries(
       AbstractState pCallState,
       Precision pCallPrecision,
-      List<? extends AbstractState> pJoinStates,
+      List<? extends AbstractState> pReturnStates,
       List<Precision> pJoinPrecisions,
-      CFANode pEntryNode,
+      CFANode pCallNode,
       Block pBlock) {
 
+    LocationState callState = (LocationState) pCallState;
+    assert pCallNode == callState.getLocationNode();
+    CFANode entry = entryNodeFromCallNode(callState.getLocationNode());
 
-    LocationState joinState = (LocationState) pJoinStates.iterator().next();
-    assert pJoinStates.stream()
-        .allMatch(s -> AbstractStates.extractLocation(s) == joinState.getLocationNode());
-
-    return Collections.singletonList(
-        new LocationSummary(joinState.getLocationNode())
-    );
+    return Collections.singletonList(new LocationSummary(entry));
   }
 
   @Override
@@ -104,26 +100,43 @@ public class LocationCPASummaryManager implements SummaryManager {
   }
 
   @Override
-  public boolean isSummaryApplicableAtCallsite(
-      Summary pSummary,
-      AbstractState pCallsite) {
+  public boolean isCallsiteLessThanSummary(
+      AbstractState pCallsite, Summary pSummary) {
     LocationSummary lSummary = (LocationSummary) pSummary;
     LocationState lState = (LocationState) pCallsite;
 
-    return lSummary.getJoinNode() ==
-        lState.getLocationNode().getLeavingSummaryEdge().getSuccessor();
+    return lSummary.getEntryNode() ==
+        entryNodeFromCallNode(lState.getLocationNode());
+  }
+
+  @Override
+  public String getSummaryPartition(Summary pSummary) {
+    // Group summaries by the corresponding entry node.
+    LocationSummary lSummary = (LocationSummary) pSummary;
+    return lSummary.entryNode.toString();
+  }
+
+  @Override
+  public String getCallstatePartition(AbstractState pCallstate) {
+    LocationState lState = (LocationState) pCallstate;
+    return entryNodeFromCallNode(lState.getLocationNode()).toString();
+  }
+
+  private CFANode entryNodeFromCallNode(CFANode pCallNode) {
+    assert pCallNode.getNumLeavingEdges() == 1;
+    return pCallNode.getLeavingEdge(0).getSuccessor();
   }
 
   private static class LocationSummary implements Summary {
 
-    private final CFANode joinNode;
+    private final CFANode entryNode;
 
-    private LocationSummary(CFANode pJoinNode) {
-      joinNode = pJoinNode;
+    private LocationSummary(CFANode pEntryNode) {
+      entryNode = pEntryNode;
     }
 
-    CFANode getJoinNode() {
-      return joinNode;
+    CFANode getEntryNode() {
+      return entryNode;
     }
 
     @Override
@@ -135,18 +148,17 @@ public class LocationCPASummaryManager implements SummaryManager {
         return false;
       }
       LocationSummary that = (LocationSummary) pO;
-      return Objects.equals(joinNode, that.joinNode);
+      return Objects.equals(entryNode, that.entryNode);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(joinNode);
+      return Objects.hash(entryNode);
     }
 
     @Override
     public String toString() {
-      return "LocationSummary{callNode=" +
-          joinNode.getEnteringSummaryEdge().getPredecessor() + ", joinNode=" + joinNode + '}';
+      return "LocationSummary{entryNode=" + entryNode + '}';
     }
   }
 }

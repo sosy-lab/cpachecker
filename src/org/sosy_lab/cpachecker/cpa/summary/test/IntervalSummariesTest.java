@@ -74,6 +74,14 @@ public class IntervalSummariesTest {
     check("check_in_func_false_assert.c");
   }
 
+  @Test public void globals_modified_true_assert() throws Exception {
+    check("globals_modified_true_assert.c");
+  }
+
+  @Test public void globals_modified_false_assert() throws Exception {
+    check("globals_modified_false_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(
         filename,

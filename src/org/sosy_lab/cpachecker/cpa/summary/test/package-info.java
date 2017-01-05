@@ -23,6 +23,6 @@
  */
 
 /**
- * Tests for the new summary framework.
+ * Tests for the summary framework.
  */
 package org.sosy_lab.cpachecker.cpa.summary.test;

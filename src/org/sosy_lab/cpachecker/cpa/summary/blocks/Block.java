@@ -80,7 +80,7 @@ public class Block {
   /**
    * @return all incoming edges
    */
-  public Set<CFAEdge> getCalls() {
+  public Set<CFAEdge> getCallEdges() {
     return incomingTransitions;
   }
 
