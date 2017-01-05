@@ -198,41 +198,8 @@ public class TopLevelSummaryCPA extends AbstractSingleWrapperCPA
     // todo: check the algorithm status.
     AlgorithmStatus status = algorithm.run(reached);
     assert status.isSound();
-
-    // Requests for summary computation is not empty:
-    // put the new requests into the priority queue,
-    // as well as the updated request for the currently processed function.
-    // Coverage within the computation requests is taken care of using the domain.
-    List<SummaryComputationState> toReturn = new ArrayList<>();
     boolean allCallsCovered = wrapped.getSummaryComputationRequests().isEmpty();
 
-    for (SummaryComputationRequest req : Iterables.consumingIterable(
-                                  wrapped.getSummaryComputationRequests())) {
-
-      if (!req.isUnsoundSummaryAvailable()) {
-        ReachedSet newReached = reachedSetFactory.create();
-        newReached.add(req.getFunctionEntryState(), req.getFunctionEntryPrecision());
-        SummaryComputationState scs = SummaryComputationState.of(
-            req.getBlock(),
-            req.getCallingContext(),
-            req.getFunctionEntryState(),
-            req.getFunctionEntryPrecision(),
-            newReached,
-            false,
-            false,
-            ImmutableSet.of(),
-            summaryComputationState,
-            req.getCallEdge(),
-            summaryStorage.getTimestamp());
-
-        toReturn.add(scs);
-      }
-
-      summaryWaitlist.registerDependency(
-          req.getCallingContext(), summaryComputationState
-      );
-    }
-    summaryComputationState.setIsExpanded();
 
     // We assume the wrapped state is an ARGState.
     ARGState lastState = (ARGState) reached.getLastState();
@@ -293,6 +260,41 @@ public class TopLevelSummaryCPA extends AbstractSingleWrapperCPA
           storeGeneratedSummary(summaryComputationState, s, allCallsCovered)
       );
     }
+
+    // Requests for summary computation is not empty:
+    // put the new requests into the priority queue,
+    // as well as the updated request for the currently processed function.
+    // Coverage within the computation requests is taken care of using the domain.
+    List<SummaryComputationState> toReturn = new ArrayList<>();
+
+    for (SummaryComputationRequest req : Iterables.consumingIterable(
+        wrapped.getSummaryComputationRequests())) {
+
+      if (!req.isUnsoundSummaryAvailable()) {
+        ReachedSet newReached = reachedSetFactory.create();
+        newReached.add(req.getFunctionEntryState(), req.getFunctionEntryPrecision());
+
+        SummaryComputationState scs = SummaryComputationState.of(
+            req.getBlock(),
+            req.getCallingContext(),
+            req.getFunctionEntryState(),
+            req.getFunctionEntryPrecision(),
+            newReached,
+            false,
+            false,
+            ImmutableSet.of(),
+            summaryComputationState,
+            req.getCallEdge(),
+            summaryStorage.getTimestamp());
+
+        toReturn.add(scs);
+      }
+
+      summaryWaitlist.registerDependency(
+          req.getCallingContext(), summaryComputationState
+      );
+    }
+    summaryComputationState.setIsExpanded();
 
     // Re-enqueue states.
     Collection<SummaryComputationState> toRecompute =
