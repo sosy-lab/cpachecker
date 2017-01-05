@@ -391,12 +391,11 @@ public class TopLevelSummaryCPA
     }
 
     if ((sState1.getEntryState() == sState2.getEntryState()
-        || (joinSummaries && wrapped.getStopOperator().stop(
-            sState1.getEntryState(),
-            Collections.singleton(sState2.getEntryState()), sState2.getEntryPrecision())))
 
         // todo: is size enough? we assume with a set exploration order, bigger=better?
         && sState1.getReachedSize() <= sState2.getReachedSize()) {
+        || (joinSummaries && wrapped.getAbstractDomain().isLessOrEqual(
+              sState1.getEntryState(), sState2.getEntryState())))
       sState1.setCoveredBy(sState2);
       return true;
     }
