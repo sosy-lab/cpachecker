@@ -73,11 +73,10 @@ public class IntervalsSummaryManager implements SummaryManager {
   ) throws CPATransferException {
     IntervalAnalysisState iCallState = (IntervalAnalysisState) pCallState;
     assert pCallNode.getNumLeavingEdges() == 1;
+    CFAEdge callEdge = pCallNode.getLeavingEdge(0);
 
-    Collection<IntervalAnalysisState> entryStates =
-        transferRelation.getAbstractSuccessorsForEdge(
-            iCallState, pCallPrecision, pCallNode.getLeavingEdge(0));
-    assert entryStates.size() == 1;
+    IntervalAnalysisState weakenedCallstate =
+        getWeakenedCallState(iCallState, pCallPrecision, callEdge, pBlock);
 
     assert !pReturnStates.isEmpty();
     Stream<IntervalAnalysisState> stream =
@@ -85,7 +84,7 @@ public class IntervalsSummaryManager implements SummaryManager {
 
     Optional<IntervalAnalysisState> out = stream.reduce((a, b) -> a.join(b, threshold));
     return Collections.singletonList(new IntervalSummary(
-        entryStates.iterator().next(),
+        weakenedCallstate,
         out.get()
     ));
   }
@@ -165,7 +164,7 @@ public class IntervalsSummaryManager implements SummaryManager {
     }
 
     return new IntervalSummary(
-        iSummaryNew.getStateAtEntry().join(iSummaryExisting.getStateAtEntry(), threshold),
+        iSummaryNew.getStateAtCallsite().join(iSummaryExisting.getStateAtCallsite(), threshold),
         iSummaryNew.getStateAtReturn().join(iSummaryExisting.getStateAtReturn(), threshold)
     );
   }
@@ -175,8 +174,8 @@ public class IntervalsSummaryManager implements SummaryManager {
     IntervalSummary iSummary1 = (IntervalSummary) pSummary1;
     IntervalSummary iSummary2 = (IntervalSummary) pSummary2;
 
-    return iSummary1.getStateAtEntry().isLessOrEqual(
-        iSummary2.getStateAtEntry()
+    return iSummary1.getStateAtCallsite().isLessOrEqual(
+        iSummary2.getStateAtCallsite()
     ) && iSummary1.getStateAtReturn().isLessOrEqual(
         iSummary2.getStateAtReturn()
     );
@@ -188,8 +187,7 @@ public class IntervalsSummaryManager implements SummaryManager {
       Summary pSummary) {
     IntervalAnalysisState iState = (IntervalAnalysisState) pCallsite;
     IntervalSummary iSummary = (IntervalSummary) pSummary;
-
-    return iState.isLessOrEqual(iSummary.getStateAtEntry());
+    return iState.isLessOrEqual(iSummary.getStateAtCallsite());
   }
 
   private static class IntervalSummary implements Summary {
@@ -197,7 +195,7 @@ public class IntervalsSummaryManager implements SummaryManager {
     /**
      * Intervals over parameters, read global variables.
      */
-    private final IntervalAnalysisState stateAtEntry;
+    private final IntervalAnalysisState stateAtCallsite;
 
     /**
      * Intervals over returned variable, changed global variables.
@@ -205,14 +203,14 @@ public class IntervalsSummaryManager implements SummaryManager {
     private final IntervalAnalysisState stateAtReturn;
 
     private IntervalSummary(
-        IntervalAnalysisState pStateAtEntry,
+        IntervalAnalysisState pStateAtCallsite,
         IntervalAnalysisState pStateAtReturn) {
-      stateAtEntry = pStateAtEntry;
+      stateAtCallsite = pStateAtCallsite;
       stateAtReturn = pStateAtReturn;
     }
 
-    IntervalAnalysisState getStateAtEntry() {
-      return stateAtEntry;
+    IntervalAnalysisState getStateAtCallsite() {
+      return stateAtCallsite;
     }
 
     IntervalAnalysisState getStateAtReturn() {
@@ -228,18 +226,18 @@ public class IntervalsSummaryManager implements SummaryManager {
         return false;
       }
       IntervalSummary that = (IntervalSummary) pO;
-      return Objects.equals(stateAtEntry, that.stateAtEntry) &&
+      return Objects.equals(stateAtCallsite, that.stateAtCallsite) &&
           Objects.equals(stateAtReturn, that.stateAtReturn);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(stateAtEntry, stateAtReturn);
+      return Objects.hash(stateAtCallsite, stateAtReturn);
     }
 
     @Override
     public String toString() {
-      return "IntervalSummary{stateAtEntry=(" + stateAtEntry
+      return "IntervalSummary{stateAtCallsite=(" + stateAtCallsite
           + "), stateAtReturn=(" + stateAtReturn + ")}";
     }
   }
