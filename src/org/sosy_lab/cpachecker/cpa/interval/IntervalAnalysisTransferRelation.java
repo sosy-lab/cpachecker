@@ -84,12 +84,14 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     + "when an inequality-check is encountered")
   private boolean splitIntervals = false;
 
-  @Option(secure=true, description="at most that many intervals will be tracked per variable, -1 if number not restricted")
-  private int threshold = -1;
-
+  /**
+   * Threshold for widening.
+   */
+  private final int threshold;
   private final LogManager logger;
 
-  public IntervalAnalysisTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public IntervalAnalysisTransferRelation(Configuration config, int pThreshold, LogManager pLogger) throws InvalidConfigurationException {
+    threshold = pThreshold;
     config.inject(this);
     logger = pLogger;
   }

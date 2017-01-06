@@ -23,12 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-
+import com.google.common.collect.FluentIterable;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -39,15 +46,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
-    AbstractQueryableState, Graphable, FormulaReportingState {
+public class IntervalAnalysisState implements Serializable,
+                                              AbstractQueryableState,
+                                              Graphable,
+                                              FormulaReportingState {
 
   private static final long serialVersionUID = -2030700797958100666L;
 
@@ -188,11 +190,18 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    * This element joins this element with a reached state.
    *
    * @param reachedState the reached state to join this element with
+   * @param pThreshold Widening threshold,
+   *                   see {@link #addInterval(String, Interval, int)}
+   *                   for explanation.
    * @return a new state representing the join of this element and the reached state
    */
-  @Override
-  public IntervalAnalysisState join(IntervalAnalysisState reachedState) {
+  public IntervalAnalysisState join(IntervalAnalysisState reachedState, int pThreshold) {
     boolean changed = false;
+    if (isLessOrEqual(reachedState)) {
+      return reachedState;
+    } else if (reachedState.isLessOrEqual(this)) {
+      return this;
+    }
     PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> newReferences = referenceCounts;
 
@@ -202,23 +211,45 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
     for (String variableName : reachedState.intervals.keySet()) {
       if (intervals.containsKey(variableName)) {
         // update the interval
-        mergedInterval = getInterval(variableName).union(reachedState.getInterval(variableName));
-        if (mergedInterval != reachedState.getInterval(variableName)) {
+
+        Interval currentInterval = intervals.get(variableName);
+        Interval reachedInterval = reachedState.getInterval(variableName);
+
+        mergedInterval = currentInterval.union(reachedState.getInterval(variableName));
+
+        if (!mergedInterval.equals(reachedInterval)) {
           changed = true;
+        }
+
+        // update the references
+        newRefCount = Math.max(
+            getReferenceCount(variableName),
+            reachedState.getReferenceCount(variableName)) + 1;
+
+        if (newRefCount > pThreshold) {
+          changed = true;
+
+          if (Objects.equals(mergedInterval.getLow(), reachedInterval.getLow())) {
+            mergedInterval = new Interval(mergedInterval.getLow(), Long.MAX_VALUE);
+          } else if (Objects.equals(mergedInterval.getHigh(), reachedInterval.getHigh())) {
+            mergedInterval = new Interval(Long.MIN_VALUE, mergedInterval.getHigh());
+          } else {
+            mergedInterval = new Interval(Long.MIN_VALUE, Long.MAX_VALUE);
+          }
         }
 
         if (!mergedInterval.isUnbound()) {
           newIntervals = newIntervals.putAndCopy(variableName, mergedInterval);
         }
 
-        // update the references
-        newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
-        if (mergedInterval != reachedState.getInterval(variableName)
+        if (mergedInterval != reachedInterval
             && newRefCount > reachedState.getReferenceCount(variableName)) {
           changed = true;
           newReferences = newReferences.putAndCopy(variableName, newRefCount);
         } else {
-          newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
+          newReferences = newReferences.putAndCopy(
+              variableName,
+              reachedState.getReferenceCount(variableName));
         }
 
       } else {
@@ -240,7 +271,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    * @param reachedState the reached state
    * @return true, if this element is less or equal than the reached state, based on the order imposed by the lattice
    */
-  @Override
   public boolean isLessOrEqual(IntervalAnalysisState reachedState) {
     if (intervals.equals(reachedState.intervals)) { return true; }
     // this element is not less or equal than the reached state, if it contains less intervals
@@ -341,9 +371,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
     return true;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     return intervals.hashCode();

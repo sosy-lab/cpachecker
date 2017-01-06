@@ -52,11 +52,14 @@ public class IntervalsSummaryManager implements SummaryManager {
 
   private final LogManager logger;
   private final IntervalAnalysisTransferRelation transferRelation;
+  private final int threshold;
 
-  IntervalsSummaryManager(LogManager pLogger,
-                          IntervalAnalysisTransferRelation pTransferRelation) {
+  IntervalsSummaryManager(
+      LogManager pLogger,
+      IntervalAnalysisTransferRelation pTransferRelation, int pThreshold) {
     logger = pLogger;
     transferRelation = pTransferRelation;
+    threshold = pThreshold;
   }
 
   @Override
@@ -80,13 +83,12 @@ public class IntervalsSummaryManager implements SummaryManager {
     Stream<IntervalAnalysisState> stream =
         pReturnStates.stream().map(s -> (IntervalAnalysisState) s);
 
-    Optional<IntervalAnalysisState> out = stream.reduce((a, b) -> a.join(b));
+    Optional<IntervalAnalysisState> out = stream.reduce((a, b) -> a.join(b, threshold));
     return Collections.singletonList(new IntervalSummary(
         entryStates.iterator().next(),
         out.get()
     ));
   }
-
 
   @Override
   public List<AbstractState> getAbstractSuccessorsForSummary(
@@ -163,8 +165,8 @@ public class IntervalsSummaryManager implements SummaryManager {
     }
 
     return new IntervalSummary(
-        iSummaryNew.getStateAtEntry().join(iSummaryExisting.getStateAtEntry()),
-        iSummaryNew.getStateAtReturn().join(iSummaryExisting.getStateAtReturn())
+        iSummaryNew.getStateAtEntry().join(iSummaryExisting.getStateAtEntry(), threshold),
+        iSummaryNew.getStateAtReturn().join(iSummaryExisting.getStateAtReturn(), threshold)
     );
   }
 
