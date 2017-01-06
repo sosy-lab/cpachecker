@@ -1,7 +1,5 @@
 #include<assert.h>
 
-extern int __VERIFIER_nondet_int();
-
 int a = 0;
 
 void f(int param) {
@@ -13,6 +11,6 @@ void f(int param) {
 }
 
 int main() {
-    f(5);
+    f(4);
     assert(a == 5);
 }

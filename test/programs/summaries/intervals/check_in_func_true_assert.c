@@ -3,7 +3,7 @@
 extern int __VERIFIER_nondet_int();
 extern void __VERIFIER_assume(int condition);
 
-f(int param) {
+void f(int param) {
     assert(param > 0);
     f(param + 1);
 }
