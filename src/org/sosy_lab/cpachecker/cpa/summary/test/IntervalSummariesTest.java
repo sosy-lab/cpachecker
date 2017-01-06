@@ -90,6 +90,22 @@ public class IntervalSummariesTest {
     check("counting_false_assert.c");
   }
 
+  @Test public void mutual_recursive_true_assert() throws Exception {
+    check("mutual_recursive_true_assert.c");
+  }
+
+  @Test public void mutual_recursive_false_assert() throws Exception {
+    check("mutual_recursive_false_assert.c");
+  }
+
+  @Test public void conditionals_true_assert() throws Exception {
+    check("conditionals_true_assert.c");
+  }
+
+  @Test public void conditionals_false_assert()  throws Exception {
+    check("conditionals_false_assert.c");
+  }
+
   private void check(String filename) throws Exception {
     check(
         filename,
