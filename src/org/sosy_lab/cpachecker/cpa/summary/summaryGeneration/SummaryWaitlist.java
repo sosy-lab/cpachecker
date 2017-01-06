@@ -63,7 +63,7 @@ final class SummaryWaitlist {
    * due to the availability of the new summaries.
    *
    * @param newSummaries Collection of newly available summaries.
-   * @param pSummaryComputationState
+   * @param pSummaryComputationState State to set the {@code parent} state on the returned state.
    * @return Summary computation requests to reinsert into the toplevel reached set.
    */
   Collection<SummaryComputationState> getToRecompute(

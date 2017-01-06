@@ -175,8 +175,7 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
 
     // Weaken the call state.
     AbstractState weakenedCallState = wrappedSummaryManager.getWeakenedCallState(
-        pCallsite, pPrecision, pCallEdge, pBlock
-    );
+        pCallsite, pPrecision, pCallEdge, pBlock);
 
     // We can return multiple postconditions, one for each matching summary.
     for (Summary summary : summaries) {
@@ -188,15 +187,15 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
     List<Summary> soundMatchingSummaries = summaries.stream()
         .filter(s -> summaryStorage.isSound(s)).collect(Collectors.toList());
 
-    // todo: refactor, this conditional is a mess.
     if (matchingSummaries.isEmpty()) {
       logger.log(Level.INFO, "No matching summary found for '",
-          pBlock, "', requesting summary computation. Assuming for now the call is "
-              + "unreachable.");
+          pBlock, "', requesting summary computation.");
 
       // Generate the state associated with the function entry.
       Collection<? extends AbstractState> entryState =
           wrappedTransferRelation.getAbstractSuccessors(weakenedCallState, pPrecision);
+
+      // todo: relax this assumption.
       Preconditions.checkState(entryState.size() == 1,
           "Processing function call edge should create a unique successor");
 
@@ -208,38 +207,21 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
           pBlock,
           pCallEdge,
           false));
+
+      // Assume for now the call is unreachable.
       return Collections.emptyList();
-
-    } else if (!soundMatchingSummaries.isEmpty()) {
-      logger.log(Level.INFO, "Sound matching summaries found, using that.",
-          soundMatchingSummaries);
-      Collection<? extends AbstractState> out = wrappedSummaryManager.getAbstractSuccessorsForSummary(
-          pCallsite, pPrecision, soundMatchingSummaries, pBlock, pCallEdge);
-      logger.log(Level.INFO, "Successors of the state", pCallsite, "after summary application "
-          + "are\n\n", out);
-      return out;
-    } else {
-
-      logger.log(Level.INFO, "Found matching summaries", matchingSummaries);
-      Collection<? extends AbstractState> out = wrappedSummaryManager.getAbstractSuccessorsForSummary(
-          pCallsite, pPrecision, matchingSummaries, pBlock, pCallEdge);
-      logger.log(Level.INFO, "Successors of the state", pCallsite, "after summary application "
-          + "are\n\n", out);
-
-
-      Collection<? extends AbstractState> entryState =
-          wrappedTransferRelation.getAbstractSuccessors(weakenedCallState, pPrecision);
-      Preconditions.checkState(entryState.size() == 1,
-          "Processing function call edge should create a unique successor");
-      summaryComputationRequests.add(new SummaryComputationRequest(
-          pCallsite,
-          entryState.iterator().next(),
-          pPrecision,
-          pBlock,
-          pCallEdge,
-          true));
-      return out;
     }
+
+    if (!soundMatchingSummaries.isEmpty()) {
+      logger.log(Level.INFO, "Sound matching summaries found, using that.");
+      matchingSummaries = soundMatchingSummaries;
+    }
+    logger.log(Level.INFO, "Found matching summaries", matchingSummaries);
+    Collection<? extends AbstractState> out = wrappedSummaryManager.getAbstractSuccessorsForSummary(
+        pCallsite, pPrecision, matchingSummaries, pBlock, pCallEdge);
+    logger.log(Level.INFO, "Successors of the state", pCallsite, "after summary application "
+        + "are\n\n", out);
+    return out;
   }
 
   @Override
