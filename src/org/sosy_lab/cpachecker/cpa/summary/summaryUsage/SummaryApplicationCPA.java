@@ -36,10 +36,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -154,11 +152,6 @@ public class SummaryApplicationCPA implements ConfigurableProgramAnalysis,
       // Simply delegate.
       return wrappedTransferRelation.getAbstractSuccessors(state, precision);
     }
-  }
-
-  public Collection<? extends AbstractState> getDelegatedSuccessors(
-      AbstractState pState, Precision pPrecision) throws CPATransferException, InterruptedException {
-    return wrappedTransferRelation.getAbstractSuccessors(pState, pPrecision);
   }
 
   /**
