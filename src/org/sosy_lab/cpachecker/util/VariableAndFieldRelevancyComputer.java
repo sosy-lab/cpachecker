@@ -695,6 +695,11 @@ public final class VariableAndFieldRelevancyComputer {
 
     @Override
     protected Pair<VariableOrField, VarFieldDependencies> visitDefault(final CExpression e) {
+      if (e instanceof CUnaryExpression && UnaryOperator.AMPER == ((CUnaryExpression)e).getOperator()) {
+        // TODO dependency between address and variable?
+        return ((CUnaryExpression)e).getOperand().accept(this);
+      }
+
       throw new AssertionError(
           String.format(
               "The expression %s from %s should not occur in the left hand side",
