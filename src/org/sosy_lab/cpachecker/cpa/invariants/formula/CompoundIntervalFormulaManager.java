@@ -107,11 +107,14 @@ public class CompoundIntervalFormulaManager {
   }
 
   private CompoundInterval evaluate(NumeralFormula<CompoundInterval> pFormula, boolean pDisableOverflowCheck) {
+    return pFormula.accept(getEvaluationVisitor(pDisableOverflowCheck), EMPTY_ENVIRONMENT);
+  }
+
+  private FormulaEvaluationVisitor<CompoundInterval> getEvaluationVisitor(boolean pDisableOverflowCheck) {
     if (pDisableOverflowCheck) {
-      FormulaCompoundStateEvaluationVisitor evaluator = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory, false);
-      return pFormula.accept(evaluator, EMPTY_ENVIRONMENT);
+      return new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory, false);
     }
-    return pFormula.accept(evaluationVisitor, EMPTY_ENVIRONMENT);
+    return evaluationVisitor;
   }
 
   private boolean isDefinitelyTrue(NumeralFormula<CompoundInterval> pFormula) {
@@ -123,10 +126,10 @@ public class CompoundIntervalFormulaManager {
 
   private boolean isDefinitelyTrue(BooleanFormula<CompoundInterval> pFormula) {
     return BooleanConstant.isTrue(pFormula)
-        || definitelyImplies(Collections.<BooleanFormula<CompoundInterval>>singleton(BooleanConstant.<CompoundInterval>getTrue()), pFormula);
+        || definitelyImplies(Collections.<BooleanFormula<CompoundInterval>>singleton(BooleanConstant.<CompoundInterval>getTrue()), pFormula, true);
   }
 
-  public boolean isDefinitelyFalse(NumeralFormula<CompoundInterval> pFormula) {
+  private boolean isDefinitelyFalse(NumeralFormula<CompoundInterval> pFormula) {
     return evaluate(pFormula, true).isDefinitelyFalse();
   }
 
@@ -145,15 +148,19 @@ public class CompoundIntervalFormulaManager {
   }
 
   public boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(pFormulas, pFormula, new HashMap<>());
+    return definitelyImplies(pFormulas, pFormula, new HashMap<>(), false);
   }
 
-  public boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula, Map<MemoryLocation, NumeralFormula<CompoundInterval>> pBaseEnvironment) {
+  private boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula, boolean pOverflowCheck) {
+    return definitelyImplies(pFormulas, pFormula, new HashMap<>(), pOverflowCheck);
+  }
+
+  private boolean definitelyImplies(Iterable<BooleanFormula<CompoundInterval>> pFormulas, BooleanFormula<CompoundInterval> pFormula, Map<MemoryLocation, NumeralFormula<CompoundInterval>> pBaseEnvironment, boolean pDisableOverflowCheck) {
     Map<MemoryLocation, NumeralFormula<CompoundInterval>> newMap = new HashMap<>(pBaseEnvironment);
     if (pFormula instanceof Collection<?>) {
-      return definitelyImplies((Collection<BooleanFormula<CompoundInterval>>) pFormulas, pFormula, true, newMap, false);
+      return definitelyImplies((Collection<BooleanFormula<CompoundInterval>>) pFormulas, pFormula, true, newMap, false, pDisableOverflowCheck);
     }
-    return definitelyImplies(FluentIterable.from(pFormulas).toSet(), pFormula, true, newMap, false);
+    return definitelyImplies(FluentIterable.from(pFormulas).toSet(), pFormula, true, newMap, false, pDisableOverflowCheck);
   }
 
   /**
@@ -174,13 +181,13 @@ public class CompoundIntervalFormulaManager {
    * @return {@code true} if the information base definitely implies the given
    * formula.
    */
-  private boolean definitelyImplies(Collection<BooleanFormula<CompoundInterval>> pInformationBaseFormulas, BooleanFormula<CompoundInterval> pFormula, boolean pExtend, Map<MemoryLocation, NumeralFormula<CompoundInterval>> pInformationBaseEnvironment, boolean pEnvironmentComplete) {
+  private boolean definitelyImplies(Collection<BooleanFormula<CompoundInterval>> pInformationBaseFormulas, BooleanFormula<CompoundInterval> pFormula, boolean pExtend, Map<MemoryLocation, NumeralFormula<CompoundInterval>> pInformationBaseEnvironment, boolean pEnvironmentComplete, boolean pDisableOverflowCheck) {
     final Collection<BooleanFormula<CompoundInterval>> formulas;
     if (pExtend) {
       formulas = new HashSet<>();
       for (BooleanFormula<CompoundInterval> formula : pInformationBaseFormulas) {
         for (BooleanFormula<CompoundInterval> f : formula.accept(SPLIT_CONJUNCTIONS_VISITOR)) {
-          formulas.add(f.accept(partialEvaluator, evaluationVisitor));
+          formulas.add(f.accept(partialEvaluator, getEvaluationVisitor(pDisableOverflowCheck)));
         }
       }
     } else {
@@ -197,7 +204,7 @@ public class CompoundIntervalFormulaManager {
         for (BooleanFormula<CompoundInterval> disjunctivePart : disjunctions) {
           Collection<BooleanFormula<CompoundInterval>> conjunctivePartsOfDisjunctivePart = disjunctivePart.accept(SPLIT_CONJUNCTIONS_VISITOR);
           newFormulas.addAll(conjunctivePartsOfDisjunctivePart);
-          if (!definitelyImplies(newFormulas, pFormula, false, newBaseEnvironment, false)) {
+          if (!definitelyImplies(newFormulas, pFormula, false, newBaseEnvironment, false, pDisableOverflowCheck)) {
             return false;
           }
           newFormulas.removeAll(conjunctivePartsOfDisjunctivePart);
@@ -217,17 +224,18 @@ public class CompoundIntervalFormulaManager {
       }
     }
 
-    return definitelyImplies(formulas, tmpEnvironment, pFormula);
+    return definitelyImplies(formulas, tmpEnvironment, pFormula, pDisableOverflowCheck);
   }
 
   public boolean definitelyImplies(final Map<MemoryLocation, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
       final BooleanFormula<CompoundInterval> pFormula) {
-    return definitelyImplies(Collections.<BooleanFormula<CompoundInterval>>emptyList(), pCompleteEnvironment, pFormula);
+    return definitelyImplies(Collections.<BooleanFormula<CompoundInterval>>emptyList(), pCompleteEnvironment, pFormula, false);
   }
 
   private boolean definitelyImplies(final Collection<BooleanFormula<CompoundInterval>> pExtendedFormulas,
       final Map<MemoryLocation, NumeralFormula<CompoundInterval>> pCompleteEnvironment,
-      final BooleanFormula<CompoundInterval> pFormula) {
+      final BooleanFormula<CompoundInterval> pFormula,
+      final boolean pDisableOverflowCheck) {
 
     /*
      * Imagine this function is sound, which it should be.
@@ -251,6 +259,7 @@ public class CompoundIntervalFormulaManager {
      * so we can only decide the truth if we know that the sets do not overlap or are both singletons.
      */
 
+    FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor = getEvaluationVisitor(pDisableOverflowCheck);
     PartialEvaluator variableResolver = new PartialEvaluator(compoundIntervalManagerFactory, pCompleteEnvironment);
     Builder impliedEnvironment = NonRecursiveEnvironment.Builder.of(compoundIntervalManagerFactory, EMPTY_ENVIRONMENT);
 
@@ -261,7 +270,7 @@ public class CompoundIntervalFormulaManager {
         Collection<BooleanFormula<CompoundInterval>> disjunctions = formulaAtom.accept(SPLIT_DISJUNCTIONS_VISITOR);
         if (disjunctions.size() > 1) {
           for (BooleanFormula<CompoundInterval> disjunctionPart : disjunctions) {
-            if (definitelyImplies(pExtendedFormulas, disjunctionPart, false, pCompleteEnvironment, true)) {
+            if (definitelyImplies(pExtendedFormulas, disjunctionPart, false, pCompleteEnvironment, true, pDisableOverflowCheck)) {
               continue outer;
             }
           }
@@ -359,7 +368,7 @@ public class CompoundIntervalFormulaManager {
     return true;
   }
 
-  public boolean definitelyImplies(BooleanFormula<CompoundInterval> pFormula1, BooleanFormula<CompoundInterval> pFormula2) {
+  private boolean definitelyImplies(BooleanFormula<CompoundInterval> pFormula1, BooleanFormula<CompoundInterval> pFormula2, boolean pDisableOverflowCheck) {
     if (BooleanConstant.isFalse(pFormula1) || pFormula1.equals(pFormula2)) {
       return true;
     }
@@ -393,7 +402,7 @@ public class CompoundIntervalFormulaManager {
 
     Collection<BooleanFormula<CompoundInterval>> leftFormulas = pFormula1.accept(SPLIT_CONJUNCTIONS_VISITOR);
 
-    return definitelyImplies(leftFormulas, pFormula2, false, new HashMap<>(), false);
+    return definitelyImplies(leftFormulas, pFormula2, false, new HashMap<>(), false, pDisableOverflowCheck);
   }
 
   /**
@@ -679,10 +688,10 @@ public class CompoundIntervalFormulaManager {
     if (!pOperand2.accept(patev, BooleanConstant.<CompoundInterval>getTrue())) {
       return BooleanConstant.getFalse();
     }
-    if (definitelyImplies(pOperand1, pOperand2)) {
+    if (definitelyImplies(pOperand1, pOperand2, true)) {
       return pOperand1;
     }
-    if (definitelyImplies(pOperand2, pOperand1)) {
+    if (definitelyImplies(pOperand2, pOperand1, true)) {
       return pOperand2;
     }
     if (pOperand1 instanceof Equal<?> && pOperand2 instanceof Equal<?>) {
@@ -765,10 +774,10 @@ public class CompoundIntervalFormulaManager {
     if (BooleanConstant.isFalse(pOperand2)) {
       return pOperand1;
     }
-    if (definitelyImplies(pOperand1, pOperand2)) {
+    if (definitelyImplies(pOperand1, pOperand2, true)) {
       return pOperand2;
     }
-    if (definitelyImplies(pOperand2, pOperand1)) {
+    if (definitelyImplies(pOperand2, pOperand1, true)) {
       return pOperand1;
     }
     if (pOperand1 instanceof Equal && pOperand2 instanceof Equal) {
@@ -830,7 +839,7 @@ public class CompoundIntervalFormulaManager {
    * given operands, meaning that the first operand implies the second operand.
    */
   public BooleanFormula<CompoundInterval> logicalImplies(BooleanFormula<CompoundInterval> pOperand1, BooleanFormula<CompoundInterval> pOperand2) {
-    if (definitelyImplies(pOperand1, pOperand2)) {
+    if (definitelyImplies(pOperand1, pOperand2, true)) {
       return BooleanConstant.getTrue();
     }
     return logicalNot(logicalAnd(pOperand1, logicalNot(pOperand2)));
