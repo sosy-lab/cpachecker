@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
@@ -31,8 +34,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -107,8 +108,12 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(Typed pBitVectorType) {
-    return compoundIntervalManagerFactory.createCompoundIntervalManager(
-        pBitVectorType.getTypeInfo());
+    TypeInfo typeInfo = pBitVectorType.getTypeInfo();
+    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
+      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+      return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(typeInfo, false);
+    }
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);
   }
 
   @Override
