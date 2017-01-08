@@ -224,4 +224,8 @@ public class BitVectorInfo implements TypeInfo {
     return false;
   }
 
+  public BitVectorInfo extend(int pExtension) {
+    return new BitVectorInfo(size + pExtension, signed);
+  }
+
 }
