@@ -143,6 +143,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Option(secure=true, description="include type information for variables, such as x >= MIN_INT && x <= MAX_INT")
     private boolean includeTypeInformation = true;
+
+    @Option(secure=true, description="enables the over-approximation of unsupported features instead of failing fast; this is imprecise")
+    private boolean allowOverapproximationOfUnsupportedFeatures = true;
   }
 
   /**
@@ -262,7 +265,7 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new InvariantsTransferRelation(compoundIntervalManagerFactory, machineModel);
+    return new InvariantsTransferRelation(compoundIntervalManagerFactory, machineModel, options.allowOverapproximationOfUnsupportedFeatures);
   }
 
   @Override
@@ -384,7 +387,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
           compoundIntervalManagerFactory,
           machineModel,
           abstractionState,
-          false,
           options.includeTypeInformation);
       state = state.assume(invariant);
     }
@@ -395,7 +397,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
         compoundIntervalManagerFactory,
         machineModel,
         abstractionState,
-        false,
         options.includeTypeInformation);
   }
 

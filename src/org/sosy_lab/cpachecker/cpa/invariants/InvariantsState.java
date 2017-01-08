@@ -152,6 +152,8 @@ public class InvariantsState implements AbstractState,
 
   private final boolean includeTypeInformation;
 
+  private final boolean overapproximatesUnsupportedFeature;
+
   private Iterable<BooleanFormula<CompoundInterval>> environmentAsAssumptions;
 
   private volatile int hash = 0;
@@ -163,14 +165,12 @@ public class InvariantsState implements AbstractState,
    * @param pVariableSelection the selected variables.
    * @param pMachineModel the machine model used.
    * @param pAbstractionState the abstraction information.
-   * @param pOverflowDetected if an overflow has been detected.
    * @param pIncludeTypeInformation whether or not to include type information for exports.
    */
   public InvariantsState(VariableSelection<CompoundInterval> pVariableSelection,
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       MachineModel pMachineModel,
       AbstractionState pAbstractionState,
-      boolean pOverflowDetected,
       boolean pIncludeTypeInformation) {
     this.environment = NonRecursiveEnvironment.of(pCompoundIntervalManagerFactory);
     this.partialEvaluator = new PartialEvaluator(pCompoundIntervalManagerFactory, this.environment);
@@ -179,8 +179,9 @@ public class InvariantsState implements AbstractState,
     this.tools = new Tools(pCompoundIntervalManagerFactory);
     this.machineModel = pMachineModel;
     this.abstractionState = pAbstractionState;
-    this.overflowDetected = pOverflowDetected;
+    this.overflowDetected = false;
     this.includeTypeInformation = pIncludeTypeInformation;
+    this.overapproximatesUnsupportedFeature = false;
   }
 
   /**
@@ -195,6 +196,7 @@ public class InvariantsState implements AbstractState,
    * @param pVariableTypes the variable types.
    * @param pOverflowDetected if an overflow has been detected.
    * @param pIncludeTypeInformation whether or not to include type information for exports.
+   * @param pOverapproximatesUnsupportedFeature whether or not an unsupported feature is over-approximated by this state.
    */
   private InvariantsState(
       VariableSelection<CompoundInterval> pVariableSelection,
@@ -204,7 +206,8 @@ public class InvariantsState implements AbstractState,
       NonRecursiveEnvironment pEnvironment,
       PersistentSortedMap<MemoryLocation, CType> pVariableTypes,
       boolean pOverflowDetected,
-      boolean pIncludeTypeInformation) {
+      boolean pIncludeTypeInformation,
+      boolean pOverapproximatesUnsupportedFeature) {
     this.environment = pEnvironment;
     this.tools = pTools;
     this.partialEvaluator =
@@ -215,6 +218,7 @@ public class InvariantsState implements AbstractState,
     this.abstractionState = pAbstractionState;
     this.overflowDetected = pOverflowDetected;
     this.includeTypeInformation = pIncludeTypeInformation;
+    this.overapproximatesUnsupportedFeature = pOverapproximatesUnsupportedFeature;
   }
 
   /**
@@ -228,6 +232,7 @@ public class InvariantsState implements AbstractState,
    * @param pAbstractionState the abstraction state.
    * @param pOverflowDetected if an overflow has been detected.
    * @param pIncludeTypeInformation whether or not to include type information for exports.
+   * @param pOverapproximatesUnsupportedFeature whether or not an unsupported feature is overapproximated by this state.
    */
   private InvariantsState(
       Map<MemoryLocation, NumeralFormula<CompoundInterval>> pEnvironment,
@@ -237,7 +242,8 @@ public class InvariantsState implements AbstractState,
       PersistentSortedMap<MemoryLocation, CType> pVariableTypes,
       AbstractionState pAbstractionState,
       boolean pOverflowDetected,
-      boolean pIncludeTypeInformation) {
+      boolean pIncludeTypeInformation,
+      boolean pOverapproximatesUnsupportedFeature) {
     this.environment =
         NonRecursiveEnvironment.copyOf(pTools.compoundIntervalManagerFactory, pEnvironment);
     this.partialEvaluator =
@@ -249,6 +255,7 @@ public class InvariantsState implements AbstractState,
     this.abstractionState = pAbstractionState;
     this.overflowDetected = pOverflowDetected;
     this.includeTypeInformation = pIncludeTypeInformation;
+    this.overapproximatesUnsupportedFeature = pOverapproximatesUnsupportedFeature;
   }
 
   private AbstractionState determineAbstractionState(AbstractionState pMasterState) {
@@ -281,7 +288,8 @@ public class InvariantsState implements AbstractState,
         variableTypes,
         state,
         overflowDetected,
-        includeTypeInformation);
+        includeTypeInformation,
+        overapproximatesUnsupportedFeature);
   }
 
   public Type getType(MemoryLocation pMemoryLocation) {
@@ -300,7 +308,8 @@ public class InvariantsState implements AbstractState,
         environment,
         variableTypes.putAndCopy(pMemoryLocation, pType),
         overflowDetected,
-        includeTypeInformation);
+        includeTypeInformation,
+        overapproximatesUnsupportedFeature);
   }
 
   public InvariantsState setTypes(Map<MemoryLocation, CType> pVarTypes) {
@@ -329,7 +338,8 @@ public class InvariantsState implements AbstractState,
         environment,
         variableTypes,
         overflowDetected,
-        includeTypeInformation);
+        includeTypeInformation,
+        overapproximatesUnsupportedFeature);
   }
 
   public InvariantsState assignArray(MemoryLocation pArray, NumeralFormula<CompoundInterval> pSubscript, NumeralFormula<CompoundInterval> pValue) {
@@ -338,7 +348,7 @@ public class InvariantsState implements AbstractState,
     if (value.isSingleton()) { // Exact subscript value is known
       return assignInternal(MemoryLocation.valueOf(pArray.getAsSimpleString() + "[" + value.getValue() + "]"), pValue);
     } else { // Multiple subscript values are possible: All possible subscript targets are now unknown
-      InvariantsState result = this;
+      InvariantsState result = overapproximateUnsupportedFeature();
       for (MemoryLocation memoryLocation : this.environment.keySet()) {
         String prefix = pArray.getAsSimpleString() + "[";
         if (memoryLocation.getAsSimpleString().startsWith(prefix)) {
@@ -428,13 +438,17 @@ public class InvariantsState implements AbstractState,
     Preconditions.checkNotNull(pValue);
     // Only use information from supported variables
     if (isUnsupportedVariableName(pMemoryLocation)) {
-      return this;
+      return overapproximateUnsupportedFeature();
     }
     if (FluentIterable.from(pValue.accept(COLLECT_VARS_VISITOR)).anyMatch(InvariantsState::isUnsupportedVariableName)) {
       NumeralFormula<CompoundInterval> newEnvValue = InvariantsFormulaManager.INSTANCE.asConstant(
           pValue.getTypeInfo(),
           pValue.accept(getFormulaResolver(), environment));
-      return assignInternal(pMemoryLocation, newEnvValue);
+      InvariantsState result = assignInternal(pMemoryLocation, newEnvValue);
+      if (result != null) {
+        return result.overapproximateUnsupportedFeature();
+      }
+      return result;
     }
 
     // Check if the assigned variable is selected (newVariableSelection != null)
@@ -456,7 +470,8 @@ public class InvariantsState implements AbstractState,
           variableTypes,
           abstractionState,
           overflowDetected,
-          includeTypeInformation);
+          includeTypeInformation,
+          overapproximatesUnsupportedFeature);
     }
 
     TypeInfo typeInfo = pValue.getTypeInfo();
@@ -483,6 +498,22 @@ public class InvariantsState implements AbstractState,
       return this;
     }
     return result;
+  }
+
+  private InvariantsState overapproximateUnsupportedFeature() {
+    if (overapproximatesUnsupportedFeature) {
+      return this;
+    }
+    return new InvariantsState(
+        environment,
+        variableSelection,
+        tools,
+        machineModel,
+        variableTypes,
+        abstractionState,
+        overflowDetected,
+        includeTypeInformation,
+        true);
   }
 
   private InvariantsState assignInternal(final MemoryLocation pMemoryLocation, NumeralFormula<CompoundInterval> pValue,
@@ -532,7 +563,8 @@ public class InvariantsState implements AbstractState,
         resultEnvironment,
         variableTypes,
         overflowDetected,
-        includeTypeInformation);
+        includeTypeInformation,
+        overapproximatesUnsupportedFeature);
   }
 
   /**
@@ -554,7 +586,8 @@ public class InvariantsState implements AbstractState,
         NonRecursiveEnvironment.of(tools.compoundIntervalManagerFactory),
         variableTypes,
         overflowDetected,
-        includeTypeInformation);
+        includeTypeInformation,
+        overapproximatesUnsupportedFeature);
   }
 
   /**
@@ -592,7 +625,8 @@ public class InvariantsState implements AbstractState,
             resultEnvironment,
             result.variableTypes,
             overflowDetected,
-            includeTypeInformation);
+            includeTypeInformation,
+            result.overapproximatesUnsupportedFeature);
     if (equals(result)) {
       return this;
     }
@@ -667,7 +701,8 @@ public class InvariantsState implements AbstractState,
             resultEnvironment,
             variableTypes,
             overflowDetected,
-            includeTypeInformation);
+            includeTypeInformation,
+            overapproximatesUnsupportedFeature);
     if (equals(result)) {
       return this;
     }
@@ -853,7 +888,7 @@ public class InvariantsState implements AbstractState,
 
     // Only use information from supported variables
     if (FluentIterable.from(assumption.accept(COLLECT_VARS_VISITOR)).anyMatch(InvariantsState::isUnsupportedVariableName)) {
-      return this;
+      return overapproximateUnsupportedFeature();
     }
 
     NonRecursiveEnvironment.Builder environmentBuilder = new NonRecursiveEnvironment.Builder(this.environment);
@@ -876,7 +911,8 @@ public class InvariantsState implements AbstractState,
         variableTypes,
         abstractionState,
         overflowDetected,
-        includeTypeInformation);
+        includeTypeInformation,
+        overapproximatesUnsupportedFeature);
   }
 
   /**
@@ -1455,7 +1491,8 @@ public class InvariantsState implements AbstractState,
             variableTypes,
             abstractionState,
             overflowDetected,
-            includeTypeInformation);
+            includeTypeInformation,
+            overapproximatesUnsupportedFeature);
 
     for (BooleanFormula<CompoundInterval> hint : FluentIterable
         .from(pWideningHints)
@@ -1555,7 +1592,8 @@ public class InvariantsState implements AbstractState,
               resultEnvironment,
               variableTypes,
               overflowDetected,
-              includeTypeInformation);
+              includeTypeInformation,
+              overapproximatesUnsupportedFeature || pState2.overapproximatesUnsupportedFeature);
 
       if (result.equalsState(state1)) {
         result = state1;
@@ -1624,7 +1662,8 @@ public class InvariantsState implements AbstractState,
         environment,
         variableTypes,
         true,
-        includeTypeInformation);
+        includeTypeInformation,
+        overapproximatesUnsupportedFeature);
   }
 
   @Override
@@ -1638,6 +1677,10 @@ public class InvariantsState implements AbstractState,
       return overflowDetected;
     }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+  }
+
+  public boolean overapproximatesUnsupportedFeature() {
+    return overapproximatesUnsupportedFeature;
   }
 
   private static boolean isExportable(@Nullable MemoryLocation pMemoryLocation) {

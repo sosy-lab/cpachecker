@@ -1145,6 +1145,10 @@ cpa.interval.threshold = -1
 cpa.invariants.abstractionStateFactory = ENTERING_EDGES
   enum:     [ALWAYS, ENTERING_EDGES, NEVER]
 
+# enables the over-approximation of unsupported features instead of failing
+# fast; this is imprecise
+cpa.invariants.allowOverapproximationOfUnsupportedFeatures = true
+
 # determine variables relevant to the decision whether or not a target path
 # assume edge is taken and limit the analyis to those variables.
 cpa.invariants.analyzeRelevantVariablesOnly = true
