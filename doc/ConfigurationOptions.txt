@@ -755,8 +755,6 @@ cpa.arg.file = "ARG.dot"
 
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
 # must behave differently during merge.
-# inform ARG CPA if it is run in a CPA enabled analysis because then it
-# mustbehave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
 
 # whether to keep covered states in the reached set as addition to keeping

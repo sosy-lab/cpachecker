@@ -80,9 +80,16 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         + "which is required to get at most one successor per CFA edge.")
       private boolean deleteInCPAEnabledAnalysis = false;
 
+  @Option(
+    secure = true,
+    name = "cpa.arg.keepCoveredStatesInReached",
+    description =
+        "whether to keep covered states in the reached set as addition to keeping them in the ARG"
+  )
+  private boolean keepCoveredStatesInReached = false;
+
   private final LogManager logger;
 
-  private final ARGStopSep stopOperator;
   private final ARGStatistics stats;
 
   private ARGCPA(
@@ -96,7 +103,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     config.inject(this);
     this.logger = logger;
 
-    stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
   }
 
@@ -124,7 +130,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public ForcedCoveringStopOperator getStopOperator() {
-    return stopOperator;
+    return new ARGStopSep(
+        getWrappedCpa().getStopOperator(),
+        logger,
+        inCPAEnabledAnalysis,
+        keepCoveredStatesInReached);
   }
 
   @Override
@@ -210,7 +220,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
         getWrappedCpa() instanceof ProofChecker,
         "Wrapped CPA has to implement ProofChecker interface");
     ProofChecker wrappedProofChecker = (ProofChecker)getWrappedCpa();
-    return stopOperator.isCoveredBy(pElement, pOtherElement, wrappedProofChecker);
+    AbstractState wrappedState = ((ARGState) pElement).getWrappedState();
+    AbstractState wrappedOtherElement = ((ARGState) pOtherElement).getWrappedState();
+    return wrappedProofChecker.isCoveredBy(wrappedState, wrappedOtherElement);
   }
 
   @Override
