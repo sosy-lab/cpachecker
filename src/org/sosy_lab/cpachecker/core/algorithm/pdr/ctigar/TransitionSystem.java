@@ -159,13 +159,13 @@ public class TransitionSystem {
 
     Collection<Block> exploredBlocks = getForwardReachableBlocks(pMainEntry, pForwardTransition);
 
+    if (optionsCollection.shouldRemoveRedundantTransitions()) {
+      exploredBlocks = getBackwardUnreachableBlocks(exploredBlocks, pBfmgr);
+    }
+
     // if there are no blocks, the transition formula is "false".
     if (exploredBlocks.isEmpty()) {
       return pPfmgr.makeEmptyPathFormula().updateFormula(pBfmgr.makeFalse());
-    }
-
-    if (optionsCollection.shouldRemoveRedundantTransitions()) {
-      exploredBlocks = getBackwardUnreachableBlocks(exploredBlocks, pBfmgr);
     }
 
     Iterator<Block> exploredBlockIterator = exploredBlocks.iterator();
