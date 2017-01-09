@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecisionAdjustment;
-  private final BAMTransferRelation trans;
   private final BAMPCCManager bamPccManager;
   private final BAMDataManager data;
   private final LogManager logger;
@@ -48,13 +47,11 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
   public BAMPrecisionAdjustment(
       PrecisionAdjustment pWrappedPrecisionAdjustment,
       BAMDataManager pData,
-      BAMTransferRelation pTransfer,
       BAMPCCManager pBamPccManager,
       LogManager pLogger,
       BlockPartitioning pBlockPartitioning) {
     this.wrappedPrecisionAdjustment = pWrappedPrecisionAdjustment;
     this.data = pData;
-    this.trans = pTransfer;
     bamPccManager = pBamPccManager;
     this.logger = pLogger;
     this.blockPartitioning = pBlockPartitioning;
@@ -94,9 +91,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       result = result
           .map(
               t -> t.withAbstractState(
-                  bamPccManager.attachAdditionalInfoToCallNode(
-                      t.abstractState(), trans.getCurrentBlock()
-                  )
+                  bamPccManager.attachAdditionalInfoToCallNode(t.abstractState())
               )
           );
     }

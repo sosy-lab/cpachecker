@@ -205,7 +205,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public MergeOperator getMergeOperator() {
-    return new BAMMergeOperator(getWrappedCpa().getMergeOperator(), bamPccManager, transfer);
+    return new BAMMergeOperator(getWrappedCpa().getMergeOperator(), bamPccManager);
   }
 
   @Override
@@ -218,7 +218,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @Override
   public BAMPrecisionAdjustment getPrecisionAdjustment() {
     return new BAMPrecisionAdjustment(
-        getWrappedCpa().getPrecisionAdjustment(), data, transfer, bamPccManager,
+        getWrappedCpa().getPrecisionAdjustment(), data, bamPccManager,
         logger, blockPartitioning);
   }
 

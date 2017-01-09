@@ -118,7 +118,7 @@ public class BAMTransferRelation implements TransferRelation {
           "target-state should be returned as single-element-collection";
 
       if (bamPccManager.isPCCEnabled()) {
-        return bamPccManager.attachAdditionalInfoToCallNodes(successors, currentBlock);
+        return bamPccManager.attachAdditionalInfoToCallNodes(successors);
       }
       return successors;
 
@@ -250,6 +250,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     final Block outerSubtree = currentBlock;
     currentBlock = partitioning.getBlockForCallNode(node);
+    bamPccManager.setCurrentBlock(partitioning.getBlockForCallNode(node));
     assert currentBlock.getCallNodes().contains(node);
 
     logger.log(Level.FINEST, "Reducing state", initialState);
@@ -266,6 +267,7 @@ public class BAMTransferRelation implements TransferRelation {
     final Triple<AbstractState, Precision, Block> lastLevel = stack.remove(stack.size() - 1);
     assert lastLevel.equals(currentLevel);
     currentBlock = outerSubtree;
+    bamPccManager.setCurrentBlock(outerSubtree);
 
     return resultStates;
   }
@@ -518,7 +520,7 @@ public class BAMTransferRelation implements TransferRelation {
     Collection<? extends AbstractState> out =
         wrappedTransfer.strengthen(pElement, pOtherElements, pCfaEdge, pPrecision);
     if (bamPccManager.isPCCEnabled()) {
-      return bamPccManager.attachAdditionalInfoToCallNodes(out, currentBlock);
+      return bamPccManager.attachAdditionalInfoToCallNodes(out);
     } else {
       return out;
     }
@@ -532,9 +534,5 @@ public class BAMTransferRelation implements TransferRelation {
     throw new UnsupportedOperationException(
         "BAMCPA needs to be used as the outermost CPA,"
         + " thus it does not support returning successors for a single edge.");
-  }
-
-  public Block getCurrentBlock() {
-    return currentBlock;
   }
 }
