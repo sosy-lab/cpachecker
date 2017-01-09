@@ -211,8 +211,8 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   @Override
   public StopOperator getStopOperator() {
     return handleRecursiveProcedures
-        ? new BAMStopOperatorForRecursion(getWrappedCpa().getStopOperator(), transfer)
-        : new BAMStopOperator(getWrappedCpa().getStopOperator(), transfer);
+        ? new BAMStopOperatorForRecursion(getWrappedCpa().getStopOperator())
+        : new BAMStopOperator(getWrappedCpa().getStopOperator());
   }
 
   @Override

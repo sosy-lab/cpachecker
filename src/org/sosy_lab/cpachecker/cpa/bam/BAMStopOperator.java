@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -35,17 +34,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class BAMStopOperator implements StopOperator {
 
   private final StopOperator wrappedStop;
-  private final BAMTransferRelation transfer;
 
-  public BAMStopOperator(StopOperator pWrappedStopOperator, BAMTransferRelation pTransfer) {
+  public BAMStopOperator(StopOperator pWrappedStopOperator) {
     wrappedStop = pWrappedStopOperator;
-    transfer = pTransfer;
   }
 
   @Override
   public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
-    if (transfer.breakAnalysis) { return false; }
     return wrappedStop.stop(pState, pReached, pPrecision);
   }
 

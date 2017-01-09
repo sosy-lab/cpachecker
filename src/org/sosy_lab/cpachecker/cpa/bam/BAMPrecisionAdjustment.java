@@ -24,20 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Function;
-
+import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import java.util.Optional;
-import java.util.logging.Level;
 
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -70,10 +67,6 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> projection,
       AbstractState fullState) throws CPAException, InterruptedException {
-    if (trans.breakAnalysis) {
-      return Optional.of(
-          PrecisionAdjustmentResult.create(pElement, pPrecision, Action.BREAK));
-    }
 
     // precision might be outdated, if comes from a block-start and the inner part was refined.
     // so lets use the (expanded) inner precision.

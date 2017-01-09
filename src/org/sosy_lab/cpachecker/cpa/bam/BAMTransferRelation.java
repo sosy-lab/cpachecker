@@ -85,8 +85,6 @@ public class BAMTransferRelation implements TransferRelation {
   //Stats
   int maxRecursiveDepth = 0;
 
-  boolean breakAnalysis = false;
-
   public BAMTransferRelation(
       Configuration pConfig,
       BAMCPA bamCpa,
@@ -308,13 +306,6 @@ public class BAMTransferRelation implements TransferRelation {
       bamPccManager.addBlockAnalysisInfo(reducedInitialState);
     }
 
-    if (breakAnalysis) {
-      // analysis aborted, so lets abort here too
-      // TODO why return element?
-      assert reducedResult.getFirst().size() == 1;
-      return Collections.singleton(Iterables.getOnlyElement(reducedResult.getFirst()));
-    }
-
     return expandResultStates(
         reducedResult.getFirst(), reducedResult.getSecond(), outerSubtree, entryState, precision);
   }
@@ -503,13 +494,8 @@ public class BAMTransferRelation implements TransferRelation {
       //this needs to be propagated to outer subgraph (till main is reached)
       returnStates = Collections.singletonList(lastState);
 
-    } else if (reached.hasWaitingState()) {
-      //no target state, but waiting elements
-      //analysis failed -> also break this analysis
-      breakAnalysis = true;
-      returnStates =  Collections.singletonList(lastState);
-
     } else {
+      assert !reached.hasWaitingState();
       // get only those states, that are at block-exit.
       // in case of recursion, the block-exit-nodes might also appear in the middle of the block,
       // but the middle states have children, the exit-states have not.
