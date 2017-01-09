@@ -10,25 +10,25 @@
   <tasks name="value">
     <include>../programs/benchmarks/recursive-simple/a*.c</include>
     <include>../programs/benchmarks/recursive-simple/f*.c</include>
-    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-valueAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="interval">
     <include>../programs/benchmarks/recursive-simple/i*.c</include>
-    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-intervalAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="valuePredicate">
     <include>../programs/benchmarks/recursive-simple/s*.c</include>
-    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-valuePredicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree">
     <include>../programs/benchmarks/recursive/*.c</include>
-    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <exclude>../programs/benchmarks/recursive/*1_*.c</exclude>
     <exclude>../programs/benchmarks/recursive/*2_*.c</exclude>
     <exclude>../programs/benchmarks/recursive/*3_*.c</exclude>
@@ -37,7 +37,7 @@
 
   <tasks name="predicate_tree_nested">
     <include>../programs/benchmarks/recursive/*3_*.c</include>
-    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_nested</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
@@ -45,7 +45,7 @@
 
   <tasks name="predicate_tree_cpachecker">
     <include>../programs/benchmarks/recursive/*2_*.c</include>
-    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_cpachecker</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
@@ -53,7 +53,7 @@
 
   <tasks name="predicate_tree_wellscoped">
     <include>../programs/benchmarks/recursive/*1_*.c</include>
-    <propertyfile>../programs/benchmarks/Recursive.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_wellscoped</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
