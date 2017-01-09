@@ -89,25 +89,22 @@ public class BAMTransferRelation implements TransferRelation {
 
   public BAMTransferRelation(
       Configuration pConfig,
-      LogManager pLogger,
       BAMCPA bamCpa,
       ProofChecker wrappedChecker,
-      BAMDataManager pData,
-      ShutdownNotifier pShutdownNotifier,
-      BlockPartitioning pPartitioning)
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-    logger = pLogger;
+    logger = bamCpa.getLogger();
     algorithmFactory = new CPAAlgorithmFactory(bamCpa, logger, pConfig, pShutdownNotifier);
     callstackTransfer = (CallstackTransferRelation) (CPAs.retrieveCPA(bamCpa, CallstackCPA.class)).getTransferRelation();
     wrappedTransfer = bamCpa.getWrappedCpa().getTransferRelation();
     wrappedReducer = bamCpa.getReducer();
     bamCPA = bamCpa;
-    data = pData;
-    partitioning = pPartitioning;
+    data = bamCpa.getData();
+    partitioning = bamCpa.getBlockPartitioning();
 
     assert wrappedReducer != null;
     bamPccManager = new BAMPCCManager(
-        wrappedChecker, pConfig, pPartitioning, wrappedReducer, bamCpa, pData);
+        wrappedChecker, pConfig, partitioning, wrappedReducer, bamCpa, data);
   }
 
   @Override

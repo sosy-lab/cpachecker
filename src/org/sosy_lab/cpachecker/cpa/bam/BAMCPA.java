@@ -171,22 +171,16 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
               config,
-              logger,
               this,
               wrappedProofChecker,
-              data,
-              pShutdownNotifier,
-              blockPartitioning);
+              pShutdownNotifier);
     } else {
       transfer =
           new BAMTransferRelation(
               config,
-              logger,
               this,
               wrappedProofChecker,
-              data,
-              pShutdownNotifier,
-              blockPartitioning);
+              pShutdownNotifier);
     }
     stats = new BAMCPAStatistics(this, data, config, logger);
     argStats = new BAMARGStatistics(config, pLogger, this, pCpa, pSpecification, pCfa);
