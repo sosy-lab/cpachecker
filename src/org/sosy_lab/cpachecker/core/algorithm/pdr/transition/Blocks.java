@@ -285,7 +285,7 @@ public final class Blocks {
             Reindexer.reindex(
                 blockFormula,
                 blockSuccessorContext,
-                (var, i) -> previousContext.getIndex(var) + i - 1,
+                (var, i) -> previousContext.withDefault(1).getIndex(var) + i - 1,
                 pFormulaManager);
         previousBlockSuccessorContext =
             combine(
@@ -311,10 +311,12 @@ public final class Blocks {
       BooleanFormula pBlockFormula,
       FormulaManagerView pFormulaManager) {
     SSAMapBuilder builder = pPreviousBlockSuccessorContext.builder();
+    SSAMap previousBlockSuccessorContext = pPreviousBlockSuccessorContext.withDefault(1);
     SSAMap blockSuccessorContext =
-        Reindexer.adjustToFormula(pBlockFormula, pBlockSuccessorContext, pFormulaManager);
+        Reindexer.adjustToFormula(
+            pBlockFormula, pBlockSuccessorContext.withDefault(1), pFormulaManager);
     for (String variable : blockSuccessorContext.allVariables()) {
-      int previousIndex = pPreviousBlockSuccessorContext.getIndex(variable);
+      int previousIndex = previousBlockSuccessorContext.getIndex(variable);
       int blockIndex = blockSuccessorContext.getIndex(variable);
       builder.setIndex(
           variable, blockSuccessorContext.getType(variable), previousIndex - 1 + blockIndex);
