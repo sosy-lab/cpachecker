@@ -271,6 +271,11 @@ public class ARGReachedSet {
     for (ARGState ae : toUnreach) {
       newToUnreach.addAll(ae.getCoveredByThis());
     }
+    // we remove the covered states completely,
+    // maybe we re-explore them later and find coverage again.
+    // caution: siblings of the covered state might be re-explored, too,
+    // they should be covered by the existing/previous siblings
+    // (if sibling not removed and precision is not weaker)
     toUnreach.addAll(newToUnreach);
 
     Set<ARGState> toWaitlist = removeSet(toUnreach);
