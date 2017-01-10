@@ -344,11 +344,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       throws CPAException, InterruptedException {
 
     CounterexampleTraceInfo counterexample =
-        interpolationManager.buildCounterexampleTrace(
-            formulas,
-            Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-            elementsOnPath,
-            false);
+        interpolationManager.buildCounterexampleTraceWithoutInterpolation(formulas, elementsOnPath);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {

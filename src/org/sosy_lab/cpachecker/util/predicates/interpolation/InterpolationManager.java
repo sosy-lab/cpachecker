@@ -315,6 +315,34 @@ public final class InterpolationManager {
     }
   }
 
+  /**
+   * Counterexample analysis without interpolation. Use this method if you want to check a
+   * counterexample for feasibility and in case of a feasible counterexample want the proper path
+   * information, but in case of an infeasible counterexample you do not need interpolants.
+   *
+   * @param pFormulas the formulas for the path
+   * @param statesOnPath the ARGStates on the path (may be empty if no branching information is
+   *     required)
+   */
+  public CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation(
+      final List<BooleanFormula> pFormulas, final Set<ARGState> statesOnPath)
+      throws CPAException, InterruptedException {
+
+    cexAnalysisTimer.start();
+    try {
+      final List<BooleanFormula> f = prepareCounterexampleFormulas(pFormulas);
+
+      try {
+        return solveCounterexample(f, statesOnPath);
+      } catch (SolverException e) {
+        throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
+      }
+
+    } finally {
+      cexAnalysisTimer.stop();
+    }
+  }
+
   /** Prepare the list of formulas for a counterexample for the solving/interpolation step. */
   private List<BooleanFormula> prepareCounterexampleFormulas(final List<BooleanFormula> pFormulas)
       throws RefinementFailedException {
