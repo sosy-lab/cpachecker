@@ -900,8 +900,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                       imgr.buildCounterexampleTrace(
                               pInput.getPathFormulae(),
                               ImmutableList.copyOf(abstractionStatesTrace),
-                              elementsOnPath,
-                              true)
+                              elementsOnPath)
                           .getInterpolants();
 
                 } catch (CPAException | InterruptedException e) {

@@ -333,8 +333,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     return interpolationManager.buildCounterexampleTrace(
         formulas,
         Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-        elementsOnPath,
-        true);
+        elementsOnPath);
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
