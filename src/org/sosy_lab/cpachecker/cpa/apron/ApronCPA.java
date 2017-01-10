@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -61,7 +60,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -105,7 +103,6 @@ public final class ApronCPA
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
-  private final PrecisionAdjustment precisionAdjustment;
   private final LogManager logger;
   private final Precision precision;
   private final Configuration config;
@@ -134,7 +131,6 @@ public final class ApronCPA
     this.abstractDomain = apronDomain;
     this.mergeOperator = apronMergeOp;
     this.stopOperator = apronStopOp;
-    this.precisionAdjustment = StaticPrecisionAdjustment.getInstance();
     this.config = config;
     this.shutdownNotifier = shutdownNotifier;
     this.cfa = cfa;
@@ -175,11 +171,6 @@ public final class ApronCPA
   @Override
   public StopOperator getStopOperator() {
     return stopOperator;
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
   }
 
   @Override

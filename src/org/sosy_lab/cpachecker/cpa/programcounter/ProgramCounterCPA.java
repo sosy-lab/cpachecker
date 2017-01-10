@@ -23,25 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.programcounter;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.SingleLoopHead;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
 
 /**
  * This CPA tracks the value of the artificial program counter variable
@@ -96,10 +92,4 @@ public class ProgramCounterCPA extends AbstractCPA implements ConfigurableProgra
     // If the possible program counter values cannot be determined, return TOP
     return ProgramCounterState.getTopState();
   }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
-  }
-
 }
