@@ -228,25 +228,28 @@ public final class InterpolationManager {
       final List<AbstractState> pAbstractionStates,
       final Set<ARGState> elementsOnPath)
       throws CPAException, InterruptedException {
-
     assert pAbstractionStates.isEmpty() || pFormulas.size() == pAbstractionStates.size();
+
+    return callWithTimelimit(
+        () -> buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath));
+  }
+
+  private CounterexampleTraceInfo callWithTimelimit(Callable<CounterexampleTraceInfo> callable)
+      throws CPAException, InterruptedException {
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit.isEmpty()) {
-      return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath);
+      try {
+        return callable.call();
+      } catch (Exception e) {
+        Throwables.propagateIfPossible(e, CPAException.class, InterruptedException.class);
+        throw new UnexpectedCheckedException("refinement", e);
+      }
     }
 
     assert executor != null;
 
-    Callable<CounterexampleTraceInfo> tc =
-        new Callable<CounterexampleTraceInfo>() {
-          @Override
-          public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-            return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath);
-          }
-        };
-
-    Future<CounterexampleTraceInfo> future = executor.submit(tc);
+    Future<CounterexampleTraceInfo> future = executor.submit(callable);
 
     try {
       // here we get the result of the post computation but there is a time limit
@@ -320,6 +323,14 @@ public final class InterpolationManager {
    *     required)
    */
   public CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation(
+      final List<BooleanFormula> pFormulas, final Set<ARGState> statesOnPath)
+      throws CPAException, InterruptedException {
+
+    return callWithTimelimit(
+        () -> buildCounterexampleTraceWithoutInterpolation0(pFormulas, statesOnPath));
+  }
+
+  private CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation0(
       final List<BooleanFormula> pFormulas, final Set<ARGState> statesOnPath)
       throws CPAException, InterruptedException {
 
