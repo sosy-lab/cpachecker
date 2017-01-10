@@ -213,37 +213,38 @@ public final class InterpolationManager {
   }
 
   /**
-   * Counterexample analysis.
-   * This method is just an helper to delegate the actual work
-   * This is used to detect timeouts for interpolation
+   * Counterexample analysis. This method is just an helper to delegate the actual work This is used
+   * to detect timeouts for interpolation
    *
    * @param pFormulas the formulas for the path
-   * @param pAbstractionStates the abstraction states between the formulas and the last state of the path.
-   *                           The first state (root) of the path is missing, because it is always TRUE.
-   *                           (can be empty, if well-scoped interpolation is disabled or not required)
-   * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
+   * @param pAbstractionStates the abstraction states between the formulas and the last state of the
+   *     path. The first state (root) of the path is missing, because it is always TRUE. (can be
+   *     empty, if well-scoped interpolation is disabled or not required)
+   * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is
+   *     required)
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       final List<BooleanFormula> pFormulas,
       final List<AbstractState> pAbstractionStates,
-      final Set<ARGState> elementsOnPath,
-      final boolean computeInterpolants) throws CPAException, InterruptedException {
+      final Set<ARGState> elementsOnPath)
+      throws CPAException, InterruptedException {
 
     assert pAbstractionStates.isEmpty() || pFormulas.size() == pAbstractionStates.size();
 
     // if we don't want to limit the time given to the solver
     if (itpTimeLimit.isEmpty()) {
-      return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath, computeInterpolants);
+      return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath);
     }
 
     assert executor != null;
 
-    Callable<CounterexampleTraceInfo> tc = new Callable<CounterexampleTraceInfo>() {
-      @Override
-      public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
-        return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath, computeInterpolants);
-      }
-    };
+    Callable<CounterexampleTraceInfo> tc =
+        new Callable<CounterexampleTraceInfo>() {
+          @Override
+          public CounterexampleTraceInfo call() throws CPAException, InterruptedException {
+            return buildCounterexampleTrace0(pFormulas, pAbstractionStates, elementsOnPath);
+          }
+        };
 
     Future<CounterexampleTraceInfo> future = executor.submit(tc);
 
@@ -265,23 +266,16 @@ public final class InterpolationManager {
   }
 
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      final List<BooleanFormula> pFormulas,
-      final List<AbstractState> pAbstractionStates,
-      final Set<ARGState> elementsOnPath) throws CPAException, InterruptedException {
-    return buildCounterexampleTrace(pFormulas, pAbstractionStates, elementsOnPath, true);
-  }
-
-  public CounterexampleTraceInfo buildCounterexampleTrace(
           final List<BooleanFormula> pFormulas) throws CPAException, InterruptedException {
     return buildCounterexampleTrace(
-            pFormulas, Collections.<AbstractState>emptyList(), Collections.<ARGState>emptySet(), true);
+        pFormulas, Collections.<AbstractState>emptyList(), Collections.<ARGState>emptySet());
   }
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(
       final List<BooleanFormula> pFormulas,
       final List<AbstractState> pAbstractionStates,
-      final Set<ARGState> elementsOnPath,
-      final boolean computeInterpolants) throws CPAException, InterruptedException {
+      final Set<ARGState> elementsOnPath)
+      throws CPAException, InterruptedException {
 
     cexAnalysisTimer.start();
     try {
@@ -296,7 +290,8 @@ public final class InterpolationManager {
 
       try {
         try {
-          return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, elementsOnPath, computeInterpolants);
+          return currentInterpolator.buildCounterexampleTrace(
+              f, pAbstractionStates, elementsOnPath);
         } finally {
           if (!reuseInterpolationEnvironment) {
             currentInterpolator.close();
@@ -736,15 +731,16 @@ public final class InterpolationManager {
 
     /**
      * Counterexample analysis and predicate discovery.
+     *
      * @param f the formulas for the path
-     * @param elementsOnPath the ARGElements on the path (may be empty if no branching information is required)
+     * @param elementsOnPath the ARGElements on the path (may be empty if no branching information
+     *     is required)
      * @return counterexample info with predicated information
      */
     private CounterexampleTraceInfo buildCounterexampleTrace(
         List<BooleanFormula> f,
         List<AbstractState> pAbstractionStates,
-        Set<ARGState> elementsOnPath,
-        boolean computeInterpolants)
+        Set<ARGState> elementsOnPath)
         throws SolverException, CPATransferException, InterruptedException {
 
       // Check feasibility of counterexample
@@ -807,19 +803,16 @@ public final class InterpolationManager {
       CounterexampleTraceInfo info;
       if (spurious) {
 
-        if (computeInterpolants) {
-          final List<BooleanFormula> interpolants = getInterpolants(this, formulasWithStatesAndGroupdIds);
-          if (logger.wouldBeLogged(Level.ALL)) {
-            int i = 1;
-            for (BooleanFormula itp : interpolants) {
-              logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
-            }
+        final List<BooleanFormula> interpolants =
+            getInterpolants(this, formulasWithStatesAndGroupdIds);
+        if (logger.wouldBeLogged(Level.ALL)) {
+          int i = 1;
+          for (BooleanFormula itp : interpolants) {
+            logger.log(Level.ALL, "For step", i++, "got:", "interpolant", itp);
           }
-
-          info = CounterexampleTraceInfo.infeasible(interpolants);
-        } else {
-          info = CounterexampleTraceInfo.infeasibleNoItp();
         }
+
+        info = CounterexampleTraceInfo.infeasible(interpolants);
 
       } else {
         // this is a real bug
