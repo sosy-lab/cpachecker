@@ -1113,7 +1113,13 @@ public class ARGPathExporter {
       // Add them as leaving edges to the source node,
       // Add them as entering edges to their target nodes
       for (Edge leavingEdge : leavingEdgesToMove) {
-        TransitionCondition label = pEdge.label.putAllAndCopy(leavingEdge.label);
+        TransitionCondition label;
+        // Don't merge "originfile" tag if leavingEdge corresponds to default originfile
+        if (leavingEdge.label.getMapping().containsKey(KeyDef.SOURCECODE)) {
+          label = pEdge.label.removeAndCopy(KeyDef.ORIGINFILE).putAllAndCopy(leavingEdge.label);
+        } else {
+          label = pEdge.label.putAllAndCopy(leavingEdge.label);
+        }
         Edge replacementEdge = new Edge(source, leavingEdge.target, label);
         putEdge(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
