@@ -281,7 +281,12 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     globalInvariants = new FormulaInvariantsSupplier(pAggregatedReachedSets, logger);
     updateGlobalInvariants();
 
-    semiCNFConverter = new RCNFManager(pConfig);
+    if (generationStrategy.contains(InvariantGenerationStrategy.PF_CNF_KIND)
+        || generationStrategy.contains(InvariantGenerationStrategy.PF_INDUCTIVE_WEAKENING)) {
+      semiCNFConverter = new RCNFManager(pConfig);
+    } else {
+      semiCNFConverter = null;
+    }
   }
 
   public boolean appendToAbstractionFormula() {
@@ -582,6 +587,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       final CFANode pLocation, final PathFormula pBlockFormula, ShutdownNotifier pInvariantShutdown)
       throws SolverException, InterruptedException, CPATransferException,
           InvalidConfigurationException {
+    assert semiCNFConverter != null;
 
     try {
       stats.pfWeakeningTime.start();
@@ -620,6 +626,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private boolean findInvariantPartOfPathFormulaWithKInduction(
       final CFANode pLocation, PathFormula pPathFormula, ShutdownNotifier pInvariantShutdown)
       throws InterruptedException, CPAException, InvalidConfigurationException {
+    assert semiCNFConverter != null;
 
     try {
       stats.pfKindTime.start();
@@ -1128,7 +1135,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-    semiCNFConverter.collectStatistics(pStatsCollection);
+    if (semiCNFConverter != null) {
+      semiCNFConverter.collectStatistics(pStatsCollection);
+    }
   }
 
 }
