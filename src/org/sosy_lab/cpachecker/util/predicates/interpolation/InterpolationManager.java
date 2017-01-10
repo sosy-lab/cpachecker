@@ -33,7 +33,22 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -72,23 +87,6 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
 
 
 @Options(prefix="cpa.predicate.refinement")
@@ -285,32 +283,9 @@ public final class InterpolationManager {
       final Set<ARGState> elementsOnPath,
       final boolean computeInterpolants) throws CPAException, InterruptedException {
 
-    logger.log(Level.FINEST, "Building counterexample trace");
     cexAnalysisTimer.start();
     try {
-
-      // Final adjustments to the list of formulas
-      List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
-
-      if (fmgr.useBitwiseAxioms()) {
-        addBitwiseAxioms(f);
-      }
-
-      f = Collections.unmodifiableList(f);
-      logger.log(Level.ALL, "Counterexample trace formulas:", f);
-
-      // now f is the DAG formula which is satisfiable iff there is a
-      // concrete counterexample
-
-
-      // Check if refinement problem is not too big
-      if (maxRefinementSize > 0) {
-        int size = fmgr.dumpFormula(bfmgr.and(f)).toString().length();
-        if (size > maxRefinementSize) {
-          logger.log(Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
-          throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
-        }
-      }
+      final List<BooleanFormula> f = prepareCounterexampleFormulas(pFormulas);
 
       final Interpolator<?> currentInterpolator;
       if (reuseInterpolationEnvironment) {
@@ -340,6 +315,36 @@ public final class InterpolationManager {
     }
   }
 
+  /** Prepare the list of formulas for a counterexample for the solving/interpolation step. */
+  private List<BooleanFormula> prepareCounterexampleFormulas(final List<BooleanFormula> pFormulas)
+      throws RefinementFailedException {
+    logger.log(Level.FINEST, "Building counterexample trace");
+
+    // Final adjustments to the list of formulas
+    List<BooleanFormula> f = new ArrayList<>(pFormulas); // copy because we will change the list
+
+    if (fmgr.useBitwiseAxioms()) {
+      addBitwiseAxioms(f);
+    }
+
+    f = Collections.unmodifiableList(f);
+    logger.log(Level.ALL, "Counterexample trace formulas:", f);
+
+    // now f is the DAG formula which is satisfiable iff there is a
+    // concrete counterexample
+
+    // Check if refinement problem is not too big
+    if (maxRefinementSize > 0) {
+      int size = fmgr.dumpFormula(bfmgr.and(f)).toString().length();
+      if (size > maxRefinementSize) {
+        logger.log(
+            Level.FINEST, "Skipping refinement because input formula is", size, "bytes large.");
+        throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
+      }
+    }
+    return f;
+  }
+
   /**
    * Attempt to check feasibility of the current counterexample without interpolation
    * in case of a failure with interpolation.
@@ -351,6 +356,22 @@ public final class InterpolationManager {
   private CounterexampleTraceInfo fallbackWithoutInterpolation(
       final Set<ARGState> elementsOnPath, List<BooleanFormula> f, SolverException itpException)
       throws InterruptedException, CPATransferException, RefinementFailedException {
+    try {
+      CounterexampleTraceInfo counterexample = solveCounterexample(f, elementsOnPath);
+      if (!counterexample.isSpurious()) {
+        return counterexample;
+      }
+    } catch (SolverException solvingException) {
+      // in case of exception throw original one below but do not forget e2
+      itpException.addSuppressed(solvingException);
+    }
+    throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
+  }
+
+  /** Analyze a counterexample for feasibility without computing interpolants. */
+  private CounterexampleTraceInfo solveCounterexample(
+      List<BooleanFormula> f, Set<ARGState> elementsOnPath)
+      throws CPATransferException, SolverException, InterruptedException {
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       for (BooleanFormula block : f) {
         prover.push(block);
@@ -366,12 +387,10 @@ public final class InterpolationManager {
           return CounterexampleTraceInfo.feasible(
               f, ImmutableList.<ValueAssignment>of(), ImmutableMap.<Integer, Boolean>of());
         }
+      } else {
+        return CounterexampleTraceInfo.infeasibleNoItp();
       }
-    } catch (SolverException solvingException) {
-      // in case of exception throw original one below but do not forget e2
-      itpException.addSuppressed(solvingException);
     }
-    throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
   }
 
   /**
