@@ -46,7 +46,22 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
-
+import java.io.IOException;
+import java.util.AbstractCollection;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -65,24 +80,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.GraphUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-
-import java.io.IOException;
-import java.util.AbstractCollection;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 /**
  * Helper class with collection of ARG related utility methods.
@@ -340,6 +337,30 @@ public class ARGUtils {
   public static ARGPath getPathFromBranchingInformation(
       ARGState root, Set<? extends AbstractState> arg,
       Map<Integer, Boolean> branchingInformation) throws IllegalArgumentException {
+    return getPathFromBranchingInformation(root, arg, branchingInformation, true);
+  }
+
+  /**
+   * Find a path in the ARG. The necessary information to find the path is a boolean value for each
+   * branching situation that indicates which of the two AssumeEdges should be taken.
+   *
+   * @param root The root element of the ARG (where to start the path)
+   * @param arg All elements in the ARG or a subset thereof (elements outside this set will be
+   *     ignored).
+   * @param branchingInformation A map from ARG state ids to boolean values indicating the outgoing
+   *     direction.
+   * @param mustEndInTarget If {@code true}, the path must end in a target state to be considered
+   *     consistent.
+   * @return A path through the ARG unambiguously described by the branching information.
+   * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG
+   *     is inconsistent.
+   */
+  public static ARGPath getPathFromBranchingInformation(
+      ARGState root,
+      Set<? extends AbstractState> arg,
+      Map<Integer, Boolean> branchingInformation,
+      boolean mustEndInTarget)
+      throws IllegalArgumentException {
 
     checkArgument(arg.contains(root));
 
@@ -353,8 +374,12 @@ public class ARGUtils {
       CFAEdge edge;
       switch (childrenInArg.size()) {
 
-      case 0:
-        throw new IllegalArgumentException("ARG target path terminates without reaching target state!");
+        case 0:
+          if (mustEndInTarget) {
+            throw new IllegalArgumentException(
+                "ARG target path terminates without reaching target state!");
+          }
+          return builder.build(currentElement);
 
       case 1: // only one successor, easy
         child = Iterables.getOnlyElement(childrenInArg);
