@@ -36,7 +36,26 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
+import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -78,27 +97,6 @@ import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
-
-import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * This class is the central entry point for all formula creation
@@ -1650,7 +1648,10 @@ public class FormulaManagerView {
       T f,
       FormulaTransformationVisitor pFormulaVisitor) {
     @SuppressWarnings("unchecked")
-    T out = (T) manager.transformRecursively(unwrap(f), pFormulaVisitor);
+    T out =
+        (T)
+            manager.transformRecursively(
+                unwrap(f), new UnwrappingFormulaTransformationVisitor(pFormulaVisitor));
     return out;
   }
 
@@ -1704,5 +1705,47 @@ public class FormulaManagerView {
     protected FormulaTransformationVisitor(FormulaManagerView fmgr) {
       super(fmgr.manager);
     }
+  }
+
+  private class UnwrappingFormulaTransformationVisitor
+      extends org.sosy_lab.java_smt.api.visitors.FormulaTransformationVisitor {
+
+    private final FormulaTransformationVisitor delegate;
+
+    protected UnwrappingFormulaTransformationVisitor(FormulaTransformationVisitor pDelegate) {
+      super(manager);
+      delegate = Objects.requireNonNull(pDelegate);
+    }
+
+    @Override
+    public Formula visitBoundVariable(Formula pF, int pDeBruijnIdx) {
+      return unwrap(delegate.visitBoundVariable(pF, pDeBruijnIdx));
+    }
+
+    @Override
+    public Formula visitFreeVariable(Formula pF, String pName) {
+      return unwrap(delegate.visitFreeVariable(pF, pName));
+    }
+
+    @Override
+    public Formula visitFunction(
+        Formula pF, List<Formula> pNewArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+      return unwrap(delegate.visitFunction(pF, pNewArgs, pFunctionDeclaration));
+    }
+
+    @Override
+    public Formula visitConstant(Formula pF, Object pValue) {
+      return unwrap(delegate.visitConstant(pF, pValue));
+    }
+
+    @Override
+    public BooleanFormula visitQuantifier(
+        BooleanFormula pF,
+        Quantifier pQuantifier,
+        List<Formula> pBoundVariables,
+        BooleanFormula pTransformedBody) {
+      return delegate.visitQuantifier(pF, pQuantifier, pBoundVariables, pTransformedBody);
+    }
+
   }
 }
