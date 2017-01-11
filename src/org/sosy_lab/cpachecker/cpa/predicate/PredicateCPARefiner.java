@@ -382,7 +382,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     }
   }
 
-  private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace) {
+  private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace)
+      throws InterruptedException {
     List<BooleanFormula> precisionIncrement = new ArrayList<>();
     boolean invIsTriviallyTrue = true;
 
