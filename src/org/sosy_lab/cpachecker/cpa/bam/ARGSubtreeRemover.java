@@ -74,6 +74,7 @@ public class ARGSubtreeRemover {
     doPrecisionRefinementForAllStates = bamCpa.doPrecisionRefinementForAllStates();
   }
 
+  @SuppressWarnings("deprecation")
   void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
                      ARGState element, List<Precision> pNewPrecisions,
                      List<Predicate<? super Precision>> pNewPrecisionTypes)
@@ -175,6 +176,7 @@ public class ARGSubtreeRemover {
    * This is basically the same as {@link ARGReachedSet#removeSubtree(ARGState)},
    * but we also update the BAM-cache.
    */
+  @SuppressWarnings("deprecation")
   private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
                                    List<Precision> pNewPrecisions,
                                    List<Predicate<? super Precision>> pPrecisionTypes)
@@ -278,6 +280,7 @@ public class ARGSubtreeRemover {
   /** there might be some "imprecise" cache entries used along the path.
    * We remove all of them and create the "precise" entry for re-exploration.
    * We only update those blocks, where a nested block is imprecise. */
+  @SuppressWarnings("deprecation")
   private void ensureExactCacheHitsOnPath(ARGPath pPath, final ARGState pElement,
       List<Precision> pNewPrecisions, Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls)
       throws InterruptedException {
@@ -343,6 +346,7 @@ public class ARGSubtreeRemover {
   }
 
   /** This method creates a new precise entry if necessary, and returns whether the used entry needs a new precision. */
+  @SuppressWarnings("deprecation")
   private boolean createNewPreciseEntry(ARGState rootState, List<Precision> pNewPrecisions,
       UnmodifiableReachedSet outerReachedSet) throws InterruptedException {
 

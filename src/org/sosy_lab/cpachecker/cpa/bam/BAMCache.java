@@ -125,6 +125,7 @@ public class BAMCache {
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
     blockARGCache.remove(hash);
     returnCache.remove(hash);
+    preciseReachedCache.remove(hash);
   }
 
   /**

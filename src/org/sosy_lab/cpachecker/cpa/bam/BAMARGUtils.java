@@ -105,6 +105,7 @@ class BAMARGUtils {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private static Pair<Block, ReachedSet> getCachedReachedSet(BAMCPA cpa, ARGState root) {
     CFANode rootNode = extractLocation(root);
     Block rootSubtree = cpa.getBlockPartitioning().getBlockForCallNode(rootNode);

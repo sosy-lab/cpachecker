@@ -263,10 +263,15 @@ class BAMCPAStatistics implements Statistics {
         continue;
       }
       if (data.hasInitialState(state)) {
-        ReachedSet target = data.getReachedSetForInitialState(state);
-        referencedReachedSets.add(target);
-        ARGState targetState = (ARGState) target.getFirstState();
-        connections.put(state, targetState);
+        for (ARGState child : state.getChildren()) {
+          assert data.hasExpandedState(child);
+          ReachedSet target = data.getReachedSetForInitialState(
+              state, data.getReducedStateForExpandedState(child));
+
+          referencedReachedSets.add(target);
+          ARGState targetState = (ARGState) target.getFirstState();
+          connections.put(state, targetState);
+        }
       }
       if (data.hasExpandedState(state)) {
         AbstractState sourceState = data.getReducedStateForExpandedState(state);
