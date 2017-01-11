@@ -106,12 +106,6 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private boolean handleRecursiveProcedures = false;
 
   @Option(secure = true,
-      description = "This flag determines which precisions should be updated during refinement. "
-      + "We can choose between the minimum number of states and all states that are necessary "
-      + "to re-explore the program along the error-path.")
-  private boolean doPrecisionRefinementForAllStates = false;
-
-  @Option(secure = true,
       description = "Use more fast partitioning builder, which can not handle loops")
   private boolean useExtendedPartitioningBuilder = false;
 
@@ -279,9 +273,5 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return wrappedProofChecker.isCoveredBy(pState, pOtherState);
-  }
-
-  boolean doPrecisionRefinementForAllStates() {
-    return doPrecisionRefinementForAllStates;
   }
 }
