@@ -68,9 +68,7 @@ public class BAMTransferRelation implements TransferRelation {
 
   protected Block currentBlock;
   protected final BlockPartitioning partitioning;
-  protected int depth = 0;
-  protected final List<Triple<AbstractState, Precision, Block>> stack =
-      new ArrayList<>();
+  protected final List<Triple<AbstractState, Precision, Block>> stack = new ArrayList<>();
 
   protected final LogManager logger;
   private final CPAAlgorithmFactory algorithmFactory;
@@ -148,13 +146,7 @@ public class BAMTransferRelation implements TransferRelation {
 
       // we are at the entryNode of a new block and we are in a new context,
       // so we have to start a recursive analysis
-      logger.log(Level.FINEST, "Starting recursive analysis of depth", ++depth);
-      maxRecursiveDepth = Math.max(depth, maxRecursiveDepth);
-
-      Collection<? extends AbstractState> resultStates = doRecursiveAnalysis(pState, pPrecision, node);
-
-      logger.log(Level.FINEST, "Finished recursive analysis of depth", depth--);
-      return resultStates;
+      return doRecursiveAnalysis(pState, pPrecision, node);
     }
 
     // the easy case: we are in the middle of a block, so just forward to wrapped CPAs.
@@ -259,13 +251,17 @@ public class BAMTransferRelation implements TransferRelation {
 
     final Triple<AbstractState, Precision, Block> currentLevel = Triple.of(reducedInitialState, reducedInitialPrecision, currentBlock);
     stack.add(currentLevel);
+    logger.log(Level.FINEST, "Starting recursive analysis of depth", stack.size());
     logger.log(Level.FINEST, "current Stack:", stack);
+    maxRecursiveDepth = Math.max(stack.size(), maxRecursiveDepth);
 
     final Collection<AbstractState> resultStates = analyseBlockAndExpand(
         initialState, pPrecision, outerSubtree, reducedInitialState, reducedInitialPrecision);
 
+    logger.log(Level.FINEST, "Finished recursive analysis of depth", stack.size());
     final Triple<AbstractState, Precision, Block> lastLevel = stack.remove(stack.size() - 1);
     assert lastLevel.equals(currentLevel);
+
     currentBlock = outerSubtree;
     bamPccManager.setCurrentBlock(outerSubtree);
 
