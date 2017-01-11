@@ -237,13 +237,6 @@ public class BAMDataManager {
     }
   }
 
-  @Deprecated
-  ReachedSet getReachedSetForInitialState(AbstractState initialState) {
-    assert initialStateToReachedSet.containsRow(initialState)
-        : "no initial state for a block: " + initialState;
-    return checkNotNull(initialStateToReachedSet.row(initialState).values().iterator().next());
-  }
-
   ReachedSet getReachedSetForInitialState(AbstractState initialState, AbstractState exitState) {
     assert initialStateToReachedSet.contains(initialState, exitState)
         : "no block matching states: " + initialState + " -> " + exitState;
