@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-
 import com.google.common.collect.Collections2;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -36,17 +34,12 @@ import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class BAMSubgraphComputer {
 
@@ -83,17 +76,15 @@ public class BAMSubgraphComputer {
    * @return root of a subgraph, that contains all states on all paths to newTreeTarget.
    *         The subgraph contains only copies of the real ARG states,
    *         because one real state can be used multiple times in one path.
-   * @throws MissingBlockException for re-computing some blocks
    */
   BackwardARGState computeCounterexampleSubgraph(
-      final ARGState target, final ARGReachedSet pMainReachedSet)
-      throws MissingBlockException, InterruptedException {
+      final ARGState target, final ARGReachedSet pMainReachedSet) throws InterruptedException {
     return computeCounterexampleSubgraph(Collections.singleton(target), pMainReachedSet);
   }
 
   BackwardARGState computeCounterexampleSubgraph(
       final Collection<ARGState> targets, final ARGReachedSet pMainReachedSet)
-      throws MissingBlockException, InterruptedException {
+      throws InterruptedException {
     assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
     BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet,
         Collections2.transform(targets, BackwardARGState::new));
@@ -107,7 +98,7 @@ public class BAMSubgraphComputer {
    * */
   private BackwardARGState computeCounterexampleSubgraph(
       final ARGReachedSet reachedSet, final Collection<BackwardARGState> newTreeTargets)
-      throws MissingBlockException, InterruptedException {
+      throws InterruptedException {
 
     // start by creating ARGElements for each node needed in the tree
     final Map<ARGState, BackwardARGState> finishedStates = new HashMap<>();
@@ -151,12 +142,7 @@ public class BAMSubgraphComputer {
         // We must use a cached reachedSet to process further, because the block has its own reachedSet.
         // The returned 'innerTreeRoot' is the rootNode of the subtree, created from the cached reachedSet.
         // The current subtree (successors of child) is appended beyond the innerTree, to get a complete subgraph.
-        try {
-          computeCounterexampleSubgraphForBlock(newCurrentState, childrenInSubgraph);
-        } catch (MissingBlockException e) {
-          ARGSubtreeRemover.removeSubtree(reachedSet, currentState);
-          throw new MissingBlockException();
-        }
+        computeCounterexampleSubgraphForBlock(newCurrentState, childrenInSubgraph);
 
       } else {
         // children are a normal successors -> create an connection from parent to children
@@ -195,9 +181,8 @@ public class BAMSubgraphComputer {
    *                     (these children are copies of states from reachedSets of other blocks)
    */
   private void computeCounterexampleSubgraphForBlock(
-          final BackwardARGState newExpandedRoot,
-          final Set<BackwardARGState> newExpandedTargets)
-      throws MissingBlockException, InterruptedException {
+      final BackwardARGState newExpandedRoot, final Set<BackwardARGState> newExpandedTargets)
+      throws InterruptedException {
 
     ARGState expandedRoot = (ARGState) newExpandedRoot.getWrappedState();
     final Multimap<ReachedSet, BackwardARGState> reachedSets = LinkedHashMultimap.create();
@@ -210,21 +195,12 @@ public class BAMSubgraphComputer {
       final ReachedSet reachedSet = data.getReachedSetForInitialState(expandedRoot, reducedTarget);
 
       // first check, if the cached state is valid.
-      if (reducedTarget.isDestroyed()) {
-        assert false : "should no longer appear";
-        logger.log(Level.FINE,
-            "Target state refers to a destroyed ARGState, i.e., the cached subtree is outdated. Updating it.");
-        throw new MissingBlockException();
-      }
-
+      assert !reducedTarget.isDestroyed()
+          : "target state was already destroyed, please do not use it.";
       assert reachedSet.contains(reducedTarget)
-          : "reduced state '"
-              + reducedTarget
-              + "' is not part of reachedset with root '"
-              + reachedSet.getFirstState()
-              + "' from expanded root '"
-              + expandedRoot
-              + "'";
+          : String.format(
+              "reduced state '%s' is not part of reachedset with root '%s' from expanded root '%s'",
+              reducedTarget, reachedSet.getFirstState(), expandedRoot);
 
       // we found the reached-set, corresponding to the root and precision.
       // now try to find a path from the target towards the root of the reached-set.
@@ -235,25 +211,8 @@ public class BAMSubgraphComputer {
 
     for (Entry<ReachedSet, Collection<BackwardARGState>> entry : reachedSets.asMap().entrySet()) {
       final ReachedSet reachedSet = entry.getKey();
-      final BackwardARGState newInnerRoot;
-      try {
-        newInnerRoot =
-            computeCounterexampleSubgraph(new ARGReachedSet(reachedSet), entry.getValue());
-      } catch (MissingBlockException e) {
-        // enforce recomputation to update cached subtree
-        logger.log(
-            Level.FINE,
-            "Target state refers to a destroyed ARGState, i.e., the cached subtree will be removed.");
-
-        // TODO why do we use precision of reachedSet from 'abstractStateToReachedSet' here and not the reduced precision?
-        final CFANode rootNode = extractLocation(expandedRoot);
-        final Block rootBlock = partitioning.getBlockForCallNode(rootNode);
-        final AbstractState reducedRootState =
-            reducer.getVariableReducedState(expandedRoot, rootBlock, rootNode);
-        data.bamCache.removeReturnEntry(
-            reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
-        throw new MissingBlockException();
-      }
+      final BackwardARGState newInnerRoot =
+          computeCounterexampleSubgraph(new ARGReachedSet(reachedSet), entry.getValue());
 
       // reconnect ARG: replace the root of the inner block
       // with the existing state from the outer block with the current state,
@@ -298,17 +257,6 @@ public class BAMSubgraphComputer {
     @Override
     public String toString() {
       return "BackwardARGState {{" + super.toString() + "}}";
-    }
-  }
-
-  /** A class to signal a deleted block for re-computation. */
-  static class MissingBlockException extends CPAException {
-
-    private static final long serialVersionUID = 123L;
-
-    public MissingBlockException() {
-      super("missing block");
-      assert false : "should no longer appear";
     }
   }
 }

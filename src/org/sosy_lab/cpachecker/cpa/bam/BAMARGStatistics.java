@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 
 public class BAMARGStatistics extends ARGStatistics {
 
@@ -93,13 +92,6 @@ public class BAMARGStatistics extends ARGStatistics {
     ARGState rootOfSubgraph = null;
     try {
       rootOfSubgraph = cexSubgraphComputer.computeCounterexampleSubgraph(targets, pMainReachedSet);
-    } catch (MissingBlockException e) {
-      logger.log(
-          Level.INFO,
-          "could not compute full reached set graph (missing block), "
-              + "some output or statistics might be missing");
-      return; // invalid ARG, ignore output.
-
     } catch (InterruptedException e) {
       logger.log(Level.WARNING, "could not compute full reached set graph:", e);
       return; // invalid ARG, ignore output
