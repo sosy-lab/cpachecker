@@ -118,6 +118,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
           .getLogger()
           .logf(Level.FINEST, "removing %s from reachedset with root %s", tmp, callState);
 
+      removeCachedSubtreeTimer.start();
+
       handleSubtree(
           ((BackwardARGState) callState).getARGState(),
           checkNotNull(blockInitAndExitStates.get(callState)),
@@ -125,6 +127,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
           pPrecisions,
           pPrecisionTypes);
       tmp = callState;
+
+      removeCachedSubtreeTimer.stop();
     }
 
     // post-processing, cleanup data-structures: We remove all states reachable from 'element'.

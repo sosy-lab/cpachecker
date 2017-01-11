@@ -227,6 +227,7 @@ public class BAMDataManager {
     //    }
     assert !initialStateToReachedSet.contains(initialState, exitState)
         : "mapping already exists: " + initialState + " -> " + exitState;
+    // TODO this assertion might indicate a repeated counterexample
     initialStateToReachedSet.put(initialState, exitState, reachedSet);
   }
 
