@@ -23,16 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
  * Manages a given partition of a program's CFA into a set of blocks.
@@ -92,6 +91,10 @@ public class BlockPartitioning {
   // reason for deprecation: there can be several blocks for the same return-node
   public Block getBlockForReturnNode(CFANode pCurrentNode) {
     return Iterables.getFirst(returnNodeToBlock.get(pCurrentNode), null);
+  }
+
+  public ImmutableCollection<Block> getBlocksForReturnNode(CFANode pCurrentNode) {
+    return returnNodeToBlock.get(pCurrentNode);
   }
 
   public Set<Block> getBlocks() {
