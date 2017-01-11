@@ -50,8 +50,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class BAMCache {
 
   @Option(secure=true, description = "If enabled, cache queries also consider blocks with "
-      + "non-matching precision for reuse.")
-  private boolean aggressiveCaching = true;
+      + "non-matching precision for reuse. Might cause repeated counterexamples.")
+  private boolean aggressiveCaching = false;
 
   @Option(secure=true, description = "If enabled, the reached set cache is analysed "
       + "for each cache miss to find the cause of the miss.")

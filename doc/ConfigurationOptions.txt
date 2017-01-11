@@ -828,8 +828,8 @@ cpa.automaton.prec.topOnFinalSelfLoopingState = false
 cpa.automaton.treatErrorsAsTargets = true
 
 # If enabled, cache queries also consider blocks with non-matching precision
-# for reuse.
-cpa.bam.aggressiveCaching = true
+# for reuse. Might cause repeated counterexamples.
+cpa.bam.aggressiveCaching = false
 
 # export blocked ARG as .dot file
 cpa.bam.argFile = "BlockedARG.dot"
