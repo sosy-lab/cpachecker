@@ -431,8 +431,10 @@ class KInductionProver implements AutoCloseable {
       assertions.put(candidateInvariant, predecessorAssertion);
     }
 
-    // Assert the known invariants at the loop head at the first iteration.
+    // Assert the known invariants at the loop head at end of the first iteration.
 
+    stepCaseBoundsCPA.setMaxLoopIterations(pK + 1);
+    BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
     FluentIterable<AbstractState> loopHeadStates = filterLoopHeadStates(reached, loopHeads);
     BooleanFormula loopHeadInv =
         bfmgr.and(
@@ -444,9 +446,6 @@ class KInductionProver implements AutoCloseable {
     }
 
     // Create the formula asserting the faultiness of the successor
-    stepCaseBoundsCPA.setMaxLoopIterations(pK + 1);
-    BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
-    loopHeadStates = filterLoopHeadStates(reached, loopHeads);
 
     this.previousK = pK + 1;
 
