@@ -191,8 +191,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       final List<Precision> pPrecisions,
       final List<Predicate<? super Precision>> pPrecisionTypes) {
     ReachedSet reached = data.getReachedSetForInitialState(rootState, exitState);
-    assert !reached.contains(
-        rootState); // TODO are there conceptual problem, if we support this for recursive programs?
     assert reached.contains(cutState);
     assert reached.contains(exitState);
 

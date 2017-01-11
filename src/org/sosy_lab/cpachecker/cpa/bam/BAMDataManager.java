@@ -213,21 +213,6 @@ public class BAMDataManager {
    */
   void registerInitialState(
       AbstractState initialState, AbstractState exitState, ReachedSet reachedSet) {
-    //    Collection<ReachedSet> oldReachedSets = initialStateToReachedSet.get(initialState);
-    //    if (!oldReachedSets.isEmpty() && oldReachedSets.contains(reachedSet)) {
-    //      // TODO This might be a hint for a memory leak, i.e., the old reachedset
-    //      // is no longer accessible through BAMDataManager, but registered in BAM-cache.
-    //      // This happens, when the reducer changes, e.g., BAMPredicateRefiner.refineRelevantPredicates.
-    //      logger.logf(
-    //          Level.ALL,
-    //          "New abstract state %s overrides old reachedset %s with new reachedset %s.",
-    //          initialState,
-    //          Collections2.transform(oldReachedSets, ReachedSet::getFirstState),
-    //          reachedSet.getFirstState());
-    //    }
-    assert !initialStateToReachedSet.contains(initialState, exitState)
-        : "mapping already exists: " + initialState + " -> " + exitState;
-    // TODO this assertion might indicate a repeated counterexample
     initialStateToReachedSet.put(initialState, exitState, reachedSet);
   }
 
