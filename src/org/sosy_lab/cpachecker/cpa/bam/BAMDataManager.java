@@ -61,11 +61,9 @@ public class BAMDataManager {
 
   final ReachedSetFactory reachedSetFactory;
 
-  /**
-   * Mapping of non-reduced initial states
-   * to {@link ReachedSet}.
-   **/
-  private final Table<AbstractState, AbstractState, ReachedSet> initialStateToReachedSet = HashBasedTable.create();
+  /** Mapping of non-reduced initial states to {@link ReachedSet}. */
+  private final Table<AbstractState, AbstractState, ReachedSet> initialStateToReachedSet =
+      HashBasedTable.create();
 
   /**
    * Mapping from expanded states at the end of the block to corresponding
@@ -179,10 +177,9 @@ public class BAMDataManager {
   }
 
   /**
-   * Get a list of states {@code [s1,s2,s3...]},
-   * such that {@code expand(s1)=s2}, {@code expand(s2)=s3},...
-   * The state {@code s1} is the most inner state.
-   * Returns an empty list, if the state is not an exit state.
+   * Get a list of states {@code [s1,s2,s3...]}, such that {@code expand(s1)=s2}, {@code
+   * expand(s2)=s3},... The state {@code s1} is the most inner state. Returns an empty list, if the
+   * state is not an exit state.
    */
   @Deprecated // works correct, maybe unused
   List<AbstractState> getExpandedStatesList(AbstractState state) {
@@ -196,10 +193,9 @@ public class BAMDataManager {
   }
 
   /**
-   * Get a list of states {@code [s1,s2,s3...]},
-   * such that {@code expand(s0)=s1}, {@code expand(s1)=s2},...
-   * The state {@code s0} is the most inner non-expanded state and is not included in the list.
-   * This method returns an empty list, if the state is not an exit state.
+   * Get a list of states {@code [s1,s2,s3...]}, such that {@code expand(s0)=s1}, {@code
+   * expand(s1)=s2},... The state {@code s0} is the most inner non-expanded state and is not
+   * included in the list. This method returns an empty list, if the state is not an exit state.
    */
   List<AbstractState> getExpandedStateList(AbstractState state) {
     List<AbstractState> lst = new ArrayList<>();
@@ -211,27 +207,31 @@ public class BAMDataManager {
     return Lists.reverse(lst);
   }
 
-  /** Register a mapping from the non-reduced initial state and the non-expanded block-exit states
-   * to a reached-set that was used between them. */
-  void registerInitialState(AbstractState initialState, AbstractState exitState, ReachedSet reachedSet) {
-//    Collection<ReachedSet> oldReachedSets = initialStateToReachedSet.get(initialState);
-//    if (!oldReachedSets.isEmpty() && oldReachedSets.contains(reachedSet)) {
-//      // TODO This might be a hint for a memory leak, i.e., the old reachedset
-//      // is no longer accessible through BAMDataManager, but registered in BAM-cache.
-//      // This happens, when the reducer changes, e.g., BAMPredicateRefiner.refineRelevantPredicates.
-//      logger.logf(
-//          Level.ALL,
-//          "New abstract state %s overrides old reachedset %s with new reachedset %s.",
-//          initialState,
-//          Collections2.transform(oldReachedSets, ReachedSet::getFirstState),
-//          reachedSet.getFirstState());
-//    }
-    assert !initialStateToReachedSet.contains(initialState, exitState) :
-      "mapping already exists: " + initialState + " -> " + exitState;
+  /**
+   * Register a mapping from the non-reduced initial state and the non-expanded block-exit states to
+   * a reached-set that was used between them.
+   */
+  void registerInitialState(
+      AbstractState initialState, AbstractState exitState, ReachedSet reachedSet) {
+    //    Collection<ReachedSet> oldReachedSets = initialStateToReachedSet.get(initialState);
+    //    if (!oldReachedSets.isEmpty() && oldReachedSets.contains(reachedSet)) {
+    //      // TODO This might be a hint for a memory leak, i.e., the old reachedset
+    //      // is no longer accessible through BAMDataManager, but registered in BAM-cache.
+    //      // This happens, when the reducer changes, e.g., BAMPredicateRefiner.refineRelevantPredicates.
+    //      logger.logf(
+    //          Level.ALL,
+    //          "New abstract state %s overrides old reachedset %s with new reachedset %s.",
+    //          initialState,
+    //          Collections2.transform(oldReachedSets, ReachedSet::getFirstState),
+    //          reachedSet.getFirstState());
+    //    }
+    assert !initialStateToReachedSet.contains(initialState, exitState)
+        : "mapping already exists: " + initialState + " -> " + exitState;
     initialStateToReachedSet.put(initialState, exitState, reachedSet);
   }
 
-  void registerInitialState(AbstractState initialState, Collection<AbstractState> exitStates, ReachedSet reachedSet) {
+  void registerInitialState(
+      AbstractState initialState, Collection<AbstractState> exitStates, ReachedSet reachedSet) {
     for (AbstractState exitState : exitStates) {
       registerInitialState(initialState, exitState, reachedSet);
     }
@@ -239,14 +239,17 @@ public class BAMDataManager {
 
   @Deprecated
   ReachedSet getReachedSetForInitialState(AbstractState initialState) {
-    assert initialStateToReachedSet.containsRow(initialState) : "no initial state for a block: " + initialState;
+    assert initialStateToReachedSet.containsRow(initialState)
+        : "no initial state for a block: " + initialState;
     return checkNotNull(initialStateToReachedSet.row(initialState).values().iterator().next());
   }
 
   ReachedSet getReachedSetForInitialState(AbstractState initialState, AbstractState exitState) {
-    assert initialStateToReachedSet.contains(initialState, exitState) : "no block matching states: " + initialState + " -> " + exitState;
+    assert initialStateToReachedSet.contains(initialState, exitState)
+        : "no block matching states: " + initialState + " -> " + exitState;
     ReachedSet reached = checkNotNull(initialStateToReachedSet.get(initialState, exitState));
-    assert reached.contains(exitState) : "reachedset should contain exit state for block: " + exitState;
+    assert reached.contains(exitState)
+        : "reachedset should contain exit state for block: " + exitState;
     return reached;
   }
 
@@ -282,10 +285,14 @@ public class BAMDataManager {
     StringBuilder str = new StringBuilder("BAM DATA MANAGER\n");
 
     str.append("initial state to (first state of) reached set:\n");
-    for (Cell<AbstractState, AbstractState, ReachedSet> entry : initialStateToReachedSet.cellSet()) {
+    for (Cell<AbstractState, AbstractState, ReachedSet> entry :
+        initialStateToReachedSet.cellSet()) {
       str.append(
           String.format(
-              "    (%s, %s) -> %s%n", getId(entry.getRowKey()), getId(entry.getColumnKey()), getId((entry.getValue()).getFirstState())));
+              "    (%s, %s) -> %s%n",
+              getId(entry.getRowKey()),
+              getId(entry.getColumnKey()),
+              getId((entry.getValue()).getFirstState())));
     }
 
     str.append("expanded state to reduced state:\n");

@@ -75,9 +75,12 @@ public class ARGSubtreeRemover {
   }
 
   @SuppressWarnings("deprecation")
-  void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
-                     ARGState element, List<Precision> pNewPrecisions,
-                     List<Predicate<? super Precision>> pNewPrecisionTypes)
+  void removeSubtree(
+      ARGReachedSet mainReachedSet,
+      ARGPath pPath,
+      ARGState element,
+      List<Precision> pNewPrecisions,
+      List<Predicate<? super Precision>> pNewPrecisionTypes)
       throws InterruptedException {
 
     final ARGState firstState = (ARGState)mainReachedSet.asReachedSet().getFirstState();
@@ -172,14 +175,15 @@ public class ARGSubtreeRemover {
   }
 
   /**
-   * This method removes a state from the corresponding reached-set.
-   * This is basically the same as {@link ARGReachedSet#removeSubtree(ARGState)},
-   * but we also update the BAM-cache.
+   * This method removes a state from the corresponding reached-set. This is basically the same as
+   * {@link ARGReachedSet#removeSubtree(ARGState)}, but we also update the BAM-cache.
    */
   @SuppressWarnings("deprecation")
-  private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
-                                   List<Precision> pNewPrecisions,
-                                   List<Predicate<? super Precision>> pPrecisionTypes)
+  private void removeCachedSubtree(
+      ARGState rootState,
+      ARGState removeElement,
+      List<Precision> pNewPrecisions,
+      List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
     assert pNewPrecisions.size() == pPrecisionTypes.size();
     removeCachedSubtreeTimer.start();
@@ -277,12 +281,17 @@ public class ARGSubtreeRemover {
     return new ArrayList<>(openCallStates);
   }
 
-  /** there might be some "imprecise" cache entries used along the path.
-   * We remove all of them and create the "precise" entry for re-exploration.
-   * We only update those blocks, where a nested block is imprecise. */
+  /**
+   * there might be some "imprecise" cache entries used along the path. We remove all of them and
+   * create the "precise" entry for re-exploration. We only update those blocks, where a nested
+   * block is imprecise.
+   */
   @SuppressWarnings("deprecation")
-  private void ensureExactCacheHitsOnPath(ARGPath pPath, final ARGState pElement,
-      List<Precision> pNewPrecisions, Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls)
+  private void ensureExactCacheHitsOnPath(
+      ARGPath pPath,
+      final ARGState pElement,
+      List<Precision> pNewPrecisions,
+      Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls)
       throws InterruptedException {
     boolean cutStateFound = false;
     final Deque<Boolean> needsNewPrecisionEntries = new ArrayDeque<>();
@@ -345,10 +354,14 @@ public class ARGSubtreeRemover {
     assert rootStates.getLast() == pPath.getFirstState();
   }
 
-  /** This method creates a new precise entry if necessary, and returns whether the used entry needs a new precision. */
+  /**
+   * This method creates a new precise entry if necessary, and returns whether the used entry needs
+   * a new precision.
+   */
   @SuppressWarnings("deprecation")
-  private boolean createNewPreciseEntry(ARGState rootState, List<Precision> pNewPrecisions,
-      UnmodifiableReachedSet outerReachedSet) throws InterruptedException {
+  private boolean createNewPreciseEntry(
+      ARGState rootState, List<Precision> pNewPrecisions, UnmodifiableReachedSet outerReachedSet)
+      throws InterruptedException {
 
     // create updated precision
     ARGState initialState = (ARGState) rootState.getWrappedState();

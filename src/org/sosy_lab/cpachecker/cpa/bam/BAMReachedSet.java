@@ -102,7 +102,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     assert rootOfSubgraph.getSubgraph().contains(element);
 
     // get blocks that need to be touched
-    Map<BackwardARGState, ARGState> blockInitAndExitStates = getBlockInitAndExitStates(path.asStatesList());
+    Map<BackwardARGState, ARGState> blockInitAndExitStates =
+        getBlockInitAndExitStates(path.asStatesList());
     List<ARGState> relevantCallStates = getRelevantCallStates(path.asStatesList(), element);
     assert relevantCallStates.get(0) == rootOfSubgraph
         : "root should be relevant: " + relevantCallStates.get(0) + " + " + rootOfSubgraph;
@@ -137,8 +138,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     super.delegate.removeSubtree((ARGState) super.delegate.asReachedSet().getLastState());
   }
 
-  private Map<BackwardARGState, ARGState> getBlockInitAndExitStates(
-      ImmutableList<ARGState> path) {
+  private Map<BackwardARGState, ARGState> getBlockInitAndExitStates(ImmutableList<ARGState> path) {
     final Map<BackwardARGState, ARGState> blockInitAndExitStates = new LinkedHashMap<>();
     final Deque<BackwardARGState> openCallStates = new ArrayDeque<>();
     for (final ARGState bamState : path) {
@@ -151,8 +151,9 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         // we are leaving a block, remove the start-state from the stack.
         BackwardARGState initialState = openCallStates.removeLast();
         AbstractState reducedExitState = data.getReducedStateForExpandedState(exitState);
-        assert null != data.getReachedSetForInitialState(initialState.getWrappedState(), reducedExitState);
-        blockInitAndExitStates.put(initialState, (ARGState)reducedExitState);
+        assert null
+            != data.getReachedSetForInitialState(initialState.getWrappedState(), reducedExitState);
+        blockInitAndExitStates.put(initialState, (ARGState) reducedExitState);
       }
 
       if (data.hasInitialState(state)) {
@@ -164,18 +165,18 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       }
     }
 
-    assert openCallStates.isEmpty() : "empty callstack expected after traversing the path: " + openCallStates;
+    assert openCallStates.isEmpty()
+        : "empty callstack expected after traversing the path: " + openCallStates;
     return blockInitAndExitStates;
   }
 
   /**
    * inserts a partially cloned reached-set into the caches.
    *
-   * @param rootState the non-reduced initial state of the reached-set.
-   *        This state is not part of the reached-set
-   * @param cutState where to abort cloning, no child will be cloned,
-   *        and states covered by children will be added to waitlist.
-   *        This state is part of the reached-set.
+   * @param rootState the non-reduced initial state of the reached-set. This state is not part of
+   *     the reached-set
+   * @param cutState where to abort cloning, no child will be cloned, and states covered by children
+   *     will be added to waitlist. This state is part of the reached-set.
    * @param pPrecisions new precision for the cutState
    * @param pPrecisionTypes new precision for the cutState
    */
@@ -186,7 +187,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       final List<Precision> pPrecisions,
       final List<Predicate<? super Precision>> pPrecisionTypes) {
     ReachedSet reached = data.getReachedSetForInitialState(rootState, exitState);
-    assert !reached.contains(rootState); // TODO are there conceptual problem, if we support this for recursive programs?
+    assert !reached.contains(
+        rootState); // TODO are there conceptual problem, if we support this for recursive programs?
     assert reached.contains(cutState);
     assert reached.contains(exitState);
 
@@ -246,9 +248,9 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   }
 
   /**
-   * This method creates a copy of the given {@link ReachedSet},
-   * without a subtree of states collected as children of cutState (inclusive).
-   * Nested Block-ReachedSets are only referenced, not cloned.
+   * This method creates a copy of the given {@link ReachedSet}, without a subtree of states
+   * collected as children of cutState (inclusive). Nested Block-ReachedSets are only referenced,
+   * not cloned.
    *
    * <p>We assume that all abstract states (except first level {@link ARGState}s) are immutable,
    * because we only build new {@link ARGState}s and re-use their content directly.

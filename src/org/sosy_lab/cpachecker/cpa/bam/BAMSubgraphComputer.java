@@ -217,9 +217,14 @@ public class BAMSubgraphComputer {
         throw new MissingBlockException();
       }
 
-      assert reachedSet.contains(reducedTarget) : "reduced state '" + reducedTarget
-      + "' is not part of reachedset with root '" + reachedSet.getFirstState()
-      + "' from expanded root '" + expandedRoot + "'";
+      assert reachedSet.contains(reducedTarget)
+          : "reduced state '"
+              + reducedTarget
+              + "' is not part of reachedset with root '"
+              + reachedSet.getFirstState()
+              + "' from expanded root '"
+              + expandedRoot
+              + "'";
 
       // we found the reached-set, corresponding to the root and precision.
       // now try to find a path from the target towards the root of the reached-set.
@@ -232,10 +237,12 @@ public class BAMSubgraphComputer {
       final ReachedSet reachedSet = entry.getKey();
       final BackwardARGState newInnerRoot;
       try {
-        newInnerRoot = computeCounterexampleSubgraph(new ARGReachedSet(reachedSet), entry.getValue());
+        newInnerRoot =
+            computeCounterexampleSubgraph(new ARGReachedSet(reachedSet), entry.getValue());
       } catch (MissingBlockException e) {
         // enforce recomputation to update cached subtree
-        logger.log(Level.FINE,
+        logger.log(
+            Level.FINE,
             "Target state refers to a destroyed ARGState, i.e., the cached subtree will be removed.");
 
         // TODO why do we use precision of reachedSet from 'abstractStateToReachedSet' here and not the reduced precision?
@@ -243,8 +250,8 @@ public class BAMSubgraphComputer {
         final Block rootBlock = partitioning.getBlockForCallNode(rootNode);
         final AbstractState reducedRootState =
             reducer.getVariableReducedState(expandedRoot, rootBlock, rootNode);
-        data.bamCache.removeReturnEntry(reducedRootState,
-            reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
+        data.bamCache.removeReturnEntry(
+            reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
         throw new MissingBlockException();
       }
 
