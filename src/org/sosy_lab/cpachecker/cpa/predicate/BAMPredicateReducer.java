@@ -82,15 +82,9 @@ public class BAMPredicateReducer implements Reducer {
   private boolean reduceIrrelevantPrecision = true;
 
   public BAMPredicateReducer(
-      BooleanFormulaManager bfmgr, BAMPredicateCPA cpa, Configuration pConfig) {
-    try {
-      pConfig.inject(this);
-    } catch (InvalidConfigurationException e) {
-      // Seems, the exception is not very harmful,
-      // just print a warning and continue with default values
-      cpa.getLogger()
-          .logException(Level.WARNING, e, "BAMPredicateReducer was not successfully configured: ");
-    }
+      BooleanFormulaManager bfmgr, BAMPredicateCPA cpa, Configuration pConfig)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
     this.bfmgr = bfmgr;

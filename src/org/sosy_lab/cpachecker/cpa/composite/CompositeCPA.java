@@ -242,7 +242,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   }
 
   @Override
-  public Reducer getReducer() {
+  public Reducer getReducer() throws InvalidConfigurationException {
     List<Reducer> wrappedReducers = new ArrayList<>();
     for (ConfigurableProgramAnalysis cpa : cpas) {
       Preconditions.checkState(

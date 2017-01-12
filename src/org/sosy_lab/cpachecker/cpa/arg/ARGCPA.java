@@ -148,7 +148,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   @Override
-  public Reducer getReducer() {
+  public Reducer getReducer() throws InvalidConfigurationException {
     ConfigurableProgramAnalysis cpa = getWrappedCpa();
     Preconditions.checkState(
         cpa instanceof ConfigurableProgramAnalysisWithBAM,
