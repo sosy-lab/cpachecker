@@ -118,7 +118,7 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   @Override
   public BAMPredicateReducer getReducer() {
     return new BAMPredicateReducer(
-        getSolver().getFormulaManager().getBooleanFormulaManager(), this);
+        getSolver().getFormulaManager().getBooleanFormulaManager(), this, config);
   }
 
   @Override

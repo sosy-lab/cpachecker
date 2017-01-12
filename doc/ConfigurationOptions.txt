@@ -1402,6 +1402,15 @@ cpa.predicate.addRangeConstraintsForNondet = false
 cpa.predicate.bam.predicateComputer = "AUXILIARY"
   allowed values: [AUXILIARY, OCCURRENCE, ALL]
 
+# Enable/disable precision reduction using RelevantPredicateComputer
+cpa.predicate.bam.reduceIrrelevantPrecision = true
+
+# Enable/disable abstraction reduction at the BAM block entry
+cpa.predicate.bam.useAbstractionReduction = true
+
+# Enable/disable precision reduction at the BAM block entry
+cpa.predicate.bam.usePrecisionReduction = true
+
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)
 cpa.predicate.blk.alwaysAfterThreshold = true
