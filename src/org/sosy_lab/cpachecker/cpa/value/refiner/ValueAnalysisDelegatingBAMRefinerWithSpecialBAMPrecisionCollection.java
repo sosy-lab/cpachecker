@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,12 +34,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.refinement.DelegatingARGBasedRefiner;
 
-/**
- * This class allows to create a delegating BAM-refiner
- * for a combination of value analysis and predicate analysis (in this order!).
- */
-public abstract class ValueAnalysisDelegatingBAMRefiner implements Refiner {
-
+public class ValueAnalysisDelegatingBAMRefinerWithSpecialBAMPrecisionCollection {
   public static Refiner create(ConfigurableProgramAnalysis cpa)
       throws InvalidConfigurationException {
     if (!(cpa instanceof WrapperCPA)) {
@@ -63,8 +58,8 @@ public abstract class ValueAnalysisDelegatingBAMRefiner implements Refiner {
         new DelegatingARGBasedRefiner(
             logger,
             //Debug mode, implement it as an option
-            ValueAnalysisRefiner.create(cpa).asARGBasedRefiner(),
-            BAMPredicateRefiner.create0(cpa, false)),
+            ValueAnalysisRefiner.create0(cpa, true).asARGBasedRefiner(),
+            BAMPredicateRefiner.create0(cpa, true)),
         cpa);
   }
 }

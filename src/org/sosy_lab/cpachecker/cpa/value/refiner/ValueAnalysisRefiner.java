@@ -65,6 +65,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.bam.BAMReachedSet;
+import org.sosy_lab.cpachecker.cpa.bam.BAMUnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -107,6 +109,8 @@ public class ValueAnalysisRefiner
 
   private final ShutdownNotifier shutdownNotifier;
 
+  private final PrecisionCollectionStrategy strategy;
+
   // Statistics
   private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
   private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
@@ -114,6 +118,11 @@ public class ValueAnalysisRefiner
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
+    return create0(pCpa, false);
+  }
+
+  public static ValueAnalysisRefiner create0(final ConfigurableProgramAnalysis pCpa, boolean useSpecialBAMPrecisionCollection)
+      throws InvalidConfigurationException {
     final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
     final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
 
@@ -140,38 +149,7 @@ public class ValueAnalysisRefiner
         config,
         logger,
         valueAnalysisCpa.getShutdownNotifier(),
-        cfa);
-  }
-
-  public static ValueAnalysisRefiner create0(final ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
-    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
-    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
-
-    valueAnalysisCpa.injectRefinablePrecision();
-
-    final LogManager logger = valueAnalysisCpa.getLogger();
-    final Configuration config = valueAnalysisCpa.getConfiguration();
-    final CFA cfa = valueAnalysisCpa.getCFA();
-
-    final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
-        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
-
-    final ValueAnalysisFeasibilityChecker checker =
-        new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
-
-    final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
-        new ValueAnalysisPrefixProvider(logger, cfa, config);
-
-    return new ValueAnalysisRefinerWithBAMPrecisionCollection(argCpa,
-        checker,
-        strongestPostOp,
-        new PathExtractor(logger, config),
-        prefixProvider,
-        config,
-        logger,
-        valueAnalysisCpa.getShutdownNotifier(),
-        cfa);
+        cfa, useSpecialBAMPrecisionCollection);
   }
 
   ValueAnalysisRefiner(final ARGCPA pArgCPA,
@@ -180,7 +158,7 @@ public class ValueAnalysisRefiner
       final PathExtractor pPathExtractor,
       final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
       final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
+      final ShutdownNotifier pShutdownNotifier, final CFA pCfa, boolean useSpecialBAMPrecisionCollection)
       throws InvalidConfigurationException {
 
     super(pArgCPA,
@@ -199,6 +177,11 @@ public class ValueAnalysisRefiner
     checker = pFeasibilityChecker;
     concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
     shutdownNotifier = pShutdownNotifier;
+    if (useSpecialBAMPrecisionCollection) {
+      strategy = new PrecisionCollectionStrategy();
+    } else {
+      strategy = new BAMPrecisionCollectionStrategy();
+    }
   }
 
   @Override
@@ -222,12 +205,12 @@ public class ValueAnalysisRefiner
 
       List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
-      precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
+      precisions.add(strategy.mergeValuePrecisionsForSubgraph(root, pReached)
           .withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
 
       // merge the predicate precisions of the subtree, if available
       if (predicatePrecisionIsAvailable) {
-        precisions.add(mergePredicatePrecisionsForSubgraph(root, pReached));
+        precisions.add(strategy.mergePredicatePrecisionsForSubgraph(root, pReached));
       }
 
       refinementInformation.put(root, precisions);
@@ -251,49 +234,6 @@ public class ValueAnalysisRefiner
         .getPrecision(pReached.asReachedSet().getFirstState()), PredicatePrecision.class) != null;
   }
 
-  protected VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
-      final ARGState pRefinementRoot,
-      final ARGReachedSet pReached
-  ) {
-    // get all unique precisions from the subtree
-    Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
-      uniquePrecisions.add(extractValuePrecision(pReached, descendant));
-    }
-
-    // join all unique precisions into a single precision
-    VariableTrackingPrecision mergedPrecision = Iterables.getLast(uniquePrecisions);
-    for (VariableTrackingPrecision precision : uniquePrecisions) {
-      mergedPrecision = mergedPrecision.join(precision);
-    }
-
-    return mergedPrecision;
-  }
-
-  /**
-   * Merge all predicate precisions in the subgraph below the refinement root
-   * into a new predicate precision
-   *
-   * @return a new predicate precision containing all predicate precision from
-   * the subgraph below the refinement root.
-   */
-  protected PredicatePrecision mergePredicatePrecisionsForSubgraph(
-      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
-    UnmodifiableReachedSet reached = pReached.asReachedSet();
-    return PredicatePrecision.unionOf(
-        from(pRefinementRoot.getSubgraph())
-            .filter(not(ARGState::isCovered))
-            .transform(reached::getPrecision));
-    }
-
-  private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,
-      ARGState state) {
-    return (VariableTrackingPrecision) Precisions
-        .asIterable(pReached.asReachedSet().getPrecision(state))
-        .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
-        .get(0);
-  }
-
   protected final PredicatePrecision extractPredicatePrecision(final ARGReachedSet pReached,
       ARGState state) {
     return (PredicatePrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
@@ -301,15 +241,7 @@ public class ValueAnalysisRefiner
         .get(0);
   }
 
-  private Collection<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    Collection<ARGState> subgraph = new HashSet<>();
-    for (ARGState state : pRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        subgraph.add(state);
-      }
-    }
-    return subgraph;
-  }
+
 
   /**
    * A simple heuristic to detect similar repeated refinements.
@@ -457,5 +389,92 @@ public class ValueAnalysisRefiner
     writer.put(rootRelocations)
         .put(repeatedRefinements)
         .put("Number of unique precision increments", previousRefinementIds.size());
+  }
+
+  static class PrecisionCollectionStrategy {
+    /**
+     * Merge all predicate precisions in the subgraph below the refinement root
+     * into a new predicate precision
+     *
+     * @return a new predicate precision containing all predicate precision from
+     * the subgraph below the refinement root.
+     */
+    protected PredicatePrecision mergePredicatePrecisionsForSubgraph(
+        final ARGState pRefinementRoot, final ARGReachedSet pReached) {
+      UnmodifiableReachedSet reached = pReached.asReachedSet();
+      return PredicatePrecision.unionOf(
+          from(pRefinementRoot.getSubgraph())
+              .filter(not(ARGState::isCovered))
+              .transform(reached::getPrecision));
+      }
+
+
+    public VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
+        final ARGState pRefinementRoot,
+        final ARGReachedSet pReached
+    ) {
+      // get all unique precisions from the subtree
+      Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
+      for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+        uniquePrecisions.add(extractValuePrecision(pReached, descendant));
+      }
+
+      // join all unique precisions into a single precision
+      VariableTrackingPrecision mergedPrecision = Iterables.getLast(uniquePrecisions);
+      for (VariableTrackingPrecision precision : uniquePrecisions) {
+        mergedPrecision = mergedPrecision.join(precision);
+      }
+
+      return mergedPrecision;
+    }
+
+    private Collection<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
+      Collection<ARGState> subgraph = new HashSet<>();
+      for (ARGState state : pRoot.getSubgraph()) {
+        if (!state.isCovered()) {
+          subgraph.add(state);
+        }
+      }
+      return subgraph;
+    }
+
+    private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,
+        ARGState state) {
+      return (VariableTrackingPrecision) Precisions
+          .asIterable(pReached.asReachedSet().getPrecision(state))
+          .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+          .get(0);
+    }
+  }
+
+  static class BAMPrecisionCollectionStrategy extends PrecisionCollectionStrategy {
+
+    @Override
+    public PredicatePrecision mergePredicatePrecisionsForSubgraph(
+        final ARGState pRefinementRoot, final ARGReachedSet pReached) {
+
+      assert pReached instanceof BAMReachedSet;
+
+      Precision result = ((BAMUnmodifiableReachedSet)pReached.asReachedSet()).getPrecisionForSubgraph(pRefinementRoot,
+          (x, y) -> PredicatePrecision.unionOf(Sets.newHashSet(x, y)),
+          s -> Precisions.extractPrecisionByType(s, PredicatePrecision.class));
+
+      assert result instanceof PredicatePrecision;
+      return (PredicatePrecision) result;
+    }
+
+    @Override
+    public VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
+        final ARGState pRefinementRoot,
+        final ARGReachedSet pReached) {
+      assert pReached instanceof BAMReachedSet;
+
+      Precision result = ((BAMUnmodifiableReachedSet)pReached.asReachedSet()).getPrecisionForSubgraph(pRefinementRoot,
+          (x, y) -> ((VariableTrackingPrecision)x).join((VariableTrackingPrecision)y),
+          s -> Precisions.extractPrecisionByType(s, VariableTrackingPrecision.class));
+
+      assert result instanceof VariableTrackingPrecision;
+      return (VariableTrackingPrecision) result;
+    }
   }
 }

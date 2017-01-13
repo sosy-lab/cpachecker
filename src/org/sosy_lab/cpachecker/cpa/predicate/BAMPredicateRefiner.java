@@ -97,10 +97,10 @@ public abstract class BAMPredicateRefiner implements Refiner {
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    return BAMBasedRefiner.forARGBasedRefiner(create0(pCpa), pCpa);
+    return BAMBasedRefiner.forARGBasedRefiner(create0(pCpa, false), pCpa);
   }
 
-  public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
+  public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa, boolean useSpecialBAMPrecisionCollection)
       throws InvalidConfigurationException {
     if (!(pCpa instanceof WrapperCPA)) {
       throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
@@ -120,7 +120,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
 
     RefinementStrategy strategy =
         new BAMPredicateAbstractionRefinementStrategy(
-            config, logger, predicateCpa, solver, predicateCpa.getPredicateManager());
+            config, logger, predicateCpa, solver, predicateCpa.getPredicateManager(), useSpecialBAMPrecisionCollection);
 
     return new PredicateCPARefinerFactory(pCpa)
         .setBlockFormulaStrategy(blockFormulaStrategy)
@@ -270,6 +270,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
   private static class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
 
     private final BAMPredicateCPA predicateCpa;
+    private final boolean useSpecialBAMPrecisionCollection;
     private boolean secondRepeatedCEX = false;
 
     private BAMPredicateAbstractionRefinementStrategy(
@@ -277,11 +278,12 @@ public abstract class BAMPredicateRefiner implements Refiner {
         final LogManager logger,
         final BAMPredicateCPA predicateCpa,
         final Solver pSolver,
-        final PredicateAbstractionManager pPredAbsMgr)
+        final PredicateAbstractionManager pPredAbsMgr, boolean pUseSpecialBAMPrecisionCollection)
         throws InvalidConfigurationException {
 
       super(config, logger, pPredAbsMgr, pSolver);
       this.predicateCpa = predicateCpa;
+      useSpecialBAMPrecisionCollection = pUseSpecialBAMPrecisionCollection;
     }
 
     @Override
@@ -396,6 +398,10 @@ public abstract class BAMPredicateRefiner implements Refiner {
     protected PredicatePrecision findAllPredicatesFromSubgraph(
         ARGState refinementRoot, UnmodifiableReachedSet reached) {
 
+      if (!useSpecialBAMPrecisionCollection) {
+        return super.findAllPredicatesFromSubgraph(refinementRoot, reached);
+      }
+
       assert reached instanceof BAMUnmodifiableReachedSet;
 
       Precision result = ((BAMUnmodifiableReachedSet)reached).getPrecisionForSubgraph(refinementRoot,
@@ -409,6 +415,10 @@ public abstract class BAMPredicateRefiner implements Refiner {
     @Override
     protected VariableTrackingPrecision mergeAllValuePrecisionsFromSubgraph(
         ARGState refinementRoot, UnmodifiableReachedSet reached) {
+
+      if (!useSpecialBAMPrecisionCollection) {
+        return super.mergeAllValuePrecisionsFromSubgraph(refinementRoot, reached);
+      }
 
       assert reached instanceof BAMUnmodifiableReachedSet;
 

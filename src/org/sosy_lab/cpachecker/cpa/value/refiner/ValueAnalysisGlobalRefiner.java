@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import java.util.List;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -106,7 +105,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
         pConfig,
         pLogger,
         pShutdownNotifier,
-        pCfa);
+        pCfa, false);
 
     pConfig.inject(this, ValueAnalysisGlobalRefiner.class);
   }
