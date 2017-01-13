@@ -143,6 +143,37 @@ public class ValueAnalysisRefiner
         cfa);
   }
 
+  public static ValueAnalysisRefiner create0(final ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
+    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
+
+    valueAnalysisCpa.injectRefinablePrecision();
+
+    final LogManager logger = valueAnalysisCpa.getLogger();
+    final Configuration config = valueAnalysisCpa.getConfiguration();
+    final CFA cfa = valueAnalysisCpa.getCFA();
+
+    final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
+        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+
+    final ValueAnalysisFeasibilityChecker checker =
+        new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
+
+    final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
+        new ValueAnalysisPrefixProvider(logger, cfa, config);
+
+    return new ValueAnalysisRefinerWithBAMPrecisionCollection(argCpa,
+        checker,
+        strongestPostOp,
+        new PathExtractor(logger, config),
+        prefixProvider,
+        config,
+        logger,
+        valueAnalysisCpa.getShutdownNotifier(),
+        cfa);
+  }
+
   ValueAnalysisRefiner(final ARGCPA pArgCPA,
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
@@ -220,7 +251,7 @@ public class ValueAnalysisRefiner
         .getPrecision(pReached.asReachedSet().getFirstState()), PredicatePrecision.class) != null;
   }
 
-  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
+  protected VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
       final ARGState pRefinementRoot,
       final ARGReachedSet pReached
   ) {
@@ -246,7 +277,7 @@ public class ValueAnalysisRefiner
    * @return a new predicate precision containing all predicate precision from
    * the subgraph below the refinement root.
    */
-  private PredicatePrecision mergePredicatePrecisionsForSubgraph(
+  protected PredicatePrecision mergePredicatePrecisionsForSubgraph(
       final ARGState pRefinementRoot, final ARGReachedSet pReached) {
     UnmodifiableReachedSet reached = pReached.asReachedSet();
     return PredicatePrecision.unionOf(

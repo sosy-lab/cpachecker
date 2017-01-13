@@ -556,9 +556,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   /**
    * Collect all precisions in the subgraph below refinementRoot and merge
    * their predicates.
+   * Is overwritten by BAMPredicateStrategy
    * @return a new precision with all these predicates.
    */
-  private PredicatePrecision findAllPredicatesFromSubgraph(
+  protected PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
     return PredicatePrecision.unionOf(
         from(refinementRoot.getSubgraph())
@@ -573,7 +574,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     return Precisions.extractPrecisionByType(pReached.asReachedSet().getPrecision(root), VariableTrackingPrecision.class) != null;
   }
 
-  private VariableTrackingPrecision mergeAllValuePrecisionsFromSubgraph(
+  /* Is overwritten by BAMPredicateStrategy
+   */
+  protected VariableTrackingPrecision mergeAllValuePrecisionsFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
 
     VariableTrackingPrecision rootPrecision = Precisions.extractPrecisionByType(reached.getPrecision(refinementRoot),

@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bam.BAMUnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateReducer.ReducedPredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
@@ -388,6 +390,34 @@ public abstract class BAMPredicateRefiner implements Refiner {
         }
       }
       return relevantPredicatesComputer;
+    }
+
+    @Override
+    protected PredicatePrecision findAllPredicatesFromSubgraph(
+        ARGState refinementRoot, UnmodifiableReachedSet reached) {
+
+      assert reached instanceof BAMUnmodifiableReachedSet;
+
+      Precision result = ((BAMUnmodifiableReachedSet)reached).getPrecisionForSubgraph(refinementRoot,
+          (x, y) -> PredicatePrecision.unionOf(Sets.newHashSet(x, y)),
+          s -> Precisions.extractPrecisionByType(s, PredicatePrecision.class));
+
+      assert result instanceof PredicatePrecision;
+      return (PredicatePrecision) result;
+    }
+
+    @Override
+    protected VariableTrackingPrecision mergeAllValuePrecisionsFromSubgraph(
+        ARGState refinementRoot, UnmodifiableReachedSet reached) {
+
+      assert reached instanceof BAMUnmodifiableReachedSet;
+
+      Precision result = ((BAMUnmodifiableReachedSet)reached).getPrecisionForSubgraph(refinementRoot,
+          (x, y) -> ((VariableTrackingPrecision)x).join((VariableTrackingPrecision)y),
+          s -> Precisions.extractPrecisionByType(s, VariableTrackingPrecision.class));
+
+      assert result instanceof VariableTrackingPrecision;
+      return (VariableTrackingPrecision) result;
     }
   }
 }

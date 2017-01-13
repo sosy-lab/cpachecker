@@ -58,7 +58,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   @Override
   public UnmodifiableReachedSet asReachedSet() {
     return new BAMReachedSetView(rootOfSubgraph, path.getLastState(),
-        s -> super.asReachedSet().getPrecision(super.asReachedSet().getLastState()));
+        s -> super.asReachedSet().getPrecision(super.asReachedSet().getLastState()), bamCpa.getData());
     // TODO do we really need the target-precision for refinements and not the actual one?
   }
 
