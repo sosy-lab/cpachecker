@@ -1480,22 +1480,20 @@ public class FormulaManagerView {
   }
 
   public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
-    return getDeadFunctionNames(pFormula, pSsa, true);
+    return getFunctionNames(pFormula, varName -> isIntermediate(varName, pSsa), true);
   }
 
-  private Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa,
-      boolean extractUFs) {
-    return myGetDeadVariables(pFormula, pSsa, extractUFs).keySet();
+  private Set<String> getFunctionNames(
+      BooleanFormula pFormula, Predicate<String> pIsDesired, boolean extractUFs) {
+    return myGetDesiredVariables(pFormula, pIsDesired, extractUFs).keySet();
   }
 
   /**
-   * Do not make this method public, because the returned formulas have incorrect
-   * types (they are not appropriately wrapped).
+   * Do not make this method public, because the returned formulas have incorrect types (they are
+   * not appropriately wrapped).
    */
-  private Map<String, Formula> myGetDeadVariables(
-      BooleanFormula pFormula,
-      SSAMap pSsa,
-      boolean extractUF) {
+  private Map<String, Formula> myGetDesiredVariables(
+      BooleanFormula pFormula, Predicate<String> pIsDesired, boolean extractUF) {
     Map<String, Formula> result = new HashMap<>();
 
     Map<String, Formula> vars;
@@ -1509,7 +1507,7 @@ public class FormulaManagerView {
 
       String name = entry.getKey();
       Formula varFormula = entry.getValue();
-      if (isIntermediate(name, pSsa)) {
+      if (pIsDesired.apply(name)) {
         result.put(name, varFormula);
       }
     }
@@ -1532,10 +1530,24 @@ public class FormulaManagerView {
       final SSAMap pSsa)
     throws SolverException, InterruptedException {
 
-    Preconditions.checkNotNull(pF);
     Preconditions.checkNotNull(pSsa);
+    return eliminateVariables(pF, varName -> isIntermediate(varName, pSsa));
+  }
 
-    Map<String, Formula> irrelevantVariables = myGetDeadVariables(pF, pSsa, false);
+  /**
+   * Eliminate all propositions about variables described by a given predicate in a given formula.
+   *
+   * <p>Quantifier elimination is used! This has to be supported by the solver! (solver-independent
+   * approaches would be possible)
+   */
+  public BooleanFormula eliminateVariables(
+      final BooleanFormula pF, final Predicate<String> pToEliminate)
+      throws SolverException, InterruptedException {
+
+    Preconditions.checkNotNull(pF);
+    Preconditions.checkNotNull(pToEliminate);
+
+    Map<String, Formula> irrelevantVariables = myGetDesiredVariables(pF, pToEliminate, false);
 
     BooleanFormula eliminationResult = pF;
 
@@ -1556,7 +1568,8 @@ public class FormulaManagerView {
    */
   public BooleanFormula quantifyDeadVariables(BooleanFormula pF,
       SSAMap pSSAMap) {
-    Map<String, Formula> irrelevantVariables = myGetDeadVariables(pF, pSSAMap, false);
+    Map<String, Formula> irrelevantVariables =
+        myGetDesiredVariables(pF, varName -> isIntermediate(varName, pSSAMap), false);
     if (irrelevantVariables.isEmpty()) {
       return pF;
     }
