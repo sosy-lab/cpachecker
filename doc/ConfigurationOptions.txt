@@ -793,6 +793,9 @@ cpa.arg.witness.exportSourcecode = true
 # Verification witness: Include an thread-identifier within the file?
 cpa.arg.witness.exportThreadId = false
 
+# Some redundant transitions will be removed
+cpa.arg.witness.removeInsufficientEdges = true
+
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
 
