@@ -117,6 +117,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final boolean invalidWrite;
   private final boolean invalidRead;
   private final boolean invalidFree;
+  private String errorDescription;
+  private String noteDescription;
 
   private void issueMemoryLeakMessage() {
     issueMemoryError("Memory leak found", false);
@@ -144,6 +146,21 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
+  public String getErrorDescription() {
+    return errorDescription;
+  }
+
+  public void setErrorDescription(String pErrorDescription) {
+    errorDescription = pErrorDescription;
+  }
+
+  public String getNoteDescription() {
+    return noteDescription;
+  }
+
+  public void setNoteDescription(String pNoteDescription) {
+    noteDescription = pNoteDescription;
+  }
   /**
    * Constructor.
    *
@@ -248,6 +265,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     trackPredicates = pOriginalState.trackPredicates;
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
     blockEnded = pOriginalState.blockEnded;
+    errorDescription = pOriginalState.errorDescription;
   }
 
   /**
@@ -1391,6 +1409,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       //Attempt to write to invalid object
       SMGState newState = setInvalidWrite();
+      newState.setErrorDescription("Attempt to write to invalid/deallocate object");
       return new SMGStateEdgePair(newState);
     }
 
@@ -1801,8 +1820,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     if (!heap.isHeapObject(smgObject) && !heap.isObjectExternallyAllocated(smgObject)) {
       // You may not free any objects not on the heap.
-
-      return setInvalidFree();
+      SMGState newState = setInvalidFree();
+      newState.addInvalidObject(smgObject);
+      newState.setErrorDescription("Invalid free of unallocated object is found");
+      return newState;
     }
 
     if (!(offset == 0) && !heap.isObjectExternallyAllocated(smgObject)) {
@@ -1810,14 +1831,20 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       // didn't get through a malloc invocation.
       // TODO: externally allocated memory could be freed partially
 
-      return setInvalidFree();
+      SMGState newState = setInvalidFree();
+      newState.addInvalidObject(smgObject);
+      newState.setErrorDescription("Invalid free at " + offset + " offset from allocated is found");
+      return newState;
     }
 
     if (!heap.isObjectValid(smgObject)) {
       // you may not invoke free multiple times on
       // the same object
 
-      return setInvalidFree();
+      SMGState newState = setInvalidFree();
+      newState.addInvalidObject(smgObject);
+      newState.setErrorDescription("Double free is found");
+      return newState;
     }
 
     heap.setValidity(smgObject, false);
@@ -1837,6 +1864,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return this;
   }
 
+  public void addInvalidObject(SMGObject pSmgObject) {
+    heap.reportInvalidObject(pSmgObject);
+  }
+
+  public List<SMGObject> getInvalidObjects() {
+    return heap.getInvalidObjects();
+  }
   /**
    * Drop the stack frame representing the stack of
    * the function with the given name
@@ -1848,6 +1882,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public void pruneUnreachable() throws SMGInconsistentException {
     heap.pruneUnreachable();
+    if (heap.hasMemoryLeaks()) {
+      setErrorDescription("Memory leak is detected");
+    }
     //TODO: Explicit values pruning
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
@@ -1955,6 +1992,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     performConsistencyCheck(SMGRuntimeCheck.FULL);
     //TODO Why do I do this here?
     heap.pruneUnreachable();
+    if (heap.hasMemoryLeaks()) {
+      setErrorDescription("Memory leak is detected");
+    }
     performConsistencyCheck(SMGRuntimeCheck.FULL);
     return newSMGState;
   }

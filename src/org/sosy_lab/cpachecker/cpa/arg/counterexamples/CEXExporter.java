@@ -32,7 +32,9 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -53,11 +55,15 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
@@ -309,6 +315,33 @@ public class CEXExporter {
       }
     }
 
+    /**
+     * TODO:
+     *     Modify counterexample by each analysis
+     */
+    ARGPath argPath = counterexample.getTargetPath();
+    PathIterator rIterator = argPath.reverseFullPathIterator();
+    ARGState lastArgState = rIterator.getAbstractState();
+    List<SMGObject> invalidObjects = new ArrayList<>();
+    SMGState prevSMGState = null;
+    SMGState state = AbstractStates.extractStateByType(lastArgState, SMGState.class);
+    invalidObjects.addAll(state.getInvalidObjects());
+    prevSMGState = state;
+
+    while (rIterator.hasNext()) {
+      rIterator.advance();
+      ARGState argState = rIterator.getAbstractState();
+      SMGState smgState = AbstractStates.extractStateByType(argState, SMGState.class);
+      Iterator<SMGObject> smgObjectIterator = invalidObjects.iterator();
+      while (smgObjectIterator.hasNext()) {
+        SMGObject smgObject = smgObjectIterator.next();
+        if (!(smgState.isHeapObject(smgObject) || smgState.isGlobal(smgObject))) {
+          smgObjectIterator.remove();
+          prevSMGState.setNoteDescription("Object creation");
+        }
+      }
+      prevSMGState = smgState;
+    }
     writeErrorPathFile(
         errorPathAutomatonGraphmlFile,
         uniqueId,

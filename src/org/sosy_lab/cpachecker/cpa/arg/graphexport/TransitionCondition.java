@@ -39,7 +39,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
 
   private int hashCode = 0;
 
-  private TransitionCondition() {
+  public TransitionCondition() {
     keyValues = new EnumMap<>(KeyDef.class);
   }
 

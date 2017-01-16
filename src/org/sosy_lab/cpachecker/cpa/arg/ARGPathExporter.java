@@ -114,6 +114,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.graphexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.graphexport.TransitionCondition;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
@@ -681,6 +682,23 @@ public class ARGPathExporter {
         if (exportThreadId) {
           result = exportThreadId(result, pEdge, state);
         }
+          /**
+           * TODO:
+           * Add collecting information from internal states
+           */
+        for (ARGState child : state.getChildren()) {
+          if (GraphBuilder.ARG_PATH.getId(child).equals(pTo)) {
+            SMGState smgState = AbstractStates.extractStateByType(child, SMGState.class);
+            String errorDesc = smgState.getErrorDescription();
+            if (errorDesc != null) {
+              result = result.putAndCopy(KeyDef.WARNING, errorDesc);
+            }
+            String noteDesc = smgState.getNoteDescription();
+            if (noteDesc != null) {
+              result = result.putAndCopy(KeyDef.NOTE, noteDesc);
+            }
+          }
+        }
       }
 
       if (graphType != WitnessType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
@@ -920,6 +938,26 @@ public class ARGPathExporter {
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
 
+      // Add information from analysis
+      for (String violatedNode : violatedProperties.keySet()) {
+        Collection<Edge> edges = ImmutableList.copyOf(enteringEdges.get(violatedNode));
+        for (Edge edge : edges) {
+          // Find edge with sourcecode
+          Edge sourceCodeEdge = edge;
+          while (!sourceCodeEdge.label.equals(new TransitionCondition().putAndCopy(KeyDef.SOURCECODE, "")
+              .putAllAndCopy(sourceCodeEdge.label))) {
+            Collection<Edge> sourceCodeEdges = enteringEdges.get(sourceCodeEdge.source);
+            sourceCodeEdge = sourceCodeEdges.iterator().next();
+          }
+          enteringEdges.remove(sourceCodeEdge.target, sourceCodeEdge);
+          Edge replacedEdge = new Edge(sourceCodeEdge.source, sourceCodeEdge.target,
+              sourceCodeEdge.label.putAndCopy(KeyDef.WARNING, violatedProperties.get(violatedNode)
+                  .toString()));
+          enteringEdges.put(sourceCodeEdge.target, replacedEdge);
+          leavingEdges.remove(sourceCodeEdge.source, sourceCodeEdge);
+          leavingEdges.put(sourceCodeEdge.source, replacedEdge);
+        }
+      }
       // Write elements
       {
         Map<String, Element> nodes = Maps.newHashMap();
