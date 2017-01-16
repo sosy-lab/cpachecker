@@ -154,7 +154,8 @@ public class ForwardTransition {
         AbstractState child = asAbstractState.apply(childARGState);
         if (child != null) {
           boolean isBlockStart = IS_BLOCK_START.apply(child);
-          if (isBlockStart) {
+          boolean isBlockEnd = isBlockStart || childARGState.getChildren().isEmpty();
+          if (isBlockEnd) {
             for (CFANode predecessorLocation :
                 AbstractStates.extractLocations(currentPredecessor)) {
               blocks.put(
