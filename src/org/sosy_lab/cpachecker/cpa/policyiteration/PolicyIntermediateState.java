@@ -1,16 +1,12 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Ordering;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -29,10 +25,9 @@ public final class PolicyIntermediateState extends PolicyState {
 
   /**
    * Abstract state representing start of the trace.
-   * Either of the two fields is used.
    */
-  private final @Nullable PolicyAbstractedState uniquePredecessor;
-  private final ImmutableMap<Template, PolicyAbstractedState> startingAbstractions;
+  private final PolicyAbstractedState backpointer;
+  private final @Nullable PolicyAbstractedState summaryBackpointer;
 
   /**
    * Meta-information for determining the coverage.
@@ -44,13 +39,13 @@ public final class PolicyIntermediateState extends PolicyState {
   private PolicyIntermediateState(
       CFANode node,
       PathFormula pPathFormula,
-      @Nullable PolicyAbstractedState pUniquePredecessor,
-      ImmutableMap<Template, PolicyAbstractedState> pStartingAbstractions) {
+      PolicyAbstractedState pBackpointer,
+      @Nullable PolicyAbstractedState pSummaryBackpointer) {
     super(node);
 
     pathFormula = pPathFormula;
-    uniquePredecessor = pUniquePredecessor;
-    startingAbstractions = pStartingAbstractions;
+    backpointer = pBackpointer;
+    summaryBackpointer = pSummaryBackpointer;
   }
 
   public static PolicyIntermediateState of(
@@ -59,17 +54,17 @@ public final class PolicyIntermediateState extends PolicyState {
       PolicyAbstractedState generatingState
   ) {
     return new PolicyIntermediateState(
-        node, pPathFormula, generatingState, ImmutableMap.of());
+        node, pPathFormula, generatingState, null);
   }
 
   public static PolicyIntermediateState of(
       CFANode node,
       PathFormula pPathFormula,
-      Map<Template, PolicyAbstractedState> generatingStates
+      PolicyAbstractedState pGeneratingState,
+      PolicyAbstractedState pSummaryState
   ) {
-    Preconditions.checkState(generatingStates.size() >= 2);
     return new PolicyIntermediateState(
-        node, pPathFormula, null, ImmutableMap.copyOf(generatingStates));
+        node, pPathFormula, pGeneratingState, pSummaryState);
   }
 
   /**
@@ -83,7 +78,7 @@ public final class PolicyIntermediateState extends PolicyState {
       PathFormula pPathFormula
   ) {
     return new PolicyIntermediateState(
-        getNode(), pPathFormula, uniquePredecessor, startingAbstractions
+        getNode(), pPathFormula, backpointer, summaryBackpointer
     );
   }
 
@@ -92,7 +87,7 @@ public final class PolicyIntermediateState extends PolicyState {
       CFANode node
   ) {
     return new PolicyIntermediateState(
-        node, pPathFormula, uniquePredecessor, startingAbstractions
+        node, pPathFormula, backpointer, summaryBackpointer
     );
   }
 
@@ -104,22 +99,27 @@ public final class PolicyIntermediateState extends PolicyState {
     return other == mergedInto;
   }
 
+  /**
+   * @return the backpointer containing information about the template.
+   *
+   * Try the normal predecessor, switch to other one on failure.
+   */
   PolicyAbstractedState getBackpointerStateForTemplate(Template t) {
-    if (uniquePredecessor != null) {
-      return uniquePredecessor;
+    if (summaryBackpointer == null || backpointer.getBound(t).isPresent()) {
+      return backpointer;
     }
-    return startingAbstractions.get(t);
+    return summaryBackpointer;
+
   }
 
   /**
    * @return Starting {@link PolicyAbstractedState} for the starting location.
    */
   List<PolicyAbstractedState> getBackpointerStates() {
-    if (uniquePredecessor != null) {
-      return ImmutableList.of(uniquePredecessor);
+    if (summaryBackpointer == null) {
+      return ImmutableList.of(backpointer);
     }
-    return Ordering.natural()
-        .onResultOf((PolicyAbstractedState s) -> s.getStateId()).sortedCopy(startingAbstractions.values());
+    return ImmutableList.of(backpointer, summaryBackpointer);
   }
 
 
@@ -162,7 +162,7 @@ public final class PolicyIntermediateState extends PolicyState {
       visited.add(s);
       stack.push(Pair.of(s, true));
 
-      for (PolicyAbstractedState b : s.startingAbstractions.values()) {
+      for (PolicyAbstractedState b : s.getBackpointerStates()) {
         b.getGeneratingState().ifPresent(
             g -> {
               if (!visited.contains(g)) {
@@ -189,7 +189,7 @@ public final class PolicyIntermediateState extends PolicyState {
 
   @Override
   public String toString() {
-    return pathFormula.toString() + "\nLength: " + pathFormula.getLength();
+    return pathFormula.toString();
   }
 
   @Override
@@ -202,7 +202,8 @@ public final class PolicyIntermediateState extends PolicyState {
     }
     PolicyIntermediateState that = (PolicyIntermediateState) pO;
     return Objects.equals(pathFormula, that.pathFormula) &&
-        Objects.equals(startingAbstractions, that.startingAbstractions) &&
+        Objects.equals(backpointer, that.backpointer) &&
+        Objects.equals(summaryBackpointer, that.summaryBackpointer) &&
         Objects.equals(mergedInto, that.mergedInto) &&
         Objects.equals(getNode(), that.getNode());
   }
@@ -210,7 +211,7 @@ public final class PolicyIntermediateState extends PolicyState {
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(pathFormula, startingAbstractions, mergedInto);
+      hashCache = Objects.hash(pathFormula, backpointer, summaryBackpointer, mergedInto);
     }
     return hashCache;
   }

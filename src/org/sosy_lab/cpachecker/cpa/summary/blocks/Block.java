@@ -52,7 +52,7 @@ public class Block {
   private final ImmutableSet<CFAEdge> incomingTransitions;
   private final ImmutableSet<CFANode> ownNodes;
   private final ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToReadVars;
-  private final ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToModifiedVars;
+  private final ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> returnEdgeToModifiedVars;
 
   public Block(
       Set<CFANode> pInnerNodes,
@@ -64,7 +64,7 @@ public class Block {
       boolean pHasRecursion,
       Set<CFAEdge> pIncomingTransitions,
       ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> pCallEdgeToReadVars,
-      ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> pCallEdgeToModifiedVars) {
+      ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> pReturnEdgeToModifiedVars) {
     innerNodes = ImmutableSet.copyOf(pInnerNodes);
     ownNodes = ImmutableSet.copyOf(pOwnNodes);
     readVariables = ImmutableSet.copyOf(pReadVariables);
@@ -74,7 +74,7 @@ public class Block {
     exitNode = pExitNode;
     incomingTransitions = ImmutableSet.copyOf(pIncomingTransitions);
     callEdgeToReadVars = pCallEdgeToReadVars;
-    callEdgeToModifiedVars = pCallEdgeToModifiedVars;
+    returnEdgeToModifiedVars = pReturnEdgeToModifiedVars;
   }
 
   /**
@@ -141,8 +141,8 @@ public class Block {
     return Sets.union(callEdgeToReadVars.get(pEdge), readVariables);
   }
 
-  public Set<Wrapper<ASimpleDeclaration>> getModifiedVariablesForCallEdge(CFAEdge pEdge) {
-    return Sets.union(callEdgeToModifiedVars.get(pEdge), modifiedVariables);
+  public Set<Wrapper<ASimpleDeclaration>> getModifiedVarsForReturnEdge(CFAEdge pEdge) {
+    return Sets.union(returnEdgeToModifiedVars.get(pEdge), modifiedVariables);
   }
 
   /**

@@ -61,6 +61,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
+import org.sosy_lab.cpachecker.cpa.summary.simple.CPAWithSummarySupport;
+import org.sosy_lab.cpachecker.cpa.summary.simple.SimpleSummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -70,7 +72,8 @@ public class CompositeCPA implements
                           WrapperCPA,
                           ConfigurableProgramAnalysisWithBAM,
                           ProofChecker,
-                          UseSummaryCPA {
+                          UseSummaryCPA,
+                          CPAWithSummarySupport {
 
   @Options(prefix="cpa.composite")
   private static class CompositeOptions {
@@ -228,6 +231,12 @@ public class CompositeCPA implements
   public SummaryManager getSummaryManager() {
     return new CompositeSummaryManager(cpas);
   }
+
+  @Override
+  public SimpleSummaryManager getSimpleSummaryManager() {
+    return new CompositeSimpleSummaryManager(cpas);
+  }
+
 
   @Override
   public AbstractDomain getAbstractDomain() {

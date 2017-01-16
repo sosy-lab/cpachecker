@@ -36,6 +36,9 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
+import org.sosy_lab.cpachecker.cpa.summary.simple.CPAWithSummarySupport;
+import org.sosy_lab.cpachecker.cpa.summary.simple.SimpleSummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
@@ -58,7 +61,8 @@ public class PolicyCPA extends SingleEdgeTransferRelation
                AbstractDomain,
                PrecisionAdjustment,
                MergeOperator,
-               AutoCloseable {
+               AutoCloseable,
+               CPAWithSummarySupport {
 
   @Option(secure=true,
       description="Cache formulas produced by path formula manager")
@@ -71,6 +75,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   private final StopOperator stopOperator;
   private final Solver solver;
   private final TemplatePrecision templatePrecision;
+  private final PolicySummaryManager summaryManager;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PolicyCPA.class);
@@ -133,6 +138,10 @@ public class PolicyCPA extends SingleEdgeTransferRelation
         pTemplateToFormulaConversionManager,
         templatePrecision);
     stopOperator = new StopSepOperator(this);
+    summaryManager = new PolicySummaryManager(
+        pathFormulaManager,
+        stateFormulaConversionManager,
+        fmgr);
   }
 
   @Override
@@ -154,8 +163,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
    * always return {@code true}.
    */
   @Override
-  public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
-      throws CPAException, InterruptedException {
+  public boolean isLessOrEqual(AbstractState state1, AbstractState state2) {
     return policyIterationManager.isLessOrEqual(
         (PolicyState) state1, (PolicyState) state2
     );
@@ -283,5 +291,15 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     solver.close();
   }
 
+  @Override
+  public SimpleSummaryManager getSimpleSummaryManager() {
+    return summaryManager;
+  }
+
+
+  @Override
+  public void setBlockManager(BlockManager pBlockManager) {
+    policyIterationManager.setBlockManager(pBlockManager);
+  }
 }
 

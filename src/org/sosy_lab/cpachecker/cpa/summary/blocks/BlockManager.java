@@ -153,13 +153,16 @@ public class BlockManager {
 
     ImmutableSetMultimap.Builder<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToReadVars =
         ImmutableSetMultimap.builder();
-    ImmutableSetMultimap.Builder<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToModifiedVars =
+    ImmutableSetMultimap.Builder<CFAEdge, Wrapper<ASimpleDeclaration>> returnEdgeToModifiedVars =
         ImmutableSetMultimap.builder();
 
     for (int i=0; i<entry.getNumEnteringEdges(); i++) {
-      CFAEdge edge = entry.getEnteringEdge(i);
-      callEdgeToReadVars.putAll(edge, readModifyManager.getReadVars(edge));
-      callEdgeToModifiedVars.putAll(edge, readModifyManager.getKilledVars(edge));
+      CFAEdge callEdge = entry.getEnteringEdge(i);
+      callEdgeToReadVars.putAll(callEdge, readModifyManager.getReadVars(callEdge));
+      CFANode returnNode = callEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor();
+      assert returnNode.getNumEnteringEdges() == 1;
+      CFAEdge returnEdge = returnNode.getEnteringEdge(0);
+      returnEdgeToModifiedVars.putAll(callEdge, readModifyManager.getKilledVars(returnEdge));
     }
 
     return new Block(
@@ -172,7 +175,7 @@ public class BlockManager {
         hasRecursion,
         incomingTransitions,
         callEdgeToReadVars.build(),
-        callEdgeToModifiedVars.build());
+        returnEdgeToModifiedVars.build());
   }
 
 }

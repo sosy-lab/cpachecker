@@ -140,6 +140,24 @@ public final class PolicyAbstractedState extends PolicyState
         sibling);
   }
 
+  /**
+   * Replace the abstraction and SSA map with the given input.
+   */
+  PolicyAbstractedState withNewAbstractionAndSSA(
+      Map<Template, PolicyBound> newAbstraction,
+      SSAMap pSsaMap) {
+    return new PolicyAbstractedState(
+        getNode(),
+        newAbstraction,
+        locationID,
+        manager,
+        pSsaMap,
+        pointerTargetSet,
+        extraInvariant,
+        generator,
+        sibling);
+  }
+
   public ImmutableMap<Template, PolicyBound> getAbstraction() {
     return abstraction;
   }

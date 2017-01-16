@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
 import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -76,6 +78,8 @@ public class PolicyIterationManager {
   @Option(secure = true,
       description = "Where to perform abstraction")
   private AbstractionLocations abstractionLocations = AbstractionLocations.LOOPHEAD;
+
+
 
   /**
    * Where an abstraction should be performed.
@@ -150,6 +154,7 @@ public class PolicyIterationManager {
   private final RCNFManager rcnfManager;
   private final TemplatePrecision initialPrecision;
   private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
+  private @Nullable BlockManager blockManager;
 
   public PolicyIterationManager(
       Configuration pConfig,
@@ -216,8 +221,7 @@ public class PolicyIterationManager {
     PolicyIntermediateState iOldState;
 
     if (oldState.isAbstract()) {
-      iOldState = stateFormulaConversionManager.abstractStateToIntermediate(
-          oldState.asAbstracted(), false);
+      iOldState = stateFormulaConversionManager.abstractStateToIntermediate(oldState.asAbstracted());
     } else {
       iOldState = oldState.asIntermediate();
     }
@@ -1008,6 +1012,13 @@ public class PolicyIterationManager {
 
     CFANode node = iState.getNode();
 
+    // todo: dynamic inlinement.
+    if (blockManager != null &&
+        blockManager.findCallToBlock(node).isPresent()
+        || blockManager.getBlockForNode(node).getExitNode() == node) {
+      return true;
+    }
+
     switch (abstractionLocations) {
       case ALL:
         return true;
@@ -1145,6 +1156,10 @@ public class PolicyIterationManager {
       }
     }
     return bfmgr.and(constraints);
+  }
+
+  public void setBlockManager(BlockManager pBlockManager) {
+    blockManager = pBlockManager;
   }
 
 }

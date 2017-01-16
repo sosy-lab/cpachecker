@@ -159,10 +159,10 @@ public class StateFormulaConversionManager {
    * {@link PolicyIntermediateState}.
    */
   PolicyIntermediateState abstractStateToIntermediate(
-      PolicyAbstractedState abstractState, boolean attachExtraInvariant) {
+      PolicyAbstractedState abstractState) {
     CFANode node = abstractState.getNode();
     PathFormula generatingFormula = getPathFormula(abstractState,
-        fmgr, attachExtraInvariant
+        fmgr, false
     );
 
     return PolicyIntermediateState.of(node, generatingFormula, abstractState);
