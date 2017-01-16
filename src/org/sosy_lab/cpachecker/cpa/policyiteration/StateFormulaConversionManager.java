@@ -148,10 +148,10 @@ public class StateFormulaConversionManager {
 
   }
 
-  public BooleanFormula getStartConstraintsWithExtraInvariant(
-      PolicyIntermediateState state) {
-    return bfmgr.and(abstractStateToConstraints(
-        fmgr, state.getBackpointerState(), true));
+  BooleanFormula getStartConstraintsWithExtraInvariant(PolicyIntermediateState state) {
+    return bfmgr.and(state.getBackpointerStates().stream().flatMap(
+        s -> abstractStateToConstraints(fmgr, s, true).stream()
+    ).collect(Collectors.toList()));
   }
 
   /**
@@ -159,8 +159,7 @@ public class StateFormulaConversionManager {
    * {@link PolicyIntermediateState}.
    */
   PolicyIntermediateState abstractStateToIntermediate(
-      PolicyAbstractedState abstractState,
-      boolean attachExtraInvariant) {
+      PolicyAbstractedState abstractState, boolean attachExtraInvariant) {
     CFANode node = abstractState.getNode();
     PathFormula generatingFormula = getPathFormula(abstractState,
         fmgr, attachExtraInvariant

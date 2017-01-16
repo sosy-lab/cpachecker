@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -200,20 +201,21 @@ public class PolicyInterpolationRefiner implements Refiner {
       List<BooleanFormula> interpolants,
       final PolicyIntermediateState iState) {
 
-    boolean changed = false;
+    AtomicBoolean changed = new AtomicBoolean(false);
 
     for (BooleanFormula interpolant : interpolants) {
       for (PolicyIntermediateState iterState : iState.allStatesToRoot()) {
-        CFANode node = iterState.getBackpointerState().getNode();
-        Set<String> interpolantVars = fmgr.extractVariableNames(fmgr.uninstantiate(interpolant));
-        boolean precisionChanged = policyCPA.injectPrecisionFromInterpolant(
-            node, interpolantVars
-        );
-        changed |= precisionChanged;
-
+        iterState.getBackpointerStates().stream().forEach(s -> {
+          CFANode node = s.getNode();
+          Set<String> interpolantVars = fmgr.extractVariableNames(fmgr.uninstantiate(interpolant));
+          boolean precisionChanged = policyCPA.injectPrecisionFromInterpolant(
+              node, interpolantVars
+          );
+          changed.compareAndSet(false, precisionChanged);
+        });
       }
     }
-    return changed;
+    return changed.get();
   }
 
 
@@ -233,7 +235,9 @@ public class PolicyInterpolationRefiner implements Refiner {
     for (PolicyIntermediateState predecessor : pState.allStatesToRoot()) {
       BooleanFormula f = predecessor.getPathFormula().getFormula();
 
-      Set<String> varsToRemove = getRelevantInstantiatedVars(predecessor.getBackpointerState());
+      Set<String> varsToRemove = predecessor.getBackpointerStates().stream()
+          .map(s -> getRelevantInstantiatedVars(s))
+          .reduce(ImmutableSet.of(), Sets::union);
       BooleanFormula weakened = weaken(f, varsToRemove);
 
       T handle = itp.push(weakened);

@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -222,10 +223,7 @@ public class PolicyIterationManager {
     }
 
     PathFormula outPath = pfmgr.makeAnd(iOldState.getPathFormula(), edge);
-    PolicyIntermediateState out = PolicyIntermediateState.of(
-        node,
-        outPath,
-        iOldState.getBackpointerState());
+    PolicyIntermediateState out = iOldState.withPathFormulaAndNode(outPath, node);
 
     return Collections.singleton(out);
   }
@@ -477,7 +475,7 @@ public class PolicyIterationManager {
 
     Preconditions.checkState(newState.getNode() == oldState.getNode());
 
-    if (!newState.getBackpointerState().equals(oldState.getBackpointerState())) {
+    if (!newState.getBackpointerStates().equals(oldState.getBackpointerStates())) {
 
       // Different parents: do not merge.
       return oldState;
@@ -491,10 +489,7 @@ public class PolicyIterationManager {
 
     PathFormula mergedPath = pfmgr.makeOr(newState.getPathFormula(),
                                           oldState.getPathFormula());
-    PolicyIntermediateState out = PolicyIntermediateState.of(
-        newState.getNode(),
-        mergedPath,
-        oldState.getBackpointerState());
+    PolicyIntermediateState out = newState.withPathFormula(mergedPath);
 
     newState.setMergedInto(out);
     oldState.setMergedInto(out);
@@ -737,7 +732,7 @@ public class PolicyIterationManager {
           }
 
           PolicyBound policyBound = modelToPolicyBound(
-              objective, state, precision, p, linearizedFormula, model,
+              template, objective, state, precision, p, linearizedFormula, model,
               boundValue);
           return Optional.of(policyBound);
         }
@@ -826,8 +821,9 @@ public class PolicyIterationManager {
         // Skip updates if the edge does not have any variables mentioned in the
         // template.
         if (bfmgr.isTrue(f)) {
-          Optional<PolicyBound> backpointerBound =
-              generatorState.getBackpointerState().getBound(template);
+
+          Optional<PolicyBound> backpointerBound = generatorState.getBackpointerStateForTemplate(template)
+              .getBound(template);
 
           // Unbounded.
           if (!backpointerBound.isPresent()) {
@@ -938,7 +934,7 @@ public class PolicyIterationManager {
    * policy which was used for abstracting the state.
    */
   private PolicyBound modelToPolicyBound(
-      Formula templateObjective,
+      Template pTemplate, Formula templateObjective,
       PolicyIntermediateState inputState,
       TemplatePrecision precision,
       PathFormula inputPathFormula,
@@ -968,7 +964,8 @@ public class PolicyIterationManager {
         dependsOnInitial = true;
     }
 
-    PolicyAbstractedState backpointer = inputState.getBackpointerState();
+    // todo: what if we have multiple backpointers?
+    PolicyAbstractedState backpointer = inputState.getBackpointerStateForTemplate(pTemplate);
 
     Set<String> policyVars = extractFunctionNames(policyFormula);
     Collection<Template> dependencies;
@@ -1066,12 +1063,14 @@ public class PolicyIterationManager {
           if (!genState.isPresent()) {
             return Optional.empty();
           }
-          a = genState.get().getBackpointerState();
+          // Note: if we have multiple backpointers, for finding siblings it's
+          // not relevant which one we should chase.
+          a = genState.get().getBackpointerStates().iterator().next();
         }
 
       } else {
         PolicyIntermediateState iState = a.asIntermediate();
-        a = iState.getBackpointerState();
+        a = iState.getBackpointerStates().iterator().next();
       }
     }
   }
@@ -1109,9 +1108,12 @@ public class PolicyIterationManager {
   private boolean isLessOrEqualIntermediate(
       PolicyIntermediateState state1,
       PolicyIntermediateState state2) {
+    int l = state1.getBackpointerStates().size();
+    assert l == state2.getBackpointerStates().size();
     return state1.isMergedInto(state2)
         || (state1.getPathFormula().getFormula().equals(state2.getPathFormula().getFormula())
-            && isLessOrEqualAbstracted(state1.getBackpointerState(), state2.getBackpointerState()));
+          && IntStream.range(0, l).allMatch(i -> isLessOrEqualAbstracted(
+            state1.getBackpointerStates().get(i), state2.getBackpointerStates().get(i))));
   }
 
   /**
