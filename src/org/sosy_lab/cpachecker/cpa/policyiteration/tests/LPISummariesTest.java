@@ -111,14 +111,6 @@ public class LPISummariesTest {
     checkWithSummaries("nobasecase_true_assert.c");
   }
 
-  @Test public void recursive_simple_false_assert() throws Exception {
-    checkWithSummaries("recursive_simple_false_assert.c");
-  }
-
-  @Test public void recursive_simple_true_assert() throws Exception {
-    checkWithSummaries("recursive_simple_true_assert.c");
-  }
-
   @Test public void recursive_sum_false_assert() throws Exception {
     checkWithSummaries("recursive_sum_false_assert.c");
   }
