@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
@@ -55,7 +54,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -126,12 +124,11 @@ public class PolicySummaryManager implements SummaryManager {
     CFunctionCallEdge callEdge = (CFunctionCallEdge) callNode.getLeavingEdge(0);
     CFANode returnNode = callNode.getLeavingSummaryEdge().getSuccessor();
     assert returnNode.getNumEnteringEdges() == 1;
-    CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) returnNode.getEnteringEdge(0);
     return Collections.singletonList(
         applySummary(
             aCallState, aExitState,
             returnNode,
-            callEdge, returnEdge,
+            callEdge,
             calledBlock
         )
     );
@@ -142,14 +139,13 @@ public class PolicySummaryManager implements SummaryManager {
     PolicyAbstractedState exitState,
     CFANode returnNode,
     CFunctionCallEdge callEdge,
-    CFunctionReturnEdge returnEdge,
     Block calledBlock
   ) throws CPATransferException, InterruptedException {
 
     Map<String, Integer> ssaUpdatesToExit = new HashMap<>();
 
     SSAMap outMap = getOutSSAMap(
-        callEdge, returnEdge, callState, exitState, calledBlock, ssaUpdatesToExit);
+        callEdge, callState, exitState, calledBlock, ssaUpdatesToExit);
 
     SSAMap exitSsa = exitState.getSSA();
     SSAMap callSsa = callState.getSSA();
@@ -162,10 +158,8 @@ public class PolicySummaryManager implements SummaryManager {
         }
     );
     SSAMap newExitSsa = newExitSsaBuilder.build();
-    Set<String> paramVarNames = getParamVarNames(callEdge.getSuccessor());
 
-    PolicyAbstractedState weakenedExitState
-        = rebaseExitState(exitState, paramVarNames, newExitSsa);
+    PolicyAbstractedState weakenedExitState = rebaseExitState(exitState, newExitSsa);
 
     BooleanFormula paramRenamingConstraint = getParamRenamingConstraint(
         callEdge, callSsa, newExitSsa
@@ -188,29 +182,13 @@ public class PolicySummaryManager implements SummaryManager {
   }
 
   /**
-   * Weaken the exit state and rebase it on top of the new SSA.
+   * Rebase exit state on top of the new SSA.
    */
   private PolicyAbstractedState rebaseExitState(
       PolicyAbstractedState exitState,
-      Set<String> paramVarNames,
       SSAMap newSsa
   ) {
-
-    // todo: that's not correct.
-    // what about the return statement {@code return a + b + c},
-    // where {@code a, b, c} are all local variables?
-    // suddenly, they become relevant:
-    // such templates should be simply namespaced away using SSA.
-
-    // Remove all vars which are not global OR parameters.
-    Map<Template, PolicyBound> weakenedAbstraction = exitState.getAbstraction();
-//        Maps.filterKeys(
-//            exitState.getAbstraction(),
-//            t -> t.getVarNames().stream().allMatch(
-//                varName -> isGlobal(varName) || paramVarNames.contains(varName)
-//            ));
-
-    return exitState.withNewAbstractionAndSSA(weakenedAbstraction, newSsa);
+    return exitState.withNewSSA(newSsa);
   }
 
   /**
@@ -221,7 +199,6 @@ public class PolicySummaryManager implements SummaryManager {
    */
   private SSAMap getOutSSAMap(
       CFunctionCallEdge pCallEdge,
-      CFAEdge pReturnEdge,
       PolicyAbstractedState pCallState,
       PolicyAbstractedState pExitState,
       Block pBlock,
@@ -231,7 +208,6 @@ public class PolicySummaryManager implements SummaryManager {
     SSAMap exitSsa = pExitState.getSSA();
     SSAMap callSsa = pCallState.getSSA();
 
-    CFunctionEntryNode entryNode = pCallEdge.getSuccessor();
     CFunctionSummaryEdge summaryEdge = pCallEdge.getSummaryEdge();
 
     Set<String> modifiedVars = pBlock.getModifiedVariableNames();

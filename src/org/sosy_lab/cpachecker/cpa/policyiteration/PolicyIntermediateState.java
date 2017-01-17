@@ -182,7 +182,8 @@ public final class PolicyIntermediateState extends PolicyState {
     }
     if (getBackpointerStates().get(0).getManager().shouldDisplayFormulasInDotOutput()) {
       return pathFormula.toString() + "\n"
-          + (summaryBackpointer != null ? "summarySSA: " + summaryBackpointer.getSSA() : "");
+          + (summaryBackpointer != null ? "usedSummary: " + summaryBackpointer.toDOTLabel() + "\n" : "")
+          + "backointer: " + backpointer.toDOTLabel();
     } else {
       return "";
     }

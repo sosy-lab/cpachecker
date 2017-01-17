@@ -27,8 +27,8 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
-import java.util.Collection;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -133,7 +133,7 @@ public class Block {
    * were read inside the block.
    * Includes modifications by inner blocks.
    */
-  public Collection<Wrapper<ASimpleDeclaration>> getReadVariables() {
+  public Set<Wrapper<ASimpleDeclaration>> getReadVariables() {
     return readVariables;
   }
 
@@ -149,8 +149,16 @@ public class Block {
    * @return All variables modified inside the block.
    * Includes modifications by called blocks.
    */
-  public Collection<Wrapper<ASimpleDeclaration>> getModifiedVariables() {
+  public Set<Wrapper<ASimpleDeclaration>> getModifiedVariables() {
     return modifiedVariables;
+  }
+
+  public Set<String> getModifiedVariableNames() {
+    return modifiedVariables.stream().map(s -> s.get().getQualifiedName()).collect(Collectors.toSet());
+  }
+
+  public Set<String> getReadVariableNames() {
+    return readVariables.stream().map(s -> s.get().getQualifiedName()).collect(Collectors.toSet());
   }
 
   @Override

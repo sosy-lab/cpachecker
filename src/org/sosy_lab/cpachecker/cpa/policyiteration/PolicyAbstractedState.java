@@ -143,12 +143,10 @@ public final class PolicyAbstractedState extends PolicyState
   /**
    * Replace the abstraction and SSA map with the given input.
    */
-  PolicyAbstractedState withNewAbstractionAndSSA(
-      Map<Template, PolicyBound> newAbstraction,
-      SSAMap pSsaMap) {
+  PolicyAbstractedState withNewSSA(SSAMap pSsaMap) {
     return new PolicyAbstractedState(
         getNode(),
-        newAbstraction,
+        abstraction,
         locationID,
         manager,
         pSsaMap,
@@ -236,8 +234,8 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(node=%s, locID=%s)%s%n",
-        getNode(), locationID, manager.toDOTLabel(abstraction)
+        "(node=%s, locID=%s, ssa=%s)%s%n",
+        getNode(), locationID, ssaMap, manager.toDOTLabel(abstraction)
     );
   }
 

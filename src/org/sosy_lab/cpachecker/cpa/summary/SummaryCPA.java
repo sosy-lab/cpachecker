@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -134,12 +133,12 @@ public class SummaryCPA implements ConfigurableProgramAnalysis,
           calledBlock));
 
       // Get existing summaries.
-      for (AbstractState s : mapping.get(calledBlock.getExitNode())) {
+      for (AbstractState exitState : mapping.get(calledBlock.getExitNode())) {
         if (wrappedSummaryManager.isSummaryApplicable(
-            state, s, node, calledBlock
+            state, exitState, node, calledBlock
         )) {
           out.addAll(wrappedSummaryManager.applyFunctionSummary(
-              state, s, node, calledBlock
+              state, exitState, node, calledBlock
           ));
         }
       }
@@ -149,8 +148,6 @@ public class SummaryCPA implements ConfigurableProgramAnalysis,
     } else if (block.getExitNode() == node) {
 
       // Apply the newly generated summaries.
-      Stream<CFANode> callsites =
-          block.getCallEdges().stream().map(c -> c.getPredecessor());
       List<AbstractState> out = new ArrayList<>();
 
       for (CFAEdge cEdge : block.getCallEdges()) {
