@@ -1014,8 +1014,8 @@ public class PolicyIterationManager {
 
     // todo: dynamic inlinement.
     if (blockManager != null &&
-        blockManager.findCallToBlock(node).isPresent()
-        || blockManager.getBlockForNode(node).getExitNode() == node) {
+        (blockManager.findCallToBlock(node).isPresent()
+        || blockManager.getBlockForNode(node).getExitNode() == node)) {
       return true;
     }
 

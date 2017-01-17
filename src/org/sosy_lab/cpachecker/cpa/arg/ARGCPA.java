@@ -58,8 +58,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
+import org.sosy_lab.cpachecker.cpa.summary.CPAWithSummarySupport;
+import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -67,7 +68,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class ARGCPA extends AbstractSingleWrapperCPA implements
     ConfigurableProgramAnalysisWithBAM,
     ProofChecker,
-    UseSummaryCPA {
+    CPAWithSummarySupport {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
@@ -86,9 +87,9 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   private final LogManager logger;
   private final ARGStopSep stopOperator;
   private final ARGStatistics stats;
-  private ARGSummaryManager argSummaryManager;
   private final ConfigurableProgramAnalysis wrapped;
   private final AbstractDomain domain;
+  private ARGSummaryManager simpleSummaryManager;
 
   private ARGCPA(
       ConfigurableProgramAnalysis cpa,
@@ -235,10 +236,15 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   }
 
   @Override
-  public SummaryManager getSummaryManager() {
-    if (argSummaryManager == null) {
-      argSummaryManager = new ARGSummaryManager(wrapped);
+  public SummaryManager getSimpleSummaryManager() {
+    if (simpleSummaryManager == null) {
+      simpleSummaryManager = new ARGSummaryManager(wrapped);
     }
-    return argSummaryManager;
+    return simpleSummaryManager;
+  }
+
+  @Override
+  public void setBlockManager(BlockManager pBlockManager) {
+    ((CPAWithSummarySupport) wrapped).setBlockManager(pBlockManager);
   }
 }

@@ -47,10 +47,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
-import org.sosy_lab.cpachecker.cpa.summary.simple.CPAWithSummarySupport;
-import org.sosy_lab.cpachecker.cpa.summary.simple.SimpleSummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.CPAWithSummarySupport;
+import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -59,7 +57,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 public class CallstackCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM,
                ProofChecker,
-               UseSummaryCPA,
                CPAWithSummarySupport {
 
   private final CFA cfa;
@@ -137,13 +134,8 @@ public class CallstackCPA extends AbstractCPA
   }
 
   @Override
-  public SummaryManager getSummaryManager() {
-    return new CallstackCPASummaryManager();
-  }
-
-  @Override
-  public SimpleSummaryManager getSimpleSummaryManager() {
-    return new CallstackSimpleSummaryManager();
+  public SummaryManager getSimpleSummaryManager() {
+    return new CallstackSummaryManager();
   }
 
   @Options(prefix = "cpa.callstack")

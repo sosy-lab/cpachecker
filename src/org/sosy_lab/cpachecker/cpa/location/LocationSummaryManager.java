@@ -21,34 +21,38 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automaton;
+package org.sosy_lab.cpachecker.cpa.location;
 
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
-import org.sosy_lab.cpachecker.cpa.summary.simple.SimpleSummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 
-public class AutomatonSimpleSummaryManager implements SimpleSummaryManager {
-  @Override
-  public List<? extends AbstractState> applyFunctionSummary(
-      AbstractState callSite, AbstractState exitState, CFANode callNode, Block calledBlock) {
+/**
+ * New summary management framework for LocationCPA.
+ */
+public class LocationSummaryManager implements SummaryManager {
+  private final LocationStateFactory factory;
 
-    return Collections.singletonList(exitState);
+  LocationSummaryManager(LocationStateFactory pStateFactory) {
+    factory = pStateFactory;
   }
 
   @Override
   public List<? extends AbstractState> getEntryStates(
       AbstractState callSite, CFANode callNode, Block calledBlock) {
-
-    // todo: would not work for a non-trivial automaton.
-    return Collections.singletonList(callSite);
+    assert callNode.getNumLeavingEdges() == 1;
+    return Collections.singletonList(
+            factory.getState(callNode.getLeavingEdge(0).getSuccessor()));
   }
 
   @Override
-  public boolean isSummaryApplicable(
+  public List<? extends AbstractState> applyFunctionSummary(
       AbstractState callSite, AbstractState exitState, CFANode callNode, Block calledBlock) {
-    return true;
+    return Collections.singletonList(
+        factory.getState(callNode.getLeavingSummaryEdge().getSuccessor()));
   }
+
 }

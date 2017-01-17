@@ -21,17 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.summary.simple;
+package org.sosy_lab.cpachecker.cpa.summary;
 
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Interface CPA has to satisfy in order to support the new summary framework.
  */
-public interface SimpleSummaryManager {
+public interface SummaryManager {
 
   /**
    * Perform the function application using the summary
@@ -55,7 +56,7 @@ public interface SimpleSummaryManager {
       AbstractState exitState,
       CFANode callNode,
       Block calledBlock
-  );
+  ) throws CPAException, InterruptedException;
 
   /**
    * Get entry state for the function from the callsite.
@@ -72,7 +73,7 @@ public interface SimpleSummaryManager {
       AbstractState callSite,
       CFANode callNode,
       Block calledBlock
-  );
+  ) throws CPAException, InterruptedException;
 
   /**
    * @param callSite Abstract state at the calling site.
@@ -88,10 +89,12 @@ public interface SimpleSummaryManager {
    * application should create an empty state.
    *
    */
-  boolean isSummaryApplicable(
+  default boolean isSummaryApplicable(
       AbstractState callSite,
       AbstractState exitState,
       CFANode callNode,
       Block calledBlock
-  );
+  ) {
+    return true;
+  }
 }

@@ -74,8 +74,6 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
-import org.sosy_lab.cpachecker.cpa.summary.summaryGeneration.TopLevelSummaryCPA;
-import org.sosy_lab.cpachecker.cpa.summary.summaryUsage.SummaryApplicationCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -99,8 +97,6 @@ public class CPAsTest {
             .collect(Collectors.toCollection(HashSet::new));
 
     // Filter CPAs that need child CPAs.
-    cpas.remove(SummaryApplicationCPA.class);
-    cpas.remove(TopLevelSummaryCPA.class);
     cpas.remove(ARGCPA.class);
     cpas.remove(BAMCPA.class);
     cpas.remove(CacheCPA.class);

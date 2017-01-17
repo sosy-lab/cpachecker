@@ -47,10 +47,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
-import org.sosy_lab.cpachecker.cpa.summary.simple.CPAWithSummarySupport;
-import org.sosy_lab.cpachecker.cpa.summary.simple.SimpleSummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.CPAWithSummarySupport;
+import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -58,7 +56,6 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 public class LocationCPA
     implements ConfigurableProgramAnalysisWithBAM,
                ProofCheckerCPA,
-               UseSummaryCPA,
                CPAWithSummarySupport {
 
   private final LocationStateFactory stateFactory;
@@ -119,12 +116,7 @@ public class LocationCPA
   }
 
   @Override
-  public SummaryManager getSummaryManager() {
-    return new LocationCPASummaryManager(stateFactory);
-  }
-
-  @Override
-  public SimpleSummaryManager getSimpleSummaryManager() {
-    return new LocationSimpleSummaryManager(stateFactory);
+  public SummaryManager getSimpleSummaryManager() {
+    return new LocationSummaryManager(stateFactory);
   }
 }

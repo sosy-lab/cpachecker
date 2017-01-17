@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
-import org.sosy_lab.cpachecker.cpa.summary.simple.CPAWithSummarySupport;
-import org.sosy_lab.cpachecker.cpa.summary.simple.SimpleSummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.CPAWithSummarySupport;
+import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
@@ -292,7 +292,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public SimpleSummaryManager getSimpleSummaryManager() {
+  public SummaryManager getSimpleSummaryManager() {
     return summaryManager;
   }
 

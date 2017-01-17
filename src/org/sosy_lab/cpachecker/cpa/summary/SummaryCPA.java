@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.summary.simple;
+package org.sosy_lab.cpachecker.cpa.summary;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,20 +61,20 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 /**
  * Top-level summary CPA.
  */
-public class SimpleSummaryCPA implements ConfigurableProgramAnalysis,
-                                         WrapperCPA,
-                                         StatisticsProvider,
-                                         TransferRelation,
-                                         MergeOperator {
+public class SummaryCPA implements ConfigurableProgramAnalysis,
+                                   WrapperCPA,
+                                   StatisticsProvider,
+                                   TransferRelation,
+                                   MergeOperator {
 
   private final CPAWithSummarySupport wrapped;
-  private final SimpleSummaryManager wrappedSummaryManager;
+  private final SummaryManager wrappedSummaryManager;
   private final Multimap<CFANode, AbstractState> mapping;
   private final TransferRelation wrappedTransferRelation;
   private final MergeOperator wrappedMergeOperator;
   private final BlockManager blockManager;
 
-  public SimpleSummaryCPA(
+  public SummaryCPA(
       ConfigurableProgramAnalysis pWrapped,
       CFA pCFA,
       Configuration pConfiguration,
@@ -103,8 +102,19 @@ public class SimpleSummaryCPA implements ConfigurableProgramAnalysis,
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState state, Precision precision)
-        throws CPATransferException,
-               InterruptedException {
+        throws CPATransferException, InterruptedException {
+
+    try {
+      return getAbstractSuccessors0(state, precision);
+    } catch (CPAException pE) {
+      throw new CPATransferException("Got CPAException: " + pE, pE);
+    }
+  }
+
+  private  Collection<? extends AbstractState> getAbstractSuccessors0(
+      AbstractState state, Precision precision)
+      throws CPAException,
+             InterruptedException {
 
     CFANode node = AbstractStates.extractLocation(state);
     mapping.put(node, state);
@@ -124,19 +134,16 @@ public class SimpleSummaryCPA implements ConfigurableProgramAnalysis,
           calledBlock));
 
       // Get existing summaries.
-      mapping.get(calledBlock.getExitNode())
-          .stream()
-          .filter(
-              s -> wrappedSummaryManager.isSummaryApplicable(
-                  state, s, node, calledBlock
-              )
-          )
-          .flatMap(
-              s -> wrappedSummaryManager.applyFunctionSummary(
-                  state, s, node, calledBlock
-              ).stream()
-          ).forEach(
-              s -> out.add(s));
+      for (AbstractState s : mapping.get(calledBlock.getExitNode())) {
+        if (wrappedSummaryManager.isSummaryApplicable(
+            state, s, node, calledBlock
+        )) {
+          out.addAll(wrappedSummaryManager.applyFunctionSummary(
+              state, s, node, calledBlock
+          ));
+        }
+      }
+
       return out;
 
     } else if (block.getExitNode() == node) {
@@ -144,22 +151,23 @@ public class SimpleSummaryCPA implements ConfigurableProgramAnalysis,
       // Apply the newly generated summaries.
       Stream<CFANode> callsites =
           block.getCallEdges().stream().map(c -> c.getPredecessor());
-      return callsites
-          .flatMap(
-              callsite -> mapping.get(callsite).stream()
-          ).filter(
-              callstate -> wrappedSummaryManager.isSummaryApplicable(
-                  callstate,
-                  state,
-                  AbstractStates.extractLocation(callstate),
-                  block
-              )
-          )
-          .flatMap(
-              callstate -> wrappedSummaryManager.applyFunctionSummary(
-                  callstate, state, AbstractStates.extractLocation(callstate), block
-              ).stream()
-          ).collect(Collectors.toList());
+      List<AbstractState> out = new ArrayList<>();
+
+      for (CFAEdge cEdge : block.getCallEdges()) {
+        CFANode predecessor = cEdge.getPredecessor();
+        for (AbstractState callState : mapping.get(predecessor)) {
+          if (wrappedSummaryManager.isSummaryApplicable(
+              callState, state, AbstractStates.extractLocation(callState), block
+          )) {
+            out.addAll(
+                wrappedSummaryManager.applyFunctionSummary(
+                    callState, state, AbstractStates.extractLocation(callState), block
+                )
+            );
+          }
+        }
+      }
+      return out;
 
     } else {
 
@@ -235,7 +243,7 @@ public class SimpleSummaryCPA implements ConfigurableProgramAnalysis,
   }
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(SimpleSummaryCPA.class);
+    return AutomaticCPAFactory.forType(SummaryCPA.class);
   }
 
   @Override

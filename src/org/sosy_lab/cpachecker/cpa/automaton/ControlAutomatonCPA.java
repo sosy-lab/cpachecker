@@ -66,10 +66,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.UseSummaryCPA;
-import org.sosy_lab.cpachecker.cpa.summary.simple.CPAWithSummarySupport;
-import org.sosy_lab.cpachecker.cpa.summary.simple.SimpleSummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.CPAWithSummarySupport;
+import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
 
@@ -82,7 +80,6 @@ public class ControlAutomatonCPA
         StatisticsProvider,
         ConfigurableProgramAnalysisWithBAM,
         ProofCheckerCPA,
-        UseSummaryCPA,
        CPAWithSummarySupport {
 
   @Option(secure=true, name="dotExport",
@@ -266,12 +263,7 @@ public class ControlAutomatonCPA
   }
 
   @Override
-  public SummaryManager getSummaryManager() {
+  public SummaryManager getSimpleSummaryManager() {
     return new AutomatonSummaryManager();
-  }
-
-  @Override
-  public SimpleSummaryManager getSimpleSummaryManager() {
-    return new AutomatonSimpleSummaryManager();
   }
 }

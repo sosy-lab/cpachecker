@@ -21,44 +21,33 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.location;
+package org.sosy_lab.cpachecker.cpa.callstack;
 
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
-import org.sosy_lab.cpachecker.cpa.summary.simple.SimpleSummaryManager;
+import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 
 /**
- * New summary management framework for LocationCPA.
+ * New summary for the callstack CPA.
  */
-public class LocationSimpleSummaryManager implements SimpleSummaryManager {
-  private final LocationStateFactory factory;
+public class CallstackSummaryManager implements SummaryManager {
 
-  public LocationSimpleSummaryManager(LocationStateFactory pStateFactory) {
-    factory = pStateFactory;
+  @Override
+  public List<? extends AbstractState> applyFunctionSummary(
+      AbstractState callSite, AbstractState exitState, CFANode callNode, Block calledBlock) {
+    return Collections.singletonList(callSite);
   }
 
   @Override
   public List<? extends AbstractState> getEntryStates(
       AbstractState callSite, CFANode callNode, Block calledBlock) {
     assert callNode.getNumLeavingEdges() == 1;
+    String functionName = callNode.getLeavingEdge(0).getSuccessor().getFunctionName();
     return Collections.singletonList(
-            factory.getState(callNode.getLeavingEdge(0).getSuccessor()));
-  }
-
-  @Override
-  public List<? extends AbstractState> applyFunctionSummary(
-      AbstractState callSite, AbstractState exitState, CFANode callNode, Block calledBlock) {
-    return Collections.singletonList(
-        factory.getState(callNode.getLeavingSummaryEdge().getSuccessor()));
-  }
-
-
-  @Override
-  public boolean isSummaryApplicable(
-      AbstractState callSite, AbstractState exitState, CFANode callNode, Block calledBlock) {
-    return true;
+        new CallstackState(null, functionName, callNode)
+    );
   }
 }

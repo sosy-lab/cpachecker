@@ -2,7 +2,7 @@
  * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,73 +25,24 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.Collections;
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.Summary;
-import org.sosy_lab.cpachecker.cpa.summary.interfaces.SummaryManager;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 
-/**
- * Summary manager for automaton CPA.
- * For now using dumb do-nothing summary,
- * since we have separate handling for targetable states anyway.
- *
- * todo: proper summarization.
- */
 public class AutomatonSummaryManager implements SummaryManager {
-
   @Override
-  public List<AbstractState> getAbstractSuccessorsForSummary(
-      AbstractState pCallState,
-      Precision pCallPrecision,
-      List<Summary> pSummaries,
-      Block pBlock,
-      CFAEdge pCallEdge) throws CPAException, InterruptedException {
-    return Collections.singletonList(pCallState);
+  public List<? extends AbstractState> applyFunctionSummary(
+      AbstractState callSite, AbstractState exitState, CFANode callNode, Block calledBlock) {
+
+    return Collections.singletonList(exitState);
   }
 
   @Override
-  public List<? extends Summary> generateSummaries(
-      AbstractState pCallState,
-      Precision pCallPrecision,
-      List<? extends AbstractState> pReturnStates,
-      List<Precision> pJoinPrecisions,
-      CFANode pCallNode,
-      Block pBlock) {
-    return Collections.singletonList(dumbSummary);
-  }
+  public List<? extends AbstractState> getEntryStates(
+      AbstractState callSite, CFANode callNode, Block calledBlock) {
 
-  @Override
-  public AbstractState getWeakenedCallState(
-      AbstractState pCallState, Precision pPrecision, CFAEdge pCFAEdge, Block pBlock) {
-    return pCallState;
+    // todo: would not work for a non-trivial automaton.
+    return Collections.singletonList(callSite);
   }
-
-  @Override
-  public Summary merge(
-      Summary pSummary1, Summary pSummary2) throws CPAException, InterruptedException {
-    return pSummary2;
-  }
-
-  @Override
-  public boolean isDescribedBy(Summary pSummary1, Summary pSummary2) {
-    return true;
-  }
-
-  @Override
-  public boolean isCallsiteLessThanSummary(
-      AbstractState pCallsite,
-      Summary pSummary) {
-    return true;
-  }
-
-  private final Summary dumbSummary = new Summary() {
-    @Override
-    public String toString() {
-      return "";
-    }
-  };
 }
