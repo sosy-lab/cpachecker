@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 
@@ -89,6 +91,11 @@ public class Template {
 
   public LinearExpression<TVariable> getLinearExpression() {
     return linearExpression;
+  }
+
+  public Set<String> getVarNames() {
+    return linearExpression.getMap().keySet()
+        .stream().map(v -> v.getName()).collect(Collectors.toSet());
   }
 
   public boolean isUnsigned() {
