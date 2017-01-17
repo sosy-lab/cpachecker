@@ -785,7 +785,7 @@ public class VariableClassificationBuilder {
    * a visit of IdExpression or CFieldReference returns a collection containing the varName,
    * other visits return the inner visit-results.
   * The Visitor also collects all numbers used in the expression. */
-  private static class VariablesCollectingVisitor implements
+  public static class VariablesCollectingVisitor implements
       CExpressionVisitor<Set<String>, RuntimeException> {
 
     private CFANode predecessor;
