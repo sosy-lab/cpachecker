@@ -111,7 +111,7 @@ import javax.annotation.Nonnull;
  * There should not be any functioncall- or return-edges.
  * Currently only the language C is supported.
  */
-class FunctionCloner implements CFAVisitor {
+public class FunctionCloner implements CFAVisitor {
 
   private static final String ONLY_C_SUPPORTED = "only C supported";
   private static final String SUPERGRAPH_BUILD_TOO_EARLY = "functions should be cloned before building the supergraph";

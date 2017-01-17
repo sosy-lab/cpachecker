@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.SummaryGeneratorHelper;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -218,10 +219,14 @@ public class CFACreator {
 
   @Option(secure=true, name="cfa.classifyNodes",
       description="This option enables the computation of a classification of CFA nodes.")
-private boolean classifyNodes = false;
+  private boolean classifyNodes = false;
 
   @Option(secure=true, description="C or Java?")
   private Language language = Language.C;
+
+  @Option(secure=true, description="Postfix to add on copied vars."
+      + "If empty, no copying is performed.", name="cfa.renamingPostfix")
+  private String postfixCopiedVars = "";
 
   private final LogManager logger;
   private final Parser parser;
@@ -535,6 +540,14 @@ private boolean classifyNodes = false;
     return parseResult;
   }
 
+  /**
+   * todo: better name
+   * @return postfix for querying.
+   */
+  public String getPostfixForCopiedVars() {
+    return postfixCopiedVars;
+  }
+
   /** This method changes the CFAs of the functions with adding, removing, replacing or moving CFAEdges.
    * The CFAs are independent, i.e. there are no super-edges (functioncall- and return-edges) between them.
    *
@@ -551,6 +564,11 @@ private boolean classifyNodes = false;
     if (moveDeclarationsToFunctionStart) {
       CFADeclarationMover declarationMover = new CFADeclarationMover(logger);
       declarationMover.moveDeclarationsToFunctionStart(cfa);
+    }
+
+    if (!postfixCopiedVars.isEmpty()) {
+      SummaryGeneratorHelper copier = new SummaryGeneratorHelper(postfixCopiedVars, cfa);
+      copier.copyGlobalsAndParams(cfa);
     }
 
     if (checkNullPointers) {
