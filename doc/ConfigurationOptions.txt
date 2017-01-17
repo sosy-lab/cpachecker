@@ -2112,12 +2112,6 @@ cpa.statistics.metric.structVariablesCount = true
 # target file to hold the statistics
 cpa.statistics.statisticsCPAFile = no default value
 
-# export summary requests as a .dot file
-cpa.summary.file = "SummaryRequests.dot"
-
-# Whether summaries should be merged
-cpa.summary.joinSummaries = false
-
 # Which refinement algorithm to use? (give class name, required for
 # termination algorithm with CEGAR) If the package name starts with
 # 'org.sosy_lab.cpachecker.', this prefix can be omitted.
