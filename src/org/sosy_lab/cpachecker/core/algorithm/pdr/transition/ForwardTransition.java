@@ -244,7 +244,11 @@ public class ForwardTransition {
     }
 
     private PathFormula getPathFormula() {
-      return getLastPredicateAbstractState().getAbstractionFormula().getBlockFormula();
+      PredicateAbstractState lastPAS = getLastPredicateAbstractState();
+      if (IS_BLOCK_START.apply(lastPAS)) {
+        return getLastPredicateAbstractState().getAbstractionFormula().getBlockFormula();
+      }
+      return lastPAS.getPathFormula();
     }
 
     @Override
