@@ -150,6 +150,7 @@ import org.sosy_lab.cpachecker.cfa.simplification.NonRecursiveExpressionSimplifi
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -821,6 +822,11 @@ class ASTConverter {
     @Override
     public Boolean visit(CTypedefType t) {
       return t.getRealType().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      return pCBitFieldType.getType().accept(this);
     }
   }
 

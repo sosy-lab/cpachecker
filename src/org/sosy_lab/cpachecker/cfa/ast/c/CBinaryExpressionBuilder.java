@@ -29,12 +29,14 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
-
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -46,9 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.util.Set;
-import java.util.logging.Level;
 
 
 /** This Class build binary expression.
@@ -144,6 +143,10 @@ public class CBinaryExpressionBuilder {
     t1 = handleEnum(t1);
     t2 = handleEnum(t2);
 
+    // For calculation type determination, bit-field types are treated the same as their actual types
+    t1 = unwrapBitFields(t1);
+    t2 = unwrapBitFields(t2);
+
     final CType calculationType;
     final CType resultType;
 
@@ -162,6 +165,7 @@ public class CBinaryExpressionBuilder {
 
     return new CBinaryExpression(op1.getFileLocation(), resultType, calculationType, op1, op2, op);
   }
+
 
   /**
    * This method does the same as {@link #buildBinaryExpression(CExpression, CExpression, BinaryOperator)},
@@ -232,6 +236,16 @@ public class CBinaryExpressionBuilder {
     } else {
       return pType;
     }
+  }
+
+  /**
+   * This method returns the wrapped type for all bit-field types, and the type itself otherwise.
+   *
+   * @param pType the type.
+   * @return the wrapped type for all bit-field types, and the type itself otherwise.
+   */
+  private CType unwrapBitFields(CType pType) {
+    return pType instanceof CBitFieldType ? ((CBitFieldType) pType).getType() : pType;
   }
 
   /**

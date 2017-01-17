@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 
@@ -40,7 +39,6 @@ public final class CElaboratedType implements CComplexType {
   private final String origName;
   private final boolean isConst;
   private final boolean isVolatile;
-  private Integer bitFieldSize;
 
   private int hashCache = 0;
 
@@ -130,7 +128,7 @@ public final class CElaboratedType implements CComplexType {
     lASTString.append(" ");
     lASTString.append(pDeclarator);
 
-    return lASTString.toString()  + (isBitField() ? " : " + getBitFieldSize() : "");
+    return lASTString.toString();
   }
   @Override
   public String toString() {
@@ -171,7 +169,6 @@ public final class CElaboratedType implements CComplexType {
       result = prime * result + Objects.hashCode(kind);
       result = prime * result + Objects.hashCode(name);
       result = prime * result + Objects.hashCode(realType);
-      result = prime * result + Objects.hashCode(bitFieldSize);
       hashCache = result;
     }
     return hashCache;
@@ -196,8 +193,7 @@ public final class CElaboratedType implements CComplexType {
 
     return isConst == other.isConst && isVolatile == other.isVolatile
            && kind == other.kind && Objects.equals(name, other.name)
-           && Objects.equals(realType, other.realType)
-           && Objects.equals(bitFieldSize, other.bitFieldSize);
+           && Objects.equals(realType, other.realType);
   }
 
   @Override
@@ -216,8 +212,7 @@ public final class CElaboratedType implements CComplexType {
            && isVolatile == other.isVolatile
            && kind == other.kind
            && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
-           && Objects.equals(realType, other.realType)
-           && Objects.equals(bitFieldSize, other.bitFieldSize);
+           && Objects.equals(realType, other.realType);
   }
 
   @Override
@@ -235,24 +230,5 @@ public final class CElaboratedType implements CComplexType {
     } else {
       return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
     }
-  }
-
-  @Override
-  public boolean isBitField() {
-    return bitFieldSize != null;
-  }
-
-  @Override
-  public int getBitFieldSize() {
-    return bitFieldSize == null ? 0 : bitFieldSize;
-  }
-
-  @Override
-  public CType withBitFieldSize(int pBitFieldSize) {
-    CElaboratedType result = new CElaboratedType(isConst, isVolatile, kind, name, origName, realType);
-    result.bitFieldSize = pBitFieldSize;
-    final int prime = 31;
-    result.hashCache = prime * hashCode() + Objects.hashCode(pBitFieldSize);
-    return result;
   }
 }

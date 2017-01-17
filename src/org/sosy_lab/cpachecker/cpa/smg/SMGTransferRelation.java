@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -417,7 +418,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
           if (sizeValue.isUnknown()) {
 
-            if(kind == SMGTransferRelationKind.REFINMENT) {
+            if(kind == SMGTransferRelationKind.REFINEMENT) {
               sizeValue = SMGKnownExpValue.ZERO;
             } else {
               throw new UnrecognizedCCodeException(
@@ -425,7 +426,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             }
           }
         } else {
-          if (kind == SMGTransferRelationKind.REFINMENT) {
+          if (kind == SMGTransferRelationKind.REFINEMENT) {
             sizeValue = SMGKnownExpValue.ZERO;
           } else {
             throw new UnrecognizedCCodeException(
@@ -517,7 +518,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             value = resultValueAndState.getObject();
 
             if(value.isUnknown()) {
-              if (kind == SMGTransferRelationKind.REFINMENT) {
+              if (kind == SMGTransferRelationKind.REFINEMENT) {
                 resultValueAndState = SMGExplicitValueAndState.of(currentState ,SMGKnownExpValue.ZERO);
               } else {
                 throw new UnrecognizedCCodeException(
@@ -525,7 +526,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
               }
             }
           } else {
-            if (kind == SMGTransferRelationKind.REFINMENT) {
+            if (kind == SMGTransferRelationKind.REFINEMENT) {
               resultValueAndState = SMGExplicitValueAndState.of(currentState, SMGKnownExpValue.ZERO);
             } else {
               throw new UnrecognizedCCodeException(
@@ -814,7 +815,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       BlockOperator pBlockOperator) throws InvalidConfigurationException {
     SMGTransferRelation result =
         new SMGTransferRelation(config, pLogger, pMachineModel,
-            SMGExportDotOption.getNoExportInstance(), SMGTransferRelationKind.REFINMENT,
+            SMGExportDotOption.getNoExportInstance(), SMGTransferRelationKind.REFINEMENT,
             pSMGPredicateManager, pBlockOperator);
     return result;
   }
@@ -1576,7 +1577,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, CType pRValueType,
       SMGSymbolicValue pValue, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
-  //FIXME Does not work with variable array length.
+    //FIXME Does not work with variable array length.
     //TODO: write value with bit precise size
     boolean doesNotFitIntoObject = pFieldOffset < 0
         || pFieldOffset + expressionEvaluator.getBitSizeof(pEdge, pRValueType, pNewState) >
@@ -1756,7 +1757,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       } else {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
           offset += machineModel.getBitSizeof(memberDcl.getType());
-          if (!(memberDcl.getType().isBitField())) {
+          if (!(memberDcl.getType() instanceof CBitFieldType)) {
             int overByte = offset % machineModel.getSizeofCharInBits();
             if (overByte > 0) {
               offset += machineModel.getSizeofCharInBits() - overByte;
@@ -1840,7 +1841,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       for (Pair<SMGState, Integer> offsetAndState : offsetAndStates) {
 
         int offset = offsetAndState.getSecond();
-        if (!(memberType.isBitField())) {
+        if (!(memberType instanceof CBitFieldType)) {
           int overByte = offset % machineModel.getSizeofCharInBits();
           if (overByte > 0) {
             offset += machineModel.getSizeofCharInBits() - overByte;
@@ -2505,18 +2506,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     private class CSizeOfVisitor extends SMGExpressionEvaluator.CSizeOfVisitor {
 
       public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
-          LogManagerWithoutDuplicates pLogger) {
-        super(pModel, pEdge, pState, pLogger);
-      }
-
-      public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
-          LogManagerWithoutDuplicates pLogger, CExpression pExpression) {
+          LogManagerWithoutDuplicates pLogger, Optional<CExpression> pExpression) {
         super(pModel, pEdge, pState, pLogger, pExpression);
       }
 
       @Override
       protected int handleUnkownArrayLengthValue(CArrayType pArrayType) {
-        if (kind == SMGTransferRelationKind.REFINMENT) {
+        if (kind == SMGTransferRelationKind.REFINEMENT) {
           return 0;
         } else {
           return super.handleUnkownArrayLengthValue(pArrayType);
@@ -2543,13 +2539,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     @Override
-    protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState) {
-      return new CSizeOfVisitor(machineModel, pEdge, pState, logger);
-    }
-
-    @Override
-    protected CSizeOfVisitor getBitSizeOfVisitor(CFAEdge pEdge, SMGState pState,
-        CExpression pExpression) {
+    protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
       return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
     }
 
@@ -3287,6 +3277,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   public void changeKindToRefinment() {
-    kind = SMGTransferRelationKind.REFINMENT;
+    kind = SMGTransferRelationKind.REFINEMENT;
   }
 }

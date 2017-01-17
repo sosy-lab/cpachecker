@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -80,6 +81,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -611,38 +613,11 @@ public class CtoFormulaConverter {
       fromType = new CPointerType(false, false, fromType);
     }
 
-    final boolean fromIsPointer = fromType instanceof CPointerType;
-    final boolean toIsPointer = toType instanceof CPointerType;
-    final boolean fromCanBeHandledAsInt =
-        (fromIsPointer ||
-         fromType instanceof CEnumType ||
-        (fromType instanceof CElaboratedType &&
-            ((CElaboratedType)fromType).getKind() == ComplexTypeKind.ENUM));
-    final boolean toCanBeHandledAsInt =
-        (toIsPointer ||
-         toType instanceof CEnumType ||
-        (toType instanceof CElaboratedType &&
-            ((CElaboratedType)toType).getKind() == ComplexTypeKind.ENUM));
+    fromType = handlePointerAndEnumAsInt(fromType);
+    toType = handlePointerAndEnumAsInt(toType);
 
-    if (fromCanBeHandledAsInt || toCanBeHandledAsInt) {
-      // See Enums/Pointers as Integers
-      if (fromCanBeHandledAsInt) {
-        fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
-        fromType = fromType.getCanonicalType();
-      }
-
-      if (toCanBeHandledAsInt) {
-        toType = toIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
-        toType = toType.getCanonicalType();
-      }
-    }
-
-    if (fromType instanceof CSimpleType) {
-      CSimpleType sfromType = (CSimpleType)fromType;
-      if (toType instanceof CSimpleType) {
-        CSimpleType stoType = (CSimpleType)toType;
-        return makeSimpleCast(sfromType, stoType, formula);
-      }
+    if (isSimple(fromType) && isSimple(toType)) {
+      return makeSimpleCast(fromType, toType, formula);
     }
 
     if (fromType instanceof CPointerType ||
@@ -660,6 +635,26 @@ public class CtoFormulaConverter {
     } else {
       throw new UnrecognizedCCodeException("Cast from " + pFromType + " to " + pToType + " not supported!", edge);
     }
+  }
+
+  private CType handlePointerAndEnumAsInt(CType pType) {
+    if (pType instanceof CBitFieldType) {
+      CBitFieldType type = (CBitFieldType) pType;
+      CType innerType = type.getType();
+      CType normalizedInnerType = handlePointerAndEnumAsInt(innerType);
+      if (innerType == normalizedInnerType) {
+        return pType;
+      }
+      return new CBitFieldType(normalizedInnerType, type.getBitFieldSize());
+    }
+    if (pType instanceof CPointerType) {
+      return machineModel.getPointerEquivalentSimpleType();
+    }
+    if (pType instanceof CEnumType
+        || (pType instanceof CElaboratedType && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
+      return CNumericTypes.INT;
+    }
+    return pType;
   }
 
   protected CExpression makeCastFromArrayToPointerIfNecessary(CExpression exp, CType targetType) {
@@ -687,7 +682,22 @@ public class CtoFormulaConverter {
    * When the fromType is a signed type a bit-extension will be done,
    * on any other case it will be filled with 0 bits.
    */
-  private Formula makeSimpleCast(CSimpleType pFromCType, CSimpleType pToCType, Formula pFormula) {
+  private Formula makeSimpleCast(CType pFromCType, CType pToCType, Formula pFormula) {
+    checkSimpleCastArgument(pFromCType);
+    checkSimpleCastArgument(pToCType);
+    Predicate<CType> isSigned = t -> {
+      if (t instanceof CSimpleType) {
+        return machineModel.isSigned((CSimpleType) t);
+      }
+      if (t instanceof CBitFieldType) {
+        CBitFieldType bitFieldType = (CBitFieldType) t;
+        if (bitFieldType.getType() instanceof CSimpleType) {
+          return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
+        }
+      }
+      throw new AssertionError("Not a simple type: " + t);
+    };
+
     final FormulaType<?> fromType = typeHandler.getFormulaTypeFromCType(pFromCType);
     final FormulaType<?> toType = typeHandler.getFormulaTypeFromCType(pToCType);
 
@@ -699,10 +709,10 @@ public class CtoFormulaConverter {
       int fromSize = ((FormulaType.BitvectorType)fromType).getSize();
       int toSize = ((FormulaType.BitvectorType)toType).getSize();
       if (fromSize > toSize) {
-        ret = fmgr.makeExtract(pFormula, toSize-1, 0, machineModel.isSigned(pFromCType));
+        ret = fmgr.makeExtract(pFormula, toSize-1, 0, isSigned.test(pFromCType));
 
       } else if (fromSize < toSize) {
-        ret = fmgr.makeExtend(pFormula, (toSize - fromSize), machineModel.isSigned(pFromCType));
+        ret = fmgr.makeExtend(pFormula, (toSize - fromSize), isSigned.test(pFromCType));
 
       } else {
         ret = pFormula;
@@ -714,7 +724,7 @@ public class CtoFormulaConverter {
 
     } else if (toType.isFloatingPointType()) {
       ret = fmgr.getFloatingPointFormulaManager().castFrom(pFormula,
-          machineModel.isSigned(pFromCType), (FormulaType.FloatingPointType)toType);
+          isSigned.test(pFromCType), (FormulaType.FloatingPointType)toType);
 
     } else {
       throw new IllegalArgumentException("Cast from " + pFromCType + " to " + pToCType
@@ -723,6 +733,25 @@ public class CtoFormulaConverter {
 
     assert fmgr.getFormulaType(ret).equals(toType) : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
     return ret;
+  }
+
+  private void checkSimpleCastArgument(CType pType) {
+    if (!isSimple(pType)) {
+      throw new IllegalArgumentException("Cannot make a simple cast from or to " + pType);
+    }
+  }
+
+  private boolean isSimple(CType pType) {
+    if (pType instanceof CSimpleType) {
+      return true;
+    }
+    if (pType instanceof CBitFieldType) {
+      CBitFieldType type = (CBitFieldType) pType;
+      if (type.getType() instanceof CSimpleType) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

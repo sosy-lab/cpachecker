@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -99,6 +100,12 @@ class FillInBindingVisitor extends DefaultCTypeVisitor<Void, RuntimeException> {
   @Override
   public Void visit(CTypedefType pTypedefType) {
     pTypedefType.getRealType().accept(this);
+    return null;
+  }
+
+  @Override
+  public Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    pCBitFieldType.getType().accept(this);
     return null;
   }
 }

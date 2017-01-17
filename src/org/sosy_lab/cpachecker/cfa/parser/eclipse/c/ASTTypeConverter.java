@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -515,6 +516,6 @@ class ASTTypeConverter {
 
   /** returns a bitfield type */
   CType convertBitFieldType(final int bitFieldSize, final CType pType) {
-    return pType.withBitFieldSize(bitFieldSize);
+    return new CBitFieldType(pType, bitFieldSize);
   }
 }

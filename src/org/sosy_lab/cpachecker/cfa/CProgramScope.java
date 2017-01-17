@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -649,8 +650,7 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CArrayType pArrayType) {
-      if (!collectedTypes.contains(pArrayType)) {
-        collectedTypes.add(pArrayType);
+      if (collectedTypes.add(pArrayType)) {
         pArrayType.getType().accept(this);
         if (pArrayType.getLength() != null) {
           pArrayType.getLength().getExpressionType().accept(this);
@@ -661,8 +661,7 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CCompositeType pCompositeType) {
-      if (!collectedTypes.contains(pCompositeType)) {
-        collectedTypes.add(pCompositeType);
+      if (collectedTypes.add(pCompositeType)) {
         for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
           member.getType().accept(this);
         }
@@ -672,8 +671,7 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CElaboratedType pElaboratedType) {
-      if (!collectedTypes.contains(pElaboratedType)) {
-        collectedTypes.add(pElaboratedType);
+      if (collectedTypes.add(pElaboratedType)) {
         if (pElaboratedType.getRealType() != null) {
           pElaboratedType.getRealType().accept(this);
         }
@@ -683,8 +681,7 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CFunctionType pFunctionType) {
-      if (!collectedTypes.contains(pFunctionType)) {
-        collectedTypes.add(pFunctionType);
+      if (collectedTypes.add(pFunctionType)) {
         for (CType parameterType : pFunctionType.getParameters()) {
           parameterType.accept(this);
         }
@@ -694,8 +691,7 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CPointerType pPointerType) {
-      if (!collectedTypes.contains(pPointerType)) {
-        collectedTypes.add(pPointerType);
+      if (collectedTypes.add(pPointerType)) {
         pPointerType.getType().accept(this);
       }
       return null;
@@ -703,9 +699,16 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CTypedefType pTypedefType) {
-      if (!collectedTypes.contains(pTypedefType)) {
-        collectedTypes.add(pTypedefType);
+      if (collectedTypes.add(pTypedefType)) {
         pTypedefType.getRealType().accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      if (collectedTypes.add(pCBitFieldType)) {
+        pCBitFieldType.getType().accept(this);
       }
       return null;
     }

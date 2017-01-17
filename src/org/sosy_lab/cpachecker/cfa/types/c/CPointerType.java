@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 
@@ -141,22 +140,5 @@ public final class CPointerType implements CType, Serializable {
   @Override
   public CPointerType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return new CPointerType(isConst || pForceConst, isVolatile || pForceVolatile, type.getCanonicalType());
-  }
-
-  @Override
-  public boolean isBitField() {
-    return false;
-  }
-
-  @Override
-  public int getBitFieldSize() {
-    return 0;
-  }
-
-  @Override
-  public CType withBitFieldSize(int pBitFieldSize) {
-    // Bit field size not supported
-    assert false;
-    return this;
   }
 }

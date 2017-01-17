@@ -29,13 +29,11 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 public final class CCompositeType implements CComplexType {
@@ -307,23 +305,6 @@ public final class CCompositeType implements CComplexType {
       result.setMembers(members);
     }
     return result;
-  }
-
-  @Override
-  public boolean isBitField() {
-    return false;
-  }
-
-  @Override
-  public int getBitFieldSize() {
-    return 0;
-  }
-
-  @Override
-  public CType withBitFieldSize(int pBitFieldSize) {
-    // Bit field size not supported
-    assert false;
-    return this;
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {

@@ -24,12 +24,18 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Predicate;
-
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -49,13 +55,6 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplateWithConcreteValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * This class contains smg utilities, for example filters.
@@ -130,7 +129,7 @@ public final class SMGUtils {
 
     CType typeAtOffset = pType.accept(v);
 
-    if (CFieldTypeVisitor.isUnkownInstance(typeAtOffset)) {
+    if (CFieldTypeVisitor.isUnknownInstance(typeAtOffset)) {
       return false;
     }
 
@@ -149,7 +148,7 @@ public final class SMGUtils {
       model = pModel;
     }
 
-    public static boolean isUnkownInstance(CType type) {
+    public static boolean isUnknownInstance(CType type) {
       return type == UNKNOWN;
     }
 
@@ -220,6 +219,11 @@ public final class SMGUtils {
     @Override
     public CType visit(CVoidType pVoidType) {
       return UNKNOWN;
+    }
+
+    @Override
+    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      return pCBitFieldType.getType().accept(this);
     }
   }
 

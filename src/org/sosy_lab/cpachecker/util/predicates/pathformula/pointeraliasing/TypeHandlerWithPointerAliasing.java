@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -208,8 +209,8 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
           bitFieldsSize = 0;
           offset += machineModel.getPadding(offset, elementType);
         } else {
-          if (memberDeclaration.getType().isBitField()) {
-            bitFieldsSize += memberDeclaration.getType().getBitFieldSize();
+          if (memberDeclaration.getType() instanceof CBitFieldType) {
+            bitFieldsSize += ((CBitFieldType) memberDeclaration.getType()).getBitFieldSize();
           } else {
             offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
             bitFieldsSize = 0;

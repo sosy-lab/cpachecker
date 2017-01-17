@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -64,20 +65,16 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
@@ -123,23 +120,14 @@ public class SMGExpressionEvaluator {
    * and the expression with the given type to determine
    * the smg object that represents the array of the given type.
    *
-   * @param edge The cfa edge which determines the location
-   *             of the program.
+   * @param pEdge The cfa edge that determines the location in the program.
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
-   * @param expression The expression, which evaluates to the value with the given type.
+   * @param pExpression The expression, which evaluates to the value with the given type.
    * @return The size of the given type in bits.
    */
-  public int getBitSizeof(CFAEdge edge, CType pType, SMGState pState, CExpression expression) throws UnrecognizedCCodeException {
-
-    CSizeOfVisitor v = getBitSizeOfVisitor(edge, pState, expression);
-
-    try {
-      return pType.accept(v);
-    } catch (IllegalArgumentException e) {
-      logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Could not resolve type.", edge);
-    }
+  public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState, CExpression pExpression) throws UnrecognizedCCodeException {
+    return getBitSizeof(pEdge, pType, pState, Optional.of(pExpression));
   }
 
   /**
@@ -154,22 +142,31 @@ public class SMGExpressionEvaluator {
    * This method can't calculate variable array type length for
    * arrays that are not declared in the cfa edge.
    *
-   * @param pEdge The cfa edge which determines the location
-   *             of the program.
+   * @param pEdge The cfa edge that determines the location in the program.
    * @param pType We want to calculate the size of this type.
    * @param pState The state that contains the current variable values.
    * @return The size of the given type in bits.
    */
   public int getBitSizeof(CFAEdge pEdge, CType pType, SMGState pState) throws UnrecognizedCCodeException {
-    CSizeOfVisitor v = getBitSizeOfVisitor(pEdge, pState);
+    return getBitSizeof(pEdge, pType, pState, Optional.empty());
+  }
+
+  private int getBitSizeof(CFAEdge edge, CType pType, SMGState pState, Optional<CExpression> pExpression) throws UnrecognizedCCodeException {
+
+    if (pType instanceof CBitFieldType) {
+      return ((CBitFieldType) pType).getBitFieldSize();
+    }
+
+    CSizeOfVisitor v = getSizeOfVisitor(edge, pState, pExpression);
 
     try {
-      return pType.accept(v);
+      return pType.accept(v) * machineModel.getSizeofCharInBits();
     } catch (IllegalArgumentException e) {
       logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Could not resolve type.", pEdge);
+      throw new UnrecognizedCCodeException("Could not resolve type.", edge);
     }
   }
+
   /**
    * This visitor evaluates the address of a LValue. It is predominantly
    * used to evaluate the left hand side of a Assignment.
@@ -311,7 +308,7 @@ public class SMGExpressionEvaluator {
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       String memberName = typeMember.getName();
-      if (typeMember.getType().isBitField()) {
+      if (typeMember.getType() instanceof CBitFieldType) {
         if (memberName.equals(fieldName)) {
           offset += bitFieldsSize;
           return new SMGField(SMGKnownExpValue.valueOf(offset),
@@ -319,7 +316,7 @@ public class SMGExpressionEvaluator {
         }
 
         if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-          bitFieldsSize += typeMember.getType().getBitFieldSize();
+          bitFieldsSize += ((CBitFieldType) typeMember.getType()).getBitFieldSize();
         }
       } else {
         if (bitFieldsSize > 0) {
@@ -2290,17 +2287,9 @@ public class SMGExpressionEvaluator {
     return new LValueAssignmentVisitor(pCfaEdge, pNewState);
   }
 
-  protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState) {
-    return new CSizeOfVisitor(machineModel, pEdge, pState, logger);
-  }
-
-  protected CSizeOfVisitor getBitSizeOfVisitor(CFAEdge pEdge, SMGState pState) {
-    return new CBitSizeOfVisitor(machineModel, pEdge, pState, logger);
-  }
-
-  protected CSizeOfVisitor getBitSizeOfVisitor(CFAEdge pEdge, SMGState pState,
-      CExpression pExpression) {
-    return new CBitSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
+  protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState,
+      Optional<CExpression> pExpression) {
+    return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
   }
 
   public static class SMGAddressValueAndState extends SMGValueAndState {
@@ -2537,164 +2526,20 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  public static class CBitSizeOfVisitor extends CSizeOfVisitor {
-
-    public CBitSizeOfVisitor(
-        MachineModel pModel,
-        CFAEdge pEdge,
-        SMGState pState,
-        LogManagerWithoutDuplicates logger,
-        CExpression pExpression) {
-      super(pModel, pEdge, pState, logger, pExpression);
-    }
-
-    public CBitSizeOfVisitor(
-        MachineModel pModel,
-        CFAEdge pEdge,
-        SMGState pState, LogManagerWithoutDuplicates pLogger) {
-      super(pModel, pEdge, pState, pLogger);
-    }
-
-    @Override
-    public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
-      if (pEnumType.isBitField()) {
-        return pEnumType.getBitFieldSize();
-      }
-      return super.visit(pEnumType);
-    }
-
-    @Override
-    public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      if (pSimpleType.isBitField()) {
-        return pSimpleType.getBitFieldSize();
-      }
-      return super.visit(pSimpleType);
-    }
-
-    @Override
-    public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
-      if (pTypedefType.isBitField()) {
-        return pTypedefType.getBitFieldSize();
-      }
-      return super.visit(pTypedefType);
-    }
-
-    @Override
-    public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
-      if (pCompositeType.isBitField()) {
-        return pCompositeType.getBitFieldSize();
-      }
-      return super.visit(pCompositeType);
-    }
-
-    @Override
-    public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
-      if (pElaboratedType.isBitField()) {
-        return pElaboratedType.getBitFieldSize();
-      }
-      return super.visit(pElaboratedType);
-    }
-  }
-
   public static class CSizeOfVisitor extends BaseSizeofVisitor {
-    int sizeofCharInBits;
     private final CFAEdge edge;
     private final SMGState state;
-    private final CExpression expression;
+    private final Optional<CExpression> expression;
     private final SMGExpressionEvaluator eval;
 
-    public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState, LogManagerWithoutDuplicates logger,
-        CExpression pExpression) {
+    public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState, LogManagerWithoutDuplicates pLogger,
+        Optional<CExpression> pExpression) {
       super(pModel);
 
       edge = pEdge;
       state = pState;
       expression = pExpression;
-      eval = new SMGExpressionEvaluator(logger, pModel);
-      sizeofCharInBits = pModel.getSizeofCharInBits();
-    }
-
-    public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
-        LogManagerWithoutDuplicates pLogger) {
-      super(pModel);
-
-      edge = pEdge;
-      state = pState;
-      expression = null;
       eval = new SMGExpressionEvaluator(pLogger, pModel);
-      sizeofCharInBits = pModel.getSizeofCharInBits();
-    }
-
-    @Override
-    public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
-      int result = sizeofCharInBits;
-      sizeofCharInBits = 1;
-      result *= super.visit(pCompositeType);
-      return result;
-    }
-
-    @Override
-    public Integer visit(CElaboratedType pElaboratedType) throws IllegalArgumentException {
-      int result = sizeofCharInBits;
-      sizeofCharInBits = 1;
-      result *= super.visit(pElaboratedType);
-      return result;
-    }
-
-    @Override
-    public Integer visit(CEnumType pEnumType) throws IllegalArgumentException {
-      int result = sizeofCharInBits;
-      sizeofCharInBits = 1;
-      result *= super.visit(pEnumType);
-      return result;
-    }
-
-    @Override
-    public Integer visit(CFunctionType pFunctionType) throws IllegalArgumentException {
-      int result = sizeofCharInBits;
-      sizeofCharInBits = 1;
-      result *= super.visit(pFunctionType);
-      return result;
-    }
-
-    @Override
-    public Integer visit(CPointerType pPointerType) throws IllegalArgumentException {
-      int result = sizeofCharInBits;
-      sizeofCharInBits = 1;
-      result *= super.visit(pPointerType);
-      return result;
-    }
-
-    @Override
-    public Integer visit(CProblemType pProblemType) throws IllegalArgumentException {
-      int result = sizeofCharInBits;
-      sizeofCharInBits = 1;
-      result *= super.visit(pProblemType);
-      return result;
-    }
-
-    @Override
-    public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      int result = sizeofCharInBits;
-      sizeofCharInBits = 1;
-      result *= super.visit(pSimpleType);
-      return result;
-    }
-
-    @Override
-    public Integer visit(CTypedefType pTypedefType) throws IllegalArgumentException {
-      int result = sizeofCharInBits;
-      sizeofCharInBits = 1;
-      result *= super.visit(pTypedefType);
-      return result;
-    }
-
-    @Override
-    public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
-      int result = sizeofCharInBits;
-      sizeofCharInBits = 1;
-      result *= super.visit(pVoidType);
-      return result;
     }
 
     @Override
@@ -2713,10 +2558,7 @@ public class SMGExpressionEvaluator {
 
       if(arrayLength == null) {
         // treat size of unknown array length type as ptr
-        int result = sizeofCharInBits;
-        sizeofCharInBits = 1;
-        result *= super.visit(pArrayType);
-        return result;
+        return super.visit(pArrayType);
       } else if (arrayLength instanceof CIntegerLiteralExpression) {
         length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
       } else if (edge instanceof CDeclarationEdge) {
@@ -2747,13 +2589,13 @@ public class SMGExpressionEvaluator {
          * smg object that represents the array, and calculate the current array size that way.
          */
 
-        if(expression instanceof CLeftHandSide) {
+        if (expression.filter(CLeftHandSide.class::isInstance).isPresent()) {
 
           LValueAssignmentVisitor visitor = eval.getLValueAssignmentVisitor(edge, state);
 
           List<SMGAddressAndState> addressOfFieldAndState;
           try {
-            addressOfFieldAndState = expression.accept(visitor);
+            addressOfFieldAndState = expression.get().accept(visitor);
           } catch (CPATransferException e) {
             return handleUnkownArrayLengthValue(pArrayType);
           }
