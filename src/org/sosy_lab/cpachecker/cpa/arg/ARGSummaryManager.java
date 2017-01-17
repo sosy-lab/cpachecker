@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,11 +43,30 @@ public class ARGSummaryManager implements SummaryManager {
   }
 
   @Override
+  public List<? extends AbstractState> getEntryStates(
+      AbstractState callSite, CFANode callNode, Block calledBlock)
+      throws CPAException, InterruptedException {
+    ARGState aCallState = (ARGState) callSite;
+    if (aCallState.isCovered()) {
+      return Collections.emptyList();
+    }
+
+    aCallState.markExpanded();
+    List<? extends AbstractState> wrappedEntryStates =
+        wrapped.getEntryStates(aCallState.getWrappedState(), callNode, calledBlock);
+    return wrappedEntryStates.stream()
+        .map(e -> new ARGState(e, aCallState)).collect(Collectors.toList());
+  }
+
+  @Override
   public List<? extends AbstractState> applyFunctionSummary(
       AbstractState callSite, AbstractState exitState, CFANode callNode, Block calledBlock)
       throws CPAException, InterruptedException {
     ARGState aCallState = (ARGState) callSite;
     ARGState aExitState = (ARGState) exitState;
+
+    aCallState.markExpanded();
+    aExitState.markExpanded();
 
     List<? extends AbstractState> out = wrapped.applyFunctionSummary(
         aCallState.getWrappedState(),
@@ -60,14 +80,4 @@ public class ARGSummaryManager implements SummaryManager {
     ).collect(Collectors.toList());
   }
 
-  @Override
-  public List<? extends AbstractState> getEntryStates(
-      AbstractState callSite, CFANode callNode, Block calledBlock)
-      throws CPAException, InterruptedException {
-    ARGState aCallState = (ARGState) callSite;
-    List<? extends AbstractState> wrappedEntryStates =
-        wrapped.getEntryStates(aCallState.getWrappedState(), callNode, calledBlock);
-    return wrappedEntryStates.stream()
-        .map(e -> new ARGState(e, aCallState)).collect(Collectors.toList());
-  }
 }

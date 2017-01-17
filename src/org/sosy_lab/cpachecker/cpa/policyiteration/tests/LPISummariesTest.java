@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.util.test.TestResults;
 /**
  * Testing summary generation support for LPI.
  */
-public class PolicyIterationSummariesTest {
+public class LPISummariesTest {
 
   private static final String TEST_DIR_PATH = "test/programs/policyiteration/recursive/";
 
@@ -65,13 +65,76 @@ public class PolicyIterationSummariesTest {
     checkWithSummaries("recursion_counter_false_assert.c");
   }
 
-  @Test public void recursive_sum_true_assert() throws Exception {
-    checkWithSummaries("recursive_sum_true_assert.c");
+  @Test public void check_in_func_false_assert() throws Exception {
+    checkWithSummaries("check_in_func_false_assert.c");
+  }
+
+  @Test public void check_in_func_true_assert() throws Exception {
+    checkWithSummaries("check_in_func_true_assert.c");
+  }
+
+  @Test public void conditionals_false_assert() throws Exception {
+    checkWithSummaries("conditionals_false_assert.c");
+  }
+
+  @Test public void conditionals_true_assert() throws Exception {
+    checkWithSummaries("conditionals_true_assert.c");
+  }
+
+  @Test public void counting_false_assert() throws Exception {
+    checkWithSummaries("counting_false_assert.c");
+  }
+
+  @Test public void counting_true_assert() throws Exception {
+    checkWithSummaries("counting_true_assert.c");
+  }
+
+//  @Test
+  public void globals_modified_false_assert() throws Exception {
+    // todo: timeout
+    checkWithSummaries("globals_modified_false_assert.c");
+  }
+
+  @Test public void globals_modified_true_assert() throws Exception {
+    checkWithSummaries("globals_modified_true_assert.c");
+  }
+
+  @Test public void mutual_recursive_false_assert() throws Exception {
+    checkWithSummaries("mutual_recursive_false_assert.c");
+  }
+
+  @Test public void mutual_recursive_true_assert() throws Exception {
+    checkWithSummaries("mutual_recursive_true_assert.c");
+  }
+
+  @Test public void nobasecase_true_assert() throws Exception {
+    checkWithSummaries("nobasecase_true_assert.c");
+  }
+
+  @Test public void recursive_simple_false_assert() throws Exception {
+    checkWithSummaries("recursive_simple_false_assert.c");
+  }
+
+  @Test public void recursive_simple_true_assert() throws Exception {
+    checkWithSummaries("recursive_simple_true_assert.c");
   }
 
   @Test public void recursive_sum_false_assert() throws Exception {
     checkWithSummaries("recursive_sum_false_assert.c");
   }
+
+  @Test public void recursive_sum_true_assert() throws Exception {
+    checkWithSummaries("recursive_sum_true_assert.c");
+  }
+
+  @Test public void simple_false_assert() throws Exception {
+    checkWithSummaries("simple_false_assert.c");
+  }
+
+  @Test public void simple_true_assert() throws Exception {
+    checkWithSummaries("simple_true_assert.c");
+  }
+
 
   private void checkWithSummaries(String filename) throws Exception {
     check(filename,

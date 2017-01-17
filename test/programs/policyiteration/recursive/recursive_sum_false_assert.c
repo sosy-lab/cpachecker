@@ -1,19 +1,17 @@
 #include<assert.h>
 
 extern int __VERIFIER_nondet_int();
-extern void __VERIFIER_assume(int expression);
+extern void __VERIFIER_assume(int condition);
 
-int sum(int param) {
-    if (param == 0) {
-        return param;
-    }
-    return param + sum(param - 1);
+int sum(int i) {
+  if (i <= 0) {
+    return i;
+  }
+  return i + sum(i - 1);
 }
 
 int main() {
-    int x = __VERIFIER_nondet_int();
-    int out = sum(x);
-    assert(out >= 0);
-    assert(out >= x);
+  int i = __VERIFIER_nondet_int();
+  int out = sum(i);
+  assert(out >= 0);
 }
-

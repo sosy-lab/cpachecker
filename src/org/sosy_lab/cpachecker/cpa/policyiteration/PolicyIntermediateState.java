@@ -101,15 +101,15 @@ public final class PolicyIntermediateState extends PolicyState {
 
   /**
    * @return the backpointer containing information about the template.
-   *
-   * Try the normal predecessor, switch to other one on failure.
    */
   PolicyAbstractedState getBackpointerStateForTemplate(Template t) {
-    if (summaryBackpointer == null || backpointer.getBound(t).isPresent()) {
-      return backpointer;
-    }
-    return summaryBackpointer;
 
+    // Summary backpointer takes precedence due to global variables potentially modified
+    // inside the function.
+    if (summaryBackpointer != null && summaryBackpointer.getBound(t).isPresent()) {
+      return summaryBackpointer;
+    }
+    return backpointer;
   }
 
   /**
@@ -181,7 +181,8 @@ public final class PolicyIntermediateState extends PolicyState {
       return Joiner.on('\n').join(counterexample);
     }
     if (getBackpointerStates().get(0).getManager().shouldDisplayFormulasInDotOutput()) {
-      return pathFormula.toString();
+      return pathFormula.toString() + "\n"
+          + (summaryBackpointer != null ? "summarySSA: " + summaryBackpointer.getSSA() : "");
     } else {
       return "";
     }

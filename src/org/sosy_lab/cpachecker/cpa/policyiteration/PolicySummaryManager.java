@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,14 +33,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
@@ -126,7 +126,7 @@ public class PolicySummaryManager implements SummaryManager {
     CFunctionCallEdge callEdge = (CFunctionCallEdge) callNode.getLeavingEdge(0);
     CFANode returnNode = callNode.getLeavingSummaryEdge().getSuccessor();
     assert returnNode.getNumEnteringEdges() == 1;
-    CFAEdge returnEdge = returnNode.getEnteringEdge(0);
+    CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) returnNode.getEnteringEdge(0);
     return Collections.singletonList(
         applySummary(
             aCallState, aExitState,
@@ -142,7 +142,7 @@ public class PolicySummaryManager implements SummaryManager {
     PolicyAbstractedState exitState,
     CFANode returnNode,
     CFunctionCallEdge callEdge,
-    CFAEdge returnEdge,
+    CFunctionReturnEdge returnEdge,
     Block calledBlock
   ) throws CPATransferException, InterruptedException {
 
@@ -165,14 +165,14 @@ public class PolicySummaryManager implements SummaryManager {
     Set<String> paramVarNames = getParamVarNames(callEdge.getSuccessor());
 
     PolicyAbstractedState weakenedExitState
-        = weakenExitState(exitState, paramVarNames, newExitSsa);
+        = rebaseExitState(exitState, paramVarNames, newExitSsa);
 
     BooleanFormula paramRenamingConstraint = getParamRenamingConstraint(
         callEdge, callSsa, newExitSsa
     ).getFormula();
 
     BooleanFormula returnRenamingConstraint = getReturnRenamingConstraint(
-        returnEdge, weakenedExitState
+        callEdge.getSummaryEdge(), callSsa, newExitSsa
     ).getFormula();
 
     PathFormula outConstraint = new PathFormula(
@@ -182,7 +182,6 @@ public class PolicySummaryManager implements SummaryManager {
         1
     );
 
-
     return PolicyIntermediateState.of(
         returnNode, outConstraint, callState, weakenedExitState
     );
@@ -191,19 +190,25 @@ public class PolicySummaryManager implements SummaryManager {
   /**
    * Weaken the exit state and rebase it on top of the new SSA.
    */
-  private PolicyAbstractedState weakenExitState(
+  private PolicyAbstractedState rebaseExitState(
       PolicyAbstractedState exitState,
       Set<String> paramVarNames,
       SSAMap newSsa
   ) {
 
+    // todo: that's not correct.
+    // what about the return statement {@code return a + b + c},
+    // where {@code a, b, c} are all local variables?
+    // suddenly, they become relevant:
+    // such templates should be simply namespaced away using SSA.
+
     // Remove all vars which are not global OR parameters.
-    Map<Template, PolicyBound> weakenedAbstraction =
-        Maps.filterKeys(
-            exitState.getAbstraction(),
-            t -> t.getVarNames().stream().allMatch(
-                varName -> isGlobal(varName) || paramVarNames.contains(varName)
-            ));
+    Map<Template, PolicyBound> weakenedAbstraction = exitState.getAbstraction();
+//        Maps.filterKeys(
+//            exitState.getAbstraction(),
+//            t -> t.getVarNames().stream().allMatch(
+//                varName -> isGlobal(varName) || paramVarNames.contains(varName)
+//            ));
 
     return exitState.withNewAbstractionAndSSA(weakenedAbstraction, newSsa);
   }
@@ -227,61 +232,51 @@ public class PolicySummaryManager implements SummaryManager {
     SSAMap callSsa = pCallState.getSSA();
 
     CFunctionEntryNode entryNode = pCallEdge.getSuccessor();
+    CFunctionSummaryEdge summaryEdge = pCallEdge.getSummaryEdge();
 
-    Set<Wrapper<ASimpleDeclaration>>
-        modifiedVars = pBlock.getModifiedVarsForReturnEdge(pReturnEdge);
-    Set<Wrapper<ASimpleDeclaration>> readVars =
-        pBlock.getReadVariablesForCallEdge(pCallEdge);
+    Set<String> modifiedVars = pBlock.getModifiedVariableNames();
+    Set<String> readVars = pBlock.getReadVariableNames();
 
+    // todo: get rid of this variable.
     Set<String> processed = new HashSet<>();
 
-    // For all vars modified inside the block:
-    //    take index from {@code pExitState}.
-    modifiedVars.stream().map(s -> s.get().getQualifiedName()).forEach(
-        varName -> {
-          if (!exitSsa.containsVariable(varName) &&
-              !callSsa.containsVariable(varName)) {
-            return;
-          }
-          int exitIdx = exitSsa.getIndex(varName);
-          int callIdx = callSsa.getIndex(varName);
-          int newIdx;
-          CType type;
-
-          if (exitIdx >= callIdx) {
-            newIdx = exitIdx;
-            type = exitSsa.getType(varName);
-          } else {
-            newIdx = callIdx + 1;
-            ssaUpdatesToIndex.put(varName, newIdx);
-            type = callSsa.getType(varName);
-          }
-          processed.add(varName);
-          outSSABuilder.setIndex(varName, type, newIdx);
-        }
-    );
-
-    Set<String> paramVarNames = getParamVarNames(entryNode);
-
-    // For all parameter vars and GLOBAL vars read inside the block:
-    //    indexes should match.
-    readVars.stream().map(s -> s.get().getQualifiedName())
-        .filter(s -> isGlobal(s) || paramVarNames.contains(s))
+    // For modified globals:
+    // the SSA index should be larger than that of
+    // the one currently in {@code callSsa} and should agree with
+    // {@code exitSsa}.
+    modifiedVars.stream()
+        .filter(varName -> isGlobal(varName))
         .forEach(varName -> {
-          if (!callSsa.containsVariable(varName) || processed.contains(varName)) {
-            return;
-          }
           int callIdx = callSsa.getIndex(varName);
-          int exitIdx = exitSsa.getIndex(varName);
-          outSSABuilder.setIndex(
-              varName, callSsa.getType(varName), callIdx
-          );
+          int newIdx = callIdx + 1;
+          ssaUpdatesToIndex.put(varName, newIdx);
           processed.add(varName);
-          if (callIdx != exitIdx) {
-            ssaUpdatesToIndex.put(varName, callIdx);
-          }
+          outSSABuilder.setIndex(varName, callSsa.getType(varName), newIdx);
         }
     );
+
+    // For variables written into, the index should be one bigger
+    // than that of a callsite.
+    getWrittenIntoVars(summaryEdge).forEach(varName -> {
+      int callIdx = callSsa.getIndex(varName);
+      int newIdx = callIdx + 1;
+      ssaUpdatesToIndex.put(varName, newIdx);
+      processed.add(varName);
+      outSSABuilder.setIndex(varName, callSsa.getType(varName), newIdx);
+    });
+
+    // For read globals which are NOT modified:
+    // the SSA index should match on call and exit site.
+    readVars.stream()
+        .filter(s -> !modifiedVars.contains(s) && isGlobal(s))
+        .forEach(varName -> {
+          int callIdx = callSsa.getIndex(varName);
+          ssaUpdatesToIndex.put(varName, callIdx);
+          processed.add(varName);
+          outSSABuilder.setIndex(varName, callSsa.getType(varName), callIdx);
+        });
+
+    // todo: for modified & read globals: do the renaming trick.
 
     // For all variables from calling site which weren't processed yet:
     // the output SSA index should be the same.
@@ -301,42 +296,89 @@ public class PolicySummaryManager implements SummaryManager {
     return outSSABuilder.build();
   }
 
+  /**
+   * Get function parameters. E.g. {@code k, t} for {@code int f(int k, int t)}.
+   */
   private Set<String> getParamVarNames(CFunctionEntryNode entryNode) {
     return entryNode.getFunctionParameters().stream()
         .map(s -> s.getQualifiedName()).collect(Collectors.toSet());
   }
 
-
-  /**
-   * "Namespace" the SSA index in order to guarantee no collisions between exit and call state.
-   */
-  private int namespaceSsaIdx(int idx) {
-    return SSA_NAMESPACING_CONST + idx;
-  }
-
-  private boolean isGlobal(String varName) {
-    // todo: avoid hacks.
-    return !varName.contains("::");
-  }
-
   /**
    * @return constraint for renaming returned parameters.
+   *
+   * @param exitSSA {@link SSAMap} used for returned parameter.
+   * @param callSSA {@link SSAMap} used for parameter overriden by the function call.
    */
   private PathFormula getReturnRenamingConstraint(
-      CFAEdge pReturnEdge,
-      PolicyAbstractedState pExitState
+      CFunctionSummaryEdge pEdge,
+      SSAMap callSSA,
+      SSAMap exitSSA
   ) throws CPATransferException, InterruptedException {
-    PathFormula context = new PathFormula(
-        bfmgr.makeTrue(), pExitState.getSSA(), pExitState.getPointerTargetSet(), 1);
 
-    return pfmgr.makeAnd(context, pReturnEdge);
+    SSAMapBuilder usedSSABuilder = SSAMap.emptySSAMap().builder();
+    Set<String> visited = new HashSet<>();
+
+    for (String var : getWrittenIntoVars(pEdge)) {
+      usedSSABuilder.setIndex(var, callSSA.getType(var), callSSA.getIndex(var));
+      visited.add(var);
+    }
+
+    for (String var : exitSSA.allVariables()) {
+      if (!visited.contains(var)) {
+        usedSSABuilder.setIndex(var, exitSSA.getType(var), exitSSA.getIndex(var));
+      }
+    }
+
+
+    CFAEdge returnEdge = pEdge.getSuccessor().getEnteringEdge(0);
+    PathFormula context = new PathFormula(
+        bfmgr.makeTrue(),
+        usedSSABuilder.build(),
+        PointerTargetSet.emptyPointerTargetSet(),
+        1);
+
+    return pfmgr.makeAnd(context, returnEdge);
+  }
+
+  /**
+   * @return set of variables participating in the {@code return} expression,
+   * e.g. {@code a, b, c} in {@code return a + b + c;}
+   */
+  private Set<String> getVarsInReturnArgument(CFunctionSummaryEdge pEdge) {
+    CFANode exitNode = pEdge.getSuccessor().getEnteringEdge(0).getPredecessor();
+    VariablesCollectingVisitor varsCollector = new VariablesCollectingVisitor(exitNode);
+    List<CExpression> params =
+        pEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
+    return params.stream()
+        .map(p -> p.accept(varsCollector)).filter(s -> s != null)
+        .reduce(ImmutableSet.of(), Sets::union);
+  }
+
+  /**
+   * @return vars written-into by the function call,
+   * e.g. {@code a} in {@code a = f(42);}
+   */
+  private Set<String> getWrittenIntoVars(CFunctionSummaryEdge pEdge) {
+    CFANode callNode = pEdge.getPredecessor();
+    VariablesCollectingVisitor varsCollector = new VariablesCollectingVisitor(callNode);
+    if (pEdge.getExpression() instanceof CFunctionCallAssignmentStatement) {
+      CLeftHandSide lhs = ((CFunctionCallAssignmentStatement) pEdge.getExpression()).getLeftHandSide();
+      Set<String> collected = lhs.accept(varsCollector);
+      if (collected != null) {
+        return collected;
+      }
+    }
+    return ImmutableSet.of();
   }
 
   /**
    * Get constraint for parameter renaming.
    */
   private PathFormula getParamRenamingConstraint(
-      CFunctionCallEdge pCallEdge, SSAMap pCallSSA, SSAMap pExitSSA
+      CFunctionCallEdge pCallEdge,
+      SSAMap pCallSSA,
+      SSAMap pExitSSA
   ) throws CPATransferException, InterruptedException {
     return pfmgr.makeAnd(
         new PathFormula(
@@ -378,5 +420,19 @@ public class PolicySummaryManager implements SummaryManager {
     }
 
     return builder.build();
+  }
+
+  /**
+   * "Namespace" the SSA index in order to guarantee no collisions between exit and call state.
+   */
+  private int namespaceSsaIdx(int idx) {
+    return SSA_NAMESPACING_CONST + idx;
+  }
+
+  /**
+   * @return whether the variable name is global.
+   */
+  private boolean isGlobal(String varName) {
+    return !varName.contains("::");
   }
 }
