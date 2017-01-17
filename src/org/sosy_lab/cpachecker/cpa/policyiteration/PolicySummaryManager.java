@@ -42,9 +42,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
-import org.sosy_lab.cpachecker.cpa.summary.simple.SimpleSummaryManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.VariableClassificationBuilder.VariablesCollectingVisitor;
@@ -57,14 +58,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Summaries for LPI
  *
  * todo: aliasing support.
  */
-public class PolicySummaryManager implements SimpleSummaryManager {
+public class PolicySummaryManager implements SummaryManager {
   private final PathFormulaManager pfmgr;
   private final StateFormulaConversionManager stateFormulaConversionManager;
   private final BooleanFormulaManager bfmgr;
@@ -82,18 +82,14 @@ public class PolicySummaryManager implements SimpleSummaryManager {
 
   @Override
   public List<? extends AbstractState> getEntryStates(
-      AbstractState callSite, CFANode callNode, Block calledBlock) {
-    try {
-      return getEntryStates0((PolicyAbstractedState) callSite, callNode);
-    } catch (InterruptedException|SolverException|CPAException pE) {
-      // todo: do not do this, allow for checked exceptions.
-      throw new UnsupportedOperationException("Exception occurred: " + pE, pE);
-    }
+      AbstractState callSite, CFANode callNode, Block calledBlock)
+      throws CPAException, InterruptedException {
+    return getEntryStates0((PolicyAbstractedState) callSite, callNode);
   }
 
   private List<? extends AbstractState> getEntryStates0(
       PolicyAbstractedState aCallState, CFANode callNode)
-      throws CPAException, SolverException, InterruptedException {
+      throws CPAException, InterruptedException {
 
     PolicyIntermediateState iCallState =
         stateFormulaConversionManager.abstractStateToIntermediate(aCallState);
@@ -121,7 +117,8 @@ public class PolicySummaryManager implements SimpleSummaryManager {
 
   @Override
   public List<? extends AbstractState> applyFunctionSummary(
-      AbstractState callSite, AbstractState exitState, CFANode callNode, Block calledBlock) {
+      AbstractState callSite, AbstractState exitState, CFANode callNode, Block calledBlock)
+      throws CPATransferException, InterruptedException {
     PolicyAbstractedState aCallState = (PolicyAbstractedState) callSite;
     PolicyAbstractedState aExitState = (PolicyAbstractedState) exitState;
 
@@ -130,19 +127,14 @@ public class PolicySummaryManager implements SimpleSummaryManager {
     CFANode returnNode = callNode.getLeavingSummaryEdge().getSuccessor();
     assert returnNode.getNumEnteringEdges() == 1;
     CFAEdge returnEdge = returnNode.getEnteringEdge(0);
-    try {
-      return Collections.singletonList(
-          applySummary(
-              aCallState, aExitState,
-              returnNode,
-              callEdge, returnEdge,
-              calledBlock
-          )
-      );
-    } catch (CPATransferException|InterruptedException pE) {
-      // todo: do not do this, allow for checked exceptions.
-      throw new UnsupportedOperationException("Failed " + pE, pE);
-    }
+    return Collections.singletonList(
+        applySummary(
+            aCallState, aExitState,
+            returnNode,
+            callEdge, returnEdge,
+            calledBlock
+        )
+    );
   }
 
   private PolicyIntermediateState applySummary(
@@ -161,7 +153,6 @@ public class PolicySummaryManager implements SimpleSummaryManager {
 
     SSAMap exitSsa = exitState.getSSA();
     SSAMap callSsa = callState.getSSA();
-
 
     SSAMapBuilder newExitSsaBuilder = SSAMap.emptySSAMap().builder();
     exitSsa.allVariables().forEach(
@@ -248,18 +239,25 @@ public class PolicySummaryManager implements SimpleSummaryManager {
     //    take index from {@code pExitState}.
     modifiedVars.stream().map(s -> s.get().getQualifiedName()).forEach(
         varName -> {
+          if (!exitSsa.containsVariable(varName) &&
+              !callSsa.containsVariable(varName)) {
+            return;
+          }
           int exitIdx = exitSsa.getIndex(varName);
           int callIdx = callSsa.getIndex(varName);
           int newIdx;
+          CType type;
+
           if (exitIdx >= callIdx) {
             newIdx = exitIdx;
+            type = exitSsa.getType(varName);
           } else {
             newIdx = callIdx + 1;
             ssaUpdatesToIndex.put(varName, newIdx);
+            type = callSsa.getType(varName);
           }
           processed.add(varName);
-          outSSABuilder.setIndex(
-              varName, exitSsa.getType(varName), newIdx);
+          outSSABuilder.setIndex(varName, type, newIdx);
         }
     );
 
@@ -270,6 +268,9 @@ public class PolicySummaryManager implements SimpleSummaryManager {
     readVars.stream().map(s -> s.get().getQualifiedName())
         .filter(s -> isGlobal(s) || paramVarNames.contains(s))
         .forEach(varName -> {
+          if (!callSsa.containsVariable(varName) || processed.contains(varName)) {
+            return;
+          }
           int callIdx = callSsa.getIndex(varName);
           int exitIdx = exitSsa.getIndex(varName);
           outSSABuilder.setIndex(
@@ -365,7 +366,7 @@ public class PolicySummaryManager implements SimpleSummaryManager {
 
     Set<String> argVars = args.stream().map(
         expr -> expr.accept(variablesCollector)
-    ).reduce(ImmutableSet.of(), Sets::union);
+    ).filter(c -> c != null).reduce(ImmutableSet.of(), Sets::union);
 
     for (String var : argVars) {
       builder = builder.setIndex(var, pCallSSA.getType(var), pCallSSA.getIndex(var));
@@ -377,11 +378,5 @@ public class PolicySummaryManager implements SimpleSummaryManager {
     }
 
     return builder.build();
-  }
-
-  @Override
-  public boolean isSummaryApplicable(
-      AbstractState callSite, AbstractState exitState, CFANode callNode, Block calledBlock) {
-    return true;
   }
 }
