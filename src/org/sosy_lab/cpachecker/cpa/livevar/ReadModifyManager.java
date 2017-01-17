@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.livevar;
 
 import com.google.common.base.Equivalence.Wrapper;
-import com.google.common.base.Preconditions;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Optional;
@@ -34,6 +33,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.util.VariableClassification;
 
 @Options(prefix="cpa.liveVar")
 public class ReadModifyManager extends LiveVariablesManager {
+  private boolean findModified = false;
+
   public ReadModifyManager(
       Optional<VariableClassification> pVarClass,
       Configuration pConfig,
@@ -75,24 +77,32 @@ public class ReadModifyManager extends LiveVariablesManager {
    */
   public Collection<Wrapper<ASimpleDeclaration>> getKilledVars(CFAEdge pEdge)
       throws CPATransferException {
-    Preconditions.checkState(!assumeGlobalVariablesAreAlwaysLive,
-        "assumeGlobalVariablesAreAlwaysLive option should be disabled, "
-            + "otherwise this computation might return incorrect results.");
+    findModified = true;
+    try {
+      BitSet full = new BitSet(noVars);
 
-    BitSet full = new BitSet(noVars);
+      // Assume that all variables are live, see what variables stop
+      // being live after the statement.
+      full.flip(0, noVars);
+      LiveVariablesState state = LiveVariablesState.of(full, this);
+      LiveVariablesState successor = getAbstractSuccessorsForEdge(
+          state, SingletonPrecision.getInstance(), pEdge
+      ).iterator().next();
 
-    // Assume that all variables are live, see what variables stop
-    // being live after the statement.
-    full.flip(0, noVars);
-    LiveVariablesState state = LiveVariablesState.of(full, this);
-    LiveVariablesState successor = getAbstractSuccessorsForEdge(
-        state, SingletonPrecision.getInstance(), pEdge
-    ).iterator().next();
+      // Reverse the logic: get all bits associated with killed variables.
+      BitSet data = successor.getData();
+      data.flip(0, noVars);
+      return dataToVars(data);
+    } finally {
+      findModified = false;
+    }
+  }
 
-    // Reverse the logic: get all bits associated with killed variables.
-    BitSet data = successor.getData();
-    data.flip(0, noVars);
-    return dataToVars(data);
+  @Override
+  protected void handleExpression(AExpression expression, BitSet writeInto) {
+    if (!findModified) {
+      super.handleExpression(expression, writeInto);
+    }
   }
 
   @Override
@@ -101,5 +111,10 @@ public class ReadModifyManager extends LiveVariablesManager {
     // This is a hackish solution: for our purposes we need
     // to treat assignment LHS as if it was always live.
     return true;
+  }
+
+  @Override
+  protected boolean getAssumeGlobalsAreAlwaysLive() {
+    return false;
   }
 }

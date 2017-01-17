@@ -155,7 +155,7 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
     }
 
     BitSet globalVars = new BitSet(noVars);
-    if (assumeGlobalVariablesAreAlwaysLive) {
+    if (getAssumeGlobalsAreAlwaysLive()) {
       for (int i=0; i<noVars; i++) {
         ASimpleDeclaration decl = allDeclarations.get(i).get();
         if (decl instanceof AVariableDeclaration &&
@@ -171,6 +171,10 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
 
     addressedOrGlobalVars = (BitSet) addressedVars.clone();
     addressedOrGlobalVars.or(globalVars);
+  }
+
+  protected boolean getAssumeGlobalsAreAlwaysLive() {
+    return assumeGlobalVariablesAreAlwaysLive;
   }
 
   public LiveVariablesState getInitialState(CFANode pNode) {
@@ -461,7 +465,6 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
     // assigned variable gets removed.
     newLiveVars.andNot(assignedVariable);
 
-
     // check all variables of the right-hand-sides, they should be live
     // afterwards if the leftHandSide is live
     if (assignment instanceof AExpressionAssignmentStatement) {
@@ -562,7 +565,7 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
   /**
    * Mark all declarations occurring inside the expression as live.
    */
-  private void handleExpression(AExpression expression, BitSet writeInto) {
+  protected void handleExpression(AExpression expression, BitSet writeInto) {
     markDeclarationsInBitSet(CFAUtils.traverseRecursively(expression), writeInto);
   }
 
