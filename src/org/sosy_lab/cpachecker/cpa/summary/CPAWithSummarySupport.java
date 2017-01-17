@@ -21,13 +21,13 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.summary.simple;
+package org.sosy_lab.cpachecker.cpa.summary;
 
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 
 public interface CPAWithSummarySupport extends ConfigurableProgramAnalysis {
-  SimpleSummaryManager getSimpleSummaryManager();
+  SummaryManager getSimpleSummaryManager();
 
   /**
    * Communicate {@code pBlockManager} to the client CPA.
