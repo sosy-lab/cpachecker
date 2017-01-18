@@ -740,6 +740,9 @@ cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 # disequality provided by apron library 
 cpa.apron.splitDisequalities = true
 
+# translate final ARG into this C file
+cpa.arg.CTranslation.file = "ARG.c"
+
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
 # per CFA edge.
@@ -770,6 +773,9 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # export final ARG as .dot file, showing only loop heads and function
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
+
+# translate final ARG into C program
+cpa.arg.translateToC = false
 
 # Verification witness: Include the considered case of an assume?
 cpa.arg.witness.exportAssumeCaseInfo = true
