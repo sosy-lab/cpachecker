@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.summary.blocks;
 
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -51,8 +49,6 @@ public class Block {
   private final CFANode exitNode;
   private final ImmutableSet<CFAEdge> incomingTransitions;
   private final ImmutableSet<CFANode> ownNodes;
-  private final ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToReadVars;
-  private final ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> returnEdgeToModifiedVars;
 
   public Block(
       Set<CFANode> pInnerNodes,
@@ -62,9 +58,7 @@ public class Block {
       CFANode pStartNode,
       CFANode pExitNode,
       boolean pHasRecursion,
-      Set<CFAEdge> pIncomingTransitions,
-      ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> pCallEdgeToReadVars,
-      ImmutableSetMultimap<CFAEdge, Wrapper<ASimpleDeclaration>> pReturnEdgeToModifiedVars) {
+      Set<CFAEdge> pIncomingTransitions) {
     innerNodes = ImmutableSet.copyOf(pInnerNodes);
     ownNodes = ImmutableSet.copyOf(pOwnNodes);
     readVariables = ImmutableSet.copyOf(pReadVariables);
@@ -73,8 +67,6 @@ public class Block {
     startNode = pStartNode;
     exitNode = pExitNode;
     incomingTransitions = ImmutableSet.copyOf(pIncomingTransitions);
-    callEdgeToReadVars = pCallEdgeToReadVars;
-    returnEdgeToModifiedVars = pReturnEdgeToModifiedVars;
   }
 
   /**
@@ -137,17 +129,9 @@ public class Block {
     return readVariables;
   }
 
-  public Set<Wrapper<ASimpleDeclaration>> getReadVariablesForCallEdge(CFAEdge pEdge) {
-    return Sets.union(callEdgeToReadVars.get(pEdge), readVariables);
-  }
-
-  public Set<Wrapper<ASimpleDeclaration>> getModifiedVarsForReturnEdge(CFAEdge pEdge) {
-    return Sets.union(returnEdgeToModifiedVars.get(pEdge), modifiedVariables);
-  }
-
   /**
    * @return All variables modified inside the block.
-   * Includes modifications by called blocks.
+   * Includes modifications by the called blocks.
    */
   public Set<Wrapper<ASimpleDeclaration>> getModifiedVariables() {
     return modifiedVariables;

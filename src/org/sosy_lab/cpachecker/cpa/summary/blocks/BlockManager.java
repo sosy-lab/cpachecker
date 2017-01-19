@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.summary.blocks;
 import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -151,20 +150,6 @@ public class BlockManager {
     Set<CFAEdge> incomingTransitions = IntStream.range(0, entry.getNumEnteringEdges())
         .mapToObj(i -> entry.getEnteringEdge(i)).collect(Collectors.toSet());
 
-    ImmutableSetMultimap.Builder<CFAEdge, Wrapper<ASimpleDeclaration>> callEdgeToReadVars =
-        ImmutableSetMultimap.builder();
-    ImmutableSetMultimap.Builder<CFAEdge, Wrapper<ASimpleDeclaration>> returnEdgeToModifiedVars =
-        ImmutableSetMultimap.builder();
-
-    for (int i=0; i<entry.getNumEnteringEdges(); i++) {
-      CFAEdge callEdge = entry.getEnteringEdge(i);
-      callEdgeToReadVars.putAll(callEdge, readModifyManager.getReadVars(callEdge));
-      CFANode returnNode = callEdge.getPredecessor().getLeavingSummaryEdge().getSuccessor();
-      assert returnNode.getNumEnteringEdges() == 1;
-      CFAEdge returnEdge = returnNode.getEnteringEdge(0);
-      returnEdgeToModifiedVars.putAll(callEdge, readModifyManager.getKilledVars(returnEdge));
-    }
-
     return new Block(
         innerNodes,
         ownNodes,
@@ -173,9 +158,7 @@ public class BlockManager {
         entry,
         exit,
         hasRecursion,
-        incomingTransitions,
-        callEdgeToReadVars.build(),
-        returnEdgeToModifiedVars.build());
+        incomingTransitions);
   }
 
 }
