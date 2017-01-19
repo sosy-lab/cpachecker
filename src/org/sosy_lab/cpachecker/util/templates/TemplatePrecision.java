@@ -49,6 +49,8 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -57,6 +59,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.LinearExpression;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -68,8 +71,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -80,6 +85,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
+import org.sosy_lab.cpachecker.cpa.summary.blocks.BlockManager;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 
@@ -126,6 +133,10 @@ public class TemplatePrecision implements Precision {
           + "generated templates. Required for summaries computation.")
   private boolean includeFunctionParameters = false;
 
+  /**
+   * Only used for "SUMMARY" generation algorithm.
+   */
+  private @Nullable BlockManager blockManager;
 
   public enum VarFilteringStrategy {
 
@@ -145,6 +156,11 @@ public class TemplatePrecision implements Precision {
      * Generate only templates where at least one variable is alive.
      */
     ONE_LIVE,
+
+    /**
+     * Template generation algorithm used for summaries.
+     */
+    SUMMARY_BASED,
 
     /**
      * Generate all templates.
@@ -168,6 +184,8 @@ public class TemplatePrecision implements Precision {
   private final TemplateToFormulaConversionManager
       templateToFormulaConversionManager;
 
+  private final String copyVarPostfix;
+
   // Temporary variables created by CPA checker.
 
   // todo: do not hardcode, use automaton.
@@ -187,9 +205,14 @@ public class TemplatePrecision implements Precision {
       CFA pCfa,
       TemplateToFormulaConversionManager pTemplateToFormulaConversionManager)
         throws InvalidConfigurationException {
-    templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
-
     pConfig.inject(this, TemplatePrecision.class);
+
+    templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
+    CFACreator cfaCreator = new CFACreator(
+        pConfig, pLogger, ShutdownNotifier.createDummy());
+
+    copyVarPostfix = cfaCreator.getPostfixForCopiedVars();
+
     extraTemplates = new HashSet<>();
 
     cfa = pCfa;
@@ -735,13 +758,65 @@ public class TemplatePrecision implements Precision {
   }
 
 
+  public void setBlockManager(BlockManager pBlockManager) {
+    blockManager = pBlockManager;
+  }
+
+
   private Collection<ASimpleDeclaration> getVarsForNode(CFANode node) {
-    if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
-      return cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet();
-    } else if (varFiltering == VarFilteringStrategy.INTERPOLATION_BASED) {
-      return varsInInterpolant.get(node);
-    } else {
-      return allVariables;
+    switch (varFiltering) {
+      case ALL_LIVE:
+        ImmutableSet<ASimpleDeclaration> out =
+            cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet();
+        logger.log(Level.INFO, "Live variables for node", node, "are", out);
+        return out;
+      case INTERPOLATION_BASED:
+        return varsInInterpolant.get(node);
+
+      case SUMMARY_BASED:
+
+        assert blockManager != null;
+        Block block = blockManager.getBlockForNode(node);
+        Set<String> readVars = block.getReadVariableNames();
+
+        ImmutableSet<ASimpleDeclaration> liveVars =
+            cfa.getLiveVariables().get().getLiveVariablesForNode(node)
+
+                // Filter out variables not read inside the block
+                // or in any of the called blocks.
+                .filter(v -> {
+                  if (v instanceof CParameterDeclaration) {
+                    return true;
+                  }
+                  if (!(v instanceof CVariableDeclaration)) {
+                    return false;
+                  }
+                  CVariableDeclaration varDecl = (CVariableDeclaration) v;
+
+                  // todo: works only with function-wise liveness evaluation.
+                  if (!varDecl.isGlobal() || readVars.contains(v.getQualifiedName())) {
+                    return true;
+                  }
+                  return false;
+                })
+                .toSet();
+
+        if (!copyVarPostfix.isEmpty()) {
+          Set<CVariableDeclaration> copies = block.getModifiedVariables().stream()
+              .map(v -> v.get())
+              .filter(v -> v instanceof CVariableDeclaration)
+              .map(v -> (CVariableDeclaration) v)
+              .filter(v -> v.getQualifiedName().contains(copyVarPostfix))
+              .collect(Collectors.toSet());
+
+          return Sets.union(liveVars, copies);
+        }
+        return liveVars;
+      case ONE_LIVE:
+      case ALL:
+        return allVariables;
+      default:
+        throw new UnsupportedOperationException("Unexpected case");
     }
   }
 }

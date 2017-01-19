@@ -300,6 +300,7 @@ public class PolicyCPA extends SingleEdgeTransferRelation
   @Override
   public void setBlockManager(BlockManager pBlockManager) {
     policyIterationManager.setBlockManager(pBlockManager);
+    templatePrecision.setBlockManager(pBlockManager);
   }
 }
 
