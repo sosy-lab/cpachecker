@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
@@ -184,6 +185,9 @@ public class TemplatePrecision implements Precision {
   private final TemplateToFormulaConversionManager
       templateToFormulaConversionManager;
 
+  /**
+   * cf. {@link org.sosy_lab.cpachecker.cfa.postprocessing.function.SummaryGeneratorHelper}.
+   */
   private final String copyVarPostfix;
 
   // Temporary variables created by CPA checker.
@@ -774,70 +778,94 @@ public class TemplatePrecision implements Precision {
         return out;
       case INTERPOLATION_BASED:
         return varsInInterpolant.get(node);
-
       case SUMMARY_BASED:
-
-        assert blockManager != null;
-        Block block = blockManager.getBlockForNode(node);
-        Set<String> readVars = block.getReadVariableNames();
-        Set<String> modifiedVars = block.getModifiedVariableNames();
-
-        // Use live variables, except removed globals not read or written inside the block.
-        ImmutableSet<ASimpleDeclaration> liveVars =
-            cfa.getLiveVariables().get().getLiveVariablesForNode(node)
-
-                // Filter out variables not read inside the block
-                // or in any of the called blocks.
-                .filter(v -> {
-                  if (v instanceof CParameterDeclaration) {
-                    return true;
-                  }
-                  if (!(v instanceof CVariableDeclaration)) {
-                    return false;
-                  }
-                  CVariableDeclaration varDecl = (CVariableDeclaration) v;
-
-                  // NB: works only with function-wise liveness evaluation,
-                  // ASSUMES that vars on the outer stack are no longer live.
-                  if (!varDecl.isGlobal()
-                      || readVars.contains(v.getQualifiedName())
-                      || modifiedVars.contains(v.getQualifiedName())) {
-                    return true;
-                  }
-                  return false;
-                })
-                .toSet();
-
-        // Force parameters to be always live inside the function.
-        Set<CVariableDeclaration> paramDeclarations = ((CFunctionEntryNode) block.getStartNode())
-            .getFunctionParameters().stream()
-            .map(s -> s.asVariableDeclaration()).collect(Collectors.toSet());
-
-        // Add the global/parameter copies into the precision.
-        // (see SummaryGenerationHelper)
-        Set<CVariableDeclaration> copiedVars;
-        if (!copyVarPostfix.isEmpty()) {
-          copiedVars = block.getModifiedVariables().stream()
-              .map(v -> v.get())
-              .filter(v -> v instanceof CVariableDeclaration)
-              .map(v -> (CVariableDeclaration) v)
-              .filter(v -> v.getQualifiedName().contains(copyVarPostfix))
-              .collect(Collectors.toSet());
-        } else {
-          copiedVars = ImmutableSet.of();
-        }
-
-        Set<ASimpleDeclaration> summaryVars = new HashSet<>();
-        summaryVars.addAll(paramDeclarations);
-        summaryVars.addAll(copiedVars);
-        summaryVars.addAll(liveVars);
-        return summaryVars;
+        return relevantVarsForNodeInSummaryMode(node);
 
       case ONE_LIVE:
+
+        // Filtering is done later, cf. #shouldUseTemplate.
+        return allVariables;
       case ALL:
         return allVariables;
       default:
         throw new UnsupportedOperationException("Unexpected case");
     }
+  }
+
+  private Set<ASimpleDeclaration> relevantVarsForNodeInSummaryMode(CFANode node) {
+    assert blockManager != null;
+    Block block = blockManager.getBlockForNode(node);
+    Set<String> readVars = block.getReadVariableNames();
+    Set<String> modifiedVars = block.getModifiedVariableNames();
+
+    // Use live variables, except removed globals not read or written inside the block.
+    ImmutableSet<ASimpleDeclaration> liveVars =
+        cfa.getLiveVariables().get().getLiveVariablesForNode(node)
+
+            // Filter out variables not read inside the block
+            // or in any of the called blocks.
+            .filter(v -> {
+              if (v instanceof CParameterDeclaration) {
+                return true;
+              }
+              if (!(v instanceof CVariableDeclaration)) {
+                return false;
+              }
+              CVariableDeclaration varDecl = (CVariableDeclaration) v;
+
+              // NB: works only with function-wise liveness evaluation,
+              // ASSUMES that vars on the outer stack are no longer live.
+              if (!varDecl.isGlobal()
+                  || readVars.contains(v.getQualifiedName())
+                  || modifiedVars.contains(v.getQualifiedName())) {
+                return true;
+              }
+              return false;
+            })
+            .toSet();
+
+    // Force parameters to be always live inside the function.
+    Set<CVariableDeclaration> paramDeclarations = ((CFunctionEntryNode) block.getStartNode())
+        .getFunctionParameters().stream()
+        .map(s -> fromParamDeclarationWithRenaming(s)).collect(Collectors.toSet());
+
+    // Add the global/parameter copies into the precision.
+    // (see SummaryGenerationHelper)
+    assert !copyVarPostfix.isEmpty();
+
+    // Always keep global copied vars in precision.
+    Set<CVariableDeclaration> copiedVars = block.getModifiedVariables().stream()
+        .map(v -> v.get())
+        .filter(v -> v instanceof CVariableDeclaration)
+        .map(v -> (CVariableDeclaration) v)
+        .filter(v -> v.isGlobal() && v.getQualifiedName().contains(copyVarPostfix))
+        .collect(Collectors.toSet());
+
+    Set<ASimpleDeclaration> summaryVars = new HashSet<>();
+    summaryVars.addAll(paramDeclarations);
+    summaryVars.addAll(copiedVars);
+    summaryVars.addAll(liveVars);
+    return summaryVars;
+  }
+
+  /**
+   * Rename the declaration by adding a postfix.
+   * CF. {@link org.sosy_lab.cpachecker.cfa.postprocessing.function.SummaryGeneratorHelper}.
+   */
+  private CVariableDeclaration fromParamDeclarationWithRenaming(CParameterDeclaration pParam) {
+    CVariableDeclaration paramVarDeclaration = pParam.asVariableDeclaration();
+    // todo: remove code duplication.
+    return new CVariableDeclaration(
+            paramVarDeclaration.getFileLocation(),
+            paramVarDeclaration.isGlobal(),
+            paramVarDeclaration.getCStorageClass(),
+            paramVarDeclaration.getType(),
+            paramVarDeclaration.getName() + copyVarPostfix,
+            paramVarDeclaration.getOrigName() + copyVarPostfix,
+            paramVarDeclaration.getQualifiedName() + copyVarPostfix,
+            new CInitializerExpression(
+                paramVarDeclaration.getFileLocation(),
+                new CIdExpression(paramVarDeclaration.getFileLocation(), paramVarDeclaration)));
+
   }
 }

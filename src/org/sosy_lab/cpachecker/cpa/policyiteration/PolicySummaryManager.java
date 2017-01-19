@@ -24,19 +24,26 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -47,7 +54,6 @@ import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.VariableClassificationBuilder.VariablesCollectingVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -69,14 +75,25 @@ public class PolicySummaryManager implements SummaryManager {
 
   private static final int SSA_NAMESPACING_CONST = 1000;
 
+  /**
+   * cf. {@link org.sosy_lab.cpachecker.cfa.postprocessing.function.SummaryGeneratorHelper}.
+   */
+  private final String copyVarPostfix;
+
   public PolicySummaryManager(
       PathFormulaManager pPfmgr,
       StateFormulaConversionManager pStateFormulaConversionManager,
-      FormulaManagerView pFmgr) {
+      FormulaManagerView pFmgr,
+      Configuration pConfig,
+      LogManager pLogger) throws InvalidConfigurationException {
     fmgr = pFmgr;
     pfmgr = pPfmgr;
     stateFormulaConversionManager = pStateFormulaConversionManager;
     bfmgr = pFmgr.getBooleanFormulaManager();
+    CFACreator cfaCreator = new CFACreator(
+        pConfig, pLogger, ShutdownNotifier.createDummy());
+
+    copyVarPostfix = cfaCreator.getPostfixForCopiedVars();
   }
 
   @Override
@@ -168,7 +185,7 @@ public class PolicySummaryManager implements SummaryManager {
 
     BooleanFormula returnRenamingConstraint = getReturnRenamingConstraint(
         callEdge.getSummaryEdge(), callSsa, newExitSsa
-    ).getFormula();
+    );
 
     PathFormula outConstraint = new PathFormula(
         bfmgr.and(paramRenamingConstraint, returnRenamingConstraint),
@@ -234,7 +251,8 @@ public class PolicySummaryManager implements SummaryManager {
 
     // For variables written into, the index should be one bigger
     // than that of a callsite.
-    getWrittenIntoVars(summaryEdge).forEach(varName -> {
+    getWrittenIntoVar(summaryEdge).ifPresent(s -> {
+      String varName = s.getDeclaration().getQualifiedName();
       int callIdx = callSsa.getIndex(varName);
       int newIdx = callIdx + 1;
       ssaUpdatesToIndex.put(varName, newIdx);
@@ -275,30 +293,34 @@ public class PolicySummaryManager implements SummaryManager {
 
   /**
    * @return constraint for renaming returned parameters.
+   *         In order to be consistent with {@link #getOutSSAMap},
+   *         increments the SSA index of the variable written into by one.
    *
    * @param exitSSA {@link SSAMap} used for returned parameter.
    * @param callSSA {@link SSAMap} used for parameter overriden by the function call.
    */
-  private PathFormula getReturnRenamingConstraint(
+  private BooleanFormula getReturnRenamingConstraint(
       CFunctionSummaryEdge pEdge,
       SSAMap callSSA,
       SSAMap exitSSA
   ) throws CPATransferException, InterruptedException {
-
     SSAMapBuilder usedSSABuilder = SSAMap.emptySSAMap().builder();
-    Set<String> visited = new HashSet<>();
-
-    for (String var : getWrittenIntoVars(pEdge)) {
-      usedSSABuilder.setIndex(var, callSSA.getType(var), callSSA.getIndex(var));
-      visited.add(var);
+    Optional<CIdExpression> writtenInto = getWrittenIntoVar(pEdge);
+    if (!writtenInto.isPresent()) {
+      return bfmgr.makeTrue();
     }
 
+    String writtenIntoVarName = writtenInto.get().getDeclaration().getQualifiedName();
+    usedSSABuilder.setIndex(
+        writtenIntoVarName,
+        callSSA.getType(writtenIntoVarName),
+        callSSA.getIndex(writtenIntoVarName));
+
     for (String var : exitSSA.allVariables()) {
-      if (!visited.contains(var)) {
+      if (!var.equals(writtenIntoVarName)) {
         usedSSABuilder.setIndex(var, exitSSA.getType(var), exitSSA.getIndex(var));
       }
     }
-
 
     CFAEdge returnEdge = pEdge.getSuccessor().getEnteringEdge(0);
     PathFormula context = new PathFormula(
@@ -307,27 +329,12 @@ public class PolicySummaryManager implements SummaryManager {
         PointerTargetSet.emptyPointerTargetSet(),
         1);
 
-    // todo: add an assert that the index of the variable written into is incremented
-    // only by one (or better yet, construct expression manually).
-    return pfmgr.makeAnd(context, returnEdge);
+    PathFormula out = pfmgr.makeAnd(context, returnEdge);
+    assert out.getSsa().getIndex(writtenIntoVarName) == callSSA.getIndex(writtenIntoVarName) + 1;
+
+    return out.getFormula();
   }
 
-  /**
-   * @return vars written-into by the function call,
-   * e.g. {@code a} in {@code a = f(42);}
-   */
-  private Set<String> getWrittenIntoVars(CFunctionSummaryEdge pEdge) {
-    CFANode callNode = pEdge.getPredecessor();
-    VariablesCollectingVisitor varsCollector = new VariablesCollectingVisitor(callNode);
-    if (pEdge.getExpression() instanceof CFunctionCallAssignmentStatement) {
-      CLeftHandSide lhs = ((CFunctionCallAssignmentStatement) pEdge.getExpression()).getLeftHandSide();
-      Set<String> collected = lhs.accept(varsCollector);
-      if (collected != null) {
-        return collected;
-      }
-    }
-    return ImmutableSet.of();
-  }
 
   /**
    * Get constraint for parameter renaming.
@@ -352,17 +359,54 @@ public class PolicySummaryManager implements SummaryManager {
 
     for (int i=0; i<args.size(); i++) {
       CExpression arg = args.get(i);
-      CIdExpression param =
-          new CIdExpression(pCallEdge.getFileLocation(), params.get(i).asVariableDeclaration());
+
+      CVariableDeclaration paramVarDeclaration =
+          params.get(i).asVariableDeclaration();
+
+      // Created by SummaryGeneratorHelper. todo: remove code duplication.
+      CVariableDeclaration renamedOrigDeclaration =
+          new CVariableDeclaration(
+              paramVarDeclaration.getFileLocation(),
+              paramVarDeclaration.isGlobal(),
+              paramVarDeclaration.getCStorageClass(),
+              paramVarDeclaration.getType(),
+              paramVarDeclaration.getName() + copyVarPostfix,
+              paramVarDeclaration.getOrigName() + copyVarPostfix,
+              paramVarDeclaration.getQualifiedName() + copyVarPostfix,
+              new CInitializerExpression(
+                  paramVarDeclaration.getFileLocation(),
+                  new CIdExpression(paramVarDeclaration.getFileLocation(), paramVarDeclaration)));
+
+      CIdExpression paramExpression =
+          new CIdExpression(pCallEdge.getFileLocation(), renamedOrigDeclaration);
       Formula argF = pfmgr.expressionToFormula(
           callingContext, arg, pCallEdge
       );
       Formula paramF = pfmgr.expressionToFormula(
-          exitContext, param, pCallEdge
+          exitContext, paramExpression, pCallEdge
       );
       constraints.add(fmgr.makeEqual(paramF, argF));
     }
     return bfmgr.and(constraints);
+  }
+
+  /**
+   * @return var written into by the function call.
+   * E.g. {@code a} in {@code a = f(42);},
+   * empty in {@code void f() {}; f(120);}
+   */
+  private Optional<CIdExpression> getWrittenIntoVar(CFunctionSummaryEdge pEdge) {
+    if (pEdge.getExpression() instanceof CFunctionCallAssignmentStatement) {
+      CLeftHandSide lhs = ((CFunctionCallAssignmentStatement) pEdge.getExpression()).getLeftHandSide();
+      if (lhs instanceof CIdExpression) {
+        return Optional.of((CIdExpression) lhs);
+
+      } else {
+        throw new UnsupportedOperationException("Only writes to variables "
+            + "are currently supported by LPI + summaries.");
+      }
+    }
+    return Optional.empty();
   }
 
   /**
