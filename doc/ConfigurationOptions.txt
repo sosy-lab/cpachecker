@@ -674,9 +674,15 @@ counterexample.export.report = "Counterexample.%d.html"
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
 
-# If continueAfterInfeasibleError is true, remove the infeasible
-# counterexample before continuing.Setting this to false may prevent a lot of
-# similar infeasible counterexamples to get discovered, but is unsound
+# If continueAfterInfeasibleError is true, remove the error state that is
+# proven to be unreachable before continuing. Set this to false if
+# analyis.collectAssumptions=true is also set.
+counterexample.removeInfeasibleErrorState = true
+
+# If continueAfterInfeasibleError is true, attempt to remove the whole path
+# of the infeasible counterexample before continuing. Setting this to false
+# may prevent a lot of similar infeasible counterexamples to get discovered,
+# but is unsound
 counterexample.removeInfeasibleErrors = false
 
 # Compute and export information about the verification coverage?
