@@ -141,7 +141,9 @@ public class PolicyCPA extends SingleEdgeTransferRelation
     summaryManager = new PolicySummaryManager(
         pathFormulaManager,
         stateFormulaConversionManager,
-        fmgr);
+        fmgr,
+        pConfig,
+        logger);
   }
 
   @Override
