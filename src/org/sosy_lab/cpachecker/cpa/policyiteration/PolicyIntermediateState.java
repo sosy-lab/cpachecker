@@ -153,7 +153,7 @@ public final class PolicyIntermediateState extends PolicyState {
   /**
    * @return topological order from this node to root.
    */
-  private List<PolicyIntermediateState> topSort() {
+  List<PolicyIntermediateState> topSort() {
 
     LinkedList<PolicyIntermediateState> out = new LinkedList<>();
     Deque<Pair<PolicyIntermediateState, Boolean>> stack = new ArrayDeque<>();

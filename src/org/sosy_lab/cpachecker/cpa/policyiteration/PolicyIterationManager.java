@@ -1050,40 +1050,23 @@ public class PolicyIterationManager {
       AbstractState pArgState
       ) {
 
-    Set<PolicyAbstractedState> filteredSiblings =
-        ImmutableSet.copyOf(
-            AbstractStates.projectToType(
-                states.getReached(pArgState),
-                PolicyAbstractedState.class)
-        );
+    ImmutableSet<PolicyAbstractedState> filteredSiblings = AbstractStates.projectToType(
+        states.getReached(pArgState),
+        PolicyAbstractedState.class).toSet();
     if (filteredSiblings.isEmpty()) {
       return Optional.empty();
     }
 
-    // We follow the chain of backpointers.
-    // The chain is necessary as we might have nested loops.
-    PolicyState a = state;
-    while (true) {
-      if (a.isAbstract()) {
-        PolicyAbstractedState aState = a.asAbstracted();
-
-        if (filteredSiblings.contains(aState)) {
-          return Optional.of(aState);
-        } else {
-          Optional<PolicyIntermediateState> genState = aState.getGeneratingState();
-          if (!genState.isPresent()) {
-            return Optional.empty();
-          }
-          // Note: if we have multiple backpointers, for finding siblings it's
-          // not relevant which one we should chase.
-          a = genState.get().getBackpointerStates().iterator().next();
+    // todo: BFS suffices
+    List<PolicyIntermediateState> predecessors = state.topSort();
+    for (PolicyIntermediateState pred : predecessors) {
+      for (PolicyAbstractedState a : pred.getBackpointerStates()) {
+        if (filteredSiblings.contains(a.getOriginal())) {
+          return Optional.of(a.getOriginal());
         }
-
-      } else {
-        PolicyIntermediateState iState = a.asIntermediate();
-        a = iState.getBackpointerStates().iterator().next();
       }
     }
+    return Optional.empty();
   }
 
   public boolean isLessOrEqual(PolicyState state1, PolicyState state2) {
