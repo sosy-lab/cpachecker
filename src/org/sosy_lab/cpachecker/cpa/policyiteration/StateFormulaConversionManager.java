@@ -42,10 +42,12 @@ import java.util.stream.Collectors;
 @Options(prefix="cpa.lpi")
 public class StateFormulaConversionManager {
 
-  @Option(description="Remove redundant items when abstract values.")
+  @Option(description="Remove redundant items when abstract values.",
+    secure=true)
   private boolean simplifyDotOutput = false;
 
-  @Option(description="Display formulas associated with intermediate states in DOT output.")
+  @Option(description="Display formulas associated with intermediate states in DOT output.",
+      secure=true)
   private boolean displayFormulasInDotOutput = false;
 
   private final FormulaManagerView fmgr;
