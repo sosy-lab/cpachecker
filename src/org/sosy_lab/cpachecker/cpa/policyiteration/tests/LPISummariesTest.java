@@ -126,6 +126,13 @@ public class LPISummariesTest {
     checkWithSummaries("simple_true_assert.c");
   }
 
+  @Test public void param_renamed_false_assert() throws Exception {
+    checkWithSummaries("param_renamed_false_assert.c");
+  }
+
+  @Test public void param_renamed_true_assert() throws Exception {
+    checkWithSummaries("param_renamed_true_assert.c");
+  }
 
   private void checkWithSummaries(String filename) throws Exception {
     check(filename,
