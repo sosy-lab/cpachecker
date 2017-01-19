@@ -114,7 +114,7 @@ public class LiveVariablesManager extends ForwardingTransferRelation<LiveVariabl
   final int noVars;
 
   private final BitSet addressedOrGlobalVars;
-  final LogManager logger;
+  private final LogManager logger;
   private final CFA cfa;
 
   public LiveVariablesManager(
