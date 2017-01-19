@@ -238,7 +238,9 @@ public class TemplatePrecision implements Precision {
     }
 
     Builder<Template> out = ImmutableSet.builder();
-    out.addAll(extractTemplatesForNode(node)::iterator);
+    extractTemplatesForNode(node).forEach(
+        t -> out.add(t)
+    );
     out.addAll(extraTemplates);
     out.addAll(extractedFromAssertTemplates);
 
