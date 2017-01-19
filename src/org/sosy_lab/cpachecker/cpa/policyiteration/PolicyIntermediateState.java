@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -36,6 +37,9 @@ public final class PolicyIntermediateState extends PolicyState {
   private @Nullable transient ImmutableList<ValueAssignment> counterexample = null;
   private transient int hashCache = 0;
 
+  private final int stateId;
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+
   private PolicyIntermediateState(
       CFANode node,
       PathFormula pPathFormula,
@@ -46,6 +50,7 @@ public final class PolicyIntermediateState extends PolicyState {
     pathFormula = pPathFormula;
     backpointer = pBackpointer;
     summaryBackpointer = pSummaryBackpointer;
+    stateId = idGenerator.getFreshId();
   }
 
   public static PolicyIntermediateState of(
@@ -65,6 +70,10 @@ public final class PolicyIntermediateState extends PolicyState {
   ) {
     return new PolicyIntermediateState(
         node, pPathFormula, pGeneratingState, pSummaryState);
+  }
+
+  int getId() {
+    return stateId;
   }
 
   /**
