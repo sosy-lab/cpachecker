@@ -233,6 +233,13 @@ public class CBinaryExpressionBuilder {
         (pType instanceof CElaboratedType
         && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
       return CNumericTypes.SIGNED_INT;
+    } else if (pType instanceof CBitFieldType) {
+      CBitFieldType bitFieldType = (CBitFieldType) pType;
+      CType handledInnerType = handleEnum(bitFieldType.getType());
+      if (handledInnerType == bitFieldType.getType()) {
+        return pType;
+      }
+      return new CBitFieldType(handledInnerType, bitFieldType.getBitFieldSize());
     } else {
       return pType;
     }
