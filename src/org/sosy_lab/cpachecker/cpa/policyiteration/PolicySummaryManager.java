@@ -59,8 +59,6 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 /**
  * Summaries for LPI
- *
- * todo: aliasing support.
  */
 public class PolicySummaryManager implements SummaryManager {
   private final PathFormulaManager pfmgr;
