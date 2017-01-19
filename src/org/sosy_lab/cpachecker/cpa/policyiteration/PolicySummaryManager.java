@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.summary.SummaryManager;
 import org.sosy_lab.cpachecker.cpa.summary.blocks.Block;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -187,8 +188,16 @@ public class PolicySummaryManager implements SummaryManager {
         callEdge.getSummaryEdge(), callSsa, newExitSsa
     );
 
+    BooleanFormula modifiedGlobalsRenamingConstraint = getModifiedGlobalsRenamingConstraint(
+        callEdge.getSummaryEdge(), callSsa, newExitSsa, calledBlock
+    );
+
     PathFormula outConstraint = new PathFormula(
-        bfmgr.and(paramRenamingConstraint, returnRenamingConstraint),
+        bfmgr.and(
+            paramRenamingConstraint,
+            returnRenamingConstraint,
+            modifiedGlobalsRenamingConstraint
+        ),
         outMap,
         callState.getPointerTargetSet(),
         1
@@ -228,19 +237,18 @@ public class PolicySummaryManager implements SummaryManager {
 
     CFunctionSummaryEdge summaryEdge = pCallEdge.getSummaryEdge();
 
-    Set<String> modifiedVars = pBlock.getModifiedVariableNames();
-    Set<String> readVars = pBlock.getReadVariableNames();
-
-    // todo: get rid of this variable.
     Set<String> processed = new HashSet<>();
 
     // For modified globals:
     // the SSA index should be larger than that of
     // the one currently in {@code callSsa} and should agree with
     // {@code exitSsa}.
-    modifiedVars.stream()
-        .filter(varName -> isGlobal(varName))
-        .forEach(varName -> {
+    pBlock.getModifiedGlobals().forEach(s -> {
+          String varName = s.getQualifiedName();
+          if (varName.contains(copyVarPostfix)) {
+            return; // do not process twice.
+          }
+
           int callIdx = callSsa.getIndex(varName);
           int newIdx = callIdx + 1;
           ssaUpdatesToIndex.put(varName, newIdx);
@@ -249,7 +257,7 @@ public class PolicySummaryManager implements SummaryManager {
         }
     );
 
-    // For variables written into, the index should be one bigger
+    // For the variable written into, the index should be one bigger
     // than that of a callsite.
     getWrittenIntoVar(summaryEdge).ifPresent(s -> {
       String varName = s.getDeclaration().getQualifiedName();
@@ -262,8 +270,9 @@ public class PolicySummaryManager implements SummaryManager {
 
     // For read globals which are NOT modified:
     // the SSA index should match on call and exit site.
-    readVars.stream()
-        .filter(s -> !modifiedVars.contains(s) && isGlobal(s))
+    pBlock.getReadGlobals().stream()
+        .map(s -> s.getQualifiedName())
+        .filter(s -> !pBlock.getModifiedVariableNames().contains(s))
         .forEach(varName -> {
           int callIdx = callSsa.getIndex(varName);
           ssaUpdatesToIndex.put(varName, callIdx);
@@ -271,7 +280,6 @@ public class PolicySummaryManager implements SummaryManager {
           outSSABuilder.setIndex(varName, callSsa.getType(varName), callIdx);
         });
 
-    // todo: for modified & read globals: do the renaming trick.
 
     // For all variables from calling site which weren't processed yet:
     // the output SSA index should be the same.
@@ -289,6 +297,49 @@ public class PolicySummaryManager implements SummaryManager {
         varName -> ssaUpdatesToIndex.put(varName, namespaceSsaIdx(callSsa.getIndex(varName))));
 
     return outSSABuilder.build();
+  }
+
+  /**
+   * Generate a set of constraints stating that the value of
+   * the globals at the function call is equal to the value
+   * of the global with {@link #copyVarPostfix} appended.
+   *
+   * @param callSSA Used for global value
+   * @param exitSSA Used for global original copy
+   */
+  private BooleanFormula getModifiedGlobalsRenamingConstraint(
+      CFunctionSummaryEdge pEdge,
+      SSAMap callSSA,
+      SSAMap exitSSA,
+      Block pCalledBlock
+  ) throws UnrecognizedCCodeException {
+
+    PathFormula callContext = new PathFormula(bfmgr.makeTrue(),
+        callSSA, PointerTargetSet.emptyPointerTargetSet(), 0);
+    PathFormula exitContext = new PathFormula(bfmgr.makeTrue(),
+        exitSSA, PointerTargetSet.emptyPointerTargetSet(), 0);
+
+    List<BooleanFormula> constraints = new ArrayList<>(pCalledBlock.getModifiedGlobals().size());
+
+    for (CVariableDeclaration decl : pCalledBlock.getModifiedGlobals()) {
+      if (decl.getQualifiedName().contains(copyVarPostfix)) {
+
+        // Basically, we should not apply those
+        // constraints to already namespaced variables.
+        continue;
+      }
+
+      CVariableDeclaration origDecl = addPostfixToDeclarationName(decl);
+
+      CIdExpression callGlobalExpr = new CIdExpression(pEdge.getFileLocation(), decl);
+      CIdExpression exitGlobalExpr = new CIdExpression(pEdge.getFileLocation(), origDecl);
+
+      Formula callF = pfmgr.expressionToFormula(callContext, callGlobalExpr, pEdge);
+      Formula exitF = pfmgr.expressionToFormula(exitContext, exitGlobalExpr, pEdge);
+      constraints.add(fmgr.makeEqual(callF, exitF));
+    }
+
+    return bfmgr.and(constraints);
   }
 
   /**
@@ -363,19 +414,8 @@ public class PolicySummaryManager implements SummaryManager {
       CVariableDeclaration paramVarDeclaration =
           params.get(i).asVariableDeclaration();
 
-      // Created by SummaryGeneratorHelper. todo: remove code duplication.
-      CVariableDeclaration renamedOrigDeclaration =
-          new CVariableDeclaration(
-              paramVarDeclaration.getFileLocation(),
-              paramVarDeclaration.isGlobal(),
-              paramVarDeclaration.getCStorageClass(),
-              paramVarDeclaration.getType(),
-              paramVarDeclaration.getName() + copyVarPostfix,
-              paramVarDeclaration.getOrigName() + copyVarPostfix,
-              paramVarDeclaration.getQualifiedName() + copyVarPostfix,
-              new CInitializerExpression(
-                  paramVarDeclaration.getFileLocation(),
-                  new CIdExpression(paramVarDeclaration.getFileLocation(), paramVarDeclaration)));
+      // Created by SummaryGeneratorHelper.
+      CVariableDeclaration renamedOrigDeclaration = addPostfixToDeclarationName(paramVarDeclaration);
 
       CIdExpression paramExpression =
           new CIdExpression(pCallEdge.getFileLocation(), renamedOrigDeclaration);
@@ -416,10 +456,19 @@ public class PolicySummaryManager implements SummaryManager {
     return SSA_NAMESPACING_CONST + idx;
   }
 
-  /**
-   * @return whether the variable name is global.
-   */
-  private boolean isGlobal(String varName) {
-    return !varName.contains("::");
+
+  private CVariableDeclaration addPostfixToDeclarationName(CVariableDeclaration origDeclaration) {
+//     todo: reduce code duplication with TemplatePrecision and SummaryGenerationHelper.
+    return new CVariableDeclaration(
+            origDeclaration.getFileLocation(),
+            origDeclaration.isGlobal(),
+            origDeclaration.getCStorageClass(),
+            origDeclaration.getType(),
+            origDeclaration.getName() + copyVarPostfix,
+            origDeclaration.getOrigName() + copyVarPostfix,
+            origDeclaration.getQualifiedName() + copyVarPostfix,
+            new CInitializerExpression(
+                origDeclaration.getFileLocation(),
+                new CIdExpression(origDeclaration.getFileLocation(), origDeclaration)));
   }
 }
