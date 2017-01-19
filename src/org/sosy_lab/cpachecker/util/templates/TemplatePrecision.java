@@ -778,6 +778,7 @@ public class TemplatePrecision implements Precision {
         assert blockManager != null;
         Block block = blockManager.getBlockForNode(node);
         Set<String> readVars = block.getReadVariableNames();
+        Set<String> modifiedVars = block.getModifiedVariableNames();
 
         ImmutableSet<ASimpleDeclaration> liveVars =
             cfa.getLiveVariables().get().getLiveVariablesForNode(node)
@@ -793,8 +794,11 @@ public class TemplatePrecision implements Precision {
                   }
                   CVariableDeclaration varDecl = (CVariableDeclaration) v;
 
-                  // todo: works only with function-wise liveness evaluation.
-                  if (!varDecl.isGlobal() || readVars.contains(v.getQualifiedName())) {
+                  // NB: works only with function-wise liveness evaluation,
+                  // ASSUMES that vars on the outer stack are no longer live.
+                  if (!varDecl.isGlobal()
+                      || readVars.contains(v.getQualifiedName())
+                      || modifiedVars.contains(v.getQualifiedName())) {
                     return true;
                   }
                   return false;
