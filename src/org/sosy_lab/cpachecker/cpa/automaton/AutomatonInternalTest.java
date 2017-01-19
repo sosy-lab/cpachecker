@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
-import static org.mockito.Matchers.anyVararg;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -212,7 +212,7 @@ public class AutomatonInternalTest {
     result = args.replaceVariables("$1 == $5");
     assertThat(result).isNull(); // $5 has not been found
     // this test should issue a log message!
-    verify(mockLogger).log(eq(Level.WARNING), (Object[]) anyVararg());
+    verify(mockLogger).log(eq(Level.WARNING), (Object[]) any());
   }
 
   @Test
