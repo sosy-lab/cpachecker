@@ -186,7 +186,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public Formula expressionToFormula(PathFormula pFormula, CIdExpression expr,
+  public Formula expressionToFormula(PathFormula pFormula, CExpression expr,
       CFAEdge edge) throws UnrecognizedCCodeException {
     return delegate.expressionToFormula(pFormula, expr, edge);
   }

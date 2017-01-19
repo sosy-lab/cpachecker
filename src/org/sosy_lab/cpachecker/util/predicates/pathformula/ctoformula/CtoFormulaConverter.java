@@ -1269,7 +1269,7 @@ public class CtoFormulaConverter {
    * @return Created formula.
    */
   public Formula buildTermFromPathFormula(PathFormula pFormula,
-      CIdExpression expr,
+      CExpression expr,
       CFAEdge edge) throws UnrecognizedCCodeException {
 
     String functionName = edge.getPredecessor().getFunctionName();
