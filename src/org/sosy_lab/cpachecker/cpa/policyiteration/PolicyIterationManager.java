@@ -829,12 +829,9 @@ public class PolicyIterationManager {
           Optional<PolicyBound> backpointerBound = generatorState.getBackpointerStateForTemplate(template)
               .getBound(template);
 
-          // Unbounded.
-          if (!backpointerBound.isPresent()) {
-            continue;
-          } else {
-            abstraction.put(template, backpointerBound.get());
-          }
+          backpointerBound
+              .ifPresent(pPolicyBound -> abstractionBuilder.put(template, pPolicyBound));
+          continue;
         }
 
         optEnvironment.addConstraint(annotatedFormula);
