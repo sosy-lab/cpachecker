@@ -85,22 +85,20 @@ public class ValueDeterminationManager {
    * strictly stronger due to sharing variables).
    */
   ValueDeterminationConstraints valueDeterminationFormulaCheap(
-      PolicyAbstractedState newState,
       PolicyAbstractedState stateWithUpdates,
       Set<Template> updated
   ) {
-    return valueDeterminationFormula(newState, stateWithUpdates, updated, false);
+    return valueDeterminationFormula(stateWithUpdates, updated, false);
   }
 
   /**
    * Sound value determination procedure.
    */
   ValueDeterminationConstraints valueDeterminationFormula(
-      PolicyAbstractedState newState,
       PolicyAbstractedState stateWithUpdates,
       Set<Template> updated
   ) {
-    return valueDeterminationFormula(newState, stateWithUpdates, updated, true);
+    return valueDeterminationFormula(stateWithUpdates, updated, true);
   }
 
   /**
@@ -118,14 +116,13 @@ public class ValueDeterminationManager {
    * value.
    */
   private ValueDeterminationConstraints valueDeterminationFormula(
-      PolicyAbstractedState newState,
       PolicyAbstractedState mergedState,
       Set<Template> updated,
       boolean useUniquePrefix
   ) {
     Set<BooleanFormula> outConstraints = new HashSet<>();
 
-    Map<Integer, PolicyAbstractedState> stronglyConnectedComponent = findScc2(newState);
+    Map<Integer, PolicyAbstractedState> stronglyConnectedComponent = findScc(mergedState);
 
     Table<Template, Integer, Formula> outVars = HashBasedTable.create();
 
@@ -159,11 +156,6 @@ public class ValueDeterminationManager {
         // Update the queue, check visited.
         if (!valueIsFixed &&
             bound.getDependencies().contains(template)
-
-            // todo note: it is implicitly assumed that by processing backpointers we should get
-            // the latest version of the state for each location ID,
-            // as we would simply ignore the second one.
-            // perhaps it could be more fruitful to make this assumption explicit.
             && !visitedLocationIDs.contains(backpointer.getLocationID())) {
 
           queue.add(backpointer);
@@ -197,7 +189,7 @@ public class ValueDeterminationManager {
   /**
    * Find an SCC of dependencies.
    */
-  private Map<Integer, PolicyAbstractedState> findScc2(
+  private Map<Integer, PolicyAbstractedState> findScc(
       PolicyAbstractedState newState
   ) {
 
@@ -270,13 +262,13 @@ public class ValueDeterminationManager {
       PolicyAbstractedState prev = stateMap.get(locId);
       if (prev == null || prev.getStateId() < toProcess.getStateId()) {
         stateMap.put(locId, toProcess);
-        toProcess.getAbstraction().values().stream()
-            .filter(b -> !b.getDependencies().isEmpty())
-            .forEach(b -> {
-              PolicyAbstractedState pred = b.getPredecessor();
-              queue.add(pred);
-              backwDepsEdges.put(pred.getLocationID(), locId);
-            });
+        for (PolicyBound bound : toProcess.getAbstraction().values()) {
+          if (!bound.getDependencies().isEmpty()) {
+            PolicyAbstractedState pred = bound.getPredecessor();
+            queue.add(pred);
+            backwDepsEdges.put(pred.getLocationID(), locId);
+          }
+        }
       }
     }
   }
