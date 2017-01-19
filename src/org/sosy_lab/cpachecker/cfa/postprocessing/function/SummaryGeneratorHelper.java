@@ -25,15 +25,11 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
@@ -49,12 +45,14 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
- * Copies all globals and parameters at the function start.
+ * Copies all globals and modified parameters at the function start.
+ * Does <b>not</b> take aliasing into account,
+ * and does not take function calls through function pointers into account.
  */
 public class SummaryGeneratorHelper {
 
   private final String postfix;
-  private final SetMultimap<String, CIdExpression> assignedVars;
+  private final SetMultimap<String, CSimpleDeclaration> assignedVars;
 
   public SummaryGeneratorHelper(String pPostfix, MutableCFA pMutableCFA) {
     postfix = pPostfix;
@@ -70,15 +68,20 @@ public class SummaryGeneratorHelper {
   }
 
   private void copyDeclarations(FunctionEntryNode pNode, MutableCFA pMutableCFA) {
+    String funcName = pNode.getFunctionName();
+
     for (AParameterDeclaration param : pNode.getFunctionParameters()) {
 
-      // todo: do so only for the parameters which were modified.
       CParameterDeclaration cParam = (CParameterDeclaration) param;
-      insertCopyingNode(pNode, cParam.asVariableDeclaration(), pMutableCFA);
+
+      if (assignedVars.get(funcName).contains(cParam.asVariableDeclaration())) {
+
+        // todo: check that it actually works. the storage type might be different.
+        insertCopyingNode(pNode, cParam.asVariableDeclaration(), pMutableCFA);
+      }
     }
 
-    for (CIdExpression modifiedVar : assignedVars.get(pNode.getFunctionName())) {
-      CSimpleDeclaration decl = modifiedVar.getDeclaration();
+    for (CSimpleDeclaration decl : assignedVars.get(funcName)) {
       if (decl instanceof CVariableDeclaration) {
         CVariableDeclaration cDecl = (CVariableDeclaration) decl;
         if (cDecl.isGlobal()) {
@@ -101,7 +104,7 @@ public class SummaryGeneratorHelper {
    * </pre>
    */
   private void insertCopyingNode(
-      CFANode pEntryNode,
+      CFANode pFunctionEntry,
       CVariableDeclaration pParam,
       MutableCFA pMutableCFA) {
 
@@ -123,13 +126,14 @@ public class SummaryGeneratorHelper {
             )
         );
 
-    CFANode tmp = new CFANode(pEntryNode.getFunctionName());
+    CFANode tmp = new CFANode(pFunctionEntry.getFunctionName());
     pMutableCFA.addNode(tmp);
 
-    assert pEntryNode.getNumLeavingEdges() == 1;
+    assert pFunctionEntry.getNumLeavingEdges() == 1;
 
-    // Leave first edge the same. // todo : introduce a new variable.
-    pEntryNode = pEntryNode.getLeavingEdge(0).getSuccessor();
+    // Leave first edge the same.
+    // We need it to be blank.
+    CFANode pEntryNode = pFunctionEntry.getLeavingEdge(0).getSuccessor();
     assert pEntryNode.getNumLeavingEdges() == 1;
 
     CFAEdge leavingEdge = pEntryNode.getLeavingEdge(0);
@@ -164,7 +168,8 @@ public class SummaryGeneratorHelper {
     // TODO: do not recalculate this information.
     for (FunctionEntryNode node : pMutableCFA.getAllFunctionHeads()) {
       assignedVars.putAll(node.getFunctionName(),
-          extractAssignedVariables(pMutableCFA.getFunctionNodes(node.getFunctionName())));
+          CFAUtils.extractAssignedVariables(
+              pMutableCFA.getFunctionNodes(node.getFunctionName())));
     }
 
     // Fixpoint loop to account for nesting.
@@ -191,26 +196,4 @@ public class SummaryGeneratorHelper {
     }
   }
 
-  private Set<CIdExpression> extractAssignedVariables(Collection<CFANode> nodes) {
-    Set<CIdExpression> assignedVariables = new HashSet<>();
-
-    for (CFANode node : nodes) {
-      for (int i=0; i<node.getNumLeavingEdges(); i++) {
-        CFAEdge leavingEdge = node.getLeavingEdge(i);
-        if (leavingEdge instanceof AStatementEdge) {
-          AStatementEdge edge = (AStatementEdge) leavingEdge;
-          if (!(edge.getStatement() instanceof CAssignment)) {
-            continue;
-          }
-
-          CAssignment assignment = (CAssignment) edge.getStatement();
-          assignedVariables.addAll(
-              CFAUtils.getIdExpressionsOfExpression(assignment.getLeftHandSide())
-                  .toSet());
-        }
-      }
-    }
-
-    return assignedVariables;
-  }
 }

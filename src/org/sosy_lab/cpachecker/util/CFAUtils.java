@@ -38,7 +38,16 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.collect.TreeTraverser;
 import com.google.common.collect.UnmodifiableIterator;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.SortedSet;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
@@ -70,6 +79,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayRangeDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -84,6 +94,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
@@ -97,6 +108,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -108,16 +120,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.SortedSet;
 
 public class CFAUtils {
 
@@ -566,6 +568,37 @@ public class CFAUtils {
   public static FluentIterable<CExpression> traverseRecursively(CExpression root) {
     return (FluentIterable<CExpression>)
         (FluentIterable<?>) AstNodeTraverser.REGULAR_INSTANCE.preOrderTraversal(root);
+  }
+
+  /**
+   * Return all assigned variables in all outgoing edges from {@code nodes}.
+   * Does <b>not</b> take aliasing into account.
+   *
+   * @return a set of associated declarations.
+   * May contain duplicates.
+   */
+  public static Set<CSimpleDeclaration> extractAssignedVariables(Collection<CFANode> nodes) {
+    Set<CSimpleDeclaration> assignedVariables = new HashSet<>();
+
+    for (CFANode node : nodes) {
+      for (int i=0; i<node.getNumLeavingEdges(); i++) {
+        CFAEdge leavingEdge = node.getLeavingEdge(i);
+        if (leavingEdge instanceof AStatementEdge) {
+          AStatementEdge edge = (AStatementEdge) leavingEdge;
+          if (!(edge.getStatement() instanceof CAssignment)) {
+            continue;
+          }
+
+          CAssignment assignment = (CAssignment) edge.getStatement();
+          assignedVariables.addAll(
+              CFAUtils.getIdExpressionsOfExpression(assignment.getLeftHandSide())
+                  .transform(cid -> cid.getDeclaration())
+                  .toSet());
+        }
+      }
+    }
+
+    return assignedVariables;
   }
 
   /**
