@@ -25,16 +25,16 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -56,6 +56,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
 
 /**
  * Summaries for LPI
@@ -64,6 +65,7 @@ public class PolicySummaryManager implements SummaryManager {
   private final PathFormulaManager pfmgr;
   private final StateFormulaConversionManager stateFormulaConversionManager;
   private final BooleanFormulaManager bfmgr;
+  private final FormulaManagerView fmgr;
 
   private static final int SSA_NAMESPACING_CONST = 1000;
 
@@ -71,6 +73,7 @@ public class PolicySummaryManager implements SummaryManager {
       PathFormulaManager pPfmgr,
       StateFormulaConversionManager pStateFormulaConversionManager,
       FormulaManagerView pFmgr) {
+    fmgr = pFmgr;
     pfmgr = pPfmgr;
     stateFormulaConversionManager = pStateFormulaConversionManager;
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -161,7 +164,7 @@ public class PolicySummaryManager implements SummaryManager {
 
     BooleanFormula paramRenamingConstraint = getParamRenamingConstraint(
         callEdge, callSsa, newExitSsa
-    ).getFormula();
+    );
 
     BooleanFormula returnRenamingConstraint = getReturnRenamingConstraint(
         callEdge.getSummaryEdge(), callSsa, newExitSsa
@@ -271,14 +274,6 @@ public class PolicySummaryManager implements SummaryManager {
   }
 
   /**
-   * Get function parameters. E.g. {@code k, t} for {@code int f(int k, int t)}.
-   */
-  private Set<String> getParamVarNames(CFunctionEntryNode entryNode) {
-    return entryNode.getFunctionParameters().stream()
-        .map(s -> s.getQualifiedName()).collect(Collectors.toSet());
-  }
-
-  /**
    * @return constraint for renaming returned parameters.
    *
    * @param exitSSA {@link SSAMap} used for returned parameter.
@@ -312,21 +307,9 @@ public class PolicySummaryManager implements SummaryManager {
         PointerTargetSet.emptyPointerTargetSet(),
         1);
 
+    // todo: add an assert that the index of the variable written into is incremented
+    // only by one (or better yet, construct expression manually).
     return pfmgr.makeAnd(context, returnEdge);
-  }
-
-  /**
-   * @return set of variables participating in the {@code return} expression,
-   * e.g. {@code a, b, c} in {@code return a + b + c;}
-   */
-  private Set<String> getVarsInReturnArgument(CFunctionSummaryEdge pEdge) {
-    CFANode exitNode = pEdge.getSuccessor().getEnteringEdge(0).getPredecessor();
-    VariablesCollectingVisitor varsCollector = new VariablesCollectingVisitor(exitNode);
-    List<CExpression> params =
-        pEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
-    return params.stream()
-        .map(p -> p.accept(varsCollector)).filter(s -> s != null)
-        .reduce(ImmutableSet.of(), Sets::union);
   }
 
   /**
@@ -349,51 +332,37 @@ public class PolicySummaryManager implements SummaryManager {
   /**
    * Get constraint for parameter renaming.
    */
-  private PathFormula getParamRenamingConstraint(
+  private BooleanFormula getParamRenamingConstraint(
       CFunctionCallEdge pCallEdge,
       SSAMap pCallSSA,
       SSAMap pExitSSA
   ) throws CPATransferException, InterruptedException {
-    return pfmgr.makeAnd(
-        new PathFormula(
-            bfmgr.makeTrue(),
-            getSsaForParamRenaming(pCallEdge, pCallSSA, pExitSSA),
-            PointerTargetSet.emptyPointerTargetSet(),
-            1),
-        pCallEdge
-    );
-  }
 
-  /**
-   * Generate {@link SSAMap} for parameter/argument renaming.
-   *
-   * Indexes for the parameters should be taken from the {@code pCallSSA}.
-   * Indexes for the arguments should be taken from the {@code pExitSSA}.
-   */
-  private SSAMap getSsaForParamRenaming(
-      CFunctionCallEdge pCallEdge, SSAMap pCallSSA, SSAMap pExitSSA) {
+    PathFormula callingContext = new PathFormula(
+        bfmgr.makeTrue(), pCallSSA, PointerTargetSet.emptyPointerTargetSet(), 0
+    );
+    PathFormula exitContext = new PathFormula(
+        bfmgr.makeTrue(), pExitSSA, PointerTargetSet.emptyPointerTargetSet(), 0);
 
     CFunctionEntryNode entryNode = pCallEdge.getSuccessor();
-    SSAMapBuilder builder = SSAMap.emptySSAMap().builder();
     List<CExpression> args = pCallEdge.getArguments();
+    List<CParameterDeclaration> params = entryNode.getFunctionParameters();
+    assert args.size() == params.size();
+    List<BooleanFormula> constraints = new ArrayList<>();
 
-    VariablesCollectingVisitor variablesCollector =
-        new VariablesCollectingVisitor(pCallEdge.getPredecessor());
-
-    Set<String> argVars = args.stream().map(
-        expr -> expr.accept(variablesCollector)
-    ).filter(c -> c != null).reduce(ImmutableSet.of(), Sets::union);
-
-    for (String var : argVars) {
-      builder = builder.setIndex(var, pCallSSA.getType(var), pCallSSA.getIndex(var));
+    for (int i=0; i<args.size(); i++) {
+      CExpression arg = args.get(i);
+      CIdExpression param =
+          new CIdExpression(pCallEdge.getFileLocation(), params.get(i).asVariableDeclaration());
+      Formula argF = pfmgr.expressionToFormula(
+          callingContext, arg, pCallEdge
+      );
+      Formula paramF = pfmgr.expressionToFormula(
+          exitContext, param, pCallEdge
+      );
+      constraints.add(fmgr.makeEqual(paramF, argF));
     }
-
-    for (CParameterDeclaration param : entryNode.getFunctionParameters()) {
-      String varName = param.getQualifiedName();
-      builder = builder.setIndex(varName, pExitSSA.getType(varName), pExitSSA.getIndex(varName));
-    }
-
-    return builder.build();
+    return bfmgr.and(constraints);
   }
 
   /**
