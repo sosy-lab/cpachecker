@@ -79,8 +79,6 @@ public class PolicyIterationManager {
       description = "Where to perform abstraction")
   private AbstractionLocations abstractionLocations = AbstractionLocations.LOOPHEAD;
 
-
-
   /**
    * Where an abstraction should be performed.
    */
@@ -793,7 +791,7 @@ public class PolicyIterationManager {
     Set<BooleanFormula> startConstraintLemmas = toLemmas(startConstraints);
     Set<BooleanFormula> lemmas = toLemmas(p.getFormula());
 
-    final Map<Template, PolicyBound> abstraction = new HashMap<>();
+    ImmutableMap.Builder<Template, PolicyBound> abstractionBuilder = ImmutableMap.builder();
 
     try (OptimizationProverEnvironment optEnvironment = solver.newOptEnvironment()) {
 
@@ -852,7 +850,7 @@ public class PolicyIterationManager {
             Optional<PolicyBound> policyBound = getPolicyBound(
                 template, precision, optEnvironment, bound, annotatedFormula,
                 p, generatorState, objective);
-            policyBound.ifPresent(pPolicyBound -> abstraction.put(template, pPolicyBound));
+            policyBound.ifPresent(pPolicyBound -> abstractionBuilder.put(template, pPolicyBound));
             logger.log(Level.FINE, "Got bound: ", bound);
             break;
 
@@ -874,7 +872,7 @@ public class PolicyIterationManager {
 
     statistics.updateCounter.add(locationID);
     return PolicyAbstractedState.of(
-        abstraction,
+        abstractionBuilder.build(),
         generatorState.getNode(),
         locationID,
         stateFormulaConversionManager,
