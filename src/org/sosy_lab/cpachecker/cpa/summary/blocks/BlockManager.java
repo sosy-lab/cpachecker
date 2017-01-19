@@ -61,8 +61,6 @@ public class BlockManager {
       LogManager pLogManager
       ) throws InvalidConfigurationException, CPATransferException {
 
-    // todo: probably really bad to throw CPATransferException in the constructor.
-    // can we see what actual exceptions are thrown?..
     cfa = pCfa;
     readModifyManager = new ReadModifyManager(
         cfa.getVarClassification(),

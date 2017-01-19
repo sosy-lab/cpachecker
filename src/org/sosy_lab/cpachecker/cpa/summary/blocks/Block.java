@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -44,6 +45,9 @@ public class Block {
 
   private final ImmutableSet<Wrapper<ASimpleDeclaration>> modifiedVariables;
   private final ImmutableSet<Wrapper<ASimpleDeclaration>> readVariables;
+
+  private final Set<CVariableDeclaration> readGlobals; // todo: use immutable datastructures.
+  private final Set<CVariableDeclaration> modifiedGlobals;
 
   private final CFANode startNode;
   private final CFANode exitNode;
@@ -67,6 +71,16 @@ public class Block {
     startNode = pStartNode;
     exitNode = pExitNode;
     incomingTransitions = ImmutableSet.copyOf(pIncomingTransitions);
+    readGlobals = filterGlobals(readVariables);
+    modifiedGlobals = filterGlobals(modifiedVariables);
+  }
+
+  public Set<CVariableDeclaration> getReadGlobals() {
+    return readGlobals;
+  }
+
+  public Set<CVariableDeclaration> getModifiedGlobals() {
+    return modifiedGlobals;
   }
 
   /**
@@ -143,6 +157,15 @@ public class Block {
 
   public Set<String> getReadVariableNames() {
     return readVariables.stream().map(s -> s.get().getQualifiedName()).collect(Collectors.toSet());
+  }
+
+  private Set<CVariableDeclaration> filterGlobals(Set<Wrapper<ASimpleDeclaration>> decls) {
+    return decls.stream()
+        .map(s -> s.get())
+        .filter(s -> s instanceof CVariableDeclaration)
+        .map(s -> (CVariableDeclaration) s)
+        .filter(s -> s.isGlobal())
+        .collect(Collectors.toSet());
   }
 
   @Override
