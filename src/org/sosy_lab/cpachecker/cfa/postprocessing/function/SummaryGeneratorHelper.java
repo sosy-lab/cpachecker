@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.FunctionCallCollector;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -70,17 +72,13 @@ public class SummaryGeneratorHelper {
   private void copyDeclarations(FunctionEntryNode pNode, MutableCFA pMutableCFA) {
     String funcName = pNode.getFunctionName();
 
+    // Copy all parameters.
     for (AParameterDeclaration param : pNode.getFunctionParameters()) {
-
       CParameterDeclaration cParam = (CParameterDeclaration) param;
-
-      if (assignedVars.get(funcName).contains(cParam.asVariableDeclaration())) {
-
-        // todo: check that it actually works. the storage type might be different.
-        insertCopyingNode(pNode, cParam.asVariableDeclaration(), pMutableCFA);
-      }
+      insertCopyingNode(pNode, cParam.asVariableDeclaration(), pMutableCFA);
     }
 
+    // Copy all _modified_ global variables.
     for (CSimpleDeclaration decl : assignedVars.get(funcName)) {
       if (decl instanceof CVariableDeclaration) {
         CVariableDeclaration cDecl = (CVariableDeclaration) decl;
@@ -134,14 +132,13 @@ public class SummaryGeneratorHelper {
     // Leave first edge the same.
     // We need it to be blank.
     CFANode pEntryNode = pFunctionEntry.getLeavingEdge(0).getSuccessor();
-    assert pEntryNode.getNumLeavingEdges() == 1;
 
-    CFAEdge leavingEdge = pEntryNode.getLeavingEdge(0);
+    List<CFAEdge> leavingEdges = pEntryNode.getLeavingEdges().collect(Collectors.toList());
 
-    CFANode rest = leavingEdge.getSuccessor();
-
-    pEntryNode.removeLeavingEdge(leavingEdge);
-    rest.removeEnteringEdge(leavingEdge);
+    for (CFAEdge leavingEdge : leavingEdges) {
+      pEntryNode.removeLeavingEdge(leavingEdge);
+      leavingEdge.getSuccessor().removeEnteringEdge(leavingEdge);
+    }
 
     CDeclarationEdge declarationEdge = new CDeclarationEdge(
         freshDeclaration.toASTString(),
@@ -156,11 +153,13 @@ public class SummaryGeneratorHelper {
     FunctionCloner cloner = new FunctionCloner(
         pEntryNode.getFunctionName(), pEntryNode.getFunctionName(), true);
 
-    CFAEdge clonedLeavingEdge = cloner.cloneEdge(
-        leavingEdge, tmp, rest);
+    for (CFAEdge leavingEdge : leavingEdges) {
+      CFANode rest = leavingEdge.getSuccessor();
+      CFAEdge clonedLeavingEdge = cloner.cloneEdge(leavingEdge, tmp, rest);
 
-    tmp.addLeavingEdge(clonedLeavingEdge);
-    rest.addEnteringEdge(clonedLeavingEdge);
+      tmp.addLeavingEdge(clonedLeavingEdge);
+      rest.addEnteringEdge(clonedLeavingEdge);
+    }
   }
 
   private void populateAssignedVars(MutableCFA pMutableCFA) {
