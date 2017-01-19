@@ -356,8 +356,10 @@ public class TemplatePrecision implements Precision {
     List<LinearExpression<CIdVariable>> out = new ArrayList<>();
     for (CIdExpression v1 : vars) {
       for (CIdExpression v2 : vars) {
-        out.add(LinearExpression.ofVariable(new CIdVariable(v1))
-            .sub(LinearExpression.ofVariable(new CIdVariable(v2))));
+        if (v1 != v2) {
+          out.add(LinearExpression.ofVariable(new CIdVariable(v1))
+              .sub(LinearExpression.ofVariable(new CIdVariable(v2))));
+        }
       }
     }
     out = filterToSameType(out);
@@ -780,6 +782,7 @@ public class TemplatePrecision implements Precision {
         Set<String> readVars = block.getReadVariableNames();
         Set<String> modifiedVars = block.getModifiedVariableNames();
 
+        // Use live variables, except removed globals not read or written inside the block.
         ImmutableSet<ASimpleDeclaration> liveVars =
             cfa.getLiveVariables().get().getLiveVariablesForNode(node)
 
@@ -805,17 +808,31 @@ public class TemplatePrecision implements Precision {
                 })
                 .toSet();
 
+        // Force parameters to be always live inside the function.
+        Set<CVariableDeclaration> paramDeclarations = ((CFunctionEntryNode) block.getStartNode())
+            .getFunctionParameters().stream()
+            .map(s -> s.asVariableDeclaration()).collect(Collectors.toSet());
+
+        // Add the global/parameter copies into the precision.
+        // (see SummaryGenerationHelper)
+        Set<CVariableDeclaration> copiedVars;
         if (!copyVarPostfix.isEmpty()) {
-          Set<CVariableDeclaration> copies = block.getModifiedVariables().stream()
+          copiedVars = block.getModifiedVariables().stream()
               .map(v -> v.get())
               .filter(v -> v instanceof CVariableDeclaration)
               .map(v -> (CVariableDeclaration) v)
               .filter(v -> v.getQualifiedName().contains(copyVarPostfix))
               .collect(Collectors.toSet());
-
-          return Sets.union(liveVars, copies);
+        } else {
+          copiedVars = ImmutableSet.of();
         }
-        return liveVars;
+
+        Set<ASimpleDeclaration> summaryVars = new HashSet<>();
+        summaryVars.addAll(paramDeclarations);
+        summaryVars.addAll(copiedVars);
+        summaryVars.addAll(liveVars);
+        return summaryVars;
+
       case ONE_LIVE:
       case ALL:
         return allVariables;
