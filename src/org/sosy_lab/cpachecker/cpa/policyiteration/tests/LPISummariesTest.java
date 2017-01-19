@@ -57,6 +57,9 @@ public class LPISummariesTest {
     checkWithSummaries("call_in_loop_false_assert.c");
   }
 
+  @Test public void recursion_counter_true_assert() throws Exception {
+    checkWithSummaries("recursion_counter_true_assert.c");
+  }
 
   @Test public void recursion_counter_false_assert() throws Exception {
     checkWithSummaries("recursion_counter_false_assert.c");
@@ -80,6 +83,10 @@ public class LPISummariesTest {
 
   @Test public void counting_false_assert() throws Exception {
     checkWithSummaries("counting_false_assert.c");
+  }
+
+  @Test public void counting_true_assert() throws Exception {
+    checkWithSummaries("counting_true_assert.c");
   }
 
   @Test
