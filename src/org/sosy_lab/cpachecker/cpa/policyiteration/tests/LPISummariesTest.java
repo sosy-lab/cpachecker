@@ -58,7 +58,9 @@ public class LPISummariesTest {
   }
 
   @Test public void recursion_counter_true_assert() throws Exception {
-    checkWithSummaries("recursion_counter_true_assert.c");
+    checkWithSummaries("recursion_counter_true_assert.c", ImmutableMap.of(
+      "precision.template.maxExpressionSize", "3"
+    ));
   }
 
   @Test public void recursion_counter_false_assert() throws Exception {
@@ -86,7 +88,9 @@ public class LPISummariesTest {
   }
 
   @Test public void counting_true_assert() throws Exception {
-    checkWithSummaries("counting_true_assert.c");
+    checkWithSummaries("counting_true_assert.c", ImmutableMap.of(
+      "precision.template.maxExpressionSize", "3"
+    ));
   }
 
   @Test
@@ -135,10 +139,15 @@ public class LPISummariesTest {
   }
 
   private void checkWithSummaries(String filename) throws Exception {
-    check(filename,
-        getProperties("policyIteration-with-summaries.properties",
-            ImmutableMap.of()));
+    checkWithSummaries(filename, ImmutableMap.of());
   }
+
+  private void checkWithSummaries(String filename, Map<String, String> properties)
+      throws Exception {
+    check(filename,
+        getProperties("policyIteration-with-summaries.properties", properties));
+  }
+
 
   private void check(String filename, Configuration config) throws Exception {
     // todo: avoid logic duplication with IntervalSummariesTest and PolicyIterationTest.
