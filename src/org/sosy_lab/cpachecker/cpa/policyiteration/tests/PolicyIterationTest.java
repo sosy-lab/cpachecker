@@ -178,6 +178,15 @@ public class PolicyIterationTest {
     checkWithOverflow("overflow/increment_in_guard_false_assert.c");
   }
 
+  @Test public void liveness_fail_true_assert() throws Exception {
+
+    // todo: Intraprocedural liveness does not let LPI calculate invariants
+    // about variables outside of the current stack frame.
+    // This should not crash even with local evaluation strategy.
+    check("liveness_fail_true_assert.c",
+        ImmutableMap.of("liveVar.evaluationStrategy", "global"));
+  }
+
   private void check(String filename) throws Exception {
     check(filename, ImmutableMap.of());
   }

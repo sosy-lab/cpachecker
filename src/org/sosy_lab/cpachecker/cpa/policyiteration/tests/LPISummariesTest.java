@@ -89,9 +89,8 @@ public class LPISummariesTest {
     checkWithSummaries("counting_true_assert.c");
   }
 
-//  @Test
+  @Test
   public void globals_modified_false_assert() throws Exception {
-    // todo: timeout
     checkWithSummaries("globals_modified_false_assert.c");
   }
 
