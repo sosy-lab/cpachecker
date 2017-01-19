@@ -101,6 +101,7 @@ public class CPAsTest {
     cpas.remove(BAMCPA.class);
     cpas.remove(CacheCPA.class);
     cpas.remove(CompositeCPA.class);
+    cpas.remove(SummaryCPA.class);
     cpas.remove(MonitorCPA.class);
     cpas.remove(PropertyCheckerCPA.class);
     cpas.remove(SingleSuccessorCompactorCPA.class);
