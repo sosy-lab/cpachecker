@@ -494,6 +494,9 @@ cfa.initializeAllVariables = false
 # create c code which is not the same as the original one
 cfa.moveDeclarationsToFunctionStart = false
 
+# Postfix to add on copied vars.If empty, no copying is performed.
+cfa.renamingPostfix = ""
+
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
 
@@ -2656,7 +2659,7 @@ precision.template.templateConstantThreshold = 100
 
 # Strategy for filtering variables out of templates using liveness
 precision.template.varFiltering = ALL_LIVE
-  enum:     [INTERPOLATION_BASED, ALL_LIVE, ONE_LIVE, ALL]
+  enum:     [INTERPOLATION_BASED, ALL_LIVE, ONE_LIVE, SUMMARY_BASED, ALL]
 
 # If this option is used, variables that are addressed may get tracked
 # depending on the rest of the precision. When this option is disabled, a
