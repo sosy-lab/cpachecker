@@ -63,6 +63,11 @@ public final class PolicyAbstractedState extends PolicyState
   private final static UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final int stateId;
 
+  /**
+   * Pointer to the unmodified state, used only for summary generation.
+   */
+  private final @Nullable PolicyAbstractedState original;
+
   private PolicyAbstractedState(
       CFANode node,
       Map<Template, PolicyBound> pAbstraction,
@@ -72,7 +77,8 @@ public final class PolicyAbstractedState extends PolicyState
       PointerTargetSet pPointerTargetSet,
       BooleanFormula pPredicate,
       PolicyIntermediateState pGenerator,
-      PolicyAbstractedState pSibling) {
+      PolicyAbstractedState pSibling,
+      PolicyAbstractedState pOriginal) {
     super(node);
     ssaMap = pSsaMap;
     pointerTargetSet = pPointerTargetSet;
@@ -82,6 +88,7 @@ public final class PolicyAbstractedState extends PolicyState
     locationID = pLocationID;
     manager = pManager;
     sibling = pSibling;
+    original = pOriginal;
     stateId = idGenerator.getFreshId();
   }
 
@@ -120,7 +127,8 @@ public final class PolicyAbstractedState extends PolicyState
         pPointerTargetSet,
         pPredicate,
         pPredecessor.orElse(null),
-        pSibling.orElse(null));
+        pSibling.orElse(null),
+        null);
   }
 
   /**
@@ -137,7 +145,8 @@ public final class PolicyAbstractedState extends PolicyState
         pointerTargetSet,
         extraInvariant,
         generator,
-        sibling);
+        sibling,
+        null);
   }
 
   /**
@@ -153,7 +162,8 @@ public final class PolicyAbstractedState extends PolicyState
         pointerTargetSet,
         extraInvariant,
         generator,
-        sibling);
+        sibling,
+        this);
   }
 
   public ImmutableMap<Template, PolicyBound> getAbstraction() {
@@ -201,7 +211,8 @@ public final class PolicyAbstractedState extends PolicyState
         pPointerTargetSet,
         pPredicate,
         pPredecessor,
-        pSibling.orElse(null));
+        pSibling.orElse(null),
+        null);
   }
 
   /**
@@ -218,6 +229,7 @@ public final class PolicyAbstractedState extends PolicyState
         SSAMap.emptySSAMap(),
         PointerTargetSet.emptyPointerTargetSet(),
         pPredicate,
+        null,
         null,
         null);
   }
@@ -264,6 +276,18 @@ public final class PolicyAbstractedState extends PolicyState
     return fmgr.uninstantiate(fmgr.getBooleanFormulaManager().and(
         manager.abstractStateToConstraints(fmgr, this, false)
     ));
+  }
+
+  /**
+   * During summary generation, a copy state may be created just for the sake
+   * of assigning a new {@link SSAMap}.
+   * In such a case we still need a pointer to the original state,
+   * which is contained in a {@link org.sosy_lab.cpachecker.core.reachedset.ReachedSet}.
+   * This functionality might be removed when LPI no longer relies on
+   * {@code ReachedSet} to find "sibling" states.
+   */
+  PolicyAbstractedState getOriginal() {
+    return original == null ? this : original;
   }
 
   @Override
