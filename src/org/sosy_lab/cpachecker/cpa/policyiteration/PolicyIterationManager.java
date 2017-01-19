@@ -4,6 +4,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -933,7 +934,8 @@ public class PolicyIterationManager {
    * policy which was used for abstracting the state.
    */
   private PolicyBound modelToPolicyBound(
-      Template pTemplate, Formula templateObjective,
+      Template pTemplate,
+      Formula templateObjective,
       PolicyIntermediateState inputState,
       TemplatePrecision precision,
       PathFormula inputPathFormula,
@@ -991,8 +993,7 @@ public class PolicyIterationManager {
     }
 
     return PolicyBound.of(
-        inputPathFormula.updateFormula(policyFormula), bound, backpointer,
-        dependencies);
+        inputPathFormula.updateFormula(policyFormula), bound, backpointer, dependencies);
   }
 
   /**
@@ -1136,7 +1137,7 @@ public class PolicyIterationManager {
     return bfmgr.and(constraints);
   }
 
-  public void setBlockManager(BlockManager pBlockManager) {
+  void setBlockManager(BlockManager pBlockManager) {
     blockManager = pBlockManager;
   }
 
