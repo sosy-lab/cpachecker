@@ -109,14 +109,14 @@ class CmdLineArguments {
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
 
-  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "sv-comp-errorlabel.spc";
-  private static final String REACHABILITY_SPECIFICATION_FILE = "sv-comp-reachability.spc";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_DEREF = "memorysafety-deref.spc";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE = "memorysafety-free.spc";
+  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp-errorlabel.spc";
+  private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_DEREF = "config/specification/memorysafety-deref.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE = "config/specification/memorysafety-free.spc";
   private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK =
       "memorysafety-memtrack.spc";
-  private static final String OVERFLOW_SPECIFICATION_FILE = "overflow.spc";
-  private static final String DEADLOCK_SPECIFICATION_FILE = "deadlock.spc";
+  private static final String OVERFLOW_SPECIFICATION_FILE = "config/specification/overflow.spc";
+  private static final String DEADLOCK_SPECIFICATION_FILE = "config/specification/deadlock.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
