@@ -109,14 +109,13 @@ class CmdLineArguments {
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
 
-  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "config/specification/sv-comp-errorlabel.spc";
-  private static final String REACHABILITY_SPECIFICATION_FILE = "config/specification/sv-comp-reachability.spc";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_DEREF = "config/specification/memorysafety-deref.spc";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE = "config/specification/memorysafety-free.spc";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK =
-      "memorysafety-memtrack.spc";
-  private static final String OVERFLOW_SPECIFICATION_FILE = "config/specification/overflow.spc";
-  private static final String DEADLOCK_SPECIFICATION_FILE = "config/specification/deadlock.spc";
+  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "sv-comp-errorlabel";
+  private static final String REACHABILITY_SPECIFICATION_FILE = "sv-comp-reachability";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_DEREF = "memorysafety-deref";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE = "memorysafety-free";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK = "memorysafety-memtrack";
+  private static final String OVERFLOW_SPECIFICATION_FILE = "overflow";
+  private static final String DEADLOCK_SPECIFICATION_FILE = "deadlock";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -264,7 +263,9 @@ class CmdLineArguments {
 
                 @Override
                 public Optional<String> getInternalSpecificationPath() {
-                  return getPropertyType().accept(PropertySpecificationFileVisitor.INSTANCE);
+                  return getPropertyType()
+                      .accept(PropertySpecificationFileVisitor.INSTANCE)
+                      .map(CmdLineArguments::resolveOrExit);
                 }
 
                 @Override
@@ -436,13 +437,7 @@ class CmdLineArguments {
       throws InvalidCmdlineArgumentException {
     // handle normal specification definitions
     if (SPECIFICATION_FILES_PATTERN.matcher(specification).matches()) {
-      Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, specification);
-      if (specFile != null) {
-        specification = specFile.toString();
-      }
-      ERROR_OUTPUT.println(
-          "Checking for property " + specification + " is currently not supported by CPAchecker.");
-      System.exit(ERROR_EXIT_CODE);
+      specification = resolveOrExit(specification);
     }
 
     // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
@@ -472,6 +467,17 @@ class CmdLineArguments {
       }
     }
     return specification;
+  }
+
+  private static String resolveOrExit(String pSpecification) {
+    Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, pSpecification);
+    if (specFile != null) {
+      return specFile.toString();
+    }
+    ERROR_OUTPUT.println(
+        "Checking for property " + pSpecification + " is currently not supported by CPAchecker.");
+    System.exit(ERROR_EXIT_CODE);
+    return pSpecification;
   }
 
   /**
