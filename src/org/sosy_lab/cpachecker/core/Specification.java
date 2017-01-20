@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
  * Class that encapsulates the specification that should be used for an analysis.

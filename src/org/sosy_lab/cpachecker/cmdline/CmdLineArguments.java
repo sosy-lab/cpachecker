@@ -27,9 +27,13 @@ import static com.google.common.collect.ImmutableMap.of;
 import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_EXIT_CODE;
 import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
@@ -40,6 +44,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -57,7 +62,10 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyTypeVisitor;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyTypeWithEntryFunction;
+import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
  * This classes parses the CPAchecker command line arguments. To add a new argument, handle it in
@@ -100,6 +108,15 @@ class CmdLineArguments {
 
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
+
+  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "sv-comp-errorlabel.spc";
+  private static final String REACHABILITY_SPECIFICATION_FILE = "sv-comp-reachability.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_DEREF = "memorysafety-deref.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE = "memorysafety-free.spc";
+  private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK =
+      "memorysafety-memtrack.spc";
+  private static final String OVERFLOW_SPECIFICATION_FILE = "overflow.spc";
+  private static final String DEADLOCK_SPECIFICATION_FILE = "deadlock.spc";
 
   private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
 
@@ -238,6 +255,28 @@ class CmdLineArguments {
               System.exit(0);
             }
           }.withDescription("print help message"));
+
+
+  private static final Function<PropertyTypeWithEntryFunction, SpecificationProperty>
+      TO_SPECIFICATION_PROPERTY =
+          p ->
+              new SpecificationProperty() {
+
+                @Override
+                public Optional<String> getInternalSpecificationPath() {
+                  return getPropertyType().accept(PropertySpecificationFileVisitor.INSTANCE);
+                }
+
+                @Override
+                public String getInitialFunction() {
+                  return p.getEntryFunctionName();
+                }
+
+                @Override
+                public PropertyType getPropertyType() {
+                  return p.getPropertyType();
+                }
+              };
 
   /**
    * Reads the arguments and process them.
@@ -400,13 +439,10 @@ class CmdLineArguments {
       Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, specification);
       if (specFile != null) {
         specification = specFile.toString();
-      } else {
-        ERROR_OUTPUT.println(
-            "Checking for property "
-                + specification
-                + " is currently not supported by CPAchecker.");
-        System.exit(ERROR_EXIT_CODE);
       }
+      ERROR_OUTPUT.println(
+          "Checking for property " + specification + " is currently not supported by CPAchecker.");
+      System.exit(ERROR_EXIT_CODE);
     }
 
     // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
@@ -423,9 +459,10 @@ class CmdLineArguments {
         putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
 
         // set the file from where to read the specification automaton
-        Set<SpecificationProperty> properties = parser.getProperties();
-        pSpecificationProperties.addAll(properties);
-        assert !properties.isEmpty();
+        Iterable<SpecificationProperty> properties =
+            FluentIterable.from(parser.getProperties()).transform(TO_SPECIFICATION_PROPERTY);
+        Iterables.addAll(pSpecificationProperties, properties);
+        assert !Iterables.isEmpty(properties);
 
         specification = getSpecifications(options, properties);
 
@@ -442,13 +479,16 @@ class CmdLineArguments {
    * some options can be set.
    */
   private static String getSpecifications(
-      final Map<String, String> options, Set<SpecificationProperty> properties)
+      final Map<String, String> options, Iterable<SpecificationProperty> pProperties)
       throws InvalidCmdlineArgumentException {
     final List<String> specifications = new ArrayList<>();
-    for (SpecificationProperty property : properties) {
-      Optional<String> newSpec = property.getInternalSpecificationPath();
+    for (SpecificationProperty specificationProperty : pProperties) {
+      Optional<String> newSpec = specificationProperty.getInternalSpecificationPath();
       for (Map.Entry<String, String> additionalOptions :
-          property.getAssociatedOptions().entrySet()) {
+          specificationProperty
+              .getPropertyType()
+              .accept(PropertyOptionVisitor.INSTANCE)
+              .entrySet()) {
         putIfNotDifferent(options, additionalOptions.getKey(), additionalOptions.getValue());
       }
       assert newSpec != null;
@@ -498,5 +538,95 @@ class CmdLineArguments {
     }
 
     return null;
+  }
+
+  private static enum PropertyOptionVisitor implements PropertyTypeVisitor<Map<String, String>> {
+    INSTANCE;
+
+    @Override
+    public Map<String, String> visitReachabilityLabel() {
+      return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, String> visitReachability() {
+      return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, String> visitValidFree() {
+      return ImmutableMap.of("memorysafety.check", "true");
+    }
+
+    @Override
+    public Map<String, String> visitValidDeref() {
+      return ImmutableMap.of("memorysafety.check", "true");
+    }
+
+    @Override
+    public Map<String, String> visitValidMemtrack() {
+      return ImmutableMap.of("memorysafety.check", "true");
+    }
+
+    @Override
+    public Map<String, String> visitOverflow() {
+      return ImmutableMap.of("overflow.check", "true");
+    }
+
+    @Override
+    public Map<String, String> visitDeadlock() {
+      return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, String> visitTermination() {
+      return ImmutableMap.of("termination.check", "true");
+    }
+  }
+
+  private static enum PropertySpecificationFileVisitor
+      implements PropertyTypeVisitor<Optional<String>> {
+    INSTANCE;
+
+    @Override
+    public Optional<String> visitReachabilityLabel() {
+      return Optional.of(REACHABILITY_LABEL_SPECIFICATION_FILE);
+    }
+
+    @Override
+    public Optional<String> visitReachability() {
+      return Optional.of(REACHABILITY_SPECIFICATION_FILE);
+    }
+
+    @Override
+    public Optional<String> visitValidFree() {
+      return Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_FREE);
+    }
+
+    @Override
+    public Optional<String> visitValidDeref() {
+      return Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_DEREF);
+    }
+
+    @Override
+    public Optional<String> visitValidMemtrack() {
+      return Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK);
+    }
+
+    @Override
+    public Optional<String> visitOverflow() {
+      return Optional.of(OVERFLOW_SPECIFICATION_FILE);
+    }
+
+    @Override
+    public Optional<String> visitDeadlock() {
+      return Optional.of(DEADLOCK_SPECIFICATION_FILE);
+    }
+
+    @Override
+    public Optional<String> visitTermination() {
+      return Optional.empty();
+    }
+
   }
 }

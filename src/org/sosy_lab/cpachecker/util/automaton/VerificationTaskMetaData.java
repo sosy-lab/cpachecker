@@ -46,7 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 public class VerificationTaskMetaData {
 
