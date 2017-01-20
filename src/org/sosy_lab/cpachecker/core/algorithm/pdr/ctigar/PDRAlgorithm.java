@@ -476,6 +476,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
         List<ValueAssignment> model;
         BooleanFormula pathFormula = block.getFormula();
+        boolean branchingFormulaPushed = false;
         try {
           prover.push(pathFormula);
           boolean satisfiable = !prover.isUnsat();
@@ -495,6 +496,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
                   AbstractStates.projectToType(block.getReachedSet(), ARGState.class).toSet());
 
           prover.push(branchingFormula);
+          branchingFormulaPushed = true;
           // need to ask solver for satisfiability again,
           // otherwise model doesn't contain new predicates
           boolean stillSatisfiable = !prover.isUnsat();
@@ -515,7 +517,9 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
           return;
 
         } finally {
-          prover.pop(); // remove branching formula
+          if (branchingFormulaPushed) {
+            prover.pop(); // remove branching formula
+          }
           prover.pop(); // remove path formula
         }
 
