@@ -32,6 +32,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -53,7 +57,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+@Options(prefix="cpa.arg.export.code")
 public class ARGToCTranslator {
+  private static String ASSERTFAIL = "__assert_fail";
+
   private static abstract class Statement {
     public abstract void translateToCode(StringBuffer buffer, int indent);
 
@@ -175,23 +182,30 @@ public class ARGToCTranslator {
   private FunctionBody mainFunctionBody;
   // private static Collection<AbstractState> reached;
 
-  private ARGToCTranslator(LogManager pLogger) {
+
+  @Option(secure=true, name="header", description="write include directives")
+  private boolean includeHeader = true;
+
+  public ARGToCTranslator(LogManager pLogger, Configuration pConfig)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
     logger = pLogger;
   }
 
-  public static String translateARG(ARGState argRoot,  boolean includeHeader, LogManager pLogger) {
-    ARGToCTranslator translator = new ARGToCTranslator(pLogger);
+  public String translateARG(ARGState argRoot) {
 
-    translator.translate(argRoot);
+    translate(argRoot);
 
-    return translator.generateCCode(includeHeader);
+    return generateCCode(includeHeader);
   }
+
 
   private String generateCCode(boolean includeHeader) {
     StringBuffer buffer = new StringBuffer();
 
     if (includeHeader) {
       buffer.append("#include <stdio.h>\n");
+      buffer.append("#include <assert.h>\n");
     }
     for(String globalDef : globalDefinitionsList) {
       buffer.append(globalDef + "\n");
@@ -428,7 +442,11 @@ public class ARGToCTranslator {
 
     case StatementEdge: {
       CStatementEdge lStatementEdge = (CStatementEdge)pCFAEdge;
-      return lStatementEdge.getStatement().toASTString() + (lStatementEdge.getStatement().toASTString().endsWith(";") ? "" : ";");
+      String statementText = lStatementEdge.getStatement().toASTString();
+        if (statementText.startsWith(ASSERTFAIL)) {
+          return "assert(false);";
+        }
+        return statementText + (statementText.endsWith(";") ? "" : ";");
     }
 
     case DeclarationEdge: {

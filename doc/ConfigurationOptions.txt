@@ -760,6 +760,11 @@ cpa.arg.dumpAfterIteration = false
 
 # export final ARG as .dot file
 cpa.arg.export = true
+
+# write include directives
+cpa.arg.export.code.header = true
+
+# export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
