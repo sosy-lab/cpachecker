@@ -135,10 +135,11 @@ public class ForwardTransition {
 
     Set<BlockState> blocks = Sets.newHashSet();
 
-    Set<AbstractState> visitedPredecessorStates = Sets.newHashSet();
+    Set<BlockState> visitedPredecessorStates = Sets.newHashSet();
     Deque<BlockState> currentStateQueue = Queues.newArrayDeque();
-    visitedPredecessorStates.add(initialState);
-    currentStateQueue.offer(new BlockState(initialState, initialState));
+    BlockState initialBlockCandidate = new BlockState(initialState, initialState);
+    visitedPredecessorStates.add(initialBlockCandidate);
+    currentStateQueue.offer(initialBlockCandidate);
 
     while (!currentStateQueue.isEmpty()) {
       BlockState blockState = currentStateQueue.poll();
@@ -150,11 +151,12 @@ public class ForwardTransition {
         if (child != null) {
           boolean isBlockStart = IS_BLOCK_START.apply(child);
           boolean isBlockEnd = isBlockStart || childARGState.getChildren().isEmpty();
+          BlockState nextBlockState = new BlockState(blockState.blockStart, child);
           if (isBlockEnd) {
-            blocks.add(new BlockState(blockState.blockStart, child));
+            blocks.add(nextBlockState);
           }
           if (!(childARGState.getChildren().isEmpty())
-              && (!isBlockEnd || visitedPredecessorStates.add(child))) {
+              && (visitedPredecessorStates.add(nextBlockState))) {
             currentStateQueue.offer(
                 new BlockState(isBlockStart ? child : blockState.blockStart, child));
           }
