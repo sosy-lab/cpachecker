@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
@@ -70,7 +69,7 @@ public class ForwardTransition {
 
   private final PathFormulaManager pathFormulaManager;
 
-  private final Map<CFANode, Iterable<Block>> blocks = Maps.newHashMap();
+  private final Multimap<CFANode, Block> blocks = HashMultimap.create();
 
   private final CFA cfa;
 
@@ -134,21 +133,17 @@ public class ForwardTransition {
 
     Function<ARGState, AbstractState> asAbstractState = asAbstractState(reachedSet);
 
-    Multimap<CFANode, Block> blocks = HashMultimap.create();
+    Set<BlockState> blocks = Sets.newHashSet();
 
     Set<AbstractState> visitedPredecessorStates = Sets.newHashSet();
-    Deque<AbstractState> predecessorQueue = Queues.newArrayDeque();
-    Deque<AbstractState> currentStateQueue = Queues.newArrayDeque();
+    Deque<BlockState> currentStateQueue = Queues.newArrayDeque();
     visitedPredecessorStates.add(initialState);
-    predecessorQueue.offer(initialState);
-    currentStateQueue.offer(initialState);
+    currentStateQueue.offer(new BlockState(initialState, initialState));
 
     while (!currentStateQueue.isEmpty()) {
-      assert currentStateQueue.size() == predecessorQueue.size();
-      AbstractState currentState = currentStateQueue.poll();
-      AbstractState currentPredecessor = predecessorQueue.poll();
+      BlockState blockState = currentStateQueue.poll();
       ARGState currentStateAsARGState =
-          AbstractStates.extractStateByType(currentState, ARGState.class);
+          AbstractStates.extractStateByType(blockState.blockEnd, ARGState.class);
 
       for (ARGState childARGState : currentStateAsARGState.getChildren()) {
         AbstractState child = asAbstractState.apply(childARGState);
@@ -156,25 +151,57 @@ public class ForwardTransition {
           boolean isBlockStart = IS_BLOCK_START.apply(child);
           boolean isBlockEnd = isBlockStart || childARGState.getChildren().isEmpty();
           if (isBlockEnd) {
-            for (CFANode predecessorLocation :
-                AbstractStates.extractLocations(currentPredecessor)) {
-              blocks.put(
-                  predecessorLocation,
-                  new BlockImpl(
-                      currentPredecessor,
-                      child,
-                      AnalysisDirection.FORWARD,
-                      getReachedSet(currentPredecessor, child, reachedSet, asAbstractState)));
-            }
+            blocks.add(new BlockState(blockState.blockStart, child));
           }
-          if (!isBlockStart || visitedPredecessorStates.add(child)) {
-            predecessorQueue.offer(isBlockStart ? child : currentPredecessor);
-            currentStateQueue.offer(child);
+          if (!(childARGState.getChildren().isEmpty())
+              && (!isBlockEnd || visitedPredecessorStates.add(child))) {
+            currentStateQueue.offer(
+                new BlockState(isBlockStart ? child : blockState.blockStart, child));
           }
         }
       }
     }
-    this.blocks.putAll(blocks.asMap());
+    for (BlockState block : blocks) {
+      for (CFANode predecessorLocation : AbstractStates.extractLocations(block.blockStart)) {
+        this.blocks.put(
+            predecessorLocation,
+            new BlockImpl(
+                block.blockStart,
+                block.blockEnd,
+                AnalysisDirection.FORWARD,
+                getReachedSet(block.blockStart, block.blockEnd, reachedSet, asAbstractState)));
+      }
+    }
+  }
+
+  private static class BlockState {
+
+    private final AbstractState blockStart;
+
+    private final AbstractState blockEnd;
+
+    public BlockState(AbstractState pBlockStart, AbstractState pCurrentState) {
+      this.blockStart = Objects.requireNonNull(pBlockStart);
+      this.blockEnd = Objects.requireNonNull(pCurrentState);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(blockStart, blockEnd);
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof BlockState) {
+        BlockState other = (BlockState) pObj;
+        return blockStart.equals(other.blockStart) && blockEnd.equals(other.blockEnd);
+      }
+      return false;
+    }
+
   }
 
   private Function<ARGState, AbstractState> asAbstractState(ReachedSet reachedSet) {
@@ -403,7 +430,7 @@ public class ForwardTransition {
         for (ARGState parentARGState : currentARGState.getParents()) {
           AbstractState parentAbstractState = pAsAbstractState.apply(parentARGState);
           assert parentAbstractState != null;
-          if (backward.add(parentAbstractState)) {
+          if (forward.contains(parentAbstractState) && backward.add(parentAbstractState)) {
             waitlist.push(parentAbstractState);
           }
         }
