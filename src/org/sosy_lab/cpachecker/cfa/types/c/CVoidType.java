@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -112,23 +111,6 @@ public final class CVoidType implements CType {
   @Override
   public CVoidType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return create(isConst || pForceConst, isVolatile || pForceVolatile);
-  }
-
-  @Override
-  public boolean isBitField() {
-    return false;
-  }
-
-  @Override
-  public int getBitFieldSize() {
-    return 0;
-  }
-
-  @Override
-  public CType withBitFieldSize(int pBitFieldSize) {
-    // Bit field size not supported
-    assert false;
-    return this;
   }
 
   private Object readResolve() {

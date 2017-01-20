@@ -46,10 +46,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -280,6 +282,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     final ReachedSet reached = coreComponents.createReachedSet();
 
+    AtomicBoolean terminated = new AtomicBoolean(false);
     Collection<Statistics> subStats =
         stats.getNewSubStatistics(
             reached,
@@ -287,7 +290,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
             Iterables.getOnlyElement(
                 FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
                     .filter(ThreadCpuTimeLimit.class),
-                null));
+                null), terminated);
     return () -> {
       final Algorithm algorithm;
       final ConfigurableProgramAnalysis cpa;
@@ -314,10 +317,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       } catch (InterruptedException e) {
         singleLogger.logUserException(
             Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
+        terminated.set(true);
         return ParallelAnalysisResult.absent(singleConfigFileName.toString());
       }
 
-      return runParallelAnalysis(
+      ParallelAnalysisResult r = runParallelAnalysis(
           singleConfigFileName.toString(),
           algorithm,
           reached,
@@ -326,6 +330,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
           supplyReached,
           supplyRefinableReached,
           coreComponents);
+      terminated.set(true);
+      return r;
     };
   }
 
@@ -517,7 +523,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         return false;
       }
 
-      return (from(reached).anyMatch(AbstractStates::isTargetState) && status.isPrecise())
+      return (status.isPrecise() && from(reached).anyMatch(AbstractStates::isTargetState))
           || (status.isSound()
               && !reached.hasWaitingState()
               && !from(reached)
@@ -544,9 +550,9 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     private String successfulAnalysisName = null;
 
     public synchronized Collection<Statistics> getNewSubStatistics(
-        ReachedSet pReached, String pName, @Nullable ThreadCpuTimeLimit pRLimit) {
+        ReachedSet pReached, String pName, @Nullable ThreadCpuTimeLimit pRLimit, AtomicBoolean pTerminated) {
       Collection<Statistics> subStats = Lists.newCopyOnWriteArrayList();
-      StatisticsEntry entry = new StatisticsEntry(subStats, pReached, pName, pRLimit);
+      StatisticsEntry entry = new StatisticsEntry(subStats, pReached, pName, pRLimit, pTerminated);
       allAnalysesStats.add(entry);
       return subStats;
     }
@@ -579,19 +585,24 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
                   + ": "
                   + subStats.rLimit.getOverallUsedTime().formatAs(TimeUnit.SECONDS));
         }
-        Result result = pResult;
-        if (successfulAnalysisName != null && !successfulAnalysisName.equals(subStats.name)) {
-          result = Result.UNKNOWN;
-        }
-        for (Statistics s : subStats.subStatistics) {
-          String name = s.getName();
-          if (!isNullOrEmpty(name)) {
-            name = name + " statistics";
-            pOut.println("");
-            pOut.println(name);
-            pOut.println(Strings.repeat("-", name.length()));
+        boolean terminated = subStats.terminated.get();
+        if (terminated) {
+          Result result = pResult;
+          if (successfulAnalysisName != null && !successfulAnalysisName.equals(subStats.name)) {
+            result = Result.UNKNOWN;
           }
-          s.printStatistics(pOut, result, subStats.reachedSet);
+          for (Statistics s : subStats.subStatistics) {
+            String name = s.getName();
+            if (!isNullOrEmpty(name)) {
+              name = name + " statistics";
+              pOut.println("");
+              pOut.println(name);
+              pOut.println(Strings.repeat("-", name.length()));
+            }
+            s.printStatistics(pOut, result, subStats.reachedSet);
+          }
+        } else {
+          pOut.println("Cannot print statistics for this analysis because it is still running.");
         }
       }
       pOut.println("\n");
@@ -615,11 +626,14 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     private final @Nullable ThreadCpuTimeLimit rLimit;
 
-    public StatisticsEntry(Collection<Statistics> pSubStatistics, ReachedSet pReachedSet, String pName, @Nullable ThreadCpuTimeLimit pRLimit) {
-      subStatistics = pSubStatistics;
-      reachedSet = pReachedSet;
-      name = pName;
+    private final AtomicBoolean terminated;
+
+    public StatisticsEntry(Collection<Statistics> pSubStatistics, ReachedSet pReachedSet, String pName, @Nullable ThreadCpuTimeLimit pRLimit, AtomicBoolean pTerminated) {
+      subStatistics = Objects.requireNonNull(pSubStatistics);
+      reachedSet = Objects.requireNonNull(pReachedSet);
+      name = Objects.requireNonNull(pName);
       rLimit = pRLimit;
+      terminated = Objects.requireNonNull(pTerminated);
     }
 
   }

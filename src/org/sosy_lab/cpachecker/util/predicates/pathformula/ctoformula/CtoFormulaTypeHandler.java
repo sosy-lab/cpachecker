@@ -29,6 +29,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -91,8 +92,8 @@ public class CtoFormulaTypeHandler {
    * @return the size in bits of the given type.
    */
   public int getBitSizeof(CType pType) {
-    if (pType.isBitField()) {
-      return pType.getBitFieldSize();
+    if (pType instanceof CBitFieldType) {
+      return ((CBitFieldType) pType).getBitFieldSize();
     }
     return getSizeof(pType) * machineModel.getSizeofCharInBits();
   }

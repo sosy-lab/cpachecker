@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 
@@ -108,23 +107,6 @@ public final class CProblemType implements CType {
 
   @Override
   public CProblemType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    return this;
-  }
-
-  @Override
-  public boolean isBitField() {
-    return false;
-  }
-
-  @Override
-  public int getBitFieldSize() {
-    return 0;
-  }
-
-  @Override
-  public CType withBitFieldSize(int pBitFieldSize) {
-    // Bit field size not supported
-    assert false;
     return this;
   }
 }

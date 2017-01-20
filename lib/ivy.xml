@@ -67,7 +67,7 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="1.10.19" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="2.6.3" conf="test->default"/>
 
         <!-- Truth
              Library for writing literal assertions. -->

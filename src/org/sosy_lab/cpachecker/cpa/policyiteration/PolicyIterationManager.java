@@ -469,7 +469,7 @@ public class PolicyIterationManager {
       Optional<PolicyAbstractedState> element = Optional.empty();
       if (runHopefulValueDetermination) {
         constraints = vdfmgr.valueDeterminationFormulaCheap(
-            newState, latestSibling, merged, updated.keySet());
+            newState, merged, updated.keySet());
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           logger.log(Level.INFO, "Switching to more expensive value "
@@ -481,7 +481,7 @@ public class PolicyIterationManager {
 
         // Hopeful value determination failed, run the more expensive version.
         constraints = vdfmgr.valueDeterminationFormula(
-            newState, latestSibling, merged, updated.keySet());
+            newState, merged, updated.keySet());
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           throw new CPATransferException("Value determination problem is "

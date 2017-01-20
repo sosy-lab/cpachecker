@@ -50,8 +50,6 @@ public final class CSimpleType implements CType, Serializable {
   private final boolean isLongLong;
   private final boolean isConst;
   private final boolean isVolatile;
-  @SuppressWarnings("Immutable")
-  private Integer bitFieldSize;
 
   @LazyInit private int hashCache = 0;
 
@@ -70,23 +68,6 @@ public final class CSimpleType implements CType, Serializable {
     isComplex = pIsComplex;
     isImaginary = pIsImaginary;
     isLongLong = pIsLongLong;
-  }
-
-  @Override
-  public CSimpleType withBitFieldSize(int pBitFieldSize) {
-    if (isBitField() && bitFieldSize == pBitFieldSize) {
-      return this;
-    }
-    CSimpleType result = new CSimpleType(isConst, isVolatile, type, isLong, isShort, isSigned,
-        isUnsigned, isComplex, isImaginary, isLongLong);
-    result.bitFieldSize = pBitFieldSize;
-    result.hashCache = 0;
-    return result;
-  }
-
-  @Override
-  public int getBitFieldSize() {
-    return bitFieldSize == null ? 0 : bitFieldSize;
   }
 
   @Override
@@ -151,7 +132,6 @@ public final class CSimpleType implements CType, Serializable {
           result = prime * result + Objects.hashCode(isSigned);
           result = prime * result + Objects.hashCode(isUnsigned);
           result = prime * result + Objects.hashCode(type);
-          result = prime * result + Objects.hashCode(bitFieldSize);
           hashCache = result;
       }
       return hashCache;
@@ -178,8 +158,7 @@ public final class CSimpleType implements CType, Serializable {
            && isVolatile == other.isVolatile && isImaginary == other.isImaginary
            && isLong == other.isLong && isLongLong == other.isLongLong
            && isShort == other.isShort && isSigned == other.isSigned
-           && isUnsigned == other.isUnsigned && type == other.type
-           && Objects.equals(bitFieldSize, other.bitFieldSize);
+           && isUnsigned == other.isUnsigned && type == other.type;
   }
 
   @Override
@@ -228,7 +207,7 @@ public final class CSimpleType implements CType, Serializable {
     parts.add(Strings.emptyToNull(type.toASTString()));
     parts.add(Strings.emptyToNull(pDeclarator));
 
-    return Joiner.on(' ').skipNulls().join(parts) + (isBitField() ? " : " + getBitFieldSize() : "");
+    return Joiner.on(' ').skipNulls().join(parts);
   }
 
   @Override
@@ -251,20 +230,20 @@ public final class CSimpleType implements CType, Serializable {
     if ((isConst == pForceConst)
         && (isVolatile == pForceVolatile)
         && (type == newType)
-        && (isSigned == newIsSigned)
-        && !isBitField()) {
+        && (isSigned == newIsSigned)) {
       return this;
     }
 
-    CSimpleType result = new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, newIsSigned, isUnsigned, isComplex, isImaginary, isLongLong);
-    if (isBitField()) {
-      result = result.withBitFieldSize(bitFieldSize);
-    }
-    return result;
-  }
-
-  @Override
-  public boolean isBitField() {
-    return bitFieldSize != null;
+    return new CSimpleType(
+        isConst || pForceConst,
+        isVolatile || pForceVolatile,
+        newType,
+        isLong,
+        isShort,
+        newIsSigned,
+        isUnsigned,
+        isComplex,
+        isImaginary,
+        isLongLong);
   }
 }

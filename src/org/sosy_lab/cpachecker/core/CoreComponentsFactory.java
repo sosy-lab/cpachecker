@@ -290,7 +290,14 @@ public class CoreComponentsFactory {
       if (usePDR) {
         algorithm =
             new PDRAlgorithm(
-                reachedSetFactory, cpa, algorithm, cfa, config, logger, shutdownNotifier);
+                reachedSetFactory,
+                cpa,
+                algorithm,
+                cfa,
+                config,
+                logger,
+                shutdownNotifier,
+                specification);
       }
 
       if (useBMC) {

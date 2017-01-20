@@ -27,7 +27,10 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -41,21 +44,26 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.MoreFiles.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar.PDRSmt.ConsecutionResult;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Blocks;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.ForwardTransition;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -68,11 +76,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
-import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -100,7 +104,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
   private final Configuration config;
   private final PDROptions optionsCollection;
   private final StatisticsDelegator compositeStats;
-  private final AssignmentToPathAllocator assignmentToPathAllocator;
+  private final Specification specification;
 
   // Those are null until initialized in run()
   private @Nullable PDRStatistics stats;
@@ -119,6 +123,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * @param pConfig The configuration that contains the components and options for this algorithm.
    * @param pLogger The logging component.
    * @param pShutdownNotifier The component that is used to shutdown this algorithm if necessary.
+   * @param pSpecification The specification of the verification task.
    * @throws InvalidConfigurationException If the configuration file is invalid or incomplete.
    */
   public PDRAlgorithm(
@@ -128,7 +133,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       CFA pCFA,
       Configuration pConfig,
       LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier)
+      ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification)
       throws InvalidConfigurationException {
 
     cfa = Objects.requireNonNull(pCFA);
@@ -148,10 +154,9 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     compositeStats = new StatisticsDelegator("PDR related");
     stats = new PDRStatistics();
     compositeStats.register(stats);
-    assignmentToPathAllocator =
-        new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, cfa.getMachineModel());
     stepwiseTransition =
-        new ForwardTransition(Objects.requireNonNull(pReachedSetFactory), pCPA, pAlgorithm);
+        new ForwardTransition(Objects.requireNonNull(pReachedSetFactory), pCPA, pAlgorithm, cfa);
+    specification = pSpecification;
 
     // initialized in run()
     transition = null;
@@ -407,7 +412,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       CFANode successorLocation = currentObligation.getState().getLocation();
       FluentIterable<Block> connectingBlocks =
           stepwiseTransition
-              .getBlocksFrom(predecessorLocation, false)
+              .getBlocksFrom(predecessorLocation)
               .filter(Blocks.applyToSuccessorLocation(l -> l.equals(successorLocation)));
       blocks.add(Iterables.getOnlyElement(connectingBlocks));
       previousPredecessorLocation = successorLocation;
@@ -459,112 +464,109 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * @throws CPATransferException if an exception occurs during the analysis of the counterexample.
    */
   private void analyzeCounterexample(List<Block> pBlocks, ReachedSet pTargetReachedSet)
-      throws CPATransferException, InterruptedException {
+      throws CPAException, InterruptedException {
 
     stats.errorPathCreation.start();
 
     logger.log(Level.INFO, "Error found, creating error path");
+
+    List<ARGPath> paths = Lists.newArrayListWithCapacity(pBlocks.size());
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      for (Block block : pBlocks) {
 
-      BooleanFormula blockFormulaConjunctions = Blocks.conjoinBlockFormulas(pBlocks, fmgr);
-      prover.push(blockFormulaConjunctions);
+        List<ValueAssignment> model;
+        BooleanFormula pathFormula = block.getFormula();
+        try {
+          prover.push(pathFormula);
+          boolean satisfiable = !prover.isUnsat();
+          if (!satisfiable) {
+            // should not occur
+            logger.log(
+                Level.WARNING,
+                "Counterexample export failed because the counterexample is spurious!");
+            return;
+          }
 
-      List<ValueAssignment> model;
-      try {
+          // get the branchingFormula
+          // this formula contains predicates for all branches we took
+          // this way we can figure out which branches make a feasible path
+          BooleanFormula branchingFormula =
+              pfmgr.buildBranchingFormula(
+                  AbstractStates.projectToType(block.getReachedSet(), ARGState.class).toSet());
 
-        boolean satisfiable = !prover.isUnsat();
-        if (!satisfiable) {
-          // should not occur
-          logger.log(
-              Level.WARNING,
-              "Counterexample export failed because the counterexample is spurious!");
+          prover.push(branchingFormula);
+          // need to ask solver for satisfiability again,
+          // otherwise model doesn't contain new predicates
+          boolean stillSatisfiable = !prover.isUnsat();
+
+          if (!stillSatisfiable) {
+            // should not occur
+            logger.log(
+                Level.WARNING,
+                "Could not create error path information because of inconsistent branching information!");
+            return;
+          }
+
+          model = prover.getModelAssignments();
+
+        } catch (SolverException e) {
+          logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
+          logger.logDebugException(e);
           return;
+
+        } finally {
+          prover.pop(); // remove branching formula
+          prover.pop(); // remove path formula
         }
 
-        // get the branchingFormula
-        // this formula contains predicates for all branches we took
-        // this way we can figure out which branches make a feasible path
-        BooleanFormula branchingFormula = Blocks.conjoinBranchingFormulas(pBlocks, fmgr, pfmgr);
+        // get precise error path
+        Map<Integer, Boolean> branchingInformation =
+            pfmgr.getBranchingPredicateValuesFromModel(model);
 
-        prover.push(branchingFormula);
-        // need to ask solver for satisfiability again,
-        // otherwise model doesn't contain new predicates
-        boolean stillSatisfiable = !prover.isUnsat();
+        boolean isLastPart = paths.size() == pBlocks.size() - 1;
+        ARGPath targetPath =
+            ARGUtils.getPathFromBranchingInformation(
+                AbstractStates.extractStateByType(block.getPredecessor(), ARGState.class),
+                FluentIterable.from(block.getReachedSet()).toSet(),
+                branchingInformation,
+                isLastPart);
+        paths.add(targetPath);
+      }
+    }
 
-        if (!stillSatisfiable) {
-          // should not occur
-          logger.log(
-              Level.WARNING,
-              "Could not create error path information because of inconsistent branching information!");
-          return;
-        }
-
-        model = prover.getModelAssignments();
-
-      } catch (SolverException e) {
-        logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
-        logger.logDebugException(e);
-        return;
-
-      } finally {
-        prover.pop(); // remove branchingFormula
+    // This temp file will be automatically deleted when the try block terminates.
+    try (DeleteOnCloseFile automatonFile =
+        MoreFiles.createTempFile("counterexample-automaton", ".txt")) {
+      try (Writer w =
+          MoreFiles.openOutputFile(automatonFile.toPath(), Charset.defaultCharset()); ) {
+        ARGUtils.producePathAutomaton(w, paths, "ReplayAutomaton", null);
       }
 
-      // get precise error path
-      Map<Integer, Boolean> branchingInformation =
-          pfmgr.getBranchingPredicateValuesFromModel(model);
+      Specification lSpecification =
+          Specification.fromFiles(
+              specification.getProperties(),
+              ImmutableList.of(automatonFile.toPath()),
+              cfa,
+              config,
+              logger);
+      CoreComponentsFactory factory =
+          new CoreComponentsFactory(config, logger, shutdownNotifier, new AggregatedReachedSets());
+      ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
+      Algorithm lAlgorithm = CPAAlgorithm.create(lCpas, logger, config, shutdownNotifier);
+      pTargetReachedSet.add(
+          lCpas.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+          lCpas.getInitialPrecision(
+              cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
 
-      Blocks.combineReachedSets(pBlocks, pTargetReachedSet);
-      ARGPath targetPath =
-          ARGUtils.getPathFromBranchingInformation(
-              AbstractStates.extractStateByType(pTargetReachedSet.getFirstState(), ARGState.class),
-              FluentIterable.from(pTargetReachedSet)
-                  .transform(AbstractStates.toState(ARGState.class))
-                  .filter(argState -> !argState.isDestroyed())
-                  .toSet(),
-              branchingInformation);
-
-      // replay error path for a more precise satisfying assignment
-      PathChecker pathChecker;
-      try {
-        Solver solver = this.solver;
-        PathFormulaManager pmgr = this.pfmgr;
-
-        if (solver.getVersion().toLowerCase().contains("smtinterpol")) {
-          // SMTInterpol does not support reusing the same solver
-          solver = Solver.create(config, logger, shutdownNotifier);
-          FormulaManagerView formulaManager = solver.getFormulaManager();
-          pmgr =
-              new PathFormulaManagerImpl(
-                  formulaManager,
-                  config,
-                  logger,
-                  shutdownNotifier,
-                  cfa,
-                  AnalysisDirection.BACKWARD); // TODO direction?
-        }
-
-        pathChecker = new PathChecker(config, logger, pmgr, solver, assignmentToPathAllocator);
-
-      } catch (InvalidConfigurationException e) {
-        // Configuration has somehow changed and can no longer be used to create the solver and path formula manager
-        logger.logUserException(
-            Level.WARNING, e, "Could not replay error path to get a more precise model");
-        return;
-      }
-
-      CounterexampleTraceInfo cexInfo =
-          CounterexampleTraceInfo.feasible(
-              ImmutableList.<BooleanFormula>of(blockFormulaConjunctions),
-              model,
-              branchingInformation);
-      CounterexampleInfo counterexample =
-          pathChecker.createCounterexample(targetPath, cexInfo, true);
-      counterexample.getTargetPath().getLastState().addCounterexampleInformation(counterexample);
-
+      lAlgorithm.run(pTargetReachedSet);
+    } catch (IOException e) {
+      throw new CPAException("Could not reply error path", e);
+    } catch (InvalidConfigurationException e) {
+      throw new CPAException("Invalid configuration in replay config: " + e.getMessage(), e);
     } finally {
       stats.errorPathCreation.stop();
     }
+
   }
 
   private static class PDRStatistics implements Statistics {

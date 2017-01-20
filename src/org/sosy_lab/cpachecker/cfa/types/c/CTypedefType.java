@@ -50,13 +50,6 @@ public final class CTypedefType implements CType, Serializable {
     realType = checkNotNull(pRealType);
   }
 
-  @Override
-  public CType withBitFieldSize(int pBitFieldSize) {
-    if (isBitField() && getBitFieldSize() == pBitFieldSize) {
-      return this;
-    }
-    return new CTypedefType(isConst, isVolatile, name, realType.withBitFieldSize(pBitFieldSize));
-  }
   public String getName() {
     return name;
   }
@@ -76,8 +69,7 @@ public final class CTypedefType implements CType, Serializable {
     return (isConst() ? "const " : "")
         + (isVolatile() ? "volatile " : "")
         + name
-        + " " + pDeclarator
-        + (isBitField() ? " : " + getBitFieldSize() : "");
+        + " " + pDeclarator;
   }
 
   @Override
@@ -144,15 +136,5 @@ public final class CTypedefType implements CType, Serializable {
   @Override
   public CType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
     return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
-  }
-
-  @Override
-  public boolean isBitField() {
-    return realType.isBitField();
-  }
-
-  @Override
-  public int getBitFieldSize() {
-    return realType.getBitFieldSize();
   }
 }

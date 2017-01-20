@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -146,16 +147,14 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
 
     @Override
     public CEnumType visit(final CEnumType t) {
-      final CEnumType result = (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
-             new CEnumType(!ignoreConst && t.isConst(),
-                           !ignoreVolatile && t.isVolatile(),
-                           t.getEnumerators(),
-                           t.getName(),
-                           t.getOrigName());
-      if (t.isBitField() && (!result.isBitField() || result.getBitFieldSize() != t.getBitFieldSize())) {
-        return result.withBitFieldSize(t.getBitFieldSize());
-      }
-      return result;
+      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile())
+          ? t
+          : new CEnumType(
+              !ignoreConst && t.isConst(),
+              !ignoreVolatile && t.isVolatile(),
+              t.getEnumerators(),
+              t.getName(),
+              t.getOrigName());
     }
 
     @Override
@@ -165,21 +164,28 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
 
     @Override
     public CSimpleType visit(final CSimpleType t) {
-      final CSimpleType result = (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
-              new CSimpleType(!ignoreConst && t.isConst(),
-                              !ignoreVolatile && t.isVolatile(),
-                              t.getType(),
-                              t.isLong(),
-                              t.isShort(),
-                              t.isSigned(),
-                              t.isUnsigned(),
-                              t.isComplex(),
-                              t.isImaginary(),
-                              t.isLongLong());
-      if (t.isBitField() && (!result.isBitField() || result.getBitFieldSize() != t.getBitFieldSize())) {
-        return result.withBitFieldSize(t.getBitFieldSize());
+      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile())
+          ? t
+          : new CSimpleType(
+              !ignoreConst && t.isConst(),
+              !ignoreVolatile && t.isVolatile(),
+              t.getType(),
+              t.isLong(),
+              t.isShort(),
+              t.isSigned(),
+              t.isUnsigned(),
+              t.isComplex(),
+              t.isImaginary(),
+              t.isLongLong());
+    }
+
+    @Override
+    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      CType type = pCBitFieldType.getType().accept(this);
+      if (type != pCBitFieldType.getType()) {
+        return new CBitFieldType(type, pCBitFieldType.getBitFieldSize());
       }
-      return result;
+      return pCBitFieldType;
     }
 
     @Override

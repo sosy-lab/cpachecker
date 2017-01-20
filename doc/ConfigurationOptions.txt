@@ -674,9 +674,15 @@ counterexample.export.report = "Counterexample.%d.html"
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
 
-# If continueAfterInfeasibleError is true, remove the infeasible
-# counterexample before continuing.Setting this to false may prevent a lot of
-# similar infeasible counterexamples to get discovered, but is unsound
+# If continueAfterInfeasibleError is true, remove the error state that is
+# proven to be unreachable before continuing. Set this to false if
+# analyis.collectAssumptions=true is also set.
+counterexample.removeInfeasibleErrorState = true
+
+# If continueAfterInfeasibleError is true, attempt to remove the whole path
+# of the infeasible counterexample before continuing. Setting this to false
+# may prevent a lot of similar infeasible counterexamples to get discovered,
+# but is unsound
 counterexample.removeInfeasibleErrors = false
 
 # Compute and export information about the verification coverage?
@@ -740,6 +746,9 @@ cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 # disequality provided by apron library 
 cpa.apron.splitDisequalities = true
 
+# translate final ARG into this C file
+cpa.arg.CTranslation.file = "ARG.c"
+
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
 # per CFA edge.
@@ -771,6 +780,9 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
 
+# translate final ARG into C program
+cpa.arg.translateToC = false
+
 # Verification witness: Include the considered case of an assume?
 cpa.arg.witness.exportAssumeCaseInfo = true
 
@@ -792,6 +804,9 @@ cpa.arg.witness.exportSourcecode = true
 
 # Verification witness: Include an thread-identifier within the file?
 cpa.arg.witness.exportThreadId = false
+
+# Some redundant transitions will be removed
+cpa.arg.witness.removeInsufficientEdges = true
 
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
@@ -1396,6 +1411,15 @@ cpa.predicate.addRangeConstraintsForNondet = false
 # ALL: all variables are relevant.
 cpa.predicate.bam.predicateComputer = "AUXILIARY"
   allowed values: [AUXILIARY, OCCURRENCE, ALL]
+
+# Enable/disable precision reduction using RelevantPredicateComputer
+cpa.predicate.bam.reduceIrrelevantPrecision = true
+
+# Enable/disable abstraction reduction at the BAM block entry
+cpa.predicate.bam.useAbstractionReduction = true
+
+# Enable/disable precision reduction at the BAM block entry
+cpa.predicate.bam.usePrecisionReduction = true
 
 # force abstractions immediately after threshold is reached (no effect if
 # threshold = 0)

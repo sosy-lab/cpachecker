@@ -278,7 +278,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     specification = pSpecification;
     cfa = pCfa;
 
-    globalInvariants = new FormulaInvariantsSupplier(pAggregatedReachedSets, logger);
+    globalInvariants = new FormulaInvariantsSupplier(pAggregatedReachedSets);
     updateGlobalInvariants();
 
     if (generationStrategy.contains(InvariantGenerationStrategy.PF_CNF_KIND)
@@ -311,7 +311,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       Optional<CallstackStateEqualsWrapper> pCallstackInformation,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
-      PathFormula pContext) {
+      PathFormula pContext)
+      throws InterruptedException {
     BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
     Set<BooleanFormula> localInvariants =
         locationInvariantsCache.getOrDefault(pNode, ImmutableSet.of());
@@ -746,7 +747,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       throws CPAException, InterruptedException {
 
     invGen.start(cfa.getMainFunction());
-    InvariantSupplier invSup = new FormulaInvariantsSupplier(invGen.get(), logger);
+    InvariantSupplier invSup = new FormulaInvariantsSupplier(invGen.get());
 
     // we do only want to use invariants that can be used to make the program safe
     if (!useStrongInvariantsOnly || invGen.isProgramSafe()) {

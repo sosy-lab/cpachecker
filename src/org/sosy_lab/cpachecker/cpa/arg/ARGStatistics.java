@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
 @Options(prefix="cpa.arg")
 public class ARGStatistics implements Statistics {
@@ -103,6 +104,16 @@ public class ARGStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
 
+  @Option(secure = true, name = "translateToC",
+      description = "translate final ARG into C program")
+  private boolean translateARG = false;
+
+  @Option(secure = true, name = "CTranslation.file",
+      description = "translate final ARG into this C file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path argCFile = Paths.get("ARG.c");
+
+
   protected final ConfigurableProgramAnalysis cpa;
 
   private Writer refinementGraphUnderlyingWriter = null;
@@ -131,6 +142,10 @@ public class ARGStatistics implements Statistics {
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
       exportARG = false;
+    }
+
+    if (argCFile == null) {
+      translateARG = false;
     }
   }
 
@@ -191,6 +206,15 @@ public class ARGStatistics implements Statistics {
 
     if (exportARG) {
       exportARG(pReached, counterexamples, pResult);
+    }
+
+    if (translateARG) {
+      try (Writer writer = MoreFiles.openOutputFile(argCFile, Charset.defaultCharset())) {
+        writer.write(
+            ARGToCTranslator.translateARG((ARGState) pReached.getFirstState(), false, logger));
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write C translation of ARG to file");
+      }
     }
   }
 

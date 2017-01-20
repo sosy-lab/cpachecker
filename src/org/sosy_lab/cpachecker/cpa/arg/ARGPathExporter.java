@@ -190,6 +190,9 @@ public class ARGPathExporter {
   @Option(secure=true, description="Verification witness: Include an thread-identifier within the file?")
   private boolean exportThreadId = false;
 
+  @Option(secure=true, description="Some redundant transitions will be removed")
+  private boolean removeInsufficientEdges = true;
+
   @Option(
     secure = true,
     description = "Verification witness: Revert escaping/renaming of functions for threads?"
@@ -1069,8 +1072,10 @@ public class ARGPathExporter {
               return true;
             }
 
-            if (INSUFFICIENT_KEYS.containsAll(pEdge.label.getMapping().keySet())) {
-              return true;
+            if (removeInsufficientEdges) {
+              if (INSUFFICIENT_KEYS.containsAll(pEdge.label.getMapping().keySet())) {
+                return true;
+              }
             }
 
             return false;

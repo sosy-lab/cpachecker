@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -321,13 +322,6 @@ public enum MachineModel {
   }
 
   public int getSizeof(CSimpleType type) {
-    if (type.isBitField()) {
-      int size = type.getBitFieldSize() / mSizeofCharInBits;
-      if (type.getBitFieldSize() % mSizeofCharInBits > 0) {
-        size++;
-      }
-      return size;
-    }
     switch (type.getType()) {
     case BOOL:        return getSizeofBool();
     case CHAR:        return getSizeofChar();
@@ -552,8 +546,8 @@ public enum MachineModel {
                 "Cannot compute size of incomplete type " + decl.getType());
           }
         } else {
-          if (decl.getType().isBitField()) {
-              bitFieldsSize += decl.getType().getBitFieldSize();
+          if (decl.getType() instanceof CBitFieldType) {
+              bitFieldsSize += ((CBitFieldType) decl.getType()).getBitFieldSize();
           } else {
             size += calculateByteSize(bitFieldsSize);
             bitFieldsSize = 0;
@@ -629,6 +623,11 @@ public enum MachineModel {
     public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
       return model.getSizeofVoid();
     }
+
+    @Override
+    public Integer visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
+      return calculateByteSize(pCBitFieldType.getBitFieldSize());
+    }
   }
 
   public int getSizeof(CType type) {
@@ -644,8 +643,8 @@ public enum MachineModel {
   }
 
   public int getBitSizeof(CType pType) {
-    if (pType.isBitField()) {
-      return pType.getBitFieldSize();
+    if (pType instanceof CBitFieldType) {
+      return ((CBitFieldType) pType).getBitFieldSize();
     } else {
       return getSizeof(pType) * getSizeofCharInBits();
     }
@@ -738,6 +737,11 @@ public enum MachineModel {
     @Override
     public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
       return model.getAlignofVoid();
+    }
+
+    @Override
+    public Integer visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
+      return pCBitFieldType.getType().accept(this);
     }
   }
 
