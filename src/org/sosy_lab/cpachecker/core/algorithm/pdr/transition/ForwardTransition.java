@@ -204,6 +204,11 @@ public class ForwardTransition {
       return false;
     }
 
+    @Override
+    public String toString() {
+      return blockStart + " to " + blockEnd;
+    }
+
   }
 
   private Function<ARGState, AbstractState> asAbstractState(ReachedSet reachedSet) {
