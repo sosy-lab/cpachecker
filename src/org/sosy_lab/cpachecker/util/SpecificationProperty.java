@@ -23,29 +23,57 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 
-public interface SpecificationProperty {
+public class SpecificationProperty {
+
+  private final String entryFunction;
+
+  private final PropertyType propertyType;
+
+  private final Optional<String> internalSpecificationPath;
+
+  public SpecificationProperty(
+      String pEntryFunction,
+      PropertyType pPropertyType,
+      Optional<String> pInternalSpecificationPath) {
+    entryFunction = Objects.requireNonNull(pEntryFunction);
+    propertyType = Objects.requireNonNull(pPropertyType);
+    internalSpecificationPath = Objects.requireNonNull(pInternalSpecificationPath);
+  }
 
   /**
    * Gets the function entry.
    *
    * @return the function entry.
    */
-  String getInitialFunction();
+  public String getEntryFunction() {
+    return entryFunction;
+  }
 
   /**
    * Gets the path to the specification automaton used to represent the property, if it exists.
    *
    * @return the path to the specification automaton used to represent the property, if it exists.
    */
-  Optional<String> getInternalSpecificationPath();
+  public Optional<String> getInternalSpecificationPath() {
+    return internalSpecificationPath;
+  }
 
   /**
    * Gets the type of the property.
    *
    * @return the type of the property.
    */
-  PropertyType getPropertyType();
+  public PropertyType getPropertyType() {
+    return propertyType;
+  }
+
+  @Override
+  public String toString() {
+    return String.format(
+        "CHECK( init(%s()), LTL(%s) )", getEntryFunction(), getPropertyType().toString());
+  }
 }

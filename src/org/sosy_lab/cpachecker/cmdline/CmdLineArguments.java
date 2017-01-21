@@ -27,7 +27,6 @@ import static com.google.common.collect.ImmutableMap.of;
 import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_EXIT_CODE;
 import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
@@ -62,9 +61,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyTypeVisitor;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyTypeWithEntryFunction;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
@@ -255,30 +252,6 @@ class CmdLineArguments {
             }
           }.withDescription("print help message"));
 
-
-  private static final Function<PropertyTypeWithEntryFunction, SpecificationProperty>
-      TO_SPECIFICATION_PROPERTY =
-          p ->
-              new SpecificationProperty() {
-
-                @Override
-                public Optional<String> getInternalSpecificationPath() {
-                  return getPropertyType()
-                      .accept(PropertySpecificationFileVisitor.INSTANCE)
-                      .map(CmdLineArguments::resolveOrExit);
-                }
-
-                @Override
-                public String getInitialFunction() {
-                  return p.getEntryFunctionName();
-                }
-
-                @Override
-                public PropertyType getPropertyType() {
-                  return p.getPropertyType();
-                }
-              };
-
   /**
    * Reads the arguments and process them.
    *
@@ -455,7 +428,15 @@ class CmdLineArguments {
 
         // set the file from where to read the specification automaton
         Iterable<SpecificationProperty> properties =
-            FluentIterable.from(parser.getProperties()).transform(TO_SPECIFICATION_PROPERTY);
+            FluentIterable.from(parser.getProperties())
+                .transform(
+                    p ->
+                        new SpecificationProperty(
+                            p.getEntryFunctionName(),
+                            p.getPropertyType(),
+                            p.getPropertyType()
+                                .accept(PropertySpecificationFileVisitor.INSTANCE)
+                                .map(CmdLineArguments::resolveOrExit)));
         Iterables.addAll(pSpecificationProperties, properties);
         assert !Iterables.isEmpty(properties);
 
