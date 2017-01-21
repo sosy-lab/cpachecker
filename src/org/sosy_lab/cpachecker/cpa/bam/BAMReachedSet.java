@@ -30,7 +30,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -107,15 +106,15 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     // get blocks that need to be touched
     Map<BackwardARGState, ARGState> blockInitAndExitStates =
         getBlockInitAndExitStates(path.asStatesList());
-    List<ARGState> relevantCallStates = getRelevantCallStates(path.asStatesList(), cutState);
-    assert relevantCallStates.get(0) == rootOfSubgraph
-        : "root should be relevant: " + relevantCallStates.get(0) + " + " + rootOfSubgraph;
+    Deque<ARGState> relevantCallStates = getRelevantCallStates(path.asStatesList(), cutState);
+    assert relevantCallStates.peekLast() == rootOfSubgraph
+        : "root should be relevant: " + relevantCallStates.peekLast() + " + " + rootOfSubgraph;
     assert relevantCallStates.size() >= 1
         : "at least the main-function should be open at the target-state";
     // TODO add element's block, if necessary?
 
     ARGState tmp = cutState;
-    for (ARGState callState : Lists.reverse(relevantCallStates)) {
+    for (ARGState callState : relevantCallStates) {
 
       logger.logf(Level.FINEST, "removing %s from reachedset with root %s", tmp, callState);
 
@@ -213,8 +212,9 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   /**
    * returns only those states, where a block starts that is 'open' at the cutState. We use the most
    * inner block as reference point for the cut-state.
+   * Order of result is from most inner block to most outer block (=mainBlock).
    */
-  private List<ARGState> getRelevantCallStates(
+  private Deque<ARGState> getRelevantCallStates(
       final List<ARGState> path, final ARGState bamCutState) {
     final Deque<ARGState> openCallStates = new ArrayDeque<>();
     for (final ARGState bamState : path) {
@@ -235,7 +235,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
             : "the mapping of expanded to reduced state should only exist for block-return-locations";
         // we are leaving a block, remove the start-state from the stack.
         tmp = (ARGState) data.getReducedStateForExpandedState(tmp);
-        openCallStates.removeLast();
+        openCallStates.pop();
         // INFO:
         // if we leave several blocks at once, we leave the blocks in reverse order,
         // because the call-state of the most outer block is checked first.
@@ -247,11 +247,11 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
             : "the mapping of initial state to reached-set should only exist for block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
-        openCallStates.addLast(bamState);
+        openCallStates.push(bamState);
       }
     }
 
-    return new ArrayList<>(openCallStates);
+    return openCallStates;
   }
 
   /**
