@@ -147,6 +147,46 @@ public class PropertyFileParser {
       }
     },
 
+    VALID_FREE {
+
+      @Override
+      public String toString() {
+        return "G valid-free";
+      }
+
+      @Override
+      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
+        return pVisitor.visitValidFree();
+      }
+    },
+
+    VALID_DEREF {
+
+      @Override
+      public String toString() {
+        return "G valid-deref";
+      }
+
+      @Override
+      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
+        return pVisitor.visitValidDeref();
+      }
+    },
+
+    VALID_MEMTRACK {
+
+      @Override
+      public String toString() {
+        return "G valid-memtrack";
+      }
+
+      @Override
+      public <T> T accept(PropertyTypeVisitor<T> pVisitor) {
+        return pVisitor.visitValidMemtrack();
+      }
+    },
+
+
     OVERFLOW {
 
       @Override
