@@ -175,7 +175,11 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   }
 
   /**
-   * inserts a partially cloned reached-set into the caches.
+   * This method clones a reached-set partially and inserts it into the caches.
+   * The cloned reached-set contains all abstract states
+   * except the cutState and the subtree below the cutState.
+   * The predecessor of the cutState (and other states covered by subtree-states)
+   * will be updated with a new precision.
    *
    * @param rootState the non-reduced initial state of the reached-set. This state is not part of
    *     the reached-set

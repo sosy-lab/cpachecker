@@ -481,6 +481,7 @@ public class BAMTransferRelation implements TransferRelation {
     // both are always equal, except analysis of recursive procedures (@fixpoint-algorithm)
     data.bamCache.put(
         reducedInitialState,
+        // do not use reducedInitialPrecision. With aggressiveCaching the hash-key will not match here.
         reached.getPrecision(reached.getFirstState()),
         innerSubtree,
         reducedResult,
