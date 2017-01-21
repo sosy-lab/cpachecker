@@ -42,6 +42,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -62,6 +63,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   private final ARGPath path;
   private final ARGState rootOfSubgraph;
   private final Timer removeCachedSubtreeTimer;
+  private final LogManager logger;
 
   public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
       ARGState pRootOfSubgraph,
@@ -69,6 +71,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     super(pMainReachedSet);
     this.bamCpa = cpa;
     this.data = bamCpa.getData();
+    this.logger = bamCpa.getLogger();
     this.path = pPath;
     this.rootOfSubgraph = pRootOfSubgraph;
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
@@ -94,29 +97,27 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @Override
   public void removeSubtree(
-      ARGState element,
+      ARGState cutState,
       List<Precision> pPrecisions,
       List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
     Preconditions.checkArgument(pPrecisionTypes.size() == pPrecisionTypes.size());
-    assert rootOfSubgraph.getSubgraph().contains(element);
+    assert rootOfSubgraph.getSubgraph().contains(cutState);
 
     // get blocks that need to be touched
     Map<BackwardARGState, ARGState> blockInitAndExitStates =
         getBlockInitAndExitStates(path.asStatesList());
-    List<ARGState> relevantCallStates = getRelevantCallStates(path.asStatesList(), element);
+    List<ARGState> relevantCallStates = getRelevantCallStates(path.asStatesList(), cutState);
     assert relevantCallStates.get(0) == rootOfSubgraph
         : "root should be relevant: " + relevantCallStates.get(0) + " + " + rootOfSubgraph;
     assert relevantCallStates.size() >= 1
         : "at least the main-function should be open at the target-state";
     // TODO add element's block, if necessary?
 
-    ARGState tmp = element;
+    ARGState tmp = cutState;
     for (ARGState callState : Lists.reverse(relevantCallStates)) {
 
-      bamCpa
-          .getLogger()
-          .logf(Level.FINEST, "removing %s from reachedset with root %s", tmp, callState);
+      logger.logf(Level.FINEST, "removing %s from reachedset with root %s", tmp, callState);
 
       removeCachedSubtreeTimer.start();
 
@@ -135,7 +136,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     // The only important step is to remove the last state of the reached-set,
     // because without this step there is an assertion in Predicate-RefinementStrategy.
     // We can ignore waitlist-updates and coverage here, because there is no coverage in a BAM-CEX.
-    for (ARGState state : element.getSubgraph()) {
+    for (ARGState state : cutState.getSubgraph()) {
       state.removeFromARG();
     }
 
@@ -153,7 +154,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       // we use a loop here, because a return-node can be the exit of several blocks at once.
       for (AbstractState exitState : data.getExpandedStateList(state)) {
         // we are leaving a block, remove the start-state from the stack.
-        BackwardARGState initialState = openCallStates.removeLast();
+        BackwardARGState initialState = openCallStates.pop();
         AbstractState reducedExitState = data.getReducedStateForExpandedState(exitState);
         assert null
             != data.getReachedSetForInitialState(initialState.getWrappedState(), reducedExitState);
@@ -165,7 +166,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
             : "the mapping of initial state to reached-set should only exist for block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
-        openCallStates.addLast((BackwardARGState) bamState);
+        openCallStates.push((BackwardARGState) bamState);
       }
     }
 
