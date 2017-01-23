@@ -455,7 +455,7 @@ public class ARGToCTranslator {
       CStatementEdge lStatementEdge = (CStatementEdge)pCFAEdge;
       String statementText = lStatementEdge.getStatement().toASTString();
         if (statementText.startsWith(ASSERTFAIL)) {
-          return "assert(false);";
+          return "assert(0);";
 
         }
         return statementText + (statementText.endsWith(";") ? "" : ";");
