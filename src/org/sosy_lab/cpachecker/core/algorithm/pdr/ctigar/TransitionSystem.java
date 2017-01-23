@@ -73,9 +73,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class TransitionSystem {
 
   //TODO Debugging options, remove later
-  private final boolean addPcConstraints = true;
-  private final boolean addWP = false;
-  private final boolean addDummyBlocks = false;
+  private static final boolean addPcConstraints = true;
+  private static final boolean addWP = false;
+  private static final boolean addDummyBlocks = false;
 
   private static final String PROGRAM_COUNTER_VARIABLE_NAME = "__CPAchecker_pc";
   private static final CType PROGRAM_COUNTER_TYPE = CNumericTypes.UNSIGNED_INT;
@@ -132,6 +132,9 @@ public class TransitionSystem {
     BooleanFormulaManagerView bfmgr = pFmgr.getBooleanFormulaManager();
     BitvectorFormulaManagerView bvfmgr = pFmgr.getBitvectorFormulaManager();
 
+    this.primedContext = pPfmgr.makeEmptyPathFormula();
+    this.unprimedContext = pPfmgr.makeEmptyPathFormula();
+    this.highestSSA = 1;
     this.terminalNodes = new HashSet<>();
     this.nonTerminalLocs = new HashSet<>();
     this.programVariableNames = new HashSet<>();
@@ -297,8 +300,6 @@ public class TransitionSystem {
       throws CPAException, InterruptedException {
     Collection<Block> exploredBlocks = new LinkedList<>();
     Deque<Block> blockTraversalStack = new LinkedList<>();
-    highestSSA = 1;
-
 
     for (Block block : pForwardTransition.getBlocksFrom(pStartPoint)) {
       blockTraversalStack.push(block);

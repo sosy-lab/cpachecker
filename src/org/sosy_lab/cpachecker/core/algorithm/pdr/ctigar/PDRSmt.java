@@ -78,11 +78,11 @@ public class PDRSmt {
   private final LogManager logger;
 
   // TODO Debugging options, remove later
-  private final boolean useAbstraction = true;
-  private final boolean checkCAF = false;
-  private final boolean dropLiterals = true;
-  private final boolean useLifting = true;
-  private final boolean useUnsatCore = false;
+  private static final boolean useAbstraction = true;
+  private static final boolean checkCAF = false;
+  private static final boolean dropLiterals = true;
+  private static final boolean useLifting = true;
+  private static final boolean useUnsatCore = false;
 
   /**
    * Creates a new PDRSmt instance.
