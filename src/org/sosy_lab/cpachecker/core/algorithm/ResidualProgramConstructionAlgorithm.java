@@ -124,7 +124,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
     try {
       logger.log(Level.INFO, "Start analysis");
-      status.update(innerAlgorithm.run(pReachedSet));
+      status = status.update(innerAlgorithm.run(pReachedSet));
     } catch (InfeasibleCounterexampleException | RefinementFailedException e) {
     }
 
