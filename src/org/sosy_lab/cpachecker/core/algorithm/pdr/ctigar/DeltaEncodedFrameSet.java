@@ -123,7 +123,7 @@ public class DeltaEncodedFrameSet implements FrameSet {
   @Override
   public Set<BooleanFormula> getStates(int pLevel) {
     Preconditions.checkPositionIndex(pLevel, currentMaxLevel + 1);
-    if (pLevel == 0) { // TODO ok?
+    if (pLevel == 0) { // States in F_0 are only the initial states
       return frames.get(0);
     }
 
@@ -188,7 +188,8 @@ public class DeltaEncodedFrameSet implements FrameSet {
         for (BooleanFormula clauseAtNextLevel : getStates(level + 1)) {
           Iterator<BooleanFormula> currentLevelClauseIterator = currentFrame.iterator();
           while (currentLevelClauseIterator.hasNext()) {
-            if (subsumes(clauseAtNextLevel, currentLevelClauseIterator.next())) {
+            BooleanFormula c = currentLevelClauseIterator.next();
+            if (subsumes(clauseAtNextLevel, c)) {
               currentLevelClauseIterator.remove();
               pShutdownNotifier.shutdownIfNecessary();
             }

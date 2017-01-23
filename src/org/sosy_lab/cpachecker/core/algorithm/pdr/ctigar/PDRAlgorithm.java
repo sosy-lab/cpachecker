@@ -212,7 +212,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
         new PredicatePrecisionManager(
             fmgr, predCPA.getPredicateManager(), pfmgr, transition, cfa, compositeStats);
     pdrSolver =
-        new PDRSmt(frameSet, solver, fmgr, pfmgr, predicateManager, transition, compositeStats);
+        new PDRSmt(
+            frameSet, solver, fmgr, pfmgr, predicateManager, transition, compositeStats, logger);
   }
 
   @Override
@@ -227,9 +228,13 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
         transition =
             new TransitionSystem(
                 optionsCollection, cfa, stepwiseTransition, fmgr, pfmgr, mainEntry);
+        logger.log(Level.INFO, transition);
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, null);
         throw new CPAException("Invalid configuration file.", e);
+      } catch (SolverException e) {
+        logger.logException(Level.WARNING, e, null);
+        throw new CPAException("Solver error occured while creating transition relation.", e);
       }
     }
 
@@ -336,11 +341,14 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
     // Inner loop : recursively block bad states.
     while (!proofObligationQueue.isEmpty()) {
+      logger.log(Level.INFO, "Queue : ", proofObligationQueue);
       ProofObligation p =
           proofObligationQueue.poll(); // Inspect proof obligation with lowest frame level.
+      logger.log(Level.INFO, "Current obligation : ", p);
 
       // Frame level 0 => counterexample found
       if (p.getFrameLevel() == 0) {
+        assert pdrSolver.isInitial(p.getState().getFormula());
         analyzeCounterexample(p, pReached, pErrorLocation);
         return false;
       }
@@ -349,6 +357,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
       if (result.consecutionSuccess()) {
         BooleanFormula blockableStates = result.getResult().getFormula();
+        logger.log(Level.INFO, "Blocking states : ", blockableStates);
         frameSet.blockStates(blockableStates, p.getFrameLevel());
 
         if (p.getFrameLevel() < frameSet.getMaxLevel()) {
@@ -356,6 +365,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
         }
       } else {
         StatesWithLocation predecessorStates = result.getResult();
+        logger.log(Level.INFO, "Found predecessor : ", predecessorStates.getFormula());
         ProofObligation blockPredecessorStates =
             new ProofObligation(p.getFrameLevel() - 1, predecessorStates, p);
         proofObligationQueue.offer(blockPredecessorStates);

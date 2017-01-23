@@ -23,15 +23,22 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
+import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -58,6 +65,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class PDRSmt {
 
+  private static final int MAX_DROPPED_LITERALS = 1000; // TODO as option
+
   private final FrameSet frameSet;
   private final Solver solver;
   private final FormulaManagerView fmgr;
@@ -66,6 +75,14 @@ public class PDRSmt {
   private final PredicatePrecisionManager abstractionManager;
   private final TransitionSystem transition;
   private final PDRSatStatistics stats;
+  private final LogManager logger;
+
+  // TODO Debugging options, remove later
+  private final boolean useAbstraction = true;
+  private final boolean checkCAF = false;
+  private final boolean dropLiterals = true;
+  private final boolean useLifting = true;
+  private final boolean useUnsatCore = false;
 
   /**
    * Creates a new PDRSmt instance.
@@ -86,7 +103,8 @@ public class PDRSmt {
       PathFormulaManager pPfmgr,
       PredicatePrecisionManager pAbstractionManager,
       TransitionSystem pTransition,
-      StatisticsDelegator pCompStats) {
+      StatisticsDelegator pCompStats,
+      LogManager pLogger) {
     this.stats = new PDRSatStatistics();
     Objects.requireNonNull(pCompStats).register(stats);
 
@@ -97,6 +115,7 @@ public class PDRSmt {
     this.pfmgr = Objects.requireNonNull(pPfmgr);
     this.abstractionManager = Objects.requireNonNull(pAbstractionManager);
     this.transition = Objects.requireNonNull(pTransition);
+    this.logger = Objects.requireNonNull(pLogger);
   }
 
   /**
@@ -124,14 +143,31 @@ public class PDRSmt {
         return Optional.empty();
       }
 
-      Model model = prover.getModel();
-      StatesWithLocation directErrorPredecessor = getSatisfyingState(model);
+      StatesWithLocation directErrorPredecessor = getSatisfyingState(prover.getModel());
       BooleanFormula concreteState = directErrorPredecessor.getFormula();
       BooleanFormula liftedAbstractState = abstractLift(concreteState, notSafetyPrimed);
+      assert ctiOK(liftedAbstractState);
       return Optional.of(
           new ConsecutionResult(
               false,
-              new StatesWithLocation(liftedAbstractState, directErrorPredecessor.getLocation())));
+              new StatesWithLocation(
+                  liftedAbstractState,
+                  directErrorPredecessor.getLocation(),
+                  directErrorPredecessor.getConcrete())));
+    }
+  }
+
+  private boolean ctiOK(BooleanFormula pLiftedAbstractedState)
+      throws SolverException, InterruptedException {
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+
+      for (BooleanFormula frameClause : frameSet.getStates(frameSet.getMaxLevel())) {
+        prover.push(frameClause);
+      }
+      prover.push(pLiftedAbstractedState);
+      prover.push(transition.getTransitionRelationFormula());
+      prover.push(PDRUtils.asPrimed(bfmgr.not(transition.getSafetyProperty()), fmgr, transition));
+      return !prover.isUnsat();
     }
   }
 
@@ -142,30 +178,99 @@ public class PDRSmt {
    * @param pStates The formula describing a set of states.
    * @return True, if the provided states are initial, and false otherwise.
    */
-  public boolean isInitial(BooleanFormula pStates) {
-    // TODO what is initial? SAT[InitialCondition & pStates]? (pc=startlocationID) in formula/
-    // no pc in formula at all?
-    return bfmgr
-        .toConjunctionArgs(pStates, true)
-        .stream()
-        .anyMatch(
-            literal ->
-                literal.equals(
-                    PDRUtils.asUnprimed(transition.getInitialCondition(), fmgr, transition)));
+  public boolean isInitial(BooleanFormula pStates) throws SolverException, InterruptedException {
+
+    // States are initial iff : SAT[I & states]
+    BooleanFormula initialCondAndStates =
+        bfmgr.and(PDRUtils.asUnprimed(transition.getInitialCondition(), fmgr, transition), pStates);
+    return !solver.isUnsat(initialCondAndStates);
   }
 
   private BooleanFormula abstractLift(
       BooleanFormula pConcretePredecessor, BooleanFormula pSuccessors)
       throws InterruptedException, SolverException {
+    if (!useLifting) {
+      return pConcretePredecessor;
+    }
+
     stats.liftingTimer.start();
     try (InterpolatingProverEnvironment<?> concreteProver =
             solver.newProverEnvironmentWithInterpolation();
-        ProverEnvironment abstractProver =
-            solver.newProverEnvironment(ProverOptions.GENERATE_UNSAT_CORE)) {
-      return abstractLift(pConcretePredecessor, pSuccessors, concreteProver, abstractProver);
+        ProverEnvironment abstractProver = solver.newProverEnvironment()) {
+      return useAbstraction
+          ? abstractLift(pConcretePredecessor, pSuccessors, concreteProver, abstractProver)
+          : abstractLiftNoAbstr(pConcretePredecessor, pSuccessors, abstractProver);
     } finally {
       stats.liftingTimer.stop();
     }
+  }
+
+  private BooleanFormula abstractLiftNoAbstr(
+      BooleanFormula pConcretePredecessor, BooleanFormula pSuccessors, ProverEnvironment pProver)
+      throws InterruptedException, SolverException {
+
+    // Push unsatisfiable formula (state & T & not(successor)').
+    pProver.push(transition.getTransitionRelationFormula());
+    pProver.push(PDRUtils.asPrimed(bfmgr.not(pSuccessors), fmgr, transition));
+    pProver.push(pConcretePredecessor);
+    assert pProver.isUnsat();
+
+    // Get used literals of concreteState. Query must be unsat at this point.
+    BooleanFormula reduced = reduceByUnsatCore(pConcretePredecessor, pProver);
+    reduced = dropLits(reduced, pProver, false);
+    assert liftOK(reduced, pSuccessors);
+    return reduced;
+  }
+
+  // Assumes that the prover already contains the unsatisfiable query and the formula at the top of
+  // the prover stack is pFormula and the one to reduce. Afterwards, the prover will contain the new
+  // reduced formula instead.
+  private BooleanFormula reduceByUnsatCore(BooleanFormula pFormula, ProverEnvironment pProver)
+      throws SolverException, InterruptedException {
+
+    if (!useUnsatCore) {
+      return pFormula;
+    }
+
+    pProver.pop(); // Remove old (unreduced) formula.
+    Set<BooleanFormula> conjuncts = bfmgr.toConjunctionArgs(pFormula, true);
+
+    // Mapping of activation literals to conjuncts
+    Map<BooleanFormula, BooleanFormula> actToConjuncts = new HashMap<>();
+
+    // Create activation literals A <=> conjunct, push equivalences and check which literals
+    // are in core (over assumptions with all literals).
+    for (BooleanFormula conjunct : conjuncts) {
+
+      // Activation literals must have a unique name! Conjuncts are distinct from another, so use
+      // toString as unique name.
+      BooleanFormula act = bfmgr.makeVariable(conjunct.toString()); // TODO name ok?
+      BooleanFormula equiv = bfmgr.equivalence(act, conjunct);
+      actToConjuncts.put(act, conjunct);
+      pProver.push(equiv);
+    }
+
+    Optional<List<BooleanFormula>> usedLits =
+        pProver.unsatCoreOverAssumptions(actToConjuncts.keySet());
+    assert usedLits.isPresent(); // Must be unsat
+    Set<BooleanFormula> usedConjuncts =
+        actToConjuncts
+            .entrySet()
+            .stream()
+            .filter(entry -> usedLits.get().contains(entry.getKey()))
+            .map(entry -> entry.getValue())
+            .collect(Collectors.toSet());
+
+    BooleanFormula reduced = bfmgr.and(usedConjuncts);
+    BooleanFormula finalResult =
+        !isInitial(PDRUtils.asUnprimed(reduced, fmgr, transition)) ? reduced : pFormula;
+
+    // Rebuild prover : remove equivalences and push new reduced formula.
+    for (int i = 0; i < conjuncts.size(); ++i) {
+      pProver.pop();
+    }
+    pProver.push(finalResult);
+    return finalResult;
   }
 
   /**
@@ -181,23 +286,19 @@ public class PDRSmt {
       InterpolatingProverEnvironment<T> pConcrProver,
       ProverEnvironment pAbstrProver)
       throws InterruptedException, SolverException {
-
+    logger.log(Level.INFO, "Concrete : ", pConcreteState);
     BooleanFormula abstractState = abstractionManager.computeAbstraction(pConcreteState);
+    logger.log(Level.INFO, "Abstract : ", abstractState);
 
-    // Push unsatisfiable formula (state & T & not(successor)')
+    // Push unsatisfiable formula (state & T & not(successor)'). Push predecessor state last,
+    // so it can be popped and replaced with a refined version later when necessary.
     pAbstrProver.push(transition.getTransitionRelationFormula());
     pConcrProver.push(transition.getTransitionRelationFormula());
     pAbstrProver.push(PDRUtils.asPrimed(bfmgr.not(pSuccessorStates), fmgr, transition));
     pConcrProver.push(PDRUtils.asPrimed(bfmgr.not(pSuccessorStates), fmgr, transition));
+    T idForInterpolation = pConcrProver.push(pConcreteState);
+    pAbstrProver.push(abstractState);
 
-    // Push predecessor state last, so it can be popped and replaced with a refined version later
-    // when necessary.
-    T id = pConcrProver.push(pConcreteState);
-    Set<BooleanFormula> conjunctiveParts = bfmgr.toConjunctionArgs(abstractState, true);
-    int numParts = conjunctiveParts.size();
-    for (BooleanFormula part : conjunctiveParts) {
-      pAbstrProver.push(part);
-    }
     assert pConcrProver.isUnsat();
 
     // Abstraction was too broad => Prepare interpolating prover and refine.
@@ -206,59 +307,193 @@ public class PDRSmt {
       boolean unsat = pConcrProver.isUnsat();
       assert unsat;
 
-      BooleanFormula interpolant = pConcrProver.getInterpolant(Collections.singletonList(id));
+      BooleanFormula interpolant =
+          pConcrProver.getInterpolant(Collections.singletonList(idForInterpolation));
+      assert interpolant.equals(PDRUtils.asUnprimed(interpolant, fmgr, transition));
       abstractState = abstractionManager.refineAndComputeAbstraction(pConcreteState, interpolant);
+      logger.log(Level.INFO, "Abstract after refinement : ", abstractState);
 
       // Update abstraction on prover.
-      for (int i = 0; i < numParts; ++i) {
-        pAbstrProver.pop();
-      }
-      conjunctiveParts = bfmgr.toConjunctionArgs(abstractState, true);
-      numParts = conjunctiveParts.size();
-      for (BooleanFormula part : conjunctiveParts) {
-        pAbstrProver.push(part);
-      }
-      unsat = pAbstrProver.isUnsat();
-      assert unsat;
+      pAbstrProver.pop();
+      pAbstrProver.push(abstractState);
+      assert pAbstrProver.isUnsat();
     } else {
       stats.numberSuccessfulLifts++;
     }
 
     // Get used literals from query with abstraction. Query must be unsat at this point.
-    BooleanFormula liftedAbstractState =
-        dropUnusedLiterals(conjunctiveParts, pAbstrProver, numParts);
-    return liftedAbstractState;
+    BooleanFormula reduced = reduceByUnsatCore(abstractState, pAbstrProver);
+    reduced = dropLits(reduced, pAbstrProver, false);
+    assert liftOK(reduced, pSuccessorStates);
+    logger.log(Level.INFO, "Abstract after reduction: ", reduced);
+    return reduced;
   }
 
-  // TODO special handling if reduced formula is initial
-  /**
-   * Builds a boolean formula that consists of exactly those parts in pConjArgs that are also in the
-   * unsat core of the prover.
-   */
-  private BooleanFormula dropUnusedLiterals(
-      Set<BooleanFormula> pConjArgs, ProverEnvironment pProver, int pNumPops)
+  private boolean liftOK(BooleanFormula pLiftedStates, BooleanFormula pSuccessorStates)
       throws SolverException, InterruptedException {
-
-    List<BooleanFormula> usedLiterals =
-        pProver
-            .getUnsatCore()
-            .stream()
-            .filter(bf -> pConjArgs.contains(bf))
-            .collect(Collectors.toList());
-    BooleanFormula generalized = bfmgr.and(usedLiterals);
-    assert !isInitial(generalized);
-    assert unsatWith(generalized, pProver, pNumPops);
-    return generalized;
-  }
-
-  private boolean unsatWith(BooleanFormula pFormula, ProverEnvironment pProver, int pNumPops)
-      throws SolverException, InterruptedException {
-    for (int i = 0; i < pNumPops; ++i) {
-      pProver.pop();
+    if (isInitial(pLiftedStates)) {
+      return false;
     }
-    pProver.push(pFormula);
-    return pProver.isUnsat();
+
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      prover.push(pLiftedStates);
+      prover.push(transition.getTransitionRelationFormula());
+      prover.push(PDRUtils.asPrimed(bfmgr.not(pSuccessorStates), fmgr, transition));
+      return prover.isUnsat();
+    }
   }
+
+  /**
+   * For consecution, the prover should contain from bottom to top: F, T, not(state), state'.<br>
+   * For lifting, the prover should contain from bottom to top: successor', T, predecessor.<br>
+   * Both queries must return unsat!<br>
+   * Removes conjunctive parts of the formula on top and checks if query still unsat. In consecution
+   * mode, not(state) and state' are updated. In lifting mode, predecessor is updated. The prover
+   * will contain the final shrunk formulas afterwards instead of their originals.
+   */
+  private BooleanFormula dropLits(
+      BooleanFormula pFormula, ProverEnvironment pProver, boolean consecutionMode)
+      throws SolverException, InterruptedException {
+
+    if (!dropLiterals) {
+      return pFormula;
+    }
+
+    Set<BooleanFormula> remainingLits = bfmgr.toConjunctionArgs(pFormula, true);
+    Iterator<BooleanFormula> litIterator = remainingLits.iterator();
+    int droppedLits = 0;
+    while (droppedLits < MAX_DROPPED_LITERALS && litIterator.hasNext()) {
+
+      BooleanFormula currentLit = litIterator.next();
+
+      // Remove lit from formula
+      Set<BooleanFormula> litsWithoutCurrent =
+          Sets.filter(remainingLits, bf -> !bf.equals(currentLit));
+      BooleanFormula formulaWithoutLit =
+          PDRUtils.asUnprimed(bfmgr.and(litsWithoutCurrent), fmgr, transition);
+
+      // If removal makes states initial, continue with next lit.
+      if (isInitial(formulaWithoutLit)) {
+        continue;
+      }
+
+      // Now check if still unsat with reduced formula. Yes -> remove lit from set.
+      // Consecution mode : push not(reduced) and reduced'
+      // Lift mode : push reduced
+      if (consecutionMode) {
+        pProver
+            .pop(); // Prover contains old versions of not(states) and states'. Remove them first.
+        pProver.pop();
+        pProver.push(bfmgr.not(formulaWithoutLit));
+        pProver.push(PDRUtils.asPrimed(formulaWithoutLit, fmgr, transition));
+      } else {
+        pProver.pop(); // Prover contains old version of states. Remove it first.
+        pProver.push(formulaWithoutLit);
+      }
+
+      if (pProver.isUnsat()) {
+        litIterator.remove();
+        droppedLits++;
+      }
+    }
+
+    // All unneeded conjuncts/literals are removed at this point. The conjunction of the remaining ones
+    // is the reduced formula.
+    return bfmgr.and(remainingLits);
+  }
+
+  public ConsecutionResult consecution(int pLevel, StatesWithLocation pStates)
+      throws SolverException, InterruptedException {
+    stats.consecutionTimer.start();
+    try (InterpolatingProverEnvironment<?> concreteProver =
+            solver.newProverEnvironmentWithInterpolation();
+        ProverEnvironment abstractProver =
+            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      return checkCAF
+          ? consecutionDoubleCheck(pLevel, pStates, concreteProver, abstractProver)
+          : consecutionNormal(pLevel, pStates, abstractProver);
+    } finally {
+      stats.consecutionTimer.stop();
+    }
+  }
+
+  private <T> ConsecutionResult consecutionDoubleCheck(
+      int pLevel,
+      StatesWithLocation pStates,
+      InterpolatingProverEnvironment<T> pConcreteProver,
+      ProverEnvironment pAbstractProver)
+      throws SolverException, InterruptedException {
+
+    BooleanFormula abstr = pStates.getFormula();
+    BooleanFormula concrete = pStates.getConcrete();
+    List<T> idsForInterpolation = new ArrayList<>();
+
+    // Push consecution query (F_pLevel & not(s) & T & s')
+    for (BooleanFormula frameClause : frameSet.getStates(pLevel)) {
+      pAbstractProver.push(frameClause);
+      idsForInterpolation.add(pConcreteProver.push(frameClause));
+    }
+    pAbstractProver.push(transition.getTransitionRelationFormula());
+    idsForInterpolation.add(pConcreteProver.push(transition.getTransitionRelationFormula()));
+    pAbstractProver.push(bfmgr.not(abstr));
+    idsForInterpolation.add(pConcreteProver.push(bfmgr.not(concrete)));
+    pAbstractProver.push(PDRUtils.asPrimed(abstr, fmgr, transition));
+    pConcreteProver.push(PDRUtils.asPrimed(concrete, fmgr, transition));
+
+    boolean abstractConsecutionWorks = pAbstractProver.isUnsat();
+    boolean concreteConsecutionWorks = pConcreteProver.isUnsat();
+
+    if (!abstractConsecutionWorks) {
+      if (concreteConsecutionWorks) {
+        // Refine
+        BooleanFormula interpolant = pConcreteProver.getInterpolant(idsForInterpolation);
+        BooleanFormula forRefinement = bfmgr.not(interpolant);
+        abstr =
+            abstractionManager.refineAndComputeAbstraction(concrete, forRefinement); //TODO !!! ssa
+
+        // Update not(s) and s'
+        pAbstractProver.pop();
+        pAbstractProver.pop();
+        pAbstractProver.push(bfmgr.not(abstr));
+        pAbstractProver.push(PDRUtils.asPrimed(abstr, fmgr, transition));
+        abstractConsecutionWorks = pAbstractProver.isUnsat();
+        assert abstractConsecutionWorks;
+        assert consecutionOK(pLevel, abstr);
+      } else {
+        // Real predecessor found
+        stats.numberFailedConsecutions++;
+        StatesWithLocation predecessorState =
+            getSatisfyingState(pConcreteProver.getModel()); // TODO prover?
+
+        // No need to lift and abstract if state is initial.
+        // PDR will terminate with counterexample anyway.
+        if (isInitial(predecessorState.getConcrete())) {
+          return new ConsecutionResult(false, predecessorState);
+        }
+        BooleanFormula abstractLiftedPredecessor =
+            abstractLift(predecessorState.getFormula(), concrete);
+        return new ConsecutionResult(
+            false,
+            new StatesWithLocation(
+                abstractLiftedPredecessor,
+                predecessorState.getLocation(),
+                predecessorState.getConcrete()));
+      }
+    }
+
+    assert abstractConsecutionWorks;
+    // Generalize
+    BooleanFormula generalized =
+        PDRUtils.asUnprimed(
+            reduceByUnsatCore(PDRUtils.asPrimed(abstr, fmgr, transition), pAbstractProver),
+            fmgr,
+            transition);
+    generalized = dropLits(generalized, pAbstractProver, true);
+    assert consecutionOK(pLevel, generalized);
+    return new ConsecutionResult(
+        true, new StatesWithLocation(generalized, pStates.getLocation(), pStates.getConcrete()));
+  }
+
 
   /**
    * Checks if the given states are inductive relative to the frame with the given level. In short:
@@ -277,55 +512,67 @@ public class PDRSmt {
    * @throws SolverException If the solver failed during consecution.
    * @throws InterruptedException If the process was interrupted.
    */
-  public ConsecutionResult consecution(int pLevel, StatesWithLocation pStates)
+  private ConsecutionResult consecutionNormal(
+      int pLevel, StatesWithLocation pStates, ProverEnvironment prover)
       throws SolverException, InterruptedException {
-    stats.consecutionTimer.start();
-    try (ProverEnvironment prover =
-        solver.newProverEnvironment(
-            ProverOptions.GENERATE_MODELS, ProverOptions.GENERATE_UNSAT_CORE)) {
-      BooleanFormula states = pStates.getFormula();
 
-      // Push (F_pLevel & not(s) & T & s')
+    BooleanFormula states = pStates.getFormula();
+
+    // Push (F_pLevel & not(s) & T & s')
+    for (BooleanFormula frameClause : frameSet.getStates(pLevel)) {
+      prover.push(frameClause);
+    }
+    prover.push(transition.getTransitionRelationFormula());
+    prover.push(bfmgr.not(states));
+    prover.push(PDRUtils.asPrimed(states, fmgr, transition));
+
+    // If successful, return generalized version of states.
+    if (prover.isUnsat()) {
+      stats.numberSuccessfulConsecutions++;
+      BooleanFormula generalized =
+          PDRUtils.asUnprimed(
+              reduceByUnsatCore(PDRUtils.asPrimed(states, fmgr, transition), prover),
+              fmgr,
+              transition);
+      generalized = dropLits(generalized, prover, true);
+      assert consecutionOK(pLevel, generalized);
+      return new ConsecutionResult(
+          true, new StatesWithLocation(generalized, pStates.getLocation(), pStates.getConcrete()));
+    }
+
+    // If unsuccessful, return abstracted and lifted predecessor.
+    stats.numberFailedConsecutions++;
+    StatesWithLocation predecessorState = getSatisfyingState(prover.getModel());
+
+    // No need to lift and abstract if state is initial.
+    // PDR will terminate with counterexample anyway.
+    if (isInitial(predecessorState.getFormula())) {
+      return new ConsecutionResult(false, predecessorState);
+    }
+    BooleanFormula abstractLiftedPredecessor = abstractLift(predecessorState.getFormula(), states);
+    return new ConsecutionResult(
+        false,
+        new StatesWithLocation(
+            abstractLiftedPredecessor,
+            predecessorState.getLocation(),
+            predecessorState.getConcrete()));
+  }
+
+  private boolean consecutionOK(int pLevel, BooleanFormula pGeneralizedStates)
+      throws SolverException, InterruptedException {
+
+    if (isInitial(pGeneralizedStates)) {
+      return false;
+    }
+
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
       for (BooleanFormula frameClause : frameSet.getStates(pLevel)) {
         prover.push(frameClause);
       }
       prover.push(transition.getTransitionRelationFormula());
-      prover.push(bfmgr.not(states));
-      BooleanFormula primed = PDRUtils.asPrimed(states, fmgr, transition);
-
-      // Push conjunctive parts of s' separately. Favors minimal unsat core.
-      Set<BooleanFormula> conjunctiveParts = bfmgr.toConjunctionArgs(primed, true);
-      for (BooleanFormula part : conjunctiveParts) {
-        prover.push(part);
-      }
-
-      // If successful, return generalized version of states.
-      if (prover.isUnsat()) {
-        stats.numberSuccessfulConsecutions++;
-        BooleanFormula generalized =
-            dropUnusedLiterals(conjunctiveParts, prover, conjunctiveParts.size());
-        return new ConsecutionResult(
-            true,
-            new StatesWithLocation(
-                PDRUtils.asUnprimed(generalized, fmgr, transition), pStates.getLocation()));
-      }
-
-      // If unsuccessful, return abstracted and lifted predecessor.
-      stats.numberFailedConsecutions++;
-      Model model = prover.getModel();
-      StatesWithLocation predecessorState = getSatisfyingState(model);
-
-      // No need to lift and abstract if state is initial.
-      // PDR will terminate with counterexample anyway.
-      if (isInitial(predecessorState.getFormula())) {
-        return new ConsecutionResult(false, predecessorState);
-      }
-      BooleanFormula abstractLiftedPredecessor =
-          abstractLift(predecessorState.getFormula(), states);
-      return new ConsecutionResult(
-          false, new StatesWithLocation(abstractLiftedPredecessor, predecessorState.getLocation()));
-    } finally {
-      stats.consecutionTimer.stop();
+      prover.push(bfmgr.not(pGeneralizedStates));
+      prover.push(PDRUtils.asPrimed(pGeneralizedStates, fmgr, transition));
+      return prover.isUnsat();
     }
   }
 
@@ -350,6 +597,21 @@ public class PDRSmt {
 
       // Make value
       BigInteger val = pModel.evaluate(unprimedVar);
+
+      /*
+       * Null means there is no unprimed variable. To still get a full state, assign
+       * the same value v that the primed variable has. The actual value shouldn't matter,
+       * because it is re-assigned to v any way. This way the chosen value automatically
+       * has the correct type.
+       */
+      if (val == null) {
+        BitvectorFormula primedVar =
+            (BitvectorFormula)
+                pfmgr.makeFormulaForVariable(
+                    transition.getPrimedContext(), variableName, type, false);
+        val = pModel.evaluate(primedVar);
+      }
+
       BitvectorFormula value = bvfmgr.makeBitvector(fmgr.getFormulaType(unprimedVar), val);
 
       if (variableName.equals(transition.programCounterName())) {
@@ -360,7 +622,7 @@ public class PDRSmt {
       satisfyingState = bfmgr.and(satisfyingState, bvfmgr.equal(unprimedVar, value));
     }
 
-    return new StatesWithLocation(satisfyingState, location);
+    return new StatesWithLocation(satisfyingState, location, satisfyingState);
   }
 
   //---------------------------------Inner classes-----------------------------
