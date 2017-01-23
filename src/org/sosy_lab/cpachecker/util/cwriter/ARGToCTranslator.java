@@ -27,11 +27,13 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -182,6 +184,8 @@ public class ARGToCTranslator {
   private FunctionBody mainFunctionBody;
   // private static Collection<AbstractState> reached;
 
+  private @Nullable Set<CFANode> addPragmaAfter;
+
 
   @Option(secure=true, name="header", description="write include directives")
   private boolean includeHeader = true;
@@ -193,6 +197,13 @@ public class ARGToCTranslator {
   }
 
   public String translateARG(ARGState argRoot) {
+
+    return translateARG(argRoot, null);
+  }
+
+  public String translateARG(ARGState argRoot, @Nullable Set<CFANode> pAddPragma) {
+
+    addPragmaAfter = pAddPragma == null ? Collections.emptySet() : pAddPragma;
 
     translate(argRoot);
 
@@ -445,6 +456,7 @@ public class ARGToCTranslator {
       String statementText = lStatementEdge.getStatement().toASTString();
         if (statementText.startsWith(ASSERTFAIL)) {
           return "assert(false);";
+
         }
         return statementText + (statementText.endsWith(";") ? "" : ";");
     }
@@ -546,4 +558,5 @@ public class ARGToCTranslator {
   private int getFreshIndex() {
     return ++freshIndex;
   }
+
 }
