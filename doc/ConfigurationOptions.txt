@@ -162,6 +162,10 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
+# After an incomplete analysis constructs a residual program which contains
+# all program paths which are not fully explored
+analysis.constructResidualProgram = false
+
 # continue analysis after a unsupported code was found on one path
 analysis.continueAfterUnsupportedCode = false
 
@@ -2760,6 +2764,18 @@ report.export = true
 
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
+
+# set specification file to automaton which guide analysis along assumption
+# produced by incomplete analysis,e.g.,
+# config/specification/AssumptionGuidingAutomaton.spc, to enable residual
+# program from combination of program and assumption condition
+residualprogram.assumptionGuider = no default value
+
+# write residual program to file
+residualprogram.file = "residualProgram.c"
+
+# write collected assumptions as automaton to file
+residualprogram.slice = true
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
