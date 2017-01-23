@@ -28,11 +28,14 @@ import static java.util.stream.Collectors.joining;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -103,9 +106,13 @@ public final class Specification {
         automata = graphmlParser.parseAutomatonFile(specFile);
 
       } else {
-        automata =
-            AutomatonParser.parseAutomatonFile(
-                specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+        if (AnalysisNotifier.getInstance().isAddExistedAutomaton()) {
+          // Create automaton from *.prp file for MAV.
+          Reader reader = AnalysisNotifier.getInstance().getAutomatonReader();
+          automata = AutomatonParser.parseAutomaton(reader, Optional.of(Paths.get("")), config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+        } else {
+          automata = AutomatonParser.parseAutomatonFile(specFile, config, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+        }
       }
 
       if (automata.isEmpty()) {

@@ -23,6 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.mav;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import javax.management.JMException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -39,20 +51,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.mav.RuleSpecification.SpecificationStatus;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import javax.management.JMException;
 
 /**
  * Class implements Multi-Aspect Verification.
@@ -468,11 +466,7 @@ public class MultiAspectVerification {
 
   public void printToFile() throws CPAException {
     if (resultsFile == null) {
-      PrintStream outputStream = System.out;
-      // TODO: add more options for outputStream
-      outputStream.print(toString());
-      outputStream.println("LCA=" + lastSpecificationKey);
-      outputStream.println();
+      // Do not print verdicts in file.
       return;
     }
     try {
@@ -506,6 +500,12 @@ public class MultiAspectVerification {
       previousCpuTimeMeasurement = ProcessCpuTime.read();
     } catch (JMException e) {
       throw new CPAException(e.getMessage());
+    }
+  }
+
+  public void printResults(PrintStream pOut) {
+    for (RuleSpecification differentSpecification : ruleSpecifications.values()) {
+      pOut.println(String.format("\tProperty %s: %s", differentSpecification.getSpecificationKey().getId(), differentSpecification.getVerdict()));
     }
   }
 

@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.core.AnalysisNotifier;
 
 /**
  * A simple class that reads a property, i.e. basically an entry function and a proposition, from a given property,
@@ -80,6 +81,9 @@ public class PropertyFileParser {
   private static final Pattern PROPERTY_PATTERN =
       Pattern.compile("CHECK\\( init\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\), LTL\\((.+)\\) \\)");
 
+  private static final Pattern REACHABILITY_PROPERTY_PATTERN =
+      Pattern.compile("G \\! call\\((" + CFACreator.VALID_C_FUNCTION_NAME_PATTERN + ")\\(\\)\\)");
+
   public PropertyFileParser(final Path pPropertyFile) {
     propertyFile = pPropertyFile;
   }
@@ -119,6 +123,12 @@ public class PropertyFileParser {
 
     PropertyType propertyType = PropertyType.AVAILABLE_PROPERTIES.get(matcher.group(2));
     if (propertyType == null) {
+      Matcher matcherReachability = REACHABILITY_PROPERTY_PATTERN.matcher(matcher.group(2));
+      if (matcherReachability.matches()) {
+        String propertyName = matcherReachability.group(1);
+        AnalysisNotifier.getInstance().onPropertyParse(propertyName);
+        return PropertyType.REACHABILITY.withFunctionEntry(entryFunction);
+      }
       throw new InvalidPropertyFileException(String.format(
           "The property '%s' is not supported.", matcher.group(2)));
     }

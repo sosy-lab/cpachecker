@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.mav;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
 
 /**
@@ -140,6 +139,18 @@ public class RuleSpecification {
       return false;
     }
     return true;
+  }
+
+  public String getVerdict() {
+    // Represent internal verdicts into general format.
+    switch (specificationStatus) {
+    case SAFE:
+      return "TRUE";
+    case UNSAFE:
+      return "FALSE";
+    default:
+      return "UNKNOWN";
+    }
   }
 
   @Override

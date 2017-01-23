@@ -53,6 +53,7 @@ import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument0;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.PropertyAddingCmdLineArgument;
+import org.sosy_lab.cpachecker.core.AnalysisNotifier;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
@@ -428,6 +429,10 @@ class CmdLineArguments {
         assert !properties.isEmpty();
 
         specification = getSpecifications(options, properties);
+
+        if (AnalysisNotifier.getInstance().isAddExistedAutomaton()) {
+          specification = null;
+        }
 
       } else {
         ERROR_OUTPUT.println("The property file " + specification + " does not exist.");

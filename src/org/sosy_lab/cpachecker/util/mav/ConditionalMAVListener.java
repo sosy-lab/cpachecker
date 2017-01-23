@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.mav;
 
+import java.io.PrintStream;
 import java.util.List;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -249,6 +249,9 @@ public class ConditionalMAVListener implements AnalysisListener {
         // Check STL.
         if (!mav.checkAssertTimeLimit(cpuTime))
         {
+          logger.log(Level.INFO, "Assert " + specificationKey +
+              " has exhausted its Assert Time Limit " +
+              "and will not be checked anymore");
           stopCheckingSpecification(SpecificationStatus.UNSAFE, pReached, reached, path, specificationKey);
           mav.setLastCheckedSpecification(null);
         }
@@ -383,6 +386,11 @@ public class ConditionalMAVListener implements AnalysisListener {
     } while (!isCompleted);
 
     return status;
+  }
+
+  @Override
+  public void printResults(PrintStream pOut) {
+    mav.printResults(pOut);
   }
 
 }
