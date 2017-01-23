@@ -279,10 +279,7 @@ public class ForwardTransition {
 
     private PathFormula getPathFormula() {
       PredicateAbstractState lastPAS = getLastPredicateAbstractState();
-      if (IS_BLOCK_START.apply(lastPAS)) {
-        return getLastPredicateAbstractState().getAbstractionFormula().getBlockFormula();
-      }
-      return lastPAS.getPathFormula();
+      return getCorrectPathFormula(lastPAS);
     }
 
     @Override
@@ -293,13 +290,19 @@ public class ForwardTransition {
     @Override
     public PathFormula getUnprimedContext() {
       PredicateAbstractState pas = getPredecessorPredicateAbstractState();
-      return asContext(pas.getAbstractionFormula().getBlockFormula());
+      return asContext(getCorrectPathFormula(pas));
     }
 
     @Override
     public PathFormula getPrimedContext() {
       PredicateAbstractState pas = getSuccessorPredicateAbstractState();
-      return asContext(pas.getAbstractionFormula().getBlockFormula());
+      return asContext(getCorrectPathFormula(pas));
+    }
+
+    private PathFormula getCorrectPathFormula(PredicateAbstractState pPas) {
+      return IS_BLOCK_START.apply(pPas)
+          ? pPas.getAbstractionFormula().getBlockFormula()
+          : pPas.getPathFormula();
     }
 
     private PathFormula asContext(PathFormula pPathFormula) {
