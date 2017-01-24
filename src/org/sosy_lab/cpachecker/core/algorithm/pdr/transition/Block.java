@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;
 
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 public interface Block {
 
@@ -124,4 +126,12 @@ public interface Block {
    *     sets and false otherwise.
    */
   boolean equalsIgnoreReachedSet(Object pObject);
+
+  /**
+   * Tries to get a set of unconstrained nondeterministic variables. This set is not guaranteed to
+   * be complete.
+   *
+   * @return a set of unconstrained nondeterministic variables.
+   */
+  Set<Formula> getUnconstrainedNondeterministicVariables();
 }

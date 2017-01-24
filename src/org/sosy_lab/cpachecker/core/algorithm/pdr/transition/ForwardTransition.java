@@ -29,14 +29,18 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -47,6 +51,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.nondeterminism.NondeterminismState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -54,7 +59,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
 public class ForwardTransition {
 
@@ -241,6 +248,8 @@ public class ForwardTransition {
 
     private final ReachedSet reachedSet;
 
+    private @Nullable Set<Formula> unconstrainedNondeterministicVariables = null;
+
     private BlockImpl(
         AbstractState pFirstState,
         AbstractState pLastState,
@@ -373,6 +382,45 @@ public class ForwardTransition {
     public ReachedSet getReachedSet() {
       return reachedSet;
     }
+
+    @Override
+    public Set<Formula> getUnconstrainedNondeterministicVariables() {
+      if (unconstrainedNondeterministicVariables == null) {
+        Optional<NondeterminismState> nondetInBlockEndOpt = getNondeterminismState(getSuccessor());
+        if (!nondetInBlockEndOpt.isPresent()) {
+          return unconstrainedNondeterministicVariables = Collections.emptySet();
+        }
+        NondeterminismState nondetInBlockEnd = nondetInBlockEndOpt.get();
+        if (nondetInBlockEnd.getBlockUnconstrainedNondetVariables().isEmpty()) {
+          return unconstrainedNondeterministicVariables = Collections.emptySet();
+        }
+        unconstrainedNondeterministicVariables = Sets.newHashSet();
+        for (AbstractState state : getReachedSet()) {
+          if (state != getPredecessor()) {
+            NondeterminismState nondetState = getNondeterminismState(state).get();
+            Set<String> intersection =
+                Sets.intersection(
+                    nondetInBlockEnd.getBlockUnconstrainedNondetVariables(),
+                    nondetState.getBlockUnconstrainedNondetVariables());
+            if (!intersection.isEmpty()) {
+              PredicateAbstractState pas =
+                  AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+              PathFormula pathFormula = pas.getPathFormula();
+              SSAMap ssaMap = pathFormula.getSsa();
+              for (String variable : intersection) {
+                CType type = ssaMap.getType(variable);
+                if (type != null) {
+                  Formula varFormula =
+                      pathFormulaManager.makeFormulaForVariable(pathFormula, variable, type, false);
+                  unconstrainedNondeterministicVariables.add(varFormula);
+                }
+              }
+            }
+          }
+        }
+      }
+      return Collections.unmodifiableSet(unconstrainedNondeterministicVariables);
+    }
   }
 
   private ReachedSet getReachedSet(
@@ -448,5 +496,12 @@ public class ForwardTransition {
     }
 
     return Sets.intersection(forward, backward);
+  }
+
+  private static Optional<NondeterminismState> getNondeterminismState(
+      AbstractState pAbstractState) {
+    NondeterminismState result =
+        AbstractStates.extractStateByType(pAbstractState, NondeterminismState.class);
+    return Optional.ofNullable(result);
   }
 }

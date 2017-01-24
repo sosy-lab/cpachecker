@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 import com.google.common.base.Predicate;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -699,6 +701,11 @@ public class TransitionSystem {
     @Override
     public boolean equalsIgnoreReachedSet(Object pObject) {
       throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Set<Formula> getUnconstrainedNondeterministicVariables() {
+      return Collections.emptySet();
     }
 
   }
