@@ -67,8 +67,11 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFA cfa;
 
-  public NondeterminismTransferRelation(CFA pCFA) {
+  private final boolean acceptConstrained;
+
+  public NondeterminismTransferRelation(CFA pCFA, boolean pAcceptConstrained) {
     this.cfa = pCFA;
+    this.acceptConstrained = pAcceptConstrained;
   }
 
   @Override
@@ -146,22 +149,20 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
           FunctionEntryNode functionEntryNode = cfa.getAllFunctions().get(functionName);
           if (functionEntryNode == null) {
             // External function
-            return pState
-                .addUnconstrainedNondetVariable(lhsVariable)
-                .addUnconstrainedNondetVariable(functionName);
+            return pState.addNondetVariable(lhsVariable).addNondetVariable(functionName);
           }
           Optional<? extends AVariableDeclaration> retVar = functionEntryNode.getReturnVariable();
           if (!retVar.isPresent()) {
-            return pState.addUnconstrainedNondetVariable(lhsVariable);
+            return pState.addNondetVariable(lhsVariable);
           }
           // Propagate artificial function return variable
           String varName = retVar.get().getQualifiedName();
           return handleAssignment(pState, lhsVariable, Collections.singleton(varName));
         }
         // May miss nondeterministic assignments for function pointers
-        return pState.removeUnconstrainedNondetVariable(lhsVariable);
+        return pState.removeNondetVariable(lhsVariable);
       }
-      return pState.removeUnconstrainedNondetVariable(lhsVariable);
+      return pState.removeNondetVariable(lhsVariable);
     }
     return pState;
   }
@@ -187,11 +188,10 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
 
   private static NondeterminismNonAbstractionState handleAssignment(
       NondeterminismNonAbstractionState pState, String pLhsVariable, Set<String> pRhsVariables) {
-    if (!pRhsVariables.isEmpty()
-        && pState.getUnconstrainedNondetVariables().containsAll(pRhsVariables)) {
-      return pState.addUnconstrainedNondetVariable(pLhsVariable);
+    if (!pRhsVariables.isEmpty() && pState.getNondetVariables().containsAll(pRhsVariables)) {
+      return pState.addNondetVariable(pLhsVariable);
     }
-    return pState.removeUnconstrainedNondetVariable(pLhsVariable);
+    return pState.removeNondetVariable(pLhsVariable);
   }
 
   private static NondeterminismNonAbstractionState handleFunctionCall(
@@ -214,7 +214,7 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
     while (parameterIt.hasNext()) {
       AParameterDeclaration paramDecl = parameterIt.next();
       if (!argumentIt.hasNext()) {
-        state = state.addUnconstrainedNondetVariable(paramDecl.getQualifiedName());
+        state = state.addNondetVariable(paramDecl.getQualifiedName());
       } else {
         state = handleAssignment(state, paramDecl.getQualifiedName(), argumentIt.next());
       }
@@ -222,9 +222,12 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
     return state;
   }
 
-  private static NondeterminismNonAbstractionState handleAssumption(
+  private NondeterminismNonAbstractionState handleAssumption(
       NondeterminismNonAbstractionState pState, AssumeEdge pEdge) {
-    return pState.removeUnconstrainedNondetVariables(getVariables(pEdge.getExpression()));
+    if (acceptConstrained) {
+      return pState;
+    }
+    return pState.removeNondetVariables(getVariables(pEdge.getExpression()));
   }
 
   private static Set<String> getVariables(AAstNode pAstNode) {

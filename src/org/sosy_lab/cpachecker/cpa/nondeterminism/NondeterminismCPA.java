@@ -24,6 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.nondeterminism;
 
 import java.util.Collections;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -52,9 +56,22 @@ public class NondeterminismCPA implements ConfigurableProgramAnalysis {
 
   private final MergeOperator mergeOperator = new NondeterminismMergeOperator();
 
-  public NondeterminismCPA(CFA pCFA) {
+  @Options(prefix = "cpa.nondeterminism")
+  private static class NondeterminismOptions {
+
+    @Option(
+      secure = true,
+      description =
+          "keep tracking nondeterministically-assigned variables even if they are used in assumptions"
+    )
+    private boolean acceptConstrained = true;
+  }
+
+  public NondeterminismCPA(CFA pCFA, Configuration pConfig) throws InvalidConfigurationException {
     domain = DelegateAbstractDomain.<NondeterminismState>getInstance();
-    transferRelation = new NondeterminismTransferRelation(pCFA);
+    NondeterminismOptions options = new NondeterminismOptions();
+    pConfig.inject(options);
+    transferRelation = new NondeterminismTransferRelation(pCFA, options.acceptConstrained);
   }
 
   @Override

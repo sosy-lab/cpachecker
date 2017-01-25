@@ -1312,6 +1312,10 @@ cpa.monitor.limit = 0
 # or specify a unit; 0 for infinite)
 cpa.monitor.pathcomputationlimit = 0
 
+# keep tracking nondeterministically-assigned variables even if they are used
+# in assumptions
+cpa.nondeterminism.acceptConstrained = true
+
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
   allowed values: [STATIC_FULL, REFINEABLE_EMPTY]

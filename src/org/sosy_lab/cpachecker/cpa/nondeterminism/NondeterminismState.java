@@ -39,61 +39,57 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
 
   private NondeterminismState() {}
 
-  public abstract Set<String> getUnconstrainedNondetVariables();
+  public abstract Set<String> getNondetVariables();
 
-  public abstract Set<String> getBlockUnconstrainedNondetVariables();
+  public abstract Set<String> getBlockNondetVariables();
 
   public static class NondeterminismNonAbstractionState extends NondeterminismState {
 
-    private final PersistentSortedMap<String, Object> unconstrainedNondetVariables;
+    private final PersistentSortedMap<String, Object> nondetVariables;
 
     NondeterminismNonAbstractionState() {
-      unconstrainedNondetVariables = PathCopyingPersistentTreeMap.of();
+      nondetVariables = PathCopyingPersistentTreeMap.of();
     }
 
     private NondeterminismNonAbstractionState(
-        PersistentSortedMap<String, Object> pUnconstrainedNondetVariables) {
-      unconstrainedNondetVariables = Objects.requireNonNull(pUnconstrainedNondetVariables);
+        PersistentSortedMap<String, Object> pNondetVariables) {
+      nondetVariables = Objects.requireNonNull(pNondetVariables);
     }
 
-    private NondeterminismNonAbstractionState(Map<String, Object> pUnconstrainedNondetVariables) {
-      if (pUnconstrainedNondetVariables instanceof PersistentSortedMap) {
-        unconstrainedNondetVariables =
-            (PersistentSortedMap<String, Object>) pUnconstrainedNondetVariables;
+    private NondeterminismNonAbstractionState(Map<String, Object> pNondetVariables) {
+      if (pNondetVariables instanceof PersistentSortedMap) {
+        nondetVariables = (PersistentSortedMap<String, Object>) pNondetVariables;
       } else {
-        unconstrainedNondetVariables =
-            PathCopyingPersistentTreeMap.copyOf(pUnconstrainedNondetVariables);
+        nondetVariables = PathCopyingPersistentTreeMap.copyOf(pNondetVariables);
       }
     }
 
-    public NondeterminismNonAbstractionState addUnconstrainedNondetVariable(String pVariable) {
+    public NondeterminismNonAbstractionState addNondetVariable(String pVariable) {
       Objects.requireNonNull(pVariable);
-      return addUnconstrainedNondetVariables(Collections.singleton(pVariable));
+      return addNondetVariables(Collections.singleton(pVariable));
     }
 
-    public NondeterminismNonAbstractionState addUnconstrainedNondetVariables(
-        Set<String> pVariables) {
-      PersistentSortedMap<String, Object> extended = unconstrainedNondetVariables;
+    public NondeterminismNonAbstractionState addNondetVariables(Set<String> pVariables) {
+      PersistentSortedMap<String, Object> extended = nondetVariables;
       for (String variable : pVariables) {
         extended = extended.putAndCopy(variable, NondeterminismState.class);
       }
-      if (extended == unconstrainedNondetVariables) {
+      if (extended == nondetVariables) {
         return this;
       }
       return new NondeterminismNonAbstractionState(extended);
     }
 
-    public NondeterminismNonAbstractionState removeUnconstrainedNondetVariable(String pVariable) {
-      return removeUnconstrainedNondetVariables(Collections.singleton(pVariable));
+    public NondeterminismNonAbstractionState removeNondetVariable(String pVariable) {
+      return removeNondetVariables(Collections.singleton(pVariable));
     }
 
-    public NondeterminismNonAbstractionState removeUnconstrainedNondetVariables(
-        Set<String> pVariables) {
-      PersistentSortedMap<String, Object> remaining = unconstrainedNondetVariables;
+    public NondeterminismNonAbstractionState removeNondetVariables(Set<String> pVariables) {
+      PersistentSortedMap<String, Object> remaining = nondetVariables;
       for (String variable : pVariables) {
         remaining = remaining.removeAndCopy(variable);
       }
-      if (remaining == unconstrainedNondetVariables) {
+      if (remaining == nondetVariables) {
         return this;
       }
       return new NondeterminismNonAbstractionState(remaining);
@@ -104,7 +100,7 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
       if (pOther instanceof NondeterminismNonAbstractionState) {
         NondeterminismNonAbstractionState other = (NondeterminismNonAbstractionState) pOther;
         SortedMapDifference<String, Object> diff =
-            Maps.difference(unconstrainedNondetVariables, other.unconstrainedNondetVariables);
+            Maps.difference(nondetVariables, other.nondetVariables);
         if (diff.entriesOnlyOnLeft().isEmpty()) {
           return this;
         }
@@ -116,18 +112,17 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
     @Override
     public boolean isLessOrEqual(NondeterminismState pOther)
         throws CPAException, InterruptedException {
-      return getUnconstrainedNondetVariables()
-          .containsAll(pOther.getUnconstrainedNondetVariables());
+      return getNondetVariables().containsAll(pOther.getNondetVariables());
     }
 
     @Override
-    public Set<String> getUnconstrainedNondetVariables() {
-      return unconstrainedNondetVariables.keySet();
+    public Set<String> getNondetVariables() {
+      return nondetVariables.keySet();
     }
 
     @Override
     public int hashCode() {
-      return unconstrainedNondetVariables.hashCode();
+      return nondetVariables.hashCode();
     }
 
     @Override
@@ -137,29 +132,28 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
       }
       if (pObj instanceof NondeterminismNonAbstractionState) {
         NondeterminismNonAbstractionState other = (NondeterminismNonAbstractionState) pObj;
-        return unconstrainedNondetVariables.equals(other.unconstrainedNondetVariables);
+        return nondetVariables.equals(other.nondetVariables);
       }
       return super.equals(pObj);
     }
 
     @Override
     public String toString() {
-      return "Unconstrained nondeterministic variables " + getUnconstrainedNondetVariables();
+      return "Nondeterministic variables " + getNondetVariables();
     }
 
     @Override
-    public Set<String> getBlockUnconstrainedNondetVariables() {
-      return getUnconstrainedNondetVariables();
+    public Set<String> getBlockNondetVariables() {
+      return getNondetVariables();
     }
   }
 
   public static class NondeterminismAbstractionState extends NondeterminismState {
 
-    private final Set<String> unconstrainedNondetVariablesPreAbstraction;
+    private final Set<String> nondetVariablesPreAbstraction;
 
-    NondeterminismAbstractionState(Set<String> pUnconstrainedNondetVariablesPreAbstraction) {
-      unconstrainedNondetVariablesPreAbstraction =
-          ImmutableSet.copyOf(pUnconstrainedNondetVariablesPreAbstraction);
+    NondeterminismAbstractionState(Set<String> pNondetVariablesPreAbstraction) {
+      nondetVariablesPreAbstraction = ImmutableSet.copyOf(pNondetVariablesPreAbstraction);
     }
 
     @Override
@@ -174,17 +168,17 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
     }
 
     @Override
-    public Set<String> getUnconstrainedNondetVariables() {
+    public Set<String> getNondetVariables() {
       return Collections.emptySet();
     }
 
-    public Set<String> getUnconstrainedNondetVariablesPreAbstraction() {
-      return unconstrainedNondetVariablesPreAbstraction;
+    public Set<String> getNondetVariablesPreAbstraction() {
+      return nondetVariablesPreAbstraction;
     }
 
     @Override
     public int hashCode() {
-      return unconstrainedNondetVariablesPreAbstraction.hashCode();
+      return nondetVariablesPreAbstraction.hashCode();
     }
 
     @Override
@@ -194,21 +188,19 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
       }
       if (pObj instanceof NondeterminismAbstractionState) {
         NondeterminismAbstractionState other = (NondeterminismAbstractionState) pObj;
-        return unconstrainedNondetVariablesPreAbstraction.equals(
-            other.unconstrainedNondetVariablesPreAbstraction);
+        return nondetVariablesPreAbstraction.equals(other.nondetVariablesPreAbstraction);
       }
       return super.equals(pObj);
     }
 
     @Override
     public String toString() {
-      return "Abstraction of unconstrained nondeterministic variables "
-          + unconstrainedNondetVariablesPreAbstraction;
+      return "Abstraction of nondeterministic variables " + nondetVariablesPreAbstraction;
     }
 
     @Override
-    public Set<String> getBlockUnconstrainedNondetVariables() {
-      return unconstrainedNondetVariablesPreAbstraction;
+    public Set<String> getBlockNondetVariables() {
+      return nondetVariablesPreAbstraction;
     }
   }
 }

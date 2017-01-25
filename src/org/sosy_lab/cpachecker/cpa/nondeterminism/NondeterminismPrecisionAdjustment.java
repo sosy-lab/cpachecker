@@ -70,7 +70,7 @@ public enum NondeterminismPrecisionAdjustment implements PrecisionAdjustment {
                         && PredicateAbstractState.CONTAINS_ABSTRACTION_STATE.apply(s))) {
       result =
           new NondeterminismAbstractionState(
-              ((NondeterminismNonAbstractionState) pState).getUnconstrainedNondetVariables());
+              ((NondeterminismNonAbstractionState) pState).getNondetVariables());
     }
     return result;
   }

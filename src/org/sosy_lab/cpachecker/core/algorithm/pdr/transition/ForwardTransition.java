@@ -248,7 +248,7 @@ public class ForwardTransition {
 
     private final ReachedSet reachedSet;
 
-    private @Nullable Set<Formula> unconstrainedNondeterministicVariables = null;
+    private @Nullable Set<Formula> nondeterministicVariables = null;
 
     private BlockImpl(
         AbstractState pFirstState,
@@ -385,23 +385,23 @@ public class ForwardTransition {
 
     @Override
     public Set<Formula> getUnconstrainedNondeterministicVariables() {
-      if (unconstrainedNondeterministicVariables == null) {
+      if (nondeterministicVariables == null) {
         Optional<NondeterminismState> nondetInBlockEndOpt = getNondeterminismState(getSuccessor());
         if (!nondetInBlockEndOpt.isPresent()) {
-          return unconstrainedNondeterministicVariables = Collections.emptySet();
+          return nondeterministicVariables = Collections.emptySet();
         }
         NondeterminismState nondetInBlockEnd = nondetInBlockEndOpt.get();
-        if (nondetInBlockEnd.getBlockUnconstrainedNondetVariables().isEmpty()) {
-          return unconstrainedNondeterministicVariables = Collections.emptySet();
+        if (nondetInBlockEnd.getBlockNondetVariables().isEmpty()) {
+          return nondeterministicVariables = Collections.emptySet();
         }
-        unconstrainedNondeterministicVariables = Sets.newHashSet();
+        nondeterministicVariables = Sets.newHashSet();
         for (AbstractState state : getReachedSet()) {
           if (state != getPredecessor()) {
             NondeterminismState nondetState = getNondeterminismState(state).get();
             Set<String> intersection =
                 Sets.intersection(
-                    nondetInBlockEnd.getBlockUnconstrainedNondetVariables(),
-                    nondetState.getBlockUnconstrainedNondetVariables());
+                    nondetInBlockEnd.getBlockNondetVariables(),
+                    nondetState.getBlockNondetVariables());
             if (!intersection.isEmpty()) {
               PredicateAbstractState pas =
                   AbstractStates.extractStateByType(state, PredicateAbstractState.class);
@@ -412,14 +412,14 @@ public class ForwardTransition {
                 if (type != null) {
                   Formula varFormula =
                       pathFormulaManager.makeFormulaForVariable(pathFormula, variable, type, false);
-                  unconstrainedNondeterministicVariables.add(varFormula);
+                  nondeterministicVariables.add(varFormula);
                 }
               }
             }
           }
         }
       }
-      return Collections.unmodifiableSet(unconstrainedNondeterministicVariables);
+      return Collections.unmodifiableSet(nondeterministicVariables);
     }
   }
 
