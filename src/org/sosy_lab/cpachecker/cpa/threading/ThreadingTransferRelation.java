@@ -162,7 +162,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     Collection<ThreadingState> results = getAbstractSuccessorsFromWrappedCPAs(
         activeThread, threadingState, precision, cfaEdge);
 
-    return getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
+    results = getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
+
+    results = setActiveThread(activeThread, results);
+
+    return results;
   }
 
   /** Search for the thread, where the current edge is available.
@@ -579,5 +583,31 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     default:
       return false;
     }
+  }
+
+  /**
+   * Store the active thread in the given states.
+   *
+   * @see ThreadingState#setActiveThread
+   */
+  private Collection<ThreadingState> setActiveThread(
+      @Nullable String activeThread, Collection<ThreadingState> results) {
+    // update all successors
+    final Collection<ThreadingState> newResults = new ArrayList<>();
+    for (ThreadingState ts : results) {
+      newResults.add(ts.setActiveThread(activeThread));
+    }
+    return newResults;
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      List<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    ThreadingState ts = (ThreadingState) state;
+    return setActiveThread(null, Collections.singleton(ts));
   }
 }
