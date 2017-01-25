@@ -620,6 +620,12 @@ public class AutomatonGraphmlParser {
         } catch (IOException e) {
           // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
         }
+        Path automatonFile = automatonDumpFile.resolveSibling(automatonDumpFile.getFileName() + ".spc");
+        try (Writer w = MoreFiles.openOutputFile(automatonFile, Charset.defaultCharset())) {
+          w.write(automaton.toString());
+        } catch (IOException e) {
+          // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+        }
       }
 
       return result;
