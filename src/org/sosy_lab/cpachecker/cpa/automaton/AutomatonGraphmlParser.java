@@ -341,16 +341,14 @@ public class AutomatonGraphmlParser {
           violationStates.add(targetStateId);
         }
 
-        Integer distance = distances.get(targetStateId);
-        if (distance == null) {
-          distance = Integer.MAX_VALUE;
-        }
         final List<AutomatonAction> actions;
         if (graphType == WitnessType.ERROR_WITNESS) {
           actions =
               Collections.<AutomatonAction>singletonList(
                   new AutomatonAction.Assignment(
-                      DISTANCE_TO_VIOLATION, new AutomatonIntExpr.Constant(-distance)));
+                      DISTANCE_TO_VIOLATION,
+                      new AutomatonIntExpr.Constant(
+                          -distances.getOrDefault(targetStateId, Integer.MAX_VALUE))));
         } else {
           actions = Collections.emptyList();
         }
