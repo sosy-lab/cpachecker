@@ -312,6 +312,7 @@ public class AutomatonGraphmlParser {
           determineDistanceToViolation(enteringEdges, violationStates, sinkStates);
 
       Map<String, AutomatonBoolExpr> stutterConditions = Maps.newHashMap();
+      final Map<String, AutomatonVariable> automatonVariables = new HashMap<>();
 
       Set<Node> visitedEdges = new HashSet<>();
       Queue<Node> waitingEdges = new ArrayDeque<>();
@@ -341,16 +342,13 @@ public class AutomatonGraphmlParser {
           violationStates.add(targetStateId);
         }
 
-        final List<AutomatonAction> actions;
+        final List<AutomatonAction> actions = new ArrayList<>(0);
         if (graphType == WitnessType.ERROR_WITNESS) {
-          actions =
-              Collections.<AutomatonAction>singletonList(
-                  new AutomatonAction.Assignment(
-                      DISTANCE_TO_VIOLATION,
-                      new AutomatonIntExpr.Constant(
-                          -distances.getOrDefault(targetStateId, Integer.MAX_VALUE))));
-        } else {
-          actions = Collections.emptyList();
+          actions.add(
+              new AutomatonAction.Assignment(
+                  DISTANCE_TO_VIOLATION,
+                  new AutomatonIntExpr.Constant(
+                      -distances.getOrDefault(targetStateId, Integer.MAX_VALUE))));
         }
 
         List<AExpression> assumptions = Lists.newArrayList();
@@ -590,7 +588,6 @@ public class AutomatonGraphmlParser {
 
       // Build and return the result
       Preconditions.checkNotNull(initialStateName, "Every witness needs a specified entry state!");
-      Map<String, AutomatonVariable> automatonVariables;
       if (graphType == WitnessType.ERROR_WITNESS) {
         AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
         Integer initialStateDistance = distances.get(initialStateName);
@@ -606,9 +603,7 @@ public class AutomatonGraphmlParser {
                       + " and witness validation may fail to confirm this witness.",
                   initialStateName));
         }
-        automatonVariables = Collections.singletonMap(DISTANCE_TO_VIOLATION, distanceVariable);
-      } else {
-        automatonVariables = Collections.emptyMap();
+        automatonVariables.put(DISTANCE_TO_VIOLATION, distanceVariable);
       }
       List<Automaton> result = Lists.newArrayList();
       Automaton automaton = new Automaton(automatonName, automatonVariables, automatonStates, initialStateName);
