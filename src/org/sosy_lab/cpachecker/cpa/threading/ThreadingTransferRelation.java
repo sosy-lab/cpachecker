@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
+import static com.google.common.collect.Collections2.transform;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -66,6 +68,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @Options(prefix="cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
+
 
   @Option(description="do not use the original functions from the CFA, but cloned ones. "
       + "See cfa.postprocessing.CFACloner for detail.",
@@ -462,13 +465,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return Collections.emptySet();
     }
 
-    // update all successors
-    final Collection<ThreadingState> newResults = new ArrayList<>();
-    for (ThreadingState ts : results) {
-      ts = ts.addLockAndCopy(activeThread, lockId);
-      newResults.add(ts);
-    }
-    return newResults;
+    return transform(results, ts -> ts.addLockAndCopy(activeThread, lockId));
   }
 
   /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */
@@ -509,13 +506,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final String activeThread,
       final String lockId,
       final Collection<ThreadingState> results) {
-    // update all successors
-    final Collection<ThreadingState> newResults = new ArrayList<>();
-    for (ThreadingState ts : results) {
-      ts = ts.removeLockAndCopy(activeThread, lockId);
-      newResults.add(ts);
-    }
-    return newResults;
+    return transform(results, ts -> ts.removeLockAndCopy(activeThread, lockId));
   }
 
   private Collection<ThreadingState> joinThread(ThreadingState threadingState,
@@ -592,12 +583,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
    */
   private Collection<ThreadingState> setActiveThread(
       @Nullable String activeThread, Collection<ThreadingState> results) {
-    // update all successors
-    final Collection<ThreadingState> newResults = new ArrayList<>();
-    for (ThreadingState ts : results) {
-      newResults.add(ts.setActiveThread(activeThread));
-    }
-    return newResults;
+    return transform(results, ts -> ts.setActiveThread(activeThread));
   }
 
   @Override
