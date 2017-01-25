@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
@@ -120,6 +119,11 @@ abstract class AutomatonAction {
         pArgs.getLogger().log(Level.WARNING, "Defined a Variable " + varId + " that was unknown before (not set in automaton Definition).");
       }
       return defaultResultValue;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("DO %s=%s", varId, var);
     }
   }
 
