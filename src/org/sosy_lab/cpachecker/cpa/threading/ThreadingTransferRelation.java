@@ -281,8 +281,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       String activeThread, ThreadingState threadingState, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
 
-    final Collection<ThreadingState> results = new HashSet<>();
-
     // compute new locations
     Collection<? extends AbstractState> newLocs = locationCPA.getTransferRelation().
         getAbstractSuccessorsForEdge(threadingState.getThreadLocation(activeThread), precision, cfaEdge);
@@ -292,6 +290,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         getAbstractSuccessorsForEdge(threadingState.getThreadCallstack(activeThread), precision, cfaEdge);
 
     // combine them pairwise, all combinations needed
+    final Collection<ThreadingState> results = new ArrayList<>();
     for (AbstractState loc : newLocs) {
       for (AbstractState stack : newStacks) {
         results.add(threadingState.updateLocationAndCopy(activeThread, stack, loc));
@@ -411,8 +410,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
    * @param threadId a unique identifier for the new thread
    * @param newThreadNum a unique number for the new thread
    * @param functionName the main-function of the new thread
+   * @return a threadingState with the new thread,
+   *         or {@code null} if the new thread cannot be created.
    */
-  ThreadingState addNewThread(
+  @Nullable ThreadingState addNewThread(
       ThreadingState threadingState, String threadId, int newThreadNum, String functionName)
       throws InterruptedException {
     CFANode functioncallNode =
