@@ -924,32 +924,34 @@ public class ARGPathExporter {
       }
 
       // Write elements
-      {
-        Map<String, Element> nodes = Maps.newHashMap();
-        Deque<String> waitlist = Queues.newArrayDeque();
-        waitlist.push(entryStateNodeId);
-        Element entryNode = createNewNode(doc, entryStateNodeId);
-        addInvariantsData(doc, entryNode, entryStateNodeId);
-        nodes.put(entryStateNodeId, entryNode);
-        while (!waitlist.isEmpty()) {
-          String source = waitlist.pop();
-          for (Edge edge : leavingEdges.get(source)) {
-            setLoopHeadInvariantIfApplicable(edge.target);
+      writeElementsOfGraphToDoc(doc, entryStateNodeId);
+      doc.appendTo(pTarget);
+    }
 
-            Element targetNode = nodes.get(edge.target);
-            if (targetNode == null) {
-              targetNode = createNewNode(doc, edge.target);
-              if (!ExpressionTrees.getFalse()
-                  .equals(addInvariantsData(doc, targetNode, edge.target))) {
-                waitlist.push(edge.target);
-              }
-              nodes.put(edge.target, targetNode);
+    private void writeElementsOfGraphToDoc(GraphMlBuilder doc, String entryStateNodeId) {
+      Map<String, Element> nodes = Maps.newHashMap();
+      Deque<String> waitlist = Queues.newArrayDeque();
+      waitlist.push(entryStateNodeId);
+      Element entryNode = createNewNode(doc, entryStateNodeId);
+      addInvariantsData(doc, entryNode, entryStateNodeId);
+      nodes.put(entryStateNodeId, entryNode);
+      while (!waitlist.isEmpty()) {
+        String source = waitlist.pop();
+        for (Edge edge : leavingEdges.get(source)) {
+          setLoopHeadInvariantIfApplicable(edge.target);
+
+          Element targetNode = nodes.get(edge.target);
+          if (targetNode == null) {
+            targetNode = createNewNode(doc, edge.target);
+            if (!ExpressionTrees.getFalse()
+                .equals(addInvariantsData(doc, targetNode, edge.target))) {
+              waitlist.push(edge.target);
             }
-            createNewEdge(doc, edge, targetNode);
+            nodes.put(edge.target, targetNode);
           }
+          createNewEdge(doc, edge, targetNode);
         }
       }
-      doc.appendTo(pTarget);
     }
 
     private void setLoopHeadInvariantIfApplicable(String pTarget) {
