@@ -24,12 +24,19 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Joiner;
-import java.util.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -39,15 +46,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
-
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
 
 public enum GraphBuilder {
 
@@ -106,7 +104,7 @@ public enum GraphBuilder {
               assert (!(innerEdge instanceof AssumeEdge));
 
               Optional<Collection<ARGState>> absentStates = Optional.empty();
-              pEdgeAppender.appendNewEdge(pDocument, prevStateId, pseudoStateId, innerEdge, absentStates, pValueMap);
+              pEdgeAppender.appendNewEdge(prevStateId, pseudoStateId, innerEdge, absentStates, pValueMap);
               prevStateId = pseudoStateId;
             }
 
@@ -121,11 +119,11 @@ public enum GraphBuilder {
           if (pPathStates.apply(child) && pIsRelevantEdge.apply(Pair.of(s, child))) {
             // Child belongs to the path!
             pEdgeAppender.appendNewEdge(
-                pDocument, prevStateId, childStateId, edgeToNextState, state, pValueMap);
+                prevStateId, childStateId, edgeToNextState, state, pValueMap);
           } else {
             // Child does not belong to the path --> add a branch to the SINK node!
             pEdgeAppender.appendNewEdgeToSink(
-                pDocument, prevStateId, edgeToNextState, state, pValueMap);
+                prevStateId, edgeToNextState, state, pValueMap);
           }
         }
       }
@@ -186,7 +184,7 @@ public enum GraphBuilder {
           } else {
             locationStates = Collections.<ARGState>emptySet();
           }
-          appendEdge(pDocument, pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
+          appendEdge(pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
         }
       }
     }
@@ -248,7 +246,7 @@ public enum GraphBuilder {
             waitlist.offer(successor);
           }
           if (appended.add(leavingEdge)) {
-            appendEdge(pDocument, pEdgeAppender, leavingEdge, locationStates, pValueMap);
+            appendEdge(pEdgeAppender, leavingEdge, locationStates, pValueMap);
           }
         }
         for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
@@ -263,7 +261,7 @@ public enum GraphBuilder {
             waitlist.offer(predecessor);
           }
           if (appended.add(enteringEdge)) {
-            appendEdge(pDocument, pEdgeAppender, enteringEdge, locationStates, pValueMap);
+            appendEdge(pEdgeAppender, enteringEdge, locationStates, pValueMap);
           }
         }
       }
@@ -272,7 +270,6 @@ public enum GraphBuilder {
   };
 
   private static void appendEdge(
-      GraphMlBuilder pDocument,
       EdgeAppender pEdgeAppender,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pStates,
@@ -281,7 +278,7 @@ public enum GraphBuilder {
     String sourceId = pEdge.getPredecessor().toString();
     String targetId = pEdge.getSuccessor().toString();
     if (!(pEdge instanceof CFunctionSummaryStatementEdge)) {
-      pEdgeAppender.appendNewEdge(pDocument, sourceId, targetId, pEdge, pStates, pValueMap);
+      pEdgeAppender.appendNewEdge(sourceId, targetId, pEdge, pStates, pValueMap);
     }
   }
 

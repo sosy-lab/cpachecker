@@ -387,7 +387,6 @@ public class ARGPathExporter {
 
     @Override
     public void appendNewEdge(
-        final GraphMlBuilder pDoc,
         String pFrom,
         final String pTo,
         final CFAEdge pEdge,
@@ -411,12 +410,11 @@ public class ARGPathExporter {
 
     @Override
     public void appendNewEdgeToSink(
-        GraphMlBuilder pDoc,
         String pFrom,
         CFAEdge pEdge,
         Optional<Collection<ARGState>> pFromState,
         Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-      appendNewEdge(pDoc, pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap);
+      appendNewEdge(pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap);
     }
 
     private void attemptSwitchToFunctionScope(CFAEdge pEdge) {
