@@ -341,7 +341,7 @@ public class CPAMain {
       ConfigurationBuilder witnessConfigBuilder = Configuration.builder();
       final Path validationConfigFile;
       switch (witnessType) {
-        case ERROR_WITNESS:
+        case VIOLATION_WITNESS:
           validationConfigFile = options.violationWitnessValidationConfig;
           witnessFileOptionSetter =
               builder -> {
@@ -351,7 +351,7 @@ public class CPAMain {
                 builder.setOption(specificationOptionName, specs);
               };
           break;
-        case PROOF_WITNESS:
+        case CORRECTNESS_WITNESS:
           validationConfigFile = options.correctnessWitnessValidationConfig;
           witnessFileOptionSetter =
               builder ->

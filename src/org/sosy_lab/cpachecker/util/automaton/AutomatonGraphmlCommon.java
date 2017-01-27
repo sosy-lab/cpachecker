@@ -115,7 +115,7 @@ public class AutomatonGraphmlCommon {
     PRODUCER("producer", ElementType.GRAPH, "producer", "string"),
     CREATIONTIME("creationtime", ElementType.GRAPH, "creationTime", "string"),
     SOURCECODE("sourcecode", ElementType.EDGE, "sourcecode", "string"),
-    ORIGINLINE("startline", ElementType.EDGE, "startline", "int"),
+    STARTLINE("startline", ElementType.EDGE, "startline", "int"),
     OFFSET("startoffset", ElementType.EDGE, "startoffset", "int"),
     ORIGINFILE("originfile", ElementType.EDGE, "originFileName", "string"),
     LINECOLS("lineCols", ElementType.EDGE, "lineColSet", "string"),
@@ -202,8 +202,8 @@ public class AutomatonGraphmlCommon {
   }
 
   public enum WitnessType {
-    ERROR_WITNESS("violation_witness"),
-    PROOF_WITNESS("correctness_witness");
+    VIOLATION_WITNESS("violation_witness"),
+    CORRECTNESS_WITNESS("correctness_witness");
 
     public final String text;
 
@@ -223,16 +223,16 @@ public class AutomatonGraphmlCommon {
         }
       }
       if (pTextualRepresentation.equals("FALSE")) {
-        return Optional.of(ERROR_WITNESS);
+        return Optional.of(VIOLATION_WITNESS);
       }
       if (pTextualRepresentation.equals("TRUE")) {
-        return Optional.of(PROOF_WITNESS);
+        return Optional.of(CORRECTNESS_WITNESS);
       }
       if (pTextualRepresentation.equals("false_witness")) {
-        return Optional.of(ERROR_WITNESS);
+        return Optional.of(VIOLATION_WITNESS);
       }
       if (pTextualRepresentation.equals("true_witness")) {
-        return Optional.of(PROOF_WITNESS);
+        return Optional.of(CORRECTNESS_WITNESS);
       }
       return Optional.empty();
     }
@@ -260,7 +260,7 @@ public class AutomatonGraphmlCommon {
 
   public static final NodeType defaultNodeType = NodeType.ONPATH;
 
-  public enum GraphMlTag {
+  public enum GraphMLTag {
     NODE("node"),
     DATA("data"),
     KEY("key"),
@@ -270,7 +270,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    private GraphMlTag(String text) {
+    private GraphMLTag(String text) {
       this.text = text;
     }
 
@@ -347,19 +347,19 @@ public class AutomatonGraphmlCommon {
               KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
     }
 
-    private Element createElement(GraphMlTag tag) {
+    private Element createElement(GraphMLTag tag) {
       return doc.createElement(tag.toString());
     }
 
     private Element createDataElement(final KeyDef key, final String value) {
-      Element result = createElement(GraphMlTag.DATA);
+      Element result = createElement(GraphMLTag.DATA);
       result.setAttribute("key", key.id);
       result.setTextContent(value);
       return result;
     }
 
     public Element createEdgeElement(final String from, final String to) {
-      Element result = createElement(GraphMlTag.EDGE);
+      Element result = createElement(GraphMLTag.EDGE);
       result.setAttribute("source", from);
       result.setAttribute("target", to);
       graph.appendChild(result);
@@ -367,7 +367,7 @@ public class AutomatonGraphmlCommon {
     }
 
     public Element createNodeElement(String nodeId, NodeType nodeType) {
-      Element result = createElement(GraphMlTag.NODE);
+      Element result = createElement(GraphMLTag.NODE);
       result.setAttribute("id", nodeId);
 
       if (nodeType != defaultNodeType) {
@@ -397,7 +397,7 @@ public class AutomatonGraphmlCommon {
       Preconditions.checkNotNull(attrName);
       Preconditions.checkNotNull(attrType);
 
-      Element result = createElement(GraphMlTag.KEY);
+      Element result = createElement(GraphMLTag.KEY);
 
       result.setAttribute("id", id);
       result.setAttribute("for", keyFor.toString());
@@ -405,7 +405,7 @@ public class AutomatonGraphmlCommon {
       result.setAttribute("attr.type", attrType);
 
       if (defaultValue != null) {
-        Element defaultValueElement = createElement(GraphMlTag.DEFAULT);
+        Element defaultValueElement = createElement(GraphMLTag.DEFAULT);
         defaultValueElement.setTextContent(defaultValue);
         result.appendChild(defaultValueElement);
       }

@@ -146,7 +146,7 @@ public class ARGPathExporter {
   private static final EnumSet<KeyDef> INSUFFICIENT_KEYS =
       EnumSet.of(
           KeyDef.SOURCECODE,
-          KeyDef.ORIGINLINE,
+          KeyDef.STARTLINE,
           KeyDef.ORIGINFILE,
           KeyDef.OFFSET,
           KeyDef.LINECOLS,
@@ -237,7 +237,7 @@ public class ARGPathExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName, WitnessType.ERROR_WITNESS);
+    WitnessWriter writer = new WitnessWriter(defaultFileName, WitnessType.VIOLATION_WITNESS);
     writer.writePath(
         pTarget,
         pRootState,
@@ -321,7 +321,7 @@ public class ARGPathExporter {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer =
-        new WitnessWriter(defaultFileName, WitnessType.PROOF_WITNESS, pInvariantProvider);
+        new WitnessWriter(defaultFileName, WitnessType.CORRECTNESS_WITNESS, pInvariantProvider);
     writer.writePath(
         pTarget,
         pRootState,
@@ -442,7 +442,7 @@ public class ARGPathExporter {
 
       TransitionCondition result = TransitionCondition.empty();
 
-      if (graphType != WitnessType.ERROR_WITNESS) {
+      if (graphType != WitnessType.VIOLATION_WITNESS) {
         ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
         if (exportInvariant(pEdge)) {
           invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
@@ -502,7 +502,7 @@ public class ARGPathExporter {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
         result =
-            result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(min.getStartingLineInOrigin()));
+            result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
       }
 
       if (exportOffset && minFileLocation.isPresent()) {
@@ -684,7 +684,7 @@ public class ARGPathExporter {
         }
       }
 
-      if (graphType != WitnessType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
+      if (graphType != WitnessType.CORRECTNESS_WITNESS && exportAssumptions && !code.isEmpty()) {
         ExpressionTree<Object> invariant = factory.or(code);
         CExpressionToOrinalCodeVisitor transformer =
             resultVariable.isPresent()

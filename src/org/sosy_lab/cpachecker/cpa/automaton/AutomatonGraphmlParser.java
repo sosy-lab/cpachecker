@@ -118,7 +118,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlTag;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
@@ -256,14 +256,14 @@ public class AutomatonGraphmlParser {
       Document doc = docBuilder.parse(pInputStream);
       doc.getDocumentElement().normalize();
 
-      GraphMlDocumentData docDat = new GraphMlDocumentData(doc);
+      GraphMLDocumentData docDat = new GraphMLDocumentData(doc);
 
-      // (The one) root node of the graph ----
-      NodeList graphs = doc.getElementsByTagName(GraphMlTag.GRAPH.toString());
+      // The (one) root node of the graph ----
+      NodeList graphs = doc.getElementsByTagName(GraphMLTag.GRAPH.toString());
       checkParsable(graphs.getLength() == 1, TOO_MANY_GRAPHS_ERROR_MESSAGE);
       Node graphNode = graphs.item(0);
 
-      Set<String> programHash = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
+      Set<String> programHash = GraphMLDocumentData.getDataOnNode(graphNode, KeyDef.PROGRAMHASH);
       checkHashSum(programHash);
 
       if (strictChecking) {
@@ -274,10 +274,10 @@ public class AutomatonGraphmlParser {
         checkRequiredField(graphNode, KeyDef.PROGRAMFILE);
       }
 
-      Set<String> architecture = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.ARCHITECTURE);
+      Set<String> architecture = GraphMLDocumentData.getDataOnNode(graphNode, KeyDef.ARCHITECTURE);
       checkArchitecture(architecture);
 
-      final WitnessType graphType = getGraphType(graphNode);
+      final WitnessType graphType = getWitnessType(graphNode);
 
       // Extract the information on the automaton ----
       Node nameAttribute = graphNode.getAttributes().getNamedItem("name");
@@ -289,8 +289,8 @@ public class AutomatonGraphmlParser {
 
       // Create transitions ----
       //AutomatonBoolExpr epsilonTrigger = new SubsetMatchEdgeTokens(Collections.<Comparable<Integer>>emptySet());
-      NodeList edges = doc.getElementsByTagName(GraphMlTag.EDGE.toString());
-      NodeList nodes = doc.getElementsByTagName(GraphMlTag.NODE.toString());
+      NodeList edges = doc.getElementsByTagName(GraphMLTag.EDGE.toString());
+      NodeList nodes = doc.getElementsByTagName(GraphMLTag.NODE.toString());
       Map<String, LinkedList<AutomatonTransition>> stateTransitions = Maps.newHashMap();
       Map<String, Deque<String>> stacks = Maps.newHashMap();
 
@@ -302,10 +302,11 @@ public class AutomatonGraphmlParser {
       Set<String> sinkStates = Sets.newHashSet();
 
       for (int i = 0; i < edges.getLength(); i++) {
-        parseEdge(docDat, leavingEdges, enteringEdges, violationStates, sinkStates, edges.item(i));
+        collectEdgeData(
+            docDat, leavingEdges, enteringEdges, violationStates, sinkStates, edges.item(i));
       }
 
-      final String entryNodeId = getEntryNode(docDat, nodes);
+      final String entryStateId = getEntryState(docDat, nodes);
 
       // Determine distances to violation states
       final Map<String, Integer> distances =
@@ -316,15 +317,19 @@ public class AutomatonGraphmlParser {
 
       Set<Node> visitedEdges = new HashSet<>();
       Queue<Node> waitingEdges = new ArrayDeque<>();
-      waitingEdges.addAll(leavingEdges.get(entryNodeId));
+      waitingEdges.addAll(leavingEdges.get(entryStateId));
       visitedEdges.addAll(waitingEdges);
       while (!waitingEdges.isEmpty()) {
-        Node stateTransitionEdge = waitingEdges.poll();
+        Node transition = waitingEdges.poll();
 
-        String sourceStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "source", "Every transition needs a source!");
-        String targetStateId = GraphMlDocumentData.getAttributeValue(stateTransitionEdge, "target", "Every transition needs a target!");
+        String sourceStateId =
+            GraphMLDocumentData.getAttributeValue(
+                transition, "source", "Every transition needs a source!");
+        String targetStateId =
+            GraphMLDocumentData.getAttributeValue(
+                transition, "target", "Every transition needs a target!");
 
-        if (graphType == WitnessType.PROOF_WITNESS && sinkStates.contains(targetStateId)) {
+        if (graphType == WitnessType.CORRECTNESS_WITNESS && sinkStates.contains(targetStateId)) {
           throw new WitnessParseException("Proof witnesses do not allow sink nodes.");
         }
 
@@ -343,7 +348,7 @@ public class AutomatonGraphmlParser {
         }
 
         final List<AutomatonAction> actions = new ArrayList<>(0);
-        if (graphType == WitnessType.ERROR_WITNESS) {
+        if (graphType == WitnessType.VIOLATION_WITNESS) {
           actions.add(
               new AutomatonAction.Assignment(
                   DISTANCE_TO_VIOLATION,
@@ -367,9 +372,11 @@ public class AutomatonGraphmlParser {
           stacks.put(sourceStateId, currentStack);
         }
         Deque<String> newStack = currentStack;
-        Set<String> functionEntries = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.FUNCTIONENTRY);
+        Set<String> functionEntries =
+            GraphMLDocumentData.getDataOnNode(transition, KeyDef.FUNCTIONENTRY);
         String functionEntry = Iterables.getOnlyElement(functionEntries, null);
-        Set<String> functionExits = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.FUNCTIONEXIT);
+        Set<String> functionExits =
+            GraphMLDocumentData.getDataOnNode(transition, KeyDef.FUNCTIONEXIT);
         String functionExit = Iterables.getOnlyElement(functionEntries, null);
 
         // If the same function is entered and exited, the stack remains unchanged.
@@ -402,65 +409,52 @@ public class AutomatonGraphmlParser {
         }
 
         // Never match on the dummy edge directly after the main function entry node
-        AutomatonBoolExpr conjunctedTriggers = not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
+        AutomatonBoolExpr conjoinedTriggers = not(AutomatonBoolExpr.MatchProgramEntry.INSTANCE);
         // Never match on artificially split declarations
-        conjunctedTriggers = and(conjunctedTriggers, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
+        conjoinedTriggers =
+            and(conjoinedTriggers, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
 
         // Match a loop start
-        boolean enterLoopHead = false;
-        Set<String> loopHeadFlags =
-            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ENTERLOOPHEAD);
-        if (!loopHeadFlags.isEmpty()) {
-          Set<Boolean> loopHeadFlagValues =
-              loopHeadFlags.stream().map(Boolean::parseBoolean).collect(Collectors.toSet());
-          if (loopHeadFlagValues.size() > 1) {
-            throw new WitnessParseException(
-                "Conflicting values for the flag "
-                    + KeyDef.ENTERLOOPHEAD
-                    + ": "
-                    + loopHeadFlags.toString());
-          }
-          if (loopHeadFlagValues.iterator().next()) {
-            conjunctedTriggers =
-                and(
-                    conjunctedTriggers,
-                    AutomatonBoolExpr.MatchLoopStart.INSTANCE);
-            enterLoopHead = true;
-          }
+        if (entersLoopHead(transition)) {
+          conjoinedTriggers = and(conjoinedTriggers, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
         }
 
         // Add assumptions to the transition
-        Set<String> assumptionScopes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONSCOPE);
+        Set<String> assumptionScopes =
+            GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTIONSCOPE);
         Scope scope = determineScope(assumptionScopes, newStack);
         Set<String> assumptionResultFunctions =
-            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONRESULTFUNCTION);
+            GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTIONRESULTFUNCTION);
         Optional<String> assumptionResultFunction = determineResultFunction(assumptionResultFunctions, scope);
         if (considerAssumptions) {
-          Set<String> transAssumes = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTION);
+          Set<String> transAssumes =
+              GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTION);
           assumptions.addAll(
               CParserUtils.convertStatementsToAssumptions(
                   parseStatements(transAssumes, assumptionResultFunction, scope, cparser), machine, logger));
-          if (graphType == WitnessType.PROOF_WITNESS && !assumptions.isEmpty()) {
-            throw new WitnessParseException("Assumptions are not allowed for proof witnesses.");
+          if (graphType == WitnessType.CORRECTNESS_WITNESS && !assumptions.isEmpty()) {
+            throw new WitnessParseException(
+                "Assumptions are not allowed for correctness witnesses.");
           }
         }
 
-        if (graphType == WitnessType.ERROR_WITNESS && !assumptionResultFunctions.isEmpty()) {
+        if (graphType == WitnessType.VIOLATION_WITNESS && !assumptionResultFunctions.isEmpty()) {
           String resultFunctionName = assumptionResultFunction.get();
-          conjunctedTriggers = and(conjunctedTriggers, new AutomatonBoolExpr.MatchFunctionCall(resultFunctionName));
+          conjoinedTriggers =
+              and(conjoinedTriggers, new AutomatonBoolExpr.MatchFunctionCall(resultFunctionName));
         }
 
         Set<String> candidates =
-            GraphMlDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANT);
+            GraphMLDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANT);
         Set<String> candidateScopes =
-            GraphMlDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANTSCOPE);
+            GraphMLDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANTSCOPE);
         final Scope candidateScope = determineScope(candidateScopes, newStack);
         Set<String> resultFunctions =
-            GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ASSUMPTIONRESULTFUNCTION);
+            GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTIONRESULTFUNCTION);
         Optional<String> resultFunction = determineResultFunction(resultFunctions, scope);
         if (!candidates.isEmpty()) {
-          if (graphType == WitnessType.ERROR_WITNESS) {
-            throw new WitnessParseException("Invariants are not allowed for error witnesses.");
+          if (graphType == WitnessType.VIOLATION_WITNESS) {
+            throw new WitnessParseException("Invariants are not allowed for violation witnesses.");
           }
           candidateInvariants =
               And.of(
@@ -470,13 +464,11 @@ public class AutomatonGraphmlParser {
         }
 
         if (matchOriginLine) {
-          conjunctedTriggers =
-              and(conjunctedTriggers, getOriginLineMatcher(stateTransitionEdge, enterLoopHead));
+          conjoinedTriggers = and(conjoinedTriggers, getOriginLineMatcher(transition));
         }
 
         if (matchOffset) {
-          conjunctedTriggers =
-              and(conjunctedTriggers, getOffsetMatcher(stateTransitionEdge, enterLoopHead));
+          conjoinedTriggers = and(conjoinedTriggers, getOffsetMatcher(transition));
         }
 
         // If the triggers do not apply, none of the above transitions is taken,
@@ -484,22 +476,21 @@ public class AutomatonGraphmlParser {
         // as the conjoined negations of the transition conditions.
         AutomatonBoolExpr stutterCondition = stutterConditions.get(sourceStateId);
         if (stutterCondition == null) {
-          stutterCondition = not(conjunctedTriggers);
+          stutterCondition = not(conjoinedTriggers);
         } else {
-          stutterCondition = and(stutterCondition, not(conjunctedTriggers));
+          stutterCondition = and(stutterCondition, not(conjoinedTriggers));
         }
         stutterConditions.put(sourceStateId, stutterCondition);
 
         if (matchAssumeCase) {
-          conjunctedTriggers =
-              and(conjunctedTriggers, getAssumeCaseMatcher(stateTransitionEdge, enterLoopHead));
+          conjoinedTriggers = and(conjoinedTriggers, getAssumeCaseMatcher(transition));
         }
 
 
         // If the triggers match, there must be one successor state that moves the automaton forwards
         transitions.add(
             createAutomatonTransition(
-                conjunctedTriggers,
+                conjoinedTriggers,
                 Collections.<AutomatonBoolExpr>emptyList(),
                 assumptions,
                 candidateInvariants,
@@ -517,8 +508,8 @@ public class AutomatonGraphmlParser {
           transitions.add(
               createAutomatonTransition(
                   and(
-                      conjunctedTriggers,
-                      new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjunctedTriggers)),
+                      conjoinedTriggers,
+                      new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(conjoinedTriggers)),
                   Collections.<AutomatonBoolExpr>emptyList(),
                   Collections.emptyList(),
                   ExpressionTrees.<AExpression>getTrue(),
@@ -588,7 +579,7 @@ public class AutomatonGraphmlParser {
 
       // Build and return the result
       Preconditions.checkNotNull(initialStateName, "Every witness needs a specified entry state!");
-      if (graphType == WitnessType.ERROR_WITNESS) {
+      if (graphType == WitnessType.VIOLATION_WITNESS) {
         AutomatonVariable distanceVariable = new AutomatonVariable("int", DISTANCE_TO_VIOLATION);
         Integer initialStateDistance = distances.get(initialStateName);
         if (initialStateDistance != null) {
@@ -634,28 +625,51 @@ public class AutomatonGraphmlParser {
     }
   }
 
+  private static boolean entersLoopHead(Node pTransition) throws WitnessParseException {
+    Set<String> loopHeadFlags =
+        GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ENTERLOOPHEAD);
+    if (!loopHeadFlags.isEmpty()) {
+      Set<Boolean> loopHeadFlagValues =
+          loopHeadFlags.stream().map(Boolean::parseBoolean).collect(Collectors.toSet());
+      if (loopHeadFlagValues.size() > 1) {
+        throw new WitnessParseException(
+            "Conflicting values for the flag "
+                + KeyDef.ENTERLOOPHEAD
+                + ": "
+                + loopHeadFlags.toString());
+      }
+      if (loopHeadFlagValues.iterator().next()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
-   * Build an AutomatonExpression to match a given originLine for an edge.
+   * Creates an automaton-transition condition for a specific start line corresponding to the line
+   * specified by the given transition.
    *
-   * <p>Returns a true-expression, if no data can be found.
+   * <p>If no start line is specified by the given transition, the resulting condition is {@code
+   * AutomatonBoolExpr#TRUE}.
+   *
+   * @param pTransition the transition specifying which start line to assume.
+   * @return an automaton-transition condition for a specific start line corresponding to the line
+   *     specified by the given transition.
    */
-  private AutomatonBoolExpr getOriginLineMatcher(Node stateTransitionEdge, boolean enterLoopHead)
-      throws WitnessParseException {
-    Set<String> originFileTags =
-        GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINFILE);
+  private AutomatonBoolExpr getOriginLineMatcher(Node pTransition) throws WitnessParseException {
+    Set<String> originFileTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ORIGINFILE);
     checkParsable(
         originFileTags.size() < 2,
         "At most one origin-file data tag must be provided for an edge.");
 
-    Set<String> originLineTags =
-        GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINLINE);
+    Set<String> startLineTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.STARTLINE);
     checkParsable(
-        originLineTags.size() < 2,
+        startLineTags.size() < 2,
         "At most one origin-line data tag must be provided for each edge.");
 
     int matchOriginLineNumber = -1;
-    if (originLineTags.size() > 0) {
-      matchOriginLineNumber = Integer.parseInt(originLineTags.iterator().next());
+    if (startLineTags.size() > 0) {
+      matchOriginLineNumber = Integer.parseInt(startLineTags.iterator().next());
     }
     if (matchOriginLineNumber > 0) {
       Optional<String> matchOriginFileName =
@@ -667,7 +681,7 @@ public class AutomatonGraphmlParser {
 
       AutomatonBoolExpr startingLineMatchingExpr =
           new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
-      if (enterLoopHead) {
+      if (entersLoopHead(pTransition)) {
         startingLineMatchingExpr =
             AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(startingLineMatchingExpr, true);
       }
@@ -677,19 +691,23 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Build an AutomatonExpression to match a given offset for an edge.
+   * Creates an automaton-transition condition for a specific character offset corresponding to the
+   * offset specified by the given transition.
    *
-   * <p>Returns a true-expression, if no data can be found.
+   * <p>If no character offset is specified by the given transition, the resulting condition is
+   * {@code AutomatonBoolExpr#TRUE}.
+   *
+   * @param pTransition the transition specifying which character offset to assume.
+   * @return an automaton-transition condition for a specific character offset corresponding to the
+   *     offset specified by the given transition.
    */
-  private AutomatonBoolExpr getOffsetMatcher(Node stateTransitionEdge, boolean enterLoopHead)
-      throws WitnessParseException {
-    Set<String> originFileTags =
-        GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.ORIGINFILE);
+  private AutomatonBoolExpr getOffsetMatcher(Node pTransition) throws WitnessParseException {
+    Set<String> originFileTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ORIGINFILE);
     checkParsable(
         originFileTags.size() < 2,
         "At most one origin-file data tag must be provided for an edge.");
 
-    Set<String> offsetTags = GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.OFFSET);
+    Set<String> offsetTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.OFFSET);
     checkParsable(
         offsetTags.size() < 2, "At most one offset data tag must be provided for each edge.");
 
@@ -707,7 +725,7 @@ public class AutomatonGraphmlParser {
 
       AutomatonBoolExpr offsetMatchingExpr =
           new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
-      if (enterLoopHead) {
+      if (entersLoopHead(pTransition)) {
         offsetMatchingExpr =
             AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(offsetMatchingExpr, true);
       }
@@ -717,18 +735,23 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Build an AutomatonExpression to match a given control statement for an edge.
+   * Creates an automaton-transition condition for specific branches of an assumption corresponding
+   * to the control case specified by the given transition.
    *
-   * <p>Returns a true-expression, if no data can be found.
+   * <p>If no control case is specified by the given transition, the resulting condition is {@code
+   * AutomatonBoolExpr#TRUE}.
+   *
+   * @param pTransition the transition specifying which control case to assume.
+   * @return an automaton-transition condition for specific branches of an assumption corresponding
+   *     to the control case specified by the given transition.
    */
-  private AutomatonBoolExpr getAssumeCaseMatcher(Node stateTransitionEdge, boolean enterLoopHead)
-      throws WitnessParseException {
-    Set<String> assumeCaseTags =
-        GraphMlDocumentData.getDataOnNode(stateTransitionEdge, KeyDef.CONTROLCASE);
+  private AutomatonBoolExpr getAssumeCaseMatcher(Node pTransition) throws WitnessParseException {
+    Set<String> assumeCaseTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.CONTROLCASE);
 
     if (assumeCaseTags.size() > 0) {
       checkParsable(
-          assumeCaseTags.size() < 2, "At most one assume case tag must be provided for each edge.");
+          assumeCaseTags.size() < 2,
+          "At most one assume-case tag must be provided for each transition.");
       String assumeCaseStr = assumeCaseTags.iterator().next();
       final boolean assumeCase;
       if (assumeCaseStr.equalsIgnoreCase(AssumeCase.THEN.toString())) {
@@ -740,7 +763,7 @@ public class AutomatonGraphmlParser {
       }
 
       AutomatonBoolExpr assumeCaseMatchingExpr = new AutomatonBoolExpr.MatchAssumeCase(assumeCase);
-      if (enterLoopHead) {
+      if (entersLoopHead(pTransition)) {
         assumeCaseMatchingExpr =
             AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(assumeCaseMatchingExpr, true);
       }
@@ -751,125 +774,151 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Reads an automaton edge from the graphml file and inserts it into the automaton.
+   * Collects data about the given transition and the states it connects.
    *
-   * <p>If the edge has any special flags, they are handled here.
+   * @param pDocDat the GraphML-document-data helper.
+   * @param pLeavingEdges the map from predecessor states to transitions leaving these states that
+   *     the given transition will be entered into.
+   * @param pEnteringEdges the map from successor states to transitions entering these states that
+   *     the given transition will be entered into.
+   * @param pViolationStates the set of violation states the predecessor or successor states of the
+   *     given transition will be entered into if they are violation states.
+   * @param pSinkStates the set of sink states the predecessor or successor states of the given
+   *     transition will be entered into if they are sink states.
+   * @param pTransition the transition to be analyzed, represented as a GraphML edge.
    */
-  private void parseEdge(
-      GraphMlDocumentData docDat,
-      Multimap<String, Node> leavingEdges,
-      Multimap<String, Node> enteringEdges,
-      Set<String> violationStates,
-      Set<String> sinkStates,
-      Node stateTransitionEdge)
+  private static void collectEdgeData(
+      GraphMLDocumentData pDocDat,
+      Multimap<String, Node> pLeavingEdges,
+      Multimap<String, Node> pEnteringEdges,
+      Set<String> pViolationStates,
+      Set<String> pSinkStates,
+      Node pTransition)
       throws WitnessParseException {
     String sourceStateId =
-        GraphMlDocumentData.getAttributeValue(
-            stateTransitionEdge, "source", "Every transition needs a source!");
+        GraphMLDocumentData.getAttributeValue(
+            pTransition, "source", "Every transition needs a source!");
     String targetStateId =
-        GraphMlDocumentData.getAttributeValue(
-            stateTransitionEdge, "target", "Every transition needs a target!");
-    leavingEdges.put(sourceStateId, stateTransitionEdge);
-    enteringEdges.put(targetStateId, stateTransitionEdge);
+        GraphMLDocumentData.getAttributeValue(
+            pTransition, "target", "Every transition needs a target!");
+    pLeavingEdges.put(sourceStateId, pTransition);
+    pEnteringEdges.put(targetStateId, pTransition);
 
-    Element sourceStateNode = docDat.getNodeWithId(sourceStateId);
+    Element sourceStateNode = pDocDat.getNodeWithId(sourceStateId);
     if (sourceStateNode == null) {
       throw new WitnessParseException(
           String.format(
               "Source %s of transition %s does not exist.",
-              sourceStateId, transitionToString(stateTransitionEdge)));
+              sourceStateId, transitionToString(pTransition)));
     }
-    Element targetStateNode = docDat.getNodeWithId(targetStateId);
+    Element targetStateNode = pDocDat.getNodeWithId(targetStateId);
     if (targetStateNode == null) {
       throw new WitnessParseException(
           String.format(
               "Target %s of transition %s does not exist.",
-              targetStateId, transitionToString(stateTransitionEdge)));
+              targetStateId, transitionToString(pTransition)));
     }
-    EnumSet<NodeFlag> sourceNodeFlags = docDat.getNodeFlags(sourceStateNode);
-    EnumSet<NodeFlag> targetNodeFlags = docDat.getNodeFlags(targetStateNode);
+    EnumSet<NodeFlag> sourceNodeFlags = pDocDat.getNodeFlags(sourceStateNode);
+    EnumSet<NodeFlag> targetNodeFlags = pDocDat.getNodeFlags(targetStateNode);
     if (targetNodeFlags.contains(NodeFlag.ISVIOLATION)) {
-      violationStates.add(targetStateId);
+      pViolationStates.add(targetStateId);
     }
     if (sourceNodeFlags.contains(NodeFlag.ISVIOLATION)) {
-      violationStates.add(sourceStateId);
+      pViolationStates.add(sourceStateId);
     }
     if (targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
-      sinkStates.add(targetStateId);
+      pSinkStates.add(targetStateId);
     }
     if (sourceNodeFlags.contains(NodeFlag.ISSINKNODE)) {
-      sinkStates.add(sourceStateId);
+      pSinkStates.add(sourceStateId);
     }
   }
 
   /**
-   * Determine the entry node of the graph.
+   * Determine the entry state of the automaton.
    *
-   * @throws WitnessParseException if not exactly one entry node is found.
+   * @param pDocDat the GraphML-document-data helper.
+   * @param pStates the states of the automaton represented as a list of GraphML nodes.
+   * @throws WitnessParseException if not exactly one entry state is found.
+   * @return the identifier of the unique entry state.
    */
-  private String getEntryNode(GraphMlDocumentData docDat, NodeList nodes)
+  private static String getEntryState(GraphMLDocumentData pDocDat, NodeList pStates)
       throws WitnessParseException {
-    List<String> entryNodeIds = new ArrayList<>();
-    for (int i = 0; i < nodes.getLength(); ++i) {
-      Node node = nodes.item(i);
-      if (Boolean.parseBoolean(docDat.getDataValueWithDefault(node, KeyDef.ISENTRYNODE, "false"))) {
-        entryNodeIds.add(
-            GraphMlDocumentData.getAttributeValue(node, "id", "Every state needs an id!"));
+    List<String> entryStateIds = new ArrayList<>();
+    for (int i = 0; i < pStates.getLength(); ++i) {
+      Node node = pStates.item(i);
+      if (Boolean.parseBoolean(
+          pDocDat.getDataValueWithDefault(node, KeyDef.ISENTRYNODE, "false"))) {
+        entryStateIds.add(
+            GraphMLDocumentData.getAttributeValue(node, "id", "Every state needs an id!"));
       }
     }
 
-    if (entryNodeIds.size() == 1) {
-      return entryNodeIds.get(0);
+    if (entryStateIds.size() == 1) {
+      return entryStateIds.get(0);
     } else {
       throw new WitnessParseException(
-          "You must define exactly one entry node. Found entry nodes: " + entryNodeIds);
+          "You must define exactly one entry state. Found entry states: " + entryStateIds);
     }
   }
 
-  /** Return whether the graph can be used to proof violation or correctness of a program. */
-  private WitnessType getGraphType(Node graphNode) throws WitnessParseException {
-    Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.WITNESS_TYPE);
-    final WitnessType graphType;
-    if (graphTypeText.isEmpty()) {
-      graphType = WitnessType.ERROR_WITNESS;
-    } else if (graphTypeText.size() > 1) {
+  /**
+   * Gets the witness-automaton type of an automaton represented as a GraphML graph.
+   *
+   * @param pAutomaton the GraphML graph node representing the witness automaton.
+   * @return the witness-automaton type of an automaton represented as a GraphML graph.
+   */
+  private WitnessType getWitnessType(Node pAutomaton) throws WitnessParseException {
+    Set<String> witnessTypeText =
+        GraphMLDocumentData.getDataOnNode(pAutomaton, KeyDef.WITNESS_TYPE);
+    final WitnessType witnessType;
+    if (witnessTypeText.isEmpty()) {
+      witnessType = WitnessType.VIOLATION_WITNESS;
+    } else if (witnessTypeText.size() > 1) {
       throw new WitnessParseException(AMBIGUOUS_TYPE_ERROR_MESSAGE);
     } else {
-      String graphTypeToParse = graphTypeText.iterator().next().trim();
-      Optional<WitnessType> parsedGraphType = WitnessType.tryParse(graphTypeToParse);
+      String witnessTypeToParse = witnessTypeText.iterator().next().trim();
+      Optional<WitnessType> parsedGraphType = WitnessType.tryParse(witnessTypeToParse);
       if (parsedGraphType.isPresent()) {
-        graphType = parsedGraphType.get();
+        witnessType = parsedGraphType.get();
       } else {
-        graphType = WitnessType.ERROR_WITNESS;
+        witnessType = WitnessType.VIOLATION_WITNESS;
         logger.log(
             Level.WARNING,
             String.format(
-                "Unknown witness type %s, assuming %s instead.", graphTypeToParse, graphType));
+                "Unknown witness type %s, assuming %s instead.", witnessTypeToParse, witnessType));
       }
     }
-    return graphType;
+    return witnessType;
   }
 
   /**
-   * Compute the distance from automaton states to violation nodes.
+   * Compute the distances from automaton states to violation states.
    *
-   * <p>Violation nodes have a distance of 0, their predecessor nodes have distance +1, and so on.
-   * Sink states with no path to a violation state have distance -1.
+   * <p>Violation states have a distance of {@code -1}, their predecessor states have distance
+   * {@code 1}, and so on. The infinite distance of states with no path to a violation state is
+   * represented by the value {@code -1}.
+   *
+   * @param pEnteringTransitions a map describing the witness automaton by providing a mapping from
+   *     states to transitions entering those states.
+   * @return a map from automaton-state identifiers to their distances to the next violation state.
    */
-  private Map<String, Integer> determineDistanceToViolation(
-      Multimap<String, Node> enteringEdges, Set<String> violationStates, Set<String> sinkStates) {
-    Queue<String> waitlist = new ArrayDeque<>(violationStates);
+  private static Map<String, Integer> determineDistanceToViolation(
+      Multimap<String, Node> pEnteringTransitions,
+      Set<String> pViolationStates,
+      Set<String> pSinkStates) {
+    Queue<String> waitlist = new ArrayDeque<>(pViolationStates);
     Map<String, Integer> distances = Maps.newHashMap();
-    for (String violationState : violationStates) {
+    for (String violationState : pViolationStates) {
       distances.put(violationState, 0);
     }
     while (!waitlist.isEmpty()) {
       String current = waitlist.poll();
       int newDistance = distances.get(current) + 1;
-      for (Node enteringEdge : enteringEdges.get(current)) {
+      for (Node enteringTransition : pEnteringTransitions.get(current)) {
         String sourceStateId =
-            GraphMlDocumentData.getAttributeValue(
-                enteringEdge, "source", "Every transition needs a source!");
+            GraphMLDocumentData.getAttributeValue(
+                enteringTransition, "source", "Every transition needs a source!");
         Integer oldDistance = distances.get(sourceStateId);
         if (oldDistance == null || oldDistance > newDistance) {
           distances.put(sourceStateId, newDistance);
@@ -878,24 +927,24 @@ public class AutomatonGraphmlParser {
       }
     }
     // Sink nodes have infinite distance to the target location, encoded as -1
-    for (String sinkStateId : sinkStates) {
+    for (String sinkStateId : pSinkStates) {
       distances.put(sinkStateId, -1);
     }
     return distances;
   }
 
-  private static String transitionToString(Node pStateTransitionEdge) {
-    if (pStateTransitionEdge == null) {
+  private static String transitionToString(Node pTransition) {
+    if (pTransition == null) {
       return "null";
     }
-    NamedNodeMap attributes = pStateTransitionEdge.getAttributes();
+    NamedNodeMap attributes = pTransition.getAttributes();
     if (attributes != null) {
       Node id = attributes.getNamedItem("id");
       if (id != null) {
         return id.getNodeValue();
       }
     }
-    return pStateTransitionEdge.toString();
+    return pTransition.toString();
   }
 
   private static void checkRequiredField(Node pGraphNode, KeyDef pKey)
@@ -905,7 +954,7 @@ public class AutomatonGraphmlParser {
 
   private static void checkRequiredField(Node pGraphNode, KeyDef pKey, boolean pAcceptEmpty)
       throws WitnessParseException {
-    Iterable<String> data = GraphMlDocumentData.getDataOnNode(pGraphNode, pKey);
+    Iterable<String> data = GraphMLDocumentData.getDataOnNode(pGraphNode, pKey);
     if (Iterables.isEmpty(data)) {
       throw new WitnessParseException(
           String.format("The witness does not contain the required field '%s'", pKey.id));
@@ -1551,21 +1600,21 @@ public class AutomatonGraphmlParser {
     return pAssumeCode;
   }
 
-  private static class GraphMlDocumentData {
+  private static class GraphMLDocumentData {
 
     private final HashMap<String, Optional<String>> defaultDataValues = Maps.newHashMap();
     private final Document doc;
 
     private Map<String, Element> idToNodeMap = null;
 
-    public GraphMlDocumentData(Document doc) {
+    public GraphMLDocumentData(Document doc) {
       this.doc = doc;
     }
 
     public EnumSet<NodeFlag> getNodeFlags(Element pStateNode) {
       EnumSet<NodeFlag> result = EnumSet.noneOf(NodeFlag.class);
 
-      NodeList dataChilds = pStateNode.getElementsByTagName(GraphMlTag.DATA.toString());
+      NodeList dataChilds = pStateNode.getElementsByTagName(GraphMLTag.DATA.toString());
 
       for (int i=0; i<dataChilds.getLength(); i++) {
         Node dataChild = dataChilds.item(i);
@@ -1588,7 +1637,7 @@ public class AutomatonGraphmlParser {
 
       idToNodeMap = Maps.newHashMap();
 
-      NodeList nodes = doc.getElementsByTagName(GraphMlTag.NODE.toString());
+      NodeList nodes = doc.getElementsByTagName(GraphMLTag.NODE.toString());
       for (int i=0; i<nodes.getLength(); i++) {
         Element stateNode = (Element) nodes.item(i);
         String stateId = getNodeId(stateNode);
@@ -1611,12 +1660,12 @@ public class AutomatonGraphmlParser {
         return result;
       }
 
-      NodeList keyDefs = doc.getElementsByTagName(GraphMlTag.KEY.toString());
+      NodeList keyDefs = doc.getElementsByTagName(GraphMLTag.KEY.toString());
       for (int i=0; i<keyDefs.getLength(); i++) {
         Element keyDef = (Element) keyDefs.item(i);
         Node id = keyDef.getAttributes().getNamedItem("id");
         if (dataKey.id.equals(id.getTextContent())) {
-          NodeList defaultTags = keyDef.getElementsByTagName(GraphMlTag.DEFAULT.toString());
+          NodeList defaultTags = keyDef.getElementsByTagName(GraphMLTag.DEFAULT.toString());
           result = Optional.empty();
           if (defaultTags.getLength() > 0) {
             checkParsable(
@@ -1672,7 +1721,7 @@ public class AutomatonGraphmlParser {
     private static Set<Node> findKeyedDataNode(Element of, final KeyDef dataKey) {
       Set<Node> result = Sets.newHashSet();
       Set<Node> alternative = null;
-      NodeList dataChilds = of.getElementsByTagName(GraphMlTag.DATA.toString());
+      NodeList dataChilds = of.getElementsByTagName(GraphMLTag.DATA.toString());
       for (int i=0; i<dataChilds.getLength(); i++) {
         Node dataChild = dataChilds.item(i);
         Node attribute = dataChild.getAttributes().getNamedItem("key");
@@ -1760,16 +1809,16 @@ public class AutomatonGraphmlParser {
     doc.getDocumentElement().normalize();
 
     // (The one) root node of the graph ----
-    NodeList graphs = doc.getElementsByTagName(GraphMlTag.GRAPH.toString());
+    NodeList graphs = doc.getElementsByTagName(GraphMLTag.GRAPH.toString());
     checkParsable(graphs.getLength() == 1, TOO_MANY_GRAPHS_ERROR_MESSAGE);
     Node graphNode = graphs.item(0);
 
     checkRequiredField(graphNode, KeyDef.WITNESS_TYPE);
 
-    Set<String> graphTypeText = GraphMlDocumentData.getDataOnNode(graphNode, KeyDef.WITNESS_TYPE);
+    Set<String> graphTypeText = GraphMLDocumentData.getDataOnNode(graphNode, KeyDef.WITNESS_TYPE);
     final WitnessType graphType;
     if (graphTypeText.isEmpty()) {
-      graphType = WitnessType.ERROR_WITNESS;
+      graphType = WitnessType.VIOLATION_WITNESS;
     } else if (graphTypeText.size() > 1) {
       throw new WitnessParseException(AMBIGUOUS_TYPE_ERROR_MESSAGE);
     } else {
