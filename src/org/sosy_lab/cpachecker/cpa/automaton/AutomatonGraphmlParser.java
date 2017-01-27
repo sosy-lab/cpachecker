@@ -824,12 +824,22 @@ public class AutomatonGraphmlParser {
     }
     if (sourceNodeFlags.contains(NodeFlag.ISVIOLATION)) {
       pViolationStates.add(sourceStateId);
+      logger.log(
+          Level.WARNING,
+          String.format(
+              "Source %s of transition %s is a violation state. No outgoing edges expected.",
+              sourceStateId, transitionToString(pTransition)));
     }
     if (targetNodeFlags.contains(NodeFlag.ISSINKNODE)) {
       pSinkStates.add(targetStateId);
     }
     if (sourceNodeFlags.contains(NodeFlag.ISSINKNODE)) {
       pSinkStates.add(sourceStateId);
+      logger.log(
+          Level.WARNING,
+          String.format(
+              "Source %s of transition %s is a sink state. No outgoing edges expected.",
+              sourceStateId, transitionToString(pTransition)));
     }
   }
 
