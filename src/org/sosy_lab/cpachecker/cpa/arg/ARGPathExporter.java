@@ -855,7 +855,7 @@ public class ARGPathExporter {
         valueMap = pCounterExample.get().getExactVariableValues();
       }
 
-      GraphMlBuilder doc;
+      final GraphMlBuilder doc;
       try {
         doc =
             new GraphMlBuilder(
@@ -864,7 +864,7 @@ public class ARGPathExporter {
         throw new IOException(e);
       }
 
-      String entryStateNodeId = pGraphBuilder.getId(pRootState);
+      final String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       // Collect node flags in advance
       for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState)) {
@@ -890,24 +890,8 @@ public class ARGPathExporter {
           collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState),
           this);
 
-      // Remove edges that lead to the sink but have a sibling edge that has the same label
-      Collection<Edge> toRemove = Sets.newHashSet();
-      for (Edge edge : leavingEdges.values()) {
-        if (edge.target.equals(SINK_NODE_ID)) {
-          for (Edge otherEdge : leavingEdges.get(edge.source)) {
-            if (!edge.equals(otherEdge)
-                && edge.label.equals(otherEdge.label)
-                && !toRemove.contains(otherEdge)) {
-              toRemove.add(edge);
-              break;
-            }
-          }
-        }
-      }
-      for (Edge edge : toRemove) {
-        boolean removed = removeEdge(edge);
-        assert removed;
-      }
+      // remove redundant edges leading to sink
+      removeUnnecessarySinkEdges();
 
       // Merge nodes with empty or repeated edges
       Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier =
@@ -924,6 +908,27 @@ public class ARGPathExporter {
       // Write elements
       writeElementsOfGraphToDoc(doc, entryStateNodeId);
       doc.appendTo(pTarget);
+    }
+
+    /** Remove edges that lead to the sink but have a sibling edge that has the same label. */
+    private void removeUnnecessarySinkEdges() {
+      final Collection<Edge> toRemove = Sets.newHashSet();
+      for (Edge edge : leavingEdges.values()) {
+        if (edge.target.equals(SINK_NODE_ID)) {
+          for (Edge otherEdge : leavingEdges.get(edge.source)) {
+            if (!edge.equals(otherEdge)
+                && edge.label.equals(otherEdge.label)
+                && !toRemove.contains(otherEdge)) {
+              toRemove.add(edge);
+              break;
+            }
+          }
+        }
+      }
+      for (Edge edge : toRemove) {
+        boolean removed = removeEdge(edge);
+        assert removed;
+      }
     }
 
     private void writeElementsOfGraphToDoc(GraphMlBuilder doc, String entryStateNodeId) {
