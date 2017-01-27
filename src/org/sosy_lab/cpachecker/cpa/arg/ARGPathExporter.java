@@ -910,17 +910,25 @@ public class ARGPathExporter {
       doc.appendTo(pTarget);
     }
 
-    /** Remove edges that lead to the sink but have a sibling edge that has the same label. */
+    /** Remove edges that lead to the sink but have a sibling edge that has the same label.
+     *
+     * <p>
+     * We additionally remove redundant edges.
+     * This is needed for concurrency witnesses at thread-creation.
+     * </p>
+     */
     private void removeUnnecessarySinkEdges() {
       final Collection<Edge> toRemove = Sets.newHashSet();
       for (Edge edge : leavingEdges.values()) {
         if (edge.target.equals(SINK_NODE_ID)) {
           for (Edge otherEdge : leavingEdges.get(edge.source)) {
-            if (!edge.equals(otherEdge)
-                && edge.label.equals(otherEdge.label)
-                && !toRemove.contains(otherEdge)) {
-              toRemove.add(edge);
-              break;
+            // ignore the edge itself, as well as already handled edges.
+            if (!edge.equals(otherEdge) && !toRemove.contains(otherEdge)) {
+              // remove edges with either identical labels or redundant edge-transition
+              if (edge.label.equals(otherEdge.label) || isEdgeRedundant.apply(edge)) {
+                toRemove.add(edge);
+                break;
+              }
             }
           }
         }
