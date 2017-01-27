@@ -301,9 +301,8 @@ public class AutomatonGraphmlParser {
       Set<String> violationStates = Sets.newHashSet();
       Set<String> sinkStates = Sets.newHashSet();
 
-      for (int i = 0; i < edges.getLength(); i++) {
-        collectEdgeData(
-            docDat, leavingEdges, enteringEdges, violationStates, sinkStates, edges.item(i));
+      for (Node edge : asIterable(edges)) {
+        collectEdgeData(docDat, leavingEdges, enteringEdges, violationStates, sinkStates, edge);
       }
 
       final String entryStateId = getEntryState(docDat, nodes);
@@ -787,7 +786,7 @@ public class AutomatonGraphmlParser {
    *     transition will be entered into if they are sink states.
    * @param pTransition the transition to be analyzed, represented as a GraphML edge.
    */
-  private static void collectEdgeData(
+  private void collectEdgeData(
       GraphMLDocumentData pDocDat,
       Multimap<String, Node> pLeavingEdges,
       Multimap<String, Node> pEnteringEdges,
@@ -845,8 +844,7 @@ public class AutomatonGraphmlParser {
   private static String getEntryState(GraphMLDocumentData pDocDat, NodeList pStates)
       throws WitnessParseException {
     List<String> entryStateIds = new ArrayList<>();
-    for (int i = 0; i < pStates.getLength(); ++i) {
-      Node node = pStates.item(i);
+    for (Node node : asIterable(pStates)) {
       if (Boolean.parseBoolean(
           pDocDat.getDataValueWithDefault(node, KeyDef.ISENTRYNODE, "false"))) {
         entryStateIds.add(
@@ -1616,8 +1614,7 @@ public class AutomatonGraphmlParser {
 
       NodeList dataChilds = pStateNode.getElementsByTagName(GraphMLTag.DATA.toString());
 
-      for (int i=0; i<dataChilds.getLength(); i++) {
-        Node dataChild = dataChilds.item(i);
+      for (Node dataChild : asIterable(dataChilds)) {
         Node attribute = dataChild.getAttributes().getNamedItem("key");
         Preconditions.checkNotNull(attribute, "Every data element must have a key attribute!");
         String key = attribute.getTextContent();
@@ -1638,11 +1635,9 @@ public class AutomatonGraphmlParser {
       idToNodeMap = Maps.newHashMap();
 
       NodeList nodes = doc.getElementsByTagName(GraphMLTag.NODE.toString());
-      for (int i=0; i<nodes.getLength(); i++) {
-        Element stateNode = (Element) nodes.item(i);
+      for (Node stateNode : asIterable(nodes)) {
         String stateId = getNodeId(stateNode);
-
-        idToNodeMap.put(stateId, stateNode);
+        idToNodeMap.put(stateId, (Element) stateNode);
       }
 
       return idToNodeMap;
@@ -1661,11 +1656,11 @@ public class AutomatonGraphmlParser {
       }
 
       NodeList keyDefs = doc.getElementsByTagName(GraphMLTag.KEY.toString());
-      for (int i=0; i<keyDefs.getLength(); i++) {
-        Element keyDef = (Element) keyDefs.item(i);
+      for (Node keyDef : asIterable(keyDefs)) {
         Node id = keyDef.getAttributes().getNamedItem("id");
         if (dataKey.id.equals(id.getTextContent())) {
-          NodeList defaultTags = keyDef.getElementsByTagName(GraphMLTag.DEFAULT.toString());
+          NodeList defaultTags =
+              ((Element) keyDef).getElementsByTagName(GraphMLTag.DEFAULT.toString());
           result = Optional.empty();
           if (defaultTags.getLength() > 0) {
             checkParsable(
@@ -1722,8 +1717,7 @@ public class AutomatonGraphmlParser {
       Set<Node> result = Sets.newHashSet();
       Set<Node> alternative = null;
       NodeList dataChilds = of.getElementsByTagName(GraphMLTag.DATA.toString());
-      for (int i=0; i<dataChilds.getLength(); i++) {
-        Node dataChild = dataChilds.item(i);
+      for (Node dataChild : asIterable(dataChilds)) {
         Node attribute = dataChild.getAttributes().getNamedItem("key");
         Preconditions.checkNotNull(attribute, "Every data element must have a key attribute!");
         String nodeKey = attribute.getTextContent();
@@ -1908,4 +1902,28 @@ public class AutomatonGraphmlParser {
     }
   }
 
+
+  /** return a nice {@link Iterable} wrapping the interface {@link NodeList}. */
+  private static Iterable<Node> asIterable(final NodeList pNodeList) {
+    return new Iterable<Node>() {
+
+      @Override
+      public Iterator<Node> iterator() {
+        return new Iterator<Node>() {
+
+          private int index = 0;
+
+          @Override
+          public boolean hasNext() {
+            return index < pNodeList.getLength();
+          }
+
+          @Override
+          public Node next() {
+            return pNodeList.item(index++);
+          }
+        };
+      }
+    };
+  }
 }
