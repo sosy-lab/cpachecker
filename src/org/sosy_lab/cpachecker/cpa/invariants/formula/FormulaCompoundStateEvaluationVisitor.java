@@ -204,7 +204,7 @@ public class FormulaCompoundStateEvaluationVisitor implements FormulaEvaluationV
 
   @Override
   public BooleanConstant<CompoundInterval> visit(LogicalNot<CompoundInterval> pNot, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    BooleanConstant<CompoundInterval> operandEval =  pNot.getNegated().accept(this, pEnvironment);
+    BooleanConstant<CompoundInterval> operandEval = pNot.getNegated().accept(this, pEnvironment);
     if (operandEval == null) {
       return operandEval;
     }
