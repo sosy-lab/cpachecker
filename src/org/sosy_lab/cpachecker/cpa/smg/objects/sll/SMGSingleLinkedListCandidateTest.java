@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
 import com.google.common.collect.Iterables;
 
+import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.common.log.LogManager;
@@ -47,7 +48,8 @@ public class SMGSingleLinkedListCandidateTest {
   @Test
   public void basicTest() {
     SMGObject object = new SMGRegion(64, "object");
-    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(object, 32, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
+    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(object, BigInteger
+        .valueOf(32), BigInteger.valueOf(0), CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
 
     Assert.assertSame(object, candidate.getStartObject());
@@ -62,13 +64,14 @@ public class SMGSingleLinkedListCandidateTest {
 
     int NODE_SIZE = 64;
     int SEGMENT_LENGTH = 4;
-    int OFFSET = 0;
+    BigInteger OFFSET = BigInteger.valueOf(0);
 
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, SEGMENT_LENGTH, NODE_SIZE, OFFSET, "pointer");
     Integer value = root.getValue();
 
     SMGObject startObject = smg.getPointer(value).getObject();
-    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
+    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject,
+        OFFSET, BigInteger.valueOf(0), CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, SEGMENT_LENGTH, SMGJoinStatus.INCOMPARABLE, false);
 
     CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, false, false, null, 4, false, false));
@@ -97,11 +100,13 @@ public class SMGSingleLinkedListCandidateTest {
   @Test
   public void executeOnNullTerminatedList() throws SMGInconsistentException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
-    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 2, 128, 64, "pointer");
+    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 2, 128, BigInteger.valueOf(64), "pointer");
 
     Integer value = root.getValue();
     SMGObject startObject = smg.getPointer(value).getObject();
-    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 64, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
+    SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject,
+        BigInteger.valueOf(64), BigInteger.valueOf(0), CPointerType.POINTER_TO_VOID, MachineModel
+        .LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
     CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, false, false, null, 32, false, false));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();

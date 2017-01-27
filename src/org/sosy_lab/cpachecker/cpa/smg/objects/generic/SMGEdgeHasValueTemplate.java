@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class SMGEdgeHasValueTemplate extends SMGEdgeTemplate
@@ -31,8 +32,7 @@ public class SMGEdgeHasValueTemplate extends SMGEdgeTemplate
   private final CType type;
 
   public SMGEdgeHasValueTemplate(SMGObjectTemplate pAbstractObject,
-      int pAbstractValue,
-      int pOffset,
+      int pAbstractValue, BigInteger pOffset,
       CType pType) {
     super(pAbstractObject, pAbstractValue, pOffset);
     type = pType;

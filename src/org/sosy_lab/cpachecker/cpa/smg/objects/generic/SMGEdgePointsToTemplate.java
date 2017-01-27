@@ -24,11 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
 
+import java.math.BigInteger;
+
 public class SMGEdgePointsToTemplate extends SMGEdgeTemplate {
 
   public SMGEdgePointsToTemplate(SMGObjectTemplate pAbstractObject,
-      int pAbstractPointerValue,
-      int pOffset) {
+      int pAbstractPointerValue, BigInteger pOffset) {
     super(pAbstractObject, pAbstractPointerValue, pOffset);
   }
 

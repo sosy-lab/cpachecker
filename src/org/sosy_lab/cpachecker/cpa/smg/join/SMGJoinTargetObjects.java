@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.ImmutableList;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -226,7 +227,7 @@ final class SMGJoinTargetObjects {
 
     destSMG.removeObjectAndEdges(targetObject);
 
-    Set<Integer> restricted = new HashSet<>();
+    Set<BigInteger> restricted = new HashSet<>();
 
     switch (targetObject.getKind()) {
       case DLL:
@@ -243,7 +244,7 @@ final class SMGJoinTargetObjects {
     for (SMGEdgeHasValue hve : hves) {
       Integer val = hve.getValue();
 
-      if (!restricted.contains(val) && val != 0) {
+      if (!restricted.contains(BigInteger.valueOf(val)) && val != 0) {
 
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();

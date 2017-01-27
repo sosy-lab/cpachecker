@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -200,7 +201,7 @@ public class MaterlisationStep {
     /*Fourth, create all values that are contained in this abstraction*/
     for (SMGEdgeHasValueTemplateWithConcreteValue aField : fieldTemplateContainingValue) {
       SMGObjectTemplate templateObject = aField.getObjectTemplate();
-      int offset = aField.getOffset();
+      BigInteger offset = aField.getOffset();
       int value = aField.getValue();
       SMGObject concreteObject = concreteObjectMap.get(templateObject);
       CType type = aField.getType();
@@ -255,7 +256,7 @@ public class MaterlisationStep {
       Set<SMGEdgeHasValue> concreteHves) {
     SMGObjectTemplate templateObject = pAbstractField.getObjectTemplate();
     SMGObject object = pConcreteObjectMap.get(templateObject);
-    int offset = pAbstractField.getOffset();
+    BigInteger offset = pAbstractField.getOffset();
     int abstractValue = pAbstractField.getAbstractValue();
     int value = pAbstractObjectToPointersMap.get(templateObject).get(abstractValue);
     CType type = pAbstractField.getType();
@@ -268,7 +269,7 @@ public class MaterlisationStep {
       Set<SMGEdgePointsTo> concretePointer) {
 
     SMGObjectTemplate templateTarget = pAbstractPointer.getObjectTemplate();
-    int offset = pAbstractPointer.getOffset();
+    BigInteger offset = pAbstractPointer.getOffset();
     int abstractPointerValue = pAbstractPointer.getAbstractValue();
 
     int concretePointerValue =

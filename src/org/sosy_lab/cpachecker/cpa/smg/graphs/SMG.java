@@ -27,6 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -84,7 +85,7 @@ public class SMG {
    *
    */
   public SMG(final MachineModel pMachineModel) {
-    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
+    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, BigInteger.valueOf(0));
 
     hv_edges = new SMGHasValueEdgeSet();
     pt_edges = new SMGPointsToMap();
@@ -553,25 +554,26 @@ public class SMG {
    * @return A TreeMap offsets to size which are covered by a HasValue edge leading from an
    * object to null value
    */
-  public TreeMap<Integer, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
+  public TreeMap<BigInteger, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
     Set<SMGEdgeHasValue> edges = hv_edges.getEdgesForObject(pObj);
     SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterHavingValue(getNullValue());
     edges = objectFilter.filterSet(edges);
 
-    TreeMultimap<Integer, Integer> offsetToSize = TreeMultimap.create();
+    TreeMultimap<BigInteger, Integer> offsetToSize = TreeMultimap.create();
     for (SMGEdgeHasValue edge : edges) {
       offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
     }
 
-    TreeMap<Integer, Integer> resultOffsetToSize = new TreeMap<>();
+    TreeMap<BigInteger, Integer> resultOffsetToSize = new TreeMap<>();
     if (offsetToSize != null && !offsetToSize.isEmpty()) {
-      Iterator<Integer> offsetsIterator = offsetToSize.keySet().iterator();
-      Integer resultOffset = offsetsIterator.next();
+      Iterator<BigInteger> offsetsIterator = offsetToSize.keySet().iterator();
+      BigInteger resultOffset = offsetsIterator.next();
       Integer resultSize = offsetToSize.get(resultOffset).last();
       while (offsetsIterator.hasNext()) {
-        Integer nextOffset = offsetsIterator.next();
-        if (nextOffset <= resultOffset + resultSize) {
-          resultSize = Integer.max(offsetToSize.get(nextOffset).last() + nextOffset - resultOffset, resultSize);
+        BigInteger nextOffset = offsetsIterator.next();
+        if (nextOffset.compareTo(resultOffset.add(BigInteger.valueOf(resultSize))) <= 0) {
+          resultSize = Integer.max(offsetToSize.get(nextOffset).last() + nextOffset.intValue() -
+              resultOffset.intValue(), resultSize);
         } else {
           resultOffsetToSize.put(resultOffset, resultSize);
           resultOffset = nextOffset;
@@ -612,16 +614,17 @@ public class SMG {
     return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBits(machine_model));
   }
 
-  public boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, CType pType ) {
+  public boolean isCoveredByNullifiedBlocks(SMGObject pObject, BigInteger pOffset, CType pType ) {
     return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getBitSizeof(pType));
   }
 
-  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, int size) {
-    int expectedMinClear = pOffset + size;
+  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, BigInteger pOffset, int size) {
+    BigInteger expectedMinClear = pOffset.add(BigInteger.valueOf(size));
 
-    TreeMap<Integer, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
-    Entry<Integer, Integer> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
-    return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
+    TreeMap<BigInteger, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
+    Entry<BigInteger, Integer> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
+    return (floorEntry != null && floorEntry.getKey().add(BigInteger
+        .valueOf(floorEntry.getValue())).compareTo(expectedMinClear) >= 0);
   }
 
   public void mergeValues(int pV1, int pV2) {
@@ -689,7 +692,7 @@ public class SMG {
     neq.clear();
     pathPredicate.clear();
     addValue(nullAddress);
-    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
+    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, BigInteger.valueOf(0));
     addPointsToEdge(nullPointer);
   }
 

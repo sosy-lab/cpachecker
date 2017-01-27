@@ -309,7 +309,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       SMGObject bufferMemory =  bufferAddress.getObject();
 
-      int offset =  bufferAddress.getOffset().getAsInt();
+      BigInteger offset =  bufferAddress.getOffset().getValue();
 
       if (ch.equals(SMGKnownSymValue.ZERO)) {
         // Create one large edge
@@ -318,8 +318,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         // We need to create many edges, one for each character written
         // memset() copies ch into the first count characters of buffer
         for (int c = 0; c < count; c++) {
-          currentState = writeValue(currentState, bufferMemory, offset + (c  * machineModel.getSizeofCharInBits()),
-              CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
+          currentState = writeValue(currentState, bufferMemory, offset.add(BigInteger.valueOf(c  *
+                  machineModel.getSizeofCharInBits())), CNumericTypes.SIGNED_CHAR, ch, cfaEdge);
         }
 
         if (!expValue.isUnknown()) {
@@ -562,7 +562,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             allocation_label);
 
         if (zeroingMemoryAllocation.contains(functionName)) {
-          currentState = writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
+          currentState = writeValue(currentState, new_address.getObject(), BigInteger.valueOf(0),
+              AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
               SMGKnownSymValue.ZERO, cfaEdge);
         }
         possibleMallocFail = true;
@@ -759,11 +760,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGObject source = sourceStr2Address.getObject();
       SMGObject target = targetStr1Address.getObject();
 
-      int sourceRangeOffset = sourceStr2Address.getOffset().getAsInt();
-      int sourceRangeSize = sizeValue.getAsInt() * machineModel.getSizeofCharInBits() + sourceRangeOffset;
-      int targetRangeOffset = targetStr1Address.getOffset().getAsInt();
+      BigInteger sourceRangeOffset = sourceStr2Address.getOffset().getValue();
+      long sourceRangeSize = sizeValue.getAsInt() * machineModel.getSizeofCharInBits() +
+          sourceRangeOffset.longValue();
+      BigInteger targetRangeOffset = targetStr1Address.getOffset().getValue();
 
-      if (sourceRangeSize > source.getSize() - sourceRangeOffset) {
+      if (sourceRangeSize > source.getSize() - sourceRangeOffset.longValue()) {
         currentState = currentState.setInvalidRead();
       } else {
         currentState.copy(source, target, sourceRangeOffset, sourceRangeSize, targetRangeOffset);
@@ -955,7 +957,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (tmpFieldMemory != null) {
-      return handleAssignmentToField(smgState, returnEdge, tmpFieldMemory, 0, expType, returnExp);
+      return handleAssignmentToField(smgState, returnEdge, tmpFieldMemory, BigInteger.valueOf(0),
+          expType, returnExp);
     }
 
     return ImmutableList.of(smgState);
@@ -1014,7 +1017,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
           SMGObject object = address.getObject();
 
-          int offset = address.getOffset().getAsInt();
+          BigInteger offset = address.getOffset().getValue();
 
           //TODO cast value
           rValueType = expressionEvaluator.getRealExpressionType(lValue);
@@ -1172,7 +1175,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         // We want to write a possible new Address in the new State, but
         // explore the old state for the parameters
-        newState = assignFieldToState(newState, callEdge, newObject, 0, symbolicValue, rValueType);
+        newState = assignFieldToState(newState, callEdge, newObject, BigInteger.valueOf(0),
+            symbolicValue, rValueType);
       }
     }
 
@@ -1284,7 +1288,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           result.add(newState);
           logger.log(Level.WARNING, "Solver Interrupted Exception: ", pE, " on predicate ", predicateFormula);
         }
-      } else if ((truthValue && explicitValue.equals(SMGKnownExpValue.ONE))
+      } else if ((truthValue && !explicitValue.equals(SMGKnownExpValue.ZERO))
           || (!truthValue && explicitValue.equals(SMGKnownExpValue.ZERO))) {
         result.add(smgState);
       } else {
@@ -1445,7 +1449,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       } else {
         List<SMGState> newStates =
             handleAssignmentToField(state, cfaEdge, addressOfField.getObject(),
-                addressOfField.getOffset().getAsInt(), fieldType, rValue);
+                addressOfField.getOffset().getValue(), fieldType, rValue);
         result.addAll(newStates);
       }
     }
@@ -1480,7 +1484,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   // assign value of given expression to State at given location
   private List<SMGState> assignFieldToState(SMGState pNewState, CFAEdge cfaEdge,
-      SMGObject memoryOfField, int fieldOffset, CType pLFieldType, CRightHandSide rValue)
+      SMGObject memoryOfField, BigInteger fieldOffset, CType pLFieldType, CRightHandSide rValue)
           throws CPATransferException {
 
     List<SMGState> result = new ArrayList<>(4);
@@ -1540,7 +1544,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private SMGState assignFieldToState(SMGState newState, CFAEdge cfaEdge,
-      SMGObject memoryOfField, int fieldOffset, SMGSymbolicValue value, CType rValueType)
+      SMGObject memoryOfField, BigInteger fieldOffset, SMGSymbolicValue value, CType rValueType)
       throws UnrecognizedCCodeException, SMGInconsistentException {
 
     int sizeOfField = expressionEvaluator.getBitSizeof(cfaEdge, rValueType, newState);
@@ -1565,7 +1569,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private SMGState assignStruct(SMGState pNewState, SMGObject pMemoryOfField,
-      int pFieldOffset, CType pRValueType, SMGSymbolicValue pValue,
+                                BigInteger pFieldOffset, CType pRValueType, SMGSymbolicValue pValue,
       CFAEdge pCfaEdge) throws SMGInconsistentException,
       UnrecognizedCCodeException {
 
@@ -1573,10 +1577,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGKnownAddVal structAddress = (SMGKnownAddVal) pValue;
 
       SMGObject source = structAddress.getObject();
-      int structOffset = structAddress.getOffset().getAsInt();
+      BigInteger structOffset = structAddress.getOffset().getValue();
 
       //FIXME Does not work with variable array length.
-      int structSize = structOffset + expressionEvaluator.getBitSizeof(pCfaEdge, pRValueType, pNewState);
+      long structSize = structOffset.longValue() + expressionEvaluator.getBitSizeof(pCfaEdge, pRValueType,
+          pNewState);
       return pNewState.copy(source, pMemoryOfField,
           structOffset, structSize, pFieldOffset);
     }
@@ -1584,19 +1589,19 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return pNewState;
   }
 
-  private SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, int pSizeType,
+  private SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, BigInteger pFieldOffset, int pSizeType,
       SMGSymbolicValue pValue, CFAEdge pEdge) throws UnrecognizedCCodeException, SMGInconsistentException {
     return writeValue(pNewState, pMemoryOfField, pFieldOffset, AnonymousTypes.createTypeWithLength(pSizeType), pValue, pEdge);
   }
 
-  private SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, int pFieldOffset, CType pRValueType,
+  private SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, BigInteger pFieldOffset, CType pRValueType,
       SMGSymbolicValue pValue, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
   //FIXME Does not work with variable array length.
     //TODO: write value with bit precise size
-    boolean doesNotFitIntoObject = pFieldOffset < 0
-        || pFieldOffset + expressionEvaluator.getBitSizeof(pEdge, pRValueType, pNewState) >
-        pMemoryOfField.getSize();
+    boolean doesNotFitIntoObject = pFieldOffset.compareTo(BigInteger.valueOf(0)) < 0
+        || pFieldOffset.compareTo(BigInteger.valueOf(pMemoryOfField.getSize() -
+        expressionEvaluator.getBitSizeof(pEdge, pRValueType, pNewState))) > 0;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
@@ -1629,7 +1634,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private List<SMGState> handleAssignmentToField(SMGState state, CFAEdge cfaEdge,
-      SMGObject memoryOfField, int fieldOffset, CType pLFieldType, CRightHandSide rValue)
+      SMGObject memoryOfField, BigInteger fieldOffset, CType pLFieldType, CRightHandSide rValue)
       throws CPATransferException {
 
     SMGState newState = new SMGState(state, blockOperator, cfaEdge.getSuccessor());
@@ -1701,18 +1706,20 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     if (newInitializer != null) {
       logger.log(Level.ALL, "Handling variable declaration: handling initializer");
 
-      return handleInitializer(pState, pVarDecl, pEdge, pObject, 0, cType, newInitializer);
+      return handleInitializer(pState, pVarDecl, pEdge, pObject, BigInteger.valueOf(0), cType,
+          newInitializer);
     } else if (pVarDecl.isGlobal()) {
 
       // Global variables without initializer are nullified in C
-      pState = writeValue(pState, pObject, 0, cType, SMGKnownSymValue.ZERO, pEdge);
+      pState = writeValue(pState, pObject, BigInteger.valueOf(0), cType, SMGKnownSymValue.ZERO,
+          pEdge);
     }
 
     return ImmutableList.of(pState);
   }
 
   private List<SMGState> handleInitializer(SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
-      SMGObject pNewObject, int pOffset, CType pLValueType, CInitializer pInitializer)
+      SMGObject pNewObject, BigInteger pOffset, CType pLValueType, CInitializer pInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
 
     if (pInitializer instanceof CInitializerExpression) {
@@ -1734,7 +1741,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private List<SMGState> handleInitializerList(SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
-      SMGObject pNewObject, int pOffset, CType pLValueType, CInitializerList pNewInitializer)
+      SMGObject pNewObject, BigInteger pOffset, CType pLValueType, CInitializerList pNewInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
 
     CType realCType = pLValueType.getCanonicalType();
@@ -1762,8 +1769,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableList.of(pNewState);
   }
 
-  private Pair<Integer, Integer> calculateOffsetAndPositionOfFieldFromDesignator(
-      int offsetAtStartOfStruct,
+  private Pair<BigInteger, Integer> calculateOffsetAndPositionOfFieldFromDesignator(
+      BigInteger offsetAtStartOfStruct,
       List<CCompositeTypeMemberDeclaration> pMemberTypes,
       CDesignatedInitializer pInitializer,
       CCompositeType pLValueType) throws UnrecognizedCCodeException {
@@ -1773,7 +1780,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     String fieldDesignator = ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
 
-    int offset = offsetAtStartOfStruct;
+    BigInteger offset = offsetAtStartOfStruct;
     for (int listCounter = 0; listCounter < pMemberTypes.size(); listCounter++) {
 
       CCompositeTypeMemberDeclaration memberDcl = pMemberTypes.get(listCounter);
@@ -1782,13 +1789,15 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return Pair.of(offset, listCounter);
       } else {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += machineModel.getBitSizeof(memberDcl.getType());
+          offset = offset.add(BigInteger.valueOf(machineModel.getBitSizeof(memberDcl.getType())));
           if (!(memberDcl.getType().isBitField())) {
-            int overByte = offset % machineModel.getSizeofCharInBits();
+            int overByte = offset.intValue() % machineModel.getSizeofCharInBits();
             if (overByte > 0) {
-              offset += machineModel.getSizeofCharInBits() - overByte;
+              offset = offset.add(BigInteger.valueOf(machineModel.getSizeofCharInBits() -
+                  overByte));
             }
-            offset += machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberDcl.getType()) * machineModel.getSizeofCharInBits();
+            offset = offset.add(BigInteger.valueOf(machineModel.getPadding(offset.intValue() / machineModel
+                    .getSizeofCharInBits(), memberDcl.getType()) * machineModel.getSizeofCharInBits()));
           }
         }
       }
@@ -1798,7 +1807,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   private List<SMGState> handleInitializerList(
       SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
-      SMGObject pNewObject, int pOffset, CCompositeType pLValueType,
+      SMGObject pNewObject, BigInteger pOffset, CCompositeType pLValueType,
       CInitializerList pNewInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
 
@@ -1806,26 +1815,27 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     List<CCompositeType.CCompositeTypeMemberDeclaration> memberTypes = pLValueType.getMembers();
 
-    Pair<SMGState, Integer> startOffsetAndState = Pair.of(pNewState, pOffset);
+    Pair<SMGState, BigInteger> startOffsetAndState = Pair.of(pNewState, pOffset);
 
-    List<Pair<SMGState, Integer>> offsetAndStates = new ArrayList<>();
+    List<Pair<SMGState, BigInteger>> offsetAndStates = new ArrayList<>();
     offsetAndStates.add(startOffsetAndState);
 
     // Move preinitialization of global variable because of unpredictable fields' order within CDesignatedInitializer
     if (pVarDecl.isGlobal()) {
 
-      List<Pair<SMGState, Integer>> result = new ArrayList<>(offsetAndStates.size());
+      List<Pair<SMGState, BigInteger>> result = new ArrayList<>(offsetAndStates.size());
 
-      for (Pair<SMGState, Integer> offsetAndState : offsetAndStates) {
+      for (Pair<SMGState, BigInteger> offsetAndState : offsetAndStates) {
 
-        int offset = offsetAndState.getSecond();
+        BigInteger offset = offsetAndState.getSecond();
         SMGState newState = offsetAndState.getFirst();
 
         int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
-        if (offset - pOffset < sizeOfType) {
+        if (offset.subtract(pOffset).longValue() < sizeOfType) {
           newState = writeValue(newState, pNewObject, offset,
-              AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)), SMGKnownSymValue.ZERO, pEdge);
+              AnonymousTypes.createTypeWithLength(sizeOfType - (offset.subtract(pOffset).intValue())),
+              SMGKnownSymValue.ZERO, pEdge);
         }
 
         result.add(Pair.of(newState, offset));
@@ -1838,14 +1848,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
 
       if (initializer instanceof CDesignatedInitializer) {
-        Pair<Integer, Integer> offsetAndPosition =
+        Pair<BigInteger, Integer> offsetAndPosition =
             calculateOffsetAndPositionOfFieldFromDesignator(pOffset, memberTypes,
                 (CDesignatedInitializer) initializer, pLValueType);
-        int offset = offsetAndPosition.getFirst();
+        BigInteger offset = offsetAndPosition.getFirst();
         listCounter = offsetAndPosition.getSecond();
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
 
-        List<Pair<SMGState, Integer>> resultOffsetAndStatesDesignated = new ArrayList<>();
+        List<Pair<SMGState, BigInteger>> resultOffsetAndStatesDesignated = new ArrayList<>();
         resultOffsetAndStatesDesignated.add(Pair.of(pNewState, offset));
 
         offsetAndStates = resultOffsetAndStatesDesignated;
@@ -1862,27 +1872,28 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       CType memberType = memberTypes.get(listCounter).getType();
 
-      List<Pair<SMGState, Integer>> resultOffsetAndStates = new ArrayList<>();
+      List<Pair<SMGState, BigInteger>> resultOffsetAndStates = new ArrayList<>();
 
-      for (Pair<SMGState, Integer> offsetAndState : offsetAndStates) {
+      for (Pair<SMGState, BigInteger> offsetAndState : offsetAndStates) {
 
-        int offset = offsetAndState.getSecond();
+        BigInteger offset = offsetAndState.getSecond();
         if (!(memberType.isBitField())) {
-          int overByte = offset % machineModel.getSizeofCharInBits();
+          int overByte = offset.intValue() % machineModel.getSizeofCharInBits();
           if (overByte > 0) {
-            offset += machineModel.getSizeofCharInBits() - overByte;
+            offset = offset.add(BigInteger.valueOf(machineModel.getSizeofCharInBits() - overByte));
           }
-          offset += machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberType) * machineModel.getSizeofCharInBits();
+          offset = offset.add(BigInteger.valueOf(machineModel.getPadding(offset.intValue() / machineModel
+                  .getSizeofCharInBits(), memberType) * machineModel.getSizeofCharInBits()));
         }
         SMGState newState = offsetAndState.getFirst();
 
         List<SMGState> pNewStates =
             handleInitializer(newState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
 
-        offset = offset + machineModel.getBitSizeof(memberType);
+        offset = offset.add(BigInteger.valueOf(machineModel.getBitSizeof(memberType)));
 
-        List<? extends Pair<SMGState, Integer>> newStatesAndOffset =
-            FluentIterable.from(pNewStates).transform(new ListToListOfPairFunction<SMGState, Integer>(offset))
+        List<? extends Pair<SMGState, BigInteger>> newStatesAndOffset =
+            FluentIterable.from(pNewStates).transform(new ListToListOfPairFunction<SMGState, BigInteger>(offset))
                 .toList();
 
         resultOffsetAndStates.addAll(newStatesAndOffset);
@@ -1892,10 +1903,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       listCounter++;
     }
 
-    return FluentIterable.from(offsetAndStates).transform(new Function<Pair<SMGState, Integer>, SMGState>() {
+    return FluentIterable.from(offsetAndStates).transform(new Function<Pair<SMGState, BigInteger>, SMGState>() {
 
       @Override
-      public SMGState apply(Pair<SMGState, Integer> pInput) {
+      public SMGState apply(Pair<SMGState, BigInteger> pInput) {
         return pInput.getFirst();
       }
     }).toList();
@@ -1917,7 +1928,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   private List<SMGState> handleInitializerList(
       SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge,
-      SMGObject pNewObject, int pOffset, CArrayType pLValueType,
+      SMGObject pNewObject, BigInteger pOffset, CArrayType pLValueType,
       CInitializerList pNewInitializer)
       throws UnrecognizedCCodeException, CPATransferException {
 
@@ -1932,7 +1943,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
 
-      int offset = pOffset + listCounter * sizeOfElementType;
+      BigInteger offset = pOffset.add(BigInteger.valueOf(listCounter * sizeOfElementType));
 
       List<SMGState> result = new ArrayList<>();
 
@@ -1953,10 +1964,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         if (!GCCZeroLengthArray || pLValueType.getLength() != null) {
           int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
-          int offset = pOffset + listCounter * sizeOfElementType;
-          if (offset - pOffset < sizeOfType) {
+          BigInteger offset = pOffset.add(BigInteger.valueOf(listCounter * sizeOfElementType));
+          if (offset.subtract(pOffset).longValue() < sizeOfType) {
             newState = writeValue(newState, pNewObject, offset,
-                AnonymousTypes.createTypeWithLength(sizeOfType - (offset - pOffset)),
+                AnonymousTypes.createTypeWithLength(sizeOfType - (offset.subtract(pOffset)).intValue()),
                 SMGKnownSymValue.ZERO, pEdge);
           }
         }
@@ -2019,11 +2030,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return SMGValueAndState.of(newState);
       }
 
-      int fieldOffset = pOffset.getAsInt();
+      BigInteger fieldOffset = pOffset.getValue();
 
       //FIXME Does not work with variable array length.
-      boolean doesNotFitIntoObject = fieldOffset < 0
-          || fieldOffset + getBitSizeof(pEdge, pType, pSmgState) > pObject.getSize();
+      boolean doesNotFitIntoObject = fieldOffset.compareTo(BigInteger.valueOf(0)) < 0
+          || fieldOffset.compareTo(BigInteger.valueOf(pObject.getSize() - getBitSizeof(pEdge,
+          pType, pSmgState))) > 0;
 
       if (doesNotFitIntoObject) {
         // Field does not fit size of declared Memory
@@ -2032,8 +2044,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             " does not fit object ", pObject, ".");
 
         SMGState newState = pSmgState.setInvalidRead();
-        newState.setErrorDescription(pEdge.getRawStatement() + ": Field (" + fieldOffset/8 + ", " +
-            pType.toASTString("") + ") " + "does not fit object " + pObject + ".");
+        newState.setErrorDescription(pEdge.getRawStatement() + ": Field (" + fieldOffset.longValue()/8 + ","
+            + " " + pType.toASTString("") + ") " + "does not fit object " + pObject + ".");
         newState.addInvalidObject(pObject);
 
         return SMGValueAndState.of(newState);
@@ -2171,7 +2183,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           }
 
           assignableState = writeValue(assignableState, addressOfField.getObject(),
-              addressOfField.getOffset().getAsInt(), getRealExpressionType(lValue), rSymValue, edge);
+              addressOfField.getOffset().getValue(), getRealExpressionType(lValue), rSymValue, edge);
         }
         int size = getBitSizeof(edge, getRealExpressionType(lValue), assignableState);
         if (truthValue) {
@@ -3192,7 +3204,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return new SMGKnownAddVal(BigInteger.valueOf(pValue), pAddress);
     }
 
-    public static SMGKnownAddVal valueOf(int pValue, SMGObject object, int offset) {
+    public static SMGKnownAddVal valueOf(int pValue, SMGObject object, BigInteger offset) {
       return new SMGKnownAddVal(BigInteger.valueOf(pValue), SMGKnownAddress.valueOf(object, offset));
     }
 
@@ -3221,7 +3233,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         super(pObject, pOffset);
       }
 
-      public static SMGKnownAddress valueOf(SMGObject pObject, int pOffset) {
+      public static SMGKnownAddress valueOf(SMGObject pObject, BigInteger pOffset) {
         return new SMGKnownAddress(pObject, SMGKnownExpValue.valueOf(pOffset));
       }
 

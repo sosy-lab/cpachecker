@@ -27,6 +27,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+import java.math.BigInteger;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -543,7 +544,7 @@ public class CLangSMG extends SMG {
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
 
     if (pLocation.isReference()) {
-      filter.filterAtOffset((int) pLocation.getOffset());
+      filter.filterAtOffset(BigInteger.valueOf(pLocation.getOffset()));
     }
 
     // Remember, edges may overlap with different types
@@ -594,13 +595,13 @@ public class CLangSMG extends SMG {
     }
 
     SMGObject object = initialRegion.get();
-    List<Integer> offsets = pLocation.getPathOffset();
+    List<BigInteger> offsets = pLocation.getPathOffset();
     SMGEdgeHasValue hve;
-    Iterator<Integer> it = offsets.iterator();
+    Iterator<BigInteger> it = offsets.iterator();
 
     while (it.hasNext()) {
 
-      int offset = it.next();
+      BigInteger offset = it.next();
       Set<SMGEdgeHasValue> hves =
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
 
@@ -728,17 +729,17 @@ public class CLangSMG extends SMG {
   private MemoryLocation resolveMemLoc(SMGEdgeHasValue hvEdge) {
 
     SMGObject object = hvEdge.getObject();
-    long offset = hvEdge.getOffset();
+    BigInteger offset = hvEdge.getOffset();
 
     if (global_objects.containsValue(object) || isHeapObject(object)) {
-      return MemoryLocation.valueOf(object.getLabel(), offset);
+      return MemoryLocation.valueOf(object.getLabel(), offset.longValue());
     } else {
 
       CLangStackFrame frame = getStackFrameOfObject(object);
 
       String functionName = frame.getFunctionDeclaration().getName();
 
-      return MemoryLocation.valueOf(functionName, object.getLabel(), offset);
+      return MemoryLocation.valueOf(functionName, object.getLabel(), offset.longValue());
     }
   }
 
@@ -826,14 +827,14 @@ public class CLangSMG extends SMG {
       Integer pLocationOnStack, String pVariableName) {
 
     Set<SMGEdgeHasValue> objectHves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject));
-    List<Integer> offsets = new ArrayList<>();
-    Map<Integer, SMGObject> offsetToRegion = new HashMap<>();
-    Map<Integer, SMGMemoryPath> offsetToParent = new HashMap<>();
+    List<BigInteger> offsets = new ArrayList<>();
+    Map<BigInteger, SMGObject> offsetToRegion = new HashMap<>();
+    Map<BigInteger, SMGMemoryPath> offsetToParent = new HashMap<>();
 
 
     for (SMGEdgeHasValue objectHve : objectHves) {
       Integer value = objectHve.getValue();
-      Integer offset = objectHve.getOffset();
+      BigInteger offset = objectHve.getOffset();
 
       SMGMemoryPath path =
           getSMGMemoryPath(pVariableName, offset, pPos, pFunctionName, pLocationOnStack, pParent);
@@ -853,7 +854,7 @@ public class CLangSMG extends SMG {
 
     Collections.sort(offsets);
 
-    for (Integer offset : offsets) {
+    for (BigInteger offset : offsets) {
 
       SMGObject smgObject = offsetToRegion.get(offset);
       SMGMemoryPath currentPath = offsetToParent.get(offset);
@@ -862,7 +863,7 @@ public class CLangSMG extends SMG {
     }
   }
 
-  private SMGMemoryPath getSMGMemoryPath(String pVariableName, Integer pOffset,
+  private SMGMemoryPath getSMGMemoryPath(String pVariableName, BigInteger pOffset,
       SMGObjectPosition pPos, String pFunctionName, Integer pLocationOnStack,
       SMGMemoryPath pParent) {
 
@@ -962,9 +963,9 @@ public class CLangSMG extends SMG {
       Integer pLocationOnStack, String pVariableName) {
 
     Set<SMGEdgeHasValue> objectHves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject));
-    List<Integer> offsets = new ArrayList<>();
-    Map<Integer, SMGObject> offsetToRegion = new HashMap<>();
-    Map<Integer, SMGMemoryPath> offsetToParent = new HashMap<>();
+    List<BigInteger> offsets = new ArrayList<>();
+    Map<BigInteger, SMGObject> offsetToRegion = new HashMap<>();
+    Map<BigInteger, SMGMemoryPath> offsetToParent = new HashMap<>();
 
 
     for (SMGEdgeHasValue objectHve : objectHves) {
@@ -975,7 +976,7 @@ public class CLangSMG extends SMG {
       }
 
       SMGObject rObject = getObjectPointedBy(value);
-      Integer offset = objectHve.getOffset();
+      BigInteger offset = objectHve.getOffset();
 
       if (!isHeapObject(rObject) || pReached.contains(rObject)) {
         continue;
@@ -994,7 +995,7 @@ public class CLangSMG extends SMG {
 
     Collections.sort(offsets);
 
-    for (Integer offset : offsets) {
+    for (BigInteger offset : offsets) {
 
       SMGObject smgObject = offsetToRegion.get(offset);
       SMGMemoryPath currentPath = offsetToParent.get(offset);

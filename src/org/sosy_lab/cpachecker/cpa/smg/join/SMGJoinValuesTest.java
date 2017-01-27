@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -137,7 +138,7 @@ public class SMGJoinValuesTest {
     smgDest.addValue(value3);
 
     SMGRegion obj1 = new SMGRegion(64, "Object");
-    SMGEdgePointsTo pt = new SMGEdgePointsTo(value1, obj1, 0);
+    SMGEdgePointsTo pt = new SMGEdgePointsTo(value1, obj1, BigInteger.valueOf(0));
     smg1.addPointsToEdge(pt);
     SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);
     Assert.assertFalse(jv.isDefined());

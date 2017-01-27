@@ -27,6 +27,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -40,7 +41,7 @@ import java.util.Set;
 
 public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
 
-  private Map<SMGObject, Map<Integer, SMGEdgeHasValue>> objectToHveEdgeMap = new HashMap<>();
+  private Map<SMGObject, Map<BigInteger, SMGEdgeHasValue>> objectToHveEdgeMap = new HashMap<>();
   private SetMultimap<Integer, SMGEdgeHasValue> valueToHveEdgeMap = HashMultimap.create();
 
   public SMGHasValueEdgeAdjacencyList() {
@@ -57,16 +58,16 @@ public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
   private void addAll(SMGHasValueEdgeAdjacencyList pAdjacencyList) {
     valueToHveEdgeMap.putAll(pAdjacencyList.valueToHveEdgeMap);
 
-    for (Entry<SMGObject, Map<Integer, SMGEdgeHasValue>> entry : pAdjacencyList.objectToHveEdgeMap
+    for (Entry<SMGObject, Map<BigInteger, SMGEdgeHasValue>> entry : pAdjacencyList.objectToHveEdgeMap
         .entrySet()) {
 
       SMGObject key = entry.getKey();
-      Map<Integer, SMGEdgeHasValue> value = entry.getValue();
+      Map<BigInteger, SMGEdgeHasValue> value = entry.getValue();
 
       if (objectToHveEdgeMap.containsKey(key)) {
         objectToHveEdgeMap.get(key).putAll(value);
       } else {
-        HashMap<Integer, SMGEdgeHasValue> newValue = new HashMap<>();
+        HashMap<BigInteger, SMGEdgeHasValue> newValue = new HashMap<>();
         newValue.putAll(value);
         objectToHveEdgeMap.put(key, newValue);
       }
@@ -77,7 +78,7 @@ public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
 
     for (SMGEdgeHasValue hv : valueToHveEdgeMap.values()) {
       if (objectToHveEdgeMap.containsKey(hv.getObject())) {
-        Map<Integer, SMGEdgeHasValue> hvem = objectToHveEdgeMap.get(hv.getObject());
+        Map<BigInteger, SMGEdgeHasValue> hvem = objectToHveEdgeMap.get(hv.getObject());
         if (hvem.containsKey(hv.getOffset())) {
           if (!hvem.get(hv.getOffset()).equals(hv)) {
             return false;
@@ -90,7 +91,7 @@ public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
       }
     }
 
-    for (Map<Integer, SMGEdgeHasValue> c : objectToHveEdgeMap.values()) {
+    for (Map<BigInteger, SMGEdgeHasValue> c : objectToHveEdgeMap.values()) {
       for (SMGEdgeHasValue c2 : c.values()) {
         if (!valueToHveEdgeMap.get(c2.getValue()).contains(c2)) {
           return false;
@@ -116,12 +117,12 @@ public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
   @Override
   public void addEdge(SMGEdgeHasValue pEdge) {
     SMGObject obj = pEdge.getObject();
-    int offset = pEdge.getOffset();
+    BigInteger offset = pEdge.getOffset();
     int value = pEdge.getValue();
 
     valueToHveEdgeMap.put(value, pEdge);
 
-    Map<Integer, SMGEdgeHasValue> offsetToHveMap;
+    Map<BigInteger, SMGEdgeHasValue> offsetToHveMap;
 
     if (!objectToHveEdgeMap.containsKey(obj)) {
       offsetToHveMap = new HashMap<>();
@@ -143,7 +144,7 @@ public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
   @Override
   public void removeEdge(SMGEdgeHasValue pEdge) {
     SMGObject obj = pEdge.getObject();
-    int offset = pEdge.getOffset();
+    BigInteger offset = pEdge.getOffset();
     int value = pEdge.getValue();
 
     valueToHveEdgeMap.remove(value, pEdge);
@@ -173,9 +174,9 @@ public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
     return ImmutableSet.copyOf(valueToHveEdgeMap.values());
   }
 
-  private Set<SMGEdgeHasValue> getHvEdges(SMGObject pObject, Integer pOffset) {
+  private Set<SMGEdgeHasValue> getHvEdges(SMGObject pObject, BigInteger pOffset) {
     if (objectToHveEdgeMap.containsKey(pObject)) {
-      Map<Integer, SMGEdgeHasValue> offsetToHveEdge = objectToHveEdgeMap.get(pObject);
+      Map<BigInteger, SMGEdgeHasValue> offsetToHveEdge = objectToHveEdgeMap.get(pObject);
       if (offsetToHveEdge.containsKey(pOffset)) {
         SMGEdgeHasValue edge = offsetToHveEdge.get(pOffset);
         return ImmutableSet.of(edge);
@@ -225,7 +226,7 @@ public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
 
   @Override
   public Set<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
-    Map<Integer, SMGEdgeHasValue> offsetToHveMap = objectToHveEdgeMap.get(pObject);
+    Map<BigInteger, SMGEdgeHasValue> offsetToHveMap = objectToHveEdgeMap.get(pObject);
     if (offsetToHveMap != null) {
       return ImmutableSet.copyOf(offsetToHveMap.values());
     }

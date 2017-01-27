@@ -252,11 +252,11 @@ public class SMGExpressionEvaluator {
       return SMGValueAndState.of(pSmgState);
     }
 
-    int fieldOffset = pOffset.getAsInt();
+    BigInteger fieldOffset = pOffset.getValue();
 
     //FIXME Does not work with variable array length.
-    boolean doesNotFitIntoObject = fieldOffset < 0
-        || fieldOffset + getBitSizeof(pEdge, pType, pSmgState) > pObject.getSize();
+    boolean doesNotFitIntoObject = fieldOffset.compareTo(BigInteger.valueOf(0)) < 0
+        || fieldOffset.compareTo(BigInteger.valueOf(pObject.getSize() - getBitSizeof(pEdge, pType, pSmgState))) > 0;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
@@ -1185,13 +1185,14 @@ public class SMGExpressionEvaluator {
     if(pTarget instanceof SMGRegion) {
       regionTarget = (SMGRegion) pTarget;
     } else if(pTarget == SMGObject.getNullObject()) {
-      SMGAddressValueAndState result = SMGAddressValueAndState.of(pSmgState, SMGKnownAddVal.valueOf(0, pTarget, pOffset.getAsInt()));
+      SMGAddressValueAndState result = SMGAddressValueAndState.of(pSmgState, SMGKnownAddVal
+          .valueOf(0, pTarget, pOffset.getValue()));
       return SMGAddressValueAndStateList.of(result);
     } else {
       throw new AssertionError("Abstraction " + pTarget.toString() + " was not materialised.");
     }
 
-    Integer address = pSmgState.getAddress(regionTarget, pOffset.getAsInt());
+    Integer address = pSmgState.getAddress(regionTarget, pOffset.getValue());
 
     if (address == null) {
       return SMGAddressValueAndStateList.of(pSmgState);
@@ -1703,9 +1704,13 @@ public class SMGExpressionEvaluator {
       BigInteger value = exp.getValue();
 
       boolean isZero = value.equals(BigInteger.ZERO);
+      SMGState smgState = getInitialSmgState();
+      SMGKnownSymValue symValue = (isZero ? SMGKnownSymValue.ZERO : SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue()));
+      if (!isZero) {
+        smgState.putExplicit(symValue, SMGKnownExpValue.valueOf(value.longValue()));
+      }
 
-      SMGSymbolicValue val = (isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance());
-      return SMGValueAndStateList.of(getInitialSmgState(), val);
+      return SMGValueAndStateList.of(smgState, symValue);
     }
 
     @Override

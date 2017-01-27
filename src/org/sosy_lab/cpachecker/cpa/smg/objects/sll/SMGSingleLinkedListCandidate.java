@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGListCandidate;
@@ -36,8 +37,8 @@ public class SMGSingleLinkedListCandidate implements SMGListCandidate {
   private final MachineModel model;
   private final SMGSingleLinkedListShape shape;
 
-  public SMGSingleLinkedListCandidate(SMGObject pStartObject, int pNfo, int pHfo, CType pNfoType,
-      MachineModel pModel) {
+  public SMGSingleLinkedListCandidate(SMGObject pStartObject, BigInteger pNfo, BigInteger pHfo, CType pNfoType,
+                                      MachineModel pModel) {
     startObject = pStartObject;
     nfoType = pNfoType;
     model = pModel;
@@ -52,11 +53,11 @@ public class SMGSingleLinkedListCandidate implements SMGListCandidate {
     return startObject;
   }
 
-  public int getHfo() {
+  public BigInteger getHfo() {
     return shape.getHfo();
   }
 
-  public int getNfo() {
+  public BigInteger getNfo() {
     return shape.getNfo();
   }
 

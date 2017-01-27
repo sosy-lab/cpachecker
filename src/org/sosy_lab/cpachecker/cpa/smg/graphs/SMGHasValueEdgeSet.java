@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue.SMGEdgeHasValueComparator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
@@ -52,7 +53,7 @@ public class SMGHasValueEdgeSet implements Set<SMGEdgeHasValue>, SMGHasValueEdge
 
   @Override
   public void removeAllEdgesOfObject(SMGObject pObj) {
-    SMGEdgeHasValue pEdge = new SMGEdgeHasValue(0, 0, pObj, 0);
+    SMGEdgeHasValue pEdge = new SMGEdgeHasValue(0, BigInteger.valueOf(0), pObj, 0);
     NavigableSet<SMGEdgeHasValue> valueView = map.get(pEdge.getObject());
     Iterator<SMGEdgeHasValue> iterator = valueView.iterator();
     while (iterator.hasNext()) {

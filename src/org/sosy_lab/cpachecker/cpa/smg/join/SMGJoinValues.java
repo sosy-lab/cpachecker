@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
@@ -485,7 +486,7 @@ final class SMGJoinValues {
       if(destSmgSourceObject.isAbstract()) {
 
         /*Pick arbitrary offset of edges to see if you should increase the level.*/
-        int arbitraryOffset = edges.iterator().next().getOffset();
+        BigInteger arbitraryOffset = edges.iterator().next().getOffset();
 
         switch (destSmgSourceObject.getKind()) {
           case DLL:
@@ -692,11 +693,11 @@ final class SMGJoinValues {
     SMGNodeMapping mapping1 = pMapping1;
     SMGNodeMapping mapping2 = pMapping2;
 
-    int nf;
+    BigInteger nf;
     int length;
-    int hfo;
-    int nfo;
-    int pfo;
+    BigInteger hfo;
+    BigInteger nfo;
+    BigInteger pfo;
 
     switch (ptEdge.getTargetSpecifier()) {
       case FIRST:
@@ -710,7 +711,7 @@ final class SMGJoinValues {
           nf = ((SMGSingleLinkedList) pTarget).getNfo();
           hfo = ((SMGSingleLinkedList) pTarget).getHfo();
           nfo = nf;
-          pfo = -1;
+          pfo = BigInteger.valueOf(-1);
           length = ((SMGSingleLinkedList) pTarget).getMinimumLength();
         }
         break;
@@ -862,7 +863,7 @@ final class SMGJoinValues {
     return Pair.of(true, true);
   }
 
-  private CType getType(SMGObject pTarget, int pNf, SMG inputSMG1) {
+  private CType getType(SMGObject pTarget, BigInteger pNf, SMG inputSMG1) {
     Set<SMGEdgeHasValue> oldNfEdge =
         inputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
 
@@ -884,11 +885,11 @@ final class SMGJoinValues {
     SMGNodeMapping mapping1 = pMapping1;
     SMGNodeMapping mapping2 = pMapping2;
 
-    int nf;
+    BigInteger nf;
     int length;
-    int hfo;
-    int nfo;
-    int pfo;
+    BigInteger hfo;
+    BigInteger nfo;
+    BigInteger pfo;
 
     switch (ptEdge.getTargetSpecifier()) {
       case FIRST:
@@ -902,7 +903,7 @@ final class SMGJoinValues {
           nf = ((SMGSingleLinkedList) pTarget).getNfo();
           hfo = ((SMGSingleLinkedList) pTarget).getHfo();
           nfo = nf;
-          pfo = -1;
+          pfo = BigInteger.valueOf(-1);
           length = ((SMGSingleLinkedList) pTarget).getMinimumLength();
         }
         break;
@@ -1058,8 +1059,8 @@ final class SMGJoinValues {
     int listLevel = pList.getLevel() + pLevelDiff;
 
     SMGObject listCopy;
-    int nfo = -1;
-    int pfo = -1;
+    BigInteger nfo = BigInteger.valueOf(-1);
+    BigInteger pfo = BigInteger.valueOf(-1);
 
     if (pMapping.containsKey(pList)) {
       listCopy = pMapping.get(pList);
@@ -1069,7 +1070,7 @@ final class SMGJoinValues {
         case DLL:
           nfo = ((SMGDoublyLinkedList) pList).getNfo();
           pfo = ((SMGDoublyLinkedList) pList).getPfo();
-          int hfo = ((SMGDoublyLinkedList) pList).getHfo();
+          BigInteger hfo = ((SMGDoublyLinkedList) pList).getHfo();
           listCopy = new SMGDoublyLinkedList(pList.getSize(), hfo, nfo, pfo,
               0, listLevel);
           break;

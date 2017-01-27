@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Predicate;
 
+import java.math.BigInteger;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -124,7 +125,7 @@ public final class SMGUtils {
     }
   }
 
-  public static boolean isRecursiveOnOffset(CType pType, int fieldOffset, MachineModel pModel) {
+  public static boolean isRecursiveOnOffset(CType pType, BigInteger fieldOffset, MachineModel pModel) {
 
     CFieldTypeVisitor v = new CFieldTypeVisitor(fieldOffset, pModel);
 
@@ -139,12 +140,12 @@ public final class SMGUtils {
 
   private static class CFieldTypeVisitor implements CTypeVisitor<CType, RuntimeException> {
 
-    private final int fieldOffset;
+    private final BigInteger fieldOffset;
     private final MachineModel model;
     private static final CType UNKNOWN = new CSimpleType(false, false, CBasicType.UNSPECIFIED,
         false, false, false, false, false, false, false);
 
-    public CFieldTypeVisitor(int pFieldOffset, MachineModel pModel) {
+    public CFieldTypeVisitor(BigInteger pFieldOffset, MachineModel pModel) {
       fieldOffset = pFieldOffset;
       model = pModel;
     }
@@ -155,7 +156,7 @@ public final class SMGUtils {
 
     @Override
     public CType visit(CArrayType pArrayType) {
-      if (fieldOffset % model.getBitSizeof(pArrayType) == 0) {
+      if (fieldOffset.longValue() % model.getBitSizeof(pArrayType) == 0) {
         return pArrayType.getType();
       } else {
         return UNKNOWN;
@@ -167,15 +168,15 @@ public final class SMGUtils {
 
       List<CCompositeTypeMemberDeclaration> members = pCompositeType.getMembers();
 
-      int memberOffset = 0;
+      BigInteger memberOffset = BigInteger.valueOf(0);
       for (CCompositeTypeMemberDeclaration member : members) {
 
         if (fieldOffset == memberOffset) {
           return member.getType();
-        } else if (memberOffset > fieldOffset) {
+        } else if (memberOffset.compareTo(fieldOffset) > 0) {
           return UNKNOWN;
         } else {
-          memberOffset = memberOffset + model.getBitSizeof(member.getType());
+          memberOffset = memberOffset.add(BigInteger.valueOf(model.getBitSizeof(member.getType())));
         }
       }
 

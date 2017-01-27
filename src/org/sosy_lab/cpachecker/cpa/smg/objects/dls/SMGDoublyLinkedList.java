@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -36,7 +37,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   private final SMGDoublyLinkedListShape dllShape;
   private final int id = SMGValueFactory.getNewValue();
 
-  public SMGDoublyLinkedList(int pSize, int pHfo, int pNfo, int pPfo,
+  public SMGDoublyLinkedList(int pSize, BigInteger pHfo, BigInteger pNfo, BigInteger pPfo,
       int pMinLength, int level) {
     super(pSize, "dls", level, SMGObjectKind.DLL);
 
@@ -105,15 +106,15 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
     }
   }
 
-  public int getHfo() {
+  public BigInteger getHfo() {
     return dllShape.getHfo();
   }
 
-  public int getNfo() {
+  public BigInteger getNfo() {
     return dllShape.getNfo();
   }
 
-  public int getPfo() {
+  public BigInteger getPfo() {
     return dllShape.getPfo();
   }
 

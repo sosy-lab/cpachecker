@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -111,7 +112,7 @@ public class SMGJoinTest {
   }
 
   //Testing condition: adds an identical value to both SMGs
-  private void addValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var, int pOffset,
+  private void addValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var, BigInteger pOffset,
       int pValue, int pSizeInBits) {
 
     if(!smg1.getValues().contains(pValue)) {
@@ -130,7 +131,7 @@ public class SMGJoinTest {
   }
 
   //Testing condition: adds a pointer to both SMGs
-  private void addPointerToBoth(Pair<? extends SMGObject, ? extends SMGObject> target, int pOffset,
+  private void addPointerToBoth(Pair<? extends SMGObject, ? extends SMGObject> target, BigInteger pOffset,
       int pValue) {
 
     if(!smg1.getValues().contains(pValue)) {
@@ -150,8 +151,8 @@ public class SMGJoinTest {
 
   //Testing condition: adds a pointer to both SMGs
   private void addPointerValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var,
-      int pOffset, int pValue, int pSize,
-      Pair<? extends SMGObject, ? extends SMGObject> target, int pTargetOffset) {
+                                     BigInteger pOffset, int pValue, int pSize,
+      Pair<? extends SMGObject, ? extends SMGObject> target, BigInteger pTargetOffset) {
 
     addValueToBoth(var, pOffset, pValue, pSize);
     addPointerToBoth(target, pTargetOffset, pValue);
@@ -172,8 +173,8 @@ public class SMGJoinTest {
     SMGRegion global2 = new SMGRegion(64, pVarName);
     Integer value1 = SMGValueFactory.getNewValue();
     Integer value2 = SMGValueFactory.getNewValue();
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(32, 0, global1, value1);
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(32, 0, global2, value2);
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(32, BigInteger.valueOf(0), global1, value1);
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(32, BigInteger.valueOf(0), global2, value2);
 
     smg1.addGlobalObject(global1);
     smg2.addGlobalObject(global2);
@@ -189,8 +190,8 @@ public class SMGJoinTest {
     SMGRegion local2 = new SMGRegion(64, pVarName);
     Integer value1 = SMGValueFactory.getNewValue();
     Integer value2 = SMGValueFactory.getNewValue();
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(32, 0, local1, value1);
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(32, 0, local2, value2);
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(32, BigInteger.valueOf(0), local1, value1);
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(32, BigInteger.valueOf(0), local2, value2);
 
     smg1.addStackObject(local1);
     smg2.addStackObject(local2);
@@ -248,7 +249,8 @@ public class SMGJoinTest {
     assertObjectCounts(resultSMG, 1, 1, 0);
 
     SMGObject global = resultSMG.getGlobalObjects().get(varName);
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(
+        BigInteger.valueOf(0));
     Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
     SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
     Assert.assertTrue(resultSMG.getValues().contains(Integer.valueOf(edge.getValue())));
@@ -269,7 +271,8 @@ public class SMGJoinTest {
     assertObjectCounts(resultSMG, 0, 1, 1);
 
     SMGObject global = resultSMG.getStackFrames().getFirst().getVariable(varName);
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(0);
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(global).filterAtOffset(
+        BigInteger.valueOf(0));
     Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(filter);
     SMGEdgeHasValue edge = Iterables.getOnlyElement(edges);
     Assert.assertTrue(resultSMG.getValues().contains(Integer.valueOf(edge.getValue())));
@@ -285,36 +288,36 @@ public class SMGJoinTest {
     Pair<SMGRegion, SMGRegion> l2 = addHeapWithoutValueToBoth("l2", 96);
     Pair<SMGRegion, SMGRegion> l3 = addHeapWithoutValueToBoth("l3", 96);
     Pair<SMGRegion, SMGRegion> l4 = addHeapWithoutValueToBoth("l4", 96);
-    addPointerValueToBoth(global, 0, 100, 32, l1, 0);
-    addPointerValueToBoth(l1, 0, 102, 32, l2, 0);
-    addPointerValueToBoth(l2, 0, 103, 32, l3, 0);
-    addPointerValueToBoth(l3, 0, 104, 32, l4, 0);
-    addPointerValueToBoth(l4, 0, 109, 32, global, 0);
-    addPointerValueToBoth(global, 32, 105, 32, l4, 0);
-    addPointerValueToBoth(l4, 32, 106, 32, l3, 0);
-    addPointerValueToBoth(l3, 32, 107, 32, l2, 0);
-    addPointerValueToBoth(l2, 32, 108, 32, l1, 0);
-    addPointerValueToBoth(l1, 32, 110, 32, global, 0);
-    addValueToBoth(l1, 64, 5, 8);
-    addValueToBoth(l2, 64, 5, 8);
-    addValueToBoth(l3, 64, 5, 8);
-    addValueToBoth(l4, 64, 5, 8);
+    addPointerValueToBoth(global, BigInteger.valueOf(0), 100, 32, l1, BigInteger.valueOf(0));
+    addPointerValueToBoth(l1, BigInteger.valueOf(0), 102, 32, l2, BigInteger.valueOf(0));
+    addPointerValueToBoth(l2, BigInteger.valueOf(0), 103, 32, l3, BigInteger.valueOf(0));
+    addPointerValueToBoth(l3, BigInteger.valueOf(0), 104, 32, l4, BigInteger.valueOf(0));
+    addPointerValueToBoth(l4, BigInteger.valueOf(0), 109, 32, global, BigInteger.valueOf(0));
+    addPointerValueToBoth(global, BigInteger.valueOf(32), 105, 32, l4, BigInteger.valueOf(0));
+    addPointerValueToBoth(l4, BigInteger.valueOf(32), 106, 32, l3, BigInteger.valueOf(0));
+    addPointerValueToBoth(l3, BigInteger.valueOf(32), 107, 32, l2, BigInteger.valueOf(0));
+    addPointerValueToBoth(l2, BigInteger.valueOf(32), 108, 32, l1, BigInteger.valueOf(0));
+    addPointerValueToBoth(l1, BigInteger.valueOf(32), 110, 32, global, BigInteger.valueOf(0));
+    addValueToBoth(l1, BigInteger.valueOf(64), 5, 8);
+    addValueToBoth(l2, BigInteger.valueOf(64), 5, 8);
+    addValueToBoth(l3, BigInteger.valueOf(64), 5, 8);
+    addValueToBoth(l4, BigInteger.valueOf(64), 5, 8);
     Pair<SMGRegion, SMGRegion> a1 = addLocalWithoutValueToBoth("a", 32);
-    addValueToBoth(a1, 0, 5, 32);
+    addValueToBoth(a1, BigInteger.valueOf(0), 5, 32);
     Pair<SMGRegion, SMGRegion> b1 = addLocalWithoutValueToBoth("b", 32);
-    addValueToBoth(b1, 0, 100, 32);
+    addValueToBoth(b1, BigInteger.valueOf(0), 100, 32);
     smg1.addStackFrame(functionDeclaration2);
     smg2.addStackFrame(functionDeclaration2);
     Pair<SMGRegion, SMGRegion> b2 = addLocalWithoutValueToBoth("b", 32);
-    addValueToBoth(b2, 0, 100, 32);
+    addValueToBoth(b2, BigInteger.valueOf(0), 100, 32);
     Pair<SMGRegion, SMGRegion> c2 = addLocalWithoutValueToBoth("c", 32);
-    addValueToBoth(c2, 0, 104, 32);
+    addValueToBoth(c2, BigInteger.valueOf(0), 104, 32);
     smg1.addStackFrame(functionDeclaration);
     smg2.addStackFrame(functionDeclaration);
     Pair<SMGRegion, SMGRegion> a3 = addLocalWithoutValueToBoth("a", 32);
-    addValueToBoth(a3, 0, 5, 32);
+    addValueToBoth(a3, BigInteger.valueOf(0), 5, 32);
     Pair<SMGRegion, SMGRegion> c3 = addLocalWithoutValueToBoth("c", 32);
-    addValueToBoth(c3, 0, 104, 32);
+    addValueToBoth(c3, BigInteger.valueOf(0), 104, 32);
 
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());

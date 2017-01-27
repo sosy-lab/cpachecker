@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +44,7 @@ public class SMGJoinMapTargetAddressTest {
 
   final SMGRegion obj1 = new SMGRegion(64, "ze label");
   final Integer value1 = SMGValueFactory.getNewValue();
-  final SMGEdgePointsTo edge1 = new SMGEdgePointsTo(value1, obj1, 0);
+  final SMGEdgePointsTo edge1 = new SMGEdgePointsTo(value1, obj1, BigInteger.valueOf(0));
 
   final Integer value2 = SMGValueFactory.getNewValue();
 
@@ -71,7 +72,7 @@ public class SMGJoinMapTargetAddressTest {
 
   @Test
   public void mapTargetAddressExisting() {
-    SMGEdgePointsTo destEdge = new SMGEdgePointsTo(destValue, destObj, 0);
+    SMGEdgePointsTo destEdge = new SMGEdgePointsTo(destValue, destObj, BigInteger.valueOf(0));
 
     smg1.addValue(value1);
     smg1.addObject(obj1);

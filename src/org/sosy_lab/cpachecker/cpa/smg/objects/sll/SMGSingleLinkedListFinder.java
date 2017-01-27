@@ -27,6 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
@@ -118,7 +119,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
     for (SMGEdgeHasValue hveNext : hvesOfObject) {
 
-      int nfo = hveNext.getOffset();
+      BigInteger nfo = hveNext.getOffset();
       int nextPointer = hveNext.getValue();
 
       if (!pSmg.isPointer(nextPointer)) {
@@ -126,7 +127,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       }
 
       SMGEdgePointsTo nextPointerEdge = pSmg.getPointer(nextPointer);
-      int hfo = nextPointerEdge.getOffset();
+      BigInteger hfo = nextPointerEdge.getOffset();
       SMGTargetSpecifier nextPointerTg = nextPointerEdge.getTargetSpecifier();
 
       if (!(nextPointerTg == SMGTargetSpecifier.REGION
@@ -195,8 +196,8 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       startTraversal(nextObject, pSmg, pSmgState, pProgress);
     }
 
-    Integer nfo = pPrevCandidate.getNfo();
-    Integer hfo = pPrevCandidate.getHfo();
+    BigInteger nfo = pPrevCandidate.getNfo();
+    BigInteger hfo = pPrevCandidate.getHfo();
 
     SMGSingleLinkedListCandidate candidate;
 
@@ -360,7 +361,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     return true;
   }
 
-  private void getSubSmgOf(SMGObject pObject, int nfo, CLangSMG inputSmg,
+  private void getSubSmgOf(SMGObject pObject, BigInteger nfo, CLangSMG inputSmg,
       Set<Integer> pValues, Set<SMGObject> pObjects) {
 
     Set<SMGObject> toBeChecked = new HashSet<>();
@@ -431,7 +432,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
   private static class SMGJoinSllProgress {
 
-    private final Map<SMGObject, Map<Integer, SMGSingleLinkedListCandidate>> candidates =
+    private final Map<SMGObject, Map<BigInteger, SMGSingleLinkedListCandidate>> candidates =
         new HashMap<>();
     private final Map<Pair<SMGSingleLinkedListCandidate, SMGJoinStatus>, Integer> candidateLength =
         new HashMap<>();
@@ -561,7 +562,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       }
     }
 
-    public SMGSingleLinkedListCandidate getCandidate(SMGObject pObject, Integer pNfo) {
+    public SMGSingleLinkedListCandidate getCandidate(SMGObject pObject, BigInteger pNfo) {
       return candidates.get(pObject).get(pNfo);
     }
 
@@ -569,7 +570,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       candidateLength.put(Pair.of(pCandidate, SMGJoinStatus.EQUAL), 1);
     }
 
-    public boolean containsCandidate(SMGObject pObject, Integer pNfo) {
+    public boolean containsCandidate(SMGObject pObject, BigInteger pNfo) {
 
       if (candidates.containsKey(pObject)) {
         return candidates.get(pObject).containsKey(pNfo);
@@ -586,7 +587,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     public void putCandidiateMap(SMGObject pObject) {
       assert !candidates.containsKey(pObject);
 
-      Map<Integer, SMGSingleLinkedListCandidate> newMap = new HashMap<>();
+      Map<BigInteger, SMGSingleLinkedListCandidate> newMap = new HashMap<>();
 
       candidates.put(pObject, newMap);
     }
@@ -602,7 +603,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
       Set<SMGAbstractionCandidate> resultBeforeBlocks = new HashSet<>();
 
-      for (Map<Integer, SMGSingleLinkedListCandidate> objCandidates : candidates.values()) {
+      for (Map<BigInteger, SMGSingleLinkedListCandidate> objCandidates : candidates.values()) {
         for (SMGSingleLinkedListCandidate candidate : objCandidates.values()) {
           if (candidateLength.containsKey(Pair.of(candidate, SMGJoinStatus.EQUAL))) {
             int length = candidateLength.get(Pair.of(candidate, SMGJoinStatus.EQUAL));

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -33,7 +34,8 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public final class TestHelpers {
-  static public Integer createList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pPrefix) {
+  static public Integer createList(CLangSMG pSmg, int pLength, int pSize, BigInteger pOffset, String
+      pPrefix) {
     Integer value = null;
     for (int i = 0; i < pLength; i++) {
       SMGObject node = new SMGRegion(pSize, pPrefix + "list_node" + i);
@@ -44,7 +46,7 @@ public final class TestHelpers {
         hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, pOffset, node, value);
       }
       value = SMGValueFactory.getNewValue();
-      SMGEdgePointsTo pt = new SMGEdgePointsTo(value, node, 0);
+      SMGEdgePointsTo pt = new SMGEdgePointsTo(value, node, BigInteger.valueOf(0));
       pSmg.addHeapObject(node);
       pSmg.addValue(value);
       pSmg.addHasValueEdge(hv);
@@ -53,10 +55,12 @@ public final class TestHelpers {
     return value;
   }
 
-  static public SMGEdgeHasValue createGlobalList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pVariable) {
+  static public SMGEdgeHasValue createGlobalList(CLangSMG pSmg, int pLength, int pSize, BigInteger
+      pOffset, String pVariable) {
     Integer value = TestHelpers.createList(pSmg, pLength, pSize, pOffset, pVariable);
     SMGRegion globalVar = new SMGRegion(64, pVariable);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 0, globalVar, value);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, BigInteger.valueOf(0),
+        globalVar, value);
     pSmg.addGlobalObject(globalVar);
     pSmg.addHasValueEdge(hv);
 

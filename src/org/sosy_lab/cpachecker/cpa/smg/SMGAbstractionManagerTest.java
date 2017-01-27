@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.Iterables;
 
+import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,20 +54,22 @@ public class SMGAbstractionManagerTest {
       smg.addHeapObject(node);
       if (next != null) {
         int address = SMGValueFactory.getNewValue();
-        SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
-        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, node, address);
+        SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, BigInteger.valueOf(0));
+        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, BigInteger.valueOf(64), node,
+            address);
         smg.addValue(address);
         smg.addPointsToEdge(pt);
       } else {
-        hv = new SMGEdgeHasValue(128, 0, node, 0);
+        hv = new SMGEdgeHasValue(128, BigInteger.valueOf(0), node, 0);
       }
       smg.addHasValueEdge(hv);
       next = node;
     }
 
     int address = SMGValueFactory.getNewValue();
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, globalVar, address);
-    SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, BigInteger.valueOf(64),
+        globalVar, address);
+    SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, BigInteger.valueOf(0));
     smg.addGlobalObject(globalVar);
     smg.addValue(address);
     smg.addPointsToEdge(pt);

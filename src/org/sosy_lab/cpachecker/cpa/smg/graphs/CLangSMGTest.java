@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
+import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,8 +85,8 @@ public class CLangSMGTest {
     Integer val1 = Integer.valueOf(1);
     Integer val2 = Integer.valueOf(2);
 
-    SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CNumericTypes.UNSIGNED_LONG_INT, 0, obj2, val2.intValue());
+    SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, BigInteger.valueOf(0));
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(CNumericTypes.UNSIGNED_LONG_INT, BigInteger.valueOf(0), obj2, val2.intValue());
 
     smg.addValue(val1);
     smg.addValue(val2);
@@ -376,7 +377,7 @@ public class CLangSMGTest {
     Integer some_value = Integer.valueOf(5);
     CType type = mock(CType.class);
     when(type.getCanonicalType()).thenReturn(type);
-    SMGEdgeHasValue edge = new SMGEdgeHasValue(type, 0, null_object, some_value);
+    SMGEdgeHasValue edge = new SMGEdgeHasValue(type, BigInteger.valueOf(0), null_object, some_value);
 
     smg.addValue(some_value);
     smg.addHasValueEdge(edge);

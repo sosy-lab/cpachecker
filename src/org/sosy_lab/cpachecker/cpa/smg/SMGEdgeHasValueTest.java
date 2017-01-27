@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Predicate;
 
+import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -45,7 +46,7 @@ public class SMGEdgeHasValueTest {
   public void testSMGEdgeHasValue() {
     SMGObject obj = new SMGRegion(64, "object");
     Integer val = Integer.valueOf(666);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj, val);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), obj, val);
 
     Assert.assertEquals(obj, hv.getObject());
     Assert.assertEquals(32, hv.getOffset());
@@ -60,10 +61,10 @@ public class SMGEdgeHasValueTest {
     Integer val1 = Integer.valueOf(666);
     Integer val2 = Integer.valueOf(777);
 
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType, 0, obj1, val1);
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType, 32, obj1, val2);
-    SMGEdgeHasValue hv3 = new SMGEdgeHasValue(mockType, 32, obj1, val1);
-    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 32, obj2, val1);
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), obj1, val1);
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), obj1, val2);
+    SMGEdgeHasValue hv3 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), obj1, val1);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), obj2, val1);
 
     Assert.assertTrue(hv1.isConsistentWith(hv1));
     Assert.assertTrue(hv1.isConsistentWith(hv2));
@@ -77,10 +78,10 @@ public class SMGEdgeHasValueTest {
     SMGObject object = new SMGRegion(96, "object");
     Integer value = Integer.valueOf(666);
 
-    SMGEdgeHasValue at0 = new SMGEdgeHasValue(mockType, 0, object, value);
-    SMGEdgeHasValue at2 = new SMGEdgeHasValue(mockType, 16, object, value);
-    SMGEdgeHasValue at4 = new SMGEdgeHasValue(mockType, 32, object, value);
-    SMGEdgeHasValue at6 = new SMGEdgeHasValue(mockType, 48, object, value);
+    SMGEdgeHasValue at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object, value);
+    SMGEdgeHasValue at2 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(16), object, value);
+    SMGEdgeHasValue at4 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), object, value);
+    SMGEdgeHasValue at6 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(48), object, value);
 
     Assert.assertTrue(at0.overlapsWith(at2, MachineModel.LINUX64));
     Assert.assertTrue(at2.overlapsWith(at0, MachineModel.LINUX64));
@@ -98,7 +99,7 @@ public class SMGEdgeHasValueTest {
     Assert.assertFalse(at6.overlapsWith(at0, MachineModel.LINUX64));
     Assert.assertFalse(at6.overlapsWith(at2, MachineModel.LINUX64));
 
-    SMGEdgeHasValue whole = new SMGEdgeHasValue(mockType12b, 0, object, value);
+    SMGEdgeHasValue whole = new SMGEdgeHasValue(mockType12b, BigInteger.valueOf(0), object, value);
     Assert.assertTrue(whole.overlapsWith(at4, MachineModel.LINUX64));
     Assert.assertTrue(at4.overlapsWith(whole, MachineModel.LINUX64));
   }
@@ -109,15 +110,15 @@ public class SMGEdgeHasValueTest {
     SMGObject object2 = new SMGRegion(96, "object-2");
     Integer value = Integer.valueOf(666);
 
-    SMGEdgeHasValue obj1_at0 = new SMGEdgeHasValue(mockType, 0, object1, value);
-    SMGEdgeHasValue obj1_at2 = new SMGEdgeHasValue(mockType, 16, object1, value);
-    SMGEdgeHasValue obj1_at4 = new SMGEdgeHasValue(mockType, 32, object1, value);
-    SMGEdgeHasValue obj1_12at0 = new SMGEdgeHasValue(mockType12b, 0, object1, value);
+    SMGEdgeHasValue obj1_at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object1, value);
+    SMGEdgeHasValue obj1_at2 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(16), object1, value);
+    SMGEdgeHasValue obj1_at4 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), object1, value);
+    SMGEdgeHasValue obj1_12at0 = new SMGEdgeHasValue(mockType12b, BigInteger.valueOf(0), object1, value);
 
-    SMGEdgeHasValue obj2_at0 = new SMGEdgeHasValue(mockType, 0, object2, value);
-    SMGEdgeHasValue obj2_at2 = new SMGEdgeHasValue(mockType, 16, object2, value);
-    SMGEdgeHasValue obj2_at4 = new SMGEdgeHasValue(mockType, 32, object2, value);
-    SMGEdgeHasValue obj2_12at0 = new SMGEdgeHasValue(mockType12b, 0, object2, value);
+    SMGEdgeHasValue obj2_at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object2, value);
+    SMGEdgeHasValue obj2_at2 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(16), object2, value);
+    SMGEdgeHasValue obj2_at4 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), object2, value);
+    SMGEdgeHasValue obj2_12at0 = new SMGEdgeHasValue(mockType12b, BigInteger.valueOf(0), object2, value);
 
     Assert.assertTrue(obj1_at0.isCompatibleField(obj1_at0));
     Assert.assertFalse(obj1_at0.isCompatibleField(obj1_at2));
@@ -135,15 +136,15 @@ public class SMGEdgeHasValueTest {
     SMGObject object2 = new SMGRegion(96, "object-2");
     Integer value = Integer.valueOf(666);
 
-    SMGEdgeHasValue obj1_at0 = new SMGEdgeHasValue(mockType, 0, object1, value);
-    SMGEdgeHasValue obj1_at2 = new SMGEdgeHasValue(mockType, 16, object1, value);
-    SMGEdgeHasValue obj1_at4 = new SMGEdgeHasValue(mockType, 32, object1, value);
-    SMGEdgeHasValue obj1_12at0 = new SMGEdgeHasValue(mockType12b, 0, object1, value);
+    SMGEdgeHasValue obj1_at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object1, value);
+    SMGEdgeHasValue obj1_at2 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(16), object1, value);
+    SMGEdgeHasValue obj1_at4 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), object1, value);
+    SMGEdgeHasValue obj1_12at0 = new SMGEdgeHasValue(mockType12b, BigInteger.valueOf(0), object1, value);
 
-    SMGEdgeHasValue obj2_at0 = new SMGEdgeHasValue(mockType, 0, object2, value);
-    SMGEdgeHasValue obj2_at2 = new SMGEdgeHasValue(mockType, 16, object2, value);
-    SMGEdgeHasValue obj2_at4 = new SMGEdgeHasValue(mockType, 32, object2, value);
-    SMGEdgeHasValue obj2_12at0 = new SMGEdgeHasValue(mockType12b, 0, object2, value);
+    SMGEdgeHasValue obj2_at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object2, value);
+    SMGEdgeHasValue obj2_at2 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(16), object2, value);
+    SMGEdgeHasValue obj2_at4 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), object2, value);
+    SMGEdgeHasValue obj2_12at0 = new SMGEdgeHasValue(mockType12b, BigInteger.valueOf(0), object2, value);
 
     Assert.assertTrue(obj1_at0.isCompatibleFieldOnSameObject(obj1_at0, MachineModel.LINUX64));
     Assert.assertFalse(obj1_at0.isCompatibleFieldOnSameObject(obj1_at2, MachineModel.LINUX64));
@@ -161,8 +162,8 @@ public class SMGEdgeHasValueTest {
     SMGObject object2 = new SMGRegion(96, "object2");
     Integer value = Integer.valueOf(666);
 
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType, 0, object1, value);
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType, 16, object2, value);
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object1, value);
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(16), object2, value);
 
     hv1.overlapsWith(hv2, MachineModel.LINUX64);
   }
@@ -174,8 +175,8 @@ public class SMGEdgeHasValueTest {
     Integer value1 = Integer.valueOf(1);
     Integer value2 = Integer.valueOf(2);
 
-    SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockType, 0, object1, value1);
-    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, 0, object1, value2);
+    SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object1, value1);
+    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object1, value2);
 
     Predicate<SMGEdgeHasValue> predicate = SMGEdgeHasValueFilter.objectFilter(object1).filterHavingValue(value1).asPredicate();
 
@@ -191,10 +192,10 @@ public class SMGEdgeHasValueTest {
     Integer value1 = Integer.valueOf(1);
     Integer value2 = Integer.valueOf(2);
 
-    SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockType, 0, object1, value1);
-    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, 0, object1, value2);
-    SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockType, 0, object2, value1);
-    SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockType, 0, object2, value2);
+    SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object1, value1);
+    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object1, value2);
+    SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object2, value1);
+    SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object2, value2);
     Set<SMGEdgeHasValue> allEdges = new HashSet<>();
     allEdges.add(hv11at0);
     allEdges.add(hv12at0);
@@ -230,10 +231,10 @@ public class SMGEdgeHasValueTest {
     Integer value1 = Integer.valueOf(1);
     Integer value2 = Integer.valueOf(2);
 
-    SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockType, 0, object1, value1);
-    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, 32, object1, value2);
-    SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockType, 0, object2, value1);
-    SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockType, 32, object2, value2);
+    SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object1, value1);
+    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), object1, value2);
+    SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object2, value1);
+    SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), object2, value2);
     Set<SMGEdgeHasValue> allEdges = new HashSet<>();
     allEdges.add(hv11at0);
     allEdges.add(hv12at0);
@@ -242,7 +243,7 @@ public class SMGEdgeHasValueTest {
 
     SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
 
-    filter.filterAtOffset(0);
+    filter.filterAtOffset(BigInteger.valueOf(0));
 
     Assert.assertTrue(filter.holdsFor(hv11at0));
     Assert.assertFalse(filter.holdsFor(hv12at0));
@@ -264,10 +265,10 @@ public class SMGEdgeHasValueTest {
     Integer value1 = Integer.valueOf(1);
     Integer value2 = Integer.valueOf(2);
 
-    SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockType, 0, object1, value1);
-    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, 32, object1, value2);
-    SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockType, 0, object2, value1);
-    SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockType, 32, object2, value2);
+    SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object1, value1);
+    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), object1, value2);
+    SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(0), object2, value1);
+    SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), object2, value2);
     Set<SMGEdgeHasValue> allEdges = new HashSet<>();
     allEdges.add(hv11at0);
     allEdges.add(hv12at0);

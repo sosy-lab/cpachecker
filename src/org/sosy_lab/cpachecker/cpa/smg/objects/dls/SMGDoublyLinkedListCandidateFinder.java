@@ -27,6 +27,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
@@ -125,7 +126,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
     for (SMGEdgeHasValue hveNext : hvesOfObject) {
 
-      int nfo = hveNext.getOffset();
+      BigInteger nfo = hveNext.getOffset();
       CType nfoType = hveNext.getType();
       int nextPointer = hveNext.getValue();
 
@@ -134,7 +135,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
       }
 
       SMGEdgePointsTo nextPointerEdge = pSmg.getPointer(nextPointer);
-      int hfo = nextPointerEdge.getOffset();
+      BigInteger hfo = nextPointerEdge.getOffset();
       SMGTargetSpecifier nextPointerTg = nextPointerEdge.getTargetSpecifier();
 
       if (!(nextPointerTg == SMGTargetSpecifier.REGION
@@ -168,11 +169,11 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
       for (SMGEdgeHasValue hvePrev : nextObjectHves) {
 
-        int pfo = hvePrev.getOffset();
+        BigInteger pfo = hvePrev.getOffset();
         CType pfoType = hvePrev.getType();
         int prevPointer = hvePrev.getValue();
 
-        if(!(nfo < pfo)) {
+        if(!(nfo.compareTo(pfo) < 0)) {
           continue;
         }
 
@@ -237,9 +238,9 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
       startTraversal(nextObject, pSmg, pSmgState, pProgress);
     }
 
-    Integer nfo = pPrevCandidate.getNfo();
-    Integer pfo = pPrevCandidate.getPfo();
-    Integer hfo = pPrevCandidate.getHfo();
+    BigInteger nfo = pPrevCandidate.getNfo();
+    BigInteger pfo = pPrevCandidate.getPfo();
+    BigInteger hfo = pPrevCandidate.getHfo();
 
     SMGDoublyLinkedListCandidate candidate;
 
@@ -427,7 +428,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     return true;
   }
 
-  private void getSubSmgOf(SMGObject pObject, int nfo, int pfo, CLangSMG inputSmg,
+  private void getSubSmgOf(SMGObject pObject, BigInteger nfo, BigInteger pfo, CLangSMG inputSmg,
       Set<Integer> pValues, Set<SMGObject> pObjects) {
 
     Set<SMGObject> toBeChecked = new HashSet<>();
@@ -498,7 +499,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
   private static class SMGJoinDllProgress {
 
-    private final Map<SMGObject, Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate>> candidates =
+    private final Map<SMGObject, Map<Pair<BigInteger, BigInteger>, SMGDoublyLinkedListCandidate>> candidates =
         new HashMap<>();
     private final Map<Pair<SMGDoublyLinkedListCandidate, SMGJoinStatus>, Integer> candidateLength =
         new HashMap<>();
@@ -636,8 +637,8 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
       }
     }
 
-    public SMGDoublyLinkedListCandidate getCandidate(SMGObject pObject, Integer pNfo,
-        Integer pPfo) {
+    public SMGDoublyLinkedListCandidate getCandidate(SMGObject pObject, BigInteger pNfo,
+                                                     BigInteger pPfo) {
       return candidates.get(pObject).get(Pair.of(pNfo, pPfo));
     }
 
@@ -645,7 +646,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
       candidateLength.put(Pair.of(pCandidate, SMGJoinStatus.EQUAL), 1);
     }
 
-    public boolean containsCandidate(SMGObject pObject, Integer pNfo, Integer pPfo) {
+    public boolean containsCandidate(SMGObject pObject, BigInteger pNfo, BigInteger pPfo) {
 
       if (candidates.containsKey(pObject)) {
         return candidates.get(pObject).containsKey(Pair.of(pNfo, pPfo));
@@ -662,7 +663,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     public void putCandidiateMap(SMGObject pObject) {
       assert !candidates.containsKey(pObject);
 
-      Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> newMap = new HashMap<>();
+      Map<Pair<BigInteger, BigInteger>, SMGDoublyLinkedListCandidate> newMap = new HashMap<>();
 
       candidates.put(pObject, newMap);
     }
@@ -678,7 +679,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
       Set<SMGAbstractionCandidate> resultBeforeBlocks = new HashSet<>();
 
-      for (Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> objCandidates : candidates.values()) {
+      for (Map<Pair<BigInteger, BigInteger>, SMGDoublyLinkedListCandidate> objCandidates : candidates.values()) {
         for (SMGDoublyLinkedListCandidate candidate : objCandidates.values()) {
           if (candidateLength.containsKey(Pair.of(candidate, SMGJoinStatus.EQUAL))) {
             int length = candidateLength.get(Pair.of(candidate, SMGJoinStatus.EQUAL));

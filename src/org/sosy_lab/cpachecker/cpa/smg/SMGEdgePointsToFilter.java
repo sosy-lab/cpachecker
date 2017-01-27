@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import java.util.Collections;
@@ -33,7 +34,7 @@ public class SMGEdgePointsToFilter {
 
   private Integer value = null;
   private SMGObject targetObject = null;
-  private Integer targetOffset = null;
+  private BigInteger targetOffset = null;
   private SMGTargetSpecifier targetSpecifier = null;
 
   private SMGEdgePointsToFilter() {}
@@ -48,7 +49,7 @@ public class SMGEdgePointsToFilter {
     return this;
   }
 
-  public SMGEdgePointsToFilter filterAtTargetOffset(Integer pOffset) {
+  public SMGEdgePointsToFilter filterAtTargetOffset(BigInteger pOffset) {
     targetOffset = pOffset;
     return this;
   }
@@ -66,7 +67,7 @@ public class SMGEdgePointsToFilter {
     return value;
   }
 
-  public Integer filtersAtTargetOffset() {
+  public BigInteger filtersAtTargetOffset() {
     return targetOffset;
   }
 

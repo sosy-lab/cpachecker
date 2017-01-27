@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.math.BigInteger;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -201,8 +202,8 @@ public class SMGIsLessOrEqual {
         SMGEdgePointsTo ptE2 = pSMG2.getPointer(value);
         String label1 = ptE1.getObject().getLabel();
         String label2 = ptE2.getObject().getLabel();
-        Integer offset1 = ptE1.getOffset();
-        Integer offset2 = ptE2.getOffset();
+        BigInteger offset1 = ptE1.getOffset();
+        BigInteger offset2 = ptE2.getOffset();
 
         //TODO How does one check, if two pointers point to the same region? You would have to recover the stack frame.
         if (!(offset1.equals(offset2) && label1.equals(label2))) {

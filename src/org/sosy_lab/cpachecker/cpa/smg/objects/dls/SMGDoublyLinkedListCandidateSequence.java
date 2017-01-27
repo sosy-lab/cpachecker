@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
 import com.google.common.collect.Iterables;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
@@ -70,8 +71,8 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException {
 
     SMGObject prevObject = candidate.getObject();
-    int nfo = candidate.getNfo();
-    int pfo = candidate.getPfo();
+    BigInteger nfo = candidate.getNfo();
+    BigInteger pfo = candidate.getPfo();
 
     pSmgState.pruneUnreachable();
 
@@ -106,7 +107,7 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
 
       SMGObject newAbsObj = join.getNewAbstractObject();
 
-      Map<Integer, Integer> reached = new HashMap<>();
+      Map<BigInteger, Integer> reached = new HashMap<>();
 
       for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(nextObject, pSMG)) {
         pSMG.removePointsToEdge(pte.getValue());

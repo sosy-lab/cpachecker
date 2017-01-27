@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.Comparator;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -32,15 +33,15 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
-  final private int offset;
+  final private BigInteger offset;
 
-  public SMGEdgeHasValue(CType pType, int pOffset, SMGObject pObject, int pValue) {
+  public SMGEdgeHasValue(CType pType, BigInteger pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject);
     type = pType;
     offset = pOffset;
   }
 
-  public SMGEdgeHasValue(int pSizeInBits, int pOffset, SMGObject pObject, int pValue) {
+  public SMGEdgeHasValue(int pSizeInBits, BigInteger pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject);
     type = AnonymousTypes.createTypeWithLength(pSizeInBits);
     offset = pOffset;
@@ -51,7 +52,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     return "sizeof(" + type.toASTString("foo") + ")b @ " + object.getLabel() + "+" + offset + "b has value " + value;
   }
 
-  public int getOffset() {
+  public BigInteger getOffset() {
     return offset;
   }
 
@@ -83,24 +84,24 @@ public class SMGEdgeHasValue extends SMGEdge {
       throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
     }
 
-    int otStart = other.getOffset();
+    BigInteger otStart = other.getOffset();
 
-    int otEnd = otStart + pModel.getBitSizeof(other.getType());
+    BigInteger otEnd = otStart.add(BigInteger.valueOf(pModel.getBitSizeof(other.getType())));
 
     return overlapsWith(otStart, otEnd, pModel);
   }
 
-  public boolean overlapsWith(int pOtStart, int pOtEnd, MachineModel pModel) {
+  public boolean overlapsWith(BigInteger pOtStart, BigInteger pOtEnd, MachineModel pModel) {
 
-    int myStart = offset;
+    BigInteger myStart = offset;
 
-    int myEnd = myStart + pModel.getBitSizeof(type);
+    BigInteger myEnd = myStart.add(BigInteger.valueOf(pModel.getBitSizeof(type)));
 
-    if (myStart < pOtStart) {
-      return (myEnd > pOtStart);
+    if (myStart.compareTo(pOtStart) < 0) {
+      return (myEnd.compareTo(pOtStart) > 0);
 
-    } else if (pOtStart < myStart) {
-      return (pOtEnd > myStart);
+    } else if (pOtStart.compareTo(myStart) < 0) {
+      return (pOtEnd.compareTo(myStart) > 0);
     }
 
     // Start offsets are equal, always overlap
@@ -140,7 +141,7 @@ public class SMGEdgeHasValue extends SMGEdge {
       public int compare(SMGEdgeHasValue o1, SMGEdgeHasValue o2) {
         int result = Integer.compare(o1.getObject().getId(), o2.getObject().getId());
         if (result == 0) {
-          result = Integer.compare(o1.offset, o2.offset);
+          result = o1.offset.compareTo(o2.offset);
           if (result == 0) {
             result = Integer.compare(o1.getValue(), o2.getValue());
             if (result == 0) {

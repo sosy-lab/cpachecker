@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -99,7 +100,9 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
         pointsToThisAbstraction.add(newPointer);
       } else {
         //TODO Real offset might be nicer.
-        SMGEdgeHasValue dummyEdge = new SMGEdgeHasValue(1, c, genericAbstraction, pointer);
+        SMGEdgeHasValue dummyEdge = new SMGEdgeHasValue(1, BigInteger.valueOf(c),
+            genericAbstraction,
+            pointer);
         pointsFromThisAbstraction.add(dummyEdge);
         c++;
       }

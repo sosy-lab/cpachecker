@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -142,10 +143,10 @@ public class SMGJoinMatchObjectsTest {
     smg1.addObject(srcObj1);
     smg2.addObject(srcObj2);
 
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType2b, 0, srcObj1, SMGValueFactory.getNewValue());
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType2b, 2, srcObj2, SMGValueFactory.getNewValue());
-    SMGEdgeHasValue hvMatching1 = new SMGEdgeHasValue(mockType2b, 4, srcObj1, SMGValueFactory.getNewValue());
-    SMGEdgeHasValue hvMatching2 = new SMGEdgeHasValue(mockType2b, 4, srcObj2, SMGValueFactory.getNewValue());
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(mockType2b, BigInteger.valueOf(0), srcObj1, SMGValueFactory.getNewValue());
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(mockType2b, BigInteger.valueOf(2), srcObj2, SMGValueFactory.getNewValue());
+    SMGEdgeHasValue hvMatching1 = new SMGEdgeHasValue(mockType2b, BigInteger.valueOf(4), srcObj1, SMGValueFactory.getNewValue());
+    SMGEdgeHasValue hvMatching2 = new SMGEdgeHasValue(mockType2b, BigInteger.valueOf(4), srcObj2, SMGValueFactory.getNewValue());
 
     smg1.addHasValueEdge(hv1);
     smg1.addValue(hv1.getValue());
@@ -177,8 +178,10 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void sameAbstractionMatchTest() {
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(128, 0, 8, 7, 0);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(128, 0, 0, 7, 0);
+    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(128, BigInteger.valueOf(0), BigInteger
+        .valueOf(8), 7, 0);
+    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(128, BigInteger.valueOf(0), BigInteger
+        .valueOf(0), 7, 0);
 
     smg1.addObject(sll1);
     smg2.addObject(sll2);
@@ -190,7 +193,8 @@ public class SMGJoinMatchObjectsTest {
   @Test
   public void differentAbstractionMatch() {
     SMGRegion prototype = new SMGRegion(128, "prototype");
-    SMGSingleLinkedList sll = new SMGSingleLinkedList(128, 0, 8, 3, 0);
+    SMGSingleLinkedList sll = new SMGSingleLinkedList(128, BigInteger.valueOf(0), BigInteger
+        .valueOf(8), 3, 0);
     DummyAbstraction dummy = new DummyAbstraction(prototype);
 
     smg1.addObject(sll);
@@ -202,8 +206,10 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void twoAbstractionsTest() {
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(128, 0, 8, 2, 0);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(128, 0, 8, 4, 0);
+    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(128, BigInteger.valueOf(0), BigInteger
+        .valueOf(8), 2, 0);
+    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(128, BigInteger.valueOf(0), BigInteger
+        .valueOf(8), 4, 0);
     smg1.addObject(sll1);
     smg2.addObject(sll2);
 
@@ -211,13 +217,13 @@ public class SMGJoinMatchObjectsTest {
     Assert.assertTrue(mo.isDefined());
     Assert.assertEquals(SMGJoinStatus.LEFT_ENTAIL, mo.getStatus());
 
-    sll1 = new SMGSingleLinkedList(128, 0, 8, 4, 0);
+    sll1 = new SMGSingleLinkedList(128, BigInteger.valueOf(0), BigInteger.valueOf(8), 4, 0);
     smg1.addObject(sll1);
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
     Assert.assertTrue(mo.isDefined());
     Assert.assertEquals(SMGJoinStatus.EQUAL, mo.getStatus());
 
-    sll1 = new SMGSingleLinkedList(128, 0, 8, 8, 0);
+    sll1 = new SMGSingleLinkedList(128, BigInteger.valueOf(0), BigInteger.valueOf(8), 8, 0);
     smg1.addObject(sll1);
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
     Assert.assertTrue(mo.isDefined());
@@ -227,7 +233,8 @@ public class SMGJoinMatchObjectsTest {
   @Test
   public void oneAbstractionTest() {
     SMGRegion prototype = new SMGRegion(128, "prototype");
-    SMGSingleLinkedList sll = new SMGSingleLinkedList(128, 0, 8, 8, 0);
+    SMGSingleLinkedList sll = new SMGSingleLinkedList(128, BigInteger.valueOf(0), BigInteger
+        .valueOf(8), 8, 0);
 
     smg1.addObject(sll);
     smg2.addObject(sll);
@@ -242,7 +249,7 @@ public class SMGJoinMatchObjectsTest {
     Assert.assertTrue(mo.isDefined());
     Assert.assertEquals(SMGJoinStatus.INCOMPARABLE, mo.getStatus());
 
-    sll = new SMGSingleLinkedList(128, 0, 8, 0, 0);
+    sll = new SMGSingleLinkedList(128, BigInteger.valueOf(0), BigInteger.valueOf(8), 0, 0);
 
     smg1.addObject(sll);
     smg2.addObject(sll);

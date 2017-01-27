@@ -24,13 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
 
+import java.math.BigInteger;
+
 public class SMGEdgeTemplate {
 
   private final SMGObjectTemplate abstractObject;
   private final int abstractValue;
-  private final int offset;
+  private final BigInteger offset;
 
-  public SMGEdgeTemplate(SMGObjectTemplate pAbstractObject, int pAbstractValue, int pOffset) {
+  public SMGEdgeTemplate(SMGObjectTemplate pAbstractObject, int pAbstractValue, BigInteger pOffset) {
     abstractObject = pAbstractObject;
     abstractValue = pAbstractValue;
     offset = pOffset;
@@ -44,7 +46,7 @@ public class SMGEdgeTemplate {
     return abstractValue;
   }
 
-  public int getOffset() {
+  public BigInteger getOffset() {
     return offset;
   }
 }

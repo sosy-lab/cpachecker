@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,11 +46,11 @@ public class SMGJoinTargetObjectsTest {
 
   final private SMGObject obj1 = new SMGRegion(64, "ze label");
   final private Integer value1 = SMGValueFactory.getNewValue();
-  final private SMGEdgePointsTo pt1 = new SMGEdgePointsTo(value1, obj1, 0);
+  final private SMGEdgePointsTo pt1 = new SMGEdgePointsTo(value1, obj1, BigInteger.valueOf(0));
 
   final private SMGObject obj2 = new SMGRegion(64, "ze label");
   final private Integer value2 = SMGValueFactory.getNewValue();
-  final private SMGEdgePointsTo pt2 = new SMGEdgePointsTo(value2, obj2, 0);
+  final private SMGEdgePointsTo pt2 = new SMGEdgePointsTo(value2, obj2, BigInteger.valueOf(0));
 
   final private SMGObject destObj = new SMGRegion(64, "destination");
 
@@ -95,8 +96,10 @@ public class SMGJoinTargetObjectsTest {
 
   @Test
   public void joinTargetObjectsDifferentOffsets() throws SMGInconsistentException {
-    SMGEdgePointsTo pt1null = new SMGEdgePointsTo(value1, smg1.getNullObject(), 2);
-    SMGEdgePointsTo pt2null = new SMGEdgePointsTo(value2, smg2.getNullObject(), 1);
+    SMGEdgePointsTo pt1null = new SMGEdgePointsTo(value1, smg1.getNullObject(), BigInteger
+        .valueOf(2));
+    SMGEdgePointsTo pt2null = new SMGEdgePointsTo(value2, smg2.getNullObject(), BigInteger
+        .valueOf(1));
 
     smg1.addObject(obj1);
     smg1.addValue(value1);
@@ -115,8 +118,10 @@ public class SMGJoinTargetObjectsTest {
 
   @Test
   public void joinTargetObjectsAlreadyJoinedNull() throws SMGInconsistentException {
-    SMGEdgePointsTo pt1null = new SMGEdgePointsTo(value1, smg1.getNullObject(), 0);
-    SMGEdgePointsTo pt2null = new SMGEdgePointsTo(value2, smg2.getNullObject(), 0);
+    SMGEdgePointsTo pt1null = new SMGEdgePointsTo(value1, smg1.getNullObject(), BigInteger
+        .valueOf(0));
+    SMGEdgePointsTo pt2null = new SMGEdgePointsTo(value2, smg2.getNullObject(), BigInteger
+        .valueOf(0));
 
     smg1.addValue(value1);
     smg2.addValue(value2);

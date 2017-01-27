@@ -25,22 +25,23 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
+import java.math.BigInteger;
 
 public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListShape> {
 
-  private final int hfo;
-  private final int pfo;
-  private final int nfo;
+  private final BigInteger hfo;
+  private final BigInteger pfo;
+  private final BigInteger nfo;
 
-  public int getHfo() {
+  public BigInteger getHfo() {
     return hfo;
   }
 
-  public int getPfo() {
+  public BigInteger getPfo() {
     return pfo;
   }
 
-  public int getNfo() {
+  public BigInteger getNfo() {
     return nfo;
   }
 
@@ -48,9 +49,9 @@ public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListS
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + hfo;
-    result = prime * result + nfo;
-    result = prime * result + pfo;
+    result = prime * result + hfo.hashCode();
+    result = prime * result + nfo.hashCode();
+    result = prime * result + pfo.hashCode();
     return result;
   }
 
@@ -78,7 +79,7 @@ public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListS
     return true;
   }
 
-  public SMGDoublyLinkedListShape(int pHfo, int pPfo, int pNfo) {
+  public SMGDoublyLinkedListShape(BigInteger pHfo, BigInteger pPfo, BigInteger pNfo) {
     super();
     hfo = pHfo;
     pfo = pPfo;
@@ -93,9 +94,9 @@ public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListS
   @Override
   public int compareTo(SMGDoublyLinkedListShape other) {
     return ComparisonChain.start()
-        .compare(nfo, other.nfo, Ordering.<Integer> natural().nullsFirst())
-        .compare(pfo, other.pfo, Ordering.<Integer> natural().nullsFirst())
-        .compare(hfo, other.hfo, Ordering.<Integer> natural().nullsFirst())
+        .compare(nfo, other.nfo)
+        .compare(pfo, other.pfo)
+        .compare(hfo, other.hfo)
         .result();
   }
 }

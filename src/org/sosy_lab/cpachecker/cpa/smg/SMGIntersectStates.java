@@ -27,6 +27,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
@@ -265,23 +266,23 @@ public final class SMGIntersectStates {
     Set<SMGEdgeHasValue> hves1 = pSmg1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject1));
     Set<SMGEdgeHasValue> hves2 = pSmg2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
-    Map<Integer, SMGEdgeHasValue> offsetToHve1Map =
+    Map<BigInteger, SMGEdgeHasValue> offsetToHve1Map =
         FluentIterable.from(hves1).uniqueIndex(
             (SMGEdgeHasValue hve) -> {
               return hve.getOffset();
             });
 
-    Map<Integer, SMGEdgeHasValue> offsetToHve2Map =
+    Map<BigInteger, SMGEdgeHasValue> offsetToHve2Map =
         FluentIterable.from(hves2).uniqueIndex(
             (SMGEdgeHasValue hve) -> {
               return hve.getOffset();
             });
 
-    Set<Integer> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
+    Set<BigInteger> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
     offsetSet.addAll(offsetToHve1Map.keySet());
     offsetSet.addAll(offsetToHve2Map.keySet());
 
-    for (Integer offset : offsetSet) {
+    for (BigInteger offset : offsetSet) {
       if (offsetToHve1Map.containsKey(offset)) {
         if (offsetToHve2Map.containsKey(offset)) {
           SMGEdgeHasValue hve1 = offsetToHve1Map.get(offset);
@@ -417,10 +418,10 @@ public final class SMGIntersectStates {
       BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2,
       BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues) {
 
-    int offset1 = pPte1.getOffset();
-    int offset2 = pPte2.getOffset();
+    BigInteger offset1 = pPte1.getOffset();
+    BigInteger offset2 = pPte2.getOffset();
 
-    if (offset1 != offset2) {
+    if (!offset1.equals(offset2)) {
       return false;
     }
 

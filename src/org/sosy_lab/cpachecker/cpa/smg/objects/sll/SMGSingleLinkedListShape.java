@@ -25,13 +25,14 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
+import java.math.BigInteger;
 
 public class SMGSingleLinkedListShape implements Comparable<SMGSingleLinkedListShape> {
 
-  private final int hfo;
-  private final int nfo;
+  private final BigInteger hfo;
+  private final BigInteger nfo;
 
-  public SMGSingleLinkedListShape(int pHfo, int pNfo) {
+  public SMGSingleLinkedListShape(BigInteger pHfo, BigInteger pNfo) {
     super();
     hfo = pHfo;
     nfo = pNfo;
@@ -41,8 +42,8 @@ public class SMGSingleLinkedListShape implements Comparable<SMGSingleLinkedListS
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + hfo;
-    result = prime * result + nfo;
+    result = prime * result + hfo.hashCode();
+    result = prime * result + nfo.hashCode();
     return result;
   }
 
@@ -72,19 +73,19 @@ public class SMGSingleLinkedListShape implements Comparable<SMGSingleLinkedListS
     return "SMGSingleLinkedListShape [hfo=" + hfo + ", nfo=" + nfo + "]";
   }
 
-  public int getHfo() {
+  public BigInteger getHfo() {
     return hfo;
   }
 
-  public int getNfo() {
+  public BigInteger getNfo() {
     return nfo;
   }
 
   @Override
   public int compareTo(SMGSingleLinkedListShape other) {
     return ComparisonChain.start()
-        .compare(nfo, other.nfo, Ordering.<Integer> natural().nullsFirst())
-        .compare(hfo, other.hfo, Ordering.<Integer> natural().nullsFirst())
+        .compare(nfo, other.nfo)
+        .compare(hfo, other.hfo)
         .result();
   }
 }

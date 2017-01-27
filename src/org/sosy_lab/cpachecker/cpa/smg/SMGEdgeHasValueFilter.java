@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Predicate;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -46,7 +47,7 @@ public class SMGEdgeHasValueFilter {
 
   private Integer value = null;
   private boolean valueComplement = false;
-  private Integer offset = null;
+  private BigInteger offset = null;
   private CType type = null;
 
   public SMGEdgeHasValueFilter filterByObject(SMGObject pObject) {
@@ -66,7 +67,7 @@ public class SMGEdgeHasValueFilter {
     return this;
   }
 
-  public SMGEdgeHasValueFilter filterAtOffset(Integer pOffset) {
+  public SMGEdgeHasValueFilter filterAtOffset(BigInteger pOffset) {
     offset = pOffset;
     return this;
   }
@@ -96,7 +97,7 @@ public class SMGEdgeHasValueFilter {
     }
   }
 
-  public Integer filtersAtOffset() {
+  public BigInteger filtersAtOffset() {
     return offset;
   }
 

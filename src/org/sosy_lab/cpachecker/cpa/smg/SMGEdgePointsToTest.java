@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import java.math.BigInteger;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -35,7 +36,7 @@ public class SMGEdgePointsToTest {
   public void testSMGEdgePointsTo() {
     Integer val = Integer.valueOf(6);
     SMGObject obj = new SMGRegion(64, "object");
-    SMGEdgePointsTo edge = new SMGEdgePointsTo(val, obj, 0);
+    SMGEdgePointsTo edge = new SMGEdgePointsTo(val, obj, BigInteger.valueOf(0));
 
     Assert.assertEquals(val.intValue(), edge.getValue());
     Assert.assertEquals(obj, edge.getObject());
@@ -49,10 +50,10 @@ public class SMGEdgePointsToTest {
     SMGObject obj = new SMGRegion(64, "object");
     SMGObject obj2 = new SMGRegion(64, "object2");
 
-    SMGEdgePointsTo edge1 = new SMGEdgePointsTo(val1, obj, 0);
-    SMGEdgePointsTo edge2 = new SMGEdgePointsTo(val2, obj, 0);
-    SMGEdgePointsTo edge3 = new SMGEdgePointsTo(val1, obj, 32);
-    SMGEdgePointsTo edge4 = new SMGEdgePointsTo(val1, obj2, 0);
+    SMGEdgePointsTo edge1 = new SMGEdgePointsTo(val1, obj, BigInteger.valueOf(0));
+    SMGEdgePointsTo edge2 = new SMGEdgePointsTo(val2, obj, BigInteger.valueOf(0));
+    SMGEdgePointsTo edge3 = new SMGEdgePointsTo(val1, obj, BigInteger.valueOf(32));
+    SMGEdgePointsTo edge4 = new SMGEdgePointsTo(val1, obj2, BigInteger.valueOf(0));
 
     // An edge is consistent with itself
     Assert.assertTrue(edge1.isConsistentWith(edge1));

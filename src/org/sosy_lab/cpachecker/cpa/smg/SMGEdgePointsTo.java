@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public class SMGEdgePointsTo extends SMGEdge {
-  private final int offset;
+  private final BigInteger offset;
   private final SMGTargetSpecifier tg;
 
-  public SMGEdgePointsTo(int pValue, SMGObject pObject, int pOffset) {
+  public SMGEdgePointsTo(int pValue, SMGObject pObject, BigInteger pOffset) {
     super(pValue, pObject);
     offset = pOffset;
 
@@ -42,7 +43,7 @@ public class SMGEdgePointsTo extends SMGEdge {
     }
   }
 
-  public SMGEdgePointsTo(int pValue, SMGObject pObject, int pOffset, SMGTargetSpecifier pTg) {
+  public SMGEdgePointsTo(int pValue, SMGObject pObject, BigInteger pOffset, SMGTargetSpecifier pTg) {
     super(pValue, pObject);
     offset = pOffset;
     tg = pTg;
@@ -53,7 +54,7 @@ public class SMGEdgePointsTo extends SMGEdge {
     return value + "->" + object.getLabel() + "+" + offset + 'b';
   }
 
-  public int getOffset() {
+  public BigInteger getOffset() {
     return offset;
   }
 
@@ -84,7 +85,7 @@ public class SMGEdgePointsTo extends SMGEdge {
 
   @Override
   public int hashCode() {
-    return 31 * super.hashCode() + (offset + tg.hashCode());
+    return 31 * super.hashCode() + (offset.hashCode() + tg.hashCode());
   }
 
   @Override

@@ -27,6 +27,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,9 +37,9 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
   private final String functionName;
   private final Integer locationOnStack;
   private final boolean globalStart;
-  private final List<Integer> pathOffsets;
+  private final List<BigInteger> pathOffsets;
 
-  private SMGMemoryPath(String pVariableName, String pFunctionName, Integer pPathOffset,
+  private SMGMemoryPath(String pVariableName, String pFunctionName, BigInteger pPathOffset,
       Integer pLocationOnStack) {
     globalStart = false;
     variableName = pVariableName;
@@ -47,7 +48,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     locationOnStack = pLocationOnStack;
   }
 
-  private SMGMemoryPath(String pVariableName, Integer pPathOffset) {
+  private SMGMemoryPath(String pVariableName, BigInteger pPathOffset) {
     globalStart = true;
     variableName = pVariableName;
     functionName = null;
@@ -55,13 +56,13 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     pathOffsets = ImmutableList.of(pPathOffset);
   }
 
-  public SMGMemoryPath(SMGMemoryPath pParent, Integer pOffset) {
+  public SMGMemoryPath(SMGMemoryPath pParent, BigInteger pOffset) {
     globalStart = pParent.globalStart;
     variableName = pParent.variableName;
     functionName = pParent.functionName;
     locationOnStack = pParent.locationOnStack;
 
-    List<Integer> offsets = new ArrayList<>(pParent.getPathOffset());
+    List<BigInteger> offsets = new ArrayList<>(pParent.getPathOffset());
     offsets.add(pOffset);
     pathOffsets = ImmutableList.copyOf(offsets);
   }
@@ -78,7 +79,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     return variableName;
   }
 
-  public List<Integer> getPathOffset() {
+  public List<BigInteger> getPathOffset() {
     return pathOffsets;
   }
 
@@ -98,7 +99,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
 
     result.append(variableName);
 
-    for (Integer offset : pathOffsets) {
+    for (BigInteger offset : pathOffsets) {
       result.append("->");
       result.append(offset);
     }
@@ -165,16 +166,16 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
   }
 
   public static SMGMemoryPath valueOf(String pVariableName, String pFunctionName,
-      Integer pPathOffset, Integer pLocationOnStack) {
+                                      BigInteger pPathOffset, Integer pLocationOnStack) {
     return new SMGMemoryPath(pVariableName, pFunctionName, pPathOffset, pLocationOnStack);
   }
 
   public static SMGMemoryPath valueOf(String pVariableName,
-      Integer pPathOffset) {
+                                      BigInteger pPathOffset) {
     return new SMGMemoryPath(pVariableName, pPathOffset);
   }
 
-  public static SMGMemoryPath valueOf(SMGMemoryPath pParent, Integer pOffset) {
+  public static SMGMemoryPath valueOf(SMGMemoryPath pParent, BigInteger pOffset) {
     return new SMGMemoryPath(pParent, pOffset);
   }
 
@@ -210,11 +211,11 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     }
 
     for (int i = 0; i < pathOffsets.size() && i < other.pathOffsets.size(); i++) {
-      int offset = pathOffsets.get(i);
-      int otherOffset = other.pathOffsets.get(i);
+      BigInteger offset = pathOffsets.get(i);
+      BigInteger otherOffset = other.pathOffsets.get(i);
 
       result = ComparisonChain.start()
-          .compare(offset, otherOffset, Ordering.<Integer> natural().nullsFirst())
+          .compare(offset, otherOffset)
           .result();
 
       if (result != 0) {

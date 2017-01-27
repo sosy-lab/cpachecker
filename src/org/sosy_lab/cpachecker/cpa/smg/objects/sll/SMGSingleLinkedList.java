@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -36,7 +37,7 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
   private final SMGSingleLinkedListShape shape;
   private final int id = SMGValueFactory.getNewValue();
 
-  public SMGSingleLinkedList(int pSize, int pHfo, int pNfo,
+  public SMGSingleLinkedList(int pSize, BigInteger pHfo, BigInteger pNfo,
       int pMinLength, int level) {
     super(pSize, "sll", level, SMGObjectKind.SLL);
 
@@ -60,11 +61,11 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
     return true;
   }
 
-  public int getNfo() {
+  public BigInteger getNfo() {
     return shape.getNfo();
   }
 
-  public int getHfo() {
+  public BigInteger getHfo() {
     return shape.getHfo();
   }
 

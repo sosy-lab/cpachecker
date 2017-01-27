@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -65,9 +66,9 @@ final public class SMGJoinSubSMGsForAbstraction {
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
     Set<Integer> origValues = ImmutableSet.copyOf(smg.getValues());
 
-    int nfo;
-    int pfo;
-    int hfo;
+    BigInteger nfo;
+    BigInteger pfo;
+    BigInteger hfo;
 
     SMGEdgeHasValue prevObj1hve = null;
     SMGEdgeHasValue nextObj1hve = null;
