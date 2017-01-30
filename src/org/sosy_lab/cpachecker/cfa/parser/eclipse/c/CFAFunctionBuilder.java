@@ -46,6 +46,7 @@ import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBreakStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCaseStatement;
+import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTConditionalExpression;
 import org.eclipse.cdt.core.dom.ast.IASTContinueStatement;
@@ -263,7 +264,17 @@ class CFAFunctionBuilder extends ASTVisitor {
     // entering Sideassignment block
     sideAssignmentStack.enterBlock();
 
-    if (declaration instanceof IASTSimpleDeclaration) {
+    if (declaration.getPropertyInParent() == IASTCompositeTypeSpecifier.MEMBER_DECLARATION) {
+      // This is a nested declaration, e.g. something like the "int j;" in
+      // i = sizeof(struct s { int j; });
+      // We do not want to parse this at this point, but unfortunately the ASTVisitor from which we
+      // inherit calls us for such nested declarations.
+      // I am not sure whether we should whitelist only declarations in places we expect or whether
+      // we should blacklist declarations in places we don't want, so for now I choose the latter
+      // because the change has less impact.
+      return PROCESS_SKIP;
+
+    } else  if (declaration instanceof IASTSimpleDeclaration) {
       return handleSimpleDeclaration((IASTSimpleDeclaration)declaration);
 
     } else if (declaration instanceof IASTFunctionDefinition) {

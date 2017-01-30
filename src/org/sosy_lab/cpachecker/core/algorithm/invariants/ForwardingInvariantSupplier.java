@@ -41,11 +41,13 @@ public class ForwardingInvariantSupplier implements InvariantSupplier {
   }
 
   @Override
-  public BooleanFormula getInvariantFor(CFANode pNode,
-                                        Optional<CallstackStateEqualsWrapper> callstackInformation,
-                                        FormulaManagerView pFmgr,
-                                        PathFormulaManager pPfmgr,
-                                        PathFormula pContext) {
+  public BooleanFormula getInvariantFor(
+      CFANode pNode,
+      Optional<CallstackStateEqualsWrapper> callstackInformation,
+      FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr,
+      PathFormula pContext)
+      throws InterruptedException {
     return delegate.getInvariantFor(pNode, callstackInformation, pFmgr, pPfmgr, pContext);
   }
 

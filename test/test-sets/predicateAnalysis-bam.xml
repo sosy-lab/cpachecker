@@ -10,13 +10,6 @@
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-  </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>

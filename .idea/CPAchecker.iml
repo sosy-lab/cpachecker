@@ -302,6 +302,15 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library">
+      <library name="byte-buddy.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/test/byte-buddy.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
       <library name="org.eclipse.cdt.core.jar">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/java/runtime/org.eclipse.cdt.core.jar!/" />

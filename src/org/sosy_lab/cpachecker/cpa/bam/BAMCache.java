@@ -26,7 +26,12 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
-
+import com.google.common.collect.Iterables;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,12 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.logging.Level;
 
 @Options(prefix = "cpa.bam")
 public class BAMCache {
@@ -114,19 +113,18 @@ public class BAMCache {
     lastAnalyzedBlockCache = hash;
   }
 
-  private boolean allStatesContainedInReachedSet(Collection<AbstractState> pElements, ReachedSet reached) {
-    for (AbstractState e : pElements) {
-      if (!reached.contains(e)) { return false; }
-    }
-    return true;
+  private static boolean allStatesContainedInReachedSet(Collection<AbstractState> pElements, ReachedSet reached) {
+    return reached.asCollection().containsAll(pElements);
   }
 
   public void removeReturnEntry(AbstractState stateKey, Precision precisionKey, Block context) {
     returnCache.remove(getHashCode(stateKey, precisionKey, context));
   }
 
-  public void removeBlockEntry(AbstractState stateKey, Precision precisionKey, Block context) {
-    blockARGCache.remove(getHashCode(stateKey, precisionKey, context));
+  public void remove(AbstractState stateKey, Precision precisionKey, Block context) {
+    AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
+    blockARGCache.remove(hash);
+    returnCache.remove(hash);
   }
 
   /**
@@ -146,7 +144,15 @@ public class BAMCache {
     final Collection<AbstractState> returnStates = pair.getSecond();
 
     if (reached != null && returnStates != null) { // we have reached-set and elements
-      assert allStatesContainedInReachedSet(returnStates, reached) : "output-states must be in reached-set";
+      assert Iterables.all(returnStates, s -> !((ARGState) s).isDestroyed())
+          : "do not use destroyed states: " + returnStates;
+      assert allStatesContainedInReachedSet(returnStates, reached)
+          : "output-states must be in reached-set: "
+              + returnStates
+              + " not available in reachedset with root "
+              + reached.getFirstState()
+              + " and last state "
+              + reached.getLastState();
       fullCacheHits++;
     } else if (reached != null) { // we have cached a partly computed reached-set
       partialCacheHits++;
@@ -269,6 +275,7 @@ public class BAMCache {
     noSimilarCausedMisses++;
   }
 
+  @Deprecated /* unused */
   public void clear() {
     preciseReachedCache.clear();
     impreciseReachedCache.clear();

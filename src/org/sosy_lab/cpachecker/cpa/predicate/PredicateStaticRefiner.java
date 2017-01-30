@@ -217,11 +217,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     satCheckTime.start();
     try {
       counterexample =
-          itpManager.buildCounterexampleTrace(
-              formulas,
-              Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-              elementsOnPath,
-              false);
+          itpManager.buildCounterexampleTraceWithoutInterpolation(formulas, elementsOnPath);
     } finally {
       satCheckTime.stop();
     }

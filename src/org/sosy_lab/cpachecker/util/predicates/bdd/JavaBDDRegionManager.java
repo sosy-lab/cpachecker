@@ -277,7 +277,7 @@ class JavaBDDRegionManager implements RegionManager {
 
   private BDD createNewVar() {
     if (nextvar >= varcount) {
-      varcount *= 1.5;
+      varcount = (int) (varcount * 1.5);
       factory.setVarNum(varcount);
     }
     BDD ret = factory.ithVar(nextvar++);

@@ -44,28 +44,28 @@ public class SMGAbstractionManagerTest {
   public void setUp() {
     smg = new CLangSMG(MachineModel.LINUX64);
 
-    SMGRegion globalVar = new SMGRegion(8, "pointer");
+    SMGRegion globalVar = new SMGRegion(64, "pointer");
 
     SMGRegion next = null;
     for (int i = 0; i < 20; i++) {
-      SMGRegion node = new SMGRegion(16, "node " + i);
+      SMGRegion node = new SMGRegion(128, "node " + i);
       SMGEdgeHasValue hv;
       smg.addHeapObject(node);
       if (next != null) {
         int address = SMGValueFactory.getNewValue();
         SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
-        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 8, node, address);
+        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, node, address);
         smg.addValue(address);
         smg.addPointsToEdge(pt);
       } else {
-        hv = new SMGEdgeHasValue(16, 0, node, 0);
+        hv = new SMGEdgeHasValue(128, 0, node, 0);
       }
       smg.addHasValueEdge(hv);
       next = node;
     }
 
     int address = SMGValueFactory.getNewValue();
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 8, globalVar, address);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, globalVar, address);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
     smg.addGlobalObject(globalVar);
     smg.addValue(address);
@@ -75,7 +75,7 @@ public class SMGAbstractionManagerTest {
 
   @Test
   public void testExecute() throws SMGInconsistentException {
-    SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false, null, 4, false, false);
+    SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false, null, 32, false, false);
     SMGAbstractionManager manager = new SMGAbstractionManager(LogManager.createTestLogManager(), smg, dummyState);
     manager.execute();
 

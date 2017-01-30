@@ -23,10 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -36,10 +32,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 /** This class guarantees a fixed order of variables in the BDD,
  * that should be good for the operations in the BitvectorManager. */

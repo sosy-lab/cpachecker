@@ -426,7 +426,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     // arrays are converted to pointers
     assert smgObject.getSize() == pTypeSize
-        || smgObject.getSize() == heap.getMachineModel().getSizeofPtr();
+        || smgObject.getSize() == heap.getMachineModel().getBitSizeofPtr();
 
     heap.addStackObject(smgObject);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -1056,13 +1056,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
             new SMGEdgeHasValue(hve.getType(), hve.getOffset(), pNewRegion, newVal));
       } else {
         MachineModel model = heap.getMachineModel();
-        int sizeOfHveInBytes = hve.getSizeInBytes(model);
+        int sizeOfHveInBits = hve.getSizeInBits(model);
         /*If a restricted field is 0, and bigger than a pointer, add 0*/
-        if (sizeOfHveInBytes > model.getSizeofPtr() && hve.getValue() == 0) {
-          int offset = hve.getOffset() + model.getSizeofPtr();
-          int sizeInBytes = sizeOfHveInBytes - model.getSizeofPtr();
+        if (sizeOfHveInBits > model.getBitSizeofPtr() && hve.getValue() == 0) {
+          int offset = hve.getOffset() + model.getBitSizeofPtr();
+          int sizeInBits = sizeOfHveInBits - model.getBitSizeofPtr();
           SMGEdgeHasValue expandedZeroEdge =
-              new SMGEdgeHasValue(sizeInBytes, offset, pNewRegion, 0);
+              new SMGEdgeHasValue(sizeInBits, offset, pNewRegion, 0);
           heap.addHasValueEdge(expandedZeroEdge);
         }
       }
@@ -1480,7 +1480,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     int offset = pNew_edge.getOffset();
 
     MachineModel maModel = heap.getMachineModel();
-    int sizeOfType = pNew_edge.getSizeInBytes(maModel);
+    int sizeOfType = pNew_edge.getSizeInBits(maModel);
 
     // Shrink overlapping zero edges
     for (SMGEdgeHasValue zeroEdge : pOverlappingZeroEdges) {
@@ -1489,7 +1489,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       int zeroEdgeOffset = zeroEdge.getOffset();
 
       int offset2 = offset + sizeOfType;
-      int zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBytes(maModel);
+      int zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBits(maModel);
 
       if (zeroEdgeOffset < offset) {
         SMGEdgeHasValue newZeroEdge =
@@ -1922,7 +1922,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           // Shrink overlapping zero edge
           int zeroEdgeOffset = edge.getOffset();
 
-          int zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBytes(maModel);
+          int zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits(maModel);
 
           if (zeroEdgeOffset < pTargetRangeOffset) {
             SMGEdgeHasValue newZeroEdge =
@@ -1964,10 +1964,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *  which could not be resolved.
    */
   public SMGState setUnknownDereference() {
-    //TODO: This can actually be an invalid read too
-    //      The flagging mechanism should be improved
+    if (isTrackPredicatesEnabled()) {
+      //TODO: accurate define SMG change on unknown dereference with predicate knowledge
+      //doesn't stop analysis on unknown dereference
+      return this;
+    } else {
 
-    return new SMGState(this, Property.INVALID_WRITE);
+      //TODO: This can actually be an invalid read too
+      //      The flagging mechanism should be improved
+      return new SMGState(this, Property.INVALID_WRITE);
+    }
   }
 
   public SMGObject getNullObject() {
@@ -2059,7 +2065,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.resetErrorRelation();
   }
 
-  public void putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
+  /**
+   *
+   * @param pKey the key.
+   * @param pValue the value.
+   * @return explicit value merged with pKey, or Null if not merged
+   */
+  public SMGKnownSymValue putExplicit(SMGKnownSymValue pKey, SMGKnownExpValue pValue) {
 
     if (explicitValues.inverse().containsKey(pValue)) {
       SMGKnownSymValue symValue = explicitValues.inverse().get(pValue);
@@ -2068,12 +2080,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         explicitValues.remove(symValue);
         heap.mergeValues(pKey.getAsInt(), symValue.getAsInt());
         explicitValues.put(pKey, pValue);
+        return symValue;
       }
 
-      return;
+      return null;
     }
 
     explicitValues.put(pKey, pValue);
+    return null;
   }
 
   public void clearExplicit(SMGKnownSymValue pKey) {
@@ -2401,7 +2415,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public void unknownWrite() {
-    heap.unknownWrite();
+    if (!isTrackPredicatesEnabled()) {
+      heap.unknownWrite();
+    }
   }
 
   public CLangStackFrame getStackFrame() {

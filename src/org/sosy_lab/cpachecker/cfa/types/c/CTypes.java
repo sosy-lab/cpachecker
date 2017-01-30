@@ -209,6 +209,12 @@ public final class CTypes {
     public CType visit(CVoidType t) {
       return CVoidType.create(constValue, t.isVolatile());
     }
+
+    @Override
+    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      return new CBitFieldType(
+          pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
+    }
   }
 
   private static enum ForceVolatileVisitor implements CTypeVisitor<CType, RuntimeException> {
@@ -271,6 +277,12 @@ public final class CTypes {
     @Override
     public CType visit(CVoidType t) {
       return CVoidType.create(t.isConst(), volatileValue);
+    }
+
+    @Override
+    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      return new CBitFieldType(
+          pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
     }
   }
 }

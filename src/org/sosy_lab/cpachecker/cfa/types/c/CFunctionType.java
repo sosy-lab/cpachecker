@@ -44,8 +44,8 @@ public class CFunctionType extends AFunctionType implements CType {
 
   public final static CFunctionType NO_ARGS_VOID_FUNCTION = functionTypeWithReturnType(CVoidType.VOID);
 
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final boolean isConst;
+  private final boolean isVolatile;
   private String name = null;
 
   public CFunctionType(

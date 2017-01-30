@@ -24,17 +24,26 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
 public class AnonymousTypes {
-  public static CType createTypeWithLength(long pSizeInBytes) {
-    CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.UNSIGNED_LONG_INT, BigInteger.valueOf(pSizeInBytes));
-    return new CArrayType(false, false, CNumericTypes.SIGNED_CHAR, arrayLen);
+  public static CType createTypeWithLength(int pSizeInBits) {
+    if (pSizeInBits % 8 == 0) {
+      CIntegerLiteralExpression arrayLen = new CIntegerLiteralExpression(FileLocation.DUMMY,
+          CNumericTypes.UNSIGNED_LONG_INT, BigInteger.valueOf(pSizeInBits / 8));
+      return new CArrayType(false, false, CNumericTypes.SIGNED_CHAR, arrayLen);
+    } else {
+      CSimpleType fieldType = new CSimpleType(false, false, CBasicType.CHAR, false, false, true, false, false, false, false);
+      CType bitFieldType = new CBitFieldType(fieldType, pSizeInBits);
+      return bitFieldType;
+    }
   }
 }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ImmutableSet;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -108,6 +107,15 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     if (maxArrayLength == -1) {
       maxArrayLength = Integer.MAX_VALUE;
     }
+  }
+
+  @Override
+  public boolean shouldAbortOnLargeArrays() {
+    if (useArraysForHeap() || useQuantifiersOnArrays()) {
+      // In this case large arrays are maybe possible to handle
+      return false;
+    }
+    return super.shouldAbortOnLargeArrays();
   }
 
   boolean hasSuperfluousParameters(final String name) {

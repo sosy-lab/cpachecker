@@ -27,7 +27,15 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -46,16 +54,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Stack;
-
 /**
  * Manipulating proof-carrying code for BAM.
  */
@@ -71,6 +69,9 @@ public final class BAMPCCManager {
   private final Reducer wrappedReducer;
   private final BAMCPA bamCPA;
   private final BAMDataManager data;
+
+  // Warning: current block depends on current state!
+  private Block currentBlock = null;
 
   public BAMPCCManager(
       ProofChecker pWrappedProofChecker,
@@ -301,13 +302,12 @@ public final class BAMPCCManager {
    * Attach PCC-specific information to successors.
    */
   Collection<? extends AbstractState> attachAdditionalInfoToCallNodes(
-      Collection<? extends AbstractState> pSuccessors,
-      Block currentBlock) {
+      Collection<? extends AbstractState> pSuccessors) {
     List<AbstractState> successorsWithExtendedInfo = new ArrayList<>(pSuccessors.size());
     for (AbstractState elem : pSuccessors) {
       if (!(elem instanceof ARGState)) { return pSuccessors; }
       if (!(elem instanceof BAMARGBlockStartState)) {
-        successorsWithExtendedInfo.add(createAdditionalInfo((ARGState) elem, currentBlock));
+        successorsWithExtendedInfo.add(createAdditionalInfo((ARGState) elem));
       } else {
         successorsWithExtendedInfo.add(elem);
       }
@@ -315,15 +315,15 @@ public final class BAMPCCManager {
     return successorsWithExtendedInfo;
   }
 
-  AbstractState attachAdditionalInfoToCallNode(AbstractState pElem, Block currentBlock) {
+  AbstractState attachAdditionalInfoToCallNode(AbstractState pElem) {
     if (!(pElem instanceof BAMARGBlockStartState)
         && pElem instanceof ARGState) {
-      return createAdditionalInfo((ARGState) pElem, currentBlock);
+      return createAdditionalInfo((ARGState) pElem);
     }
     return pElem;
   }
 
-  private ARGState createAdditionalInfo(ARGState pElem, Block currentBlock) {
+  private ARGState createAdditionalInfo(ARGState pElem) {
     CFANode node = AbstractStates.extractLocation(pElem);
     if (partitioning.isCallNode(node) &&
         !partitioning.getBlockForCallNode(node).equals(currentBlock)) {
@@ -348,5 +348,9 @@ public final class BAMPCCManager {
       throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
     }
     ((BAMARGBlockStartState) pElement).setAnalyzedBlock(data.bamCache.getLastAnalyzedBlock());
+  }
+
+  void setCurrentBlock(Block pCurrentBlock) {
+    currentBlock = pCurrentBlock;
   }
 }

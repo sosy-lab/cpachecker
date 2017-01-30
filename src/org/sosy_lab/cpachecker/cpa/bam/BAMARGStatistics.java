@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.MissingBlockException;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 
 public class BAMARGStatistics extends ARGStatistics {
 
@@ -102,7 +102,7 @@ public class BAMARGStatistics extends ARGStatistics {
     // This might cause a lot of overhead, because of missing blocks,
     // aggressive caching, and multi-usage of blocks.
 
-    final BAMCEXSubgraphComputer cexSubgraphComputer = new BAMCEXSubgraphComputer(bamCpa);
+    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
 
     ARGState rootOfSubgraph = null;
     try {

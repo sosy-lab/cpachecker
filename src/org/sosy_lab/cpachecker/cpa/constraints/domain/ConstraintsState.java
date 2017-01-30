@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.constraints.FormulaCreator;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
@@ -59,7 +61,7 @@ import java.util.Set;
 /**
  * State for Constraints Analysis. Stores constraints and whether they are solvable.
  */
-public class ConstraintsState implements AbstractState, Set<Constraint> {
+public class ConstraintsState implements AbstractState, Graphable, Set<Constraint> {
 
   /**
    * Stores identifiers and their corresponding constraints
@@ -318,9 +320,7 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
   private void computeDefiniteAssignment() throws SolverException, InterruptedException {
     try (Model validAssignment = prover.getModel()) {
       for (ValueAssignment val : validAssignment) {
-        Formula term = val.getKey();
-
-        if (isSymbolicTerm(term)) {
+        if (isSymbolicTerm(val.getName())) {
 
           SymbolicIdentifier identifier = toSymbolicIdentifier(val.getName());
           Value concreteValue = convertToValue(val);
@@ -383,10 +383,10 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     return new IdentifierAssignment(definiteAssignment);
   }
 
-  private boolean isSymbolicTerm(Formula pTerm) {
+  private boolean isSymbolicTerm(String pTerm) {
 
     // TODO: is it valid to get the variable name? use the visitor instead?
-    return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm.toString());
+    return SymbolicIdentifier.Converter.getInstance().isSymbolicEncoding(pTerm);
   }
 
   private boolean isOnlySatisfyingAssignment(ValueAssignment pTerm)
@@ -500,6 +500,22 @@ public class ConstraintsState implements AbstractState, Set<Constraint> {
     }
 
     return sb.append("] size->  ").append(constraints.size()).toString();
+  }
+
+  @Override
+  public String toDOTLabel() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("[");
+    Joiner.on(", ").appendTo(sb, constraints);
+    sb.append("]");
+
+    return sb.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
   }
 
   private class ConstraintIterator implements Iterator<Constraint> {

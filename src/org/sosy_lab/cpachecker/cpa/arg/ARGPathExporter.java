@@ -127,10 +127,10 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
@@ -146,7 +146,7 @@ public class ARGPathExporter {
   private static final EnumSet<KeyDef> INSUFFICIENT_KEYS =
       EnumSet.of(
           KeyDef.SOURCECODE,
-          KeyDef.ORIGINLINE,
+          KeyDef.STARTLINE,
           KeyDef.ORIGINFILE,
           KeyDef.OFFSET,
           KeyDef.LINECOLS,
@@ -190,6 +190,9 @@ public class ARGPathExporter {
   @Option(secure=true, description="Verification witness: Include an thread-identifier within the file?")
   private boolean exportThreadId = false;
 
+  @Option(secure=true, description="Some redundant transitions will be removed")
+  private boolean removeInsufficientEdges = true;
+
   @Option(
     secure = true,
     description = "Verification witness: Revert escaping/renaming of functions for threads?"
@@ -209,8 +212,6 @@ public class ARGPathExporter {
 
   private final VerificationTaskMetaData verificationTaskMetaData;
 
-  private final Specification specification;
-
   public ARGPathExporter(
       final Configuration pConfig,
       final LogManager pLogger,
@@ -223,8 +224,8 @@ public class ARGPathExporter {
     this.machineModel = pCFA.getMachineModel();
     this.language = pCFA.getLanguage();
     this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
-    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig);
-    this.specification = pSpecification;
+    this.verificationTaskMetaData =
+        new VerificationTaskMetaData(pConfig, Optional.of(pSpecification));
   }
 
   public void writeErrorWitness(
@@ -236,7 +237,7 @@ public class ARGPathExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName, GraphType.ERROR_WITNESS);
+    WitnessWriter writer = new WitnessWriter(defaultFileName, WitnessType.VIOLATION_WITNESS);
     writer.writePath(
         pTarget,
         pRootState,
@@ -320,7 +321,7 @@ public class ARGPathExporter {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer =
-        new WitnessWriter(defaultFileName, GraphType.PROOF_WITNESS, pInvariantProvider);
+        new WitnessWriter(defaultFileName, WitnessType.CORRECTNESS_WITNESS, pInvariantProvider);
     writer.writePath(
         pTarget,
         pRootState,
@@ -365,18 +366,20 @@ public class ARGPathExporter {
     private final Map<Edge, CFANode> loopHeadEnteringEdges = Maps.newHashMap();
 
     private final String defaultSourcefileName;
-    private final GraphType graphType;
+    private final WitnessType graphType;
 
     private final InvariantProvider invariantProvider;
 
     private boolean isFunctionScope = false;
 
-    public WitnessWriter(@Nullable String pDefaultSourcefileName, GraphType pGraphType) {
+    public WitnessWriter(@Nullable String pDefaultSourcefileName, WitnessType pGraphType) {
       this(pDefaultSourcefileName, pGraphType, InvariantProvider.TrueInvariantProvider.INSTANCE);
     }
 
     public WitnessWriter(
-        String pDefaultSourceFileName, GraphType pGraphType, InvariantProvider pInvariantProvider) {
+        String pDefaultSourceFileName,
+        WitnessType pGraphType,
+        InvariantProvider pInvariantProvider) {
       this.defaultSourcefileName = pDefaultSourceFileName;
       this.graphType = pGraphType;
       this.invariantProvider = pInvariantProvider;
@@ -384,7 +387,6 @@ public class ARGPathExporter {
 
     @Override
     public void appendNewEdge(
-        final GraphMlBuilder pDoc,
         String pFrom,
         final String pTo,
         final CFAEdge pEdge,
@@ -408,12 +410,11 @@ public class ARGPathExporter {
 
     @Override
     public void appendNewEdgeToSink(
-        GraphMlBuilder pDoc,
         String pFrom,
         CFAEdge pEdge,
         Optional<Collection<ARGState>> pFromState,
         Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-      appendNewEdge(pDoc, pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap);
+      appendNewEdge(pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap);
     }
 
     private void attemptSwitchToFunctionScope(CFAEdge pEdge) {
@@ -439,9 +440,9 @@ public class ARGPathExporter {
         final Optional<Collection<ARGState>> pFromState,
         final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
-      TransitionCondition result = new TransitionCondition();
+      TransitionCondition result = TransitionCondition.empty();
 
-      if (graphType != GraphType.ERROR_WITNESS) {
+      if (graphType != WitnessType.VIOLATION_WITNESS) {
         ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
         if (exportInvariant(pEdge)) {
           invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
@@ -487,7 +488,7 @@ public class ARGPathExporter {
                           .anyMatch(
                               sibling -> sibling.getRawStatement().startsWith("pointer call")))) {
             // remove all info from transitionCondition
-            return new TransitionCondition();
+            return TransitionCondition.empty();
           }
           AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
           result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
@@ -501,7 +502,7 @@ public class ARGPathExporter {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
         result =
-            result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(min.getStartingLineInOrigin()));
+            result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
       }
 
       if (exportOffset && minFileLocation.isPresent()) {
@@ -683,7 +684,7 @@ public class ARGPathExporter {
         }
       }
 
-      if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
+      if (graphType != WitnessType.CORRECTNESS_WITNESS && exportAssumptions && !code.isEmpty()) {
         ExpressionTree<Object> invariant = factory.or(code);
         CExpressionToOrinalCodeVisitor transformer =
             resultVariable.isPresent()
@@ -854,21 +855,16 @@ public class ARGPathExporter {
         valueMap = pCounterExample.get().getExactVariableValues();
       }
 
-      GraphMlBuilder doc;
+      final GraphMlBuilder doc;
       try {
         doc =
             new GraphMlBuilder(
-                graphType,
-                defaultSourcefileName,
-                language,
-                machineModel,
-                verificationTaskMetaData,
-                specification);
+                graphType, defaultSourcefileName, language, machineModel, verificationTaskMetaData);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }
 
-      String entryStateNodeId = pGraphBuilder.getId(pRootState);
+      final String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       // Collect node flags in advance
       for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState)) {
@@ -894,24 +890,8 @@ public class ARGPathExporter {
           collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState),
           this);
 
-      // Remove edges that lead to the sink but have a sibling edge that has the same label
-      Collection<Edge> toRemove = Sets.newHashSet();
-      for (Edge edge : leavingEdges.values()) {
-        if (edge.target.equals(SINK_NODE_ID)) {
-          for (Edge otherEdge : leavingEdges.get(edge.source)) {
-            if (!edge.equals(otherEdge)
-                && edge.label.equals(otherEdge.label)
-                && !toRemove.contains(otherEdge)) {
-              toRemove.add(edge);
-              break;
-            }
-          }
-        }
-      }
-      for (Edge edge : toRemove) {
-        boolean removed = removeEdge(edge);
-        assert removed;
-      }
+      // remove redundant edges leading to sink
+      removeUnnecessarySinkEdges();
 
       // Merge nodes with empty or repeated edges
       Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier =
@@ -926,32 +906,63 @@ public class ARGPathExporter {
       }
 
       // Write elements
-      {
-        Map<String, Element> nodes = Maps.newHashMap();
-        Deque<String> waitlist = Queues.newArrayDeque();
-        waitlist.push(entryStateNodeId);
-        Element entryNode = createNewNode(doc, entryStateNodeId);
-        addInvariantsData(doc, entryNode, entryStateNodeId);
-        nodes.put(entryStateNodeId, entryNode);
-        while (!waitlist.isEmpty()) {
-          String source = waitlist.pop();
-          for (Edge edge : leavingEdges.get(source)) {
-            setLoopHeadInvariantIfApplicable(edge.target);
+      writeElementsOfGraphToDoc(doc, entryStateNodeId);
+      doc.appendTo(pTarget);
+    }
 
-            Element targetNode = nodes.get(edge.target);
-            if (targetNode == null) {
-              targetNode = createNewNode(doc, edge.target);
-              if (!ExpressionTrees.getFalse()
-                  .equals(addInvariantsData(doc, targetNode, edge.target))) {
-                waitlist.push(edge.target);
+    /** Remove edges that lead to the sink but have a sibling edge that has the same label.
+     *
+     * <p>
+     * We additionally remove redundant edges.
+     * This is needed for concurrency witnesses at thread-creation.
+     * </p>
+     */
+    private void removeUnnecessarySinkEdges() {
+      final Collection<Edge> toRemove = Sets.newHashSet();
+      for (Edge edge : leavingEdges.values()) {
+        if (edge.target.equals(SINK_NODE_ID)) {
+          for (Edge otherEdge : leavingEdges.get(edge.source)) {
+            // ignore the edge itself, as well as already handled edges.
+            if (!edge.equals(otherEdge) && !toRemove.contains(otherEdge)) {
+              // remove edges with either identical labels or redundant edge-transition
+              if (edge.label.equals(otherEdge.label) || isEdgeRedundant.apply(edge)) {
+                toRemove.add(edge);
+                break;
               }
-              nodes.put(edge.target, targetNode);
             }
-            createNewEdge(doc, edge, targetNode);
           }
         }
       }
-      doc.appendTo(pTarget);
+      for (Edge edge : toRemove) {
+        boolean removed = removeEdge(edge);
+        assert removed;
+      }
+    }
+
+    private void writeElementsOfGraphToDoc(GraphMlBuilder doc, String entryStateNodeId) {
+      Map<String, Element> nodes = Maps.newHashMap();
+      Deque<String> waitlist = Queues.newArrayDeque();
+      waitlist.push(entryStateNodeId);
+      Element entryNode = createNewNode(doc, entryStateNodeId);
+      addInvariantsData(doc, entryNode, entryStateNodeId);
+      nodes.put(entryStateNodeId, entryNode);
+      while (!waitlist.isEmpty()) {
+        String source = waitlist.pop();
+        for (Edge edge : leavingEdges.get(source)) {
+          setLoopHeadInvariantIfApplicable(edge.target);
+
+          Element targetNode = nodes.get(edge.target);
+          if (targetNode == null) {
+            targetNode = createNewNode(doc, edge.target);
+            if (!ExpressionTrees.getFalse()
+                .equals(addInvariantsData(doc, targetNode, edge.target))) {
+              waitlist.push(edge.target);
+            }
+            nodes.put(edge.target, targetNode);
+          }
+          createNewEdge(doc, edge, targetNode);
+        }
+      }
     }
 
     private void setLoopHeadInvariantIfApplicable(String pTarget) {
@@ -1074,8 +1085,10 @@ public class ARGPathExporter {
               return true;
             }
 
-            if (INSUFFICIENT_KEYS.containsAll(pEdge.label.getMapping().keySet())) {
-              return true;
+            if (removeInsufficientEdges) {
+              if (INSUFFICIENT_KEYS.containsAll(pEdge.label.getMapping().keySet())) {
+                return true;
+              }
             }
 
             return false;
@@ -1118,7 +1131,13 @@ public class ARGPathExporter {
       // Add them as leaving edges to the source node,
       // Add them as entering edges to their target nodes
       for (Edge leavingEdge : leavingEdgesToMove) {
-        TransitionCondition label = pEdge.label.putAllAndCopy(leavingEdge.label);
+        TransitionCondition label;
+        // Don't merge "originfile" tag if leavingEdge corresponds to default originfile
+        if (leavingEdge.label.getMapping().containsKey(KeyDef.SOURCECODE)) {
+          label = pEdge.label.removeAndCopy(KeyDef.ORIGINFILE).putAllAndCopy(leavingEdge.label);
+        } else {
+          label = pEdge.label.putAllAndCopy(leavingEdge.label);
+        }
         Edge replacementEdge = new Edge(source, leavingEdge.target, label);
         putEdge(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);

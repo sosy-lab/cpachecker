@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 
@@ -40,6 +39,8 @@ public final class CElaboratedType implements CComplexType {
   private final String origName;
   private final boolean isConst;
   private final boolean isVolatile;
+
+  private int hashCache = 0;
 
   private CComplexType realType = null;
 
@@ -160,6 +161,7 @@ public final class CElaboratedType implements CComplexType {
 
   @Override
   public int hashCode() {
+    if (hashCache == 0) {
       final int prime = 31;
       int result = 7;
       result = prime * result + Objects.hashCode(isConst);
@@ -167,7 +169,9 @@ public final class CElaboratedType implements CComplexType {
       result = prime * result + Objects.hashCode(kind);
       result = prime * result + Objects.hashCode(name);
       result = prime * result + Objects.hashCode(realType);
-      return result;
+      hashCache = result;
+    }
+    return hashCache;
   }
 
   /**

@@ -33,6 +33,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -52,7 +56,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-
+@Options(prefix="cpa.predicate.bam")
 public class BAMPredicateReducer implements Reducer {
 
   private final PathFormulaManager pmgr;
@@ -61,19 +65,31 @@ public class BAMPredicateReducer implements Reducer {
   private final LogManager logger;
   private final BooleanFormulaManager bfmgr;
 
-  private final boolean reducePrecision;
-  private final boolean reduceIrrelevantPrecision;
-  private final boolean reduceAbstraction;
+  /** A meaning of the following options is a number of problems in BAM:
+   *  sometimes it is more efficient not to reduce precision, than to have a
+   *  RepeatedCounterexampleException.
+   *  The results without both of reductions are better (now).
+   *  However, there are not only one possible combination of the options,
+   *  so, (at least now) there should not be used a single option for switching to NoOpReducer.
+   */
+  @Option(description = "Enable/disable precision reduction at the BAM block entry", secure = true)
+  private boolean usePrecisionReduction = true;
 
-  public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa) {
+  @Option(description = "Enable/disable abstraction reduction at the BAM block entry", secure = true)
+  private boolean useAbstractionReduction = true;
+
+  @Option(description = "Enable/disable precision reduction using RelevantPredicateComputer", secure = true)
+  private boolean reduceIrrelevantPrecision = true;
+
+  public BAMPredicateReducer(
+      BooleanFormulaManager bfmgr, BAMPredicateCPA cpa, Configuration pConfig)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
     this.bfmgr = bfmgr;
     this.logger = cpa.getLogger();
     this.cpa = cpa;
-    this.reducePrecision = cpa.usePrecisionReduction();
-    this.reduceAbstraction = cpa.useAbstractionReduction();
-    this.reduceIrrelevantPrecision = cpa.reduceIrrelevantPrecision();
   }
 
   @Override
@@ -81,7 +97,7 @@ public class BAMPredicateReducer implements Reducer {
       AbstractState pExpandedState, Block pContext,
       CFANode pLocation) throws InterruptedException {
 
-    if (reduceAbstraction) {
+    if (useAbstractionReduction) {
       PredicateAbstractState predicateElement = (PredicateAbstractState) pExpandedState;
       Preconditions.checkState(predicateElement.isAbstractionState());
 
@@ -117,7 +133,7 @@ public class BAMPredicateReducer implements Reducer {
       AbstractState pRootState, Block pReducedContext,
       AbstractState pReducedState) throws InterruptedException {
 
-    if (reduceAbstraction) {
+    if (useAbstractionReduction) {
       PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
       PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
 
@@ -189,7 +205,7 @@ public class BAMPredicateReducer implements Reducer {
   public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
       Precision pReducedPrecision) {
 
-    if (reducePrecision) {
+    if (usePrecisionReduction) {
       PredicatePrecision rootPrecision = (PredicatePrecision) pRootPrecision;
       PredicatePrecision reducedPrecision = (PredicatePrecision) pReducedPrecision;
 
@@ -212,9 +228,10 @@ public class BAMPredicateReducer implements Reducer {
 
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision, Block context) {
-    PredicatePrecision expandedPredicatePrecision = (PredicatePrecision) pPrecision;
 
-    if (reducePrecision) {
+    if (usePrecisionReduction) {
+      PredicatePrecision expandedPredicatePrecision = (PredicatePrecision) pPrecision;
+
       assert expandedPredicatePrecision.getLocationInstancePredicates().isEmpty() :
         "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
       /* LocationInstancePredicates is useless, because a block can be visited
@@ -226,21 +243,15 @@ public class BAMPredicateReducer implements Reducer {
       // create reduced precision
 
       // we only need global predicates with used variables
-      Collection<AbstractionPredicate> predicates = expandedPredicatePrecision.getGlobalPredicates();
-      if (reduceIrrelevantPrecision) {
-        predicates = cpa.getRelevantPredicatesComputer().getRelevantPredicates(context, predicates);
-      }
-      final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(predicates);
+      final ImmutableSet<AbstractionPredicate> globalPredicates = ImmutableSet.copyOf(getRelevantPredicates(
+          context, expandedPredicatePrecision.getGlobalPredicates()));
 
       // we only need function predicates with used variables
       final ImmutableSetMultimap.Builder<String, AbstractionPredicate> functionPredicatesBuilder = ImmutableSetMultimap.builder();
       for (String functionname : expandedPredicatePrecision.getFunctionPredicates().keySet()) {
         // TODO only add vars if functionname is used in block?
-        predicates = expandedPredicatePrecision.getFunctionPredicates().get(functionname);
-        if (reduceIrrelevantPrecision) {
-          predicates = cpa.getRelevantPredicatesComputer().getRelevantPredicates(context, predicates);
-        }
-        functionPredicatesBuilder.putAll(functionname, predicates);
+        functionPredicatesBuilder.putAll(functionname, getRelevantPredicates(
+            context, expandedPredicatePrecision.getFunctionPredicates().get(functionname)));
       }
       final ImmutableSetMultimap<String, AbstractionPredicate> functionPredicates = functionPredicatesBuilder.build();
 
@@ -250,11 +261,8 @@ public class BAMPredicateReducer implements Reducer {
         if (context.getNodes().contains(node)) {
           // TODO handle location-instance-specific predicates
           // Without support for them, we can just pass 0 as locInstance parameter
-          predicates = expandedPredicatePrecision.getPredicates(node, 0);
-          if (reduceIrrelevantPrecision) {
-            predicates = cpa.getRelevantPredicatesComputer().getRelevantPredicates(context, predicates);
-          }
-          localPredicatesBuilder.putAll(node, predicates);
+          localPredicatesBuilder.putAll(node, getRelevantPredicates(
+              context, expandedPredicatePrecision.getPredicates(node, 0)));
         }
       }
       final ImmutableSetMultimap<CFANode, AbstractionPredicate> localPredicates = localPredicatesBuilder.build();
@@ -272,6 +280,14 @@ public class BAMPredicateReducer implements Reducer {
           globalPredicates);
     } else {
       return pPrecision;
+    }
+  }
+
+  private Collection<AbstractionPredicate> getRelevantPredicates(Block context, ImmutableSet<AbstractionPredicate> predicates) {
+    if (reduceIrrelevantPrecision) {
+      return cpa.getRelevantPredicatesComputer().getRelevantPredicates(context, predicates);
+    } else {
+      return predicates;
     }
   }
 

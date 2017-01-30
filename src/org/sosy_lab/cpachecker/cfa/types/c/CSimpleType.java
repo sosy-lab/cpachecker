@@ -27,14 +27,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
-
+import com.google.errorprone.annotations.Immutable;
+import com.google.errorprone.annotations.concurrent.LazyInit;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
+@Immutable
 public final class CSimpleType implements CType, Serializable {
 
 
@@ -47,10 +48,10 @@ public final class CSimpleType implements CType, Serializable {
   private final boolean isComplex;
   private final boolean isImaginary;
   private final boolean isLongLong;
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final boolean isConst;
+  private final boolean isVolatile;
 
-  private int hashCache = 0;
+  @LazyInit private int hashCache = 0;
 
   public CSimpleType(final boolean pConst, final boolean pVolatile,
       final CBasicType pType, final boolean pIsLong, final boolean pIsShort,
@@ -233,6 +234,16 @@ public final class CSimpleType implements CType, Serializable {
       return this;
     }
 
-    return new CSimpleType(isConst || pForceConst, isVolatile || pForceVolatile, newType, isLong, isShort, newIsSigned, isUnsigned, isComplex, isImaginary, isLongLong);
+    return new CSimpleType(
+        isConst || pForceConst,
+        isVolatile || pForceVolatile,
+        newType,
+        isLong,
+        isShort,
+        newIsSigned,
+        isUnsigned,
+        isComplex,
+        isImaginary,
+        isLongLong);
   }
 }

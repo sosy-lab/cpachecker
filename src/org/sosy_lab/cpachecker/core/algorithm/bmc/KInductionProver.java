@@ -215,7 +215,7 @@ class KInductionProver implements AutoCloseable {
         return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
       } else {
         // in the general case we have to retrieve the invariants from a reachedset
-        return new FormulaInvariantsSupplier(invariantGenerator.get(), logger);
+        return new FormulaInvariantsSupplier(invariantGenerator.get());
       }
     } catch (CPAException e) {
       logger.logUserException(Level.FINE, e, "Invariant generation failed.");
@@ -431,8 +431,10 @@ class KInductionProver implements AutoCloseable {
       assertions.put(candidateInvariant, predecessorAssertion);
     }
 
-    // Assert the known invariants at the loop head at the first iteration.
+    // Assert the known invariants at the loop head at end of the first iteration.
 
+    stepCaseBoundsCPA.setMaxLoopIterations(pK + 1);
+    BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
     FluentIterable<AbstractState> loopHeadStates = filterLoopHeadStates(reached, loopHeads);
     BooleanFormula loopHeadInv =
         bfmgr.and(
@@ -444,9 +446,6 @@ class KInductionProver implements AutoCloseable {
     }
 
     // Create the formula asserting the faultiness of the successor
-    stepCaseBoundsCPA.setMaxLoopIterations(pK + 1);
-    BMCHelper.unroll(logger, reached, reachedSetInitializer, algorithm, cpa);
-    loopHeadStates = filterLoopHeadStates(reached, loopHeads);
 
     this.previousK = pK + 1;
 
@@ -554,15 +553,26 @@ class KInductionProver implements AutoCloseable {
 
   private FluentIterable<AbstractState> filterLoopHeadStates(ReachedSet pReached,
       ImmutableSet<CFANode> pLoopHeads) {
-    return AbstractStates.filterLocations(pReached, pLoopHeads)
-        .filter(
-            pArg0 -> {
-              if (pArg0 == null) {
-                return false;
-              }
-              BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
-              return ls != null && (ls.getDeepestIteration() == 1 || ls.getDeepestIteration() == 2);
-            });
+    FluentIterable<AbstractState> loopHeadStates =
+        AbstractStates.filterLocations(pReached, pLoopHeads);
+    FluentIterable<AbstractState> firstItStates = filterIteration(loopHeadStates, 1);
+    FluentIterable<AbstractState> secondItStates = filterIteration(loopHeadStates, 2);
+    if (secondItStates.isEmpty()) {
+      return firstItStates;
+    }
+    return secondItStates;
+  }
+
+  private FluentIterable<AbstractState> filterIteration(
+      FluentIterable<AbstractState> pStates, int pIteration) {
+    return pStates.filter(
+        pArg0 -> {
+          if (pArg0 == null) {
+            return false;
+          }
+          BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
+          return ls != null && ls.getDeepestIteration() == pIteration;
+        });
   }
 
   private static boolean isSizeLessThanOrEqualTo(Iterable<?> pElements, int pLimit) {
@@ -582,7 +592,7 @@ class KInductionProver implements AutoCloseable {
           return true;
         })
         .filter(Predicates.not(Predicates.in(confirmedCandidates)));
-    if (remainingLoopHeadCandidateInvariants.isEmpty()) {
+    if (remainingLoopHeadCandidateInvariants.size() <= 1) {
       return Collections.emptySet();
     }
     CandidateInvariantConjunction artificialConjunction = CandidateInvariantConjunction.of(remainingLoopHeadCandidateInvariants);

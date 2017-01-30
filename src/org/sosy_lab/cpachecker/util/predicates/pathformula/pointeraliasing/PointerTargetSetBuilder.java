@@ -34,7 +34,13 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -51,14 +57,6 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedSet;
 
 
 public interface PointerTargetSetBuilder {
@@ -332,7 +330,7 @@ public interface PointerTargetSetBuilder {
         for (int i = 0; i < length; ++i) {
           addTargets(base, arrayType.getType(), offset, containerOffset + properOffset,
                      composite, memberName);
-          offset += typeHandler.getSizeof(arrayType.getType());
+          offset += typeHandler.getBitSizeof(arrayType.getType());
         }
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
@@ -340,7 +338,7 @@ public interface PointerTargetSetBuilder {
         final String type = CTypeUtils.typeToString(compositeType);
         final boolean isTargetComposite = type.equals(composite);
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          final int offset = typeHandler.getOffset(compositeType, memberDeclaration.getName());
+          final int offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
           if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
             addTargets(base, memberDeclaration.getType(), offset, containerOffset + properOffset,
                        composite, memberName);

@@ -338,8 +338,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     return interpolationManager.buildCounterexampleTrace(
         formulas,
         Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-        elementsOnPath,
-        true);
+        elementsOnPath);
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
@@ -350,11 +349,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       throws CPAException, InterruptedException {
 
     CounterexampleTraceInfo counterexample =
-        interpolationManager.buildCounterexampleTrace(
-            formulas,
-            Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-            elementsOnPath,
-            false);
+        interpolationManager.buildCounterexampleTraceWithoutInterpolation(formulas, elementsOnPath);
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -392,7 +387,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     }
   }
 
-  private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace) {
+  private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace)
+      throws InterruptedException {
     List<BooleanFormula> precisionIncrement = new ArrayList<>();
     boolean invIsTriviallyTrue = true;
 

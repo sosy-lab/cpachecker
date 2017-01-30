@@ -24,29 +24,23 @@
 package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Throwables;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimaps;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -57,8 +51,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.blockcount.BlockCountCPA;
-import org.sosy_lab.cpachecker.cpa.blockcount.BlockCountState;
+import org.sosy_lab.cpachecker.cpa.nondeterminism.NondeterminismState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -66,12 +59,14 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 
-public class BackwardTransition {
+public class ForwardTransition {
 
   private static final Predicate<AbstractState> IS_BLOCK_START =
-      pInput -> AbstractStates.extractStateByType(pInput, BlockCountState.class).isStopState();
+      PredicateAbstractState.CONTAINS_ABSTRACTION_STATE;
 
   private final Algorithm algorithm;
 
@@ -81,21 +76,15 @@ public class BackwardTransition {
 
   private final PathFormulaManager pathFormulaManager;
 
-  private final LoadingCache<CFANode, Iterable<Block>> cache =
-      CacheBuilder.newBuilder()
-          .weakKeys()
-          .weakValues()
-          .<CFANode, Iterable<Block>>build(
-              new CacheLoader<CFANode, Iterable<Block>>() {
+  private final Multimap<CFANode, Block> blocks = HashMultimap.create();
 
-                @Override
-                public Iterable<Block> load(CFANode pCacheKey) throws CPAException, InterruptedException {
-                  return getBlocksTo0(pCacheKey);
-                }
-              });
+  private final CFA cfa;
 
-  public BackwardTransition(
-      ReachedSetFactory pReachedSetFactory, ConfigurableProgramAnalysis pCPA, Algorithm pAlgorithm)
+  public ForwardTransition(
+      ReachedSetFactory pReachedSetFactory,
+      ConfigurableProgramAnalysis pCPA,
+      Algorithm pAlgorithm,
+      CFA pCFA)
       throws InvalidConfigurationException {
 
     reachedSetFactory = pReachedSetFactory;
@@ -109,12 +98,6 @@ public class BackwardTransition {
     }
     pathFormulaManager = predicateCPA.getPathFormulaManager();
 
-    BlockCountCPA blockCountCPA = CPAs.retrieveCPA(cpa, BlockCountCPA.class);
-    if (blockCountCPA == null) {
-      throw new InvalidConfigurationException(
-          "BlockCountCPA required for transitions in the PDRAlgorithm");
-    }
-
     ARGCPA argCPA = CPAs.retrieveCPA(cpa, ARGCPA.class);
     if (argCPA == null) {
       throw new InvalidConfigurationException(
@@ -122,135 +105,117 @@ public class BackwardTransition {
     }
 
     algorithm = pAlgorithm;
+    cfa = pCFA;
   }
 
   /**
-   * Gets all blocks from predecessors to the given successor location.
+   * Gets all blocks from the given predecessor to successor locations.
    *
-   * A cache will be used to store results and retrieve previously computed
-   * blocks from.
+   * <p>A cache will be used to store results and retrieve previously computed blocks from.
    *
-   * @param pSuccessorLocation the successor location of the resulting blocks.
-   * @return all blocks from predecessors to the given successor location.
-   * @throws CPAException if the analysis creating the blocks encounters an
-   * exception.
+   * @param pPredecessorLocation the predecessor location of the resulting blocks.
+   * @return all blocks from the given predecessor to successor locations.
+   * @throws CPAException if the analysis creating the blocks encounters an exception.
    * @throws InterruptedException if block creation was interrupted.
    */
-  public FluentIterable<Block> getBlocksTo(CFANode pSuccessorLocation)
+  public FluentIterable<Block> getBlocksFrom(CFANode pPredecessorLocation)
       throws CPAException, InterruptedException {
-    return getBlocksTo(pSuccessorLocation, true);
+    if (blocks.isEmpty()) {
+      computeBlocks();
+    }
+    Iterable<Block> result = blocks.get(pPredecessorLocation);
+    if (result == null) {
+      return FluentIterable.of();
+    }
+    return FluentIterable.from(result);
   }
 
-  /**
-   * Gets all blocks from predecessors to the given successor location.
-   *
-   * @param pSuccessorLocation the successor location of the resulting blocks.
-   * @param pUseCache whether to store the results in or retrieve them from a
-   * cache.
-   *
-   * @return all blocks from predecessors to the given successor location.
-   * @throws CPAException if the analysis creating the blocks encounters an
-   * exception.
-   * @throws InterruptedException if block creation was interrupted.
-   */
-  public FluentIterable<Block> getBlocksTo(CFANode pSuccessorLocation, boolean pUseCache)
-      throws CPAException, InterruptedException {
-    if (!pUseCache) {
-      return getBlocksTo0(pSuccessorLocation);
-    }
-    try {
-      return FluentIterable.from(cache.get(pSuccessorLocation));
-    } catch (ExecutionException e) {
-      Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
-      throw new RuntimeException(e.getCause());
-    }
-  }
-
-  private FluentIterable<Block> getBlocksTo0(CFANode pSuccessorLocation)
-      throws CPAException, InterruptedException {
+  private void computeBlocks() throws CPAException, InterruptedException {
     ReachedSet reachedSet = reachedSetFactory.create();
-    initializeFor(reachedSet, pSuccessorLocation);
+    initializeFor(reachedSet, cfa.getMainFunction());
     AbstractState initialState = reachedSet.getFirstState();
-    algorithm.run(reachedSet);
-    return FluentIterable.from(reachedSet)
-        .filter(IS_BLOCK_START)
-        .transform(
-            (blockStartState) ->
-                new BlockImpl(
-                    initialState,
-                    blockStartState,
-                    AnalysisDirection.BACKWARD,
-                    getReachedSet(
-                        initialState, blockStartState, reachedSet, asAbstractState(reachedSet))));
-  }
-
-  public FluentIterable<Block> getBlocksTo(Iterable<CFANode> pSuccessorLocations)
-      throws CPAException, InterruptedException {
-    return getBlocksTo(pSuccessorLocations, Predicates.alwaysTrue());
-  }
-
-  public FluentIterable<Block> getBlocksTo(
-      Iterable<CFANode> pSuccessorLocations, Predicate<AbstractState> pFilterPredecessors)
-      throws CPAException, InterruptedException {
-
-    Map<CFANode, Iterable<Block>> cached = cache.getAllPresent(pSuccessorLocations);
-
-    Iterable<CFANode> uncachedSuccessorLocations = Iterables.filter(pSuccessorLocations, node -> !cached.containsKey(node));
-    Iterator<CFANode> successorLocationIterator = uncachedSuccessorLocations.iterator();
-    if (!successorLocationIterator.hasNext()) {
-      return FluentIterable.from(Collections.emptyList());
-    }
-    ReachedSet reachedSet;
-    // If there is only one successor location,
-    // the initial state is unambiguous and can be created with less effort
-    CFANode firstSuccessorLocation = successorLocationIterator.next();
-    if (!successorLocationIterator.hasNext()) {
-      return getBlocksTo(firstSuccessorLocation).filter(Blocks.applyToPredecessor(pFilterPredecessors));
-    }
-    reachedSet = reachedSetFactory.create();
-    initializeFor(reachedSet, firstSuccessorLocation);
-    while (successorLocationIterator.hasNext()) {
-      CFANode successorLocation = successorLocationIterator.next();
-      initializeFor(reachedSet, successorLocation);
+    while (reachedSet.hasWaitingState()) {
+      algorithm.run(reachedSet);
     }
 
-    Set<AbstractState> allInitialStates = FluentIterable.from(reachedSet).toSet();
-
-    algorithm.run(reachedSet);
     Function<ARGState, AbstractState> asAbstractState = asAbstractState(reachedSet);
 
-    Set<Block> computedBlocks =
-        FluentIterable.from(reachedSet)
-            // Only consider abstract states where a block starts
-            .filter(IS_BLOCK_START)
-            // Apply the client-provided filter
-            .filter(pFilterPredecessors)
-            .transformAndConcat(
-                (blockStartState) ->
-                    FluentIterable.from(
-                            getInitialStates(blockStartState, allInitialStates, asAbstractState))
-                        .transform(
-                            (initialState) ->
-                                (Block)
-                                    new BlockImpl(
-                                        initialState,
-                                        blockStartState,
-                                        AnalysisDirection.BACKWARD,
-                                        getReachedSet(
-                                            initialState,
-                                            blockStartState,
-                                            reachedSet,
-                                            asAbstractState))))
-            .toSet();
+    Set<BlockState> blocks = Sets.newHashSet();
 
-    for (Map.Entry<CFANode, Collection<Block>> entry : Multimaps.index(computedBlocks, block -> block.getSuccessorLocation()).asMap().entrySet()) {
-      cache.put(entry.getKey(), entry.getValue());
-      assert !cached.keySet().contains(entry.getKey());
+    Set<BlockState> visitedPredecessorStates = Sets.newHashSet();
+    Deque<BlockState> currentStateQueue = Queues.newArrayDeque();
+    BlockState initialBlockCandidate = new BlockState(initialState, initialState);
+    visitedPredecessorStates.add(initialBlockCandidate);
+    currentStateQueue.offer(initialBlockCandidate);
+
+    while (!currentStateQueue.isEmpty()) {
+      BlockState blockState = currentStateQueue.poll();
+      ARGState currentStateAsARGState =
+          AbstractStates.extractStateByType(blockState.blockEnd, ARGState.class);
+
+      for (ARGState childARGState : currentStateAsARGState.getChildren()) {
+        AbstractState child = asAbstractState.apply(childARGState);
+        if (child != null) {
+          boolean isBlockStart = IS_BLOCK_START.apply(child);
+          boolean isBlockEnd = isBlockStart || childARGState.getChildren().isEmpty();
+          BlockState nextBlockState = new BlockState(blockState.blockStart, child);
+          if (isBlockEnd) {
+            blocks.add(nextBlockState);
+          }
+          if (!(childARGState.getChildren().isEmpty())
+              && (visitedPredecessorStates.add(nextBlockState))) {
+            currentStateQueue.offer(
+                new BlockState(isBlockStart ? child : blockState.blockStart, child));
+          }
+        }
+      }
+    }
+    for (BlockState block : blocks) {
+      for (CFANode predecessorLocation : AbstractStates.extractLocations(block.blockStart)) {
+        this.blocks.put(
+            predecessorLocation,
+            new BlockImpl(
+                block.blockStart,
+                block.blockEnd,
+                AnalysisDirection.FORWARD,
+                getReachedSet(block.blockStart, block.blockEnd, reachedSet, asAbstractState)));
+      }
+    }
+  }
+
+  private static class BlockState {
+
+    private final AbstractState blockStart;
+
+    private final AbstractState blockEnd;
+
+    public BlockState(AbstractState pBlockStart, AbstractState pCurrentState) {
+      this.blockStart = Objects.requireNonNull(pBlockStart);
+      this.blockEnd = Objects.requireNonNull(pCurrentState);
     }
 
-    return FluentIterable.from(Iterables.concat(
-        Iterables.concat(cached.values()),
-        computedBlocks));
+    @Override
+    public int hashCode() {
+      return Objects.hash(blockStart, blockEnd);
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof BlockState) {
+        BlockState other = (BlockState) pObj;
+        return blockStart.equals(other.blockStart) && blockEnd.equals(other.blockEnd);
+      }
+      return false;
+    }
+
+    @Override
+    public String toString() {
+      return blockStart + " to " + blockEnd;
+    }
+
   }
 
   private Function<ARGState, AbstractState> asAbstractState(ReachedSet reachedSet) {
@@ -263,34 +228,6 @@ public class BackwardTransition {
       asAbstractState = a -> statesByARGState.get(a);
     }
     return asAbstractState;
-  }
-
-  private Iterable<AbstractState> getInitialStates(
-      AbstractState pBlockStartState,
-      Set<AbstractState> pAllInitialStates,
-      Function<ARGState, AbstractState> pAsAbstractState) {
-    Set<AbstractState> visited = Sets.newHashSet();
-    visited.add(pBlockStartState);
-    Deque<AbstractState> waitlist = Queues.newArrayDeque();
-    waitlist.push(pBlockStartState);
-    List<AbstractState> initialStates = Lists.newArrayListWithExpectedSize(1);
-    while (!waitlist.isEmpty()) {
-      AbstractState currentState = waitlist.pop();
-      if (pAllInitialStates.contains(currentState)) {
-        initialStates.add(currentState);
-        assert !IS_BLOCK_START.apply(currentState);
-      } else {
-        ARGState currentARGState = AbstractStates.extractStateByType(currentState, ARGState.class);
-        for (ARGState parentARGState : currentARGState.getParents()) {
-          AbstractState parentAbstractState = pAsAbstractState.apply(parentARGState);
-          assert parentAbstractState != null;
-          if (visited.add(parentAbstractState)) {
-            waitlist.push(parentAbstractState);
-          }
-        }
-      }
-    }
-    return initialStates;
   }
 
   private void initializeFor(ReachedSet pReachedSet, CFANode pInitialLocation)
@@ -311,6 +248,8 @@ public class BackwardTransition {
 
     private final ReachedSet reachedSet;
 
+    private @Nullable Set<Formula> nondeterministicVariables = null;
+
     private BlockImpl(
         AbstractState pFirstState,
         AbstractState pLastState,
@@ -327,12 +266,12 @@ public class BackwardTransition {
 
     @Override
     public AbstractState getPredecessor() {
-      return direction == AnalysisDirection.FORWARD ? firstState : lastState;
+      return direction == AnalysisDirection.BACKWARD ? lastState : firstState;
     }
 
     @Override
     public AbstractState getSuccessor() {
-      return direction == AnalysisDirection.FORWARD ? lastState : firstState;
+      return direction == AnalysisDirection.BACKWARD ? firstState : lastState;
     }
 
     private PredicateAbstractState getLastPredicateAbstractState() {
@@ -348,7 +287,8 @@ public class BackwardTransition {
     }
 
     private PathFormula getPathFormula() {
-      return getLastPredicateAbstractState().getAbstractionFormula().getBlockFormula();
+      PredicateAbstractState lastPAS = getLastPredicateAbstractState();
+      return getCorrectPathFormula(lastPAS);
     }
 
     @Override
@@ -359,13 +299,19 @@ public class BackwardTransition {
     @Override
     public PathFormula getUnprimedContext() {
       PredicateAbstractState pas = getPredecessorPredicateAbstractState();
-      return asContext(pas.getAbstractionFormula().getBlockFormula());
+      return asContext(getCorrectPathFormula(pas));
     }
 
     @Override
     public PathFormula getPrimedContext() {
       PredicateAbstractState pas = getSuccessorPredicateAbstractState();
-      return asContext(pas.getAbstractionFormula().getBlockFormula());
+      return asContext(getCorrectPathFormula(pas));
+    }
+
+    private PathFormula getCorrectPathFormula(PredicateAbstractState pPas) {
+      return IS_BLOCK_START.apply(pPas)
+          ? pPas.getAbstractionFormula().getBlockFormula()
+          : pPas.getPathFormula();
     }
 
     private PathFormula asContext(PathFormula pPathFormula) {
@@ -399,13 +345,27 @@ public class BackwardTransition {
     }
 
     @Override
+    public boolean equalsIgnoreReachedSet(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof BlockImpl) {
+        BlockImpl other = (BlockImpl) pObj;
+        return direction == other.direction
+            && firstState.equals(other.firstState)
+            && lastState.equals(other.lastState);
+      }
+      return false;
+    }
+
+    @Override
     public int hashCode() {
       return Objects.hash(direction, firstState, lastState, reachedSet);
     }
 
     @Override
     public String toString() {
-      return BackwardTransition.toString(this);
+      return ForwardTransition.toString(this);
     }
 
     @Override
@@ -422,6 +382,45 @@ public class BackwardTransition {
     public ReachedSet getReachedSet() {
       return reachedSet;
     }
+
+    @Override
+    public Set<Formula> getUnconstrainedNondeterministicVariables() {
+      if (nondeterministicVariables == null) {
+        Optional<NondeterminismState> nondetInBlockEndOpt = getNondeterminismState(getSuccessor());
+        if (!nondetInBlockEndOpt.isPresent()) {
+          return nondeterministicVariables = Collections.emptySet();
+        }
+        NondeterminismState nondetInBlockEnd = nondetInBlockEndOpt.get();
+        if (nondetInBlockEnd.getBlockNondetVariables().isEmpty()) {
+          return nondeterministicVariables = Collections.emptySet();
+        }
+        nondeterministicVariables = Sets.newHashSet();
+        for (AbstractState state : getReachedSet()) {
+          if (state != getPredecessor()) {
+            NondeterminismState nondetState = getNondeterminismState(state).get();
+            Set<String> intersection =
+                Sets.intersection(
+                    nondetInBlockEnd.getBlockNondetVariables(),
+                    nondetState.getBlockNondetVariables());
+            if (!intersection.isEmpty()) {
+              PredicateAbstractState pas =
+                  AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+              PathFormula pathFormula = pas.getPathFormula();
+              SSAMap ssaMap = pathFormula.getSsa();
+              for (String variable : intersection) {
+                CType type = ssaMap.getType(variable);
+                if (type != null) {
+                  Formula varFormula =
+                      pathFormulaManager.makeFormulaForVariable(pathFormula, variable, type, false);
+                  nondeterministicVariables.add(varFormula);
+                }
+              }
+            }
+          }
+        }
+      }
+      return Collections.unmodifiableSet(nondeterministicVariables);
+    }
   }
 
   private ReachedSet getReachedSet(
@@ -432,7 +431,11 @@ public class BackwardTransition {
     ReachedSet reachedSet = reachedSetFactory.create();
 
     for (AbstractState state : getBlockStates(pInitialState, pTargetState, pAsAbstractState)) {
-      reachedSet.add(state, pOriginalReachedSet.getPrecision(state));
+      Precision precision =
+          pOriginalReachedSet.contains(state)
+              ? pOriginalReachedSet.getPrecision(state)
+              : pOriginalReachedSet.getPrecision(pOriginalReachedSet.getFirstState());
+      reachedSet.add(state, precision);
       reachedSet.removeOnlyFromWaitlist(state);
     }
 
@@ -485,7 +488,7 @@ public class BackwardTransition {
         for (ARGState parentARGState : currentARGState.getParents()) {
           AbstractState parentAbstractState = pAsAbstractState.apply(parentARGState);
           assert parentAbstractState != null;
-          if (backward.add(parentAbstractState)) {
+          if (forward.contains(parentAbstractState) && backward.add(parentAbstractState)) {
             waitlist.push(parentAbstractState);
           }
         }
@@ -493,5 +496,12 @@ public class BackwardTransition {
     }
 
     return Sets.intersection(forward, backward);
+  }
+
+  private static Optional<NondeterminismState> getNondeterminismState(
+      AbstractState pAbstractState) {
+    NondeterminismState result =
+        AbstractStates.extractStateByType(pAbstractState, NondeterminismState.class);
+    return Optional.ofNullable(result);
   }
 }

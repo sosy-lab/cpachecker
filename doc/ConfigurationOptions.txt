@@ -162,6 +162,10 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
+# After an incomplete analysis constructs a residual program which contains
+# all program paths which are not fully explored
+analysis.constructResidualProgram = false
+
 # continue analysis after a unsupported code was found on one path
 analysis.continueAfterUnsupportedCode = false
 
@@ -618,7 +622,7 @@ counterexample.export.codeStyle = CBMC
   enum:     [CBMC, CONCRETE_EXECUTION]
 
 # compress the produced error-witness automata using GZIP compression.
-counterexample.export.compressErrorWitness = true
+counterexample.export.compressWitness = true
 
 # export counterexample core as text file
 counterexample.export.core = "Counterexample.%d.core.txt"
@@ -674,9 +678,15 @@ counterexample.export.report = "Counterexample.%d.html"
 # export counterexample as source file
 counterexample.export.source = "Counterexample.%d.c"
 
-# If continueAfterInfeasibleError is true, remove the infeasible
-# counterexample before continuing.Setting this to false may prevent a lot of
-# similar infeasible counterexamples to get discovered, but is unsound
+# If continueAfterInfeasibleError is true, remove the error state that is
+# proven to be unreachable before continuing. Set this to false if
+# analyis.collectAssumptions=true is also set.
+counterexample.removeInfeasibleErrorState = true
+
+# If continueAfterInfeasibleError is true, attempt to remove the whole path
+# of the infeasible counterexample before continuing. Setting this to false
+# may prevent a lot of similar infeasible counterexamples to get discovered,
+# but is unsound
 counterexample.removeInfeasibleErrors = false
 
 # Compute and export information about the verification coverage?
@@ -740,6 +750,9 @@ cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 # disequality provided by apron library 
 cpa.apron.splitDisequalities = true
 
+# translate final ARG into this C file
+cpa.arg.CTranslation.file = "ARG.c"
+
 # inform merge operator in CPA enabled analysis that it should delete the
 # subgraph of the merged node which is required to get at most one successor
 # per CFA edge.
@@ -751,12 +764,15 @@ cpa.arg.dumpAfterIteration = false
 
 # export final ARG as .dot file
 cpa.arg.export = true
+
+# write include directives
+cpa.arg.export.code.header = true
+
+# export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
 # must behave differently during merge.
-# inform ARG CPA if it is run in a CPA enabled analysis because then it
-# mustbehave differntly during merge.
 cpa.arg.inCPAEnabledAnalysis = false
 
 # whether to keep covered states in the reached set as addition to keeping
@@ -772,6 +788,9 @@ cpa.arg.refinements.file = "ARGRefinements.dot"
 # export final ARG as .dot file, showing only loop heads and function
 # entries/exits
 cpa.arg.simplifiedARG.file = "ARGSimplified.dot"
+
+# translate final ARG into C program
+cpa.arg.translateToC = false
 
 # Verification witness: Include the considered case of an assume?
 cpa.arg.witness.exportAssumeCaseInfo = true
@@ -794,6 +813,9 @@ cpa.arg.witness.exportSourcecode = true
 
 # Verification witness: Include an thread-identifier within the file?
 cpa.arg.witness.exportThreadId = false
+
+# Some redundant transitions will be removed
+cpa.arg.witness.removeInsufficientEdges = true
 
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
@@ -1153,6 +1175,10 @@ cpa.interval.threshold = -1
 cpa.invariants.abstractionStateFactory = ENTERING_EDGES
   enum:     [ALWAYS, ENTERING_EDGES, NEVER]
 
+# enables the over-approximation of unsupported features instead of failing
+# fast; this is imprecise
+cpa.invariants.allowOverapproximationOfUnsupportedFeatures = true
+
 # determine variables relevant to the decision whether or not a target path
 # assume edge is taken and limit the analyis to those variables.
 cpa.invariants.analyzeRelevantVariablesOnly = true
@@ -1175,8 +1201,8 @@ cpa.invariants.conditionAdjusterFactory = COMPOUND
 cpa.invariants.includeTypeInformation = true
 
 # the maximum number of variables to consider as interesting. -1 one disables
-# the limit, but this is not recommended. 0 means that guessing interesting
-# variables is disabled.
+# the limit, but this is not recommended. 0 means that no variables are
+# considered to be interesting.
 cpa.invariants.interestingVariableLimit = 2
 
 # the maximum number of adjustments of the interestingVariableLimit. -1 one
@@ -1294,6 +1320,10 @@ cpa.monitor.limit = 0
 # or specify a unit; 0 for infinite)
 cpa.monitor.pathcomputationlimit = 0
 
+# keep tracking nondeterministically-assigned variables even if they are used
+# in assumptions
+cpa.nondeterminism.acceptConstrained = true
+
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
   allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
@@ -1329,6 +1359,10 @@ cpa.pointerA.merge = "JOIN"
 # which stop operator to use for PointerACPA
 cpa.pointerA.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
+
+# Whether to give up immediately if a very large array is encountered
+# (heuristic, often we would just waste time otherwise)
+cpa.predicate.abortOnLargeArrays = true
 
 # Predicate ordering
 cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
@@ -1410,13 +1444,13 @@ cpa.predicate.bam.failAfterRepeatedCounterexample = true
 cpa.predicate.bam.predicateComputer = "AUXILIARY"
   allowed values: [AUXILIARY, OCCURRENCE, ALL]
 
-# should we use abstraction reduction at the BAM block entry
+# Enable/disable precision reduction using RelevantPredicateComputer
 cpa.predicate.bam.reduceIrrelevantPrecision = true
 
-# should we use precision reduction using relevantComputer
+# Enable/disable abstraction reduction at the BAM block entry
 cpa.predicate.bam.useAbstractionReduction = true
 
-# should we use precision reduction at the BAM block entry
+# Enable/disable precision reduction at the BAM block entry
 cpa.predicate.bam.usePrecisionReduction = true
 
 # force abstractions immediately after threshold is reached (no effect if
@@ -1972,6 +2006,9 @@ cpa.slicing.timeForLoopGeneration = 0s
 cpa.slicing.weakeningStrategy = CEX
   enum:     [SYNTACTIC, DESTRUCTIVE, CEX]
 
+# Enable GCC extension 'Arrays of Length Zero'.
+cpa.smg.GCCZeroLengthArray = false
+
 # Array allocation functions
 cpa.smg.arrayAllocationFunctions = {
       "calloc"}
@@ -2435,6 +2472,10 @@ limits.time.cpu = -1ns
 # great caution! (use seconds or specify a unit; -1 for infinite)
 limits.time.cpu.thread = -1ns
 
+# Enforce that the given CPU time limit is set as the value of
+# limits.time.cpu.
+limits.time.cpu::required = -1ns
+
 # Limit for wall time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 limits.time.wall = -1ns
@@ -2644,6 +2685,11 @@ pcc.strategy = no default value
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
 
+# Simplifies the global transition relation by keeping only those transitions
+# whose corresponding blocks are backwards reachable from the target
+# locations.
+pdr.removeRedundantTransitions = false
+
 # whether to track relevant variables only at the exact program location
 # (sharing=location), or within their respective (function-/global-) scope
 # (sharing=scoped).
@@ -2740,6 +2786,18 @@ report.export = true
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
 
+# set specification file to automaton which guide analysis along assumption
+# produced by incomplete analysis,e.g.,
+# config/specification/AssumptionGuidingAutomaton.spc, to enable residual
+# program from combination of program and assumption condition
+residualprogram.assumptionGuider = no default value
+
+# write residual program to file
+residualprogram.file = "residualProgram.c"
+
+# write collected assumptions as automaton to file
+residualprogram.slice = true
+
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
 restartAlgorithm.combineARGsAfterRestart = false
@@ -2772,32 +2830,6 @@ solver.interpolationSolver = no default value
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
-
-# File for exporting the path automaton in DOT format.
-spec.automatonDumpFile = no default value
-
-# Consider assumptions that are provided with the path automaton?
-spec.considerAssumptions = true
-
-# Match the branching information at a branching location.
-spec.matchAssumeCase = true
-
-# Match the character offset within the file.
-spec.matchOffset = true
-
-# Match the line numbers within the origin (mapping done by preprocessor line
-# markers).
-spec.matchOriginLine = true
-
-# Match the source code provided with the witness.
-spec.matchSourcecodeData = false
-
-# Enforce strict validity checks regarding the witness format, such as
-# checking for the presence of required fields.
-spec.strictChecking = true
-
-# Legacy option for token-based matching with path automatons.
-spec.transitionToStopForNegatedTokensetMatch = false
 
 # comma-separated list of files with specifications that should be checked
 # (see config/specification/ for examples)
@@ -2915,3 +2947,38 @@ termination.resultFile = "terminationAnalysisResult.txt"
 
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true
+
+# File for exporting the witness automaton in DOT format.
+witness.automatonDumpFile = no default value
+
+# Check that the value of the programhash field of the witness matches the
+# SHA-1 hash value computed for the source code.
+witness.checkProgramHash = true
+
+# Consider assumptions that are provided with the path automaton?
+witness.considerAssumptions = true
+
+# Match the branching information at a branching location.
+witness.matchAssumeCase = true
+
+# Match the character offset within the file.
+witness.matchOffset = true
+
+# Match the line numbers within the origin (mapping done by preprocessor line
+# markers).
+witness.matchOriginLine = true
+
+# Enforce strict validity checks regarding the witness format, such as
+# checking for the presence of required fields.
+witness.strictChecking = true
+
+# When validating a correctness witness, use this configuration file instead
+# of the current one.
+witness.validation.correctness.config = no default value
+
+# The witness to validate.
+witness.validation.file = no default value
+
+# When validating a violation witness, use this configuration file instead of
+# the current one.
+witness.validation.violation.config = no default value

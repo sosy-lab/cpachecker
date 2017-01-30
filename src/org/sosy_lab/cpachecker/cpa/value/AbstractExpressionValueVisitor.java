@@ -113,7 +113,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
@@ -598,8 +597,11 @@ public abstract class AbstractExpressionValueVisitor
         if (Float.isNaN(lVal) || Float.isNaN(rVal)) {
           return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
         }
-
-        cmp = Float.compare(lVal, rVal);
+        if (lVal == 0 && rVal == 0) {
+          cmp = 0;
+        } else {
+          cmp = Float.compare(lVal, rVal);
+        }
         break;
       }
       case DOUBLE: {
@@ -610,7 +612,11 @@ public abstract class AbstractExpressionValueVisitor
           return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
         }
 
-        cmp = Double.compare(lVal, rVal);
+        if (lVal == 0 && rVal == 0) {
+          cmp = 0;
+        } else {
+          cmp = Double.compare(lVal, rVal);
+        }
         break;
       }
       default: {
@@ -999,10 +1005,30 @@ public abstract class AbstractExpressionValueVisitor
               }
             }
           }
-        } else if (BuiltinFloatFunctions.matchesFmodf(functionName)) {
+        } else if (BuiltinFloatFunctions.matchesModf(functionName)) {
           if (parameterValues.size() == 2) {
-            throw new UnsupportedCCodeException(
-                "Function 'fmodf' not supported due to missing pointer analysis.", null);
+            Value value = parameterValues.get(0);
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              switch (paramType.getType()) {
+                case FLOAT:
+                  {
+                    long integralPart = (long) numericValue.floatValue();
+                    float fractionalPart = numericValue.floatValue() - integralPart;
+                    return new NumericValue(fractionalPart);
+                  }
+                case DOUBLE:
+                  {
+                    long integralPart = (long) numericValue.doubleValue();
+                    double fractionalPart = numericValue.doubleValue() - integralPart;
+                    return new NumericValue(fractionalPart);
+                  }
+                default:
+                  break;
+              }
+            }
           }
         } else if (BuiltinFloatFunctions.matchesFremainder(functionName)) {
           if (parameterValues.size() == 2) {
@@ -1019,8 +1045,7 @@ public abstract class AbstractExpressionValueVisitor
                     if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
                       return new NumericValue(Float.NaN);
                     }
-                    // TODO computations on float/double are imprecise! Use epsilon environment?
-                    return new NumericValue((float)Math.IEEEremainder(num,  den));
+                    return new NumericValue((float) Math.IEEEremainder(num,  den));
                   }
                 case DOUBLE:
                   {
@@ -1032,7 +1057,6 @@ public abstract class AbstractExpressionValueVisitor
                         || den == 0) {
                       return new NumericValue(Double.NaN);
                     }
-                    // TODO computations on float/double are imprecise! Use epsilon environment?
                     return new NumericValue(Math.IEEEremainder(num,  den));
                   }
                 default:

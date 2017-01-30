@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /** This Class contains functions,
+/** This Class contains functions,
  * that convert literals (chars, numbers) from C-source into CPAchecker-format. */
 class ASTLiteralConverter {
 

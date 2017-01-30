@@ -27,7 +27,6 @@
   </tasks>
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </tasks>
 

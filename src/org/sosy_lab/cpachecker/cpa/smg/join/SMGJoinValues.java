@@ -867,7 +867,8 @@ final class SMGJoinValues {
         inputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
 
     if (oldNfEdge.isEmpty()) {
-      return new SMGEdgeHasValue(inputSMG1.getMachineModel().getSizeofPtr(), pNf, pTarget, 0).getType();
+      return new SMGEdgeHasValue(inputSMG1.getMachineModel().getBitSizeofPtr(), pNf, pTarget, 0)
+          .getType();
     } else {
       return Iterables.getOnlyElement(oldNfEdge).getType();
     }

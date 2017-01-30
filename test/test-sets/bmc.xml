@@ -14,7 +14,6 @@
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
     <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <option name="-64"/>
   </tasks>
   <tasks name="ECA">
@@ -36,11 +35,6 @@
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
     <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
-  </tasks>
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    <propertyfile>../programs/benchmarks/Simple.prp</propertyfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
   </tasks>
 
   <option name="-bmc"/>

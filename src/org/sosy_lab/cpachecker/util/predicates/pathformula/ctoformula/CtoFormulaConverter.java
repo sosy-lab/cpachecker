@@ -31,7 +31,16 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -71,6 +80,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -112,37 +123,43 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
 /**
  * Class containing all the code that converts C code into a formula.
  */
 public class CtoFormulaConverter {
 
   // list of functions that are pure (no side-effects from the perspective of this analysis)
-  public static final Set<String> PURE_EXTERNAL_FUNCTIONS
-      = ImmutableSet.of("abort", "exit", "__assert_fail", "__VERIFIER_error",
-          "free", "kfree",
-          "fprintf", "printf", "puts", "printk", "sprintf", "swprintf",
-          "strcasecmp", "strchr", "strcmp", "strlen", "strncmp", "strrchr", "strstr"
-          );
+  static final Set<String> PURE_EXTERNAL_FUNCTIONS =
+      ImmutableSet.of(
+          "abort",
+          "exit",
+          "__assert_fail",
+          "__VERIFIER_error",
+          "free",
+          "kfree",
+          "fprintf",
+          "printf",
+          "puts",
+          "printk",
+          "sprintf",
+          "swprintf",
+          "strcasecmp",
+          "strchr",
+          "strcmp",
+          "strlen",
+          "strncmp",
+          "strrchr",
+          "strstr");
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  public static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of("fesetround", "floating-point rounding modes");
+  static final Map<String, String> UNSUPPORTED_FUNCTIONS =
+      ImmutableMap.of("fesetround", "floating-point rounding modes");
 
   //names for special variables needed to deal with functions
   @Deprecated
-  public static final String RETURN_VARIABLE_NAME = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
+  private static final String RETURN_VARIABLE_NAME =
+      VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
   public static final String PARAM_VARIABLE_NAME = "__param__";
 
   private static final Set<String> SAFE_VAR_ARG_FUNCTIONS = ImmutableSet.of(
@@ -210,6 +227,17 @@ public class CtoFormulaConverter {
           String.format(msg, args),
           edge.getDescription());
     }
+  }
+
+  /**
+   * Returns the size in bits of the given type.
+   * Always use this method instead of machineModel.getSizeOf,
+   * because this method can handle dereference-types.
+   * @param pType the type to calculate the size of.
+   * @return the size in bits of the given type.
+   */
+  public int getBitSizeof(CType pType) {
+    return typeHandler.getBitSizeof(pType);
   }
 
   /**
@@ -585,38 +613,11 @@ public class CtoFormulaConverter {
       fromType = new CPointerType(false, false, fromType);
     }
 
-    final boolean fromIsPointer = fromType instanceof CPointerType;
-    final boolean toIsPointer = toType instanceof CPointerType;
-    final boolean fromCanBeHandledAsInt =
-        (fromIsPointer ||
-         fromType instanceof CEnumType ||
-        (fromType instanceof CElaboratedType &&
-            ((CElaboratedType)fromType).getKind() == ComplexTypeKind.ENUM));
-    final boolean toCanBeHandledAsInt =
-        (toIsPointer ||
-         toType instanceof CEnumType ||
-        (toType instanceof CElaboratedType &&
-            ((CElaboratedType)toType).getKind() == ComplexTypeKind.ENUM));
+    fromType = handlePointerAndEnumAsInt(fromType);
+    toType = handlePointerAndEnumAsInt(toType);
 
-    if (fromCanBeHandledAsInt || toCanBeHandledAsInt) {
-      // See Enums/Pointers as Integers
-      if (fromCanBeHandledAsInt) {
-        fromType = fromIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
-        fromType = fromType.getCanonicalType();
-      }
-
-      if (toCanBeHandledAsInt) {
-        toType = toIsPointer ? machineModel.getPointerEquivalentSimpleType() : CNumericTypes.INT;
-        toType = toType.getCanonicalType();
-      }
-    }
-
-    if (fromType instanceof CSimpleType) {
-      CSimpleType sfromType = (CSimpleType)fromType;
-      if (toType instanceof CSimpleType) {
-        CSimpleType stoType = (CSimpleType)toType;
-        return makeSimpleCast(sfromType, stoType, formula);
-      }
+    if (isSimple(fromType) && isSimple(toType)) {
+      return makeSimpleCast(fromType, toType, formula);
     }
 
     if (fromType instanceof CPointerType ||
@@ -627,13 +628,33 @@ public class CtoFormulaConverter {
       }
     }
 
-    if (getSizeof(fromType) == getSizeof(toType)) {
+    if (getBitSizeof(fromType) == getBitSizeof(toType)) {
       // We can most likely just ignore this cast
       logger.logfOnce(Level.WARNING, "Ignoring cast from %s to %s.", fromType, toType);
       return formula;
     } else {
       throw new UnrecognizedCCodeException("Cast from " + pFromType + " to " + pToType + " not supported!", edge);
     }
+  }
+
+  private CType handlePointerAndEnumAsInt(CType pType) {
+    if (pType instanceof CBitFieldType) {
+      CBitFieldType type = (CBitFieldType) pType;
+      CType innerType = type.getType();
+      CType normalizedInnerType = handlePointerAndEnumAsInt(innerType);
+      if (innerType == normalizedInnerType) {
+        return pType;
+      }
+      return new CBitFieldType(normalizedInnerType, type.getBitFieldSize());
+    }
+    if (pType instanceof CPointerType) {
+      return machineModel.getPointerEquivalentSimpleType();
+    }
+    if (pType instanceof CEnumType
+        || (pType instanceof CElaboratedType && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
+      return CNumericTypes.INT;
+    }
+    return pType;
   }
 
   protected CExpression makeCastFromArrayToPointerIfNecessary(CExpression exp, CType targetType) {
@@ -661,7 +682,22 @@ public class CtoFormulaConverter {
    * When the fromType is a signed type a bit-extension will be done,
    * on any other case it will be filled with 0 bits.
    */
-  private Formula makeSimpleCast(CSimpleType pFromCType, CSimpleType pToCType, Formula pFormula) {
+  private Formula makeSimpleCast(CType pFromCType, CType pToCType, Formula pFormula) {
+    checkSimpleCastArgument(pFromCType);
+    checkSimpleCastArgument(pToCType);
+    Predicate<CType> isSigned = t -> {
+      if (t instanceof CSimpleType) {
+        return machineModel.isSigned((CSimpleType) t);
+      }
+      if (t instanceof CBitFieldType) {
+        CBitFieldType bitFieldType = (CBitFieldType) t;
+        if (bitFieldType.getType() instanceof CSimpleType) {
+          return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
+        }
+      }
+      throw new AssertionError("Not a simple type: " + t);
+    };
+
     final FormulaType<?> fromType = typeHandler.getFormulaTypeFromCType(pFromCType);
     final FormulaType<?> toType = typeHandler.getFormulaTypeFromCType(pToCType);
 
@@ -673,10 +709,10 @@ public class CtoFormulaConverter {
       int fromSize = ((FormulaType.BitvectorType)fromType).getSize();
       int toSize = ((FormulaType.BitvectorType)toType).getSize();
       if (fromSize > toSize) {
-        ret = fmgr.makeExtract(pFormula, toSize-1, 0, machineModel.isSigned(pFromCType));
+        ret = fmgr.makeExtract(pFormula, toSize-1, 0, isSigned.test(pFromCType));
 
       } else if (fromSize < toSize) {
-        ret = fmgr.makeExtend(pFormula, (toSize - fromSize), machineModel.isSigned(pFromCType));
+        ret = fmgr.makeExtend(pFormula, (toSize - fromSize), isSigned.test(pFromCType));
 
       } else {
         ret = pFormula;
@@ -688,7 +724,7 @@ public class CtoFormulaConverter {
 
     } else if (toType.isFloatingPointType()) {
       ret = fmgr.getFloatingPointFormulaManager().castFrom(pFormula,
-          machineModel.isSigned(pFromCType), (FormulaType.FloatingPointType)toType);
+          isSigned.test(pFromCType), (FormulaType.FloatingPointType)toType);
 
     } else {
       throw new IllegalArgumentException("Cast from " + pFromCType + " to " + pToCType
@@ -697,6 +733,25 @@ public class CtoFormulaConverter {
 
     assert fmgr.getFormulaType(ret).equals(toType) : "types do not match: " + fmgr.getFormulaType(ret) + " vs " + toType;
     return ret;
+  }
+
+  private void checkSimpleCastArgument(CType pType) {
+    if (!isSimple(pType)) {
+      throw new IllegalArgumentException("Cannot make a simple cast from or to " + pType);
+    }
+  }
+
+  private boolean isSimple(CType pType) {
+    if (pType instanceof CSimpleType) {
+      return true;
+    }
+    if (pType instanceof CBitFieldType) {
+      CBitFieldType type = (CBitFieldType) pType;
+      if (type.getType() instanceof CSimpleType) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -983,19 +1038,7 @@ public class CtoFormulaConverter {
       return bfmgr.makeTrue();
     }
 
-    CType declarationType = decl.getType().getCanonicalType();
-    if (declarationType instanceof CArrayType) {
-      CType elementType = ((CArrayType)declarationType).getType();
-      if (elementType instanceof CSimpleType && ((CSimpleType)elementType).getType().isFloatingPointType()) {
-
-        CExpression length = ((CArrayType)declarationType).getLength();
-        if (length instanceof CIntegerLiteralExpression) {
-          if (((CIntegerLiteralExpression) length).getValue().longValue() > 100) {
-            throw new UnsupportedCCodeException("large floating-point array", edge);
-          }
-        }
-      }
-    }
+    checkForLargeArray(edge, decl.getType().getCanonicalType());
 
     if (options.useParameterVariablesForGlobals() && decl.isGlobal()) {
       globalDeclarations.add(decl);
@@ -1052,6 +1095,34 @@ public class CtoFormulaConverter {
     }
 
     return result;
+  }
+
+  /**
+   * Check whether a large array is declared and abort analysis in this case. This is a heuristic
+   * for SV-COMP to avoid wasting a lot of time for programs we probably cannot handle anyway or
+   * returning a wrong answer.
+   */
+  protected void checkForLargeArray(final CDeclarationEdge declarationEdge, CType declarationType)
+      throws UnsupportedCCodeException {
+    if (!options.shouldAbortOnLargeArrays() || !(declarationType instanceof CArrayType)) {
+      return;
+    }
+    CArrayType arrayType = (CArrayType) declarationType;
+    CType elementType = arrayType.getType();
+
+    if (elementType instanceof CSimpleType
+        && ((CSimpleType) elementType).getType().isFloatingPointType()) {
+      if (arrayType.getLengthAsInt().orElse(0) > 100) {
+        throw new UnsupportedCCodeException("large floating-point array", declarationEdge);
+      }
+    }
+
+    if (elementType instanceof CSimpleType
+        && ((CSimpleType) elementType).getType() == CBasicType.INT) {
+      if (arrayType.getLengthAsInt().orElse(0) >= 10000) {
+        throw new UnsupportedCCodeException("large integer array", declarationEdge);
+      }
+    }
   }
 
   protected BooleanFormula makeExitFunction(
@@ -1455,7 +1526,6 @@ public class CtoFormulaConverter {
     CCompositeType structType = (CCompositeType)fieldRef.getExpressionType().getCanonicalType();
 
     // f is now the structure, access it:
-    int bitsPerByte = machineModel.getSizeofCharInBits();
 
     int offset;
     switch (structType.getKind()) {
@@ -1463,19 +1533,19 @@ public class CtoFormulaConverter {
       offset = 0;
       break;
     case STRUCT:
-      offset = getFieldOffset(structType, fExp.getFieldName()) * bitsPerByte;
+      offset = getFieldOffset(structType, fExp.getFieldName());
       break;
     default:
       throw new UnrecognizedCCodeException("Unexpected field access", fExp);
     }
 
     CType type = fExp.getExpressionType();
-    int fieldSize = getSizeof(type) * bitsPerByte;
+    int fieldSize = getBitSizeof(type);
 
     // Crude hack for unions with zero-sized array fields produced by LDV
     // (ldv-consumption/32_7a_cilled_true_linux-3.8-rc1-32_7a-fs--ceph--ceph.ko-ldv_main7_sequence_infinite_withcheck_stateful.cil.out.c)
     if (fieldSize == 0 && structType.getKind() == ComplexTypeKind.UNION) {
-      fieldSize = getSizeof(fieldRef.getExpressionType());
+      fieldSize = getBitSizeof(fieldRef.getExpressionType());
     }
 
     // we assume that only CSimpleTypes can be unsigned
@@ -1491,7 +1561,7 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Returns the offset of the given field in the given struct in bytes.
+   * Returns the offset of the given field in the given struct in bits.
    *
    * This function does not handle UNIONs or ENUMs!
    */
@@ -1502,7 +1572,7 @@ public class CtoFormulaConverter {
         return off;
       }
 
-      off += getSizeof(member.getType());
+      off += getBitSizeof(member.getType());
     }
 
     throw new AssertionError("field " + fieldName + " was not found in " + structType);

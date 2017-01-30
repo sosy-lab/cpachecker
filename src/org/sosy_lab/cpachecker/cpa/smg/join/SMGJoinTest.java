@@ -70,8 +70,8 @@ public class SMGJoinTest {
 
   // Testing condition: adds an identical global variable to both SMGs
   private void addGlobalWithoutValueToBoth(String pVarName) {
-    SMGRegion global1 = new SMGRegion(8, pVarName);
-    SMGRegion global2 = new SMGRegion(8, pVarName);
+    SMGRegion global1 = new SMGRegion(64, pVarName);
+    SMGRegion global2 = new SMGRegion(64, pVarName);
 
     smg1.addGlobalObject(global1);
     smg2.addGlobalObject(global2);
@@ -112,7 +112,7 @@ public class SMGJoinTest {
 
   //Testing condition: adds an identical value to both SMGs
   private void addValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var, int pOffset,
-      int pValue, int pSizeInBytes) {
+      int pValue, int pSizeInBits) {
 
     if(!smg1.getValues().contains(pValue)) {
       smg1.addValue(pValue);
@@ -122,8 +122,8 @@ public class SMGJoinTest {
       smg2.addValue(pValue);
     }
 
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(pSizeInBytes, pOffset, var.getFirst(), pValue);
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(pSizeInBytes, pOffset, var.getSecond(), pValue);
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(pSizeInBits, pOffset, var.getFirst(), pValue);
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(pSizeInBits, pOffset, var.getSecond(), pValue);
 
     smg1.addHasValueEdge(hv1);
     smg2.addHasValueEdge(hv2);
@@ -159,8 +159,8 @@ public class SMGJoinTest {
 
   // Testing condition: adds an identical local variable to both SMGs
   private void addLocalWithoutValueToBoth(String pVarName) {
-    SMGRegion local1 = new SMGRegion(8, pVarName);
-    SMGRegion local2 = new SMGRegion(8, pVarName);
+    SMGRegion local1 = new SMGRegion(64, pVarName);
+    SMGRegion local2 = new SMGRegion(64, pVarName);
 
     smg1.addStackObject(local1);
     smg2.addStackObject(local2);
@@ -168,12 +168,12 @@ public class SMGJoinTest {
 
   // Testing condition: adds an identical global variable to both SMGs, with value
   private void addGlobalWithValueToBoth(String pVarName) {
-    SMGRegion global1 = new SMGRegion(8, pVarName);
-    SMGRegion global2 = new SMGRegion(8, pVarName);
+    SMGRegion global1 = new SMGRegion(64, pVarName);
+    SMGRegion global2 = new SMGRegion(64, pVarName);
     Integer value1 = SMGValueFactory.getNewValue();
     Integer value2 = SMGValueFactory.getNewValue();
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(4, 0, global1, value1);
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(4, 0, global2, value2);
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(32, 0, global1, value1);
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(32, 0, global2, value2);
 
     smg1.addGlobalObject(global1);
     smg2.addGlobalObject(global2);
@@ -185,12 +185,12 @@ public class SMGJoinTest {
 
   // Testing condition: adds an identical local value to both SMGs, with value
   private void addLocalWithValueToBoth(String pVarName) {
-    SMGRegion local1 = new SMGRegion(8, pVarName);
-    SMGRegion local2 = new SMGRegion(8, pVarName);
+    SMGRegion local1 = new SMGRegion(64, pVarName);
+    SMGRegion local2 = new SMGRegion(64, pVarName);
     Integer value1 = SMGValueFactory.getNewValue();
     Integer value2 = SMGValueFactory.getNewValue();
-    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(4, 0, local1, value1);
-    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(4, 0, local2, value2);
+    SMGEdgeHasValue hv1 = new SMGEdgeHasValue(32, 0, local1, value1);
+    SMGEdgeHasValue hv2 = new SMGEdgeHasValue(32, 0, local2, value2);
 
     smg1.addStackObject(local1);
     smg2.addStackObject(local2);
@@ -280,41 +280,41 @@ public class SMGJoinTest {
 
     smg1.addStackFrame(functionDeclaration3);
     smg2.addStackFrame(functionDeclaration3);
-    Pair<SMGRegion, SMGRegion> global = addGlobalWithoutValueToBoth("global", 8);
-    Pair<SMGRegion, SMGRegion> l1 = addHeapWithoutValueToBoth("l1", 12);
-    Pair<SMGRegion, SMGRegion> l2 = addHeapWithoutValueToBoth("l2", 12);
-    Pair<SMGRegion, SMGRegion> l3 = addHeapWithoutValueToBoth("l3", 12);
-    Pair<SMGRegion, SMGRegion> l4 = addHeapWithoutValueToBoth("l4", 12);
-    addPointerValueToBoth(global, 0, 100, 4, l1, 0);
-    addPointerValueToBoth(l1, 0, 102, 4, l2, 0);
-    addPointerValueToBoth(l2, 0, 103, 4, l3, 0);
-    addPointerValueToBoth(l3, 0, 104, 4, l4, 0);
-    addPointerValueToBoth(l4, 0, 109, 4, global, 0);
-    addPointerValueToBoth(global, 4, 105, 4, l4, 0);
-    addPointerValueToBoth(l4, 4, 106, 4, l3, 0);
-    addPointerValueToBoth(l3, 4, 107, 4, l2, 0);
-    addPointerValueToBoth(l2, 4, 108, 4, l1, 0);
-    addPointerValueToBoth(l1, 4, 110, 4, global, 0);
-    addValueToBoth(l1, 8, 5, 1);
-    addValueToBoth(l2, 8, 5, 1);
-    addValueToBoth(l3, 8, 5, 1);
-    addValueToBoth(l4, 8, 5, 1);
-    Pair<SMGRegion, SMGRegion> a1 = addLocalWithoutValueToBoth("a", 4);
-    addValueToBoth(a1, 0, 5, 4);
-    Pair<SMGRegion, SMGRegion> b1 = addLocalWithoutValueToBoth("b", 4);
-    addValueToBoth(b1, 0, 100, 4);
+    Pair<SMGRegion, SMGRegion> global = addGlobalWithoutValueToBoth("global", 64);
+    Pair<SMGRegion, SMGRegion> l1 = addHeapWithoutValueToBoth("l1", 96);
+    Pair<SMGRegion, SMGRegion> l2 = addHeapWithoutValueToBoth("l2", 96);
+    Pair<SMGRegion, SMGRegion> l3 = addHeapWithoutValueToBoth("l3", 96);
+    Pair<SMGRegion, SMGRegion> l4 = addHeapWithoutValueToBoth("l4", 96);
+    addPointerValueToBoth(global, 0, 100, 32, l1, 0);
+    addPointerValueToBoth(l1, 0, 102, 32, l2, 0);
+    addPointerValueToBoth(l2, 0, 103, 32, l3, 0);
+    addPointerValueToBoth(l3, 0, 104, 32, l4, 0);
+    addPointerValueToBoth(l4, 0, 109, 32, global, 0);
+    addPointerValueToBoth(global, 32, 105, 32, l4, 0);
+    addPointerValueToBoth(l4, 32, 106, 32, l3, 0);
+    addPointerValueToBoth(l3, 32, 107, 32, l2, 0);
+    addPointerValueToBoth(l2, 32, 108, 32, l1, 0);
+    addPointerValueToBoth(l1, 32, 110, 32, global, 0);
+    addValueToBoth(l1, 64, 5, 8);
+    addValueToBoth(l2, 64, 5, 8);
+    addValueToBoth(l3, 64, 5, 8);
+    addValueToBoth(l4, 64, 5, 8);
+    Pair<SMGRegion, SMGRegion> a1 = addLocalWithoutValueToBoth("a", 32);
+    addValueToBoth(a1, 0, 5, 32);
+    Pair<SMGRegion, SMGRegion> b1 = addLocalWithoutValueToBoth("b", 32);
+    addValueToBoth(b1, 0, 100, 32);
     smg1.addStackFrame(functionDeclaration2);
     smg2.addStackFrame(functionDeclaration2);
-    Pair<SMGRegion, SMGRegion> b2 = addLocalWithoutValueToBoth("b", 4);
-    addValueToBoth(b2, 0, 100, 4);
-    Pair<SMGRegion, SMGRegion> c2 = addLocalWithoutValueToBoth("c", 4);
-    addValueToBoth(c2, 0, 104, 4);
+    Pair<SMGRegion, SMGRegion> b2 = addLocalWithoutValueToBoth("b", 32);
+    addValueToBoth(b2, 0, 100, 32);
+    Pair<SMGRegion, SMGRegion> c2 = addLocalWithoutValueToBoth("c", 32);
+    addValueToBoth(c2, 0, 104, 32);
     smg1.addStackFrame(functionDeclaration);
     smg2.addStackFrame(functionDeclaration);
-    Pair<SMGRegion, SMGRegion> a3 = addLocalWithoutValueToBoth("a", 4);
-    addValueToBoth(a3, 0, 5, 4);
-    Pair<SMGRegion, SMGRegion> c3 = addLocalWithoutValueToBoth("c", 4);
-    addValueToBoth(c3, 0, 104, 4);
+    Pair<SMGRegion, SMGRegion> a3 = addLocalWithoutValueToBoth("a", 32);
+    addValueToBoth(a3, 0, 5, 32);
+    Pair<SMGRegion, SMGRegion> c3 = addLocalWithoutValueToBoth("c", 32);
+    addValueToBoth(c3, 0, 104, 32);
 
     SMGJoin join = new SMGJoin(smg1, smg2, null, null);
     Assert.assertTrue(join.isDefined());

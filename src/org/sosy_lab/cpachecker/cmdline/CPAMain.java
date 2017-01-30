@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cmdline;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -44,6 +45,7 @@ import java.nio.file.Paths;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.matheclipse.core.util.WriterOutputStream;
@@ -68,8 +70,10 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 public class CPAMain {
@@ -220,6 +224,34 @@ public class CPAMain {
 
     @Option(
       secure = true,
+      name = "witness.validation.file",
+      description = "The witness to validate."
+    )
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path witness = null;
+
+    @Option(
+      secure = true,
+      name = "witness.validation.violation.config",
+      description =
+          "When validating a violation witness, "
+              + "use this configuration file instead of the current one."
+    )
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path violationWitnessValidationConfig = null;
+
+    @Option(
+      secure = true,
+      name = "witness.validation.correctness.config",
+      description =
+          "When validating a correctness witness, "
+              + "use this configuration file instead of the current one."
+    )
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path correctnessWitnessValidationConfig = null;
+
+    @Option(
+      secure = true,
       name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
       description = "all used options are printed"
     )
@@ -303,48 +335,102 @@ public class CPAMain {
     // Check if we should switch to another config because we are analyzing memsafety properties.
     BootstrapOptions options = new BootstrapOptions();
     config.inject(options);
+    Consumer<ConfigurationBuilder> witnessFileOptionSetter = builder -> {};
+    if (options.witness != null) {
+      WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
+      ConfigurationBuilder witnessConfigBuilder = Configuration.builder();
+      final Path validationConfigFile;
+      switch (witnessType) {
+        case VIOLATION_WITNESS:
+          validationConfigFile = options.violationWitnessValidationConfig;
+          witnessFileOptionSetter =
+              builder -> {
+                String specificationOptionName = "specification";
+                String specs = cmdLineOptions.get(specificationOptionName);
+                specs = Joiner.on(',').join(specs, options.witness.toString());
+                builder.setOption(specificationOptionName, specs);
+              };
+          break;
+        case CORRECTNESS_WITNESS:
+          validationConfigFile = options.correctnessWitnessValidationConfig;
+          witnessFileOptionSetter =
+              builder ->
+                  builder.setOption(
+                      "invariantGeneration.kInduction.invariantsAutomatonFile",
+                      options.witness.toString());
+          break;
+        default:
+          throw new InvalidConfigurationException(
+              "Witness type "
+                  + witnessType
+                  + " of witness "
+                  + options.witness
+                  + " is not supported");
+      }
+      if (validationConfigFile == null) {
+        throw new InvalidConfigurationException(
+            "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
+      }
+      witnessConfigBuilder.loadFromFile(validationConfigFile);
+      witnessConfigBuilder
+          .setOptions(cmdLineOptions)
+          .clearOption("witness.validation.file")
+          .clearOption("witness.validation.violation.config")
+          .clearOption("witness.validation.correctness.config")
+          .clearOption("output.path")
+          .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(witnessConfigBuilder);
+      config = witnessConfigBuilder.build();
+      config.inject(options);
+    }
     if (options.checkMemsafety) {
       if (options.memsafetyConfig == null) {
         throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
       }
-      config = Configuration.builder()
-                            .loadFromFile(options.memsafetyConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("memorysafety.check")
-                            .clearOption("memorysafety.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
+      ConfigurationBuilder builder =
+          Configuration.builder()
+              .loadFromFile(options.memsafetyConfig)
+              .setOptions(cmdLineOptions)
+              .clearOption("memorysafety.check")
+              .clearOption("memorysafety.config")
+              .clearOption("output.disable")
+              .clearOption("output.path")
+              .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(builder);
+      config = builder.build();
     }
     if (options.checkOverflow) {
       if (options.overflowConfig == null) {
         throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
       }
-      config = Configuration.builder()
-                            .loadFromFile(options.overflowConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("overflow.check")
-                            .clearOption("overflow.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
+      ConfigurationBuilder builder =
+          Configuration.builder()
+              .loadFromFile(options.overflowConfig)
+              .setOptions(cmdLineOptions)
+              .clearOption("overflow.check")
+              .clearOption("overflow.config")
+              .clearOption("output.disable")
+              .clearOption("output.path")
+              .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(builder);
+      config = builder.build();
     }
     if (options.checkTermination) {
       if (options.terminationConfig == null) {
         throw new InvalidConfigurationException(
             "Verifying termination is not supported if option termination.config is not specified.");
       }
-      config = Configuration.builder()
-                            .loadFromFile(options.terminationConfig)
-                            .setOptions(cmdLineOptions)
-                            .clearOption("termination.check")
-                            .clearOption("termination.config")
-                            .clearOption("output.disable")
-                            .clearOption("output.path")
-                            .clearOption("rootDirectory")
-                            .build();
+      ConfigurationBuilder builder =
+          Configuration.builder()
+              .loadFromFile(options.terminationConfig)
+              .setOptions(cmdLineOptions)
+              .clearOption("termination.check")
+              .clearOption("termination.config")
+              .clearOption("output.disable")
+              .clearOption("output.path")
+              .clearOption("rootDirectory");
+      witnessFileOptionSetter.accept(builder);
+      config = builder.build();
     }
 
     if (options.printUsedOptions) {

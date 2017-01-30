@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
+import static com.google.common.collect.Collections2.transform;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -66,6 +68,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 @Options(prefix="cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
+
 
   @Option(description="do not use the original functions from the CFA, but cloned ones. "
       + "See cfa.postprocessing.CFACloner for detail.",
@@ -162,7 +165,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     Collection<ThreadingState> results = getAbstractSuccessorsFromWrappedCPAs(
         activeThread, threadingState, precision, cfaEdge);
 
-    return getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
+    results = getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
+
+    results = setActiveThread(activeThread, results);
+
+    return results;
   }
 
   /** Search for the thread, where the current edge is available.
@@ -281,8 +288,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       String activeThread, ThreadingState threadingState, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
 
-    final Collection<ThreadingState> results = new HashSet<>();
-
     // compute new locations
     Collection<? extends AbstractState> newLocs = locationCPA.getTransferRelation().
         getAbstractSuccessorsForEdge(threadingState.getThreadLocation(activeThread), precision, cfaEdge);
@@ -292,6 +297,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         getAbstractSuccessorsForEdge(threadingState.getThreadCallstack(activeThread), precision, cfaEdge);
 
     // combine them pairwise, all combinations needed
+    final Collection<ThreadingState> results = new ArrayList<>();
     for (AbstractState loc : newLocs) {
       for (AbstractState stack : newStacks) {
         results.add(threadingState.updateLocationAndCopy(activeThread, stack, loc));
@@ -411,8 +417,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
    * @param threadId a unique identifier for the new thread
    * @param newThreadNum a unique number for the new thread
    * @param functionName the main-function of the new thread
+   * @return a threadingState with the new thread,
+   *         or {@code null} if the new thread cannot be created.
    */
-  ThreadingState addNewThread(
+  @Nullable ThreadingState addNewThread(
       ThreadingState threadingState, String threadId, int newThreadNum, String functionName)
       throws InterruptedException {
     CFANode functioncallNode =
@@ -457,13 +465,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return Collections.emptySet();
     }
 
-    // update all successors
-    final Collection<ThreadingState> newResults = new ArrayList<>();
-    for (ThreadingState ts : results) {
-      ts = ts.addLockAndCopy(activeThread, lockId);
-      newResults.add(ts);
-    }
-    return newResults;
+    return transform(results, ts -> ts.addLockAndCopy(activeThread, lockId));
   }
 
   /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */
@@ -504,13 +506,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final String activeThread,
       final String lockId,
       final Collection<ThreadingState> results) {
-    // update all successors
-    final Collection<ThreadingState> newResults = new ArrayList<>();
-    for (ThreadingState ts : results) {
-      ts = ts.removeLockAndCopy(activeThread, lockId);
-      newResults.add(ts);
-    }
-    return newResults;
+    return transform(results, ts -> ts.removeLockAndCopy(activeThread, lockId));
   }
 
   private Collection<ThreadingState> joinThread(ThreadingState threadingState,
@@ -578,5 +574,26 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     default:
       return false;
     }
+  }
+
+  /**
+   * Store the active thread in the given states.
+   *
+   * @see ThreadingState#setActiveThread
+   */
+  private Collection<ThreadingState> setActiveThread(
+      @Nullable String activeThread, Collection<ThreadingState> results) {
+    return transform(results, ts -> ts.setActiveThread(activeThread));
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      List<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    ThreadingState ts = (ThreadingState) state;
+    return setActiveThread(null, Collections.singleton(ts));
   }
 }

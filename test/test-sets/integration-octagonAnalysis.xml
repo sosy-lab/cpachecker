@@ -17,14 +17,14 @@
         <include>../programs/benchmarks/locks/*_false-unreach-call*.c</include>
         <include>../programs/benchmarks/locks/*_true-unreach-call*.c</include>
         <exclude reason="timeout">../programs/benchmarks/locks/*_1*_true-unreach-call*.c</exclude>
-        <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
+        <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
         <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
     </tasks>
     <tasks name="Sequentialized">
         <include>../programs/benchmarks/systemc/*_false-unreach-call*.cil.c</include>
         <include>../programs/benchmarks/systemc/*_true-unreach-call*.cil.c</include>
-        <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
+        <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
         <exclude reason="timeout">../programs/benchmarks/systemc/token_ring.1*</exclude>
         <exclude reason="timeout">../programs/benchmarks/systemc/transmitter.1*</exclude>
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
@@ -38,7 +38,7 @@
     </tasks>
     <tasks>
         <includesfile>integration-DeviceDriversLinux64.set</includesfile>
-        <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
+        <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
         <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
         <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
         <option name="-64"/>
@@ -46,8 +46,8 @@
 
     <!-- Widening Tests -->
     <tasks name="Loops">
-        <includesfile>../programs/benchmarks/Loops.set</includesfile>
-        <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+        <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+        <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
         <exclude reason="timeout">../programs/benchmarks/loop-invgen/*</exclude>
         <exclude reason="timeout">../programs/benchmarks/loop-industry-pattern/*</exclude>
         <exclude reason="timeout">../programs/benchmarks/loop-new/*</exclude>

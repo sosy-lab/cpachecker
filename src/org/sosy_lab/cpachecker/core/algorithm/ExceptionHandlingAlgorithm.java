@@ -62,9 +62,25 @@ public class ExceptionHandlingAlgorithm
 
   @Options
   private static class ExceptionHandlingOptions {
-    @Option(secure=true, name="counterexample.removeInfeasibleErrors", description="If continueAfterInfeasibleError is true, remove the infeasible counterexample before continuing."
-        + "Setting this to false may prevent a lot of similar infeasible counterexamples to get discovered, but is unsound")
+    @Option(
+      name = "counterexample.removeInfeasibleErrors",
+      description =
+          "If continueAfterInfeasibleError is true, "
+              + "attempt to remove the whole path of the infeasible counterexample before continuing. "
+              + "Setting this to false may prevent a lot of similar infeasible counterexamples to get discovered, but is unsound",
+      secure = true
+    )
     private boolean removeInfeasibleErrors = false;
+
+    @Option(
+      name = "counterexample.removeInfeasibleErrorState",
+      description =
+          "If continueAfterInfeasibleError is true, "
+              + "remove the error state that is proven to be unreachable before continuing. "
+              + "Set this to false if analyis.collectAssumptions=true is also set.",
+      secure = true
+    )
+    private boolean removeInfeasibleErrorState = true;
 
     @Option(
       secure = true,
@@ -227,6 +243,7 @@ public class ExceptionHandlingAlgorithm
     if (options.removeInfeasibleErrors) {
       // bit-wise and to have handleInfeasibleCounterexample() definitely executed
       sound &= handleInfeasibleCounterexample(reached, ARGUtils.getAllStatesOnPathsTo(lastState));
+
     } else if (sound) {
       logger.log(Level.WARNING, "Infeasible counterexample found, but could not remove it from the ARG. Therefore, we cannot prove safety.");
       sound = false;
@@ -234,8 +251,11 @@ public class ExceptionHandlingAlgorithm
       logger.log(Level.INFO, "Another infeasible counterexample found which could not be removed from the ARG.");
     }
 
-    // bit-wise and to have removeErrorState() definitely executed
-    sound &= removeLastState(reached, lastState, isErrorState);
+    if (options.removeInfeasibleErrorState) {
+      // bit-wise and to have method definitely executed
+      sound &= removeLastState(reached, lastState, isErrorState);
+    }
+
     assert ARGUtils.checkARG(reached);
 
     status = status.withSound(sound);

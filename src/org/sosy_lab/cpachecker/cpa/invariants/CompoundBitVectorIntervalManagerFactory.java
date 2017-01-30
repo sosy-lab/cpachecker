@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+import java.util.Collection;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-import java.util.Collection;
-import java.util.concurrent.CopyOnWriteArrayList;
-
-
+@SuppressWarnings("ImmutableEnumChecker") // enum used as stateful factory
 public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalManagerFactory {
 
   ALLOW_SIGNED_WRAP_AROUND {
@@ -67,9 +66,13 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
 
   @Override
   public CompoundIntervalManager createCompoundIntervalManager(TypeInfo pInfo) {
+    return createCompoundIntervalManager(pInfo, true);
+  }
+
+  public CompoundIntervalManager createCompoundIntervalManager(TypeInfo pInfo, boolean pWithOverflowHandlers) {
     if (pInfo instanceof BitVectorInfo) {
       return new CompoundBitVectorIntervalManager(
-          (BitVectorInfo) pInfo, isSignedWrapAroundAllowed(), compositeHandler);
+          (BitVectorInfo) pInfo, isSignedWrapAroundAllowed(), pWithOverflowHandlers ? compositeHandler : () -> {});
     }
     if (pInfo instanceof FloatingPointTypeInfo) {
       return new CompoundFloatingPointIntervalManager((FloatingPointTypeInfo) pInfo);

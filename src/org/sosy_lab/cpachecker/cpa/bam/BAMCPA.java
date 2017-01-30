@@ -179,22 +179,16 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
               config,
-              logger,
               this,
               wrappedProofChecker,
-              data,
-              pShutdownNotifier,
-              blockPartitioning);
+              pShutdownNotifier);
     } else {
       transfer =
           new BAMTransferRelation(
               config,
-              logger,
               this,
               wrappedProofChecker,
-              data,
-              pShutdownNotifier,
-              blockPartitioning);
+              pShutdownNotifier);
     }
     stats = new BAMCPAStatistics(this, data, config, logger);
     argStats = new BAMARGStatistics(config, pLogger, this, pCpa, pSpecification, pCfa);
@@ -219,20 +213,20 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   @Override
   public MergeOperator getMergeOperator() {
-    return new BAMMergeOperator(getWrappedCpa().getMergeOperator(), bamPccManager, transfer);
+    return new BAMMergeOperator(getWrappedCpa().getMergeOperator(), bamPccManager);
   }
 
   @Override
   public StopOperator getStopOperator() {
     return handleRecursiveProcedures
-        ? new BAMStopOperatorForRecursion(getWrappedCpa().getStopOperator(), transfer)
-        : new BAMStopOperator(getWrappedCpa().getStopOperator(), transfer);
+        ? new BAMStopOperatorForRecursion(getWrappedCpa().getStopOperator())
+        : new BAMStopOperator(getWrappedCpa().getStopOperator());
   }
 
   @Override
   public BAMPrecisionAdjustment getPrecisionAdjustment() {
     return new BAMPrecisionAdjustment(
-        getWrappedCpa().getPrecisionAdjustment(), data, transfer, bamPccManager,
+        getWrappedCpa().getPrecisionAdjustment(), data, bamPccManager,
         logger, blockPartitioning);
   }
 

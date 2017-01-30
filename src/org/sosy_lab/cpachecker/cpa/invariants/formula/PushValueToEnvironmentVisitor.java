@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
@@ -31,8 +34,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -107,8 +108,12 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(Typed pBitVectorType) {
-    return compoundIntervalManagerFactory.createCompoundIntervalManager(
-        pBitVectorType.getTypeInfo());
+    TypeInfo typeInfo = pBitVectorType.getTypeInfo();
+    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
+      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+      return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(typeInfo, false);
+    }
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);
   }
 
   @Override
@@ -123,8 +128,26 @@ public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormul
     }
     CompoundInterval leftValue = evaluate(pAdd.getSummand1());
     CompoundInterval rightValue = evaluate(pAdd.getSummand2());
-    CompoundInterval pushLeftValue = cim.add(parameter, cim.negate(rightValue));
-    CompoundInterval pushRightValue = cim.add(parameter, cim.negate(leftValue));
+
+    final CompoundInterval pushLeftValue;
+    final CompoundInterval pushRightValue;
+
+    TypeInfo typeInfo = pAdd.getTypeInfo();
+    if (typeInfo instanceof BitVectorInfo && pAdd.getTypeInfo().isSigned()) {
+      BitVectorInfo bitVectorInfo = (BitVectorInfo) typeInfo;
+      BitVectorInfo extendedType = bitVectorInfo.extend(1);
+
+      CompoundInterval extendedRange = cim.cast(extendedType, CompoundBitVectorInterval.of(bitVectorInfo.getRange()));
+      CompoundInterval extendedLeftValue = cim.cast(extendedType, leftValue);
+      CompoundInterval extendedRightValue = cim.cast(extendedType, rightValue);
+      CompoundInterval extendedParameter = cim.cast(extendedType, parameter);
+
+      pushLeftValue = cim.cast(bitVectorInfo, cim.intersect(cim.add(extendedParameter, cim.negate(extendedRightValue)), extendedRange));
+      pushRightValue = cim.cast(bitVectorInfo, cim.intersect(cim.add(extendedParameter, cim.negate(extendedLeftValue)), extendedRange));
+    } else {
+      pushLeftValue = cim.add(parameter, cim.negate(rightValue));
+      pushRightValue = cim.add(parameter, cim.negate(leftValue));
+    }
     if (!pAdd.getSummand1().accept(this, pushLeftValue)
         || !pAdd.getSummand2().accept(this, pushRightValue)) {
       return false;

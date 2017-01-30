@@ -55,6 +55,7 @@ import org.eclipse.cdt.core.dom.ast.IASTEqualsInitializer;
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionList;
 import org.eclipse.cdt.core.dom.ast.IASTExpressionStatement;
+import org.eclipse.cdt.core.dom.ast.IASTFieldDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFieldReference;
 import org.eclipse.cdt.core.dom.ast.IASTForStatement;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionCallExpression;
@@ -149,6 +150,7 @@ import org.sosy_lab.cpachecker.cfa.simplification.NonRecursiveExpressionSimplifi
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -820,6 +822,11 @@ class ASTConverter {
     @Override
     public Boolean visit(CTypedefType t) {
       return t.getRealType().accept(this);
+    }
+
+    @Override
+    public Boolean visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      return pCBitFieldType.getType().accept(this);
     }
   }
 
@@ -1591,6 +1598,9 @@ class ASTConverter {
       if (cStorageClass == CStorageClass.EXTERN && initializer != null) {
         throw parseContext.parseError("Extern declarations cannot have initializers", d);
       }
+      if (cStorageClass != CStorageClass.EXTERN && type instanceof CVoidType) {
+        throw parseContext.parseError("Variable cannot have type void", d);
+      }
 
       String origName = name;
 
@@ -1651,6 +1661,7 @@ class ASTConverter {
     IASTSimpleDeclaration sd = (IASTSimpleDeclaration)d;
 
     Pair<CStorageClass, ? extends CType> specifier = convert(sd.getDeclSpecifier());
+    //TODO: add knowledge about sd.DeclSpecifier.alignmentSpecifiers
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class inside composite type", d);
     }
@@ -1743,12 +1754,29 @@ class ASTConverter {
 
       IASTInitializer initializer = null;
       String name = null;
+      Integer bitFieldSize = null;
 
       // Descend into the nested chain of declarators.
       // Find out the name and the initializer, and collect all modifiers.
       IASTDeclarator currentDecl = d;
       while (currentDecl != null) {
         // TODO handle bitfields by checking for instanceof IASTFieldDeclarator
+
+        if (currentDecl instanceof IASTFieldDeclarator) {
+          if (bitFieldSize != null) {
+            throw parseContext.parseError("Unsupported declaration with two bitfield descriptions", d);
+          }
+
+          IASTExpression bitField = ((IASTFieldDeclarator) currentDecl).getBitFieldSize();
+          if (bitField instanceof CASTLiteralExpression) {
+            CExpression cExpression = convertExpressionWithoutSideEffects(bitField);
+            if (cExpression instanceof CIntegerLiteralExpression) {
+              bitFieldSize = ((CIntegerLiteralExpression) cExpression).getValue().intValue();
+            } else {
+              throw parseContext.parseError("Unsupported bitfield specifier", d);
+            }
+          }
+        }
 
         if (currentDecl instanceof IASTFunctionDeclarator) {
           throw parseContext.parseError("Unsupported declaration nested function declarations", d);
@@ -1891,6 +1919,9 @@ class ASTConverter {
         }
       }
 
+      if (bitFieldSize != null) {
+        type = typeConverter.convertBitFieldType(bitFieldSize, type);
+      }
       return Triple.of(type, initializer, name);
     }
   }

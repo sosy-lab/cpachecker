@@ -363,7 +363,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           @Override
           public void printStatistics(
               PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-            if (pResult != Result.TRUE) {
+            if (pResult == Result.FALSE) {
               return;
             }
             ARGState rootState =

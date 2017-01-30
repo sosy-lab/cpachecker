@@ -83,11 +83,14 @@ public class PredicateAbstractionsWriter {
     if (!reached.isEmpty()) {
       ARGState rootState =
           AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
-      successors =
-          ARGUtils.projectARG(
-              rootState, ARGState::getChildren, PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
-
-      worklist.add(rootState);
+      if (rootState != null) {
+        successors =
+            ARGUtils.projectARG(
+                rootState, ARGState::getChildren, PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
+        worklist.add(rootState);
+      } else {
+        successors = ImmutableSetMultimap.of();
+      }
     } else {
       successors = ImmutableSetMultimap.of();
     }

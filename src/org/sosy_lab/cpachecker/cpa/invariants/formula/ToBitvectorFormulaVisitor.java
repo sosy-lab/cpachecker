@@ -23,7 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
+import java.util.Map;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundFloatingPointInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
@@ -33,11 +37,6 @@ import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.math.BigInteger;
-import java.util.Map;
-
-import javax.annotation.Nullable;
 
 /**
  * Instances of this class are compound state invariants visitors used to
@@ -294,25 +293,30 @@ public class ToBitvectorFormulaVisitor implements
         right = pEqual.getOperand1();
       }
       CompoundInterval rightValue = right.accept(evaluationVisitor, pEnvironment);
-      BooleanFormula bf = bfmgr.makeFalse();
-      for (SimpleInterval interval : rightValue.getIntervals()) {
-        BooleanFormula intervalFormula = bfmgr.makeTrue();
-        if (interval.isSingleton()) {
-          BitvectorFormula value = asBitVectorFormula(typeInfo, interval.getLowerBound());
-          intervalFormula = bfmgr.and(intervalFormula, bvfmgr.equal(left, value));
-        } else {
-          if (interval.hasLowerBound()) {
-            BitvectorFormula lb = asBitVectorFormula(typeInfo, interval.getLowerBound());
-            intervalFormula =
-                bfmgr.and(intervalFormula, bvfmgr.greaterOrEquals(left, lb, typeInfo.isSigned()));
+      BooleanFormula bf;
+      if (rightValue instanceof CompoundFloatingPointInterval) {
+        bf = bfmgr.makeTrue();
+      } else {
+        bf = bfmgr.makeFalse();
+        for (SimpleInterval interval : rightValue.getIntervals()) {
+          BooleanFormula intervalFormula = bfmgr.makeTrue();
+          if (interval.isSingleton()) {
+            BitvectorFormula value = asBitVectorFormula(typeInfo, interval.getLowerBound());
+            intervalFormula = bfmgr.and(intervalFormula, bvfmgr.equal(left, value));
+          } else {
+            if (interval.hasLowerBound()) {
+              BitvectorFormula lb = asBitVectorFormula(typeInfo, interval.getLowerBound());
+              intervalFormula =
+                  bfmgr.and(intervalFormula, bvfmgr.greaterOrEquals(left, lb, typeInfo.isSigned()));
+            }
+            if (interval.hasUpperBound()) {
+              BitvectorFormula ub = asBitVectorFormula(typeInfo, interval.getUpperBound());
+              intervalFormula =
+                  bfmgr.and(intervalFormula, bvfmgr.lessOrEquals(left, ub, typeInfo.isSigned()));
+            }
           }
-          if (interval.hasUpperBound()) {
-            BitvectorFormula ub = asBitVectorFormula(typeInfo, interval.getUpperBound());
-            intervalFormula =
-                bfmgr.and(intervalFormula, bvfmgr.lessOrEquals(left, ub, typeInfo.isSigned()));
-          }
+          bf = bfmgr.or(bf, intervalFormula);
         }
-        bf = bfmgr.or(bf, intervalFormula);
       }
       return bf;
     }

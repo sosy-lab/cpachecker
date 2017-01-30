@@ -28,7 +28,24 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
-
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
@@ -79,25 +96,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
 
 
 public class AppliedCustomInstructionParser {
@@ -544,15 +542,12 @@ public class AppliedCustomInstructionParser {
   private static class GlobalVarCheckVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> implements
       CInitializerVisitor<Boolean, RuntimeException>, CDesignatorVisitor<Boolean, RuntimeException> {
 
-    private Boolean falseResult = Boolean.valueOf(false);
-    private Boolean trueResult = Boolean.valueOf(true);
-
     @Override
     public Boolean visit(final CArraySubscriptExpression pIastArraySubscriptExpression) throws RuntimeException {
       if (!pIastArraySubscriptExpression.getArrayExpression().accept(this)) {
         return pIastArraySubscriptExpression.getSubscriptExpression().accept(this);
       }
-      return trueResult;
+      return Boolean.TRUE;
     }
 
     @Override
@@ -563,8 +558,13 @@ public class AppliedCustomInstructionParser {
     @Override
     public Boolean visit(final CIdExpression pIastIdExpression) throws RuntimeException {
       // test if global variable
-      if (pIastIdExpression.getDeclaration().getQualifiedName().equals(pIastIdExpression.getDeclaration().getName())) { return trueResult; }
-      return falseResult;
+      if (pIastIdExpression
+          .getDeclaration()
+          .getQualifiedName()
+          .equals(pIastIdExpression.getDeclaration().getName())) {
+        return Boolean.TRUE;
+      }
+      return Boolean.FALSE;
     }
 
     @Override
@@ -582,7 +582,7 @@ public class AppliedCustomInstructionParser {
       if (!pIastBinaryExpression.getOperand1().accept(this)) {
         return pIastBinaryExpression.getOperand2().accept(this);
       }
-      return trueResult;
+      return Boolean.TRUE;
     }
 
     @Override
@@ -597,7 +597,7 @@ public class AppliedCustomInstructionParser {
 
     @Override
     protected Boolean visitDefault(final CExpression pExp) throws RuntimeException {
-      return falseResult;
+      return Boolean.FALSE;
     }
 
     @Override
@@ -609,23 +609,23 @@ public class AppliedCustomInstructionParser {
     public Boolean visit(final CInitializerList pInitializerList) throws RuntimeException {
       for(CInitializer init : pInitializerList.getInitializers()) {
         if(init.accept(this)) {
-          return trueResult;
+          return Boolean.TRUE;
         }
       }
-      return falseResult;
+      return Boolean.FALSE;
     }
 
     @Override
     public Boolean visit(final CDesignatedInitializer pCStructInitializerPart) throws RuntimeException {
       for(CDesignator des : pCStructInitializerPart.getDesignators()) {
         if(des.accept(this)) {
-          return trueResult;
+          return Boolean.TRUE;
         }
       }
       if(pCStructInitializerPart.getRightHandSide() != null) {
         return pCStructInitializerPart.getRightHandSide().accept(this);
       }
-      return falseResult;
+      return Boolean.FALSE;
     }
 
     @Override
@@ -636,14 +636,14 @@ public class AppliedCustomInstructionParser {
     @Override
     public Boolean visit(final CArrayRangeDesignator pArrayRangeDesignator) throws RuntimeException {
       if(pArrayRangeDesignator.getCeilExpression().accept(this)) {
-        return trueResult;
+        return Boolean.TRUE;
       }
       return pArrayRangeDesignator.getFloorExpression().accept(this);
     }
 
     @Override
     public Boolean visit(final CFieldDesignator pFieldDesignator) throws RuntimeException {
-      return falseResult;
+      return Boolean.FALSE;
     }
 
   }

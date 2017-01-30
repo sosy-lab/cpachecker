@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 
@@ -191,8 +191,7 @@ public class ARGSubtreeRemover {
 
     AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
     Precision reducedRootPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
-    bamCache.removeReturnEntry(reducedRootState, reducedRootPrecision, rootSubtree);
-    bamCache.removeBlockEntry(reducedRootState, reducedRootPrecision, rootSubtree);
+    bamCache.remove(reducedRootState, reducedRootPrecision, rootSubtree);
 
     ARGReachedSet argReachedSet = new ARGReachedSet(reachedSet);
     if (pNewPrecisions.isEmpty()) {

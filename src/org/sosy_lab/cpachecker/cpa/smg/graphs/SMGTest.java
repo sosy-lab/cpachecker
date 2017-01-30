@@ -36,26 +36,26 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
-import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeMap;
 
 
 public class SMGTest {
   private LogManager logger = LogManager.createTestLogManager();
 
   private SMG smg;
-  CType mockType = AnonymousTypes.createTypeWithLength(4);
+  CType mockType = AnonymousTypes.createTypeWithLength(32);
 
-  SMGObject obj1 = new SMGRegion(8, "object-1");
-  SMGObject obj2 = new SMGRegion(8, "object-2");
+  SMGObject obj1 = new SMGRegion(64, "object-1");
+  SMGObject obj2 = new SMGRegion(64, "object-2");
 
   Integer val1 = Integer.valueOf(1);
   Integer val2 = Integer.valueOf(2);
 
   SMGEdgePointsTo pt1to1 = new SMGEdgePointsTo(val1, obj1, 0);
   SMGEdgeHasValue hv2has2at0 = new SMGEdgeHasValue(mockType, 0, obj2, val2);
-  SMGEdgeHasValue hv2has1at4 = new SMGEdgeHasValue(mockType, 4, obj2, val1);
+  SMGEdgeHasValue hv2has1at4 = new SMGEdgeHasValue(mockType, 32, obj2, val1);
 
   // obj1 = xxxxxxxx
   // obj2 = yyyyzzzz
@@ -88,19 +88,21 @@ public class SMGTest {
   public void getNullBytesForObjectTest() {
     SMG smg = getNewSMG64();
     smg.addObject(obj1);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 4, obj1, smg.getNullValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, smg.getNullValue());
     smg.addHasValueEdge(hv);
 
-    BitSet bs = smg.getNullBytesForObject(obj1);
-    Assert.assertFalse(bs.get(0));
-    Assert.assertFalse(bs.get(3));
-    Assert.assertTrue(bs.get(4));
-    Assert.assertTrue(bs.get(7));
+    TreeMap<Integer, Integer> nullEdges = smg.getNullEdgesMapOffsetToSizeForObject(obj1);
+    Assert.assertTrue(nullEdges.floorKey(0) == null);
+    Assert.assertTrue(nullEdges.floorKey(24) == null);
+    Assert.assertTrue(nullEdges.floorEntry(32).getValue() == 32);
+    Assert.assertTrue(nullEdges.floorEntry(32).getKey() == 32);
+    Assert.assertTrue(nullEdges.floorEntry(56).getValue() == 32);
+    Assert.assertTrue(nullEdges.floorEntry(56).getKey() == 32);
   }
 
   @Test
   public void replaceHVSetTest() {
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 2, obj1, val1.intValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 16, obj1, val1.intValue());
     Set<SMGEdgeHasValue> hvSet = new HashSet<>();
     hvSet.add(hv);
 
@@ -138,7 +140,7 @@ public class SMGTest {
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
 
-    SMGObject third_object = new SMGRegion(16, "object-3");
+    SMGObject third_object = new SMGRegion(128, "object-3");
     Integer third_value = Integer.valueOf(3);
     smg_copy.addObject(third_object);
     smg_copy.addValue(third_value);
@@ -167,7 +169,7 @@ public class SMGTest {
   @Test
   public void addRemoveHasValueEdgeTest() {
     SMG smg = getNewSMG64();
-    SMGObject object = new SMGRegion(4, "object");
+    SMGObject object = new SMGRegion(32, "object");
 
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, smg.getNullValue());
 
@@ -183,9 +185,9 @@ public class SMGTest {
     SMG smg = getNewSMG64();
     Integer newValue = SMGValueFactory.getNewValue();
 
-    SMGObject object = new SMGRegion(8, "object");
+    SMGObject object = new SMGRegion(64, "object");
     SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, 0);
-    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 4, object, 0);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 32, object, 0);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
 
     smg.addValue(newValue);
@@ -207,9 +209,9 @@ public class SMGTest {
     SMG smg = getNewSMG64();
     Integer newValue = SMGValueFactory.getNewValue();
 
-    SMGObject object = new SMGRegion(8, "object");
+    SMGObject object = new SMGRegion(64, "object");
     SMGEdgeHasValue hv0 = new SMGEdgeHasValue(mockType, 0, object, 0);
-    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 4, object, 0);
+    SMGEdgeHasValue hv4 = new SMGEdgeHasValue(mockType, 32, object, 0);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(newValue, object, 0);
 
     smg.addValue(newValue);
@@ -273,8 +275,8 @@ public class SMGTest {
     SMG smg1 = getNewSMG64();
     SMG smg2 = getNewSMG64();
 
-    SMGObject object_2b = new SMGRegion(2, "object_2b");
-    SMGObject object_4b = new SMGRegion(4, "object_4b");
+    SMGObject object_2b = new SMGRegion(16, "object_2b");
+    SMGObject object_4b = new SMGRegion(32, "object_4b");
     Integer random_value = Integer.valueOf(6);
 
     smg1.addObject(object_2b);
@@ -286,7 +288,7 @@ public class SMGTest {
     SMGEdgeHasValue invalidHV1 = new SMGEdgeHasValue(mockType, 0, object_2b, random_value);
 
     // Read 4 bytes (sizeof(mockType)) on offset 8 of 4b object -> out of bounds
-    SMGEdgeHasValue invalidHV2 = new SMGEdgeHasValue(mockType, 8, object_4b, random_value);
+    SMGEdgeHasValue invalidHV2 = new SMGEdgeHasValue(mockType, 64, object_4b, random_value);
 
     smg1.addHasValueEdge(invalidHV1);
     smg2.addHasValueEdge(invalidHV2);
@@ -299,8 +301,8 @@ public class SMGTest {
   public void consistencyViolationHVConsistency() {
     SMG smg = getNewSMG64();
 
-    SMGObject object_8b = new SMGRegion(8, "object_8b");
-    SMGObject object_16b = new SMGRegion(10, "object_10b");
+    SMGObject object_8b = new SMGRegion(64, "object_8b");
+    SMGObject object_16b = new SMGRegion(80, "object_10b");
 
     Integer first_value = Integer.valueOf(6);
     Integer second_value = Integer.valueOf(8);
@@ -309,7 +311,7 @@ public class SMGTest {
     // 2 is inconsistent with 1 (same object and offset, different value)
     SMGEdgeHasValue hv_edge1 = new SMGEdgeHasValue(mockType, 0, object_8b, first_value);
     SMGEdgeHasValue hv_edge2 = new SMGEdgeHasValue(mockType, 0, object_8b, second_value);
-    SMGEdgeHasValue hv_edge3 = new SMGEdgeHasValue(mockType, 4, object_8b, second_value);
+    SMGEdgeHasValue hv_edge3 = new SMGEdgeHasValue(mockType, 32, object_8b, second_value);
     SMGEdgeHasValue hv_edge4 = new SMGEdgeHasValue(mockType, 0, object_16b, second_value);
 
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
@@ -339,15 +341,15 @@ public class SMGTest {
   public void consistencyViolationPTConsistency() {
     SMG smg = getNewSMG64();
 
-    SMGObject object_8b = new SMGRegion(8, "object_8b");
-    SMGObject object_16b = new SMGRegion(10, "object_10b");
+    SMGObject object_8b = new SMGRegion(64, "object_8b");
+    SMGObject object_16b = new SMGRegion(80, "object_10b");
 
     Integer first_value = Integer.valueOf(6);
     Integer second_value = Integer.valueOf(8);
     Integer third_value = Integer.valueOf(10);
 
     SMGEdgePointsTo edge1 = new SMGEdgePointsTo(first_value, object_8b, 0);
-    SMGEdgePointsTo edge2 = new SMGEdgePointsTo(third_value, object_8b, 4);
+    SMGEdgePointsTo edge2 = new SMGEdgePointsTo(third_value, object_8b, 32);
     SMGEdgePointsTo edge3 = new SMGEdgePointsTo(second_value, object_16b, 0);
     SMGEdgePointsTo edge4 = new SMGEdgePointsTo(first_value, object_16b, 0);
 
@@ -383,12 +385,12 @@ public class SMGTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void isObjectValidBadCallTest() {
-    smg.isObjectValid(new SMGRegion(24, "wee"));
+    smg.isObjectValid(new SMGRegion(192, "wee"));
   }
 
   @Test(expected=IllegalArgumentException.class)
   public void setValidityBadCallTest() {
-    smg.setValidity(new SMGRegion(24, "wee"), true);
+    smg.setValidity(new SMGRegion(192, "wee"), true);
   }
 
   @Test

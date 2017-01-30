@@ -278,10 +278,15 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     specification = pSpecification;
     cfa = pCfa;
 
-    globalInvariants = new FormulaInvariantsSupplier(pAggregatedReachedSets, logger);
+    globalInvariants = new FormulaInvariantsSupplier(pAggregatedReachedSets);
     updateGlobalInvariants();
 
-    semiCNFConverter = new RCNFManager(pConfig);
+    if (generationStrategy.contains(InvariantGenerationStrategy.PF_CNF_KIND)
+        || generationStrategy.contains(InvariantGenerationStrategy.PF_INDUCTIVE_WEAKENING)) {
+      semiCNFConverter = new RCNFManager(pConfig);
+    } else {
+      semiCNFConverter = null;
+    }
   }
 
   public boolean appendToAbstractionFormula() {
@@ -306,7 +311,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       Optional<CallstackStateEqualsWrapper> pCallstackInformation,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
-      PathFormula pContext) {
+      PathFormula pContext)
+      throws InterruptedException {
     BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
     Set<BooleanFormula> localInvariants =
         locationInvariantsCache.getOrDefault(pNode, ImmutableSet.of());
@@ -582,6 +588,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       final CFANode pLocation, final PathFormula pBlockFormula, ShutdownNotifier pInvariantShutdown)
       throws SolverException, InterruptedException, CPATransferException,
           InvalidConfigurationException {
+    assert semiCNFConverter != null;
 
     try {
       stats.pfWeakeningTime.start();
@@ -620,6 +627,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   private boolean findInvariantPartOfPathFormulaWithKInduction(
       final CFANode pLocation, PathFormula pPathFormula, ShutdownNotifier pInvariantShutdown)
       throws InterruptedException, CPAException, InvalidConfigurationException {
+    assert semiCNFConverter != null;
 
     try {
       stats.pfKindTime.start();
@@ -739,7 +747,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       throws CPAException, InterruptedException {
 
     invGen.start(cfa.getMainFunction());
-    InvariantSupplier invSup = new FormulaInvariantsSupplier(invGen.get(), logger);
+    InvariantSupplier invSup = new FormulaInvariantsSupplier(invGen.get());
 
     // we do only want to use invariants that can be used to make the program safe
     if (!useStrongInvariantsOnly || invGen.isProgramSafe()) {
@@ -900,8 +908,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                       imgr.buildCounterexampleTrace(
                               pInput.getPathFormulae(),
                               ImmutableList.copyOf(abstractionStatesTrace),
-                              elementsOnPath,
-                              true)
+                              elementsOnPath)
                           .getInterpolants();
 
                 } catch (CPAException | InterruptedException e) {
@@ -1129,7 +1136,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
-    semiCNFConverter.collectStatistics(pStatsCollection);
+    if (semiCNFConverter != null) {
+      semiCNFConverter.collectStatistics(pStatsCollection);
+    }
   }
 
 }

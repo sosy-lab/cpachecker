@@ -8,8 +8,8 @@
     <resultfiles>dummy</resultfiles>
 
     <tasks>
-        <includesfile>../programs/benchmarks/Loops.set</includesfile>
-        <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+        <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+        <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
         <!-- The following file switches between timeout and segmentation fault. -->
         <exclude>../programs/benchmarks/loops/eureka_01_false-unreach-call.i</exclude>
         <exclude>../programs/benchmarks/loops/s3_false-unreach-call.i</exclude>

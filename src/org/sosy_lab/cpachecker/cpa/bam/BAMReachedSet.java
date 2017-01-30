@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCEXSubgraphComputer.BackwardARGState;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -70,6 +70,16 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     public Collection<AbstractState> asCollection() {
       return subgraph;
     }
+
+  private final Function<AbstractState, Precision> GET_PRECISION = new Function<AbstractState, Precision>() {
+    @Nullable
+    @Override
+    public Precision apply(@Nullable AbstractState state) {
+      return delegate.asReachedSet().getPrecision(delegate.asReachedSet().getLastState());
+      // TODO do we really need the target-precision for refinements and not the actual one?
+      // return transfer.getPrecisionForState(Preconditions.checkNotNull(subgraphStatesToReachedState.get(state)), delegate.asReachedSet());
+    }
+  };
 
     @Override
     public Iterator<AbstractState> iterator() {
@@ -432,6 +442,6 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @Override
   public String toString(){
-    return "BAMReachedSet {{" + delegate.asReachedSet().asCollection().toString() + "}}";
+    return "BAMReachedSet {{" + asReachedSet().asCollection().toString() + "}}";
   }
 }

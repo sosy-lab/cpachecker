@@ -27,7 +27,14 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -81,15 +88,6 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   // Set of functions that may not appear in the source code
@@ -106,11 +104,15 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private final EdgeAnalyzer edgeAnalyzer;
 
-  public InvariantsTransferRelation(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, MachineModel pMachineModel) {
+  private final boolean allowOverapproximationOfUnsupportedFeatures;
+
+  public InvariantsTransferRelation(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, MachineModel pMachineModel,
+      boolean pAllowOverapproximationOfUnsupportedFeatures) {
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
     this.machineModel = pMachineModel;
     this.edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+    this.allowOverapproximationOfUnsupportedFeatures = pAllowOverapproximationOfUnsupportedFeatures;
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
@@ -160,6 +162,10 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
     if (overflowDetected.get()) {
       state = state.overflowDetected();
+    }
+
+    if (!allowOverapproximationOfUnsupportedFeatures && state.overapproximatesUnsupportedFeature()) {
+      throw new UnsupportedCCodeException("Over-approximation of unsupported features is switched off", pEdge);
     }
 
     return Collections.singleton(state);

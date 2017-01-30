@@ -288,6 +288,18 @@ public class PartialEvaluator implements
         return result;
       }
     }
+    // If either operand is false, return it
+    if (operand1 instanceof BooleanConstant<?> && !((BooleanConstant<?>) operand1).getValue()) {
+      return operand1;
+    }
+    if (operand2 instanceof BooleanConstant<?> && !((BooleanConstant<?>) operand2).getValue()) {
+      return operand2;
+    }
+    // If both operands are true, return the first one
+    if (operand1 instanceof BooleanConstant<?> && ((BooleanConstant<?>) operand1).getValue()
+        && operand2 instanceof BooleanConstant<?> && ((BooleanConstant<?>) operand2).getValue()) {
+      return operand1;
+    }
     if (operand1 == pAnd.getOperand1() && operand2 == pAnd.getOperand2()) {
       return pAnd;
     }
@@ -306,6 +318,9 @@ public class PartialEvaluator implements
     // The negation of a negation yields the inner operand
     if (operand instanceof LogicalNot<?>) {
       return ((LogicalNot<CompoundInterval>) operand).getNegated();
+    }
+    if (operand instanceof BooleanConstant<?>) {
+      return ((BooleanConstant<CompoundInterval>) operand).negate();
     }
     if (operand == pNot.getNegated()) {
       return pNot;

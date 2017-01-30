@@ -32,7 +32,18 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
+import java.io.PrintStream;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -67,7 +78,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -75,11 +85,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -98,20 +106,6 @@ import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-
-import java.io.PrintStream;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
 
@@ -523,7 +517,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final int offset = typeHandler.getOffset(compositeType, memberName);
+        final int offset = typeHandler.getBitOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final Variable newBase = Variable.create(base.getName() + FIELD_NAME_SEPARATOR + memberName,
                                                  memberType);
@@ -572,7 +566,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     // The string is either NULL terminated, or not.
     // If the length is not provided explicitly, NULL termination is used
     final String s = e.getContentString();
-    final int length = CTypeUtils.getArrayLength(type).orElse(s.length() + 1);
+    final int length = type.getLengthAsInt().orElse(s.length() + 1);
     assert length >= s.length();
 
     // create one CharLiteralExpression for each character of the string
@@ -686,7 +680,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (type instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) type;
       final CType elementType = checkIsSimplified(arrayType.getType());
-      final OptionalInt length = CTypeUtils.getArrayLength(arrayType);
+      final OptionalInt length = arrayType.getLengthAsInt();
       if (length.isPresent()) {
         final int l = Math.min(length.getAsInt(), options.maxArrayLength());
         for (int i = 0; i < l; i++) {
@@ -1022,39 +1016,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     return result;
-  }
-
-  /**
-   * Check whether a large array is declared and abort analysis in this case.
-   * This is a heuristic for SV-COMP to avoid
-   * wasting a lot of time for programs we probably cannot handle anyway
-   * or returning a wrong answer.
-   */
-  private void checkForLargeArray(final CDeclarationEdge declarationEdge, CType declarationType)
-      throws UnsupportedCCodeException {
-    if (options.useArraysForHeap() || options.useQuantifiersOnArrays()) {
-      return; // unbounded heap encodings should be able to handle large arrays
-    }
-
-    if (!(declarationType instanceof CArrayType)) {
-      return;
-    }
-    CArrayType arrayType = (CArrayType) declarationType;
-    CType elementType = arrayType.getType();
-
-    if (elementType instanceof CSimpleType
-        && ((CSimpleType) elementType).getType().isFloatingPointType()) {
-      if (CTypeUtils.getArrayLength(arrayType).orElse(0) > 100) {
-        throw new UnsupportedCCodeException("large floating-point array", declarationEdge);
-      }
-    }
-
-    if (elementType instanceof CSimpleType
-        && ((CSimpleType) elementType).getType() == CBasicType.INT) {
-      if (CTypeUtils.getArrayLength(arrayType).orElse(0) >= 10000) {
-        throw new UnsupportedCCodeException("large integer array", declarationEdge);
-      }
-    }
   }
 
   /**

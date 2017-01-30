@@ -31,7 +31,10 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -53,10 +56,6 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
-
 /** This immutable state represents a location state combined with a callstack state. */
 public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable, AbstractQueryableState {
 
@@ -71,40 +70,50 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   // String :: lock-id  -->  String :: thread-id
   private final PersistentMap<String, String> locks;
 
+  /**
+   * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
+   * should only be set in {@link ThreadingTransferRelation#getAbstractSuccessorsForEdge} and must
+   * be deleted in {@link ThreadingTransferRelation#strengthen}, e.g. set to {@code null}. It is not
+   * considered to be part of any 'full' abstract state, but serves as intermediate flag to have
+   * information for the strengthening process.
+   */
+  @Nullable private final String activeThread;
+
   public ThreadingState() {
     this.threads = PathCopyingPersistentTreeMap.of();
     this.locks = PathCopyingPersistentTreeMap.of();
+    this.activeThread = null;
   }
 
   private ThreadingState(
       PersistentMap<String, ThreadState> pThreads,
-      PersistentMap<String, String> pLocks) {
+      PersistentMap<String, String> pLocks,
+      String pActiveThread) {
     this.threads = pThreads;
     this.locks = pLocks;
- }
+    this.activeThread = pActiveThread;
+  }
 
   public ThreadingState addThreadAndCopy(String id, int num, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
     Preconditions.checkArgument(!threads.containsKey(id), "thread already exists");
     return new ThreadingState(
-        threads.putAndCopy(id, new ThreadState(loc, stack, num)),
-        locks);
+        threads.putAndCopy(id, new ThreadState(loc, stack, num)), locks, activeThread);
   }
 
   public ThreadingState updateLocationAndCopy(String id, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
     Preconditions.checkArgument(threads.containsKey(id), "updating non-existing thread");
     return new ThreadingState(
-        threads.putAndCopy(id,  new ThreadState(loc, stack, threads.get(id).getNum())),
-        locks);
+        threads.putAndCopy(id, new ThreadState(loc, stack, threads.get(id).getNum())),
+        locks,
+        activeThread);
   }
 
   public ThreadingState removeThreadAndCopy(String id) {
     Preconditions.checkNotNull(id);
     Preconditions.checkState(threads.containsKey(id), "leaving non-existing thread: " + id);
-    return new ThreadingState(
-        threads.removeAndCopy(id),
-        locks);
+    return new ThreadingState(threads.removeAndCopy(id), locks, activeThread);
   }
 
   public Set<String> getThreadIds() {
@@ -142,14 +151,14 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     Preconditions.checkNotNull(lockId);
     Preconditions.checkNotNull(threadId);
     Preconditions.checkArgument(threads.containsKey(threadId), "blocking non-existant thread: " + threadId + " with lock: " + lockId);
-    return new ThreadingState(threads, locks.putAndCopy(lockId, threadId));
+    return new ThreadingState(threads, locks.putAndCopy(lockId, threadId), activeThread);
   }
 
   public ThreadingState removeLockAndCopy(String threadId, String lockId) {
     Preconditions.checkNotNull(threadId);
     Preconditions.checkNotNull(lockId);
     Preconditions.checkArgument(threads.containsKey(threadId), "unblocking non-existant thread: " + threadId + " with lock: " + lockId);
-    return new ThreadingState(threads, locks.removeAndCopy(lockId));
+    return new ThreadingState(threads, locks.removeAndCopy(lockId), activeThread);
   }
 
   /** returns whether any of the threads has the lock */
@@ -173,7 +182,9 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(threads)
         + "}\n and locks={"
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(locks)
-        + "})";
+        + "}"
+        + (activeThread == null ? "" : ("\n produced from thread " + activeThread))
+        + " )";
   }
 
   @Override
@@ -183,12 +194,13 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     }
     ThreadingState ts = (ThreadingState)other;
     return threads.equals(ts.threads)
-        && locks.equals(ts.locks);
+        && locks.equals(ts.locks)
+        && Objects.equals(activeThread, ts.activeThread);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(threads, locks);
+    return Objects.hash(threads, locks, activeThread);
   }
 
   private FluentIterable<AbstractStateWithLocations> getLocations() {
@@ -361,5 +373,14 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     public int hashCode() {
       return Objects.hash(location, callstack, num);
     }
+  }
+
+  /** @see #activeThread */
+  public ThreadingState setActiveThread(String pActiveThread) {
+    return new ThreadingState(threads, locks, pActiveThread);
+  }
+
+  String getActiveThread() {
+    return activeThread;
   }
 }

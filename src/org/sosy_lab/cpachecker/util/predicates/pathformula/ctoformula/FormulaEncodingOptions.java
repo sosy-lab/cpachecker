@@ -79,6 +79,13 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Whether to track values stored in variables of function-pointer type.")
   private boolean trackFunctionPointers = true;
 
+  @Option(
+    secure = true,
+    description =
+        "Whether to give up immediately if a very large array is encountered (heuristic, often we would just waste time otherwise)"
+  )
+  private boolean abortOnLargeArrays = true;
+
   @Option(secure=true, description = "Insert tmp-variables for parameters at function-entries. " +
           "The variables are similar to return-variables at function-exit.")
   private boolean useParameterVariables = false;
@@ -134,6 +141,10 @@ public class FormulaEncodingOptions {
 
   public boolean trackFunctionPointers() {
     return trackFunctionPointers;
+  }
+
+  public boolean shouldAbortOnLargeArrays() {
+    return abortOnLargeArrays;
   }
 
   public boolean useParameterVariables() {

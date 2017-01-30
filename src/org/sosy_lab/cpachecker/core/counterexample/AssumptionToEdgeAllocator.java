@@ -97,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -114,6 +115,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -1397,6 +1399,11 @@ public class AssumptionToEdgeAllocator {
     }
 
     @Override
+    public ValueLiterals visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      return pCBitFieldType.getType().accept(this);
+    }
+
+    @Override
     public ValueLiterals visit(CProblemType pT) {
       return createUnknownValueLiterals();
     }
@@ -1460,6 +1467,10 @@ public class AssumptionToEdgeAllocator {
 
       if (pValue instanceof Rational) {
         double val = ((Rational) pValue).doubleValue();
+        if (Double.isInfinite(val) || Double.isNaN(val)) {
+          // TODO return correct value
+          return UnknownValueLiteral.getInstance();
+        }
         return ExplicitValueLiteral.valueOf(new BigDecimal(val), pType);
 
       } else if (pValue instanceof Double) {
@@ -1532,16 +1543,15 @@ public class AssumptionToEdgeAllocator {
     }
 
     /**
-     * Creates a value literal for the given value and adds a cast if the value
-     * does not fit into the specified type.
+     * Creates a value literal for the given value or computes its wrap-around if it does not fit
+     * into the specified type.
      *
      * @param pIntegerValue the value.
      * @param pType the type.
-     *
      * @return the value literal.
      */
-    private ValueLiteral handlePotentialIntegerOverflow(BigInteger pIntegerValue, CSimpleType pType) {
-      ValueLiteral result = ExplicitValueLiteral.valueOf(pIntegerValue, pType);
+    private ValueLiteral handlePotentialIntegerOverflow(
+        BigInteger pIntegerValue, CSimpleType pType) {
 
       BigInteger lowerInclusiveBound = machineModel.getMinimalIntegerValue(pType);
       BigInteger upperInclusiveBound = machineModel.getMaximalIntegerValue(pType);
@@ -1553,10 +1563,28 @@ public class AssumptionToEdgeAllocator {
         if (assumeLinearArithmetics) {
           return UnknownValueLiteral.getInstance();
         }
-        result = result.addCast(pType);
+        LogManagerWithoutDuplicates logManager =
+            logger instanceof LogManagerWithoutDuplicates
+                ? (LogManagerWithoutDuplicates) logger
+                : new LogManagerWithoutDuplicates(logger);
+        Value value =
+            ExpressionValueVisitor.castCValue(
+                new NumericValue(pIntegerValue),
+                pType,
+                machineModel,
+                logManager,
+                FileLocation.DUMMY);
+        Number number = value.asNumericValue().getNumber();
+        final BigInteger valueAsBigInt;
+        if (number instanceof BigInteger) {
+          valueAsBigInt = (BigInteger) number;
+        } else {
+          valueAsBigInt = BigInteger.valueOf(number.longValue());
+        }
+        return ExplicitValueLiteral.valueOf(valueAsBigInt, pType);
       }
 
-      return result;
+      return ExplicitValueLiteral.valueOf(pIntegerValue, pType);
     }
 
     /**
@@ -1618,6 +1646,11 @@ public class AssumptionToEdgeAllocator {
       @Override
       public Void visit(CEnumType pT) {
         return null;
+      }
+
+      @Override
+      public Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+        return pCBitFieldType.getType().accept(this);
       }
 
       @Override
@@ -1930,6 +1963,11 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
+      public Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+        return pCBitFieldType.getType().accept(this);
+      }
+
+      @Override
       public Void visit(CCompositeType compType) {
 
         if (compType.getKind() == ComplexTypeKind.ENUM) {
@@ -1991,6 +2029,7 @@ public class AssumptionToEdgeAllocator {
         valueLiterals.addSubExpressionValueLiteral(subExpression);
       }
     }
+
   }
 
   private final static class ValueLiterals {

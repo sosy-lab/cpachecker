@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.math.BigInteger;
+import java.util.Iterator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -43,9 +46,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-
-import java.math.BigInteger;
-import java.util.Iterator;
 
 /**
  * This enum stores the sizes for all the basic types that exist.
@@ -116,7 +116,6 @@ public enum MachineModel {
       1, // bool
       8  // pointer
   );
-
   // numeric types
   private final int     sizeofShort;
   private final int     sizeofInt;
@@ -476,7 +475,9 @@ public enum MachineModel {
     return result;
   }
 
-  private final CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor = new BaseSizeofVisitor(this);
+  @SuppressWarnings("ImmutableEnumChecker")
+  private final CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor =
+      new BaseSizeofVisitor(this);
 
   public static class BaseSizeofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
     private final MachineModel model;
@@ -513,8 +514,21 @@ public enum MachineModel {
       }
     }
 
+    public int calculateByteSize(int pBitFieldsSize) {
+      if (pBitFieldsSize == 0) {
+        return 0;
+      }
+
+      int result = pBitFieldsSize / model.getSizeofCharInBits();
+      if (pBitFieldsSize % model.getSizeofCharInBits() > 0) {
+        result++;
+      }
+      return result;
+    }
+
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
       int size = 0;
+      int bitFieldsSize = 0;
       Iterator<CCompositeTypeMemberDeclaration> declIt = pCompositeType.getMembers().iterator();
       while (declIt.hasNext()) {
         CCompositeTypeMemberDeclaration decl = declIt.next();
@@ -524,16 +538,25 @@ public enum MachineModel {
           CType type = decl.getType().getCanonicalType();
           if (type instanceof CArrayType) {
             CType elementType = ((CArrayType) type).getType();
+            size += calculateByteSize(bitFieldsSize);
+            bitFieldsSize = 0;
             size += model.getPadding(size, elementType);
           } else {
             throw new IllegalArgumentException(
                 "Cannot compute size of incomplete type " + decl.getType());
           }
         } else {
-          size += model.getPadding(size, decl.getType());
-          size += decl.getType().accept(this);
+          if (decl.getType() instanceof CBitFieldType) {
+              bitFieldsSize += ((CBitFieldType) decl.getType()).getBitFieldSize();
+          } else {
+            size += calculateByteSize(bitFieldsSize);
+            bitFieldsSize = 0;
+            size += model.getPadding(size, decl.getType());
+            size += decl.getType().accept(this);
+          }
         }
       }
+      size += calculateByteSize(bitFieldsSize);
       size += model.getPadding(size, pCompositeType);
       return size;
     }
@@ -600,6 +623,11 @@ public enum MachineModel {
     public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
       return model.getSizeofVoid();
     }
+
+    @Override
+    public Integer visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
+      return calculateByteSize(pCBitFieldType.getBitFieldSize());
+    }
   }
 
   public int getSizeof(CType type) {
@@ -610,7 +638,21 @@ public enum MachineModel {
     return type.accept(sizeofVisitor);
   }
 
-  private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor = new BaseAlignofVisitor(this);
+  public int getBitSizeofPtr() {
+    return getSizeofPtr() * getSizeofCharInBits();
+  }
+
+  public int getBitSizeof(CType pType) {
+    if (pType instanceof CBitFieldType) {
+      return ((CBitFieldType) pType).getBitFieldSize();
+    } else {
+      return getSizeof(pType) * getSizeofCharInBits();
+    }
+  }
+
+  @SuppressWarnings("ImmutableEnumChecker")
+  private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor =
+      new BaseAlignofVisitor(this);
 
   public static class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
     private final MachineModel model;
@@ -695,6 +737,11 @@ public enum MachineModel {
     @Override
     public Integer visit(CVoidType pVoidType) throws IllegalArgumentException {
       return model.getAlignofVoid();
+    }
+
+    @Override
+    public Integer visit(CBitFieldType pCBitFieldType) throws IllegalArgumentException {
+      return pCBitFieldType.getType().accept(this);
     }
   }
 

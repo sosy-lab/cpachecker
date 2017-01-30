@@ -32,10 +32,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.base.Functions;
-import com.google.common.collect.Iterables;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -308,7 +308,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     stats.countSuccessors += numSuccessors;
     stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-    for (AbstractState successor : Iterables.consumingIterable(successors)) {
+    for (Iterator<? extends AbstractState> it = successors.iterator(); it.hasNext();) {
+      AbstractState successor = it.next();
       shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINER, "Considering successor of current state");
       logger.log(Level.ALL, "Successor of", state, "\nis", successor);
@@ -355,7 +356,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           // add the new state
           reachedSet.add(successor, successorPrecision);
 
-          if (!successors.isEmpty()) {
+          if (it.hasNext()) {
             // re-add the old state to the waitlist, there are unhandled
             // successors left that otherwise would be forgotten
             reachedSet.reAddToWaitlist(state);

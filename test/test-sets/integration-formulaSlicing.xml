@@ -8,8 +8,8 @@
 
     <rundefinition>
         <tasks>
-            <includesfile>../programs/benchmarks/Loops.set</includesfile>
-            <propertyfile>../programs/benchmarks/Loops.prp</propertyfile>
+            <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+            <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
         </tasks>
     </rundefinition>
 

@@ -24,7 +24,14 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
 import com.google.common.base.Preconditions;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -76,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -90,16 +98,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import javax.annotation.Nonnull;
 
 /** This Class can be used to clone a function from the CFA.
  * You need to specify a new functionName.
@@ -650,6 +648,12 @@ class FunctionCloner implements CFAVisitor {
     @Override
     public CType visit(CTypedefType type) {
       return new CTypedefType(type.isConst(), type.isVolatile(), type.getName(), type.getRealType().accept(this));
+    }
+
+    @Override
+    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      return new CBitFieldType(
+          pCBitFieldType.getType().accept(this), pCBitFieldType.getBitFieldSize());
     }
   }
 

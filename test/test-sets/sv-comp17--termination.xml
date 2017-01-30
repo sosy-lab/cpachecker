@@ -5,10 +5,18 @@
 
   <resultfiles>**.graphml</resultfiles>
 
-  <tasks name="Termination">
-    <includesfile>../programs/benchmarks/Termination.set</includesfile>
+  <tasks name="Termination-MainControlFlow">
+    <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
     <option name="-64" />
+  </tasks>
+  <tasks name="Termination-MainHeap">
+    <includesfile>../programs/benchmarks/Termination-MainHeap.set</includesfile>
+    <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
+  </tasks>
+  <tasks name="Termination-Other">
+    <includesfile>../programs/benchmarks/Termination-Other.set</includesfile>
+    <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
   </tasks>
 
   <rundefinition name="sv-comp17">

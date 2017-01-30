@@ -121,10 +121,10 @@ public class CEXExporter {
 
   @Option(
     secure = true,
-    name = "compressErrorWitness",
+    name = "compressWitness",
     description = "compress the produced error-witness automata using GZIP compression."
   )
-  private boolean compressErrorWitness = true;
+  private boolean compressWitness = true;
 
   @Option(secure=true, name="codeStyle",
           description="exports either CMBC format or a concrete path program")
@@ -320,7 +320,7 @@ public class CEXExporter {
                     Predicates.in(pathElements),
                     isTargetPathEdge,
                     counterexample),
-        compressErrorWitness);
+        compressWitness);
 
     if (exportHarness) {
       writeErrorPathFile(

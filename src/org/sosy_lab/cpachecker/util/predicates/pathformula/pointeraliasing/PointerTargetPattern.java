@@ -26,16 +26,13 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Predicate;
-
+import java.io.Serializable;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.io.Serializable;
-
-import javax.annotation.Nullable;
 
 class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
@@ -196,7 +193,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     @Nullable
     Integer getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
       if (containerType != null && containerOffset != null && properOffset != null) {
-        return typeHandler.getSizeof(containerType) - properOffset;
+        return typeHandler.getBitSizeof(containerType) - properOffset;
       } else {
         return null;
       }

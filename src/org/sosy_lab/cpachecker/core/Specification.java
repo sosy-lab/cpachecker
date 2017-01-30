@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
  * Class that encapsulates the specification that should be used for an analysis.
@@ -97,7 +97,7 @@ public final class Specification {
             "Could not load automaton from file " + e.getMessage(), e);
       }
 
-      if (AutomatonGraphmlParser.isGraphmlAutomaton(specFile, logger)) {
+      if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
             new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
         automata = graphmlParser.parseAutomatonFile(specFile);
