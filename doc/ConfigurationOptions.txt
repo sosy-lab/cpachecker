@@ -1444,12 +1444,15 @@ cpa.predicate.bam.failAfterRepeatedCounterexample = true
 cpa.predicate.bam.predicateComputer = "AUXILIARY"
   allowed values: [AUXILIARY, OCCURRENCE, ALL]
 
+# should we use abstraction reduction at the BAM block entry
 # Enable/disable precision reduction using RelevantPredicateComputer
 cpa.predicate.bam.reduceIrrelevantPrecision = true
 
+# should we use precision reduction using relevantComputer
 # Enable/disable abstraction reduction at the BAM block entry
 cpa.predicate.bam.useAbstractionReduction = true
 
+# should we use precision reduction at the BAM block entry
 # Enable/disable precision reduction at the BAM block entry
 cpa.predicate.bam.usePrecisionReduction = true
 
