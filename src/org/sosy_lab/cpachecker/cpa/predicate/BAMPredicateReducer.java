@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -80,20 +81,21 @@ public class BAMPredicateReducer implements Reducer {
   @Option(description = "Enable/disable precision reduction using RelevantPredicateComputer", secure = true)
   private boolean reduceIrrelevantPrecision = true;
 
-
-  public BAMPredicateReducer(BooleanFormulaManager bfmgr, BAMPredicateCPA cpa) {
+  public BAMPredicateReducer(
+      BooleanFormulaManager bfmgr, BAMPredicateCPA cpa, Configuration pConfig) {
+    try {
+      pConfig.inject(this);
+    } catch (InvalidConfigurationException e) {
+      // Seems, the exception is not very harmful,
+      // just print a warning and continue with default values
+      cpa.getLogger()
+          .logException(Level.WARNING, e, "BAMPredicateReducer was not successfully configured: ");
+    }
     this.pmgr = cpa.getPathFormulaManager();
     this.pamgr = cpa.getPredicateManager();
     this.bfmgr = bfmgr;
     this.logger = cpa.getLogger();
     this.cpa = cpa;
-    try {
-      cpa.getConfiguration().inject(this);
-    } catch (InvalidConfigurationException e) {
-      // Seems, the exception is not very harmful,
-      // just print a warning and continue with default values
-      logger.logException(Level.WARNING, e, "BAMPredicateReducer was not successfully configured: ");
-    }
   }
 
   @Override
