@@ -138,7 +138,7 @@ public class SMGEdgeHasValueFilter {
       }
     }
 
-    if (offset != null && offset != pEdge.getOffset()) {
+    if (offset != null && !offset.equals(pEdge.getOffset())) {
       return false;
     }
 

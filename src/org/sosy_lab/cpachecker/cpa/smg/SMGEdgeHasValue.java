@@ -113,7 +113,7 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    return pModel.getBitSizeof(type) == pModel.getBitSizeof(other.type) && (offset == other.offset) && object == other.object;
+    return pModel.getBitSizeof(type) == pModel.getBitSizeof(other.type) && (offset.equals(other.offset)) && object == other.object;
   }
 
   @Override
