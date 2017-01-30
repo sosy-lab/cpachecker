@@ -4,8 +4,8 @@
   <option name="-heap">6000M</option>
 
   <!--
-  The benchmarks "integration-error-witness-generation" and
-  "integration-error-witness-validation" depend on each other.
+  The benchmarks "integration-witness-generation" and
+  "integration-witness-validation" depend on each other.
   If one file is changed, please also update the other one.
   -->
 
