@@ -942,17 +942,37 @@ public class ARGPathExporter {
       for (String violatedNode : violatedProperties.keySet()) {
         Collection<Edge> edges = ImmutableList.copyOf(enteringEdges.get(violatedNode));
         for (Edge edge : edges) {
+          // Find edge with warning
+          Edge warningCodeEdge = edge;
+          while ((warningCodeEdge != null) && (warningCodeEdge.label.equals(warningCodeEdge.label.removeAndCopy(KeyDef.WARNING)))) {
+            Collection<Edge> warningCodeEdges = enteringEdges.get(warningCodeEdge.source);
+            warningCodeEdge = warningCodeEdges.iterator().hasNext() ? warningCodeEdges.iterator().next() : null;
+          }
+
           // Find edge with sourcecode
           Edge sourceCodeEdge = edge;
-          while (!sourceCodeEdge.label.equals(new TransitionCondition().putAndCopy(KeyDef.SOURCECODE, "")
-              .putAllAndCopy(sourceCodeEdge.label))) {
+          while (sourceCodeEdge.label.equals(sourceCodeEdge.label.removeAndCopy(KeyDef.SOURCECODE))) {
             Collection<Edge> sourceCodeEdges = enteringEdges.get(sourceCodeEdge.source);
             sourceCodeEdge = sourceCodeEdges.iterator().next();
           }
           enteringEdges.remove(sourceCodeEdge.target, sourceCodeEdge);
+          String warningMessage;
+          if (warningCodeEdge != null) {
+            warningMessage = warningCodeEdge.label.getMapping().get(KeyDef.WARNING);
+            if (warningCodeEdge.label.equals(warningCodeEdge.label.removeAndCopy(KeyDef.SOURCECODE))) {
+              Edge replacedWrongWarnEdge = new Edge(warningCodeEdge.source, warningCodeEdge.target,
+                  warningCodeEdge.label.removeAndCopy(KeyDef.WARNING));
+              enteringEdges.remove(warningCodeEdge.target, warningCodeEdge);
+              enteringEdges.put(warningCodeEdge.target, replacedWrongWarnEdge);
+              leavingEdges.remove(warningCodeEdge.source, warningCodeEdge);
+              leavingEdges.put(warningCodeEdge.source, replacedWrongWarnEdge);
+            }
+          } else {
+            warningMessage = violatedProperties.get(violatedNode).toString();
+          }
+
           Edge replacedEdge = new Edge(sourceCodeEdge.source, sourceCodeEdge.target,
-              sourceCodeEdge.label.putAndCopy(KeyDef.WARNING, violatedProperties.get(violatedNode)
-                  .toString()));
+              sourceCodeEdge.label.putAndCopy(KeyDef.WARNING, warningMessage));
           enteringEdges.put(sourceCodeEdge.target, replacedEdge);
           leavingEdges.remove(sourceCodeEdge.source, sourceCodeEdge);
           leavingEdges.put(sourceCodeEdge.source, replacedEdge);
