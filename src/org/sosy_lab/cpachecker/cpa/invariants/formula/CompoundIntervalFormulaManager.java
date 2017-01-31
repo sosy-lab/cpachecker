@@ -368,8 +368,13 @@ public class CompoundIntervalFormulaManager {
     return true;
   }
 
-  private boolean definitelyImplies(BooleanFormula<CompoundInterval> pFormula1, BooleanFormula<CompoundInterval> pFormula2, boolean pDisableOverflowCheck) {
-    if (BooleanConstant.isFalse(pFormula1) || pFormula1.equals(pFormula2)) {
+  public boolean definitelyImplies(
+      BooleanFormula<CompoundInterval> pFormula1,
+      BooleanFormula<CompoundInterval> pFormula2,
+      boolean pDisableOverflowCheck) {
+    if (BooleanConstant.isFalse(pFormula1)
+        || pFormula1.equals(pFormula2)
+        || BooleanConstant.isTrue(pFormula2)) {
       return true;
     }
     if (pFormula1 instanceof Equal<?> && pFormula2 instanceof Equal<?>) {
@@ -635,7 +640,15 @@ public class CompoundIntervalFormulaManager {
       Union<CompoundInterval> union = (Union<CompoundInterval>) pOperand2;
       return logicalOr(lessThan(pOperand1, union.getOperand1()), lessThan(pOperand1, union.getOperand2()));
     }
-    return InvariantsFormulaManager.INSTANCE.lessThan(pOperand1, pOperand2);
+    BooleanFormula<CompoundInterval> result =
+        InvariantsFormulaManager.INSTANCE.lessThan(pOperand1, pOperand2);
+    if (isDefinitelyTrue(result)) {
+      return BooleanConstant.getTrue();
+    }
+    if (isDefinitelyFalse(result)) {
+      return BooleanConstant.getFalse();
+    }
+    return result;
   }
 
   /**
@@ -657,7 +670,15 @@ public class CompoundIntervalFormulaManager {
       Union<CompoundInterval> union = (Union<CompoundInterval>) pOperand2;
       return logicalOr(lessThanOrEqual(pOperand1, union.getOperand1()), lessThanOrEqual(pOperand1, union.getOperand2()));
     }
-    return InvariantsFormulaManager.INSTANCE.lessThanOrEqual(pOperand1, pOperand2);
+    BooleanFormula<CompoundInterval> result =
+        InvariantsFormulaManager.INSTANCE.lessThanOrEqual(pOperand1, pOperand2);
+    if (isDefinitelyTrue(result)) {
+      return BooleanConstant.getTrue();
+    }
+    if (isDefinitelyFalse(result)) {
+      return BooleanConstant.getFalse();
+    }
+    return result;
   }
 
   /**
