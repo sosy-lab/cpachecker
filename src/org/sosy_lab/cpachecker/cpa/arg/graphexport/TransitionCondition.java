@@ -69,6 +69,16 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     return newMap == null ? tc : new TransitionCondition(newMap);
   }
 
+  public TransitionCondition removeAndCopy(final KeyDef pKey) {
+    if (keyValues.containsKey(pKey)) {
+      EnumMap<KeyDef, String> newMap = keyValues.clone();
+      newMap.remove(pKey);
+      return new TransitionCondition(newMap);
+    } else {
+      return this;
+    }
+  }
+
   @Override
   public boolean equals(Object pOther) {
     if (this == pOther) {
