@@ -49,7 +49,7 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, BigInteger.valueOf(32), obj, val);
 
     Assert.assertEquals(obj, hv.getObject());
-    Assert.assertEquals(32, hv.getOffset());
+    Assert.assertEquals(BigInteger.valueOf(32), hv.getOffset());
     Assert.assertEquals(mockType, hv.getType());
     Assert.assertEquals(32, hv.getSizeInBits(MachineModel.LINUX64));
   }

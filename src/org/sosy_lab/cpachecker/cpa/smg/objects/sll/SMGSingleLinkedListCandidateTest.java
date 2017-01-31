@@ -53,8 +53,8 @@ public class SMGSingleLinkedListCandidateTest {
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
 
     Assert.assertSame(object, candidate.getStartObject());
-    Assert.assertEquals(32, candidate.getNfo());
-    Assert.assertEquals(0, candidate.getHfo());
+    Assert.assertEquals(BigInteger.valueOf(32), candidate.getNfo());
+    Assert.assertEquals(BigInteger.ZERO, candidate.getHfo());
     Assert.assertEquals(2, candidateSeq.getLength());
   }
 
@@ -93,7 +93,7 @@ public class SMGSingleLinkedListCandidateTest {
     Assert.assertEquals(1, outboundEdges.size());
     onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     Assert.assertEquals(0, onlyOutboundEdge.getValue());
-    Assert.assertEquals(0, onlyOutboundEdge.getOffset());
+    Assert.assertEquals(BigInteger.ZERO, onlyOutboundEdge.getOffset());
     Assert.assertEquals(NODE_SIZE, onlyOutboundEdge.getSizeInBits(abstractedSmg.getMachineModel()));
   }
 
@@ -120,7 +120,7 @@ public class SMGSingleLinkedListCandidateTest {
     Set<SMGEdgeHasValue> outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(realSll));
     Assert.assertEquals(1, outboundEdges.size());
     SMGEdgeHasValue outbound = Iterables.getOnlyElement(outboundEdges);
-    Assert.assertEquals(64, outbound.getOffset());
+    Assert.assertEquals(BigInteger.valueOf(64), outbound.getOffset());
     Assert.assertEquals(64, outbound.getSizeInBits(abstractedSmg.getMachineModel()));
     Assert.assertEquals(0, outbound.getValue());
   }

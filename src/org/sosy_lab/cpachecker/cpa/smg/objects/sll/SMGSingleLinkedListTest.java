@@ -40,7 +40,7 @@ public class SMGSingleLinkedListTest {
     Assert.assertTrue(sll.isAbstract());
     Assert.assertEquals(4, sll.getMinimumLength());
     Assert.assertEquals(128, sll.getSize());
-    Assert.assertEquals(2, sll.getNfo());
+    Assert.assertEquals(BigInteger.valueOf(2), sll.getNfo());
   }
 
   @Test

@@ -40,7 +40,7 @@ public class SMGEdgePointsToTest {
 
     Assert.assertEquals(val.intValue(), edge.getValue());
     Assert.assertEquals(obj, edge.getObject());
-    Assert.assertEquals(0, edge.getOffset());
+    Assert.assertEquals(BigInteger.ZERO, edge.getOffset());
   }
 
   @Test

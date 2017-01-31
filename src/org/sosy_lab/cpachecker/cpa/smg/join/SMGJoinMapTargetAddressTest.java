@@ -116,7 +116,7 @@ public class SMGJoinMapTargetAddressTest {
 
     SMGEdgePointsTo newEdge = destSMG.getPointer(mta.getValue());
     Assert.assertSame(destObj, newEdge.getObject());
-    Assert.assertEquals(0, newEdge.getOffset());
+    Assert.assertEquals(BigInteger.ZERO, newEdge.getOffset());
 
     Assert.assertSame(mta.getValue(), mta.getMapping1().get(value1));
     Assert.assertSame(mta.getValue(), mta.getMapping2().get(value2));

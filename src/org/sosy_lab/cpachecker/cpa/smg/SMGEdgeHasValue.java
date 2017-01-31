@@ -71,7 +71,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     }
 
     if ((object == other.object) &&
-        (offset == ((SMGEdgeHasValue)other).offset) &&
+        (Objects.equals(offset, ((SMGEdgeHasValue)other).offset)) &&
         (type == ((SMGEdgeHasValue)other).type)) {
       return (value == other.value);
     }
@@ -128,7 +128,7 @@ public class SMGEdgeHasValue extends SMGEdge {
     }
     SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
     return super.equals(obj)
-        && offset == other.offset
+        && Objects.equals(offset, other.offset)
         && type.getCanonicalType().equals(other.type.getCanonicalType());
   }
 
