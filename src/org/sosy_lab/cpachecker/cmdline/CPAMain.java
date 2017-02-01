@@ -72,7 +72,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
@@ -341,7 +341,7 @@ public class CPAMain {
       ConfigurationBuilder witnessConfigBuilder = Configuration.builder();
       final Path validationConfigFile;
       switch (witnessType) {
-        case ERROR_WITNESS:
+        case VIOLATION_WITNESS:
           validationConfigFile = options.violationWitnessValidationConfig;
           witnessFileOptionSetter =
               builder -> {
@@ -351,7 +351,7 @@ public class CPAMain {
                 builder.setOption(specificationOptionName, specs);
               };
           break;
-        case PROOF_WITNESS:
+        case CORRECTNESS_WITNESS:
           validationConfigFile = options.correctnessWitnessValidationConfig;
           witnessFileOptionSetter =
               builder ->

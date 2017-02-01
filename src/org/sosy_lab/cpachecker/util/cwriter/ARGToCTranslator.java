@@ -27,11 +27,17 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -53,7 +59,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
+@Options(prefix="cpa.arg.export.code")
 public class ARGToCTranslator {
+  private static String ASSERTFAIL = "__assert_fail";
+
   private static abstract class Statement {
     public abstract void translateToCode(StringBuffer buffer, int indent);
 
@@ -175,23 +184,39 @@ public class ARGToCTranslator {
   private FunctionBody mainFunctionBody;
   // private static Collection<AbstractState> reached;
 
-  private ARGToCTranslator(LogManager pLogger) {
+  private @Nullable Set<CFANode> addPragmaAfter;
+
+
+  @Option(secure=true, name="header", description="write include directives")
+  private boolean includeHeader = true;
+
+  public ARGToCTranslator(LogManager pLogger, Configuration pConfig)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
     logger = pLogger;
   }
 
-  public static String translateARG(ARGState argRoot,  boolean includeHeader, LogManager pLogger) {
-    ARGToCTranslator translator = new ARGToCTranslator(pLogger);
+  public String translateARG(ARGState argRoot) {
 
-    translator.translate(argRoot);
-
-    return translator.generateCCode(includeHeader);
+    return translateARG(argRoot, null);
   }
+
+  public String translateARG(ARGState argRoot, @Nullable Set<CFANode> pAddPragma) {
+
+    addPragmaAfter = pAddPragma == null ? Collections.emptySet() : pAddPragma;
+
+    translate(argRoot);
+
+    return generateCCode(includeHeader);
+  }
+
 
   private String generateCCode(boolean includeHeader) {
     StringBuffer buffer = new StringBuffer();
 
     if (includeHeader) {
       buffer.append("#include <stdio.h>\n");
+      buffer.append("#include <assert.h>\n");
     }
     for(String globalDef : globalDefinitionsList) {
       buffer.append(globalDef + "\n");
@@ -428,7 +453,12 @@ public class ARGToCTranslator {
 
     case StatementEdge: {
       CStatementEdge lStatementEdge = (CStatementEdge)pCFAEdge;
-      return lStatementEdge.getStatement().toASTString() + (lStatementEdge.getStatement().toASTString().endsWith(";") ? "" : ";");
+      String statementText = lStatementEdge.getStatement().toASTString();
+        if (statementText.startsWith(ASSERTFAIL)) {
+          return "assert(0);";
+
+        }
+        return statementText + (statementText.endsWith(";") ? "" : ";");
     }
 
     case DeclarationEdge: {
@@ -528,4 +558,5 @@ public class ARGToCTranslator {
   private int getFreshIndex() {
     return ++freshIndex;
   }
+
 }

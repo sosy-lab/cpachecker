@@ -121,6 +121,7 @@ public class ARGStatistics implements Statistics {
   private final @Nullable CEXExporter cexExporter;
   private final ARGPathExporter argPathExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
+  private final ARGToCTranslator argToCExporter;
 
   protected final LogManager logger;
 
@@ -143,6 +144,8 @@ public class ARGStatistics implements Statistics {
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
       exportARG = false;
     }
+
+    argToCExporter = new ARGToCTranslator(logger, config);
 
     if (argCFile == null) {
       translateARG = false;
@@ -211,7 +214,7 @@ public class ARGStatistics implements Statistics {
     if (translateARG) {
       try (Writer writer = MoreFiles.openOutputFile(argCFile, Charset.defaultCharset())) {
         writer.write(
-            ARGToCTranslator.translateARG((ARGState) pReached.getFirstState(), false, logger));
+            argToCExporter.translateARG((ARGState) pReached.getFirstState()));
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write C translation of ARG to file");
       }

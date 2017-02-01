@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,27 +21,8 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg;
-
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
-
-interface EdgeAppender {
-
-  void appendNewEdge(
-      String pFrom,
-      String pTo,
-      CFAEdge pEdge,
-      Optional<Collection<ARGState>> pFromState,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap);
-
-  void appendNewEdgeToSink(
-      String pFrom,
-      CFAEdge pEdge,
-      Optional<Collection<ARGState>> pFromState,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap);
-
-}
+/**
+ * The nondeterminism CPA aims to detect purely nondeterministically assigned, unconstrained
+ * variables.
+ */
+package org.sosy_lab.cpachecker.cpa.nondeterminism;

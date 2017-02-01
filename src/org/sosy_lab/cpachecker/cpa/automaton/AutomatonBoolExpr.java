@@ -127,6 +127,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
   }
 
   static enum MatchLoopStart implements AutomatonBoolExpr {
+
     INSTANCE;
 
     @Override
@@ -310,7 +311,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public String toString() {
-      return "MATCH FUNCTION CALL";
+      return "MATCH FUNCTION CALL \"" + functionName + "\"";
     }
 
   }
@@ -765,6 +766,11 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         }
         return CONST_FALSE;
       }
+    }
+
+    @Override
+    public String toString() {
+      return "CHECK(\"" + queryString + "\")";
     }
   }
   /**

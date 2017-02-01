@@ -35,20 +35,27 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  */
 public class StatesWithLocation {
 
-  private final BooleanFormula formula;
+  private final BooleanFormula concrete;
+  private final BooleanFormula abstracted;
   private final CFANode location;
 
-  public StatesWithLocation(BooleanFormula pFormula, CFANode pLocation) {
-    this.formula = Objects.requireNonNull(pFormula);
+  public StatesWithLocation(
+      BooleanFormula pAbstracted, CFANode pLocation, BooleanFormula pConcrete) {
+    this.abstracted = Objects.requireNonNull(pAbstracted);
     this.location = Objects.requireNonNull(pLocation);
+    this.concrete = pConcrete;
   }
 
   public BooleanFormula getFormula() {
-    return formula;
+    return abstracted;
   }
 
   public CFANode getLocation() {
     return location;
+  }
+
+  public BooleanFormula getConcrete() {
+    return concrete;
   }
 
   @Override
@@ -60,11 +67,13 @@ public class StatesWithLocation {
       return false;
     }
     StatesWithLocation other = (StatesWithLocation) pObj;
-    return this.formula.equals(other.formula) && this.location.equals(other.location);
+    return this.abstracted.equals(other.abstracted)
+        && this.location.equals(other.location)
+        && this.concrete.equals(other.concrete);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(formula, location);
+    return Objects.hash(abstracted, concrete, location);
   }
 }

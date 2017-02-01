@@ -162,6 +162,10 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
+# After an incomplete analysis constructs a residual program which contains
+# all program paths which are not fully explored
+analysis.constructResidualProgram = false
+
 # continue analysis after a unsupported code was found on one path
 analysis.continueAfterUnsupportedCode = false
 
@@ -760,6 +764,11 @@ cpa.arg.dumpAfterIteration = false
 
 # export final ARG as .dot file
 cpa.arg.export = true
+
+# write include directives
+cpa.arg.export.code.header = true
+
+# export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
 # inform ARG CPA if it is run in an analysis with enabler CPA because then it
@@ -1297,6 +1306,10 @@ cpa.monitor.limit = 0
 # time limit for all computations on a path in milliseconds (use milliseconds
 # or specify a unit; 0 for infinite)
 cpa.monitor.pathcomputationlimit = 0
+
+# keep tracking nondeterministically-assigned variables even if they are used
+# in assumptions
+cpa.nondeterminism.acceptConstrained = true
 
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
@@ -2751,6 +2764,18 @@ report.export = true
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
 
+# set specification file to automaton which guide analysis along assumption
+# produced by incomplete analysis,e.g.,
+# config/specification/AssumptionGuidingAutomaton.spc, to enable residual
+# program from combination of program and assumption condition
+residualprogram.assumptionGuider = no default value
+
+# write residual program to file
+residualprogram.file = "residualProgram.c"
+
+# write collected assumptions as automaton to file
+residualprogram.slice = true
+
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
 restartAlgorithm.combineARGsAfterRestart = false
@@ -2920,6 +2945,9 @@ witness.matchOffset = true
 # Match the line numbers within the origin (mapping done by preprocessor line
 # markers).
 witness.matchOriginLine = true
+
+# Match the thread identifier for concurrent programs.
+witness.matchThreadId = true
 
 # Enforce strict validity checks regarding the witness format, such as
 # checking for the presence of required fields.

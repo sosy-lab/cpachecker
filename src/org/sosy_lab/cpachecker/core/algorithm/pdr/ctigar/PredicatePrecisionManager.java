@@ -96,12 +96,19 @@ public class PredicatePrecisionManager {
     addDefaultPredicates(pTransition, pPfmgr, pCFA);
   }
 
+  /**
+   * Extracts conjuncts of interpolant and add parts as new predicates. Splits equalities, ignores
+   * program counter variable and treats disjunctive parts as single part.
+   */
   private void refinePredicates(BooleanFormula pInterpolant) {
     stats.numberOfRefinements++;
     BooleanFormula interpolant = fmgr.uninstantiate(pInterpolant);
 
     for (BooleanFormula part : bfmgr.toConjunctionArgs(interpolant, true)) {
       if (fmgr.isPurelyConjunctive(part)) {
+        if (fmgr.extractVariableNames(part).contains(transition.programCounterName())) {
+          continue; // Ignore pc
+        }
         for (BooleanFormula split : fmgr.splitNumeralEqualityIfPossible(part)) {
           for (AbstractionPredicate ap : pamgr.getPredicatesForAtomsOf(split)) {
             addPredicate(ap);
@@ -136,7 +143,8 @@ public class PredicatePrecisionManager {
   }
 
   /**
-   * Computes an abstraction of a formula based on the known predicates.
+   * Computes an abstraction of a formula based on the known predicates. Excludes the program
+   * counter information from the process and keeps it as it is.
    *
    * <p>The given base formula as well as the abstracted version are treated as unprimed.
    *
@@ -146,26 +154,26 @@ public class PredicatePrecisionManager {
   public BooleanFormula computeAbstraction(BooleanFormula pBaseFormula)
       throws InterruptedException, SolverException {
     BooleanFormula base = fmgr.uninstantiate(pBaseFormula);
-    BooleanFormula abstracted = pamgr.computeAbstraction(base, abstractionPredicates);
-    return PDRUtils.asUnprimed(abstracted, fmgr, transition);
+    BooleanFormula pcPart =
+        fmgr.filterLiterals(
+            base,
+            literal ->
+                fmgr.extractVariableNames(literal).contains(transition.programCounterName()));
+    BooleanFormula rest = fmgr.filterLiterals(base, literal -> !literal.equals(pcPart));
+    BooleanFormula abstracted = pamgr.computeAbstraction(rest, abstractionPredicates);
+    return PDRUtils.asUnprimed(bfmgr.and(pcPart, abstracted), fmgr, transition);
   }
 
-  /**
-   * Adds predicates for the initial condition (pc=startlocationID) and (v1<v2) for all variables in
-   * the program.
-   */
+  /** Adds predicates (v1<v2) for all variables in the program. */
   private void addDefaultPredicates(TransitionSystem pTrans, PathFormulaManager pPfmgr, CFA pCFA) {
-    // TODO partitions?
-    addPredicate(pamgr.getPredicateFor(pTrans.getInitialCondition()));
-
     List<String> varNames = new ArrayList<>(pTrans.allVariableNames());
     if (varNames.size() <= 1) {
       return;
     }
 
-    BitvectorFormulaManagerView bvfmgr = fmgr.getBitvectorFormulaManager();
     PathFormula unprimedContext = pTrans.getUnprimedContext();
     SSAMap ssa = unprimedContext.getSsa();
+    BitvectorFormulaManagerView bvfmgr = fmgr.getBitvectorFormulaManager();
 
     for (int i = 0; i < varNames.size() - 1; ++i) {
       for (int j = i + 1; j < varNames.size(); ++j) {
