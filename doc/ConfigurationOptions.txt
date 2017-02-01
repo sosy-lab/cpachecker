@@ -2951,6 +2951,9 @@ witness.matchOffset = true
 # markers).
 witness.matchOriginLine = true
 
+# Match the thread identifier for concurrent programs.
+witness.matchThreadId = true
+
 # Enforce strict validity checks regarding the witness format, such as
 # checking for the presence of required fields.
 witness.strictChecking = true

@@ -163,6 +163,9 @@ public class AutomatonGraphmlParser {
   @Option(secure=true, description="Match the branching information at a branching location.")
   private boolean matchAssumeCase = true;
 
+  @Option(secure = true, description = "Match the thread identifier for concurrent programs.")
+  private boolean matchThreadId = true;
+
   @Option(
     secure = true,
     description =
@@ -355,6 +358,17 @@ public class AutomatonGraphmlParser {
                       -distances.getOrDefault(targetStateId, Integer.MAX_VALUE))));
         }
 
+        if (matchThreadId) {
+          AutomatonAction threadAssignment = getThreadIdAssignment(transition);
+          if (threadAssignment != null) {
+            actions.add(threadAssignment);
+            // define new variable in automaton,
+            // this would be sufficient once and not per iteration, but who cares...
+            automatonVariables.put(
+                KeyDef.THREADID.name(), new AutomatonVariable("int", KeyDef.THREADID.name()));
+          }
+        }
+
         List<AExpression> assumptions = Lists.newArrayList();
         ExpressionTree<AExpression> candidateInvariants = ExpressionTrees.getTrue();
 
@@ -484,7 +498,6 @@ public class AutomatonGraphmlParser {
         if (matchAssumeCase) {
           conjoinedTriggers = and(conjoinedTriggers, getAssumeCaseMatcher(transition));
         }
-
 
         // If the triggers match, there must be one successor state that moves the automaton forwards
         transitions.add(
@@ -774,6 +787,29 @@ public class AutomatonGraphmlParser {
 
   /**
    * Collects data about the given transition and the states it connects.
+   * Build an AutomatonAction to set a given thraedId for an active thread at the current edge.
+   *
+   * <p>Returns {@null}, if no data can be found.
+   */
+  private AutomatonAction getThreadIdAssignment(Node transition)
+      throws WitnessParseException {
+    Set<String> threadIdTags =
+        GraphMLDocumentData.getDataOnNode(transition, KeyDef.THREADID);
+
+    if (threadIdTags.size() > 0) {
+      checkParsable(
+          threadIdTags.size() < 2, "At most one threadId tag must be provided for each edge.");
+      String threadIdStr = threadIdTags.iterator().next();
+      // TODO use unique Integer for each identifier
+      int threadId = threadIdStr.hashCode();
+      AutomatonIntExpr expr = new AutomatonIntExpr.Constant(threadId);
+      return new AutomatonAction.Assignment(KeyDef.THREADID.name(), expr);
+    }
+    return null;
+  }
+
+  /**
+   * Reads an automaton edge from the graphml file and inserts it into the automaton.
    *
    * @param pDocDat the GraphML-document-data helper.
    * @param pLeavingEdges the map from predecessor states to transitions leaving these states that
