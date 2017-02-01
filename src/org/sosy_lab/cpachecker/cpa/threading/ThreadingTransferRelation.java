@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.threading;
 import static com.google.common.collect.Collections2.transform;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -33,6 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -61,10 +64,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 @Options(prefix="cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
@@ -593,7 +600,48 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-    ThreadingState ts = (ThreadingState) state;
-    return setActiveThread(null, Collections.singleton(ts));
+    Collection<ThreadingState> results = Collections.singleton((ThreadingState) state);
+
+    for (AutomatonState automatonState :
+        AbstractStates.projectToType(otherStates, AutomatonState.class)) {
+      if ("WitnessAutomaton".equals(automatonState.getOwningAutomatonName())) {
+        results = transform(results, ts -> handleWitnessAutomaton(ts, automatonState));
+        results = Collections2.filter(results, Predicates.notNull());
+      }
+    }
+
+    assert !results.contains(null);
+
+    return setActiveThread(null, results);
+  }
+
+  private @Nullable ThreadingState handleWitnessAutomaton(
+      ThreadingState ts, AutomatonState automatonState) {
+    Map<String, AutomatonVariable> vars = automatonState.getVars();
+    AutomatonVariable witnessThreadId = vars.get(KeyDef.THREADID.id.toUpperCase());
+    String threadId = ts.getActiveThread();
+    if (witnessThreadId == null || threadId == null || witnessThreadId.getValue() == 0) {
+      // values not available or default value zero -> ignore and return state unchanged
+      return ts;
+    }
+
+    Integer witnessId = ts.getThreadIdForWitness(threadId);
+    if (witnessId == null) {
+      if (ts.hasWitnessIdForThread(witnessThreadId.getValue())) {
+        // state contains a mapping, but not for current thread -> wrong branch?
+        // TODO returning NULL here would be nice, but leads to unaccepted witnesses :-(
+        return ts;
+      } else {
+        // we know nothing, but can store the new mapping in the state
+        return ts.setThreadIdForWitness(threadId, witnessThreadId.getValue());
+      }
+    }
+    if (witnessId.equals(witnessThreadId.getValue())) {
+      // corrent branch
+      return ts;
+    } else {
+      // threadId does not match -> no successor
+      return null;
+    }
   }
 }
