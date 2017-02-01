@@ -641,7 +641,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return ts;
     } else {
       // threadId does not match -> no successor
-      return null;
+      return ts;
     }
   }
 }
