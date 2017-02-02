@@ -1612,8 +1612,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return msg;
       });
       SMGState newState = pNewState.setInvalidWrite();
-      newState.setErrorDescription("Field (" + pFieldOffset + ", " + pRValueType.toASTString("")
-          + ") does not fit object " + pMemoryOfField);
+      newState.setErrorDescription("Field with type " + pRValueType.toASTString("") + " can't be"
+              + " written at offset " + pFieldOffset.longValue() + " bit of object " + pMemoryOfField);
       newState.addInvalidObject(pMemoryOfField);
       return newState;
     }
@@ -2044,8 +2044,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             " does not fit object ", pObject, ".");
 
         SMGState newState = pSmgState.setInvalidRead();
-        newState.setErrorDescription(pEdge.getRawStatement() + ": Field (" + fieldOffset.longValue()/8 + ","
-            + " " + pType.toASTString("") + ") " + "does not fit object " + pObject + ".");
+        newState.setErrorDescription(pEdge.getRawStatement() + ": Field with type \"" + pType.toASTString("")
+            + "\" can't be readed from offset " + fieldOffset.longValue() + " bit of object " + pObject + ".");
         newState.addInvalidObject(pObject);
 
         return SMGValueAndState.of(newState);
