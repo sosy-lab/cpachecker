@@ -120,8 +120,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 
-import jdk.nashorn.internal.codegen.CompilerConstants;
-
 /**
  * Class containing all the code that converts C code into a formula.
  */
