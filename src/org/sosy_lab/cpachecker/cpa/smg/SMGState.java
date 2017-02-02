@@ -294,6 +294,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
     blockEnded = pBlockOperator.isBlockEnd(pCurrentLocation, 0);
     trackPredicates = pOriginalState.trackPredicates;
+    noteDescription = pOriginalState.noteDescription;
+    errorDescription = pOriginalState.errorDescription;
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
