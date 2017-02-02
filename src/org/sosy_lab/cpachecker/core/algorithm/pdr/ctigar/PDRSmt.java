@@ -373,7 +373,7 @@ public class PDRSmt {
    * succeed. After the abstract query is unsat (with or without refinement), drop unused literals
    * of 'abstr' and return that.
    *
-   * @throws CPAException
+   * @throws CPAException if the analysis creating the blocks encounters an exception.
    */
   private <T> BooleanFormula abstractLift(
       BooleanFormula pConcreteState,
