@@ -213,7 +213,15 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
             fmgr, predCPA.getPredicateManager(), pfmgr, transition, cfa, compositeStats);
     pdrSolver =
         new PDRSmt(
-            frameSet, solver, fmgr, pfmgr, predicateManager, transition, compositeStats, logger);
+            frameSet,
+            solver,
+            fmgr,
+            pfmgr,
+            predicateManager,
+            transition,
+            compositeStats,
+            logger,
+            stepwiseTransition);
   }
 
   @Override

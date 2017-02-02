@@ -75,7 +75,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class TransitionSystem {
 
   //TODO Debugging options, remove later
-  private static final boolean addPcConstraints = true;
+  private static final boolean addPcConstraints = false;
   private static final boolean addWP = false;
   private static final boolean addDummyBlocks = false;
 

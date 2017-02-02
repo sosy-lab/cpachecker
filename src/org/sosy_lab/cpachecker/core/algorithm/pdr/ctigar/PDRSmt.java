@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.math.BigInteger;
@@ -43,8 +45,11 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.ForwardTransition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
@@ -53,6 +58,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -65,7 +71,8 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class PDRSmt {
 
-  private static final int MAX_DROPPED_LITERALS = 1000; // TODO as option
+  private static final int MAX_DROPPED_LITERALS = 5; // TODO as option
+  private static final int MAX_TRIES = 10; // TODO as option
 
   private final FrameSet frameSet;
   private final Solver solver;
@@ -77,12 +84,16 @@ public class PDRSmt {
   private final PDRSatStatistics stats;
   private final LogManager logger;
 
+  private final ForwardTransition forward;
+
   // TODO Debugging options, remove later
   private static final boolean useAbstraction = true;
-  private static final boolean checkCAF = false;
+  private static final boolean checkCAF = true;
   private static final boolean dropLiterals = true;
   private static final boolean useLifting = true;
-  private static final boolean useUnsatCore = false;
+  private static final boolean useUnsatCore = true;
+  private static final boolean removeNondet = true;
+  private static final boolean allowLAF = true;
 
   /**
    * Creates a new PDRSmt instance.
@@ -104,7 +115,8 @@ public class PDRSmt {
       PredicatePrecisionManager pAbstractionManager,
       TransitionSystem pTransition,
       StatisticsDelegator pCompStats,
-      LogManager pLogger) {
+      LogManager pLogger,
+      ForwardTransition pForward) {
     this.stats = new PDRSatStatistics();
     Objects.requireNonNull(pCompStats).register(stats);
 
@@ -116,6 +128,7 @@ public class PDRSmt {
     this.abstractionManager = Objects.requireNonNull(pAbstractionManager);
     this.transition = Objects.requireNonNull(pTransition);
     this.logger = Objects.requireNonNull(pLogger);
+    this.forward = pForward;
   }
 
   /**
@@ -145,7 +158,12 @@ public class PDRSmt {
 
       StatesWithLocation directErrorPredecessor = getSatisfyingState(prover.getModel());
       BooleanFormula concreteState = directErrorPredecessor.getFormula();
-      BooleanFormula liftedAbstractState = abstractLift(concreteState, notSafetyPrimed);
+      BooleanFormula liftedAbstractState =
+          abstractLift(
+              concreteState,
+              notSafetyPrimed,
+              directErrorPredecessor.getLocation(),
+              transition.getTargetLocations().iterator().next()); //TODO !!
       assert ctiOK(liftedAbstractState);
       return Optional.of(
           new ConsecutionResult(
@@ -187,7 +205,10 @@ public class PDRSmt {
   }
 
   private BooleanFormula abstractLift(
-      BooleanFormula pConcretePredecessor, BooleanFormula pSuccessors)
+      BooleanFormula pConcretePredecessor,
+      BooleanFormula pSuccessors,
+      CFANode pPredLoc,
+      CFANode pSuccLoc)
       throws InterruptedException, SolverException {
     if (!useLifting) {
       return pConcretePredecessor;
@@ -198,8 +219,11 @@ public class PDRSmt {
             solver.newProverEnvironmentWithInterpolation();
         ProverEnvironment abstractProver = solver.newProverEnvironment()) {
       return useAbstraction
-          ? abstractLift(pConcretePredecessor, pSuccessors, concreteProver, abstractProver)
+          ? abstractLift(
+              pConcretePredecessor, pSuccessors, pPredLoc, pSuccLoc, concreteProver, abstractProver)
           : abstractLiftNoAbstr(pConcretePredecessor, pSuccessors, abstractProver);
+    } catch (CPAException e) {
+      throw new SolverException("only temporary!!!!"); // FIXME !!!!!!!!!!!!!!!!!
     } finally {
       stats.liftingTimer.stop();
     }
@@ -273,19 +297,92 @@ public class PDRSmt {
     return finalResult;
   }
 
+  private Set<Formula> nondetVarsOfConnectingBlock(CFANode predLoc, CFANode succLoc)
+      throws CPAException, InterruptedException {
+
+    FluentIterable<Block> connectingBlocks =
+        forward.getBlocksFrom(predLoc).filter(b -> b.getSuccessorLocation().equals(succLoc));
+    // Just get the block with the most disjunction args.
+    Block block =
+        connectingBlocks
+            .toList()
+            .stream()
+            .max(
+                new java.util.Comparator<Block>() {
+
+                  @Override
+                  public int compare(Block pArg0, Block pArg1) {
+                    Set<BooleanFormula> d0 = bfmgr.toDisjunctionArgs(pArg0.getFormula(), true);
+                    Set<BooleanFormula> d1 = bfmgr.toDisjunctionArgs(pArg1.getFormula(), true);
+                    return d0.size() - d1.size();
+                  }
+                })
+            .get();
+    return block.getUnconstrainedNondeterministicVariables();
+  }
+
+  private <T> T removeNondetVariables(
+      BooleanFormula pPred,
+      BooleanFormula pSucc,
+      CFANode pPredLoc,
+      CFANode pSuccLoc,
+      InterpolatingProverEnvironment<T> pConcrProver)
+      throws InterruptedException, CPAException {
+
+    // Remove non-deterministically assigned variables from pSuccessorStates.
+    // Pop pred and succ first (in that order!)
+    pConcrProver.pop();
+    pConcrProver.pop();
+
+    Set<Formula> nondetVars = nondetVarsOfConnectingBlock(pPredLoc, pSuccLoc);
+    Set<String> nondetNames =
+        nondetVars
+            .stream()
+            .flatMap(f -> fmgr.extractVariableNames(f).stream())
+            .collect(Collectors.toSet());
+
+    Predicate<BooleanFormula> isDet =
+        new Predicate<BooleanFormula>() {
+
+          @Override
+          public boolean apply(@Nullable BooleanFormula pInput) {
+            for (String name : fmgr.extractVariableNames(pInput)) {
+              for (String nondetVarName : nondetNames) {
+                if (name.startsWith(nondetVarName)) { //TODO can go wrong!!!!
+                  return false;
+                }
+              }
+            }
+            return true;
+          }
+        };
+
+    BooleanFormula succWithoutNondet = fmgr.filterLiterals(pSucc, isDet);
+
+    // push not(succ)' and concr
+    pConcrProver.push(PDRUtils.asPrimed(bfmgr.not(succWithoutNondet), fmgr, transition));
+    T idForInterpolation = pConcrProver.push(pPred);
+
+    return idForInterpolation;
+  }
+
   /**
    * [pConcreteState & T & not(pSuccessorStates)'] is unsat. Abstract pConcreteStates to 'abstr' and
    * try with [abstr & T & not(pSuccessorStates)']. If it is sat, there is a spurious transition and
    * the domain is refined with an interpolant. Trying again with the refined 'abstr' must now
    * succeed. After the abstract query is unsat (with or without refinement), drop unused literals
    * of 'abstr' and return that.
+   *
+   * @throws CPAException
    */
   private <T> BooleanFormula abstractLift(
       BooleanFormula pConcreteState,
       BooleanFormula pSuccessorStates,
+      CFANode pPredLoc,
+      CFANode pSuccLoc,
       InterpolatingProverEnvironment<T> pConcrProver,
       ProverEnvironment pAbstrProver)
-      throws InterruptedException, SolverException {
+      throws InterruptedException, SolverException, CPAException {
     logger.log(Level.INFO, "Concrete : ", pConcreteState);
     BooleanFormula abstractState = abstractionManager.computeAbstraction(pConcreteState);
     logger.log(Level.INFO, "Abstract : ", abstractState);
@@ -299,7 +396,14 @@ public class PDRSmt {
     T idForInterpolation = pConcrProver.push(pConcreteState);
     pAbstrProver.push(abstractState);
 
-    assert pConcrProver.isUnsat();
+    boolean concreteQueryUnsat = pConcrProver.isUnsat();
+    if (removeNondet && !concreteQueryUnsat) {
+      idForInterpolation =
+          removeNondetVariables(pConcreteState, pSuccessorStates, pPredLoc, pSuccLoc, pConcrProver);
+    }
+    if (!pConcrProver.isUnsat() && allowLAF) {
+      return abstractState;
+    }
 
     // Abstraction was too broad => Prepare interpolating prover and refine.
     if (!pAbstrProver.isUnsat()) {
@@ -362,8 +466,12 @@ public class PDRSmt {
     Set<BooleanFormula> remainingLits = bfmgr.toConjunctionArgs(pFormula, true);
     Iterator<BooleanFormula> litIterator = remainingLits.iterator();
     int droppedLits = 0;
-    while (droppedLits < MAX_DROPPED_LITERALS && litIterator.hasNext()) {
+    int numberOfTries = 0;
 
+    while (numberOfTries < MAX_TRIES
+        && droppedLits < MAX_DROPPED_LITERALS
+        && litIterator.hasNext()) {
+      numberOfTries++;
       BooleanFormula currentLit = litIterator.next();
 
       // Remove lit from formula
@@ -446,7 +554,8 @@ public class PDRSmt {
     if (!abstractConsecutionWorks) {
       if (concreteConsecutionWorks) {
         // Refine
-        BooleanFormula interpolant = pConcreteProver.getInterpolant(idsForInterpolation);
+        BooleanFormula interpolant =
+            pConcreteProver.getInterpolant(idsForInterpolation); // ONLY PRIMED SSAs!!!!
         BooleanFormula forRefinement = bfmgr.not(interpolant);
         abstr =
             abstractionManager.refineAndComputeAbstraction(concrete, forRefinement); //TODO !!! ssa
@@ -471,7 +580,11 @@ public class PDRSmt {
           return new ConsecutionResult(false, predecessorState);
         }
         BooleanFormula abstractLiftedPredecessor =
-            abstractLift(predecessorState.getFormula(), concrete);
+            abstractLift(
+                predecessorState.getFormula(),
+                concrete,
+                predecessorState.getLocation(),
+                pStates.getLocation());
         return new ConsecutionResult(
             false,
             new StatesWithLocation(
@@ -549,7 +662,12 @@ public class PDRSmt {
     if (isInitial(predecessorState.getFormula())) {
       return new ConsecutionResult(false, predecessorState);
     }
-    BooleanFormula abstractLiftedPredecessor = abstractLift(predecessorState.getFormula(), states);
+    BooleanFormula abstractLiftedPredecessor =
+        abstractLift(
+            predecessorState.getFormula(),
+            states,
+            predecessorState.getLocation(),
+            pStates.getLocation());
     return new ConsecutionResult(
         false,
         new StatesWithLocation(
