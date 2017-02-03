@@ -71,9 +71,6 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class PDRSmt {
 
-  private static final int MAX_DROPPED_LITERALS = 5; // TODO as option
-  private static final int MAX_TRIES = 10; // TODO as option
-
   private final FrameSet frameSet;
   private final Solver solver;
   private final FormulaManagerView fmgr;
@@ -83,6 +80,7 @@ public class PDRSmt {
   private final TransitionSystem transition;
   private final PDRSatStatistics stats;
   private final LogManager logger;
+  private final PDROptions options;
 
   private final ForwardTransition forward;
 
@@ -116,7 +114,8 @@ public class PDRSmt {
       TransitionSystem pTransition,
       StatisticsDelegator pCompStats,
       LogManager pLogger,
-      ForwardTransition pForward) {
+      ForwardTransition pForward,
+      PDROptions pOptions) {
     this.stats = new PDRSatStatistics();
     Objects.requireNonNull(pCompStats).register(stats);
 
@@ -129,6 +128,7 @@ public class PDRSmt {
     this.transition = Objects.requireNonNull(pTransition);
     this.logger = Objects.requireNonNull(pLogger);
     this.forward = pForward;
+    this.options = Objects.requireNonNull(pOptions);
   }
 
   /**
@@ -492,8 +492,8 @@ public class PDRSmt {
     int droppedLits = 0;
     int numberOfTries = 0;
 
-    while (numberOfTries < MAX_TRIES
-        && droppedLits < MAX_DROPPED_LITERALS
+    while (numberOfTries < options.maxAttemptsAtDroppingLiterals()
+        && droppedLits < options.maxLiteralsToDrop()
         && litIterator.hasNext()) {
       numberOfTries++;
       BooleanFormula currentLit = litIterator.next();

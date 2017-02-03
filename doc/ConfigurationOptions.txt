@@ -2668,10 +2668,21 @@ pcc.strategy = no default value
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
 
+# The maximum number attempts at dropping literals during the inductive
+# generalization of states.
+pdr.maxAttemptsToDropLiteralsDuringGeneralization = 10
+
+# The maximum number of literals that should be dropped during the inductive
+# generalization of states.
+pdr.maxLiteralsToDropDuringGeneralization = 5
+
 # Simplifies the global transition relation by keeping only those transitions
 # whose corresponding blocks are backwards reachable from the target
 # locations.
 pdr.removeRedundantTransitions = false
+
+# Subsumes redundant abstraction predicates.
+pdr.subsumeRedundantAbstractionPredicates = false
 
 # whether to track relevant variables only at the exact program location
 # (sharing=location), or within their respective (function-/global-) scope

@@ -59,7 +59,6 @@ public class PredicatePrecisionManager {
   // the result.
 
   // TODO Debugging option
-  private static final boolean subsumePredicates = true;
   private static int threshold = 200;
   private static final int increment = 100;
 
@@ -70,6 +69,7 @@ public class PredicatePrecisionManager {
   private final Collection<AbstractionPredicate> abstractionPredicates;
   private final AbstractionStatistics stats;
   private final Solver solver;
+  private final PDROptions options;
 
   /**
    * Creates a new PredicatePrecisionManager. The set of abstraction predicates is initialized with
@@ -92,7 +92,8 @@ public class PredicatePrecisionManager {
       TransitionSystem pTransition,
       CFA pCFA,
       StatisticsDelegator pCompStats,
-      Solver pSolver) {
+      Solver pSolver,
+      PDROptions pOptions) {
     stats = new AbstractionStatistics();
     Objects.requireNonNull(pCompStats).register(stats);
 
@@ -101,6 +102,7 @@ public class PredicatePrecisionManager {
     pamgr = Objects.requireNonNull(pAbstractionDelegate);
     transition = Objects.requireNonNull(pTransition);
     solver = Objects.requireNonNull(pSolver);
+    options = Objects.requireNonNull(pOptions);
     abstractionPredicates = new HashSet<>();
     addDefaultPredicates(pTransition, pPfmgr, pCFA);
   }
@@ -134,7 +136,8 @@ public class PredicatePrecisionManager {
   }
 
   private void subsumePredicatesIfNecessary() throws SolverException, InterruptedException {
-    if (!subsumePredicates || abstractionPredicates.size() < threshold) {
+    if (!options.shouldSubsumeRedundantAbstractionPredicates()
+        || abstractionPredicates.size() < threshold) {
       return;
     }
 

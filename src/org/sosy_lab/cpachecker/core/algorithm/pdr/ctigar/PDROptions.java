@@ -42,6 +42,23 @@ public class PDROptions {
   )
   private boolean removeRedundantTransitions = false;
 
+  @Option(
+    secure = true,
+    description =
+        "The maximum number of literals that should be dropped during the inductive generalization of states."
+  )
+  private int maxLiteralsToDropDuringGeneralization = 5;
+
+  @Option(
+    secure = true,
+    description =
+        "The maximum number attempts at dropping literals during the inductive generalization of states."
+  )
+  private int maxAttemptsToDropLiteralsDuringGeneralization = 10;
+
+  @Option(secure = true, description = "Subsumes redundant abstraction predicates.")
+  private boolean subsumeRedundantAbstractionPredicates = false;
+
   /**
    * Creates a new instance and injects all relevant options from the provided configuration.
    *
@@ -50,6 +67,36 @@ public class PDROptions {
    */
   public PDROptions(Configuration pConfig) throws InvalidConfigurationException {
     Objects.requireNonNull(pConfig).inject(this);
+  }
+
+  /**
+   * Returns the maximum number of attempts at dropping literals during generalization as specified
+   * by the configuration file.
+   *
+   * @return The maximum number of attempts at dropping literals.
+   */
+  public int maxAttemptsAtDroppingLiterals() {
+    return maxAttemptsToDropLiteralsDuringGeneralization;
+  }
+
+  /**
+   * Returns the maximum number of literals that should be dropped during generalization as
+   * specified by the configuration file.
+   *
+   * @return The maximum number of literals to be dropped.
+   */
+  public int maxLiteralsToDrop() {
+    return maxLiteralsToDropDuringGeneralization;
+  }
+
+  /**
+   * Returns whether the configuration file set the option to subsume redundant abstraction
+   * predicates.
+   *
+   * @return True, if redundant abstraction predicates are to be removed. False, if not.
+   */
+  public boolean shouldSubsumeRedundantAbstractionPredicates() {
+    return subsumeRedundantAbstractionPredicates;
   }
 
   /**
