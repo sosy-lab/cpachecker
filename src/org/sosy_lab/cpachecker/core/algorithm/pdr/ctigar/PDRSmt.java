@@ -249,6 +249,7 @@ public class PDRSmt {
   private BooleanFormula reduceByUnsatCore(BooleanFormula pFormula, ProverEnvironment pProver)
       throws SolverException, InterruptedException {
 
+    logger.log(Level.INFO, "Formula before unsat core reduction : ", pFormula);
     pProver.pop(); // Remove old (unreduced) formula.
     Set<BooleanFormula> conjuncts = bfmgr.toConjunctionArgs(pFormula, true);
 
@@ -281,6 +282,7 @@ public class PDRSmt {
     BooleanFormula reduced = bfmgr.and(usedConjuncts);
     BooleanFormula finalResult =
         !isInitial(PDRUtils.asUnprimed(reduced, fmgr, transition)) ? reduced : pFormula;
+    logger.log(Level.INFO, "Formula after unsat core reduction : ", finalResult);
 
     // Rebuild prover : remove equivalences and push new reduced formula.
     for (int i = 0; i < conjuncts.size(); ++i) {
@@ -547,6 +549,7 @@ public class PDRSmt {
         BooleanFormula interpolant = pConcreteProver.getInterpolant(idsForInterpolation);
         BooleanFormula forRefinement = bfmgr.not(interpolant);
         abstr = abstractionManager.refineAndComputeAbstraction(concrete, forRefinement);
+        logger.log(Level.INFO, "Abstract after refinement : ", abstr);
 
         // Update not(s) and s'
         pAbstractProver.pop();
