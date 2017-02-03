@@ -799,6 +799,9 @@ cpa.arg.witness.exportThreadId = false
 # generation
 cpa.arg.witness.handleTMPVariableAsEpsilonForWitness = true
 
+# Some redundant transitions will be removed
+cpa.arg.witness.removeInsufficientEdges = true
+
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
 
