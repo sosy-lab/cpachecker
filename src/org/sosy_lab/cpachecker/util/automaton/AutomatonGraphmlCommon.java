@@ -445,7 +445,11 @@ public class AutomatonGraphmlCommon {
   }
 
   public static boolean handleAsEpsilonEdge(CFAEdge edge) {
-    if (handleAsEpsilonEdge0(edge)) {
+    return handleAsEpsilonEdge(edge, true);
+  }
+
+  public static boolean handleAsEpsilonEdge(CFAEdge edge, boolean handleTMPVariableAsEpsilon) {
+    if (handleAsEpsilonEdge0(edge, handleTMPVariableAsEpsilon)) {
       if (edge.getSuccessor().getNumLeavingEdges() <= 0) {
         return false;
       }
@@ -454,7 +458,7 @@ public class AutomatonGraphmlCommon {
     return false;
   }
 
-  private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
+  private static boolean handleAsEpsilonEdge0(CFAEdge edge, boolean handleTMPVariableAsEpsilon) {
     if (edge instanceof BlankEdge) {
       return !(edge.getSuccessor() instanceof FunctionExitNode);
     } else if (edge instanceof CFunctionReturnEdge) {
@@ -468,7 +472,7 @@ public class AutomatonGraphmlCommon {
         return true;
       } else if (decl instanceof CVariableDeclaration) {
         CVariableDeclaration varDecl = (CVariableDeclaration) decl;
-        if (varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
+        if (handleTMPVariableAsEpsilon && varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
           return true; // Dirty hack; would be better if these edges had no file location
         }
         CFANode successor = edge.getSuccessor();

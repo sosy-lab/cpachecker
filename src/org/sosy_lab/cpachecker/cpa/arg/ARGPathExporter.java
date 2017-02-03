@@ -197,6 +197,9 @@ public class ARGPathExporter {
   )
   private boolean revertThreadFunctionRenaming = false;
 
+  @Option(secure = true, description = "Handle __CPACHECKER_TMP vars declaration as epsilon edge on witness generation")
+  private boolean handleTMPVariableAsEpsilonForWitness = true;
+
   private final CFA cfa;
 
   private final MachineModel machineModel;
@@ -452,7 +455,7 @@ public class ARGPathExporter {
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
-      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
+      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge, handleTMPVariableAsEpsilonForWitness)) {
         return result;
       }
 
