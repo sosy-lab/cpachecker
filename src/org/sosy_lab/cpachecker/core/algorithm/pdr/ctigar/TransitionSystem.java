@@ -61,7 +61,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 public class TransitionSystem {
 
-  private static final String PROGRAM_COUNTER_VARIABLE_NAME = "__CPAchecker_pc";
+  static final String PROGRAM_COUNTER_VARIABLE_NAME = "__CPAchecker_pc";
   private static final CType PROGRAM_COUNTER_TYPE = CNumericTypes.UNSIGNED_INT;
 
   private static final int STANDARD_UNPRIMED_SSA = 1;
