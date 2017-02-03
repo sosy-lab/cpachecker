@@ -2676,11 +2676,6 @@ pdr.maxAttemptsToDropLiteralsDuringGeneralization = 10
 # generalization of states.
 pdr.maxLiteralsToDropDuringGeneralization = 5
 
-# Simplifies the global transition relation by keeping only those transitions
-# whose corresponding blocks are backwards reachable from the target
-# locations.
-pdr.removeRedundantTransitions = false
-
 # Subsumes redundant abstraction predicates.
 pdr.subsumeRedundantAbstractionPredicates = false
 

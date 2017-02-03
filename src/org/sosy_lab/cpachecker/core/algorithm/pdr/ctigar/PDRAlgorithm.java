@@ -241,13 +241,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     // Only need to create this at first run.
     if (transition == null) {
       try {
-        transition =
-            new TransitionSystem(
-                optionsCollection, cfa, stepwiseTransition, fmgr, pfmgr, mainEntry);
+        transition = new TransitionSystem(cfa, stepwiseTransition, fmgr, pfmgr, mainEntry);
         logger.log(Level.INFO, transition);
-      } catch (InvalidConfigurationException e) {
-        logger.logUserException(Level.WARNING, e, null);
-        throw new CPAException("Invalid configuration file.", e);
       } catch (SolverException e) {
         logger.logException(Level.WARNING, e, null);
         throw new CPAException("Solver error occured while creating transition relation.", e);

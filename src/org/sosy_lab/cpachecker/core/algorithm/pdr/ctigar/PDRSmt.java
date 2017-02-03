@@ -85,11 +85,6 @@ public class PDRSmt {
   private final ForwardTransition forward;
 
   // TODO Debugging options, remove later
-  private static final boolean useAbstraction = true;
-  private static final boolean checkCAF = true;
-  private static final boolean dropLiterals = true;
-  private static final boolean useLifting = true;
-  private static final boolean useUnsatCore = true;
   private static final boolean removeNondet = true;
   private static final boolean allowLAF = true;
 
@@ -236,38 +231,16 @@ public class PDRSmt {
       CFANode pPredLoc,
       CFANode pSuccLoc)
       throws InterruptedException, SolverException, CPAException {
-    if (!useLifting) {
-      return pConcretePredecessor;
-    }
 
     stats.liftingTimer.start();
     try (InterpolatingProverEnvironment<?> concreteProver =
             solver.newProverEnvironmentWithInterpolation();
         ProverEnvironment abstractProver = solver.newProverEnvironment()) {
-      return useAbstraction
-          ? abstractLift(
-              pConcretePredecessor, pSuccessors, pPredLoc, pSuccLoc, concreteProver, abstractProver)
-          : abstractLiftNoAbstr(pConcretePredecessor, pSuccessors, abstractProver);
+      return abstractLift(
+          pConcretePredecessor, pSuccessors, pPredLoc, pSuccLoc, concreteProver, abstractProver);
     } finally {
       stats.liftingTimer.stop();
     }
-  }
-
-  private BooleanFormula abstractLiftNoAbstr(
-      BooleanFormula pConcretePredecessor, BooleanFormula pSuccessors, ProverEnvironment pProver)
-      throws InterruptedException, SolverException {
-
-    // Push unsatisfiable formula (state & T & not(successor)').
-    pProver.push(transition.getTransitionRelationFormula());
-    pProver.push(PDRUtils.asPrimed(bfmgr.not(pSuccessors), fmgr, transition));
-    pProver.push(pConcretePredecessor);
-    assert pProver.isUnsat();
-
-    // Get used literals of concreteState. Query must be unsat at this point.
-    BooleanFormula reduced = reduceByUnsatCore(pConcretePredecessor, pProver);
-    reduced = dropLits(reduced, pProver, false);
-    assert liftOK(reduced, pSuccessors);
-    return reduced;
   }
 
   // Assumes that the prover already contains the unsatisfiable query and the formula at the top of
@@ -275,10 +248,6 @@ public class PDRSmt {
   // reduced formula instead.
   private BooleanFormula reduceByUnsatCore(BooleanFormula pFormula, ProverEnvironment pProver)
       throws SolverException, InterruptedException {
-
-    if (!useUnsatCore) {
-      return pFormula;
-    }
 
     pProver.pop(); // Remove old (unreduced) formula.
     Set<BooleanFormula> conjuncts = bfmgr.toConjunctionArgs(pFormula, true);
@@ -483,10 +452,6 @@ public class PDRSmt {
       BooleanFormula pFormula, ProverEnvironment pProver, boolean consecutionMode)
       throws SolverException, InterruptedException {
 
-    if (!dropLiterals) {
-      return pFormula;
-    }
-
     Set<BooleanFormula> remainingLits = bfmgr.toConjunctionArgs(pFormula, true);
     Iterator<BooleanFormula> litIterator = remainingLits.iterator();
     int droppedLits = 0;
@@ -541,7 +506,7 @@ public class PDRSmt {
             solver.newProverEnvironmentWithInterpolation();
         ProverEnvironment abstractProver =
             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      return checkCAF
+      return allowLAF
           ? consecutionDoubleCheck(pLevel, pStates, concreteProver, abstractProver)
           : consecutionNormal(pLevel, pStates, abstractProver);
     } finally {

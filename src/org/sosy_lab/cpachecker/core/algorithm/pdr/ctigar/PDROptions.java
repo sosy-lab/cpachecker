@@ -36,15 +36,6 @@ public class PDROptions {
   @Option(
     secure = true,
     description =
-        "Simplifies the global transition relation by keeping only"
-            + " those transitions whose corresponding blocks are backwards reachable from the target"
-            + " locations."
-  )
-  private boolean removeRedundantTransitions = false;
-
-  @Option(
-    secure = true,
-    description =
         "The maximum number of literals that should be dropped during the inductive generalization of states."
   )
   private int maxLiteralsToDropDuringGeneralization = 5;
@@ -99,13 +90,4 @@ public class PDROptions {
     return subsumeRedundantAbstractionPredicates;
   }
 
-  /**
-   * Returns whether the configuration file set the option to remove all redundant block transitions
-   * from the global transition relation.
-   *
-   * @return True, if redundant transitions are to be removed. False, if not.
-   */
-  public boolean shouldRemoveRedundantTransitions() {
-    return removeRedundantTransitions;
-  }
 }
