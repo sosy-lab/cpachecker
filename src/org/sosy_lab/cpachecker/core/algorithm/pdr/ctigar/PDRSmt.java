@@ -397,6 +397,7 @@ public class PDRSmt {
           removeNondetVariables(pConcreteState, pSuccessorStates, pPredLoc, pSuccLoc, pConcrProver);
     }
     if (!pConcrProver.isUnsat() && allowLAF) {
+      stats.numberFailedLifts++;
       return abstractState;
     }
 
@@ -588,6 +589,7 @@ public class PDRSmt {
     assert abstractConsecutionWorks;
 
     // Generalize
+    stats.numberSuccessfulConsecutions++;
     BooleanFormula generalized =
         PDRUtils.asUnprimed(
             reduceByUnsatCore(PDRUtils.asPrimed(abstr, fmgr, transition), pAbstractProver),
