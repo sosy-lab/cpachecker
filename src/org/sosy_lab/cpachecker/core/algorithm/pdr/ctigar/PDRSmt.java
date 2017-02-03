@@ -140,7 +140,8 @@ public class PDRSmt {
    * @return An Optional containing a formula describing direct error predecessor states, if they
    *     exist. An empty Optional is no predecessors exists.
    */
-  public Optional<ConsecutionResult> getCTI() throws SolverException, InterruptedException {
+  public Optional<ConsecutionResult> getCTI()
+      throws SolverException, InterruptedException, CPAException {
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
       // Push F(maxLevel) & T & not(P)'
@@ -163,7 +164,7 @@ public class PDRSmt {
               concreteState,
               notSafetyPrimed,
               directErrorPredecessor.getLocation(),
-              transition.getTargetLocations().iterator().next()); //TODO !!
+              getTargetLocationForState(directErrorPredecessor));
       assert ctiOK(liftedAbstractState);
       return Optional.of(
           new ConsecutionResult(
@@ -173,6 +174,31 @@ public class PDRSmt {
                   directErrorPredecessor.getLocation(),
                   directErrorPredecessor.getConcrete())));
     }
+  }
+
+  private CFANode getTargetLocationForState(StatesWithLocation pStates)
+      throws CPAException, InterruptedException, SolverException {
+    Set<CFANode> errorLocs = transition.getTargetLocations();
+    FluentIterable<Block> oneStepReachableErrorLocations =
+        forward
+            .getBlocksFrom(pStates.getLocation())
+            .filter(b -> errorLocs.contains(b.getSuccessorLocation()));
+    assert !oneStepReachableErrorLocations.isEmpty();
+
+    // If there is only one 1-step reachable error location for pState,
+    // just return that one.
+    if (oneStepReachableErrorLocations.size() == 1) {
+      return oneStepReachableErrorLocations.first().get().getSuccessorLocation();
+    }
+
+    // Find the one that is reachable for pStates.
+    for (Block b : oneStepReachableErrorLocations) {
+      BooleanFormula transitionForBlock = bfmgr.and(pStates.getConcrete(), b.getFormula());
+      if (!solver.isUnsat(transitionForBlock)) {
+        return b.getSuccessorLocation();
+      }
+    }
+    throw new AssertionError("States can't transition to a target location in one step.");
   }
 
   private boolean ctiOK(BooleanFormula pLiftedAbstractedState)
@@ -209,7 +235,7 @@ public class PDRSmt {
       BooleanFormula pSuccessors,
       CFANode pPredLoc,
       CFANode pSuccLoc)
-      throws InterruptedException, SolverException {
+      throws InterruptedException, SolverException, CPAException {
     if (!useLifting) {
       return pConcretePredecessor;
     }
@@ -222,8 +248,6 @@ public class PDRSmt {
           ? abstractLift(
               pConcretePredecessor, pSuccessors, pPredLoc, pSuccLoc, concreteProver, abstractProver)
           : abstractLiftNoAbstr(pConcretePredecessor, pSuccessors, abstractProver);
-    } catch (CPAException e) {
-      throw new SolverException("only temporary!!!!"); // FIXME !!!!!!!!!!!!!!!!!
     } finally {
       stats.liftingTimer.stop();
     }
@@ -268,7 +292,7 @@ public class PDRSmt {
 
       // Activation literals must have a unique name! Conjuncts are distinct from another, so use
       // toString as unique name.
-      BooleanFormula act = bfmgr.makeVariable(conjunct.toString()); // TODO name ok?
+      BooleanFormula act = bfmgr.makeVariable(conjunct.toString());
       BooleanFormula equiv = bfmgr.equivalence(act, conjunct);
       actToConjuncts.put(act, conjunct);
       pProver.push(equiv);
@@ -330,7 +354,7 @@ public class PDRSmt {
       throws InterruptedException, CPAException {
 
     // Remove non-deterministically assigned variables from pSuccessorStates.
-    // Pop pred and succ first (in that order!)
+    // Pop pred and succ first (in that order!).
     pConcrProver.pop();
     pConcrProver.pop();
 
@@ -511,7 +535,7 @@ public class PDRSmt {
   }
 
   public ConsecutionResult consecution(int pLevel, StatesWithLocation pStates)
-      throws SolverException, InterruptedException {
+      throws SolverException, InterruptedException, CPAException {
     stats.consecutionTimer.start();
     try (InterpolatingProverEnvironment<?> concreteProver =
             solver.newProverEnvironmentWithInterpolation();
@@ -530,7 +554,7 @@ public class PDRSmt {
       StatesWithLocation pStates,
       InterpolatingProverEnvironment<T> pConcreteProver,
       ProverEnvironment pAbstractProver)
-      throws SolverException, InterruptedException {
+      throws SolverException, InterruptedException, CPAException {
 
     BooleanFormula abstr = pStates.getFormula();
     BooleanFormula concrete = pStates.getConcrete();
@@ -553,12 +577,11 @@ public class PDRSmt {
 
     if (!abstractConsecutionWorks) {
       if (concreteConsecutionWorks) {
+
         // Refine
-        BooleanFormula interpolant =
-            pConcreteProver.getInterpolant(idsForInterpolation); // ONLY PRIMED SSAs!!!!
+        BooleanFormula interpolant = pConcreteProver.getInterpolant(idsForInterpolation);
         BooleanFormula forRefinement = bfmgr.not(interpolant);
-        abstr =
-            abstractionManager.refineAndComputeAbstraction(concrete, forRefinement); //TODO !!! ssa
+        abstr = abstractionManager.refineAndComputeAbstraction(concrete, forRefinement);
 
         // Update not(s) and s'
         pAbstractProver.pop();
@@ -569,10 +592,10 @@ public class PDRSmt {
         assert abstractConsecutionWorks;
         assert consecutionOK(pLevel, abstr);
       } else {
+
         // Real predecessor found
         stats.numberFailedConsecutions++;
-        StatesWithLocation predecessorState =
-            getSatisfyingState(pConcreteProver.getModel()); // TODO prover?
+        StatesWithLocation predecessorState = getSatisfyingState(pConcreteProver.getModel());
 
         // No need to lift and abstract if state is initial.
         // PDR will terminate with counterexample anyway.
@@ -595,6 +618,7 @@ public class PDRSmt {
     }
 
     assert abstractConsecutionWorks;
+
     // Generalize
     BooleanFormula generalized =
         PDRUtils.asUnprimed(
@@ -627,7 +651,7 @@ public class PDRSmt {
    */
   private ConsecutionResult consecutionNormal(
       int pLevel, StatesWithLocation pStates, ProverEnvironment prover)
-      throws SolverException, InterruptedException {
+      throws SolverException, InterruptedException, CPAException {
 
     BooleanFormula states = pStates.getFormula();
 

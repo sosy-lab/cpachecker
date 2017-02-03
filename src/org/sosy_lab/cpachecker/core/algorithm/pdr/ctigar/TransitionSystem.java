@@ -176,18 +176,29 @@ public class TransitionSystem {
       return pBfmgr.makeFalse();
     }
 
-    // Create final primed and unprimed ssa map including ALL variables at max index
-    // (found in getForwardReachableBlocks()) and pc at 2.
+    /*
+     * Create final pointer target set, as well as primed and unprimed ssa map including ALL
+     * variables at max index (found in getForwardReachableBlocks()) and pc at 2.
+     */
     SSAMapBuilder globalPrimedSSAMapBuilder = SSAMap.emptySSAMap().builder();
     SSAMapBuilder globalUnprimedSSAMapBuilder = SSAMap.emptySSAMap().builder();
+    Block first = exploredBlocks.iterator().next();
+    PathFormula withMergedPointerTargetSet = first.getPrimedContext();
+
     for (Block block : exploredBlocks) {
 
-      // Find locations without successor blocks
+      // Merges pointer target sets.
+      withMergedPointerTargetSet =
+          pPfmgr.makeOr(withMergedPointerTargetSet, block.getPrimedContext());
+
+      // Find locations without successor blocks.
       if (pForwardTransition.getBlocksFrom(block.getSuccessorLocation()).isEmpty()) {
         terminalNodes.add(block.getSuccessorLocation());
       }
 
       nonTerminalLocs.add(block.getPredecessorLocation());
+
+      // Create ssa maps with lowest / highest indices for all variables.
       SSAMap blockPrimedMap = block.getPrimedContext().getSsa();
       for (String varName : blockPrimedMap.allVariables()) {
         globalPrimedSSAMapBuilder.setIndex(varName, blockPrimedMap.getType(varName), highestSSA);
@@ -199,16 +210,20 @@ public class TransitionSystem {
         PROGRAM_COUNTER_VARIABLE_NAME, PROGRAM_COUNTER_TYPE, PC_PRIMED_SSA);
     globalUnprimedSSAMapBuilder.setIndex(
         PROGRAM_COUNTER_VARIABLE_NAME, PROGRAM_COUNTER_TYPE, STANDARD_UNPRIMED_SSA);
-    SSAMap globalPrimedMap = globalPrimedSSAMapBuilder.build();
-    SSAMap globalUnprimedMap = globalUnprimedSSAMapBuilder.build();
 
-    // Only the formulas and the ssa maps are final at this point!
-    primedContext =
+    // The final contexts.
+    this.primedContext =
         new PathFormula(
-            pBfmgr.makeTrue(), globalPrimedMap, PointerTargetSet.emptyPointerTargetSet(), 0);
-    unprimedContext =
+            pBfmgr.makeTrue(),
+            globalPrimedSSAMapBuilder.build(),
+            withMergedPointerTargetSet.getPointerTargetSet(),
+            withMergedPointerTargetSet.getLength());
+    this.unprimedContext =
         new PathFormula(
-            pBfmgr.makeTrue(), globalUnprimedMap, PointerTargetSet.emptyPointerTargetSet(), 0);
+            pBfmgr.makeTrue(),
+            globalUnprimedSSAMapBuilder.build(),
+            withMergedPointerTargetSet.getPointerTargetSet(),
+            withMergedPointerTargetSet.getLength());
 
     // Add dummy blocks for terminal locations l. Transitions to themselves have to be added to
     // final transition relation.
@@ -218,17 +233,15 @@ public class TransitionSystem {
       }
     }
 
-
     // Create big disjunction of updated block formulas.
     Iterator<Block> exploredBlockIterator = exploredBlocks.iterator();
-    Block first = exploredBlockIterator.next();
+    first = exploredBlockIterator.next();
     PathFormula transitionRelation =
-        withCorrectionTermsAndPC(first, pFmgr, pBfmgr, pBvfmgr, pPfmgr, pCFA, globalPrimedMap);
+        withCorrectionTermsAndPC(first, pFmgr, pBfmgr, pBvfmgr, pPfmgr, pCFA);
 
     while (exploredBlockIterator.hasNext()) {
       Block next = exploredBlockIterator.next();
-      PathFormula adjusted =
-          withCorrectionTermsAndPC(next, pFmgr, pBfmgr, pBvfmgr, pPfmgr, pCFA, globalPrimedMap);
+      PathFormula adjusted = withCorrectionTermsAndPC(next, pFmgr, pBfmgr, pBvfmgr, pPfmgr, pCFA);
 
       // This takes care of disjoining the formulas themselves and merging pointer target sets.
       transitionRelation = pPfmgr.makeOr(transitionRelation, adjusted);
@@ -248,23 +261,10 @@ public class TransitionSystem {
       }
       BooleanFormula withPcConstraints =
           pBfmgr.and(
-              transitionRelation.getFormula(), pFmgr.instantiate(pcConstraints, globalUnprimedMap));
+              transitionRelation.getFormula(),
+              pFmgr.instantiate(pcConstraints, this.unprimedContext.getSsa()));
       transitionRelation = transitionRelation.updateFormula(withPcConstraints);
     }
-
-    // Create final contexts with merged pointer target set.
-    this.primedContext =
-        new PathFormula(
-            pBfmgr.makeTrue(),
-            globalPrimedMap,
-            transitionRelation.getPointerTargetSet(),
-            transitionRelation.getLength());
-    this.unprimedContext =
-        new PathFormula(
-            pBfmgr.makeTrue(),
-            globalUnprimedMap,
-            transitionRelation.getPointerTargetSet(),
-            transitionRelation.getLength());
 
     return transitionRelation.getFormula();
   }
@@ -422,8 +422,7 @@ public class TransitionSystem {
       BooleanFormulaManagerView pBfmgr,
       BitvectorFormulaManagerView pBvfmgr,
       PathFormulaManager pPfmgr,
-      CFA pCFA,
-      SSAMap pNewGlobalPrimedContext) {
+      CFA pCFA) {
 
     BooleanFormula extendedBlockFormula = pBlock.getFormula();
     PathFormula unprimedBlockContext = pBlock.getUnprimedContext();
@@ -484,7 +483,7 @@ public class TransitionSystem {
     extendedBlockFormula = pBfmgr.and(pcBefore, extendedBlockFormula, pcAfter);
 
     return pPfmgr.makeNewPathFormula(
-        primedBlockContext.updateFormula(extendedBlockFormula), pNewGlobalPrimedContext);
+        primedBlockContext.updateFormula(extendedBlockFormula), this.primedContext.getSsa());
   }
 
   /** Creates the variable with the given name, type, and index. */

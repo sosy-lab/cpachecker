@@ -156,7 +156,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     compositeStats.register(stats);
     stepwiseTransition =
         new ForwardTransition(Objects.requireNonNull(pReachedSetFactory), pCPA, pAlgorithm, cfa);
-    specification = pSpecification;
+    specification = Objects.requireNonNull(pSpecification);
 
     // initialized in run()
     transition = null;
@@ -210,7 +210,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     frameSet = new DeltaEncodedFrameSet(solver, fmgr, transition, compositeStats);
     predicateManager =
         new PredicatePrecisionManager(
-            fmgr, predCPA.getPredicateManager(), pfmgr, transition, cfa, compositeStats);
+            fmgr, predCPA.getPredicateManager(), pfmgr, transition, cfa, compositeStats, solver);
     pdrSolver =
         new PDRSmt(
             frameSet,
@@ -311,7 +311,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * concrete one it can transition to.
    */
   private CFANode getErrorLocationSuccessor(StatesWithLocation pState)
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, SolverException {
     Set<CFANode> errorLocs = transition.getTargetLocations();
     FluentIterable<Block> oneStepReachableErrorLocations =
         stepwiseTransition
@@ -325,8 +325,14 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       return oneStepReachableErrorLocations.first().get().getSuccessorLocation();
     }
 
-    // Find the one that is reachable for pState TODO
-    return oneStepReachableErrorLocations.first().get().getSuccessorLocation();
+    for (Block b : oneStepReachableErrorLocations) {
+      BooleanFormula transitionForBlock =
+          fmgr.getBooleanFormulaManager().and(pState.getConcrete(), b.getFormula());
+      if (!solver.isUnsat(transitionForBlock)) {
+        return b.getSuccessorLocation();
+      }
+    }
+    throw new AssertionError("States can't transition to a target location in one step.");
   }
 
   /**

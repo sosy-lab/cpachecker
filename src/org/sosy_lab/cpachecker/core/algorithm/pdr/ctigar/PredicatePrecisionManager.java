@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -57,12 +58,18 @@ public class PredicatePrecisionManager {
   // TODO Handle abstraction of instantiated formulas and avoid uninstantiating and re-instantiating
   // the result.
 
+  // TODO Debugging option
+  private static final boolean subsumePredicates = true;
+  private static int threshold = 200;
+  private static final int increment = 100;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final PredicateAbstractionManager pamgr;
   private final TransitionSystem transition;
   private final Collection<AbstractionPredicate> abstractionPredicates;
   private final AbstractionStatistics stats;
+  private final Solver solver;
 
   /**
    * Creates a new PredicatePrecisionManager. The set of abstraction predicates is initialized with
@@ -84,7 +91,8 @@ public class PredicatePrecisionManager {
       PathFormulaManager pPfmgr,
       TransitionSystem pTransition,
       CFA pCFA,
-      StatisticsDelegator pCompStats) {
+      StatisticsDelegator pCompStats,
+      Solver pSolver) {
     stats = new AbstractionStatistics();
     Objects.requireNonNull(pCompStats).register(stats);
 
@@ -92,23 +100,28 @@ public class PredicatePrecisionManager {
     bfmgr = Objects.requireNonNull(pFmgr.getBooleanFormulaManager());
     pamgr = Objects.requireNonNull(pAbstractionDelegate);
     transition = Objects.requireNonNull(pTransition);
+    solver = Objects.requireNonNull(pSolver);
     abstractionPredicates = new HashSet<>();
     addDefaultPredicates(pTransition, pPfmgr, pCFA);
   }
 
   /**
-   * Extracts conjuncts of interpolant and add parts as new predicates. Splits equalities, ignores
-   * program counter variable and treats disjunctive parts as single part.
+   * Extracts conjuncts of the interpolant and add parts as new predicates. Splits equalities,
+   * ignores program counter variable and treats disjunctive parts as single part.
    */
-  private void refinePredicates(BooleanFormula pInterpolant) {
+  private void refinePredicates(BooleanFormula pInterpolant)
+      throws SolverException, InterruptedException {
     stats.numberOfRefinements++;
     BooleanFormula interpolant = fmgr.uninstantiate(pInterpolant);
 
+    // Filter out program counter
+    interpolant =
+        fmgr.filterLiterals(
+            interpolant,
+            lit -> !fmgr.extractVariableNames(lit).contains(transition.programCounterName()));
+
     for (BooleanFormula part : bfmgr.toConjunctionArgs(interpolant, true)) {
       if (fmgr.isPurelyConjunctive(part)) {
-        if (fmgr.extractVariableNames(part).contains(transition.programCounterName())) {
-          continue; // Ignore pc
-        }
         for (BooleanFormula split : fmgr.splitNumeralEqualityIfPossible(part)) {
           for (AbstractionPredicate ap : pamgr.getPredicatesForAtomsOf(split)) {
             addPredicate(ap);
@@ -120,9 +133,40 @@ public class PredicatePrecisionManager {
     }
   }
 
-  private void addPredicate(AbstractionPredicate pPred) {
+  private void subsumePredicatesIfNecessary() throws SolverException, InterruptedException {
+    if (!subsumePredicates || abstractionPredicates.size() < threshold) {
+      return;
+    }
+
+    AbstractionPredicate[] preds = abstractionPredicates.toArray(new AbstractionPredicate[0]);
+    for (int i = 0; i < abstractionPredicates.size(); ++i) {
+      for (int j = i + 1; j < abstractionPredicates.size() - 1; ++j) {
+        BooleanFormula pred1 = preds[i].getSymbolicAtom();
+        BooleanFormula pred2 = preds[j].getSymbolicAtom();
+        BooleanFormula firstSubsumesSecondAsUnsat = bfmgr.not(bfmgr.implication(pred1, pred2));
+        BooleanFormula secondSubsumesFirstAsUnsat = bfmgr.not(bfmgr.implication(pred2, pred1));
+
+        if (solver.isUnsat(firstSubsumesSecondAsUnsat)) {
+          abstractionPredicates.remove(preds[j]);
+          stats.numberOfPredicates--;
+        } else if (solver.isUnsat(secondSubsumesFirstAsUnsat)) {
+          abstractionPredicates.remove(preds[i]);
+          stats.numberOfPredicates--;
+        }
+      }
+    }
+
+    // If still over threshold, adjust it
+    if (abstractionPredicates.size() > threshold) {
+      threshold += increment;
+    }
+  }
+
+  private void addPredicate(AbstractionPredicate pPred)
+      throws SolverException, InterruptedException {
     stats.numberOfPredicates++;
     abstractionPredicates.add(pPred);
+    subsumePredicatesIfNecessary();
   }
 
   /**
@@ -197,7 +241,8 @@ public class PredicatePrecisionManager {
         BooleanFormula var1LessThanVar2 =
             fmgr.uninstantiate(bvfmgr.lessThan(var1, var2, areVarsSigned));
         AbstractionPredicate newPredicate = pamgr.getPredicateFor(var1LessThanVar2);
-        addPredicate(newPredicate);
+        stats.numberOfPredicates++;
+        abstractionPredicates.add(newPredicate);
       }
     }
   }
