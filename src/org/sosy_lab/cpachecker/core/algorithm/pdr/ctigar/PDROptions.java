@@ -36,19 +36,29 @@ public class PDROptions {
   @Option(
     secure = true,
     description =
-        "The maximum number of literals that should be dropped during the inductive generalization of states."
+        "The maximum number of literals that should be dropped during the inductive generalization"
+            + " of states."
   )
   private int maxLiteralsToDropDuringGeneralization = 5;
 
   @Option(
     secure = true,
     description =
-        "The maximum number attempts at dropping literals during the inductive generalization of states."
+        "The maximum number attempts at dropping literals during the inductive generalization of"
+            + " states."
   )
   private int maxAttemptsToDropLiteralsDuringGeneralization = 10;
 
   @Option(secure = true, description = "Subsumes redundant abstraction predicates.")
   private boolean subsumeRedundantAbstractionPredicates = false;
+
+  @Option(
+    secure = true,
+    description =
+        "Try to shorten the lifted state further by checking if the lifting query is still valid "
+            + "after dropping each literal in turn."
+  )
+  private boolean dropLiteralsBeyondUnsatCoreAfterLifting = false;
 
   /**
    * Creates a new instance and injects all relevant options from the provided configuration.
@@ -84,10 +94,19 @@ public class PDROptions {
    * Returns whether the configuration file set the option to subsume redundant abstraction
    * predicates.
    *
-   * @return True, if redundant abstraction predicates are to be removed. False, if not.
+   * @return If redundant abstraction predicates are to be removed.
    */
   public boolean shouldSubsumeRedundantAbstractionPredicates() {
     return subsumeRedundantAbstractionPredicates;
+  }
+
+  /**
+   * Returns whether the lifted state should be further reduced by trying to manually drop literals.
+   *
+   * @return If literals should be manually dropped after lifting.
+   */
+  public boolean shouldDropLiteralsAfterLiftingWithUnsatCore() {
+    return dropLiteralsBeyondUnsatCoreAfterLifting;
   }
 
 }

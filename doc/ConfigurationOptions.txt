@@ -2668,6 +2668,10 @@ pcc.strategy = no default value
 # number of cpus/cores which should be used in parallel for proof checking
 pcc.useCores = 1
 
+# Try to shorten the lifted state further by checking if the lifting query is
+# still valid after dropping each literal in turn.
+pdr.dropLiteralsBeyondUnsatCoreAfterLifting = false
+
 # The maximum number attempts at dropping literals during the inductive
 # generalization of states.
 pdr.maxAttemptsToDropLiteralsDuringGeneralization = 10

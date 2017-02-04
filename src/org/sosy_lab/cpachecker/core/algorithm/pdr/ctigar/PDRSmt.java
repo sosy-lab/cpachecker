@@ -282,7 +282,9 @@ public class PDRSmt {
 
     // Get used literals from query with abstraction. Query must be unsat at this point.
     BooleanFormula reduced = reduceByUnsatCore(abstractState, pAbstrProver);
-    reduced = dropLits(reduced, pAbstrProver, false);
+    if (options.shouldDropLiteralsAfterLiftingWithUnsatCore()) {
+      reduced = dropLits(reduced, pAbstrProver, false);
+    }
     assert liftOK(reduced, pSuccessorStates);
     logger.log(Level.INFO, "Abstract after reduction: ", reduced);
     return reduced;
