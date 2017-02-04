@@ -246,7 +246,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     if (transition == null) {
       try {
         transition = new TransitionSystem(cfa, stepwiseTransition, fmgr, pfmgr, mainEntry);
-        logger.log(Level.INFO, transition);
+        //        logger.log(Level.INFO, transition);
       } catch (SolverException e) {
         logger.logException(Level.WARNING, e, null);
         throw new CPAException("Solver error occured while creating transition relation.", e);
@@ -302,7 +302,14 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     // Recursively block all discovered CTIs
     while (cti.isPresent()) {
       StatesWithLocation badStates = cti.get().getResult();
-      CFANode reachedErrorLocation = getErrorLocationSuccessor(badStates);
+      CFANode reachedErrorLocation =
+          PDRUtils.getNextTargetLocationOfState(
+                  badStates,
+                  transition,
+                  stepwiseTransition,
+                  fmgr.getBooleanFormulaManager(),
+                  solver)
+              .get();
 
       if (!backwardblock(badStates, reachedErrorLocation, pReached)) {
         return false;
@@ -311,35 +318,6 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       shutdownNotifier.shutdownIfNecessary();
     }
     return true;
-  }
-
-  /**
-   * Assuming that the given state can reach an error location in exactly one step, computes the
-   * concrete one it can transition to.
-   */
-  private CFANode getErrorLocationSuccessor(StatesWithLocation pState)
-      throws CPAException, InterruptedException, SolverException {
-    Set<CFANode> errorLocs = transition.getTargetLocations();
-    FluentIterable<Block> oneStepReachableErrorLocations =
-        stepwiseTransition
-            .getBlocksFrom(pState.getLocation())
-            .filter(b -> errorLocs.contains(b.getSuccessorLocation()));
-    assert !oneStepReachableErrorLocations.isEmpty();
-
-    // If there is only one 1-step reachable error location for pState,
-    // just return that one.
-    if (oneStepReachableErrorLocations.size() == 1) {
-      return oneStepReachableErrorLocations.first().get().getSuccessorLocation();
-    }
-
-    for (Block b : oneStepReachableErrorLocations) {
-      BooleanFormula transitionForBlock =
-          fmgr.getBooleanFormulaManager().and(pState.getConcrete(), b.getFormula());
-      if (!solver.isUnsat(transitionForBlock)) {
-        return b.getSuccessorLocation();
-      }
-    }
-    throw new AssertionError("States can't transition to a target location in one step.");
   }
 
   /**

@@ -23,8 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
+import com.google.common.collect.FluentIterable;
+import java.util.Optional;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.ForwardTransition;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * A utility class with methods for instantiating formulas based on SSA indices of the provided
@@ -63,5 +73,43 @@ public final class PDRUtils {
   public static BooleanFormula asUnprimed(
       BooleanFormula pFormula, FormulaManagerView pFmgr, TransitionSystem pTrans) {
     return pFmgr.instantiate(pFormula, pTrans.getUnprimedContext().getSsa());
+  }
+
+  /**
+   * Assuming that the given state can reach an error location in exactly one step, computes the
+   * concrete one it can transition to.
+   */
+  public static Optional<CFANode> getNextTargetLocationOfState(
+      StatesWithLocation pStates,
+      TransitionSystem pTransition,
+      ForwardTransition pForward,
+      BooleanFormulaManager pBfmgr,
+      Solver pSolver)
+      throws CPAException, InterruptedException, SolverException {
+    Set<CFANode> errorLocs = pTransition.getTargetLocations();
+    FluentIterable<Block> oneStepReachableErrorLocations =
+        pForward
+            .getBlocksFrom(pStates.getLocation())
+            .filter(b -> errorLocs.contains(b.getSuccessorLocation()));
+
+    if (oneStepReachableErrorLocations.isEmpty()) {
+      return Optional.empty();
+    }
+
+    // If there is only one 1-step reachable error location for pState,
+    // just return that one.
+    if (oneStepReachableErrorLocations.size() == 1) {
+      return Optional.of(oneStepReachableErrorLocations.first().get().getSuccessorLocation());
+    }
+
+    // Find the one that is reachable for pStates.
+    for (Block b : oneStepReachableErrorLocations) {
+      BooleanFormula transitionForBlock = pBfmgr.and(pStates.getConcrete(), b.getFormula());
+      if (!pSolver.isUnsat(transitionForBlock)) {
+        return Optional.of(b.getSuccessorLocation());
+      }
+    }
+
+    return Optional.empty();
   }
 }
