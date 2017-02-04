@@ -2680,9 +2680,6 @@ pdr.maxAttemptsToDropLiteralsDuringGeneralization = 10
 # generalization of states.
 pdr.maxLiteralsToDropDuringGeneralization = 5
 
-# Subsumes redundant abstraction predicates.
-pdr.subsumeRedundantAbstractionPredicates = false
-
 # whether to track relevant variables only at the exact program location
 # (sharing=location), or within their respective (function-/global-) scope
 # (sharing=scoped).

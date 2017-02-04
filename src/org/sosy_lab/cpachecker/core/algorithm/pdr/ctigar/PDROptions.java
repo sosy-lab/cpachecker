@@ -49,9 +49,6 @@ public class PDROptions {
   )
   private int maxAttemptsToDropLiteralsDuringGeneralization = 10;
 
-  @Option(secure = true, description = "Subsumes redundant abstraction predicates.")
-  private boolean subsumeRedundantAbstractionPredicates = false;
-
   @Option(
     secure = true,
     description =
@@ -88,16 +85,6 @@ public class PDROptions {
    */
   public int maxLiteralsToDrop() {
     return maxLiteralsToDropDuringGeneralization;
-  }
-
-  /**
-   * Returns whether the configuration file set the option to subsume redundant abstraction
-   * predicates.
-   *
-   * @return If redundant abstraction predicates are to be removed.
-   */
-  public boolean shouldSubsumeRedundantAbstractionPredicates() {
-    return subsumeRedundantAbstractionPredicates;
   }
 
   /**

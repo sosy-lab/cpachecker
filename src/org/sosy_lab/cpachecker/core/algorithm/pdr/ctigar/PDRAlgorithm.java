@@ -214,14 +214,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     frameSet = new DeltaEncodedFrameSet(solver, fmgr, transition, compositeStats);
     predicateManager =
         new PredicatePrecisionManager(
-            fmgr,
-            predCPA.getPredicateManager(),
-            pfmgr,
-            transition,
-            cfa,
-            compositeStats,
-            solver,
-            optionsCollection);
+            fmgr, predCPA.getPredicateManager(), pfmgr, transition, cfa, compositeStats);
     pdrSolver =
         new PDRSmt(
             frameSet,
