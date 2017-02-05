@@ -316,7 +316,7 @@ public class PDRSmt {
     logger.log(Level.INFO, "Formula before unsat core reduction : ", pFormula);
     pProver.pop(); // Remove old (unreduced) formula.
     Set<BooleanFormula> conjuncts = bfmgr.toConjunctionArgs(pFormula, true);
-    stats.totalNumberConjPartsBeforeCore += conjuncts.size();
+    stats.totalConjPartsBeforeCore += conjuncts.size();
 
     // Mapping of activation literals to conjuncts
     Map<BooleanFormula, BooleanFormula> actToConjuncts = new HashMap<>();
@@ -345,12 +345,12 @@ public class PDRSmt {
             .collect(Collectors.toSet());
 
     BooleanFormula reduced = bfmgr.and(usedConjuncts);
-    stats.totalNumberDroppedConjPartsAfterCore += conjuncts.size() - usedConjuncts.size();
+    stats.totalDroppedAfterCore += conjuncts.size() - usedConjuncts.size();
 
     // If reduction is initial, pc was dropped. Re-add it.
     if (isInitial(PDRUtils.asUnprimed(reduced, fmgr, transition))) {
       reduced = bfmgr.and(getPcComponent(pFormula), reduced);
-      stats.totalNumberDroppedConjPartsAfterCore--;
+      stats.totalDroppedAfterCore--;
     }
     logger.log(Level.INFO, "Formula after unsat core reduction : ", reduced);
     assert !isInitial(PDRUtils.asUnprimed(reduced, fmgr, transition));
@@ -390,6 +390,7 @@ public class PDRSmt {
     logger.log(Level.INFO, "Formula before manual drop: ", pFormula);
 
     Set<BooleanFormula> remainingLits = bfmgr.toConjunctionArgs(pFormula, true);
+    stats.totalConjPartsBeforeManualDrop += remainingLits.size();
     Iterator<BooleanFormula> litIterator = remainingLits.iterator();
     int droppedLits = 0;
     int numberOfTries = 0;
@@ -428,9 +429,9 @@ public class PDRSmt {
       if (pProver.isUnsat()) {
         litIterator.remove();
         if (consecutionMode) {
-          stats.totalNumberManuallyDroppedAfterGen++;
+          stats.totalManuallyDroppedAfterGen++;
         }
-        stats.totalNumberManuallyDroppedAfterLifting++;
+        stats.totalManuallyDroppedAfterLifting++;
         droppedLits++;
       }
     }
@@ -731,10 +732,11 @@ public class PDRSmt {
     private int numberSuccessfulLifts = 0;
     private int numberFailedLifts = 0;
     private int numberImpossibleLifts = 0;
-    private long totalNumberConjPartsBeforeCore = 0;
-    private long totalNumberDroppedConjPartsAfterCore = 0;
-    private long totalNumberManuallyDroppedAfterLifting = 0;
-    private long totalNumberManuallyDroppedAfterGen = 0;
+    private long totalConjPartsBeforeCore = 0;
+    private long totalConjPartsBeforeManualDrop = 0;
+    private long totalDroppedAfterCore = 0;
+    private long totalManuallyDroppedAfterLifting = 0;
+    private long totalManuallyDroppedAfterGen = 0;
     private Timer consecutionTimer = new Timer();
     private Timer liftingTimer = new Timer();
 
@@ -764,27 +766,32 @@ public class PDRSmt {
         pOut.println(
             "Average time for lifting queries:                " + liftingTimer.getAvgTime());
       }
-      pOut.println(
-          "Number of dropped parts with unsat core:         "
-              + totalNumberDroppedConjPartsAfterCore);
+      pOut.println("Number of dropped parts with unsat core:         " + totalDroppedAfterCore);
       pOut.println(
           "  Percentage:                                    "
               + getPercentageOfUnsatCoreReduction()
               + "%");
       pOut.println(
           "Number of manually dropped:                      "
-              + String.valueOf(
-                  totalNumberManuallyDroppedAfterGen + totalNumberManuallyDroppedAfterLifting));
+              + String.valueOf(totalManuallyDroppedAfterGen + totalManuallyDroppedAfterLifting));
       pOut.println(
-          "  After lifting:                                 "
-              + totalNumberManuallyDroppedAfterLifting);
+          "  Percentage:                                    "
+              + getPercentageOfManualReduction()
+              + "%");
       pOut.println(
-          "  After generalization:                          " + totalNumberManuallyDroppedAfterGen);
+          "  After lifting:                                 " + totalManuallyDroppedAfterLifting);
+      pOut.println(
+          "  After generalization:                          " + totalManuallyDroppedAfterGen);
     }
 
     private int getPercentageOfUnsatCoreReduction() {
-      double percent =
-          (double) totalNumberDroppedConjPartsAfterCore / totalNumberConjPartsBeforeCore;
+      double percent = (double) totalDroppedAfterCore / totalConjPartsBeforeCore;
+      return ((int) (percent * 100));
+    }
+
+    private int getPercentageOfManualReduction() {
+      long totalDropped = totalManuallyDroppedAfterGen + totalManuallyDroppedAfterLifting;
+      double percent = (double) totalDropped / totalConjPartsBeforeManualDrop;
       return ((int) (percent * 100));
     }
 
