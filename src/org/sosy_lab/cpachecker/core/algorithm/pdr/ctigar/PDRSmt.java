@@ -149,14 +149,17 @@ public class PDRSmt {
 
       StatesWithLocation directErrorPredecessor = getSatisfyingState(prover.getModel());
       BooleanFormula concreteState = directErrorPredecessor.getFormula();
+      CFANode correspondingErrorLocation =
+          PDRUtils.getBlockToNextTargetLocation(
+                  directErrorPredecessor, transition, forward, fmgr, bfmgr, solver)
+              .orElseThrow(IllegalStateException::new)
+              .getSuccessorLocation();
       BooleanFormula liftedAbstractState =
           abstractLift(
               concreteState,
               notSafetyPrimed,
               directErrorPredecessor.getLocation(),
-              PDRUtils.getNextTargetLocationOfState(
-                      directErrorPredecessor, transition, forward, bfmgr, solver)
-                  .get());
+              correspondingErrorLocation);
       assert ctiOK(liftedAbstractState);
       return Optional.of(
           new ConsecutionResult(
@@ -256,7 +259,7 @@ public class PDRSmt {
           removeNondetVariables(pConcreteState, pSuccessorStates, pPredLoc, pSuccLoc, pConcrProver);
     }
     if (!pConcrProver.isUnsat()) {
-      stats.numberFailedLifts++;
+      stats.numberImpossibleLifts++;
       return abstractState;
     }
 
@@ -313,6 +316,7 @@ public class PDRSmt {
     logger.log(Level.INFO, "Formula before unsat core reduction : ", pFormula);
     pProver.pop(); // Remove old (unreduced) formula.
     Set<BooleanFormula> conjuncts = bfmgr.toConjunctionArgs(pFormula, true);
+    stats.totalNumberConjPartsBeforeCore += conjuncts.size();
 
     // Mapping of activation literals to conjuncts
     Map<BooleanFormula, BooleanFormula> actToConjuncts = new HashMap<>();
@@ -341,16 +345,34 @@ public class PDRSmt {
             .collect(Collectors.toSet());
 
     BooleanFormula reduced = bfmgr.and(usedConjuncts);
-    BooleanFormula finalResult =
-        !isInitial(PDRUtils.asUnprimed(reduced, fmgr, transition)) ? reduced : pFormula;
-    logger.log(Level.INFO, "Formula after unsat core reduction : ", finalResult);
+    stats.totalNumberDroppedConjPartsAfterCore += conjuncts.size() - usedConjuncts.size();
+
+    // If reduction is initial, pc was dropped. Re-add it.
+    if (isInitial(PDRUtils.asUnprimed(reduced, fmgr, transition))) {
+      reduced = bfmgr.and(getPcComponent(pFormula), reduced);
+      stats.totalNumberDroppedConjPartsAfterCore--;
+    }
+    logger.log(Level.INFO, "Formula after unsat core reduction : ", reduced);
+    assert !isInitial(PDRUtils.asUnprimed(reduced, fmgr, transition));
 
     // Rebuild prover : remove equivalences and push new reduced formula.
     for (int i = 0; i < conjuncts.size(); ++i) {
       pProver.pop();
     }
-    pProver.push(finalResult);
-    return finalResult;
+    pProver.push(reduced);
+    return reduced;
+  }
+
+  private BooleanFormula getPcComponent(BooleanFormula pFormula) throws InterruptedException {
+    boolean isPrimed = pFormula.equals(PDRUtils.asPrimed(pFormula, fmgr, transition));
+    BooleanFormula pcPart =
+        fmgr.filterLiterals(
+            fmgr.uninstantiate(pFormula),
+            literal ->
+                fmgr.extractVariableNames(literal).contains(transition.programCounterName()));
+    return isPrimed
+        ? PDRUtils.asPrimed(pcPart, fmgr, transition)
+        : PDRUtils.asUnprimed(pcPart, fmgr, transition);
   }
 
   /**
@@ -364,6 +386,8 @@ public class PDRSmt {
   private BooleanFormula dropLits(
       BooleanFormula pFormula, ProverEnvironment pProver, boolean consecutionMode)
       throws SolverException, InterruptedException {
+
+    logger.log(Level.INFO, "Formula before manual drop: ", pFormula);
 
     Set<BooleanFormula> remainingLits = bfmgr.toConjunctionArgs(pFormula, true);
     Iterator<BooleanFormula> litIterator = remainingLits.iterator();
@@ -403,13 +427,19 @@ public class PDRSmt {
 
       if (pProver.isUnsat()) {
         litIterator.remove();
+        if (consecutionMode) {
+          stats.totalNumberManuallyDroppedAfterGen++;
+        }
+        stats.totalNumberManuallyDroppedAfterLifting++;
         droppedLits++;
       }
     }
 
     // All unneeded conjuncts/literals are removed at this point. The conjunction of the remaining ones
     // is the reduced formula.
-    return bfmgr.and(remainingLits);
+    BooleanFormula result = bfmgr.and(remainingLits);
+    logger.log(Level.INFO, "Formula after manual drop: ", result);
+    return result;
   }
 
   private Set<Formula> nondetVarsOfConnectingBlock(CFANode predLoc, CFANode succLoc)
@@ -700,35 +730,62 @@ public class PDRSmt {
     private int numberFailedConsecutions = 0;
     private int numberSuccessfulLifts = 0;
     private int numberFailedLifts = 0;
+    private int numberImpossibleLifts = 0;
+    private long totalNumberConjPartsBeforeCore = 0;
+    private long totalNumberDroppedConjPartsAfterCore = 0;
+    private long totalNumberManuallyDroppedAfterLifting = 0;
+    private long totalNumberManuallyDroppedAfterGen = 0;
     private Timer consecutionTimer = new Timer();
     private Timer liftingTimer = new Timer();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       pOut.println(
-          "Total number of consecution queries:           "
+          "Total number of consecution queries:             "
               + String.valueOf(numberFailedConsecutions + numberSuccessfulConsecutions));
       pOut.println(
-          "Number of successful consecution queries:      " + numberSuccessfulConsecutions);
-      pOut.println("Number of failed consecution queries:          " + numberFailedConsecutions);
+          "  Successful:                                    " + numberSuccessfulConsecutions);
+      pOut.println("  Failed:                                        " + numberFailedConsecutions);
       if (consecutionTimer.getNumberOfIntervals() > 0) {
         pOut.println(
-            "Total time for consecution queries:            " + consecutionTimer.getSumTime());
+            "Total time for consecution queries:              " + consecutionTimer.getSumTime());
         pOut.println(
-            "Average time for consecution queries:          " + consecutionTimer.getAvgTime());
+            "Average time for consecution queries:            " + consecutionTimer.getAvgTime());
       }
       pOut.println(
-          "Total number of lifting queries:               "
-              + String.valueOf(numberFailedLifts + numberSuccessfulLifts));
-      pOut.println(
-          "Number of successful lifting queries:          " + numberSuccessfulConsecutions);
-      pOut.println("Number of failed lifting queries:              " + numberFailedConsecutions);
+          "Total number of lifting queries:                 "
+              + String.valueOf(numberFailedLifts + numberSuccessfulLifts + numberImpossibleLifts));
+      pOut.println("  Successful:                                    " + numberSuccessfulLifts);
+      pOut.println("  Failed:                                        " + numberFailedLifts);
+      pOut.println("  Impossible attempts:                           " + numberImpossibleLifts);
       if (liftingTimer.getNumberOfIntervals() > 0) {
         pOut.println(
-            "Total time for lifting queries:                " + consecutionTimer.getSumTime());
+            "Total time for lifting queries:                  " + liftingTimer.getSumTime());
         pOut.println(
-            "Average time for lifting queries:              " + consecutionTimer.getAvgTime());
+            "Average time for lifting queries:                " + liftingTimer.getAvgTime());
       }
+      pOut.println(
+          "Number of dropped parts with unsat core:         "
+              + totalNumberDroppedConjPartsAfterCore);
+      pOut.println(
+          "  Percentage:                                    "
+              + getPercentageOfUnsatCoreReduction()
+              + "%");
+      pOut.println(
+          "Number of manually dropped:                      "
+              + String.valueOf(
+                  totalNumberManuallyDroppedAfterGen + totalNumberManuallyDroppedAfterLifting));
+      pOut.println(
+          "  After lifting:                                 "
+              + totalNumberManuallyDroppedAfterLifting);
+      pOut.println(
+          "  After generalization:                          " + totalNumberManuallyDroppedAfterGen);
+    }
+
+    private int getPercentageOfUnsatCoreReduction() {
+      double percent =
+          (double) totalNumberDroppedConjPartsAfterCore / totalNumberConjPartsBeforeCore;
+      return ((int) (percent * 100));
     }
 
     @Override

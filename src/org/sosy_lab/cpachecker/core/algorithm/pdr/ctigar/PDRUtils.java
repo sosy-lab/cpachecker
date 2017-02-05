@@ -75,14 +75,11 @@ public final class PDRUtils {
     return pFmgr.instantiate(pFormula, pTrans.getUnprimedContext().getSsa());
   }
 
-  /**
-   * Assuming that the given state can reach an error location in exactly one step, computes the
-   * concrete one it can transition to.
-   */
-  public static Optional<CFANode> getNextTargetLocationOfState(
+  public static Optional<Block> getBlockToNextTargetLocation(
       StatesWithLocation pStates,
       TransitionSystem pTransition,
       ForwardTransition pForward,
+      FormulaManagerView pFmgr,
       BooleanFormulaManager pBfmgr,
       Solver pSolver)
       throws CPAException, InterruptedException, SolverException {
@@ -97,16 +94,21 @@ public final class PDRUtils {
     }
 
     // If there is only one 1-step reachable error location for pState,
-    // just return that one.
+    // just return that block.
     if (oneStepReachableErrorLocations.size() == 1) {
-      return Optional.of(oneStepReachableErrorLocations.first().get().getSuccessorLocation());
+      return Optional.of(oneStepReachableErrorLocations.first().get());
     }
 
     // Find the one that is reachable for pStates.
     for (Block b : oneStepReachableErrorLocations) {
-      BooleanFormula transitionForBlock = pBfmgr.and(pStates.getConcrete(), b.getFormula());
+
+      // Re-instantiate to match unprimed ssa indices of block; pc variable is still
+      // present, but doesn't hurt.
+      BooleanFormula reinstantiated = pFmgr.uninstantiate(pStates.getConcrete());
+      reinstantiated = pFmgr.instantiate(reinstantiated, b.getUnprimedContext().getSsa());
+      BooleanFormula transitionForBlock = pBfmgr.and(reinstantiated, b.getFormula());
       if (!pSolver.isUnsat(transitionForBlock)) {
-        return Optional.of(b.getSuccessorLocation());
+        return Optional.of(b);
       }
     }
 

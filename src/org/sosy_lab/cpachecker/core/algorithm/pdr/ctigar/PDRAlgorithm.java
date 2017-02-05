@@ -77,7 +77,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -295,16 +294,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     // Recursively block all discovered CTIs
     while (cti.isPresent()) {
       StatesWithLocation badStates = cti.get().getResult();
-      CFANode reachedErrorLocation =
-          PDRUtils.getNextTargetLocationOfState(
-                  badStates,
-                  transition,
-                  stepwiseTransition,
-                  fmgr.getBooleanFormulaManager(),
-                  solver)
-              .get();
 
-      if (!backwardblock(badStates, reachedErrorLocation, pReached)) {
+      if (!backwardblock(badStates, pReached)) {
         return false;
       }
       cti = pdrSolver.getCTI(); // Ask for next CTI
@@ -323,8 +314,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * @param pStatesToBlock The states that should be blocked at the highest level.
    * @return True, if the states could be blocked. False, if a counterexample is found.
    */
-  private boolean backwardblock(
-      StatesWithLocation pStatesToBlock, CFANode pErrorLocation, ReachedSet pReached)
+  private boolean backwardblock(StatesWithLocation pStatesToBlock, ReachedSet pReached)
       throws SolverException, InterruptedException, CPAEnabledAnalysisPropertyViolationException,
           CPAException {
 
@@ -341,7 +331,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       // Frame level 0 => counterexample found
       if (p.getFrameLevel() == 0) {
         assert pdrSolver.isInitial(p.getState().getFormula());
-        analyzeCounterexample(p, pReached, pErrorLocation);
+        analyzeCounterexample(p, pReached);
         return false;
       }
 
@@ -401,8 +391,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * @throws CPAException if an exception occurs during the analysis of the counterexample.
    */
   private void analyzeCounterexample(
-      ProofObligation pFinalFailingObligation, ReachedSet pTargetReachedSet, CFANode pErrorLocation)
-      throws CPAException, InterruptedException {
+      ProofObligation pFinalFailingObligation, ReachedSet pTargetReachedSet)
+      throws CPAException, InterruptedException, SolverException {
 
     // Reconstruct error trace from start location to direct error predecessor.
     List<BlockWithConcreteState> blocks = Lists.newArrayList();
@@ -410,6 +400,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     CFANode previousPredecessorLocation = stateInformation.getLocation();
     BooleanFormula precedingConcreteState = stateInformation.getConcrete();
     ProofObligation currentObligation = pFinalFailingObligation;
+
     while (currentObligation.getCause().isPresent()) {
       currentObligation = currentObligation.getCause().get();
       CFANode predecessorLocation = previousPredecessorLocation;
@@ -427,41 +418,19 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     // Add block from direct error predecessor to error location to complete error trace.
-    CFANode directErrorPredecessor = previousPredecessorLocation;
-    blocks.add(
-        new BlockWithConcreteState(
-            getBlockToErrorLocation(directErrorPredecessor, pErrorLocation),
-            precedingConcreteState));
+    StatesWithLocation directErrorPredecessor = stateInformation;
+    Block blockToTargetLocation =
+        PDRUtils.getBlockToNextTargetLocation(
+                directErrorPredecessor,
+                transition,
+                stepwiseTransition,
+                fmgr,
+                fmgr.getBooleanFormulaManager(),
+                solver)
+            .orElseThrow(IllegalStateException::new);
+    blocks.add(new BlockWithConcreteState(blockToTargetLocation, precedingConcreteState));
 
     analyzeCounterexample(blocks, pTargetReachedSet);
-  }
-
-  // Temporal method to deal with occurrence of multiple blocks between an error predecessor location
-  // and its corresponding error location successor.
-  // Finds the correct one, i.e. the  one whose formula is the disjunction of the others.
-  private Block getBlockToErrorLocation(CFANode pErrorPred, CFANode pErrorLoc)
-      throws CPAException, InterruptedException {
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    List<Block> blocksBetweenPredAndError =
-        stepwiseTransition
-            .getBlocksFrom(pErrorPred)
-            .filter(Blocks.applyToSuccessorLocation(l -> l.equals(pErrorLoc)))
-            .toList();
-
-    // Just get the block with the most disjunction args.
-    return blocksBetweenPredAndError
-        .stream()
-        .max(
-            new java.util.Comparator<Block>() {
-
-              @Override
-              public int compare(Block pArg0, Block pArg1) {
-                Set<BooleanFormula> d0 = bfmgr.toDisjunctionArgs(pArg0.getFormula(), true);
-                Set<BooleanFormula> d1 = bfmgr.toDisjunctionArgs(pArg1.getFormula(), true);
-                return d0.size() - d1.size();
-              }
-            })
-        .get();
   }
 
   /**

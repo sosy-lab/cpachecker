@@ -200,6 +200,7 @@ public class PredicatePrecisionManager {
         BooleanFormula var1LessThanVar2 =
             fmgr.uninstantiate(bvfmgr.lessThan(var1, var2, areVarsSigned));
         AbstractionPredicate newPredicate = pamgr.getPredicateFor(var1LessThanVar2);
+        stats.numberOfInitialPredicates++;
         addPredicate(newPredicate);
       }
     }
@@ -216,11 +217,16 @@ public class PredicatePrecisionManager {
 
     private int numberOfPredicates = 0;
     private int numberOfRefinements = 0;
+    private int numberOfInitialPredicates = 0;
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      pOut.println("Number of abstraction predicates:           " + numberOfPredicates);
-      pOut.println("Number of refinements:                      " + numberOfRefinements);
+      pOut.println("Number of abstraction predicates:        " + numberOfPredicates);
+      pOut.println("  Initial predicates:                    " + numberOfInitialPredicates);
+      pOut.println(
+          "  Derived from interpolants:             "
+              + String.valueOf(numberOfPredicates - numberOfInitialPredicates));
+      pOut.println("Number of refinements:                   " + numberOfRefinements);
     }
 
     @Override
