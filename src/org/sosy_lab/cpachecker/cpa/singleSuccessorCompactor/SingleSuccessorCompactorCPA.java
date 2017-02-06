@@ -23,13 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor;
 
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
-public class SingleSuccessorCompactorCPA extends AbstractSingleWrapperCPA {
+public class SingleSuccessorCompactorCPA extends AbstractSingleWrapperCPA
+implements ConfigurableProgramAnalysisWithBAM {
+
+  /** if BAM is used, break chains of edges at block entry and exit. */
+  @Nullable private BlockPartitioning partitioning = null;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SingleSuccessorCompactorCPA.class);
@@ -41,6 +48,14 @@ public class SingleSuccessorCompactorCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SingleSuccessorCompactorTransferRelation(getWrappedCpa().getTransferRelation());
+    return new SingleSuccessorCompactorTransferRelation(getWrappedCpa().getTransferRelation(), partitioning);
+  }
+
+  @Override
+  public void setPartitioning(BlockPartitioning pPartitioning) {
+    if (getWrappedCpa() instanceof ConfigurableProgramAnalysisWithBAM) {
+      ((ConfigurableProgramAnalysisWithBAM)getWrappedCpa()).setPartitioning(pPartitioning);
+    }
+    partitioning = pPartitioning;
   }
 }
