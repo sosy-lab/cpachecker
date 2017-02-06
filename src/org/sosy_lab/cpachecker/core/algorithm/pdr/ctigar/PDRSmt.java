@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -84,6 +85,7 @@ public class PDRSmt {
   private final LogManager logger;
   private final PDROptions options;
   private final ForwardTransition forward;
+  private final ShutdownNotifier shutDown;
 
   /**
    * Creates a new PDRSmt instance.
@@ -107,7 +109,8 @@ public class PDRSmt {
       StatisticsDelegator pCompStats,
       LogManager pLogger,
       ForwardTransition pForward,
-      PDROptions pOptions) {
+      PDROptions pOptions,
+      ShutdownNotifier pShutdown) {
     this.stats = new PDRSatStatistics();
     Objects.requireNonNull(pCompStats).register(stats);
 
@@ -121,6 +124,7 @@ public class PDRSmt {
     this.logger = Objects.requireNonNull(pLogger);
     this.forward = Objects.requireNonNull(pForward);
     this.options = Objects.requireNonNull(pOptions);
+    this.shutDown = pShutdown;
   }
 
   /**
@@ -411,6 +415,7 @@ public class PDRSmt {
     while (numberOfTries < options.maxAttemptsAtDroppingLiterals()
         && droppedLits < options.maxLiteralsToDrop()
         && litIterator.hasNext()) {
+      shutDown.shutdownIfNecessary();
       numberOfTries++;
       BooleanFormula currentLit = litIterator.next();
 
@@ -664,13 +669,14 @@ public class PDRSmt {
    * they are provided by the transition relation. The returned formula is a pure conjunction of the
    * form (variable=value).
    */
-  private StatesWithLocation getSatisfyingState(Model pModel) {
+  private StatesWithLocation getSatisfyingState(Model pModel) throws InterruptedException {
     BitvectorFormulaManagerView bvfmgr = fmgr.getBitvectorFormulaManager();
     PathFormula unprimedContext = transition.getUnprimedContext();
     BooleanFormula satisfyingState = bfmgr.makeTrue();
     CFANode location = null;
 
     for (String variableName : unprimedContext.getSsa().allVariables()) {
+      shutDown.shutdownIfNecessary();
 
       // Make variable
       CType type = unprimedContext.getSsa().getType(variableName);

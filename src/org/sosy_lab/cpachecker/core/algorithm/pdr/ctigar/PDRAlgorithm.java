@@ -224,7 +224,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
             compositeStats,
             logger,
             stepwiseTransition,
-            optionsCollection);
+            optionsCollection,
+            shutdownNotifier);
   }
 
   @Override
