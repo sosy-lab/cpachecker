@@ -48,13 +48,16 @@ public class CalculationHelper {
   public static List<Polynom> calculateGroebnerBasis(List<PolynomExpression> polynomials,
       Map<String, Double> valueMap, LogManager log) {
 
+    List<Polynom> result;
     try (SympyProcess sympy = SympyProcess.newProcess()) {
-      return calculateGroebnerBasis(polynomials, valueMap, log, sympy);
+      result = calculateGroebnerBasis(polynomials, valueMap, log, sympy);
+      logErrorOutput(log, sympy);
     } catch (IOException e) {
       Error er = new Error("Communication with the sympy subprocess failed.");
       er.initCause(e);
       throw er;
     }
+    return result;
   }
 
   private static List<Polynom> calculateGroebnerBasis(
@@ -203,12 +206,7 @@ public class CalculationHelper {
         sympy.sendLine("print str(z) + \"\\n\"");
         sympy.commit();
         closedFormPoly = getMatchesFromSympy(sympy, startVar);
-        if (log.wouldBeLogged(Level.INFO)) {
-          String errorOut = readAllStderr(sympy).trim();
-          if (!errorOut.isEmpty()) {
-            log.log(Level.INFO, errorOut);
-          }
-        }
+        logErrorOutput(log, sympy);
       }
       if (!closedFormPoly.isEmpty()) {
         closedFormPolynomials.add(closedFormPoly.get(0) + " - " + startVar + "(n)");
@@ -219,5 +217,14 @@ public class CalculationHelper {
       }
     }
     return closedFormPolynomials;
+  }
+
+  private static void logErrorOutput(LogManager pLogger, SympyProcess pSympy) throws IOException {
+    if (pLogger.wouldBeLogged(Level.INFO)) {
+      String errorOut = readAllStderr(pSympy).trim();
+      if (!errorOut.isEmpty()) {
+        pLogger.log(Level.INFO, errorOut);
+      }
+    }
   }
 }
