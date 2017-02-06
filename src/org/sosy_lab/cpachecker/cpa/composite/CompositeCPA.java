@@ -76,6 +76,20 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     description="inform Composite CPA if it is run in a CPA enabled analysis because then it must "
       + "behave differently during merge.")
     private boolean inCPAEnabledAnalysis = false;
+
+    @Option(
+      secure = true,
+      description =
+          "By enabling this option the CompositeTransferRelation"
+              + " will compute abstract successors for as many edges as possible in one call. For"
+              + " any chain of edges in the CFA which does not have more than one outgoing or leaving"
+              + " edge the components of the CompositeCPA are called for each of the edges in this"
+              + " chain. Strengthening is still computed after every edge."
+              + " The main difference is that while this option is enabled not every ARGState may"
+              + " have a single edge connecting to the child/parent ARGState but it may instead"
+              + " be a list."
+    )
+    private boolean aggregateBasicBlocks = false;
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -148,7 +162,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
 
       CompositeDomain compositeDomain = new CompositeDomain(domains.build());
-      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build(), getConfiguration(), cfa);
+      CompositeTransferRelation compositeTransfer =
+          new CompositeTransferRelation(
+              transferRelations.build(), cfa, options.aggregateBasicBlocks);
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;
