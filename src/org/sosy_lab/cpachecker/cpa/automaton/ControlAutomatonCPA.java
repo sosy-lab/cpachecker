@@ -109,13 +109,20 @@ public class ControlAutomatonCPA
   @Option(secure=true, description="Merge two automata states if one of them is TOP.")
   private boolean mergeOnTop  = false;
 
+  @Option(
+    secure = true,
+    name = "prec.topOnFinalSelfLoopingState",
+    description =
+        "An implicit precision: consider states with a self-loop and no other outgoing edges as TOP."
+  )
+  private boolean topOnFinalSelfLoopingState = false;
+
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
 
   private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
   private final AutomatonTransferRelation transferRelation;
-  private final PrecisionAdjustment precisionAdjustment;
   private final Statistics stats = new AutomatonStatistics(this);
 
   protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
@@ -125,7 +132,6 @@ public class ControlAutomatonCPA
     pConfig.inject(this, ControlAutomatonCPA.class);
 
     this.transferRelation = new AutomatonTransferRelation(this, pLogger, pCFA.getMachineModel());
-    this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
 
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
@@ -171,23 +177,6 @@ public class ControlAutomatonCPA
     return lst.get(0);
   }
 
-  private PrecisionAdjustment composePrecisionAdjustmentOp(Configuration pConfig)
-      throws InvalidConfigurationException {
-
-    final PrecisionAdjustment lPrecisionAdjustment;
-
-    if (breakOnTargetState > 0) {
-      final int pFoundTargetLimit = breakOnTargetState;
-      final int pExtraIterationsLimit = extraIterationsLimit;
-      lPrecisionAdjustment = new BreakOnTargetsPrecisionAdjustment(pFoundTargetLimit, pExtraIterationsLimit);
-
-    } else {
-      lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    }
-
-    return new ControlAutomatonPrecisionAdjustment(pConfig, topState, lPrecisionAdjustment);
-  }
-
   Automaton getAutomaton() {
     return this.automaton;
   }
@@ -217,7 +206,17 @@ public class ControlAutomatonCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    final PrecisionAdjustment lPrecisionAdjustment;
+
+    if (breakOnTargetState > 0) {
+      lPrecisionAdjustment =
+          new BreakOnTargetsPrecisionAdjustment(breakOnTargetState, extraIterationsLimit);
+    } else {
+      lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    }
+
+    return new ControlAutomatonPrecisionAdjustment(
+        topState, lPrecisionAdjustment, topOnFinalSelfLoopingState);
   }
 
   @Override
