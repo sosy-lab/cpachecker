@@ -916,6 +916,17 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       logger.log(Level.ALL, "state id ", smg.getId(), " -> state id ", state.getId());
     }
 
+    // Verify predicate on error feasibility
+    for (SMGState smg : successors) {
+      if (smgPredicateManager.isErrorPathFeasible(smg)) {
+        SMGState invalidState = smg.setInvalidRead().setInvalidWrite();
+        invalidState.resetErrorRelation();
+        invalidState.setErrorDescription("Possible overflow on current code block");
+        successors = ImmutableList.of(invalidState);
+      } else {
+        smg.resetErrorRelation();
+      }
+    }
     return successors;
   }
 
@@ -942,13 +953,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     logger.log(Level.ALL, "Handling return Statement: ", returnExp);
 
-    if (smgPredicateManager.isErrorPathFeasible(smgState)) {
-      smgState = smgState.setInvalidRead();
-      smgState.setErrorDescription("Predicate extension shows possibility of overflow on current "
-          + "code block");
-    }
-    smgState.resetErrorRelation();
-
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
     Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
@@ -974,13 +978,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     SMGState newState = new SMGState(smgState, blockOperator, functionReturnEdge.getSuccessor());
 
-    if (smgPredicateManager.isErrorPathFeasible(newState)) {
-      newState = newState.setInvalidRead();
-      newState.setErrorDescription("Predicate extension shows possibility of overflow on current "
-          + "code block");
-    }
-
-    newState.resetErrorRelation();
 
     assert newState.getStackFrame().getFunctionDeclaration().equals(functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
@@ -1187,13 +1184,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       boolean truthValue, boolean createNewStateIfNecessary) throws CPATransferException {
 
     SMGState smgState = new SMGState(pSmgState, blockOperator, cfaEdge.getSuccessor());
-
-    if (smgPredicateManager.isErrorPathFeasible(smgState)) {
-      smgState = smgState.setInvalidRead();
-      smgState.setErrorDescription("Predicate extension shows possibility of overflow on current "
-          + "code block");
-    }
-    smgState.resetErrorRelation();
 
     // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be refactored to be able to handle complex expressions
     expression = eliminateOuterEquals(expression);
