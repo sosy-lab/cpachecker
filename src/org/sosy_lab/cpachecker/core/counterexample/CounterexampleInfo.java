@@ -30,7 +30,14 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.Lists;
-
+import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -40,14 +47,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class CounterexampleInfo extends AbstractAppender {
 
@@ -134,12 +133,12 @@ public class CounterexampleInfo extends AbstractAppender {
   }
 
   /**
-   * Return an assignment from ARGStates to variable values.
-   * Note that not every value for every variable is available.
+   * Return an assignment from ARGStates to variable values. Note that not every value for every
+   * variable is available.
    *
-   * This is only available for precise counterexamples.
+   * <p>This is only available for precise counterexamples.
    */
-  public Map<ARGState, CFAEdgeWithAssumptions> getExactVariableValues() {
+  public Multimap<ARGState, CFAEdgeWithAssumptions> getExactVariableValues() {
     checkState(!spurious);
     checkState(isPreciseCounterExample);
     return assignments.getExactVariableValues(targetPath);

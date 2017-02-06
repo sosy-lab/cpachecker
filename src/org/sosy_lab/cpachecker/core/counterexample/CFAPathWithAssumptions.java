@@ -24,15 +24,14 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.collect.ForwardingList;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
@@ -85,9 +84,8 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     return true;
   }
 
-  @Nullable
-  public Map<ARGState, CFAEdgeWithAssumptions> getExactVariableValues(ARGPath pPath) {
-    Map<ARGState, CFAEdgeWithAssumptions> result = new HashMap<>();
+  public Multimap<ARGState, CFAEdgeWithAssumptions> getExactVariableValues(ARGPath pPath) {
+    Multimap<ARGState, CFAEdgeWithAssumptions> result = HashMultimap.create();
 
     PathIterator pathIterator = pPath.fullPathIterator();
     int multiEdgeOffset = 0;
@@ -101,11 +99,13 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
         return null;
       }
 
+      final ARGState abstractState;
       if (pathIterator.isPositionWithState()) {
-        result.put(pathIterator.getAbstractState(), edgeWithAssignment);
+        abstractState = pathIterator.getAbstractState();
       } else {
-        result.put(pathIterator.getPreviousAbstractState(), edgeWithAssignment);
+        abstractState = pathIterator.getPreviousAbstractState();
       }
+      result.put(abstractState, edgeWithAssignment);
 
       pathIterator.advance();
     }

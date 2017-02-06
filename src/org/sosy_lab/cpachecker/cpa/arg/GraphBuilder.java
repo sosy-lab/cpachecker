@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -65,10 +64,11 @@ public enum GraphBuilder {
     }
 
     @Override
-    public void buildGraph(ARGState pRootState,
+    public void buildGraph(
+        ARGState pRootState,
         Predicate<? super ARGState> pPathStates,
         Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
-        Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
+        Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         GraphMlBuilder pDocument,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
@@ -103,7 +103,12 @@ public enum GraphBuilder {
 
               assert (!(innerEdge instanceof AssumeEdge));
 
-              Optional<Collection<ARGState>> absentStates = Optional.empty();
+              Iterable<CFAEdgeWithAssumptions> assumptions = pValueMap.get(s);
+              assumptions = Iterables.filter(assumptions, a -> a.getCFAEdge().equals(innerEdge));
+              Optional<Collection<ARGState>> absentStates =
+                  Iterables.isEmpty(assumptions)
+                      ? Optional.empty()
+                      : Optional.of(Collections.singleton(s));
               pEdgeAppender.appendNewEdge(prevStateId, pseudoStateId, innerEdge, absentStates, pValueMap);
               prevStateId = pseudoStateId;
             }
@@ -139,10 +144,11 @@ public enum GraphBuilder {
     }
 
     @Override
-    public void buildGraph(ARGState pRootState,
+    public void buildGraph(
+        ARGState pRootState,
         final Predicate<? super ARGState> pPathStates,
         final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
-        Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
+        Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         GraphMlBuilder pDocument,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
@@ -199,10 +205,11 @@ public enum GraphBuilder {
     }
 
     @Override
-    public void buildGraph(ARGState pRootState,
+    public void buildGraph(
+        ARGState pRootState,
         final Predicate<? super ARGState> pPathStates,
         final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
-        Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
+        Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         GraphMlBuilder pDocument,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
         EdgeAppender pEdgeAppender) {
@@ -273,7 +280,7 @@ public enum GraphBuilder {
       EdgeAppender pEdgeAppender,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pStates,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
     String sourceId = pEdge.getPredecessor().toString();
     String targetId = pEdge.getSuccessor().toString();
@@ -284,10 +291,11 @@ public enum GraphBuilder {
 
   public abstract String getId(ARGState pState);
 
-  public abstract void buildGraph(ARGState pRootState,
+  public abstract void buildGraph(
+      ARGState pRootState,
       Predicate<? super ARGState> pPathStates,
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
       GraphMlBuilder pDocument,
       Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
       EdgeAppender pEdgeAppender);

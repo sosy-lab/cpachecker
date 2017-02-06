@@ -25,15 +25,16 @@ package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -252,19 +253,19 @@ public class HarnessExporter {
     return result;
   }
 
-  private Map<ARGState, CFAEdgeWithAssumptions> getValueMap(
+  private Multimap<ARGState, CFAEdgeWithAssumptions> getValueMap(
       CounterexampleInfo pCounterexampleInfo) {
     if (useModel && pCounterexampleInfo.isPreciseCounterExample()) {
       return pCounterexampleInfo.getExactVariableValues();
     }
-    return Collections.emptyMap();
+    return ImmutableMultimap.of();
   }
 
   private Optional<TestVector> extractTestVector(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
     Set<State> visited = Sets.newHashSet();
     Deque<State> stack = Queues.newArrayDeque();
     stack.push(State.of(pRootState, TestVector.newTestVector()));
@@ -300,7 +301,7 @@ public class HarnessExporter {
       State pPrevious,
       ARGState pChild,
       CFAEdge pEdge,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
     if (pEdge instanceof AStatementEdge) {
       AStatement statement = ((AStatementEdge) pEdge).getStatement();
       if (statement instanceof AFunctionCall) {
@@ -322,7 +323,7 @@ public class HarnessExporter {
               AFunctionCallAssignmentStatement assignment =
                   (AFunctionCallAssignmentStatement) functionCall;
               return handleFunctionCallAssignment(
-                  pPrevious, pChild, functionCallExpression, assignment, pValueMap);
+                  pEdge, pPrevious, pChild, functionCallExpression, assignment, pValueMap);
             }
           }
         }
@@ -332,11 +333,12 @@ public class HarnessExporter {
   }
 
   private Optional<State> handleFunctionCallAssignment(
+      CFAEdge pEdge,
       State pPrevious,
       ARGState pChild,
       AFunctionCallExpression functionCallExpression,
       AFunctionCallAssignmentStatement assignment,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
     ALeftHandSide leftHandSide = assignment.getLeftHandSide();
     Iterable<AutomatonState> automatonStates =
         AbstractStates.asIterable(pChild).filter(AutomatonState.class);
@@ -348,10 +350,12 @@ public class HarnessExporter {
         }
       }
     }
-    CFAEdgeWithAssumptions assumptions = pValueMap.get(pPrevious.argState);
+    Collection<CFAEdgeWithAssumptions> assumptions = pValueMap.get(pPrevious.argState);
     if (assumptions != null) {
       for (AExpression assumption :
-          FluentIterable.from(assumptions.getExpStmts())
+          FluentIterable.from(assumptions)
+              .filter(e -> e.getCFAEdge().equals(pEdge))
+              .transformAndConcat(CFAEdgeWithAssumptions::getExpStmts)
               .transform(AExpressionStatement::getExpression)) {
         Optional<ALiteralExpression> value = getOther(assumption, leftHandSide);
         if (value.isPresent()) {

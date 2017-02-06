@@ -39,9 +39,10 @@ import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
@@ -585,7 +586,7 @@ public class ARGUtils {
 
     ARGState rootState = pPaths.iterator().next().getFirstState();
 
-    Map<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
 
     if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
       valueMap = pCounterExample.getExactVariableValues();
@@ -617,7 +618,7 @@ public class ARGUtils {
         if (child.isTarget()) {
           sb.append("ERROR");
         } else {
-          addAssumption(valueMap, pathIterator.getPreviousAbstractState(), sb);
+          addAssumption(valueMap, pathIterator.getPreviousAbstractState(), edge, sb);
           stateName = getStateNameFunction.apply(index).apply(child);
           sb.append("GOTO " + stateName);
         }
@@ -641,7 +642,7 @@ public class ARGUtils {
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, @Nullable CounterexampleInfo pCounterExample) throws IOException {
 
-    Map<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
 
     if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
       valueMap = pCounterExample.getExactVariableValues();
@@ -705,7 +706,7 @@ public class ARGUtils {
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
-            addAssumption(valueMap, s, sb);
+            addAssumption(valueMap, s, edge, sb);
             sb.append("GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
@@ -1067,13 +1068,26 @@ public class ARGUtils {
     }
   }
 
-  private static void addAssumption(Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
-      ARGState pState, Appendable sb) throws IOException {
+  private static void addAssumption(
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      ARGState pState,
+      CFAEdge pEdge,
+      Appendable sb)
+      throws IOException {
 
-    CFAEdgeWithAssumptions cfaEdgeWithAssignments = pValueMap.get(pState);
+    Iterable<CFAEdgeWithAssumptions> assumptions = pValueMap.get(pState);
+    assumptions = Iterables.filter(assumptions, a -> a.getCFAEdge().equals(pEdge));
+    if (Iterables.isEmpty(assumptions)) {
+      return;
+    }
+    addAssumption(Iterables.getOnlyElement(assumptions), sb);
+  }
 
-    if (cfaEdgeWithAssignments != null) {
-      String code = cfaEdgeWithAssignments.getAsCode();
+  private static void addAssumption(CFAEdgeWithAssumptions pCFAEdgeWithAssignments, Appendable sb)
+      throws IOException {
+
+    if (pCFAEdgeWithAssignments != null) {
+      String code = pCFAEdgeWithAssignments.getAsCode();
 
       if (!code.isEmpty()) {
         sb.append("ASSUME {" + code + "} ");
