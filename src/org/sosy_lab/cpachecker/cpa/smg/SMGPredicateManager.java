@@ -202,12 +202,8 @@ public class SMGPredicateManager {
   }
 
   public boolean isErrorPathFeasible(SMGState pState) {
-    if (!verifyPredicates) {
-      return false;
-    }
-
     PredRelation errorPredicate = pState.getErrorPredicateRelation();
-    if (!errorPredicate.isEmpty()) {
+    if (verifyPredicates && !errorPredicate.isEmpty()) {
       BooleanFormula errorPredicateFormula = getErrorPredicateFormula(errorPredicate, pState.getPathPredicateRelation());
       try {
         if (!isUnsat(errorPredicateFormula)) {
