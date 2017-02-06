@@ -351,7 +351,7 @@ public class PDRSmt {
     } finally {
       timer.stop();
     }
-
+    shutDown.shutdownIfNecessary();
     assert usedLits.isPresent(); // Must be unsat
     Set<BooleanFormula> usedConjuncts =
         actToConjuncts
