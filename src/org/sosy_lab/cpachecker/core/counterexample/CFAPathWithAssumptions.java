@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import com.google.common.collect.ForwardingList;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -96,7 +97,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
       if (!edgeWithAssignment.getCFAEdge().equals(argPathEdge)) {
         // path is not equivalent
-        return null;
+        return ImmutableMultimap.of();
       }
 
       final ARGState abstractState;
