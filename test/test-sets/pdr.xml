@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="15 GB" cpuCores="2">
-  <!-- TODO include property file, set options-->
   <option name="-heap">13000M</option>
   <option name="-noout"/>
   <option name="-disable-java-assertions"/>
@@ -9,48 +8,48 @@
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
   <tasks name="Locks">
-    <include>../programs/benchmarks/locks/test_locks_*.c</includesfile>
+    <include>../programs/benchmarks/locks/test_locks_*.c</include>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
 <!--
   <tasks name="Loops">
-    <include>../programs/benchmarks/loops/for_*.i</includesfile>
-    <include>../programs/benchmarks/loops/terminator_*.i</includesfile>
-    <include>../programs/benchmarks/loops/trex*.i</includesfile>
-    <include>../programs/benchmarks/loops/while_*.i</includesfile>
+    <include>../programs/benchmarks/loops/for_*.i</include>
+    <include>../programs/benchmarks/loops/terminator_*.i</include>
+    <include>../programs/benchmarks/loops/trex*.i</include>
+    <include>../programs/benchmarks/loops/while_*.i</include>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loops-new">
-    <include>../programs/benchmarks/loop-new/count_*.i</includesfile>
+    <include>../programs/benchmarks/loop-new/count_*.i</include>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loop-acceleration">
-    <include>../programs/benchmarks/loop-acceleration/const_*.i</includesfile>
-    <include>../programs/benchmarks/loop-acceleration/multivar_*.i</includesfile>
-    <include>../programs/benchmarks/loop-acceleration/underapprox_*.i</includesfile>
+    <include>../programs/benchmarks/loop-acceleration/const_*.i</include>
+    <include>../programs/benchmarks/loop-acceleration/multivar_*.i</include>
+    <include>../programs/benchmarks/loop-acceleration/underapprox_*.i</include>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loop-lit">
-    <include>../programs/benchmarks/loop-lit/afnp2014_true-unreach-call_true-termination.c.i</includesfile>
-    <include>../programs/benchmarks/loop-lit/cggm2005*.i</includesfile>
-    <include>../programs/benchmarks/loop-lit/cdd2003_true-unreach-call_true-termination.c.i</includesfile>
-    <include>../programs/benchmarks/loop-lit/gcnr2008_false-unreach-call_false-termination.i</includesfile>
-    <include>../programs/benchmarks/loop-lit/gj2007*.c.i</includesfile>
-    <include>../programs/benchmarks/loop-lit/gsv2008_true-unreach-call_true-termination.c.i</includesfile>
-    <include>../programs/benchmarks/loop-lit/hhk2008_true-unreach-call_true-termination.c.i</includesfile>
-    <include>../programs/benchmarks/loop-lit/jm2006*_true-unreach-call_true-termination.c.i</includesfile>
+    <include>../programs/benchmarks/loop-lit/afnp2014_true-unreach-call_true-termination.c.i</include>
+    <include>../programs/benchmarks/loop-lit/cggm2005*.i</include>
+    <include>../programs/benchmarks/loop-lit/cdd2003_true-unreach-call_true-termination.c.i</include>
+    <include>../programs/benchmarks/loop-lit/gcnr2008_false-unreach-call_false-termination.i</include>
+    <include>../programs/benchmarks/loop-lit/gj2007*.c.i</include>
+    <include>../programs/benchmarks/loop-lit/gsv2008_true-unreach-call_true-termination.c.i</include>
+    <include>../programs/benchmarks/loop-lit/hhk2008_true-unreach-call_true-termination.c.i</include>
+    <include>../programs/benchmarks/loop-lit/jm2006*_true-unreach-call_true-termination.c.i</include>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loop-invgen">
-    <include>../programs/benchmarks/loop-invgen/down_true-unreach-call_true-termination.i</includesfile>
-    <include>../programs/benchmarks/loop-invgen/apache-escape-absolute_true-unreach-call_true-termination.i</includesfile>
-    <include>../programs/benchmarks/loop-invgen/id_build_*.i</includesfile>
-    <include>../programs/benchmarks/loop-invgen/nest-if3_true-unreach-call_true-termination.i</includesfile>
-    <include>../programs/benchmarks/loop-invgen/NetBSD_loop_true-unreach-call_true-termination.i</includesfile>
+    <include>../programs/benchmarks/loop-invgen/down_true-unreach-call_true-termination.i</include>
+    <include>../programs/benchmarks/loop-invgen/apache-escape-absolute_true-unreach-call_true-termination.i</include>
+    <include>../programs/benchmarks/loop-invgen/id_build_*.i</include>
+    <include>../programs/benchmarks/loop-invgen/nest-if3_true-unreach-call_true-termination.i</include>
+    <include>../programs/benchmarks/loop-invgen/NetBSD_loop_true-unreach-call_true-termination.i</include>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Product-lines">
-    <include>../programs/benchmarks/product-lines/minepump_spec1_*.cil.i</includesfile>
+    <include>../programs/benchmarks/product-lines/minepump_spec1_*.cil.i</include>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
 -->
