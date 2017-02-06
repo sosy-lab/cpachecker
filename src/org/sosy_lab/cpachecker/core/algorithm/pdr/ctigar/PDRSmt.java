@@ -351,6 +351,7 @@ public class PDRSmt {
     } finally {
       timer.stop();
     }
+
     shutDown.shutdownIfNecessary();
     assert usedLits.isPresent(); // Must be unsat
     Set<BooleanFormula> usedConjuncts =
@@ -781,61 +782,63 @@ public class PDRSmt {
 
       // Consecution stats
       pOut.println(
-          "Total number of consecution queries:              "
+          "Total number of consecution queries:                "
               + String.valueOf(numberFailedConsecutions + numberSuccessfulConsecutions));
       pOut.println(
-          "  Successful:                                     " + numberSuccessfulConsecutions);
-      pOut.println("  Failed:                                         " + numberFailedConsecutions);
+          "  Successful consecution queries:                   " + numberSuccessfulConsecutions);
+      pOut.println(
+          "  Failed consecution queries:                       " + numberFailedConsecutions);
       if (consecutionTimer.getNumberOfIntervals() > 0) {
-        pOut.println("Total time for consecution calls:              " + consecutionTimer);
+        pOut.println("Total time for consecution calls:               " + consecutionTimer);
         pOut.println(
-            "  Average time:                               "
+            "  Average time for consecution calls:           "
                 + consecutionTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
       }
       if (pureConsecutionSatTimer.getNumberOfIntervals() > 0) {
-        pOut.println("Total time spent in solver during consecution: " + pureConsecutionSatTimer);
+        pOut.println("Total time spent in solver during consecution:  " + pureConsecutionSatTimer);
         pOut.println(
-            "  Average time:                               "
+            "  Average time in solver during consecution:    "
                 + pureConsecutionSatTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
       }
 
       // Lifting stats
       pOut.println(
-          "Total number of lifting queries:                  "
+          "Total number of lifting queries:                    "
               + String.valueOf(numberFailedLifts + numberSuccessfulLifts + numberImpossibleLifts));
-      pOut.println("  Successful:                                     " + numberSuccessfulLifts);
-      pOut.println("  Failed:                                         " + numberFailedLifts);
-      pOut.println("  Impossible attempts:                            " + numberImpossibleLifts);
+      pOut.println("  Successful attempts:                              " + numberSuccessfulLifts);
+      pOut.println("  Failed attempts:                                  " + numberFailedLifts);
+      pOut.println("  Impossible attempts:                              " + numberImpossibleLifts);
       if (liftingTimer.getNumberOfIntervals() > 0) {
-        pOut.println("Total time for lifting calls:                  " + liftingTimer);
+        pOut.println("Total time for lifting calls:                   " + liftingTimer);
         pOut.println(
-            "  Average time:                               "
+            "  Average time for lifting calls:               "
                 + liftingTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
       }
       if (pureLiftingSatTimer.getNumberOfIntervals() > 0) {
-        pOut.println("Total time spent in solver during lifting:    " + pureLiftingSatTimer);
+        pOut.println("Total time spent in solver during lifting:      " + pureLiftingSatTimer);
         pOut.println(
-            "  Average time:                               "
+            "  Average time in solver during lifting:        "
                 + pureLiftingSatTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
       }
 
       // Literal reduction stats
-      pOut.println("Number of dropped parts with unsat core:          " + totalDroppedAfterCore);
+      pOut.println("Number of dropped parts with unsat core:            " + totalDroppedAfterCore);
       pOut.println(
-          "  Percentage:                                     "
+          "  Percentage of dropped parts with unsat core:      "
               + getPercentageOfUnsatCoreReduction()
               + "%");
       pOut.println(
-          "Number of manually dropped after unsat core:      "
+          "Number of manually dropped after unsat core:        "
               + String.valueOf(totalManuallyDroppedAfterGen + totalManuallyDroppedAfterLifting));
       pOut.println(
-          "  Percentage:                                     "
+          "  Percentage of manually dropped after unsat core:  "
               + getPercentageOfManualReduction()
               + "%");
       pOut.println(
-          "  After lifting:                                  " + totalManuallyDroppedAfterLifting);
+          "  Manually dropped after lifting:                   "
+              + totalManuallyDroppedAfterLifting);
       pOut.println(
-          "  After generalization:                           " + totalManuallyDroppedAfterGen);
+          "  Manually dropped after generalization:            " + totalManuallyDroppedAfterGen);
     }
 
     private int getPercentageOfUnsatCoreReduction() {

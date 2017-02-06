@@ -268,7 +268,7 @@ public class DeltaEncodedFrameSet implements FrameSet {
       if (propagationTimer.getNumberOfIntervals() > 0) {
         pOut.println("Total time for propagation:          " + propagationTimer);
         pOut.println(
-            "  Average time:                      "
+            "  Average time for propagation:      "
                 + propagationTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
       }
       if (propagationSolverTimer.getNumberOfIntervals() > 0) {
@@ -277,7 +277,7 @@ public class DeltaEncodedFrameSet implements FrameSet {
       if (subsumptionTimer.getNumberOfIntervals() > 0) {
         pOut.println("Total time for subsumption:          " + subsumptionTimer);
         pOut.println(
-            "  Average time:                      "
+            "  Average time for subsumption:      "
                 + subsumptionTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
       }
     }
