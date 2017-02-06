@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -55,6 +56,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -132,6 +134,7 @@ public class PDRSmt {
    */
   public Optional<ConsecutionResult> getCTI()
       throws SolverException, InterruptedException, CPAException {
+    stats.consecutionTimer.start();
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
       // Push F(maxLevel) & T & not(P)'
@@ -143,10 +146,12 @@ public class PDRSmt {
           PDRUtils.asPrimed(bfmgr.not(transition.getSafetyProperty()), fmgr, transition);
       prover.push(notSafetyPrimed);
 
-      if (prover.isUnsat()) {
+      if (timedUnsatCall(prover, stats.pureConsecutionSatTimer)) {
+        stats.numberSuccessfulConsecutions++;
         return Optional.empty();
       }
 
+      stats.numberFailedConsecutions++;
       StatesWithLocation directErrorPredecessor = getSatisfyingState(prover.getModel());
       BooleanFormula concreteState = directErrorPredecessor.getFormula();
       CFANode correspondingErrorLocation =
@@ -168,6 +173,8 @@ public class PDRSmt {
                   liftedAbstractState,
                   directErrorPredecessor.getLocation(),
                   directErrorPredecessor.getConcrete())));
+    } finally {
+      stats.consecutionTimer.stop();
     }
   }
 
@@ -235,9 +242,9 @@ public class PDRSmt {
       InterpolatingProverEnvironment<T> pConcrProver,
       ProverEnvironment pAbstrProver)
       throws InterruptedException, SolverException, CPAException {
-    logger.log(Level.INFO, "Concrete : ", pConcreteState);
+    logger.log(Level.ALL, "Concrete : ", pConcreteState);
     BooleanFormula abstractState = abstractionManager.computeAbstraction(pConcreteState);
-    logger.log(Level.INFO, "Abstract : ", abstractState);
+    logger.log(Level.ALL, "Abstract : ", abstractState);
 
     // Push unsatisfiable formula (state & T & not(successor)'). Push predecessor state last,
     // so it can be popped and replaced with a refined version later when necessary.
@@ -248,7 +255,7 @@ public class PDRSmt {
     T idForInterpolation = pConcrProver.push(pConcreteState);
     pAbstrProver.push(abstractState);
 
-    boolean concreteQueryUnsat = pConcrProver.isUnsat();
+    boolean concreteQueryUnsat = timedUnsatCall(pConcrProver, stats.pureLiftingSatTimer);
 
     // Concrete query could be sat if successor contains non-deterministically assigned
     // variables or if predecessor has more than one successor. If the query is still sat
@@ -258,22 +265,20 @@ public class PDRSmt {
       idForInterpolation =
           removeNondetVariables(pConcreteState, pSuccessorStates, pPredLoc, pSuccLoc, pConcrProver);
     }
-    if (!pConcrProver.isUnsat()) {
+    if (!timedUnsatCall(pConcrProver, stats.pureLiftingSatTimer)) {
       stats.numberImpossibleLifts++;
       return abstractState;
     }
 
-    // Abstraction was too broad => Prepare interpolating prover and refine.
-    if (!pAbstrProver.isUnsat()) {
+    // Abstraction was too broad => Refine.
+    if (!timedUnsatCall(pAbstrProver, stats.pureLiftingSatTimer)) {
       stats.numberFailedLifts++;
-      boolean unsat = pConcrProver.isUnsat();
-      assert unsat;
 
       BooleanFormula interpolant =
           pConcrProver.getInterpolant(Collections.singletonList(idForInterpolation));
       assert interpolant.equals(PDRUtils.asUnprimed(interpolant, fmgr, transition));
       abstractState = abstractionManager.refineAndComputeAbstraction(pConcreteState, interpolant);
-      logger.log(Level.INFO, "Abstract after refinement : ", abstractState);
+      logger.log(Level.ALL, "Abstract after refinement : ", abstractState);
 
       // Update abstraction on prover.
       pAbstrProver.pop();
@@ -284,12 +289,12 @@ public class PDRSmt {
     }
 
     // Get used literals from query with abstraction. Query must be unsat at this point.
-    BooleanFormula reduced = reduceByUnsatCore(abstractState, pAbstrProver);
+    BooleanFormula reduced = reduceByUnsatCore(abstractState, pAbstrProver, false);
     if (options.shouldDropLiteralsAfterLiftingWithUnsatCore()) {
       reduced = dropLits(reduced, pAbstrProver, false);
     }
     assert liftOK(reduced, pSuccessorStates);
-    logger.log(Level.INFO, "Abstract after reduction: ", reduced);
+    logger.log(Level.ALL, "Abstract after reduction: ", reduced);
     return reduced;
   }
 
@@ -310,10 +315,11 @@ public class PDRSmt {
   // Assumes that the prover already contains the unsatisfiable query and the formula at the top of
   // the prover stack is pFormula and the one to reduce. Afterwards, the prover will contain the new
   // reduced formula instead.
-  private BooleanFormula reduceByUnsatCore(BooleanFormula pFormula, ProverEnvironment pProver)
+  private BooleanFormula reduceByUnsatCore(
+      BooleanFormula pFormula, ProverEnvironment pProver, boolean consecutionMode)
       throws SolverException, InterruptedException {
 
-    logger.log(Level.INFO, "Formula before unsat core reduction : ", pFormula);
+    logger.log(Level.ALL, "Formula before unsat core reduction : ", pFormula);
     pProver.pop(); // Remove old (unreduced) formula.
     Set<BooleanFormula> conjuncts = bfmgr.toConjunctionArgs(pFormula, true);
     stats.totalConjPartsBeforeCore += conjuncts.size();
@@ -333,8 +339,15 @@ public class PDRSmt {
       pProver.push(equiv);
     }
 
-    Optional<List<BooleanFormula>> usedLits =
-        pProver.unsatCoreOverAssumptions(actToConjuncts.keySet());
+    Optional<List<BooleanFormula>> usedLits;
+    Timer timer = consecutionMode ? stats.pureConsecutionSatTimer : stats.pureLiftingSatTimer;
+    timer.start();
+    try {
+      usedLits = pProver.unsatCoreOverAssumptions(actToConjuncts.keySet());
+    } finally {
+      timer.stop();
+    }
+
     assert usedLits.isPresent(); // Must be unsat
     Set<BooleanFormula> usedConjuncts =
         actToConjuncts
@@ -352,7 +365,7 @@ public class PDRSmt {
       reduced = bfmgr.and(getPcComponent(pFormula), reduced);
       stats.totalDroppedAfterCore--;
     }
-    logger.log(Level.INFO, "Formula after unsat core reduction : ", reduced);
+    logger.log(Level.ALL, "Formula after unsat core reduction : ", reduced);
     assert !isInitial(PDRUtils.asUnprimed(reduced, fmgr, transition));
 
     // Rebuild prover : remove equivalences and push new reduced formula.
@@ -387,7 +400,7 @@ public class PDRSmt {
       BooleanFormula pFormula, ProverEnvironment pProver, boolean consecutionMode)
       throws SolverException, InterruptedException {
 
-    logger.log(Level.INFO, "Formula before manual drop: ", pFormula);
+    logger.log(Level.ALL, "Formula before manual drop: ", pFormula);
 
     Set<BooleanFormula> remainingLits = bfmgr.toConjunctionArgs(pFormula, true);
     stats.totalConjPartsBeforeManualDrop += remainingLits.size();
@@ -426,7 +439,9 @@ public class PDRSmt {
         pProver.push(formulaWithoutLit);
       }
 
-      if (pProver.isUnsat()) {
+
+      if (timedUnsatCall(
+          pProver, consecutionMode ? stats.pureConsecutionSatTimer : stats.pureLiftingSatTimer)) {
         litIterator.remove();
         if (consecutionMode) {
           stats.totalManuallyDroppedAfterGen++;
@@ -439,7 +454,7 @@ public class PDRSmt {
     // All unneeded conjuncts/literals are removed at this point. The conjunction of the remaining ones
     // is the reduced formula.
     BooleanFormula result = bfmgr.and(remainingLits);
-    logger.log(Level.INFO, "Formula after manual drop: ", result);
+    logger.log(Level.ALL, "Formula after manual drop: ", result);
     return result;
   }
 
@@ -552,8 +567,10 @@ public class PDRSmt {
     pAbstractProver.push(PDRUtils.asPrimed(abstr, fmgr, transition));
     pConcreteProver.push(PDRUtils.asPrimed(concrete, fmgr, transition));
 
-    boolean abstractConsecutionWorks = pAbstractProver.isUnsat();
-    boolean concreteConsecutionWorks = pConcreteProver.isUnsat();
+    boolean abstractConsecutionWorks =
+        timedUnsatCall(pAbstractProver, stats.pureConsecutionSatTimer);
+    boolean concreteConsecutionWorks =
+        timedUnsatCall(pConcreteProver, stats.pureConsecutionSatTimer);
 
     if (!abstractConsecutionWorks) {
       if (concreteConsecutionWorks) {
@@ -562,14 +579,15 @@ public class PDRSmt {
         BooleanFormula interpolant = pConcreteProver.getInterpolant(idsForInterpolation);
         BooleanFormula forRefinement = bfmgr.not(interpolant);
         abstr = abstractionManager.refineAndComputeAbstraction(concrete, forRefinement);
-        logger.log(Level.INFO, "Abstract after refinement : ", abstr);
+        logger.log(Level.ALL, "Abstract after refinement : ", abstr);
 
         // Update not(s) and s'
         pAbstractProver.pop();
         pAbstractProver.pop();
         pAbstractProver.push(bfmgr.not(abstr));
         pAbstractProver.push(PDRUtils.asPrimed(abstr, fmgr, transition));
-        abstractConsecutionWorks = pAbstractProver.isUnsat();
+
+        abstractConsecutionWorks = timedUnsatCall(pAbstractProver, stats.pureConsecutionSatTimer);
         assert abstractConsecutionWorks;
         assert consecutionOK(pLevel, abstr);
       } else {
@@ -604,13 +622,23 @@ public class PDRSmt {
     stats.numberSuccessfulConsecutions++;
     BooleanFormula generalized =
         PDRUtils.asUnprimed(
-            reduceByUnsatCore(PDRUtils.asPrimed(abstr, fmgr, transition), pAbstractProver),
+            reduceByUnsatCore(PDRUtils.asPrimed(abstr, fmgr, transition), pAbstractProver, true),
             fmgr,
             transition);
     generalized = dropLits(generalized, pAbstractProver, true);
     assert consecutionOK(pLevel, generalized);
     return new ConsecutionResult(
         true, new StatesWithLocation(generalized, pStates.getLocation(), pStates.getConcrete()));
+  }
+
+  private static <T> boolean timedUnsatCall(BasicProverEnvironment<T> pProver, Timer pTimer)
+      throws SolverException, InterruptedException {
+    pTimer.start();
+    try {
+      return pProver.isUnsat();
+    } finally {
+      pTimer.stop();
+    }
   }
 
   private boolean consecutionOK(int pLevel, BooleanFormula pGeneralizedStates)
@@ -737,51 +765,71 @@ public class PDRSmt {
     private long totalDroppedAfterCore = 0;
     private long totalManuallyDroppedAfterLifting = 0;
     private long totalManuallyDroppedAfterGen = 0;
-    private Timer consecutionTimer = new Timer();
-    private Timer liftingTimer = new Timer();
+    private final Timer consecutionTimer = new Timer();
+    private final Timer pureConsecutionSatTimer = new Timer();
+    private final Timer pureLiftingSatTimer = new Timer();
+    private final Timer liftingTimer = new Timer();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+
+      // Consecution stats
       pOut.println(
-          "Total number of consecution queries:             "
+          "Total number of consecution queries:              "
               + String.valueOf(numberFailedConsecutions + numberSuccessfulConsecutions));
       pOut.println(
-          "  Successful:                                    " + numberSuccessfulConsecutions);
-      pOut.println("  Failed:                                        " + numberFailedConsecutions);
+          "  Successful:                                     " + numberSuccessfulConsecutions);
+      pOut.println("  Failed:                                         " + numberFailedConsecutions);
       if (consecutionTimer.getNumberOfIntervals() > 0) {
+        pOut.println("Total time for consecution calls:              " + consecutionTimer);
         pOut.println(
-            "Total time for consecution queries:              " + consecutionTimer.getSumTime());
-        pOut.println(
-            "Average time for consecution queries:            " + consecutionTimer.getAvgTime());
+            "  Average time:                               "
+                + consecutionTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
       }
+      if (pureConsecutionSatTimer.getNumberOfIntervals() > 0) {
+        pOut.println("Total time spent in solver during consecution: " + pureConsecutionSatTimer);
+        pOut.println(
+            "  Average time:                               "
+                + pureConsecutionSatTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+      }
+
+      // Lifting stats
       pOut.println(
-          "Total number of lifting queries:                 "
+          "Total number of lifting queries:                  "
               + String.valueOf(numberFailedLifts + numberSuccessfulLifts + numberImpossibleLifts));
-      pOut.println("  Successful:                                    " + numberSuccessfulLifts);
-      pOut.println("  Failed:                                        " + numberFailedLifts);
-      pOut.println("  Impossible attempts:                           " + numberImpossibleLifts);
+      pOut.println("  Successful:                                     " + numberSuccessfulLifts);
+      pOut.println("  Failed:                                         " + numberFailedLifts);
+      pOut.println("  Impossible attempts:                            " + numberImpossibleLifts);
       if (liftingTimer.getNumberOfIntervals() > 0) {
+        pOut.println("Total time for lifting calls:                  " + liftingTimer);
         pOut.println(
-            "Total time for lifting queries:                  " + liftingTimer.getSumTime());
-        pOut.println(
-            "Average time for lifting queries:                " + liftingTimer.getAvgTime());
+            "  Average time:                               "
+                + liftingTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
       }
-      pOut.println("Number of dropped parts with unsat core:         " + totalDroppedAfterCore);
+      if (pureLiftingSatTimer.getNumberOfIntervals() > 0) {
+        pOut.println("Total time spent in solver during lifting:    " + pureLiftingSatTimer);
+        pOut.println(
+            "  Average time:                               "
+                + pureLiftingSatTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+      }
+
+      // Literal reduction stats
+      pOut.println("Number of dropped parts with unsat core:          " + totalDroppedAfterCore);
       pOut.println(
-          "  Percentage:                                    "
+          "  Percentage:                                     "
               + getPercentageOfUnsatCoreReduction()
               + "%");
       pOut.println(
-          "Number of manually dropped:                      "
+          "Number of manually dropped after unsat core:      "
               + String.valueOf(totalManuallyDroppedAfterGen + totalManuallyDroppedAfterLifting));
       pOut.println(
-          "  Percentage:                                    "
+          "  Percentage:                                     "
               + getPercentageOfManualReduction()
               + "%");
       pOut.println(
-          "  After lifting:                                 " + totalManuallyDroppedAfterLifting);
+          "  After lifting:                                  " + totalManuallyDroppedAfterLifting);
       pOut.println(
-          "  After generalization:                          " + totalManuallyDroppedAfterGen);
+          "  After generalization:                           " + totalManuallyDroppedAfterGen);
     }
 
     private int getPercentageOfUnsatCoreReduction() {

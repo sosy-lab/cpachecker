@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * A transition system with a global transition relation, modeling all transitions in CFA in one
@@ -74,8 +73,6 @@ public class TransitionSystem {
   private final Set<CFANode> targetLocs;
   private final Set<String> programVariableNames;
   private final Map<String, CType> programVariableTypes;
-  private final Set<CFANode> terminalNodes;
-  private final Set<CFANode> nonTerminalLocs;
 
   // Those are final after the transition system is created.
   private PathFormula unprimedContext;
@@ -92,7 +89,6 @@ public class TransitionSystem {
    * @param pMainEntry The initial location.
    * @throws CPAException If the analysis creating the blocks encounters an exception.
    * @throws InterruptedException If the computation of the blocks is interrupted.
-   * @throws SolverException If the solver failed during construction of the transition formula.
    */
   public TransitionSystem(
       CFA pCFA,
@@ -100,8 +96,7 @@ public class TransitionSystem {
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       CFANode pMainEntry)
-      throws CPAException, InterruptedException, SolverException {
-
+      throws CPAException, InterruptedException {
     Objects.requireNonNull(pCFA);
     Objects.requireNonNull(pFmgr);
     Objects.requireNonNull(pPfmgr);
@@ -113,8 +108,6 @@ public class TransitionSystem {
     this.primedContext = pPfmgr.makeEmptyPathFormula();
     this.unprimedContext = pPfmgr.makeEmptyPathFormula();
     this.highestSSA = 1;
-    this.terminalNodes = new HashSet<>();
-    this.nonTerminalLocs = new HashSet<>();
     this.programVariableNames = new HashSet<>();
     this.programVariableTypes = new HashMap<>();
     this.idToLocation = new TreeMap<>();
@@ -162,13 +155,6 @@ public class TransitionSystem {
       // Merges pointer target sets.
       withMergedPointerTargetSet =
           pPfmgr.makeOr(withMergedPointerTargetSet, block.getPrimedContext());
-
-      // Find locations without successor blocks.
-      if (pForwardTransition.getBlocksFrom(block.getSuccessorLocation()).isEmpty()) {
-        terminalNodes.add(block.getSuccessorLocation());
-      }
-
-      nonTerminalLocs.add(block.getPredecessorLocation());
 
       // Create ssa maps with lowest / highest indices for all variables.
       SSAMap blockPrimedMap = block.getPrimedContext().getSsa();

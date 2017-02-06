@@ -235,13 +235,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
     // Only need to create this at first run.
     if (transition == null) {
-      try {
-        transition = new TransitionSystem(cfa, stepwiseTransition, fmgr, pfmgr, mainEntry);
-        //        logger.log(Level.INFO, transition);
-      } catch (SolverException e) {
-        logger.logException(Level.WARNING, e, null);
-        throw new CPAException("Solver error occured while creating transition relation.", e);
-      }
+      transition = new TransitionSystem(cfa, stepwiseTransition, fmgr, pfmgr, mainEntry);
     }
 
     try {
@@ -249,18 +243,23 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
         return AlgorithmStatus.SOUND_AND_PRECISE;
       }
       prepareComponentsForNewRun();
+      frameSet.openNextFrame();
+      logger.log(Level.INFO, "New frontier : ", frameSet.getMaxLevel());
 
       /*
        * Main loop : Try to inductively strengthen highest frame set, propagate
        * states afterwards and check for termination.
        */
       while (!shutdownNotifier.shouldShutdown()) {
-        frameSet.openNextFrame();
-        logger.log(Level.INFO, "New frontier : ", frameSet.getMaxLevel());
         if (!strengthen(pReachedSet)) {
           logger.log(Level.INFO, "Found errorpath. Program has a bug.");
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
+
+        frameSet.openNextFrame();
+        logger.log(Level.INFO, "New frontier : ", frameSet.getMaxLevel());
+        logger.log(Level.INFO, "Starting propagation.");
+
         if (frameSet.propagate(shutdownNotifier)) {
           logger.log(Level.INFO, "Program is safe.");
           return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -322,10 +321,10 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
     // Inner loop : recursively block bad states.
     while (!proofObligationQueue.isEmpty()) {
-      logger.log(Level.INFO, "Queue : ", proofObligationQueue);
+      logger.log(Level.ALL, "Queue : ", proofObligationQueue);
       ProofObligation p =
           proofObligationQueue.poll(); // Inspect proof obligation with lowest frame level.
-      logger.log(Level.INFO, "Current obligation : ", p);
+      logger.log(Level.ALL, "Current obligation : ", p);
 
       // Frame level 0 => counterexample found
       if (p.getFrameLevel() == 0) {
@@ -338,7 +337,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
       if (result.consecutionSuccess()) {
         BooleanFormula blockableStates = result.getResult().getFormula();
-        logger.log(Level.INFO, "Blocking states : ", blockableStates);
+        logger.log(Level.ALL, "Blocking states : ", blockableStates);
         frameSet.blockStates(blockableStates, p.getFrameLevel());
 
         if (p.getFrameLevel() < frameSet.getMaxLevel()) {
@@ -346,7 +345,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
         }
       } else {
         StatesWithLocation predecessorStates = result.getResult();
-        logger.log(Level.INFO, "Found predecessor : ", predecessorStates.getFormula());
+        logger.log(Level.ALL, "Found predecessor : ", predecessorStates.getFormula());
         ProofObligation blockPredecessorStates =
             new ProofObligation(p.getFrameLevel() - 1, predecessorStates, p);
         proofObligationQueue.offer(blockPredecessorStates);

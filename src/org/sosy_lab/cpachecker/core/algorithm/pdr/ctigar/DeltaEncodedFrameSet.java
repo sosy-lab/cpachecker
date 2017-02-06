@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -91,7 +92,6 @@ public class DeltaEncodedFrameSet implements FrameSet {
 
     // Add frame 0 with initial condition and frame 1 with safety property.
     addNewFrameWith(PDRUtils.asUnprimed(transition.getInitialCondition(), fmgr, transition));
-    addNewDefaultFrame();
   }
 
   private void addNewFrameWith(BooleanFormula pFormula) {
@@ -122,7 +122,7 @@ public class DeltaEncodedFrameSet implements FrameSet {
 
   @Override
   public Set<BooleanFormula> getStates(int pLevel) {
-    Preconditions.checkPositionIndex(pLevel, currentMaxLevel + 1);
+    Preconditions.checkPositionIndex(pLevel, currentMaxLevel);
     if (pLevel == 0) { // States in F_0 are only the initial states
       return frames.get(0);
     }
@@ -141,7 +141,7 @@ public class DeltaEncodedFrameSet implements FrameSet {
 
   @Override
   public void blockStates(BooleanFormula pStates, int pMaxLevel) {
-    Preconditions.checkPositionIndex(pMaxLevel, currentMaxLevel + 1);
+    Preconditions.checkPositionIndex(pMaxLevel, currentMaxLevel);
 
     // Only need to add to highest level (delta encoding). See functionality of getStates().
     frames.get(pMaxLevel).add(bfmgr.not(pStates));
@@ -156,7 +156,7 @@ public class DeltaEncodedFrameSet implements FrameSet {
 
       // For all levels i and all clauses c in F_i, check if UNSAT[F_i & T & not(c)'].
       // If yes : move c to F_i+1.
-      for (int level = 1; level <= currentMaxLevel; ++level) {
+      for (int level = 1; level < currentMaxLevel; ++level) {
         Set<BooleanFormula> currentFrame = frames.get(level);
 
         try (ProverEnvironment prover = solver.newProverEnvironment()) {
@@ -173,7 +173,15 @@ public class DeltaEncodedFrameSet implements FrameSet {
             BooleanFormula clauseToPropagate = it.next();
             prover.push(PDRUtils.asPrimed(bfmgr.not(clauseToPropagate), fmgr, transition));
 
-            if (prover.isUnsat()) {
+            boolean couldPropagate;
+            stats.propagationSolverTimer.start();
+            try {
+              couldPropagate = prover.isUnsat();
+            } finally {
+              stats.propagationSolverTimer.stop();
+            }
+
+            if (couldPropagate) {
 
               // Move clause to next frame.
               it.remove();
@@ -185,15 +193,20 @@ public class DeltaEncodedFrameSet implements FrameSet {
         }
 
         // Subsume at current level.
-        for (BooleanFormula clauseAtNextLevel : getStates(level + 1)) {
-          Iterator<BooleanFormula> currentLevelClauseIterator = currentFrame.iterator();
-          while (currentLevelClauseIterator.hasNext()) {
-            BooleanFormula c = currentLevelClauseIterator.next();
-            if (subsumes(clauseAtNextLevel, c)) {
-              currentLevelClauseIterator.remove();
-              pShutdownNotifier.shutdownIfNecessary();
+        stats.subsumptionTimer.start();
+        try {
+          for (BooleanFormula clauseAtNextLevel : getStates(level + 1)) {
+            Iterator<BooleanFormula> currentLevelClauseIterator = currentFrame.iterator();
+            while (currentLevelClauseIterator.hasNext()) {
+              BooleanFormula c = currentLevelClauseIterator.next();
+              if (subsumes(clauseAtNextLevel, c)) {
+                currentLevelClauseIterator.remove();
+                pShutdownNotifier.shutdownIfNecessary();
+              }
             }
           }
+        } finally {
+          stats.subsumptionTimer.stop();
         }
 
         // Early termination if current frame became empty.
@@ -241,6 +254,8 @@ public class DeltaEncodedFrameSet implements FrameSet {
     private int numberClauses = 0;
     private int numberSubsumptions = 0;
     private final Timer propagationTimer = new Timer();
+    private final Timer propagationSolverTimer = new Timer();
+    private final Timer subsumptionTimer = new Timer();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -251,7 +266,19 @@ public class DeltaEncodedFrameSet implements FrameSet {
           "Total number of clauses during run:      "
               + String.valueOf(numberClauses + numberSubsumptions));
       if (propagationTimer.getNumberOfIntervals() > 0) {
-        pOut.println("Total time for propagation:              " + propagationTimer.getSumTime());
+        pOut.println("Total time for propagation:          " + propagationTimer);
+        pOut.println(
+            "  Average time:                      "
+                + propagationTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+      }
+      if (propagationSolverTimer.getNumberOfIntervals() > 0) {
+        pOut.println("Time spent in solver:                " + propagationSolverTimer);
+      }
+      if (subsumptionTimer.getNumberOfIntervals() > 0) {
+        pOut.println("Total time for subsumption:          " + subsumptionTimer);
+        pOut.println(
+            "  Average time:                      "
+                + subsumptionTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
       }
     }
 
