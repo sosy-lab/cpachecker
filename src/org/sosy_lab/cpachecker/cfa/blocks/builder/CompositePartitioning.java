@@ -23,22 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import com.google.common.collect.ImmutableList;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/** Combine several heuristics. The order of heuristics determines the matching.
+ * Thus it is a good idea to apply heuristics with a bigger block-size first. */
+public class CompositePartitioning extends PartitioningHeuristic {
 
-/**
- * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body.
- */
-public class FunctionAndLoopPartitioning extends CompositePartitioning {
+  private final ImmutableList<PartitioningHeuristic> partitionings;
 
-  public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig)
-      throws InvalidConfigurationException {
-    super(pLogger, pCfa, pConfig,
-        new FunctionPartitioning(pLogger, pCfa, pConfig),
-        new LoopPartitioning(pLogger, pCfa, pConfig));
+  public CompositePartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig,
+      PartitioningHeuristic... pPartitionings) {
+    super(pLogger, pCfa, pConfig);
+    partitionings = ImmutableList.copyOf(pPartitionings);
+  }
+
+  @Override
+  @Nullable
+  protected Set<CFANode> getBlockForNode(CFANode pBlockHead) {
+    for (PartitioningHeuristic partitioning : partitionings) {
+      Set<CFANode> nodes = partitioning.getBlockForNode(pBlockHead);
+      if (nodes != null) {
+        return nodes;
+      }
+    }
+    return null;
   }
 
 }

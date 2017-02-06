@@ -23,8 +23,18 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
+import com.google.common.collect.FluentIterable;
+import java.util.Optional;
+import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.ForwardTransition;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * A utility class with methods for instantiating formulas based on SSA indices of the provided
@@ -63,5 +73,45 @@ public final class PDRUtils {
   public static BooleanFormula asUnprimed(
       BooleanFormula pFormula, FormulaManagerView pFmgr, TransitionSystem pTrans) {
     return pFmgr.instantiate(pFormula, pTrans.getUnprimedContext().getSsa());
+  }
+
+  public static Optional<Block> getBlockToNextTargetLocation(
+      StatesWithLocation pStates,
+      TransitionSystem pTransition,
+      ForwardTransition pForward,
+      FormulaManagerView pFmgr,
+      BooleanFormulaManager pBfmgr,
+      Solver pSolver)
+      throws CPAException, InterruptedException, SolverException {
+    Set<CFANode> errorLocs = pTransition.getTargetLocations();
+    FluentIterable<Block> oneStepReachableErrorLocations =
+        pForward
+            .getBlocksFrom(pStates.getLocation())
+            .filter(b -> errorLocs.contains(b.getSuccessorLocation()));
+
+    if (oneStepReachableErrorLocations.isEmpty()) {
+      return Optional.empty();
+    }
+
+    // If there is only one 1-step reachable error location for pState,
+    // just return that block.
+    if (oneStepReachableErrorLocations.size() == 1) {
+      return Optional.of(oneStepReachableErrorLocations.first().get());
+    }
+
+    // Find the one that is reachable for pStates.
+    for (Block b : oneStepReachableErrorLocations) {
+
+      // Re-instantiate to match unprimed ssa indices of block; pc variable is still
+      // present, but doesn't hurt.
+      BooleanFormula reinstantiated = pFmgr.uninstantiate(pStates.getConcrete());
+      reinstantiated = pFmgr.instantiate(reinstantiated, b.getUnprimedContext().getSsa());
+      BooleanFormula transitionForBlock = pBfmgr.and(reinstantiated, b.getFormula());
+      if (!pSolver.isUnsat(transitionForBlock)) {
+        return Optional.of(b);
+      }
+    }
+
+    return Optional.empty();
   }
 }

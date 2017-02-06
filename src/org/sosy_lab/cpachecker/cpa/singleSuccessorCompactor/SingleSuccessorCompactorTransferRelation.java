@@ -24,22 +24,25 @@
 package org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor;
 
 import com.google.common.collect.Iterables;
-
+import java.util.Collection;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import java.util.Collection;
-
 public class SingleSuccessorCompactorTransferRelation implements TransferRelation {
 
   private final TransferRelation delegate;
+  @Nullable private final BlockPartitioning partitioning;
 
-  SingleSuccessorCompactorTransferRelation(TransferRelation pDelegate) {
+  SingleSuccessorCompactorTransferRelation(TransferRelation pDelegate, BlockPartitioning pPartitioning) {
     delegate = pDelegate;
+    partitioning = pPartitioning;
   }
 
   @Override
@@ -53,8 +56,16 @@ public class SingleSuccessorCompactorTransferRelation implements TransferRelatio
     do {
       states = delegate.getAbstractSuccessors(state, precision);
       state = Iterables.getFirst(states, null);
-    } while (states.size() == 1 && !AbstractStates.isTargetState(state));
+    } while (states.size() == 1 && !AbstractStates.isTargetState(state) && !isAtBlockBorder(state));
     return states;
+  }
+
+  private boolean isAtBlockBorder(AbstractState pState) {
+    if (partitioning == null) {
+      return false;
+    }
+    CFANode node = AbstractStates.extractLocation(pState);
+    return partitioning.isCallNode(node) || partitioning.isReturnNode(node);
   }
 
   @Override

@@ -33,11 +33,12 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -56,39 +57,21 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-@Options(prefix = "cpa.composite")
 final class CompositeTransferRelation implements TransferRelation {
-
-  @Option(secure=true, description="By enabling this option the CompositeTransferRelation"
-      + " will compute abstract successors for as many edges as possible in one call. For"
-      + " any chain of edges in the CFA which does not have more than one outgoing or leaving"
-      + " edge the components of the CompositeCPA are called for each of the edges in this"
-      + " chain. Strengthening is still computed after every edge."
-      + " The main difference is that while this option is enabled not every ARGState may"
-      + " have a single edge connecting to the child/parent ARGState but it may instead"
-      + " be a list.")
-  private boolean aggregateBasicBlocks = false;
 
   private final ImmutableList<TransferRelation> transferRelations;
   private final CFA cfa;
   private final int size;
   private final int assumptionIndex;
   private final int predicatesIndex;
+  private final boolean aggregateBasicBlocks;
 
   CompositeTransferRelation(
-      ImmutableList<TransferRelation> pTransferRelations, Configuration pConfig, CFA pCFA)
-      throws InvalidConfigurationException {
-    pConfig.inject(this);
+      ImmutableList<TransferRelation> pTransferRelations, CFA pCFA, boolean pAggregateBasicBlocks) {
     transferRelations = pTransferRelations;
     cfa = pCFA;
     size = pTransferRelations.size();
+    aggregateBasicBlocks = pAggregateBasicBlocks;
 
     // prepare special case handling if both predicates and assumptions are used
     int predicatesIndex = -1;

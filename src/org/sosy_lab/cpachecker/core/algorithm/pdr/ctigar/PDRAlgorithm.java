@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -57,7 +56,6 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar.PDRSmt.ConsecutionResult;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Block;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.Blocks;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.transition.ForwardTransition;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -96,6 +94,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
   private final Solver solver;
   private final PredicateCPA predCPA;
   private final FormulaManagerView fmgr;
+  private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pfmgr;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -148,6 +147,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     }
     solver = predCPA.getSolver();
     fmgr = solver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
     pfmgr = predCPA.getPathFormulaManager();
     shutdownNotifier = Objects.requireNonNull(pShutdownNotifier);
     logger = Objects.requireNonNull(pLogger);
@@ -156,7 +156,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     compositeStats.register(stats);
     stepwiseTransition =
         new ForwardTransition(Objects.requireNonNull(pReachedSetFactory), pCPA, pAlgorithm, cfa);
-    specification = pSpecification;
+    specification = Objects.requireNonNull(pSpecification);
 
     // initialized in run()
     transition = null;
@@ -194,7 +194,9 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
             .filter(b -> errorLocations.contains(b.getSuccessorLocation()))) {
       if (!solver.isUnsat(blockToError.getFormula())) {
         logger.log(Level.INFO, "Found errorpath: 1-step counterexample.");
-        analyzeCounterexample(Collections.singletonList(blockToError), pReachedSet);
+        analyzeCounterexample(
+            Collections.singletonList(new BlockWithConcreteState(blockToError, bfmgr.makeTrue())),
+            pReachedSet);
         return false;
       }
     }
@@ -213,7 +215,16 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
             fmgr, predCPA.getPredicateManager(), pfmgr, transition, cfa, compositeStats);
     pdrSolver =
         new PDRSmt(
-            frameSet, solver, fmgr, pfmgr, predicateManager, transition, compositeStats, logger);
+            frameSet,
+            solver,
+            fmgr,
+            pfmgr,
+            predicateManager,
+            transition,
+            compositeStats,
+            logger,
+            stepwiseTransition,
+            optionsCollection);
   }
 
   @Override
@@ -225,13 +236,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     // Only need to create this at first run.
     if (transition == null) {
       try {
-        transition =
-            new TransitionSystem(
-                optionsCollection, cfa, stepwiseTransition, fmgr, pfmgr, mainEntry);
-        logger.log(Level.INFO, transition);
-      } catch (InvalidConfigurationException e) {
-        logger.logUserException(Level.WARNING, e, null);
-        throw new CPAException("Invalid configuration file.", e);
+        transition = new TransitionSystem(cfa, stepwiseTransition, fmgr, pfmgr, mainEntry);
+        //        logger.log(Level.INFO, transition);
       } catch (SolverException e) {
         logger.logException(Level.WARNING, e, null);
         throw new CPAException("Solver error occured while creating transition relation.", e);
@@ -287,38 +293,14 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     // Recursively block all discovered CTIs
     while (cti.isPresent()) {
       StatesWithLocation badStates = cti.get().getResult();
-      CFANode reachedErrorLocation = getErrorLocationSuccessor(badStates);
 
-      if (!backwardblock(badStates, reachedErrorLocation, pReached)) {
+      if (!backwardblock(badStates, pReached)) {
         return false;
       }
       cti = pdrSolver.getCTI(); // Ask for next CTI
       shutdownNotifier.shutdownIfNecessary();
     }
     return true;
-  }
-
-  /**
-   * Assuming that the given state can reach an error location in exactly one step, computes the
-   * concrete one it can transition to.
-   */
-  private CFANode getErrorLocationSuccessor(StatesWithLocation pState)
-      throws CPAException, InterruptedException {
-    Set<CFANode> errorLocs = transition.getTargetLocations();
-    FluentIterable<Block> oneStepReachableErrorLocations =
-        stepwiseTransition
-            .getBlocksFrom(pState.getLocation())
-            .filter(b -> errorLocs.contains(b.getSuccessorLocation()));
-    assert !oneStepReachableErrorLocations.isEmpty();
-
-    // If there is only one 1-step reachable error location for pState,
-    // just return that one.
-    if (oneStepReachableErrorLocations.size() == 1) {
-      return oneStepReachableErrorLocations.first().get().getSuccessorLocation();
-    }
-
-    // Find the one that is reachable for pState TODO
-    return oneStepReachableErrorLocations.first().get().getSuccessorLocation();
   }
 
   /**
@@ -331,8 +313,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * @param pStatesToBlock The states that should be blocked at the highest level.
    * @return True, if the states could be blocked. False, if a counterexample is found.
    */
-  private boolean backwardblock(
-      StatesWithLocation pStatesToBlock, CFANode pErrorLocation, ReachedSet pReached)
+  private boolean backwardblock(StatesWithLocation pStatesToBlock, ReachedSet pReached)
       throws SolverException, InterruptedException, CPAEnabledAnalysisPropertyViolationException,
           CPAException {
 
@@ -349,7 +330,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
       // Frame level 0 => counterexample found
       if (p.getFrameLevel() == 0) {
         assert pdrSolver.isInitial(p.getState().getFormula());
-        analyzeCounterexample(p, pReached, pErrorLocation);
+        analyzeCounterexample(p, pReached);
         return false;
       }
 
@@ -397,6 +378,45 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   /**
+   * Gets a block from the location in pStates to pSuccessorLocation. The concrete state {@code c}
+   * in pStates must satisfy the formula ({@code c} &amp; block.getFormula()).
+   */
+  private Optional<Block> getSatisfiableBlockTo(
+      StatesWithLocation pStates, CFANode pSuccessorLocation)
+      throws CPAException, InterruptedException, SolverException {
+
+    FluentIterable<Block> connectingBlocks =
+        stepwiseTransition
+            .getBlocksFrom(pStates.getLocation())
+            .filter(b -> b.getSuccessorLocation().equals(pSuccessorLocation));
+
+    if (connectingBlocks.isEmpty()) {
+      return Optional.empty();
+    }
+
+    // If there is only one 1-step reachable error location for pState,
+    // just return that block.
+    if (connectingBlocks.size() == 1) {
+      return Optional.of(connectingBlocks.first().get());
+    }
+
+    // Find the one that is reachable for pStates.
+    for (Block b : connectingBlocks) {
+
+      // Re-instantiate to match unprimed ssa indices of block; pc variable is still
+      // present, but doesn't hurt.
+      BooleanFormula reinstantiated = fmgr.uninstantiate(pStates.getConcrete());
+      reinstantiated = fmgr.instantiate(reinstantiated, b.getUnprimedContext().getSsa());
+      BooleanFormula transitionForBlock = bfmgr.and(reinstantiated, b.getFormula());
+      if (!solver.isUnsat(transitionForBlock)) {
+        return Optional.of(b);
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  /**
    * Analyzes the counterexample trace represented by the given proof obligation, which is the start
    * of a chain of obligations whose respective predecessors lead to the target location.
    *
@@ -409,58 +429,35 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * @throws CPAException if an exception occurs during the analysis of the counterexample.
    */
   private void analyzeCounterexample(
-      ProofObligation pFinalFailingObligation, ReachedSet pTargetReachedSet, CFANode pErrorLocation)
-      throws CPAException, InterruptedException {
+      ProofObligation pFinalFailingObligation, ReachedSet pTargetReachedSet)
+      throws CPAException, InterruptedException, SolverException {
 
     // Reconstruct error trace from start location to direct error predecessor.
-    List<Block> blocks = Lists.newArrayList();
-    CFANode previousPredecessorLocation = pFinalFailingObligation.getState().getLocation();
+    List<BlockWithConcreteState> blocks = Lists.newArrayList();
+    StatesWithLocation lastStateInformation = pFinalFailingObligation.getState();
     ProofObligation currentObligation = pFinalFailingObligation;
+
+    // Get block from lastStateInformation to cause of currentObligation.
     while (currentObligation.getCause().isPresent()) {
       currentObligation = currentObligation.getCause().get();
-      CFANode predecessorLocation = previousPredecessorLocation;
-      CFANode successorLocation = currentObligation.getState().getLocation();
-      FluentIterable<Block> connectingBlocks =
-          stepwiseTransition
-              .getBlocksFrom(predecessorLocation)
-              .filter(Blocks.applyToSuccessorLocation(l -> l.equals(successorLocation)));
-      blocks.add(Iterables.getOnlyElement(connectingBlocks));
-      previousPredecessorLocation = successorLocation;
+      Block connectionBlock =
+          getSatisfiableBlockTo(lastStateInformation, currentObligation.getState().getLocation())
+              .orElseThrow(IllegalStateException::new);
+
+      blocks.add(new BlockWithConcreteState(connectionBlock, lastStateInformation.getConcrete()));
+      lastStateInformation = currentObligation.getState();
     }
 
     // Add block from direct error predecessor to error location to complete error trace.
-    CFANode directErrorPredecessor = previousPredecessorLocation;
-    blocks.add(getBlockToErrorLocation(directErrorPredecessor, pErrorLocation));
+    StatesWithLocation directErrorPredecessor = lastStateInformation;
+    Block blockToTargetLocation =
+        PDRUtils.getBlockToNextTargetLocation(
+                directErrorPredecessor, transition, stepwiseTransition, fmgr, bfmgr, solver)
+            .orElseThrow(IllegalStateException::new);
+    blocks.add(
+        new BlockWithConcreteState(blockToTargetLocation, directErrorPredecessor.getConcrete()));
 
     analyzeCounterexample(blocks, pTargetReachedSet);
-  }
-
-  // Temporal method to deal with occurrence of multiple blocks between an error predecessor location
-  // and its corresponding error location successor.
-  // Finds the correct one, i.e. the  one whose formula is the disjunction of the others.
-  private Block getBlockToErrorLocation(CFANode pErrorPred, CFANode pErrorLoc)
-      throws CPAException, InterruptedException {
-    BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
-    List<Block> blocksBetweenPredAndError =
-        stepwiseTransition
-            .getBlocksFrom(pErrorPred)
-            .filter(Blocks.applyToSuccessorLocation(l -> l.equals(pErrorLoc)))
-            .toList();
-
-    // Just get the block with the most disjunction args.
-    return blocksBetweenPredAndError
-        .stream()
-        .max(
-            new java.util.Comparator<Block>() {
-
-              @Override
-              public int compare(Block pArg0, Block pArg1) {
-                Set<BooleanFormula> d0 = bfmgr.toDisjunctionArgs(pArg0.getFormula(), true);
-                Set<BooleanFormula> d1 = bfmgr.toDisjunctionArgs(pArg1.getFormula(), true);
-                return d0.size() - d1.size();
-              }
-            })
-        .get();
   }
 
   /**
@@ -473,7 +470,8 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
    * @throws InterruptedException if the analysis of the counterexample is interrupted.
    * @throws CPATransferException if an exception occurs during the analysis of the counterexample.
    */
-  private void analyzeCounterexample(List<Block> pBlocks, ReachedSet pTargetReachedSet)
+  private void analyzeCounterexample(
+      List<BlockWithConcreteState> pBlocks, ReachedSet pTargetReachedSet)
       throws CPAException, InterruptedException {
 
     stats.errorPathCreation.start();
@@ -482,12 +480,21 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
     List<ARGPath> paths = Lists.newArrayListWithCapacity(pBlocks.size());
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      for (Block block : pBlocks) {
-
+      for (BlockWithConcreteState blockWithConcreteState : pBlocks) {
+        Block block = blockWithConcreteState.block;
         List<ValueAssignment> model;
+        // Reinstantiate state formula; the indices may be wrong here
+        // due to the differences between the global transition relation and specific blocks.
+        // The state formula still contains the artificial PC variable;
+        // we could drop it, but it does not hurt either
+        BooleanFormula stateFormula = fmgr.uninstantiate(blockWithConcreteState.concreteState);
+        stateFormula = fmgr.instantiate(stateFormula, block.getUnprimedContext().getSsa());
         BooleanFormula pathFormula = block.getFormula();
         boolean branchingFormulaPushed = false;
         try {
+          // Push predecessor state
+          prover.push(stateFormula);
+          // Push path formula
           prover.push(pathFormula);
           boolean satisfiable = !prover.isUnsat();
           if (!satisfiable) {
@@ -531,6 +538,7 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
             prover.pop(); // remove branching formula
           }
           prover.pop(); // remove path formula
+          prover.pop(); // remove predecessor state
         }
 
         // get precise error path
@@ -598,5 +606,18 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     public @Nullable String getName() {
       return "PDR algorithm";
     }
+  }
+
+  private static class BlockWithConcreteState {
+
+    private final Block block;
+
+    private final BooleanFormula concreteState;
+
+    private BlockWithConcreteState(Block pBlock, BooleanFormula pConcreteState) {
+      block = Objects.requireNonNull(pBlock);
+      concreteState = Objects.requireNonNull(pConcreteState);
+    }
+
   }
 }

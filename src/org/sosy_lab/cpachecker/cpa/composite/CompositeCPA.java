@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -76,6 +75,20 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     description="inform Composite CPA if it is run in a CPA enabled analysis because then it must "
       + "behave differently during merge.")
     private boolean inCPAEnabledAnalysis = false;
+
+    @Option(
+      secure = true,
+      description =
+          "By enabling this option the CompositeTransferRelation"
+              + " will compute abstract successors for as many edges as possible in one call. For"
+              + " any chain of edges in the CFA which does not have more than one outgoing or leaving"
+              + " edge the components of the CompositeCPA are called for each of the edges in this"
+              + " chain. Strengthening is still computed after every edge."
+              + " The main difference is that while this option is enabled not every ARGState may"
+              + " have a single edge connecting to the child/parent ARGState but it may instead"
+              + " be a list."
+    )
+    private boolean aggregateBasicBlocks = false;
   }
 
   private static class CompositeCPAFactory extends AbstractCPAFactory {
@@ -91,8 +104,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeOptions options = new CompositeOptions();
       getConfiguration().inject(options);
 
-      ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
-      ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
       ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
       ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
       ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
@@ -102,8 +113,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       boolean simplePrec = true;
 
       for (ConfigurableProgramAnalysis sp : cpas) {
-        domains.add(sp.getAbstractDomain());
-        transferRelations.add(sp.getTransferRelation());
         stopOperators.add(sp.getStopOperator());
 
         PrecisionAdjustment prec = sp.getPrecisionAdjustment();
@@ -147,8 +156,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
         }
       }
 
-      CompositeDomain compositeDomain = new CompositeDomain(domains.build());
-      CompositeTransferRelation compositeTransfer = new CompositeTransferRelation(transferRelations.build(), getConfiguration(), cfa);
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
       PrecisionAdjustment compositePrecisionAdjustment;
@@ -160,8 +167,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       }
 
       return new CompositeCPA(
-          compositeDomain, compositeTransfer, compositeMerge, compositeStop,
-          compositePrecisionAdjustment, cpas);
+          cfa, compositeMerge, compositeStop, compositePrecisionAdjustment, cpas, options);
     }
 
     @Override
@@ -193,37 +199,46 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return new CompositeCPAFactory();
   }
 
-  private final AbstractDomain abstractDomain;
-  private final CompositeTransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final CompositeStopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
+  private final CFA cfa;
+  private final CompositeOptions options;
 
   private CompositeCPA(
-      AbstractDomain abstractDomain,
-      CompositeTransferRelation transferRelation,
+      CFA pCfa,
       MergeOperator mergeOperator,
       CompositeStopOperator stopOperator,
       PrecisionAdjustment precisionAdjustment,
-      ImmutableList<ConfigurableProgramAnalysis> cpas) {
-    this.abstractDomain = abstractDomain;
-    this.transferRelation = transferRelation;
+      ImmutableList<ConfigurableProgramAnalysis> cpas,
+      CompositeOptions pOptions) {
+    this.cfa = pCfa;
     this.mergeOperator = mergeOperator;
     this.stopOperator = stopOperator;
     this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
+    this.options = pOptions;
   }
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return abstractDomain;
+    ImmutableList.Builder<AbstractDomain> domains = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      domains.add(cpa.getAbstractDomain());
+    }
+    return new CompositeDomain(domains.build());
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return transferRelation;
+  public CompositeTransferRelation getTransferRelation() {
+    ImmutableList.Builder<TransferRelation> transferRelations = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      transferRelations.add(cpa.getTransferRelation());
+    }
+    return new CompositeTransferRelation(
+        transferRelations.build(), cfa, options.aggregateBasicBlocks);
   }
 
   @Override
@@ -243,14 +258,14 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public Reducer getReducer() throws InvalidConfigurationException {
-    List<Reducer> wrappedReducers = new ArrayList<>();
+    ImmutableList.Builder<Reducer> wrappedReducers = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : cpas) {
       Preconditions.checkState(
           cpa instanceof ConfigurableProgramAnalysisWithBAM,
           "wrapped CPA does not support BAM: " + cpa.getClass().getCanonicalName());
       wrappedReducers.add(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
     }
-    return new CompositeReducer(wrappedReducers);
+    return new CompositeReducer(wrappedReducers.build());
   }
 
   @Override
@@ -314,7 +329,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    return transferRelation.areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, cpas);
+    return getTransferRelation().areAbstractSuccessors(pElement, pCfaEdge, pSuccessors, cpas);
   }
 
   @Override
