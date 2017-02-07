@@ -35,8 +35,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public interface BAMCache extends Statistics {
 
-  boolean doesAggressiveCaching();
-
   void put(AbstractState stateKey, Precision precisionKey, Block context, ReachedSet item);
 
   void put(AbstractState stateKey, Precision precisionKey, Block context,

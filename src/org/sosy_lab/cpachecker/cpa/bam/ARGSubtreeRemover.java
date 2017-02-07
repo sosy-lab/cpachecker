@@ -101,7 +101,7 @@ public class ARGSubtreeRemover {
               getReachedState(nextElement));
     }
 
-    if (bamCache.doesAggressiveCaching()) {
+    if (bamCache instanceof BAMCacheAggressiveImpl) {
       ensureExactCacheHitsOnPath(pPath, element, pNewPrecisions, neededRemoveCachedSubtreeCalls);
     }
 

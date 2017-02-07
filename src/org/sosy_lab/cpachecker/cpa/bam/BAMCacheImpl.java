@@ -53,17 +53,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 @Options(prefix = "cpa.bam")
 public class BAMCacheImpl implements BAMCache {
 
-  @Option(secure=true, description = "If enabled, cache queries also consider blocks with "
-      + "non-matching precision for reuse.")
-  private boolean aggressiveCaching = true;
-
   @Option(secure=true, description = "If enabled, the reached set cache is analysed "
       + "for each cache miss to find the cause of the miss.")
   private boolean gatherCacheMissStatistics = false;
 
   private final Timer hashingTimer = new Timer();
   private final Timer equalsTimer = new Timer();
-  private final Timer searchingTimer = new Timer();
 
   private int cacheMisses = 0;
   private int partialCacheHits = 0;
@@ -74,31 +69,24 @@ public class BAMCacheImpl implements BAMCache {
   private int noSimilarCausedMisses = 0;
 
   // we use LinkedHashMaps to avoid non-determinism
-  private final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new LinkedHashMap<>();
-  private final Map<AbstractStateHash, ReachedSet> impreciseReachedCache = new HashMap<>();
-  private final Map<AbstractStateHash, Collection<AbstractState>> returnCache = new HashMap<>();
+  protected final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new LinkedHashMap<>();
+  protected final Map<AbstractStateHash, Collection<AbstractState>> returnCache = new HashMap<>();
   private final Map<AbstractStateHash, ARGState> blockARGCache = new HashMap<>();
 
-  private AbstractStateHash lastAnalyzedBlockCache = null;
-  private final Reducer reducer;
-
-  private final LogManager logger;
+  protected AbstractStateHash lastAnalyzedBlockCache = null;
+  protected final Reducer reducer;
+  protected final LogManager logger;
 
   public BAMCacheImpl(
       Configuration config,
       Reducer reducer,
       LogManager logger) throws InvalidConfigurationException {
-    config.inject(this);
+    config.inject(this, BAMCacheImpl.class);
     this.reducer = reducer;
     this.logger = logger;
   }
 
-  @Override
-  public boolean doesAggressiveCaching() {
-    return aggressiveCaching;
-  }
-
-  private AbstractStateHash getHashCode(AbstractState stateKey, Precision precisionKey, Block context) {
+  protected AbstractStateHash getHashCode(AbstractState stateKey, Precision precisionKey, Block context) {
     return new AbstractStateHash(stateKey, precisionKey, context);
   }
 
@@ -120,7 +108,7 @@ public class BAMCacheImpl implements BAMCache {
     lastAnalyzedBlockCache = hash;
   }
 
-  private static boolean allStatesContainedInReachedSet(Collection<AbstractState> pElements, ReachedSet reached) {
+  protected static boolean allStatesContainedInReachedSet(Collection<AbstractState> pElements, ReachedSet reached) {
     return reached.asCollection().containsAll(pElements);
   }
 
@@ -174,10 +162,8 @@ public class BAMCacheImpl implements BAMCache {
     return pair;
   }
 
-  private Pair<ReachedSet, Collection<AbstractState>> get0(
-      final AbstractState stateKey,
-      final Precision precisionKey,
-      final Block context) {
+  protected Pair<ReachedSet, Collection<AbstractState>> get0(
+      final AbstractState stateKey, final Precision precisionKey, final Block context) {
 
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
     ReachedSet result = preciseReachedCache.get(hash);
@@ -187,35 +173,15 @@ public class BAMCacheImpl implements BAMCache {
       return Pair.of(result, returnCache.get(hash));
     }
 
-    if (aggressiveCaching) {
-      result = impreciseReachedCache.get(hash);
-      if (result != null) {
-        AbstractStateHash impreciseHash = getHashCode(
-            stateKey,
-            result.getPrecision(result.getFirstState()),
-            context);
+    return getIfNotExistant(stateKey, precisionKey, context, hash);
+  }
 
-        lastAnalyzedBlockCache = impreciseHash;
-        logger.log(Level.FINEST, "CACHE_ACCESS: imprecise entry, directly from cache");
-        return Pair.of(result, returnCache.get(impreciseHash));
-      }
-
-      // Search for similar entry.
-      Pair<ReachedSet, Collection<AbstractState>> pair = lookForSimilarState(
-          stateKey, precisionKey, context);
-
-      if (pair != null) {
-        //found similar element, use this
-        impreciseReachedCache.put(hash, pair.getFirst());
-        lastAnalyzedBlockCache = getHashCode(
-                stateKey,
-                pair.getFirst().getPrecision(pair.getFirst().getFirstState()),
-                context);
-        logger.log(Level.FINEST, "CACHE_ACCESS: imprecise entry, searched in cache");
-        return pair;
-      }
-    }
-
+  @SuppressWarnings("unused") /* parameters used in subclass */
+  protected Pair<ReachedSet, Collection<AbstractState>> getIfNotExistant(
+      final AbstractState stateKey,
+      final Precision precisionKey,
+      final Block context,
+      AbstractStateHash hash) {
     lastAnalyzedBlockCache = null;
     logger.log(Level.FINEST, "CACHE_ACCESS: entry not available");
     return Pair.of(null, null);
@@ -224,39 +190,6 @@ public class BAMCacheImpl implements BAMCache {
   @Override
   public ARGState getLastAnalyzedBlock() {
     return blockARGCache.get(lastAnalyzedBlockCache);
-  }
-
-  /**
-   * Return the cache hit with the closest precision (used for aggressive
-   * caching).
-   */
-  private Pair<ReachedSet, Collection<AbstractState>> lookForSimilarState(
-      AbstractState pStateKey,
-      Precision pPrecisionKey,
-      Block pContext) {
-    searchingTimer.start();
-    try {
-      int min = Integer.MAX_VALUE;
-      Pair<ReachedSet, Collection<AbstractState>> result = null;
-
-      for (AbstractStateHash cacheKey : preciseReachedCache.keySet()) {
-        //searchKey != cacheKey, check whether it is the same if we ignore the precision
-        AbstractStateHash ignorePrecisionSearchKey = getHashCode(pStateKey, cacheKey.precisionKey, pContext);
-        if (ignorePrecisionSearchKey.equals(cacheKey)) {
-          int distance = reducer.measurePrecisionDifference(pPrecisionKey, cacheKey.precisionKey);
-          if (distance < min) { //prefer similar precisions
-            min = distance;
-            result = Pair.of(
-                    preciseReachedCache.get(ignorePrecisionSearchKey),
-                    returnCache.get(ignorePrecisionSearchKey));
-          }
-        }
-      }
-
-      return result;
-    } finally {
-      searchingTimer.stop();
-    }
   }
 
   private void findCacheMissCause(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
@@ -286,7 +219,6 @@ public class BAMCacheImpl implements BAMCache {
   @Deprecated /* unused */
   public void clear() {
     preciseReachedCache.clear();
-    impreciseReachedCache.clear();
     returnCache.clear();
   }
 
@@ -301,12 +233,12 @@ public class BAMCacheImpl implements BAMCache {
     return preciseReachedCache.values();
   }
 
-  private class AbstractStateHash {
+  class AbstractStateHash {
 
     private final Object wrappedHash;
     private final Block context;
-    private final AbstractState stateKey;
-    private final Precision precisionKey;
+    final AbstractState stateKey;
+    final Precision precisionKey;
 
     public AbstractStateHash(AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
       wrappedHash = reducer.getHashCodeForState(pStateKey, pPrecisionKey);
