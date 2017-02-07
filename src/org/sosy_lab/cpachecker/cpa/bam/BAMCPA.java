@@ -143,7 +143,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
     reducer = new TimedReducer(wrappedReducer);
 
-    final BAMCache cache = new BAMCache(config, reducer, logger);
+    final BAMCache cache = new BAMCacheImpl(config, reducer, logger);
     data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
 
     heuristic = blockHeuristic.create(pLogger, pCfa, config);
