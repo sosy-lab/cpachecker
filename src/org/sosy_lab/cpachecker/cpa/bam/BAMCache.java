@@ -65,8 +65,8 @@ public interface BAMCache extends Statistics {
       @Nullable ARGState rootOfBlock);
 
   /**
-   * Invalidate the result-states of the given key. Does not remove the reached-set, thus it can be
-   * used for re-exploration.
+   * Invalidate the result-states of the given key. Removes the cache entry completely, i.e.,
+   * accessing the entry is not possible any more.
    */
   void remove(AbstractState stateKey, Precision precisionKey, Block context);
 
