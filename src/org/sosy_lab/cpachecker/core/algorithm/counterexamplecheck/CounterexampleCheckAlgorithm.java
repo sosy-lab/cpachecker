@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -108,9 +109,19 @@ public class CounterexampleCheckAlgorithm
       checker = new CBMCChecker(config, logger, cfa);
       break;
       case CPACHECKER:
+        AssumptionToEdgeAllocator assumptionToEdgeAllocator =
+            new AssumptionToEdgeAllocator(config, logger, cfa.getMachineModel());
         checker =
             new CounterexampleCPAChecker(
-                config, pSpecification, logger, pShutdownNotifier, cfa, filename);
+                config,
+                pSpecification,
+                logger,
+                pShutdownNotifier,
+                cfa,
+                filename,
+                s ->
+                    ARGUtils.tryGetOrCreateCounterexampleInformation(
+                        s, pCpa, assumptionToEdgeAllocator));
         break;
     case CONCRETE_EXECUTION:
       checker = new ConcretePathExecutionChecker(config, logger, cfa);
