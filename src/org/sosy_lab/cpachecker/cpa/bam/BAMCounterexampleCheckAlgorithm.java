@@ -68,7 +68,7 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
   protected boolean checkErrorPaths(
       CounterexampleChecker checker,
       ARGState errorState,
-      @SuppressWarnings("unused") ReachedSet reached)
+      ReachedSet reached)
       throws CPAException, InterruptedException {
 
     ARGReachedSet mainReachedSet =
