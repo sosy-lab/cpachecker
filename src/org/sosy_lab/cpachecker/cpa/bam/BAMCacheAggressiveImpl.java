@@ -111,11 +111,4 @@ public class BAMCacheAggressiveImpl extends BAMCacheImpl {
 
     return result;
   }
-
-  @Override
-  @Deprecated /* unused */
-  public void clear() {
-    impreciseReachedCache.clear();
-    super.clear();
-  }
 }

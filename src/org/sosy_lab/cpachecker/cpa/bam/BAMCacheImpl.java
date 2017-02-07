@@ -113,11 +113,6 @@ public class BAMCacheImpl implements BAMCache {
   }
 
   @Override
-  public void removeReturnEntry(AbstractState stateKey, Precision precisionKey, Block context) {
-    returnCache.remove(getHashCode(stateKey, precisionKey, context));
-  }
-
-  @Override
   public void remove(AbstractState stateKey, Precision precisionKey, Block context) {
     AbstractStateHash hash = getHashCode(stateKey, precisionKey, context);
     blockARGCache.remove(hash);
@@ -213,13 +208,6 @@ public class BAMCacheImpl implements BAMCache {
       }
     }
     noSimilarCausedMisses++;
-  }
-
-  @Override
-  @Deprecated /* unused */
-  public void clear() {
-    preciseReachedCache.clear();
-    returnCache.clear();
   }
 
   @Override

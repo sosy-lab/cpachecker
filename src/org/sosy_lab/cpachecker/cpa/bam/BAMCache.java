@@ -41,8 +41,6 @@ public interface BAMCache extends Statistics {
       Collection<AbstractState> item,
       ARGState rootOfBlock);
 
-  void removeReturnEntry(AbstractState stateKey, Precision precisionKey, Block context);
-
   void remove(AbstractState stateKey, Precision precisionKey, Block context);
 
   /**
@@ -55,9 +53,6 @@ public interface BAMCache extends Statistics {
       Block context);
 
   ARGState getLastAnalyzedBlock();
-
-  @Deprecated /* unused */
-  void clear();
 
   boolean containsPreciseKey(AbstractState stateKey, Precision precisionKey, Block context);
 
