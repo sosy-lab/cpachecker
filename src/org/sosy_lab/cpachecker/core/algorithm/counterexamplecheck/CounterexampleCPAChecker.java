@@ -33,7 +33,10 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -51,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -95,13 +99,16 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path configFile;
 
+  private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
+
   public CounterexampleCPAChecker(
       Configuration config,
       Specification pSpecification,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      String pFilename)
+      String pFilename,
+      Function<ARGState, Optional<CounterexampleInfo>> pGetCounterexampleInfo)
       throws InvalidConfigurationException {
     this.logger = logger;
     this.config = config;
@@ -110,6 +117,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
     this.filename = pFilename;
+    getCounterexampleInfo = Objects.requireNonNull(pGetCounterexampleInfo);
   }
 
   @Override
@@ -144,7 +152,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
           pRootState,
           pErrorPathStates,
           "CounterexampleToCheck",
-          pErrorState.getCounterexampleInformation().orElse(null));
+          getCounterexampleInfo.apply(pErrorState).orElse(null));
     }
 
     CFANode entryNode = extractLocation(pRootState);

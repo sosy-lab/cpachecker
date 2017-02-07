@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import com.google.common.collect.Multimap;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -36,12 +36,12 @@ interface EdgeAppender {
       String pTo,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pFromState,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap);
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap);
 
   void appendNewEdgeToSink(
       String pFrom,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pFromState,
-      Map<ARGState, CFAEdgeWithAssumptions> pValueMap);
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap);
 
 }

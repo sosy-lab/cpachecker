@@ -391,7 +391,7 @@ public class ARGPathExporter {
         final String pTo,
         final CFAEdge pEdge,
         final Optional<Collection<ARGState>> pFromState,
-        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+        final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
       attemptSwitchToFunctionScope(pEdge);
 
@@ -413,7 +413,7 @@ public class ARGPathExporter {
         String pFrom,
         CFAEdge pEdge,
         Optional<Collection<ARGState>> pFromState,
-        Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+        Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
       appendNewEdge(pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap);
     }
 
@@ -431,14 +431,16 @@ public class ARGPathExporter {
       isFunctionScope = true;
     }
 
-    /** build a transition-condition for the given edge, i.e. collect all
-     * important data and store it in the new transition-condition. */
+    /**
+     * build a transition-condition for the given edge, i.e. collect all important data and store it
+     * in the new transition-condition.
+     */
     private TransitionCondition constructTransitionCondition(
         final String pFrom,
         final String pTo,
         final CFAEdge pEdge,
         final Optional<Collection<ARGState>> pFromState,
-        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+        final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
       TransitionCondition result = TransitionCondition.empty();
 
@@ -541,7 +543,7 @@ public class ARGPathExporter {
         final String pTo,
         final CFAEdge pEdge,
         final Collection<ARGState> pFromStates,
-        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
+        final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         TransitionCondition result) {
 
       List<ExpressionTree<Object>> code = new ArrayList<>();
@@ -556,7 +558,8 @@ public class ARGPathExporter {
         CFAEdgeWithAssumptions cfaEdgeWithAssignments = delayedAssignments.get(key);
 
         final CFAEdgeWithAssumptions currentEdgeWithAssignments;
-        if (pValueMap != null && (currentEdgeWithAssignments = pValueMap.get(state)) != null) {
+        if (pValueMap != null
+            && (currentEdgeWithAssignments = getFromValueMap(pValueMap, state, pEdge)) != null) {
           if (cfaEdgeWithAssignments == null) {
             cfaEdgeWithAssignments = currentEdgeWithAssignments;
 
@@ -850,7 +853,7 @@ public class ARGPathExporter {
         GraphBuilder pGraphBuilder)
         throws IOException {
 
-      Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
+      Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = null;
       if (pCounterExample.isPresent() && pCounterExample.get().isPreciseCounterExample()) {
         valueMap = pCounterExample.get().getExactVariableValues();
       }
@@ -1543,6 +1546,16 @@ public class ARGPathExporter {
         .ignoreSummaryEdges()
         .traverse(pEdge.getSuccessor(), enterLoopVisitor);
     return Optional.ofNullable(enterLoopVisitor.loopHead);
+  }
+
+  private static @Nullable CFAEdgeWithAssumptions getFromValueMap(
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap, ARGState pState, CFAEdge pEdge) {
+    Iterable<CFAEdgeWithAssumptions> assumptions = pValueMap.get(pState);
+    assumptions = Iterables.filter(assumptions, a -> a.getCFAEdge().equals(pEdge));
+    if (Iterables.isEmpty(assumptions)) {
+      return null;
+    }
+    return Iterables.getOnlyElement(assumptions);
   }
 
 }

@@ -121,12 +121,6 @@ public class BAMDataManager {
     }
   }
 
-  @Deprecated /* unused */
-  void clearCaches() {
-    bamCache.clear();
-    initialStateToReachedSet.clear();
-  }
-
   /**
    * Create a new reached-set with the given state as root and register it in the cache.
    **/

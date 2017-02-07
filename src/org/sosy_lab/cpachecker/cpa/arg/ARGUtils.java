@@ -39,9 +39,10 @@ import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.SetMultimap;
@@ -60,6 +61,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
@@ -70,9 +72,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.ARGPathBuilder;
@@ -585,7 +590,7 @@ public class ARGUtils {
 
     ARGState rootState = pPaths.iterator().next().getFirstState();
 
-    Map<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
 
     if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
       valueMap = pCounterExample.getExactVariableValues();
@@ -617,7 +622,7 @@ public class ARGUtils {
         if (child.isTarget()) {
           sb.append("ERROR");
         } else {
-          addAssumption(valueMap, pathIterator.getPreviousAbstractState(), sb);
+          addAssumption(valueMap, pathIterator.getPreviousAbstractState(), edge, sb);
           stateName = getStateNameFunction.apply(index).apply(child);
           sb.append("GOTO " + stateName);
         }
@@ -641,7 +646,7 @@ public class ARGUtils {
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, @Nullable CounterexampleInfo pCounterExample) throws IOException {
 
-    Map<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
 
     if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
       valueMap = pCounterExample.getExactVariableValues();
@@ -705,7 +710,7 @@ public class ARGUtils {
           if (child.isTarget()) {
             sb.append("ERROR");
           } else {
-            addAssumption(valueMap, s, sb);
+            addAssumption(valueMap, s, edge, sb);
             sb.append("GOTO ARG" + child.getStateId());
           }
           sb.append(";\n");
@@ -1067,13 +1072,26 @@ public class ARGUtils {
     }
   }
 
-  private static void addAssumption(Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
-      ARGState pState, Appendable sb) throws IOException {
+  private static void addAssumption(
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
+      ARGState pState,
+      CFAEdge pEdge,
+      Appendable sb)
+      throws IOException {
 
-    CFAEdgeWithAssumptions cfaEdgeWithAssignments = pValueMap.get(pState);
+    Iterable<CFAEdgeWithAssumptions> assumptions = pValueMap.get(pState);
+    assumptions = Iterables.filter(assumptions, a -> a.getCFAEdge().equals(pEdge));
+    if (Iterables.isEmpty(assumptions)) {
+      return;
+    }
+    addAssumption(Iterables.getOnlyElement(assumptions), sb);
+  }
 
-    if (cfaEdgeWithAssignments != null) {
-      String code = cfaEdgeWithAssignments.getAsCode();
+  private static void addAssumption(CFAEdgeWithAssumptions pCFAEdgeWithAssignments, Appendable sb)
+      throws IOException {
+
+    if (pCFAEdgeWithAssignments != null) {
+      String code = pCFAEdgeWithAssignments.getAsCode();
 
       if (!code.isEmpty()) {
         sb.append("ASSUME {" + code + "} ");
@@ -1102,5 +1120,60 @@ public class ARGUtils {
         break;
       }
     }
+  }
+
+  /**
+   * Attempts to get the counterexample registered with the given target state, or, if no
+   * counterexample has been registered with the target state, attempts to create a counterexample.
+   *
+   * <p>Currently, there are multiple issues with this function:
+   *
+   * <ol>
+   *   <li>This function may fail to create a counterexample due to a conceptual issue with BAM.
+   *       Therefore, the return value of this function is wrapped in an {@link Optional}. When this
+   *       issue is fixed, the prefix "try" should be removed from the function name and the return
+   *       type should be changed to {@link CounterexampleInfo}.
+   *   <li>If no counterexample is registered for the state yet, this function uses a heuristic for
+   *       determining whether or not the counterexample should be marked as imprecise. Currently,
+   *       this heuristic will simply always mark a counterexample as feasible if and only if the
+   *       analysis used consists of either a ValueAnalysisCPA or a SMGCPA.
+   * </ol>
+   *
+   * @param pTargetState the target state to get the counterexample for.
+   * @param pCPA the analysis that was used to explore the state space.
+   * @param pAssumptionToEdgeAllocator if no counterexample was registered for the state yet, this
+   *     component will be used to mapping assumptions over variables extracted from the states on
+   *     the target path to the edges of the target path of the counterexample.
+   * @return the counterexample registered with the given target state, or, if no counterexample has
+   *     been registered with the target state, a counterexample created heuristically, or {@link
+   *     Optional#empty()}.
+   */
+  public static Optional<CounterexampleInfo> tryGetOrCreateCounterexampleInformation(
+      ARGState pTargetState,
+      ConfigurableProgramAnalysis pCPA,
+      AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+    Optional<CounterexampleInfo> cex = pTargetState.getCounterexampleInformation();
+    Objects.requireNonNull(pCPA);
+    Objects.requireNonNull(pAssumptionToEdgeAllocator);
+    if (cex.isPresent()) {
+      return cex;
+    }
+    ARGPath path = ARGUtils.getOnePathTo(pTargetState);
+    if (path.getFullPath().isEmpty()) {
+      // path is invalid,
+      // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
+      // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
+      return Optional.empty();
+    }
+
+    CFAPathWithAssumptions assignments =
+        CFAPathWithAssumptions.of(path, pCPA, pAssumptionToEdgeAllocator);
+    // we use the imprecise version of the CounterexampleInfo, due to the possible
+    // merges which are done in the used CPAs, but if we can compute a path with assignments,
+    // it is probably precise
+    if (!assignments.isEmpty()) {
+      return Optional.of(CounterexampleInfo.feasiblePrecise(path, assignments));
+    }
+    return Optional.of(CounterexampleInfo.feasibleImprecise(path));
   }
 }

@@ -109,6 +109,13 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       description = "Use more fast partitioning builder, which can not handle loops")
   private boolean useExtendedPartitioningBuilder = false;
 
+  @Option(
+    secure = true,
+    description =
+        "If enabled, cache queries also consider blocks with " + "non-matching precision for reuse."
+  )
+  private boolean aggressiveCaching = false;
+
 
   public BAMCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -137,7 +144,12 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
     reducer = new TimedReducer(wrappedReducer);
 
-    final BAMCache cache = new BAMCache(config, reducer, logger);
+    final BAMCache cache;
+    if (aggressiveCaching) {
+      cache = new BAMCacheAggressiveImpl(config, reducer, logger);
+    } else {
+      cache = new BAMCacheImpl(config, reducer, logger);
+    }
     data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
 
     heuristic = blockHeuristic.create(pLogger, pCfa, config);
@@ -255,6 +267,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
         : "exporting ARGs should only be done at this place, when using BAM.";
     pStatsCollection.add(argStats);
     pStatsCollection.add(stats);
+    pStatsCollection.add(data.bamCache);
     super.collectStatistics(pStatsCollection);
   }
 
