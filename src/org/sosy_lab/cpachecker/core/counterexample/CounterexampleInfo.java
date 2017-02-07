@@ -95,6 +95,21 @@ public class CounterexampleInfo extends AbstractAppender {
 
   /**
    * Creates a feasible counterexample whose target path is marked as being imprecise.
+   *
+   * <p>Use this factory method <em>if and only if</em> the target path is not precise, i.e. it is
+   * only guaranteed that its first and last state are the first and last state of the intended
+   * precise target path, but the real states of the precise target path between its initial and
+   * target state are unknown.
+   *
+   * <p>Do <em>not</em> use this factory method if the target path is precise but you do not have
+   * any variable assignments or assumptions; instead, create a {@link CFAPathWithAssumptions}
+   * without assumptions and use {@link #feasiblePrecise(ARGPath, CFAPathWithAssumptions)}.
+   *
+   * @param pTargetPath an imprecise representation of the path from the first state to the target
+   *     state; the states between these two state are not required to be part of the intended
+   *     actual target path.
+   * @return an object representing information about an feasible counterexample with an imprecise
+   *     and unreliable representation of the path from the first state to the target state.
    */
   public static CounterexampleInfo feasibleImprecise(ARGPath pTargetPath) {
     return new CounterexampleInfo(false, checkNotNull(pTargetPath), null, false);
@@ -102,8 +117,21 @@ public class CounterexampleInfo extends AbstractAppender {
 
   /**
    * Creates a feasible counterexample whose target path is marked as being precise.
+   *
+   * <p>Use this factory method <em>if and only if</em> the target path is precise, i.e. if it
+   * precisely represents the intended path from the first state to the target state.
+   *
+   * @param pTargetPath a precise representation of the path from the first state to the target
+   *     state.
+   * @param pAssignments a mapping of assumptions over program variables, e.g. in the form of
+   *     variable assignments to edges on the target path. This mapping must contain all edges on
+   *     the target path, but providing assumptions over program variables in the context of these
+   *     edges is optional.
+   * @return an object representing information about an feasible counterexample with an precise
+   *     representation of the path from the first state to the target state.
    */
-  public static CounterexampleInfo feasiblePrecise(ARGPath pTargetPath, CFAPathWithAssumptions pAssignments) {
+  public static CounterexampleInfo feasiblePrecise(
+      ARGPath pTargetPath, CFAPathWithAssumptions pAssignments) {
     checkArgument(!pAssignments.isEmpty());
     checkArgument(pAssignments.fitsPath(pTargetPath.getFullPath()));
     return new CounterexampleInfo(false, checkNotNull(pTargetPath), pAssignments, true);
@@ -113,11 +141,35 @@ public class CounterexampleInfo extends AbstractAppender {
     return spurious;
   }
 
+  /**
+   * Gets the target path recorded for this counterexample.
+   *
+   * <p>If this counterexample is precise ({@link #isPreciseCounterExample()}), this path is
+   * guaranteed to precisely represent the intended path to the target state.
+   *
+   * <p>If, on the other hand, the counterexample is imprecise, caution is advised, because only its
+   * first and last state (target state) are guaranteed to be the first and last state of the
+   * intended counterexample path; any states on the path between first and last state may or may
+   * not be components of a valid counterexample path. Some producers of counterexamples may provide
+   * further guarantees for the recorded target path of an imprecise counterexample, but these
+   * additional guarantees are not enforced globally.
+   *
+   * @return the target path recorded for this counterexample.
+   */
   public ARGPath getTargetPath() {
     checkState(!spurious);
     assert targetPath != null;
 
     return targetPath;
+  }
+
+  /**
+   * Gets the target state of the counterexample path.
+   *
+   * @return the target state of the counterexample path.
+   */
+  public ARGState getTargetState() {
+    return getTargetPath().getLastState();
   }
 
   /**
