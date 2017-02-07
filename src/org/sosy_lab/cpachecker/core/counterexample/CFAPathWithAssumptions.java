@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ForwardingList;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -38,9 +39,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.IntermediateConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcreteState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 
 
@@ -218,5 +222,34 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     }
 
     return new CFAPathWithAssumptions(result);
+  }
+
+  public static CFAPathWithAssumptions of(
+      ARGPath pPath,
+      ConfigurableProgramAnalysis pCPA,
+      AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+
+    FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
+        CPAs.asIterable(pCPA).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
+
+    CFAPathWithAssumptions result = null;
+
+    // TODO Merge different paths
+    for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
+      ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
+      CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, pAssumptionToEdgeAllocator);
+
+      if (result != null) {
+        result = result.mergePaths(cexPath);
+      } else {
+        result = cexPath;
+      }
+    }
+
+    if (result == null) {
+      return CFAPathWithAssumptions.empty();
+    } else {
+      return result;
+    }
   }
 }

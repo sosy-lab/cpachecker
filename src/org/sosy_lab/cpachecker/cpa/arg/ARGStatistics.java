@@ -30,7 +30,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
@@ -61,17 +60,14 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
@@ -341,7 +337,8 @@ public class ARGStatistics implements Statistics {
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
 
-          CFAPathWithAssumptions assignments = createAssignmentsForPath(path);
+          CFAPathWithAssumptions assignments =
+              CFAPathWithAssumptions.of(path, cpa, assumptionToEdgeAllocator);
           // we use the imprecise version of the CounterexampleInfo, due to the possible
           // merges which are done in the used CPAs, but if we can compute a path with assignments,
           // it is probably precise
@@ -358,32 +355,6 @@ public class ARGStatistics implements Statistics {
     }
 
     return counterexamples.build();
-  }
-
-  private CFAPathWithAssumptions createAssignmentsForPath(ARGPath pPath) {
-
-    FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
-        CPAs.asIterable(cpa).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
-
-    CFAPathWithAssumptions result = null;
-
-    // TODO Merge different paths
-    for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
-      ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
-      CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, assumptionToEdgeAllocator);
-
-      if (result != null) {
-        result = result.mergePaths(cexPath);
-      } else {
-        result = cexPath;
-      }
-    }
-
-    if (result == null) {
-      return CFAPathWithAssumptions.empty();
-    } else {
-      return result;
-    }
   }
 
   public void exportCounterexampleOnTheFly(
