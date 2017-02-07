@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -328,27 +327,9 @@ public class ARGStatistics implements Statistics {
 
     for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
       ARGState s = (ARGState)targetState;
-      CounterexampleInfo cex = s.getCounterexampleInformation().orElse(null);
-      if (cex == null) {
-        ARGPath path = ARGUtils.getOnePathTo(s);
-        if (path.getFullPath().isEmpty()) {
-          // path is invalid,
-          // this might be a partial path in BAM, from an intermediate TargetState to root of its ReachedSet.
-          // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
-        } else {
-
-          CFAPathWithAssumptions assignments =
-              CFAPathWithAssumptions.of(path, cpa, assumptionToEdgeAllocator);
-          // we use the imprecise version of the CounterexampleInfo, due to the possible
-          // merges which are done in the used CPAs, but if we can compute a path with assignments,
-          // it is probably precise
-          if (!assignments.isEmpty()) {
-            cex = CounterexampleInfo.feasiblePrecise(path, assignments);
-          } else {
-            cex = CounterexampleInfo.feasibleImprecise(path);
-          }
-        }
-      }
+      CounterexampleInfo cex =
+          ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
+              .orElse(null);
       if (cex != null) {
         counterexamples.put(s, cex);
       }
