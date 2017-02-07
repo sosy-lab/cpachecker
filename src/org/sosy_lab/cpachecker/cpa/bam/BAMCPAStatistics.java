@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
-
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
@@ -111,35 +109,14 @@ class BAMCPAStatistics implements Statistics {
     BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
 
-    int sumCalls = data.bamCache.cacheMisses + data.bamCache.partialCacheHits + data.bamCache.fullCacheHits;
-
-    int sumARTElements = 0;
-    for (UnmodifiableReachedSet subreached : cpa.getData().bamCache.getAllCachedReachedStates()) {
-      sumARTElements += subreached.size();
-    }
-
-    out.println("Total size of all ARGs:                                         " + sumARTElements);
     out.println("Number of blocks:                                               " + cpa.getBlockPartitioning().getBlocks().size());
     out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
-    out.println("Total number of recursive CPA calls:                            " + sumCalls);
-    out.println("  Number of cache misses:                                       " + data.bamCache.cacheMisses + " (" + toPercent(data.bamCache.cacheMisses, sumCalls) + " of all calls)");
-    out.println("  Number of partial cache hits:                                 " + data.bamCache.partialCacheHits + " (" + toPercent(data.bamCache.partialCacheHits, sumCalls) + " of all calls)");
-    out.println("  Number of full cache hits:                                    " + data.bamCache.fullCacheHits + " (" + toPercent(data.bamCache.fullCacheHits, sumCalls) + " of all calls)");
-    if (data.bamCache.gatherCacheMissStatistics) {
-      out.println("Cause for cache misses:                                         ");
-      out.println("  Number of abstraction caused misses:                          " + data.bamCache.abstractionCausedMisses + " (" + toPercent(data.bamCache.abstractionCausedMisses, data.bamCache.cacheMisses) + " of all misses)");
-      out.println("  Number of precision caused misses:                            " + data.bamCache.precisionCausedMisses + " (" + toPercent(data.bamCache.precisionCausedMisses, data.bamCache.cacheMisses) + " of all misses)");
-      out.println("  Number of misses with no similar elements:                    " + data.bamCache.noSimilarCausedMisses + " (" + toPercent(data.bamCache.noSimilarCausedMisses, data.bamCache.cacheMisses) + " of all misses)");
-    }
+
     out.println("Time for building block partitioning:                         " + cpa.blockPartitioningTimer);
     out.println("Time for reducing abstract states:                            " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
     out.println("Time for expanding abstract states:                           " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");
-    out.println("Time for checking equality of abstract states:                " + data.bamCache.equalsTimer + " (Calls: " + data.bamCache.equalsTimer.getNumberOfIntervals() + ")");
-    out.println("Time for computing the hashCode of abstract states:           " + data.bamCache.hashingTimer + " (Calls: " + data.bamCache.hashingTimer.getNumberOfIntervals() + ")");
-    out.println("Time for searching for similar cache entries:                   " + data.bamCache.searchingTimer + " (Calls: " + data.bamCache.searchingTimer.getNumberOfIntervals() + ")");
     out.println("Time for reducing precisions:                                   " + reducer.reducePrecisionTime + " (Calls: " + reducer.reducePrecisionTime.getNumberOfIntervals() + ")");
     out.println("Time for expanding precisions:                                  " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
-
 
     for (BAMBasedRefiner refiner : refiners) {
       // TODO We print these statistics also for use-cases of BAM-refiners, that never use timers. Can we ignore them?

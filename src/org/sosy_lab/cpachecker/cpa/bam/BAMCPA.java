@@ -261,6 +261,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
         : "exporting ARGs should only be done at this place, when using BAM.";
     pStatsCollection.add(argStats);
     pStatsCollection.add(stats);
+    pStatsCollection.add(data.bamCache);
     super.collectStatistics(pStatsCollection);
   }
 

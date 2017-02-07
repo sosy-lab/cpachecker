@@ -24,9 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -39,15 +41,18 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix = "cpa.bam")
-public class BAMCache {
+public class BAMCache implements Statistics {
 
   @Option(secure=true, description = "If enabled, cache queries also consider blocks with "
       + "non-matching precision for reuse.")
@@ -55,19 +60,19 @@ public class BAMCache {
 
   @Option(secure=true, description = "If enabled, the reached set cache is analysed "
       + "for each cache miss to find the cause of the miss.")
-  boolean gatherCacheMissStatistics = false;
+  private boolean gatherCacheMissStatistics = false;
 
-  final Timer hashingTimer = new Timer();
-  final Timer equalsTimer = new Timer();
-  final Timer searchingTimer = new Timer();
+  private final Timer hashingTimer = new Timer();
+  private final Timer equalsTimer = new Timer();
+  private final Timer searchingTimer = new Timer();
 
-  int cacheMisses = 0;
-  int partialCacheHits = 0;
-  int fullCacheHits = 0;
+  private int cacheMisses = 0;
+  private int partialCacheHits = 0;
+  private int fullCacheHits = 0;
 
-  int abstractionCausedMisses = 0;
-  int precisionCausedMisses = 0;
-  int noSimilarCausedMisses = 0;
+  private int abstractionCausedMisses = 0;
+  private int precisionCausedMisses = 0;
+  private int noSimilarCausedMisses = 0;
 
   // we use LinkedHashMaps to avoid non-determinism
   private final Map<AbstractStateHash, ReachedSet> preciseReachedCache = new LinkedHashMap<>();
@@ -338,5 +343,35 @@ public class BAMCache {
       return "AbstractStateHash [hash=" + hashCode() + ", wrappedHash=" + wrappedHash + ", context="
               + context + ", predicateKey=" + stateKey + ", precisionKey=" + precisionKey + "]";
     }
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
+
+    int sumCalls = cacheMisses + partialCacheHits + fullCacheHits;
+
+    int sumARTElements = 0;
+    for (UnmodifiableReachedSet subreached : getAllCachedReachedStates()) {
+      sumARTElements += subreached.size();
+    }
+
+    out.println("Total size of all ARGs:                                         " + sumARTElements);
+    out.println("Total number of recursive CPA calls:                            " + sumCalls);
+    out.println("  Number of cache misses:                                       " + cacheMisses + " (" + toPercent(cacheMisses, sumCalls) + " of all calls)");
+    out.println("  Number of partial cache hits:                                 " + partialCacheHits + " (" + toPercent(partialCacheHits, sumCalls) + " of all calls)");
+    out.println("  Number of full cache hits:                                    " + fullCacheHits + " (" + toPercent(fullCacheHits, sumCalls) + " of all calls)");
+    if (gatherCacheMissStatistics) {
+      out.println("Cause for cache misses:                                         ");
+      out.println("  Number of abstraction caused misses:                          " + abstractionCausedMisses + " (" + toPercent(abstractionCausedMisses, cacheMisses) + " of all misses)");
+      out.println("  Number of precision caused misses:                            " + precisionCausedMisses + " (" + toPercent(precisionCausedMisses, cacheMisses) + " of all misses)");
+      out.println("  Number of misses with no similar elements:                    " + noSimilarCausedMisses + " (" + toPercent(noSimilarCausedMisses, cacheMisses) + " of all misses)");
+    }
+    out.println("Time for checking equality of abstract states:                " + equalsTimer + " (Calls: " + equalsTimer.getNumberOfIntervals() + ")");
+    out.println("Time for computing the hashCode of abstract states:           " + hashingTimer + " (Calls: " + hashingTimer.getNumberOfIntervals() + ")");
+  }
+
+  @Override
+  public String getName() {
+    return "BAMCache";
   }
 }
