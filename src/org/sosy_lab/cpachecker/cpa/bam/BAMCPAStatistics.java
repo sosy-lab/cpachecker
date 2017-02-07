@@ -109,22 +109,22 @@ class BAMCPAStatistics implements Statistics {
     BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
 
-    out.println("Number of blocks:                                               " + cpa.getBlockPartitioning().getBlocks().size());
-    out.println("Maximum block depth:                                            " + transferRelation.maxRecursiveDepth);
+    out.println("Number of blocks:                      " + cpa.getBlockPartitioning().getBlocks().size());
+    out.println("Maximum block depth:                   " + transferRelation.maxRecursiveDepth);
 
-    out.println("Time for building block partitioning:                         " + cpa.blockPartitioningTimer);
-    out.println("Time for reducing abstract states:                            " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
-    out.println("Time for expanding abstract states:                           " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");
-    out.println("Time for reducing precisions:                                   " + reducer.reducePrecisionTime + " (Calls: " + reducer.reducePrecisionTime.getNumberOfIntervals() + ")");
-    out.println("Time for expanding precisions:                                  " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
+    out.println("Time for building block partitioning:  " + cpa.blockPartitioningTimer);
+    out.println("Time for reducing abstract states:     " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
+    out.println("Time for expanding abstract states:    " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");
+    out.println("Time for reducing precisions:          " + reducer.reducePrecisionTime + " (Calls: " + reducer.reducePrecisionTime.getNumberOfIntervals() + ")");
+    out.println("Time for expanding precisions:         " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
 
     for (BAMBasedRefiner refiner : refiners) {
       // TODO We print these statistics also for use-cases of BAM-refiners, that never use timers. Can we ignore them?
       out.println("\n" + refiner.getClass().getSimpleName() + ":");
-      out.println("  Compute path for refinement:                                  " + refiner.computePathTimer);
-      out.println("  Constructing flat ARG:                                        " + refiner.computeSubtreeTimer);
-      out.println("  Searching path to error location:                             " + refiner.computeCounterexampleTimer);
-      out.println("  Removing cached subtrees:                                     " + refiner.removeCachedSubtreeTimer);
+      out.println("  Compute path for refinement:         " + refiner.computePathTimer);
+      out.println("  Constructing flat ARG:               " + refiner.computeSubtreeTimer);
+      out.println("  Searching path to error location:    " + refiner.computeCounterexampleTimer);
+      out.println("  Removing cached subtrees:            " + refiner.removeCachedSubtreeTimer);
     }
 
     //Add to reached set all states from BAM cache

@@ -355,19 +355,19 @@ public class BAMCache implements Statistics {
       sumARTElements += subreached.size();
     }
 
-    out.println("Total size of all ARGs:                                         " + sumARTElements);
-    out.println("Total number of recursive CPA calls:                            " + sumCalls);
-    out.println("  Number of cache misses:                                       " + cacheMisses + " (" + toPercent(cacheMisses, sumCalls) + " of all calls)");
-    out.println("  Number of partial cache hits:                                 " + partialCacheHits + " (" + toPercent(partialCacheHits, sumCalls) + " of all calls)");
-    out.println("  Number of full cache hits:                                    " + fullCacheHits + " (" + toPercent(fullCacheHits, sumCalls) + " of all calls)");
+    out.println("Total size of all ARGs:                              " + sumARTElements);
+    out.println("Total number of recursive CPA calls:                 " + sumCalls);
+    out.println("  Number of cache misses:                            " + cacheMisses + " (" + toPercent(cacheMisses, sumCalls) + " of all calls)");
+    out.println("  Number of partial cache hits:                      " + partialCacheHits + " (" + toPercent(partialCacheHits, sumCalls) + " of all calls)");
+    out.println("  Number of full cache hits:                         " + fullCacheHits + " (" + toPercent(fullCacheHits, sumCalls) + " of all calls)");
     if (gatherCacheMissStatistics) {
-      out.println("Cause for cache misses:                                         ");
-      out.println("  Number of abstraction caused misses:                          " + abstractionCausedMisses + " (" + toPercent(abstractionCausedMisses, cacheMisses) + " of all misses)");
-      out.println("  Number of precision caused misses:                            " + precisionCausedMisses + " (" + toPercent(precisionCausedMisses, cacheMisses) + " of all misses)");
-      out.println("  Number of misses with no similar elements:                    " + noSimilarCausedMisses + " (" + toPercent(noSimilarCausedMisses, cacheMisses) + " of all misses)");
+      out.println("Cause for cache misses:                              ");
+      out.println("  Number of abstraction caused misses:               " + abstractionCausedMisses + " (" + toPercent(abstractionCausedMisses, cacheMisses) + " of all misses)");
+      out.println("  Number of precision caused misses:                 " + precisionCausedMisses + " (" + toPercent(precisionCausedMisses, cacheMisses) + " of all misses)");
+      out.println("  Number of misses with no similar elements:         " + noSimilarCausedMisses + " (" + toPercent(noSimilarCausedMisses, cacheMisses) + " of all misses)");
     }
-    out.println("Time for checking equality of abstract states:                " + equalsTimer + " (Calls: " + equalsTimer.getNumberOfIntervals() + ")");
-    out.println("Time for computing the hashCode of abstract states:           " + hashingTimer + " (Calls: " + hashingTimer.getNumberOfIntervals() + ")");
+    out.println("Time for checking equality of abstract states:       " + equalsTimer + " (Calls: " + equalsTimer.getNumberOfIntervals() + ")");
+    out.println("Time for computing the hashCode of abstract states:  " + hashingTimer + " (Calls: " + hashingTimer.getNumberOfIntervals() + ")");
   }
 
   @Override
