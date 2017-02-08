@@ -115,6 +115,8 @@ public class ConfigurationFilesTest {
           "memorysafety.config",
           "overflow.config",
           "termination.config",
+          "witness.validation.violation.config",
+          "witness.validation.correctness.config",
           "pcc.proofgen.doPCC",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
