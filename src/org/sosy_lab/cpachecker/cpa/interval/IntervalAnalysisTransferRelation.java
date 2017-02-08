@@ -410,7 +410,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
         CExpression exp = ((CInitializerExpression) init).getExpression();
         interval = evaluateInterval(state, exp, declarationEdge);
       } else {
-        interval = Interval.createUnboundInterval();
+        interval = Interval.UNBOUND;
       }
 
       newState.addInterval(decl.getQualifiedName(), interval, this.threshold);

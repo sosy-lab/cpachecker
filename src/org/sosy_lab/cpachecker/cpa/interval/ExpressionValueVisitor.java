@@ -54,7 +54,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
 
   @Override
   protected Interval visitDefault(CExpression expression) {
-    return Interval.createUnboundInterval();
+    return Interval.UNBOUND;
   }
 
   @Override
@@ -63,7 +63,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
     Interval interval2 = binaryExpression.getOperand2().accept(this);
 
     if (interval1 == null || interval2 == null) {
-      return Interval.createUnboundInterval();
+      return Interval.UNBOUND;
     }
 
     BinaryOperator operator = binaryExpression.getOperator();
@@ -84,7 +84,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
           // singular interval, [5;5]==[5;5]
           return Interval.ONE;
         } else {
-          return Interval.createBooleanInterval();
+          return Interval.BOOLEAN_INTERVAL;
         }
 
       case NOT_EQUALS:
@@ -94,7 +94,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
           // singular interval, [5;5]!=[5;5]
           return Interval.ZERO;
         } else {
-          return Interval.createBooleanInterval();
+          return Interval.BOOLEAN_INTERVAL;
         }
 
       case GREATER_THAN:
@@ -103,7 +103,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
         } else if (interval2.isGreaterOrEqualThan(interval1)) {
           return Interval.ZERO;
         } else {
-          return Interval.createBooleanInterval();
+          return Interval.BOOLEAN_INTERVAL;
         }
 
       case GREATER_EQUAL: // a>=b == a+1>b, works only for integers
@@ -142,7 +142,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
       case BINARY_AND:
       case BINARY_OR:
       case BINARY_XOR:
-        return Interval.createUnboundInterval();
+        return Interval.UNBOUND;
       default:
         throw new AssertionError("unknown binary operator: " + operator);
     }
@@ -155,7 +155,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
 
   @Override
   public Interval visit(CFunctionCallExpression functionCall) {
-    return Interval.createUnboundInterval();
+    return Interval.UNBOUND;
   }
 
   @Override
@@ -183,7 +183,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
     if (readableState.contains(variableName)) {
       return readableState.getInterval(variableName);
     } else {
-      return Interval.createUnboundInterval();
+      return Interval.UNBOUND;
     }
   }
 
@@ -196,7 +196,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
 
       case AMPER:
       case TILDE:
-        return Interval.createUnboundInterval(); // valid expression, but it's a pointer value
+        return Interval.UNBOUND; // valid expression, but it's a pointer value
 
       default:
         throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);

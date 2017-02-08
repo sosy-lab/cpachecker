@@ -88,7 +88,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    */
   // see ExplicitState::getValueFor
   public Interval getInterval(String variableName) {
-    return intervals.containsKey(variableName)?intervals.get(variableName):Interval.createUnboundInterval();
+    return intervals.getOrDefault(variableName, Interval.UNBOUND);
   }
 
   /**
@@ -98,7 +98,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    * @return the reference count of the variable, or 0 if the the variable is not yet referenced
    */
   private Integer getReferenceCount(String variableName) {
-    return (referenceCounts.containsKey(variableName)) ? referenceCounts.get(variableName) : 0;
+    return referenceCounts.getOrDefault(variableName, 0);
   }
 
   /**
@@ -336,17 +336,11 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
     sb.append("[\n");
 
     for (Map.Entry<String, Interval> entry: intervals.entrySet()) {
-      String key = entry.getKey();
-      sb.append(" <");
-      sb.append(key);
-      sb.append(" = ");
-      sb.append(entry.getValue());
-      sb.append(" :: ");
-      sb.append(getReferenceCount(key));
-      sb.append(">\n");
+      sb.append(String.format("  < %s = %s :: %s >%n",
+          entry.getKey(), entry.getValue(), getReferenceCount(entry.getKey())));
     }
 
-    return sb.append("] size->  ").append(intervals.size()).toString();
+    return sb.append("] size -> ").append(intervals.size()).toString();
   }
 
   @Override
@@ -401,12 +395,8 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
     sb.append("{");
     // create a string like: x =  [low; high] (refCount)
     for (Entry<String, Interval> entry : intervals.entrySet()) {
-      sb.append(entry.getKey());
-      sb.append(" = ");
-      sb.append(entry.getValue());
-      sb.append(" (");
-      sb.append(referenceCounts.get(entry.getKey()));
-      sb.append("), ");
+      sb.append(String.format("%s = %s (%s), ",
+          entry.getKey(), entry.getValue(), getReferenceCount(entry.getKey())));
     }
     sb.append("}");
 

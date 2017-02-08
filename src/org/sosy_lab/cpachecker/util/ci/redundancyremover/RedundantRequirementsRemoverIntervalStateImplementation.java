@@ -83,7 +83,7 @@ public class RedundantRequirementsRemoverIntervalStateImplementation extends
       }
     }
 
-    return Interval.createUnboundInterval();
+    return Interval.UNBOUND;
   }
 
   @Override
