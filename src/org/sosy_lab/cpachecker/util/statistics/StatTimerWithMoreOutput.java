@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,45 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
-import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.common.time.Timer;
+import java.util.concurrent.TimeUnit;
 
+public class StatTimerWithMoreOutput extends StatTimer {
 
-public class StatTimer extends AbstractStatValue {
-
-  private final Timer timer = new Timer();
-
-  public StatTimer(StatKind pMainStatisticKind, String pTitle) {
+  public StatTimerWithMoreOutput(StatKind pMainStatisticKind, String pTitle) {
     super(pMainStatisticKind, pTitle);
   }
 
-  public StatTimer(String pTitle) {
+  public StatTimerWithMoreOutput(String pTitle) {
     super(StatKind.SUM, pTitle);
-  }
-
-  public void start() {
-    timer.start();
-  }
-
-  public void stop() {
-    timer.stop();
-  }
-
-  @Override
-  public int getUpdateCount() {
-    return timer.getNumberOfIntervals();
   }
 
   @Override
   public String toString() {
-    return timer.toString();
-  }
-
-  public TimeSpan getConsumedTime() {
-    return timer.getSumTime();
-  }
-
-  public TimeSpan getMaxTime() {
-    return timer.getMaxTime();
+    return String.format("%s (max: %s, count: %s)",
+        super.toString(), getMaxTime().formatAs(TimeUnit.SECONDS), getUpdateCount());
   }
 }
