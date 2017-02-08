@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -52,6 +51,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
@@ -62,11 +62,11 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   private final LogManager logger;
   private final MachineModel machineModel;
 
-  Timer totalPostTime = new Timer();
-  Timer matchTime = new Timer();
-  Timer assertionsTime = new Timer();
-  Timer actionTime = new Timer();
-  Timer totalStrengthenTime = new Timer();
+  StatTimer totalPostTime         = new StatTimer("Total time for successor computation");
+  StatTimer matchTime             = new StatTimer("Time for transition matches");
+  StatTimer assertionsTime        = new StatTimer("Time for transition assertions");
+  StatTimer actionTime            = new StatTimer("Time for transition actions");
+  StatTimer totalStrengthenTime   = new StatTimer("Total time for strengthen operator");
   StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
   public AutomatonTransferRelation(

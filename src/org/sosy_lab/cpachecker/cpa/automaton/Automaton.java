@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
@@ -39,15 +41,15 @@ public class Automaton {
   /* The internal variables used by the actions/ assignments of this automaton.
    * This reference of the Map is unused because the actions/assignments get their reference from the parser.
    */
-  private final Map<String, AutomatonVariable> initVars;
-  private final List<AutomatonInternalState> states;
+  private final ImmutableMap<String, AutomatonVariable> initVars;
+  private final ImmutableList<AutomatonInternalState> states;
   private final AutomatonInternalState initState;
 
   public Automaton(String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
       String pInitialStateName) throws InvalidAutomatonException {
     this.name = pName;
-    this.initVars = pVars;
-    this.states = pStates;
+    this.initVars = ImmutableMap.copyOf(pVars);
+    this.states = ImmutableList.copyOf(pStates);
 
     Map<String, AutomatonInternalState> statesMap = Maps.newHashMapWithExpectedSize(pStates.size());
     for (AutomatonInternalState s : pStates) {
@@ -127,7 +129,7 @@ public class Automaton {
   }
 
 
-  public Map<String, AutomatonVariable> getInitialVariables() {
+  public ImmutableMap<String, AutomatonVariable> getInitialVariables() {
     return initVars;
   }
 

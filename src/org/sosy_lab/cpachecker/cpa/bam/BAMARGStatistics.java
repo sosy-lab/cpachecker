@@ -30,7 +30,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -43,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMARGStatistics extends ARGStatistics {
 
@@ -98,7 +98,7 @@ public class BAMARGStatistics extends ARGStatistics {
     }
 
     ARGPath path = ARGUtils.getRandomPath(rootOfSubgraph);
-    Timer dummyTimer = new Timer();
+    StatTimer dummyTimer = new StatTimer("dummy");
     BAMReachedSet bamReachedSet =
         new BAMReachedSet(bamCpa, pMainReachedSet, path, rootOfSubgraph, dummyTimer);
 

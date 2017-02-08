@@ -23,21 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatTimerWithMoreOutput;
 
 
 class TimedReducer implements Reducer {
 
-  final Timer reduceTime = new Timer();
-  final Timer expandTime = new Timer();
-  final Timer reducePrecisionTime = new Timer();
-  final Timer expandPrecisionTime = new Timer();
+  final StatTimer reduceTime = new StatTimerWithMoreOutput("Time for reducing abstract states");
+  final StatTimer expandTime = new StatTimerWithMoreOutput("Time for expanding abstract states");
+  final StatTimer reducePrecisionTime = new StatTimerWithMoreOutput("Time for reducing precisions");
+  final StatTimer expandPrecisionTime = new StatTimerWithMoreOutput("Time for expanding precisions");
 
   private final Reducer wrappedReducer;
 

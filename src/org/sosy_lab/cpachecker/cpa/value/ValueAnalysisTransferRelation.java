@@ -1158,7 +1158,7 @@ public class ValueAnalysisTransferRelation
       JSimpleDeclaration arrayDeclaration = ((JIdExpression) arrayExpression).getDeclaration();
 
       if (arrayDeclaration != null) {
-        String idName = arrayDeclaration.getQualifiedName();
+        MemoryLocation idName = MemoryLocation.valueOf(arrayDeclaration.getQualifiedName());
 
         if (state.contains(idName)) {
           Value idValue = state.getValueFor(idName);
@@ -1263,7 +1263,7 @@ public class ValueAnalysisTransferRelation
     @Override
     public Value visit(JIdExpression idExp) {
 
-      String varName = handleIdExpression(idExp);
+      MemoryLocation varName = MemoryLocation.valueOf(handleIdExpression(idExp));
 
       if (readableState.contains(varName)) {
         return readableState.getValueFor(varName);
@@ -1725,7 +1725,7 @@ public class ValueAnalysisTransferRelation
         return Collections.singleton(newElement);
       } else {
         if (missingInformationLeftJVariable != null) {
-          newElement.forget(missingInformationLeftJVariable);
+          newElement.forget(MemoryLocation.valueOf(missingInformationLeftJVariable));
         }
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
@@ -1762,7 +1762,7 @@ public class ValueAnalysisTransferRelation
        newElement.assignConstant(scopedFieldName, value);
        return newElement;
      } else {
-       newElement.forget(scopedFieldName);
+       newElement.forget(MemoryLocation.valueOf(scopedFieldName));
        return newElement;
      }
    } else {
