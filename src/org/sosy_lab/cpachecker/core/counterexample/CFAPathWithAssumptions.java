@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -203,10 +204,10 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     }
   }
 
-  public CFAPathWithAssumptions mergePaths(CFAPathWithAssumptions pOtherPath) {
+  public Optional<CFAPathWithAssumptions> mergePaths(CFAPathWithAssumptions pOtherPath) {
 
     if (pOtherPath.size() != this.size()) {
-      return this;
+      return Optional.empty();
     }
 
     List<CFAEdgeWithAssumptions> result = new ArrayList<>(size());
@@ -215,13 +216,13 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     for (CFAEdgeWithAssumptions edge : this) {
       CFAEdgeWithAssumptions other = path2Iterator.next();
       if (edge.getCFAEdge().equals(other.getCFAEdge())) {
-        return this;
+        return Optional.empty();
       }
       CFAEdgeWithAssumptions resultEdge = edge.mergeEdge(other);
       result.add(resultEdge);
     }
 
-    return new CFAPathWithAssumptions(result);
+    return Optional.of(new CFAPathWithAssumptions(result));
   }
 
   public static CFAPathWithAssumptions of(
@@ -232,24 +233,27 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
         CPAs.asIterable(pCPA).filter(ConfigurableProgramAnalysisWithConcreteCex.class);
 
-    CFAPathWithAssumptions result = null;
+    Optional<CFAPathWithAssumptions> result = Optional.empty();
 
-    // TODO Merge different paths
     for (ConfigurableProgramAnalysisWithConcreteCex wrappedCpa : cpas) {
       ConcreteStatePath path = wrappedCpa.createConcreteStatePath(pPath);
       CFAPathWithAssumptions cexPath = CFAPathWithAssumptions.of(path, pAssumptionToEdgeAllocator);
 
-      if (result != null) {
-        result = result.mergePaths(cexPath);
+      if (result.isPresent()) {
+        result = result.get().mergePaths(cexPath);
+        // If there were conflicts during merging, stop
+        if (!result.isPresent()) {
+          break;
+        }
       } else {
-        result = cexPath;
+        result = Optional.of(cexPath);
       }
     }
 
-    if (result == null) {
+    if (!result.isPresent()) {
       return CFAPathWithAssumptions.empty();
     } else {
-      return result;
+      return result.get();
     }
   }
 }
