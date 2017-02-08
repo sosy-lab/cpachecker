@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -54,12 +53,12 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   /**
    * the intervals of the element
    */
-  private PersistentMap<String, Interval> intervals;
+  private final PersistentMap<String, Interval> intervals;
 
   /**
    * the reference counts of the element
    */
-  private PersistentMap<String, Integer> referenceCounts;
+  private final PersistentMap<String, Integer> referenceCounts;
 
   /**
    *  This method acts as the default constructor, which initializes the intervals and reference counts to empty maps and the previous element to null.
@@ -122,22 +121,20 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   // see ExplicitState::assignConstant
   public IntervalAnalysisState addInterval(String variableName, Interval interval, int pThreshold) {
     if (interval.isUnbound()) {
-      removeInterval(variableName);
-      return this;
+      return removeInterval(variableName);
     }
     // only add the interval if it is not already present
     if (!intervals.containsKey(variableName) || !intervals.get(variableName).equals(interval)) {
       int referenceCount = getReferenceCount(variableName);
 
       if (pThreshold == -1 || referenceCount < pThreshold) {
-        referenceCounts = referenceCounts.putAndCopy(variableName, referenceCount + 1);
-
-        intervals = intervals.putAndCopy(variableName, interval);
+        return new IntervalAnalysisState(
+            intervals.putAndCopy(variableName, interval),
+            referenceCounts.putAndCopy(variableName, referenceCount + 1));
       } else {
-        removeInterval(variableName);
+        return removeInterval(variableName);
       }
     }
-
     return this;
   }
 
@@ -150,18 +147,20 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   // see ExplicitState::forget
   public IntervalAnalysisState removeInterval(String variableName) {
     if (intervals.containsKey(variableName)) {
-      intervals = intervals.removeAndCopy(variableName);
+      return new IntervalAnalysisState(intervals.removeAndCopy(variableName), referenceCounts);
     }
 
     return this;
   }
 
-  public void dropFrame(String pCalledFunctionName) {
+  public IntervalAnalysisState dropFrame(String pCalledFunctionName) {
+    IntervalAnalysisState tmp = this;
     for (String variableName : intervals.keySet()) {
       if (variableName.startsWith(pCalledFunctionName+"::")) {
-        removeInterval(variableName);
+        tmp = tmp.removeInterval(variableName);
       }
     }
+    return tmp;
   }
 
   /**
@@ -240,10 +239,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
     return true;
   }
 
-  public static IntervalAnalysisState copyOf(IntervalAnalysisState old) {
-    return new IntervalAnalysisState(old.intervals, old.referenceCounts);
-  }
-
   /**
    * @return the set of tracked variables by this state
    */
@@ -262,12 +257,12 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
     // - the local return variable from THIS.
     // we copy callState and override all global values and the return variable.
 
-    final IntervalAnalysisState rebuildState = IntervalAnalysisState.copyOf(callState);
+    IntervalAnalysisState rebuildState = callState;
 
     // first forget all global information
     for (final String trackedVar : callState.intervals.keySet()) {
       if (!trackedVar.contains("::")) { // global -> delete
-        rebuildState.removeInterval(trackedVar);
+        rebuildState = rebuildState.removeInterval(trackedVar);
       }
     }
 
@@ -275,14 +270,14 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
     for (final String trackedVar : this.intervals.keySet()) {
 
       if (!trackedVar.contains("::")) { // global -> override deleted value
-        rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
+        rebuildState = rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
 
       } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
           functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar)) {
         assert (!rebuildState.contains(trackedVar)) :
                 "calling function should not contain return-variable of called function: " + trackedVar;
         if (this.contains(trackedVar)) {
-          rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
+          rebuildState = rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
         }
       }
     }
@@ -299,24 +294,11 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
       return true;
     }
 
-    if (other == null || !getClass().equals(other.getClass())) {
-      return false;
+    if (other instanceof IntervalAnalysisState) {
+      IntervalAnalysisState otherElement = (IntervalAnalysisState) other;
+      return intervals.equals(otherElement.intervals);
     }
-
-    IntervalAnalysisState otherElement = (IntervalAnalysisState)other;
-
-    if (intervals.size() != otherElement.intervals.size()) {
-      return false;
-    }
-
-    for (Entry<String, Interval> variableName : intervals.entrySet()) {
-      if (!otherElement.intervals.containsKey(variableName.getKey())
-          || !otherElement.intervals.get(variableName.getKey()).equals(variableName.getValue())) {
-        return false;
-      }
-    }
-
-    return true;
+    return false;
   }
 
   /* (non-Javadoc)

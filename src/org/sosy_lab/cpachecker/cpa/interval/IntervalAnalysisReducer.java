@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,11 +38,11 @@ public class IntervalAnalysisReducer implements Reducer {
   public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
     IntervalAnalysisState expandedState = (IntervalAnalysisState)pExpandedState;
 
-    IntervalAnalysisState clonedElement = IntervalAnalysisState.copyOf(expandedState);
+    IntervalAnalysisState clonedElement = expandedState;
     for (String trackedVar : expandedState.getIntervalMap().keySet()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       if (!pContext.getVariables().contains(trackedVar)) {
-        clonedElement.removeInterval(trackedVar);
+        clonedElement = clonedElement.removeInterval(trackedVar);
       }
     }
 
@@ -59,12 +59,12 @@ public class IntervalAnalysisReducer implements Reducer {
     // - all variables of the reduced state -> copy the state
     // - all non-block variables of the rootState -> copy those values
     // - not the variables of rootState used in the block -> just ignore those values
-    IntervalAnalysisState diffElement = IntervalAnalysisState.copyOf(reducedState);
+    IntervalAnalysisState diffElement = reducedState;
 
     for (String trackedVar : rootState.getIntervalMap().keySet()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       if (!pReducedContext.getVariables().contains(trackedVar)) {
-        diffElement.addInterval(trackedVar, rootState.getInterval(trackedVar), -1);
+        diffElement = diffElement.addInterval(trackedVar, rootState.getInterval(trackedVar), -1);
 
       //} else {
         // ignore this case, the variables are part of the reduced state

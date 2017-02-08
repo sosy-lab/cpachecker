@@ -98,8 +98,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
       // delete variables from returning function,
       // we do not need them after this location, because the next edge is the functionReturnEdge.
-      newState = IntervalAnalysisState.copyOf(state);
-      newState.dropFrame(functionName);
+      newState = newState.dropFrame(functionName);
     }
 
     return soleSuccessor(newState);
@@ -116,10 +115,10 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
     throws UnrecognizedCodeException {
 
-    IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
+    IntervalAnalysisState newState = state;
     Optional<CVariableDeclaration> retVar = fnkCall.getFunctionEntry().getReturnVariable();
     if (retVar.isPresent()) {
-      newState.removeInterval(retVar.get().getQualifiedName());
+      newState = newState.removeInterval(retVar.get().getQualifiedName());
     }
 
     // expression is an assignment operation, e.g. a = g(b);
@@ -128,7 +127,11 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
       // left hand side of the expression has to be a variable
       if (state.contains(retVar.get().getQualifiedName())) {
-        addInterval(newState, funcExp.getLeftHandSide(), state.getInterval(retVar.get().getQualifiedName()));
+        newState =
+            addInterval(
+                newState,
+                funcExp.getLeftHandSide(),
+                state.getInterval(retVar.get().getQualifiedName()));
       }
 
     } else if (summaryExpr instanceof CFunctionCallStatement) {
@@ -159,14 +162,14 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       assert parameters.size() == arguments.size();
     }
 
-    IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
+    IntervalAnalysisState newState = state;
 
     // set the interval of each formal parameter to the interval of its respective actual parameter
     for (int i = 0; i < parameters.size(); i++) {
       // get value of actual parameter in caller function context
       Interval interval = evaluateInterval(state, arguments.get(i), callEdge);
       String formalParameterName = parameters.get(i).getQualifiedName();
-      newState.addInterval(formalParameterName, interval, this.threshold);
+      newState = newState.addInterval(formalParameterName, interval, this.threshold);
     }
 
     return soleSuccessor(newState);
@@ -181,15 +184,16 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
       throws UnrecognizedCCodeException {
-    IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
-    newState.dropFrame(functionName);
+    IntervalAnalysisState newState = state.dropFrame(functionName);
 
     // assign the value of the function return to a new variable
     if (returnEdge.asAssignment().isPresent()) {
       CAssignment ass = returnEdge.asAssignment().get();
-      newState.addInterval(
-          ((CIdExpression)ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
-          evaluateInterval(state, ass.getRightHandSide(), returnEdge), threshold);
+      newState =
+          newState.addInterval(
+              ((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
+              evaluateInterval(state, ass.getRightHandSide(), returnEdge),
+              threshold);
     }
 
     return soleSuccessor(newState);
@@ -228,7 +232,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     // and the other one represented with an interval (example "x<[3;5]").
     // If none of the operands is an identifier, nothing is done.
 
-    IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
+    IntervalAnalysisState newState = state;
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
     Interval interval1 = operand1.accept(visitor);
     Interval interval2 = operand2.accept(visitor);
@@ -239,36 +243,40 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     switch(operator) {
     // a < b, a < 1
     case LESS_THAN: {
-      addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2.minus(1L)));
-      addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1.plus(1L)));
+          newState =
+              addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2.minus(1L)));
+          newState =
+              addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1.plus(1L)));
       return soleSuccessor(newState);
     }
 
     // a <= b, a <= 1
     case LESS_EQUAL: {
-      addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
-      addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1));
+          newState = addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
+          newState = addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1));
       return soleSuccessor(newState);
     }
 
     // a > b, a > 1
     case GREATER_THAN: {
-      addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2.plus(1L)));
-      addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1.minus(1L)));
+          newState =
+              addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2.plus(1L)));
+          newState =
+              addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1.minus(1L)));
       return soleSuccessor(newState);
     }
 
     // a >= b, a >= 1
     case GREATER_EQUAL: {
-      addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
-      addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1));
+          newState = addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
+          newState = addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1));
       return soleSuccessor(newState);
     }
 
     // a == b, a == 1
     case EQUALS: {
-      addInterval(newState, operand1, interval1.intersect(interval2));
-      addInterval(newState, operand2, interval2.intersect(interval1));
+          newState = addInterval(newState, operand1, interval1.intersect(interval2));
+          newState = addInterval(newState, operand2, interval2.intersect(interval1));
       return soleSuccessor(newState);
     }
 
@@ -322,15 +330,11 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       Interval part2 = interval.intersect(Interval.createLowerBoundedInterval(splitPoint.getLow() + 1L));
 
       if (!part1.isEmpty()) {
-        IntervalAnalysisState newState2 = IntervalAnalysisState.copyOf(newState);
-        addInterval(newState2, lhs, part1);
-        successors.add(newState2);
+        successors.add(addInterval(newState, lhs, part1));
       }
 
       if (!part2.isEmpty()) {
-        IntervalAnalysisState newState3 = IntervalAnalysisState.copyOf(newState);
-        addInterval(newState3, lhs, part2);
-        successors.add(newState3);
+        successors.add(addInterval(newState, lhs, part2));
       }
 
       return successors;
@@ -339,15 +343,15 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     }
   }
 
-  private void addInterval(IntervalAnalysisState newState,
-      CExpression lhs, Interval interval) {
+  private IntervalAnalysisState addInterval(
+      IntervalAnalysisState newState, CExpression lhs, Interval interval) {
     // we currently only handle IdExpressions and ignore more complex Expressions
     if (lhs instanceof CIdExpression) {
-      newState.addInterval(
-          ((CIdExpression) lhs).getDeclaration().getQualifiedName(),
-          interval,
-          threshold);
+      newState =
+          newState.addInterval(
+              ((CIdExpression) lhs).getDeclaration().getQualifiedName(), interval, threshold);
     }
+    return newState;
   }
 
   /**
@@ -393,7 +397,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   protected Collection<IntervalAnalysisState> handleDeclarationEdge(CDeclarationEdge declarationEdge, CDeclaration declaration)
       throws UnrecognizedCCodeException {
 
-    IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
+    IntervalAnalysisState newState = state;
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
       CVariableDeclaration decl = (CVariableDeclaration)declarationEdge.getDeclaration();
 
@@ -413,7 +417,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
         interval = Interval.UNBOUND;
       }
 
-      newState.addInterval(decl.getQualifiedName(), interval, this.threshold);
+      newState = newState.addInterval(decl.getQualifiedName(), interval, this.threshold);
     }
 
     return soleSuccessor(newState);
@@ -429,6 +433,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleStatementEdge(CStatementEdge cfaEdge, CStatement expression)
     throws UnrecognizedCodeException {
+    IntervalAnalysisState successor = state;
     // expression is an assignment operation, e.g. a = b;
     if (expression instanceof CAssignment) {
       CAssignment assignExpression = (CAssignment)expression;
@@ -436,11 +441,9 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       CRightHandSide op2 = assignExpression.getRightHandSide();
 
       // a = ?
-      IntervalAnalysisState successor = IntervalAnalysisState.copyOf(state);
-      addInterval(successor, op1, evaluateInterval(state, op2, cfaEdge));
-      return soleSuccessor(successor);
+      successor = addInterval(successor, op1, evaluateInterval(state, op2, cfaEdge));
     }
-    return soleSuccessor(state);
+    return soleSuccessor(successor);
   }
 
   private Interval evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
