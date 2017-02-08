@@ -62,12 +62,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(
-          Collections.<String, AutomatonVariable>emptyMap(),
-          new AutomatonInternalState(
-              "_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
+          Collections.emptyMap(),
+          new AutomatonInternalState("_predefinedState_TOP", Collections.emptyList()),
           pAutomatonCPA,
           ImmutableList.of(),
-          ExpressionTrees.<AExpression>getTrue(),
+          ExpressionTrees.getTrue(),
           0,
           0,
           null);
@@ -89,11 +88,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(
-          Collections.<String, AutomatonVariable>emptyMap(),
+          Collections.emptyMap(),
           AutomatonInternalState.BOTTOM,
           pAutomatonCPA,
           ImmutableList.of(),
-          ExpressionTrees.<AExpression>getTrue(),
+          ExpressionTrees.getTrue(),
           0,
           0,
           null);
@@ -152,7 +151,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
         pInternalState,
         pAutomatonCPA,
         ImmutableList.of(),
-        ExpressionTrees.<AExpression>getTrue(),
+        ExpressionTrees.getTrue(),
         successfulMatches,
         failedMatches,
         violatedPropertyDescription);
