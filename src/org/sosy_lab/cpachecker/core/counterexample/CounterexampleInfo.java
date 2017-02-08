@@ -173,6 +173,15 @@ public class CounterexampleInfo extends AbstractAppender {
   }
 
   /**
+   * Gets the root state of the counterexample path.
+   *
+   * @return the root state of the counterexample path.
+   */
+  public ARGState getRootState() {
+    return getTargetPath().getFirstState();
+  }
+
+  /**
    * Return a path that indicates which variables where assigned which values at
    * what edge. Note that not every value for every variable is available.
    *
@@ -292,4 +301,5 @@ public class CounterexampleInfo extends AbstractAppender {
 
     return Collections.unmodifiableCollection(furtherInfo);
   }
+
 }
