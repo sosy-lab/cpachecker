@@ -186,16 +186,6 @@ public class ValueAnalysisState
   }
 
   /**
-   * This method removes a variable from the underlying map and returns the removed value.
-   *
-   * @param variableName the name of the variable to remove
-   * @return the value of the removed variable
-   */
-  public ValueAnalysisInformation forget(String variableName) {
-    return forget(MemoryLocation.valueOf(variableName));
-  }
-
-  /**
    * This method removes a memory location from the underlying map and returns the removed value.
    *
    * @param pMemoryLocation the name of the memory location to remove
@@ -269,17 +259,6 @@ public class ValueAnalysisState
    * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value associated with the given variable
    */
-  public Value getValueFor(String variableName) {
-    return getValueFor(MemoryLocation.valueOf(variableName));
-  }
-
-  /**
-   * This method returns the value for the given variable.
-   *
-   * @param variableName the name of the variable for which to get the value
-   * @throws NullPointerException - if no value is present in this state for the given variable
-   * @return the value associated with the given variable
-   */
   public Value getValueFor(MemoryLocation variableName) {
     Value value = constantsMap.get(variableName);
 
@@ -295,16 +274,6 @@ public class ValueAnalysisState
    */
   public Type getTypeForMemoryLocation(MemoryLocation loc) {
     return memLocToType.get(loc);
-  }
-
-  /**
-   * This method checks whether or not the given variable is contained in this state.
-   *
-   * @param variableName the name of variable to check for
-   * @return true, if the variable is contained, else false
-   */
-  public boolean contains(String variableName) {
-    return contains(MemoryLocation.valueOf(variableName));
   }
 
   /**
@@ -537,7 +506,8 @@ public class ValueAnalysisState
           throw new InvalidQueryException(statement + " should end with \")\"");
         }
 
-        String varName = statement.substring("deletevalues(".length(), statement.length() - 1);
+        MemoryLocation varName = MemoryLocation.valueOf(
+            statement.substring("deletevalues(".length(), statement.length() - 1));
 
         if (contains(varName)) {
           forget(varName);
