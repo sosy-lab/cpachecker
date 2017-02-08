@@ -24,7 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import com.google.common.base.Splitter;
-
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -38,13 +43,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
-
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
     AbstractQueryableState, Graphable, FormulaReportingState {
@@ -79,7 +77,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    */
   public IntervalAnalysisState(PersistentMap<String, Interval> intervals, PersistentMap<String, Integer> referencesMap) {
     this.intervals        = intervals;
-
     this.referenceCounts  = referencesMap;
   }
 
@@ -102,20 +99,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    */
   private Integer getReferenceCount(String variableName) {
     return (referenceCounts.containsKey(variableName)) ? referenceCounts.get(variableName) : 0;
-  }
-
-  /**
-   * This method determines whether or not the reference count for a given variable exceeds a given threshold.
-   *
-   * @param variableName the name of the variable
-   * @param threshold the threshold
-   * @return true, if the reference count of the variable exceeds the given threshold, else false
-   */
-  @Deprecated
-  public boolean exceedsThreshold(String variableName, Integer threshold) {
-    Integer referenceCount = (referenceCounts.containsKey(variableName)) ? referenceCounts.get(variableName) : 0;
-
-    return referenceCount > threshold;
   }
 
   /**
@@ -265,7 +248,7 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
    * @return the set of tracked variables by this state
    */
   public Map<String,Interval> getIntervalMap() {
-    return intervals; //  TODO make immutable?
+    return intervals;
   }
 
   /** If there was a recursive function, we have wrong intervals for scoped variables in the returnState.
@@ -433,10 +416,6 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
   @Override
   public boolean shouldBeHighlighted() {
     return false;
-  }
-
-  public Map<String, Interval> getIntervalMapView() {
-    return Collections.unmodifiableMap(intervals);
   }
 
   @Override
