@@ -30,10 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -66,22 +62,18 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-
-@Options(prefix="cpa.interval")
 public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation<Collection<IntervalAnalysisState>, IntervalAnalysisState, Precision> {
 
-  @Option(secure=true, description="decides whether one (false) or two (true) successors should be created "
-    + "when an inequality-check is encountered")
-  private boolean splitIntervals = false;
-
-  @Option(secure=true, description="at most that many intervals will be tracked per variable, -1 if number not restricted")
-  private int threshold = -1;
-
+  private final boolean splitIntervals;
+  private final int threshold;
   private final LogManager logger;
 
-  public IntervalAnalysisTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    config.inject(this);
+  public IntervalAnalysisTransferRelation(
+      boolean pSplitIntervals, int pThreshold, LogManager pLogger) {
+    splitIntervals = pSplitIntervals;
+    threshold = pThreshold;
     logger = pLogger;
+
   }
 
   @Override
