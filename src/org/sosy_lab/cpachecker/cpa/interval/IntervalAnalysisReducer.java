@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.interval;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -35,16 +34,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class IntervalAnalysisReducer implements Reducer {
 
-  private boolean occursInBlock(Block pBlock, String pVar) {
-    // TODO could be more efficient (avoid linear runtime)
-    for (ReferencedVariable referencedVar : pBlock.getReferencedVariables()) {
-      if (referencedVar.getName().equals(pVar)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   @Override
   public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
     IntervalAnalysisState expandedState = (IntervalAnalysisState)pExpandedState;
@@ -52,7 +41,7 @@ public class IntervalAnalysisReducer implements Reducer {
     IntervalAnalysisState clonedElement = IntervalAnalysisState.copyOf(expandedState);
     for (String trackedVar : expandedState.getIntervalMap().keySet()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
-      if (!occursInBlock(pContext, trackedVar)) {
+      if (!pContext.getVariables().contains(trackedVar)) {
         clonedElement.removeInterval(trackedVar);
       }
     }
@@ -74,7 +63,7 @@ public class IntervalAnalysisReducer implements Reducer {
 
     for (String trackedVar : rootState.getIntervalMap().keySet()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
-      if (!occursInBlock(pReducedContext, trackedVar)) {
+      if (!pReducedContext.getVariables().contains(trackedVar)) {
         diffElement.addInterval(trackedVar, rootState.getInterval(trackedVar), -1);
 
       //} else {

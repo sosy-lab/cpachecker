@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -34,31 +33,18 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.HashSet;
-import java.util.Set;
-
 
 public class ValueAnalysisReducer implements Reducer {
-
-  /** returns a collection of variables used in the block */
-  private Set<String> getBlockVariables(Block pBlock) {
-    Set<String> vars = new HashSet<>();
-    for (ReferencedVariable referencedVar : pBlock.getReferencedVariables()) {
-      vars.add(referencedVar.getName());
-    }
-    return vars;
-  }
 
   @Override
   public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
     ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
 
     ValueAnalysisState clonedElement = ValueAnalysisState.copyOf(expandedState);
-    Set<String> blockVariables = getBlockVariables(pContext);
     for (MemoryLocation trackedVar : expandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
-      if (!blockVariables.contains(simpleName)) {
+      if (!pContext.getVariables().contains(simpleName)) {
         clonedElement.forget(trackedVar);
       }
     }
@@ -80,12 +66,10 @@ public class ValueAnalysisReducer implements Reducer {
     // - not the variables of rootState used in the block -> just ignore those values
     ValueAnalysisState diffElement = ValueAnalysisState.copyOf(reducedState);
 
-    Set<String> blockVariables = getBlockVariables(pReducedContext);
-
     for (MemoryLocation trackedVar : rootState.getTrackedMemoryLocations()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
-      if (!blockVariables.contains(simpleName)) {
+      if (!pReducedContext.getVariables().contains(simpleName)) {
         diffElement.assignConstant(trackedVar, rootState.getValueFor(trackedVar), rootState.getTypeForMemoryLocation(trackedVar));
 
       //} else {
