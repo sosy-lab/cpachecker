@@ -27,9 +27,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -60,22 +72,6 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 public class ValueAnalysisState
     implements AbstractQueryableState, FormulaReportingState,
@@ -217,16 +213,14 @@ public class ValueAnalysisState
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
     memLocToType = memLocToType.removeAndCopy(pMemoryLocation);
 
-    Map<MemoryLocation, Type> typeAssignment;
-
-    if (type == null) {
-      typeAssignment = Collections.emptyMap();
-    } else {
-      typeAssignment = ImmutableMap.of(pMemoryLocation, type);
+    PersistentMap<MemoryLocation, Type> typeAssignment = PathCopyingPersistentTreeMap.of();
+    if (type != null) {
+      typeAssignment = typeAssignment.putAndCopy(pMemoryLocation, type);
     }
+    PersistentMap<MemoryLocation, Value> valueAssignment = PathCopyingPersistentTreeMap.of();
+    valueAssignment = valueAssignment.putAndCopy(pMemoryLocation, value);
 
-    return new ValueAnalysisInformation(ImmutableMap.of(pMemoryLocation, value),
-                                        typeAssignment);
+    return new ValueAnalysisInformation(valueAssignment, typeAssignment);
   }
 
   @Override
