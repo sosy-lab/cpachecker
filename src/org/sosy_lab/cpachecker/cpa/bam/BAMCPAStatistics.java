@@ -52,18 +52,18 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 /**
  * Prints some BAM related statistics
  */
 @Options(prefix="cpa.bam")
-class BAMCPAStatistics implements Statistics {
+class BAMCPAStatistics extends AbstractStatistics {
 
   @Option(secure=true, description="export blocked ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -109,22 +109,22 @@ class BAMCPAStatistics implements Statistics {
     BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
 
-    out.println("Number of blocks:                      " + cpa.getBlockPartitioning().getBlocks().size());
-    out.println("Maximum block depth:                   " + transferRelation.maxRecursiveDepth);
+    put(out, "Number of blocks:", cpa.getBlockPartitioning().getBlocks().size());
+    put(out, "Maximum block depth:", transferRelation.maxRecursiveDepth);
 
-    out.println("Time for building block partitioning:  " + cpa.blockPartitioningTimer);
-    out.println("Time for reducing abstract states:     " + reducer.reduceTime + " (Calls: " + reducer.reduceTime.getNumberOfIntervals() + ")");
-    out.println("Time for expanding abstract states:    " + reducer.expandTime + " (Calls: " + reducer.expandTime.getNumberOfIntervals() + ")");
-    out.println("Time for reducing precisions:          " + reducer.reducePrecisionTime + " (Calls: " + reducer.reducePrecisionTime.getNumberOfIntervals() + ")");
-    out.println("Time for expanding precisions:         " + reducer.expandPrecisionTime + " (Calls: " + reducer.expandPrecisionTime.getNumberOfIntervals() + ")");
+    put(out, "Time for building block partitioning:", cpa.blockPartitioningTimer);
+    put(out, 0, reducer.reduceTime);
+    put(out, 0, reducer.expandTime);
+    put(out, 0, reducer.reducePrecisionTime);
+    put(out, 0, reducer.expandPrecisionTime);
 
     for (BAMBasedRefiner refiner : refiners) {
       // TODO We print these statistics also for use-cases of BAM-refiners, that never use timers. Can we ignore them?
       out.println("\n" + refiner.getClass().getSimpleName() + ":");
-      out.println("  Compute path for refinement:         " + refiner.computePathTimer);
-      out.println("  Constructing flat ARG:               " + refiner.computeSubtreeTimer);
-      out.println("  Searching path to error location:    " + refiner.computeCounterexampleTimer);
-      out.println("  Removing cached subtrees:            " + refiner.removeCachedSubtreeTimer);
+      put(out, 1, refiner.computePathTimer);
+      put(out, 1, refiner.computeSubtreeTimer);
+      put(out, 1, refiner.computeCounterexampleTimer);
+      put(out, 1, refiner.removeCachedSubtreeTimer);
     }
 
     //Add to reached set all states from BAM cache

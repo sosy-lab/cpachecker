@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /**
  * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
@@ -52,10 +52,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
  */
 public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
 
-  final Timer computePathTimer = new Timer();
-  final Timer computeSubtreeTimer = new Timer();
-  final Timer computeCounterexampleTimer = new Timer();
-  final Timer removeCachedSubtreeTimer = new Timer();
+  final StatTimer computePathTimer = new StatTimer("Compute path for refinement");
+  final StatTimer computeSubtreeTimer = new StatTimer("Constructing flat ARG");
+  final StatTimer computeCounterexampleTimer = new StatTimer("Searching path to error location");
+  final StatTimer removeCachedSubtreeTimer = new StatTimer("Removing cached subtrees");
 
   private final BAMCPA bamCpa;
   private ARGState rootOfSubgraph = null;
