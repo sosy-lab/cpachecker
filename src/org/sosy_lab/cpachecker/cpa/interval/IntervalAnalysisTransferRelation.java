@@ -217,7 +217,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
 
     if (!truthValue) {
-      operator = negateOperator(operator);
+      operator = operator.getOppositLogicalOperator();
     }
 
     // the following lines assume that one of the operands is an identifier
@@ -344,37 +344,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
               ((CIdExpression) lhs).getDeclaration().getQualifiedName(), interval, threshold);
     }
     return newState;
-  }
-
-  /**
-   * This method return the negated counter part for a given operator
-   *
-   * @param operator the operator to negate
-   * @return the negated counter part of the given operator
-   */
-  private static BinaryOperator negateOperator(BinaryOperator operator) {
-    switch (operator) {
-      case EQUALS:
-        return BinaryOperator.NOT_EQUALS;
-
-      case NOT_EQUALS:
-        return BinaryOperator.EQUALS;
-
-      case LESS_THAN:
-        return BinaryOperator.GREATER_EQUAL;
-
-      case LESS_EQUAL:
-        return BinaryOperator.GREATER_THAN;
-
-      case GREATER_EQUAL:
-        return BinaryOperator.LESS_THAN;
-
-      case GREATER_THAN:
-        return BinaryOperator.LESS_EQUAL;
-
-      default:
-        return operator;
-    }
   }
 
   /**
