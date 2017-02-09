@@ -760,15 +760,15 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       SMGObject source = sourceStr2Address.getObject();
       SMGObject target = targetStr1Address.getObject();
 
-      BigInteger sourceRangeOffset = sourceStr2Address.getOffset().getValue();
-      long sourceRangeSize = sizeValue.getAsInt() * machineModel.getSizeofCharInBits() +
-          sourceRangeOffset.longValue();
-      BigInteger targetRangeOffset = targetStr1Address.getOffset().getValue();
+      BigInteger sourceOffset = sourceStr2Address.getOffset().getValue();
+      long sourceLastCopyBitOffset = sizeValue.getAsInt() * machineModel.getSizeofCharInBits() +
+          sourceOffset.longValue();
+      BigInteger targetOffset = targetStr1Address.getOffset().getValue();
 
-      if (sourceRangeSize > source.getSize() - sourceRangeOffset.longValue()) {
+      if (sourceLastCopyBitOffset > source.getSize()) {
         currentState = currentState.setInvalidRead();
       } else {
-        currentState.copy(source, target, sourceRangeOffset, sourceRangeSize, targetRangeOffset);
+        currentState.copy(source, target, sourceOffset, sourceLastCopyBitOffset, targetOffset);
       }
 
       return SMGAddressValueAndState.of(currentState, targetStr1Address);

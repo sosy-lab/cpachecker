@@ -1913,37 +1913,37 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   /**
    * Copys (shallow) the hv-edges of source in the given source range
    * to the target at the given target offset. Note that the source
-   * range (pSourceRangeSize - pSourceRangeOffset) has to fit into
-   * the target range ( size of pTarget - pTargetRangeOffset).
-   * Also, pSourceRangeOffset has to be less or equal to the size
+   * range (pSourceLastCopyBitOffset - pSourceOffset) has to fit into
+   * the target range ( size of pTarget - pTargetOffset).
+   * Also, pSourceOffset has to be less or equal to the size
    * of the source Object.
    *
    * This method is mainly used to assign struct variables.
    *
    * @param pSource the SMGObject providing the hv-edges
    * @param pTarget the target of the copy process
-   * @param pTargetRangeOffset begin the copy of source at this offset
-   * @param pSourceRangeSize the size of the copy of source (not the size of the copy, but the size to the last bit of the source which should be copied).
-   * @param pSourceRangeOffset insert the copy of source into target at this offset
+   * @param pTargetOffset begin the copy of source at this offset
+   * @param pSourceLastCopyBitOffset the size of the copy of source (not the size of the copy, but the size to the last bit of the source which should be copied).
+   * @param pSourceOffset insert the copy of source into target at this offset
    * @throws SMGInconsistentException thrown if the copying leads to an inconsistent SMG.
    */
-  public SMGState copy(SMGObject pSource, SMGObject pTarget, BigInteger pSourceRangeOffset,
-      long pSourceRangeSize, BigInteger pTargetRangeOffset) throws SMGInconsistentException {
+  public SMGState copy(SMGObject pSource, SMGObject pTarget, BigInteger pSourceOffset,
+      long pSourceLastCopyBitOffset, BigInteger pTargetOffset) throws SMGInconsistentException {
 
     SMGState newSMGState = this;
 
-    BigInteger copyRange = BigInteger.valueOf(pSourceRangeSize).subtract(pSourceRangeOffset);
+    BigInteger copyRange = BigInteger.valueOf(pSourceLastCopyBitOffset).subtract(pSourceOffset);
 
-    assert pSource.getSize() >= pSourceRangeSize;
-    assert pSourceRangeOffset.compareTo(BigInteger.valueOf(0)) >= 0;
-    assert pTargetRangeOffset.compareTo(BigInteger.valueOf(0)) >= 0;
+    assert pSource.getSize() >= pSourceLastCopyBitOffset;
+    assert pSourceOffset.compareTo(BigInteger.valueOf(0)) >= 0;
+    assert pTargetOffset.compareTo(BigInteger.valueOf(0)) >= 0;
     assert copyRange.compareTo(BigInteger.valueOf(0)) >= 0;
     assert copyRange.compareTo(BigInteger.valueOf(pTarget.getSize())) <= 0;
 
     // If copy range is 0, do nothing
     if (copyRange.compareTo(BigInteger.valueOf(0)) == 0) { return newSMGState; }
 
-    BigInteger targetRangeSize = pTargetRangeOffset.add(copyRange);
+    BigInteger targetRangeSize = pTargetOffset.add(copyRange);
 
     SMGEdgeHasValueFilter filterSource = new SMGEdgeHasValueFilter();
     filterSource.filterByObject(pSource);
@@ -1954,7 +1954,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     Set<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
 
     for (SMGEdgeHasValue edge : targetEdges) {
-      if (edge.overlapsWith(pTargetRangeOffset, targetRangeSize, heap.getMachineModel())) {
+      if (edge.overlapsWith(pTargetOffset, targetRangeSize, heap.getMachineModel())) {
         boolean hvEdgeIsZero = edge.getValue() == heap.getNullValue();
         heap.removeHasValueEdge(edge);
         if (hvEdgeIsZero) {
@@ -1968,9 +1968,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           BigInteger zeroEdgeOffset2 = zeroEdgeOffset.add(BigInteger.valueOf(edge.getSizeInBits
               (maModel)));
 
-          if (zeroEdgeOffset.compareTo(pTargetRangeOffset) < 0) {
+          if (zeroEdgeOffset.compareTo(pTargetOffset) < 0) {
             SMGEdgeHasValue newZeroEdge =
-                new SMGEdgeHasValue(pTargetRangeOffset.subtract(zeroEdgeOffset).intValue(), zeroEdgeOffset,
+                new SMGEdgeHasValue(pTargetOffset.subtract(zeroEdgeOffset).intValue(), zeroEdgeOffset,
                     object, 0);
             heap.addHasValueEdge(newZeroEdge);
           }
@@ -1990,12 +1990,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     Set<SMGEdgeHasValue> sourceEdges = getHVEdges(filterSource);
 
     // Shift the source edge offset depending on the target range offset
-    BigInteger copyShift = pTargetRangeOffset.subtract(pSourceRangeOffset);
+    BigInteger copyShift = pTargetOffset.subtract(pSourceOffset);
 
     for (SMGEdgeHasValue edge : sourceEdges) {
-      if (edge.overlapsWith(pSourceRangeOffset, BigInteger.valueOf(pSourceRangeSize), heap
-          .getMachineModel
-          ())) {
+      if (edge.overlapsWith(pSourceOffset, BigInteger.valueOf(pSourceLastCopyBitOffset), heap.getMachineModel())) {
         BigInteger offset = edge.getOffset().add(copyShift);
         newSMGState = writeValue(pTarget, offset, edge.getType(), edge.getValue()).getState();
       }
