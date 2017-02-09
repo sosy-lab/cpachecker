@@ -767,6 +767,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       if (sourceLastCopyBitOffset > source.getSize()) {
         currentState = currentState.setInvalidRead();
+        currentState.setErrorDescription("Overread on memcpy");
+      } else if(targetOffset.longValue() + (sizeValue.getAsLong() * machineModel.getSizeofCharInBits()) > target.getSize()) {
+        currentState = currentState.setInvalidWrite();
+        currentState.setErrorDescription("Overwrite on memcpy");
       } else {
         currentState.copy(source, target, sourceOffset, sourceLastCopyBitOffset, targetOffset);
       }
