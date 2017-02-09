@@ -37,6 +37,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
@@ -853,9 +854,11 @@ public class ARGPathExporter {
         GraphBuilder pGraphBuilder)
         throws IOException {
 
-      Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = null;
+      final Multimap<ARGState, CFAEdgeWithAssumptions> valueMap;
       if (pCounterExample.isPresent() && pCounterExample.get().isPreciseCounterExample()) {
         valueMap = pCounterExample.get().getExactVariableValues();
+      } else {
+        valueMap = ImmutableMultimap.of();
       }
 
       final GraphMlBuilder doc;
