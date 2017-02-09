@@ -215,7 +215,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
     for (CFAEdgeWithAssumptions edge : this) {
       CFAEdgeWithAssumptions other = path2Iterator.next();
-      if (edge.getCFAEdge().equals(other.getCFAEdge())) {
+      if (!edge.getCFAEdge().equals(other.getCFAEdge())) {
         return Optional.empty();
       }
       CFAEdgeWithAssumptions resultEdge = edge.mergeEdge(other);
