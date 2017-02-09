@@ -82,15 +82,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  */
 public class CBinaryExpressionBuilder {
 
-
-  public final static Set<BinaryOperator> relationalOperators = Sets.immutableEnumSet(
-      BinaryOperator.EQUALS,
-      BinaryOperator.NOT_EQUALS,
-      BinaryOperator.LESS_THAN,
-      BinaryOperator.LESS_EQUAL,
-      BinaryOperator.GREATER_THAN,
-      BinaryOperator.GREATER_EQUAL);
-
   private final static Set<BinaryOperator> shiftOperators = Sets.immutableEnumSet(
       BinaryOperator.SHIFT_LEFT,
       BinaryOperator.SHIFT_RIGHT);
@@ -190,8 +181,8 @@ public class CBinaryExpressionBuilder {
     // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
     if (expr instanceof CBinaryExpression) {
       final CBinaryExpression binExpr = (CBinaryExpression)expr;
-      if (CBinaryExpressionBuilder.relationalOperators.contains(binExpr.getOperator())) {
-        BinaryOperator inverseOperator = getNegatedOperator(binExpr.getOperator());
+      if (binExpr.getOperator().isLogicalOperator()) {
+        BinaryOperator inverseOperator = binExpr.getOperator().getOppositLogicalOperator();
         return buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
       }
     }
@@ -200,25 +191,6 @@ public class CBinaryExpressionBuilder {
     // ISO-C 6.5.3.3: Unary arithmetic operators: The expression !E is equivalent to (0==E).
     // TODO do not wrap numerals, replace them directly with the result? This may be done later with SimplificationVisitor.
     return buildBinaryExpression(CIntegerLiteralExpression.ZERO, expr, BinaryOperator.EQUALS);
-  }
-
-  private static BinaryOperator getNegatedOperator(final BinaryOperator op) {
-    switch (op) {
-      case EQUALS:
-        return BinaryOperator.NOT_EQUALS;
-      case NOT_EQUALS:
-        return BinaryOperator.EQUALS;
-      case LESS_THAN:
-        return BinaryOperator.GREATER_EQUAL;
-      case LESS_EQUAL:
-        return BinaryOperator.GREATER_THAN;
-      case GREATER_THAN:
-        return BinaryOperator.LESS_EQUAL;
-      case GREATER_EQUAL:
-        return BinaryOperator.LESS_THAN;
-      default:
-        throw new AssertionError("operator can not be negated");
-    }
   }
 
   /**
@@ -283,7 +255,7 @@ public class CBinaryExpressionBuilder {
      * The == and != operators are analogous to the relational operators [...]
      * The result has type 'int'.
      */
-    if (relationalOperators.contains(pBinOperator)) { return CNumericTypes.SIGNED_INT; }
+    if (pBinOperator.isLogicalOperator()) { return CNumericTypes.SIGNED_INT; }
 
     /*
      * ISO-C99 (6.5.7 #3): Bitwise shift operators
@@ -360,7 +332,7 @@ public class CBinaryExpressionBuilder {
 
       if (pBinOperator == BinaryOperator.MINUS) { return machineModel.getPointerDiffType(); }
 
-      if (!relationalOperators.contains(pBinOperator)) {
+      if (!pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with two pointer operands",
                 getDummyBinExprForLogging(pBinOperator, op1, op2));
       }
@@ -411,7 +383,7 @@ public class CBinaryExpressionBuilder {
 
     // if one type is an pointer, return the pointer.
     if (pType instanceof CPointerType) {
-      if (!additiveOperators.contains(pBinOperator) && !relationalOperators.contains(pBinOperator)) {
+      if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with pointer operand",
                 getDummyBinExprForLogging(pBinOperator, op1,  op2));
       }
@@ -420,7 +392,7 @@ public class CBinaryExpressionBuilder {
 
     // if one type is an array, return the pointer-equivalent to the array-type.
     if (pType instanceof CArrayType) {
-      if (!additiveOperators.contains(pBinOperator) && !relationalOperators.contains(pBinOperator)) {
+      if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with array operand",
                 getDummyBinExprForLogging(pBinOperator, op1,  op2));
       }
