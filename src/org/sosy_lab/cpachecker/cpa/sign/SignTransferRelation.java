@@ -24,7 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.sign;
 
 import com.google.common.collect.ImmutableMap;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -62,11 +65,6 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.logging.Level;
 
 
 public class SignTransferRelation extends ForwardingTransferRelation<SignState, SignState, SingletonPrecision> {
@@ -151,25 +149,6 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     }
   }
 
-  private BinaryOperator negateComparisonOperator(BinaryOperator pOp) {
-    switch (pOp) {
-    case LESS_THAN:
-      return BinaryOperator.GREATER_EQUAL;
-    case LESS_EQUAL:
-      return BinaryOperator.GREATER_THAN;
-    case GREATER_THAN:
-      return BinaryOperator.LESS_EQUAL;
-    case GREATER_EQUAL:
-      return BinaryOperator.LESS_THAN;
-    case EQUALS:
-      return BinaryOperator.NOT_EQUALS;
-    case NOT_EQUALS:
-      return BinaryOperator.EQUALS;
-     default:
-       throw new IllegalArgumentException("Cannot negate given operator");
-    }
-  }
-
   private Optional<IdentifierValuePair> evaluateAssumption(CBinaryExpression pAssumeExp, boolean truthAssumption, CFAEdge pCFAEdge)  {
     Optional<CExpression> optStrongestId = getStrongestIdentifier(pAssumeExp, pCFAEdge);
     if (!optStrongestId.isPresent()) {
@@ -178,7 +157,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     CExpression strongestId = optStrongestId.get();
     logger.log(Level.FINER, "Filtered strongest identifier " + strongestId + " from assume expression" + pAssumeExp);
     CExpression refinementExpression = getRefinementExpression(strongestId, pAssumeExp);
-    BinaryOperator resultOp = !truthAssumption ? negateComparisonOperator(pAssumeExp.getOperator()) : pAssumeExp.getOperator();
+    BinaryOperator resultOp = truthAssumption ? pAssumeExp.getOperator() : pAssumeExp.getOperator().getOppositLogicalOperator();
     SIGN resultSign;
     try {
       resultSign = refinementExpression.accept(new SignCExpressionVisitor(pCFAEdge, state, this));

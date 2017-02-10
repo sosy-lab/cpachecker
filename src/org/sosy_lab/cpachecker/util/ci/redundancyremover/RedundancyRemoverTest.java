@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
+import com.google.common.truth.Truth;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -35,8 +36,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.truth.Truth;
 
 
 public class RedundancyRemoverTest {
@@ -54,8 +53,8 @@ public class RedundancyRemoverTest {
 
     RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
 
-    Interval i01 = Interval.createUnboundInterval();
-    Interval i02 = Interval.createUnboundInterval();
+    Interval i01 = Interval.UNBOUND;
+    Interval i02 = Interval.UNBOUND;
     Truth.assertThat(intervalStateImpl.compare(i02, i01)).isEqualTo(0);
     Truth.assertThat(intervalStateImpl.compare(i01, i02)).isEqualTo(0);
 
@@ -91,7 +90,7 @@ public class RedundancyRemoverTest {
     Interval i11b = new Interval(1L, 1L);
     Truth.assertThat(intervalStateImpl.covers(i11a, i11b)).isEqualTo(true);
 
-    Interval iUnbounded = Interval.createUnboundInterval();
+    Interval iUnbounded = Interval.UNBOUND;
     Interval i37 = new Interval(3L, 7L);
     Truth.assertThat(intervalStateImpl.covers(iUnbounded, i37)).isEqualTo(true);
 
@@ -116,12 +115,12 @@ public class RedundancyRemoverTest {
 
     IntervalAnalysisState intervalState1 = new IntervalAnalysisState().addInterval("1", new Interval(1L, 1L), 0);
     //IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new Interval(-1L, 4L), 0);
-    IntervalAnalysisState intervalState3 = new IntervalAnalysisState().addInterval("y", Interval.createUnboundInterval(), 0);
+    IntervalAnalysisState intervalState3 = new IntervalAnalysisState().addInterval("y", Interval.UNBOUND, 0);
 
     RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
     Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState1, "1")).isEqualTo(new Interval(1L, 1L));
 //    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState2, "x")).isEqualTo(new Interval(-1L, 4L)); // TODO
-    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState3, "y")).isEqualTo(Interval.createUnboundInterval());
+    Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState3, "y")).isEqualTo(Interval.UNBOUND);
   }
 
   @Test

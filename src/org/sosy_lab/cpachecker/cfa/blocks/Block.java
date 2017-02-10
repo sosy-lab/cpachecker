@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -33,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class Block {
 
   private final ImmutableSet<ReferencedVariable> referencedVariables;
+  private ImmutableSet<String> variables; // lazy initialization
   private final ImmutableSet<CFANode> callNodes;
   private final ImmutableSet<CFANode> returnNodes;
   private final ImmutableSet<CFANode> nodes;
@@ -58,8 +60,21 @@ public class Block {
     return callNodes.iterator().next();
   }
 
+  /** returns a collection of variables used in the block */
   public Set<ReferencedVariable> getReferencedVariables() {
     return referencedVariables;
+  }
+
+  /** returns a collection of variables used in the block */
+  public Set<String> getVariables() {
+    if (variables == null) {
+      Builder<String> builder = ImmutableSet.builder();
+      for (ReferencedVariable referencedVar : getReferencedVariables()) {
+        builder.add(referencedVar.getName());
+      }
+      variables = builder.build();
+    }
+    return variables;
   }
 
   public Set<CFANode> getNodes() {

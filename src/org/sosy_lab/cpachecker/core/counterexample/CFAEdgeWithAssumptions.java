@@ -26,9 +26,8 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
+import java.util.Objects;
 import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -52,11 +51,9 @@ public class CFAEdgeWithAssumptions {
    * @param pComment Further comments that should be given to the user about this part of the path but can't be represented as assumption.
    */
   public CFAEdgeWithAssumptions(CFAEdge pEdge, Collection<AExpressionStatement> pExpStmt, String pComment) {
-    assert pExpStmt != null;
-    assert pComment != null;
-    edge = pEdge;
-    expressionStmts = pExpStmt;
-    comment = pComment;
+    edge = Objects.requireNonNull(pEdge);
+    expressionStmts = Objects.requireNonNull(pExpStmt);
+    comment = Objects.requireNonNull(pComment);
   }
 
   private CFAEdgeWithAssumptions(CFAEdgeWithAssumptions pEdgeWA, CFAEdgeWithAssumptions pEdgeWA2) {
@@ -186,5 +183,29 @@ public class CFAEdgeWithAssumptions {
   public CFAEdgeWithAssumptions mergeEdge(CFAEdgeWithAssumptions pEdge) {
     // FIXME this method is not matured, it just combines all assumptions
     return new CFAEdgeWithAssumptions(this, pEdge);
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + comment.hashCode();
+    result = prime * result + edge.hashCode();
+    result = prime * result + expressionStmts.hashCode();
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj instanceof CFAEdgeWithAssumptions) {
+      CFAEdgeWithAssumptions other = (CFAEdgeWithAssumptions) obj;
+      return comment.equals(other.comment)
+          && edge.equals(other.edge)
+          && expressionStmts.equals(other.expressionStmts);
+    }
+    return false;
   }
 }
