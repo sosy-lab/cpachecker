@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class HarnessExporter {
 
   private static final String RETVAL_NAME = "retval";
+  private static final int ERR_REACHED_CODE = 107;
 
   private final CFA cfa;
 
@@ -138,7 +139,7 @@ public class HarnessExporter {
       // #include <stdlib.h> for exit function
       appendln(pTarget, "#include <stdlib.h>");
       // implement __VERIFIER_error with exit(EXIT_FAILURE)
-      appendln(pTarget, "void __VERIFIER_error(void) { exit(EXIT_FAILURE); }");
+      appendln(pTarget, "void __VERIFIER_error(void) { exit(" + ERR_REACHED_CODE + "); }");
       // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
       appendln(pTarget, "void __VERIFIER_assume(int cond) { if (!(cond)) { exit(EXIT_SUCCESS); }}");
 
