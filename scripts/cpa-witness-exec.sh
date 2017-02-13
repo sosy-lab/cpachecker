@@ -54,4 +54,4 @@ for harness in $harnesses; do
   fi
 done 
 
-echo "Verification result: UNKOWN. No harness for witness was sucessful or no harness was produced."
+echo "Verification result: UNKNOWN. No harness for witness was sucessful or no harness was produced."
