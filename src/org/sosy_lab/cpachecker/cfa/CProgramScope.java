@@ -384,7 +384,7 @@ public class CProgramScope implements Scope {
   @Override
   public String createScopedNameOf(String pName) {
     if (!isGlobalScope()) {
-      createScopedNameOf(getCurrentFunctionName(), pName);
+      return createScopedNameOf(getCurrentFunctionName(), pName);
     }
     return pName;
   }
