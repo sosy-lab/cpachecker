@@ -156,6 +156,20 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
     return result.build();
   }
 
+  @VisibleForTesting
+  protected ImmutableList<ImmutableSet<Property>> partitionsWithAtMostPercentage(int pK, Set<Property> pInput, Comparator<Property> pComp) {
+    if (pK <= 0) {
+      return ImmutableList.of(ImmutableSet.copyOf(pInput));
+    }
+
+    int k = pK * pInput.size() / 100;
+    if (k < 1) {
+      k = 1;
+    }
+
+    return partitionsWithAtMost(k, pInput, pComp);
+  }
+
   protected Partitioning create(final PartitioningStatus pStatus,
       PropertyBudgeting pPropertyBudgeting,
       PartitionBudgeting pPartitionBudgeting,
