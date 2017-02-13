@@ -1140,7 +1140,15 @@ public class AutomatonGraphmlParser {
                 new CIntegerLiteralExpression(
                     FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
       }
-      if (ExpressionTrees.isAnd(tree)) {
+      if (tree instanceof LeafExpression) {
+        LeafExpression<AExpression> leaf = (LeafExpression<AExpression>) tree;
+        AExpression expression = leaf.getExpression();
+        if (expression instanceof CExpression) {
+          result.add(new CExpressionStatement(FileLocation.DUMMY, (CExpression) expression));
+        } else {
+          fallBack = true;
+        }
+      } else if (ExpressionTrees.isAnd(tree)) {
         for (ExpressionTree<AExpression> child : ExpressionTrees.getChildren(tree)) {
           if (child instanceof LeafExpression) {
             AExpression expression = ((LeafExpression<AExpression>) child).getExpression();
