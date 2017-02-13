@@ -48,11 +48,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-/**
- * Provides simplified and adapted versions of methods for predicate abstraction and refinement. All
- * input and output formulas are treated as unprimed, based on the transition system given in the
- * constructor.
- */
+/** Provides simplified and adapted versions of methods for predicate abstraction and refinement. */
 public class PredicatePrecisionManager {
 
   private final FormulaManagerView fmgr;
@@ -130,7 +126,8 @@ public class PredicatePrecisionManager {
    * the given formula with the updated predicate set afterwards. Excludes the program-counter
    * literal from the process and keeps it as it is.
    *
-   * <p>The given base formula as well as the abstracted version are treated as unprimed.
+   * <p>The given base formula as well as the interpolant are each supposed to be either primed or
+   * unprimed. The result is not defined for formulas that are none of the two.
    *
    * @param pBaseFormula The formula to be abstracted.
    * @param pInterpolant The interpolant used as basis for generating new abstraction predicates.
@@ -147,7 +144,8 @@ public class PredicatePrecisionManager {
    * Computes an abstraction of a formula based on the known predicates. Excludes the program-
    * counter literal from the process and keeps it as it is.
    *
-   * <p>The given base formula as well as the abstracted version are treated as unprimed.
+   * <p>The given base formula is supposed to be either primed or unprimed. The result is not
+   * defined for formulas that are none of the two.
    *
    * @param pBaseFormula The formula to be abstracted.
    * @return An abstracted version of pBaseFormula.
@@ -164,7 +162,10 @@ public class PredicatePrecisionManager {
                 fmgr.extractVariableNames(literal).contains(transition.programCounterName()));
     BooleanFormula nonPcPart = fmgr.filterLiterals(base, literal -> !literal.equals(pcPart));
     BooleanFormula abstracted = pamgr.computeAbstraction(nonPcPart, abstractionPredicates);
-    return PDRUtils.asUnprimed(bfmgr.and(pcPart, abstracted), fmgr, transition);
+    BooleanFormula result = bfmgr.and(pcPart, abstracted);
+    return PDRUtils.isPrimed(pBaseFormula, fmgr, transition)
+        ? PDRUtils.asPrimed(result, fmgr, transition)
+        : PDRUtils.asUnprimed(result, fmgr, transition);
   }
 
   /** Adds predicates (v1 &lt;v2) for all variables in the program. */
