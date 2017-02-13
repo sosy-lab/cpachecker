@@ -145,7 +145,7 @@ public class AutomatonGraphmlParser {
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
-  private static final String ACCESS_ERROR_MESSAGE = "Error while accessing witness file!";
+  private static final String ACCESS_ERROR_MESSAGE = "Error while accessing witness file: %s!";
 
   private static final String DISTANCE_TO_VIOLATION = "__DISTANCE_TO_VIOLATION";
 
@@ -235,7 +235,7 @@ public class AutomatonGraphmlParser {
         .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
             pInputSource,
             inputStream -> parseAutomatonFile(inputStream),
-            e -> new WitnessParseException(ACCESS_ERROR_MESSAGE, e));
+            e -> new WitnessParseException(e));
   }
 
   /**
@@ -629,7 +629,7 @@ public class AutomatonGraphmlParser {
       return result;
 
     } catch (ParserConfigurationException | SAXException e) {
-      throw new WitnessParseException(ACCESS_ERROR_MESSAGE, e);
+      throw new WitnessParseException(e);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException("The witness automaton provided is invalid!", e);
     } catch (CParserException e) {
@@ -1796,7 +1796,7 @@ public class AutomatonGraphmlParser {
       throw new WitnessParseException(
           "Invalid witness file provided! File not found: " + pPath);
     } catch (IOException e) {
-      throw new WitnessParseException(ACCESS_ERROR_MESSAGE, e);
+      throw new WitnessParseException(e);
     }
   }
 
@@ -1832,7 +1832,7 @@ public class AutomatonGraphmlParser {
             handlePotentiallyGZippedInput(
                 MoreFiles.asByteSource(pPath),
                 inputStream -> getWitnessType(inputStream),
-                e -> new WitnessParseException(ACCESS_ERROR_MESSAGE, e));
+                e -> new WitnessParseException(e));
   }
 
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
@@ -1844,7 +1844,7 @@ public class AutomatonGraphmlParser {
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
       doc = docBuilder.parse(pInputStream);
     } catch (ParserConfigurationException | SAXException e) {
-      throw new WitnessParseException(ACCESS_ERROR_MESSAGE, e);
+      throw new WitnessParseException(e);
     }
     doc.getDocumentElement().normalize();
 
@@ -1922,6 +1922,15 @@ public class AutomatonGraphmlParser {
       super(PARSE_EXCEPTION_MESSAGE_PREFIX + pMessage, pCause);
     }
 
+    public WitnessParseException(Throwable pCause) {
+      super(PARSE_EXCEPTION_MESSAGE_PREFIX + AutomatonGraphmlParser.getMessage(pCause), pCause);
+    }
+  }
+
+  private static String getMessage(Throwable pException) {
+    String message = ACCESS_ERROR_MESSAGE;
+    String infix = pException.getMessage();
+    return String.format(message, infix);
   }
 
   private static interface InputHandler<T, E extends Throwable> {
