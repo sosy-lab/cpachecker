@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 @Options(prefix = "testHarnessExport")
 public class HarnessExporter {
@@ -341,28 +342,43 @@ public class HarnessExporter {
       AFunctionCallAssignmentStatement assignment,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
     ALeftHandSide leftHandSide = assignment.getLeftHandSide();
-    Iterable<AutomatonState> automatonStates =
-        AbstractStates.asIterable(pChild).filter(AutomatonState.class);
-    for (AutomatonState automatonState : automatonStates) {
-      for (AExpression assumption : automatonState.getAssumptions()) {
-        Optional<ALiteralExpression> value = getOther(assumption, leftHandSide);
-        if (value.isPresent()) {
-          return extendTestVector(pPrevious, pChild, functionCallExpression, value);
+    ARGState argState = pChild;
+    while (argState != null) {
+      Iterable<AutomatonState> automatonStates =
+          AbstractStates.asIterable(argState).filter(AutomatonState.class);
+      for (AutomatonState automatonState : automatonStates) {
+        for (AExpression assumption : automatonState.getAssumptions()) {
+          Optional<ALiteralExpression> value = getOther(assumption, leftHandSide);
+          if (value.isPresent()) {
+            return extendTestVector(pPrevious, argState, functionCallExpression, value);
+          }
         }
       }
-    }
-    Collection<CFAEdgeWithAssumptions> assumptions = pValueMap.get(pPrevious.argState);
-    if (assumptions != null) {
-      for (AExpression assumption :
-          FluentIterable.from(assumptions)
-              .filter(e -> e.getCFAEdge().equals(pEdge))
-              .transformAndConcat(CFAEdgeWithAssumptions::getExpStmts)
-              .transform(AExpressionStatement::getExpression)) {
-        Optional<ALiteralExpression> value = getOther(assumption, leftHandSide);
-        if (value.isPresent()) {
-          return extendTestVector(pPrevious, pChild, functionCallExpression, value);
+      Collection<CFAEdgeWithAssumptions> assumptions = pValueMap.get(pPrevious.argState);
+      if (assumptions != null) {
+        for (AExpression assumption :
+            FluentIterable.from(assumptions)
+                .filter(e -> e.getCFAEdge().equals(pEdge))
+                .transformAndConcat(CFAEdgeWithAssumptions::getExpStmts)
+                .transform(AExpressionStatement::getExpression)) {
+          Optional<ALiteralExpression> value = getOther(assumption, leftHandSide);
+          if (value.isPresent()) {
+            return extendTestVector(pPrevious, argState, functionCallExpression, value);
+          }
         }
       }
+      Collection<ARGState> nextCandidates = argState.getChildren();
+      if (nextCandidates.size() == 1) {
+        ARGState candidate = nextCandidates.iterator().next();
+        if (argState
+            .getEdgesToChild(candidate)
+            .stream()
+            .allMatch(AutomatonGraphmlCommon::handleAsEpsilonEdge)) {
+          argState = candidate;
+          continue;
+        }
+      }
+      argState = null;
     }
     return Optional.empty();
   }
