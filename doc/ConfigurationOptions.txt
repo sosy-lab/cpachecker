@@ -2672,7 +2672,7 @@ pcc.useCores = 1
 # still valid after dropping each literal in turn.
 pdr.dropLiteralsBeyondUnsatCoreAfterLifting = false
 
-# The maximum number attempts at dropping literals during the inductive
+# The maximum number of attempts at dropping literals during the inductive
 # generalization of states.
 pdr.maxAttemptsToDropLiteralsDuringGeneralization = 10
 

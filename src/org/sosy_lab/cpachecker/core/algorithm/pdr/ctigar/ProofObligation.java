@@ -28,15 +28,13 @@ import java.util.Optional;
 
 /**
  * Represents the attempt to prove that a set of states is unreachable in a certain number of steps.
- *
- * <p>ProofObligations are immutable.
  */
 public class ProofObligation implements Comparable<ProofObligation> {
 
   /** The states that should be blocked and the corresponding location. */
   private final StatesWithLocation state;
 
-  /** The frame level the state should be blocked at. */
+  /** The frame-level the state should be blocked at. */
   private final int frameLevel;
 
   /** The obligation that caused this one to be created. */
@@ -51,7 +49,7 @@ public class ProofObligation implements Comparable<ProofObligation> {
    * #ProofObligation(int, StatesWithLocation)} instead.
    *
    * @param pFrameLevel The level the states should be blocked at.
-   * @param pStates the states to be blocked.
+   * @param pStates The states to be blocked.
    * @param pCause The ProofObligation that lead to the creation of this one.
    */
   public ProofObligation(int pFrameLevel, StatesWithLocation pStates, ProofObligation pCause) {
@@ -81,17 +79,16 @@ public class ProofObligation implements Comparable<ProofObligation> {
   }
 
   /**
-   * Returns the frame level component of this ProofObligation. It defines the level the states
-   * should be blocked at.
+   * Returns the frame-level the states should be blocked at.
    *
-   * @return The frame level.
+   * @return The frame-level.
    */
   public int getFrameLevel() {
     return frameLevel;
   }
 
   /**
-   * Returns the state component of this ProofObligation. It defines the states to be blocked.
+   * Returns the states to be blocked.
    *
    * @return The states to be blocked.
    */
@@ -102,7 +99,7 @@ public class ProofObligation implements Comparable<ProofObligation> {
   /**
    * Returns the ProofObligation that is the predecessor of this one. It is the cause for the
    * creation of this one. There may not exist such a predecessor if this ProofObligation is the
-   * initial one.
+   * first one to be created.
    *
    * @return An Optional containing the ProofObligation representing the cause for the creation of
    *     this one, or an empty Optional if a cause doesn't exist.
@@ -112,21 +109,21 @@ public class ProofObligation implements Comparable<ProofObligation> {
   }
 
   /**
-   * Returns a ProofObligation that is identical to this one, but has a frame level that is
+   * Returns a ProofObligation that is identical to this one, but has a frame-level that is
    * incremented by 1. This method doesn't alter the original ProogObligation.
    *
-   * @return This ProofObligation with an incremented frame level.
+   * @return This ProofObligation with an incremented frame-level.
    */
   public ProofObligation rescheduleToNextLevel() {
     return new ProofObligation(frameLevel + 1, state, cause);
   }
 
   /**
-   * Compares this ProofObligation to another one based on the difference of their frame levels.
+   * Compares this ProofObligation to another one based on the difference of their frame-levels.
    * This method precisely returns {@code this.getFrameLevel() - pOther.getFrameLevel()}.
    *
    * @param pOther The ProofObligation this one should be compared to.
-   * @return The difference of frame levels between this ProofObligation and the other one.
+   * @return The difference of frame-levels between this ProofObligation and the other one.
    * @see #getFrameLevel()
    */
   @Override
@@ -136,7 +133,7 @@ public class ProofObligation implements Comparable<ProofObligation> {
 
   @Override
   public String toString() {
-    return String.format("{Level = %s, State = %s}", frameLevel, state.getFormula());
+    return String.format("{Level = %s, State = %s}", frameLevel, state.getAbstract());
   }
 
   @Override

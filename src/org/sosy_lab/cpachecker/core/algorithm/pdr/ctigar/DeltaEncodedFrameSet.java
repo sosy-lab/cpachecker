@@ -62,15 +62,15 @@ public class DeltaEncodedFrameSet implements FrameSet {
   private final TransitionSystem transition;
   private final FrameSetStatistics stats;
 
-  private int currentMaxLevel;
+  private int currentFrontierLevel;
 
   /**
-   * Creates a new frame set. It contains a frame at level 0 which contains the initial states given
-   * by transition relation. The frontier level is 0.
+   * Creates a new frame set. It has a single frame at level 0 which contains the initial states
+   * given by the transition system. The frontier level is 0.
    *
    * @param pSolver The solver used for propagation.
-   * @param pFmgr A used formula manager.
-   * @param pTransition The global transition relation providing the initial condition, the safety
+   * @param pFmgr A formula manager used for instantiating formulas.
+   * @param pTransition The global transition system providing the initial condition, the safety
    *     property and the transition formula.
    * @param pCompStats The statistics delegator that this frame set should be registered at. It
    *     takes care of printing this frame set's statistics.
@@ -87,10 +87,10 @@ public class DeltaEncodedFrameSet implements FrameSet {
     fmgr = Objects.requireNonNull(pFmgr);
     bfmgr = Objects.requireNonNull(pFmgr.getBooleanFormulaManager());
     transition = Objects.requireNonNull(pTransition);
-    currentMaxLevel = 0;
+    currentFrontierLevel = 0;
     frames = new ArrayList<>(INITIAL_CAPACITY);
 
-    // Add frame 0 with initial condition and frame 1 with safety property.
+    // Add frame F_0 with the initial condition.
     addNewFrameWith(PDRUtils.asUnprimed(transition.getInitialCondition(), fmgr, transition));
   }
 
@@ -101,34 +101,30 @@ public class DeltaEncodedFrameSet implements FrameSet {
     stats.numberFrames++;
   }
 
-  private void addNewDefaultFrame() {
-    addNewFrameWith(PDRUtils.asUnprimed(transition.getSafetyProperty(), fmgr, transition));
-  }
-
-  private Set<BooleanFormula> newFrame() {
+  private static Set<BooleanFormula> newFrame() {
     return new HashSet<>();
   }
 
   @Override
   public void openNextFrame() {
-    addNewDefaultFrame();
-    currentMaxLevel++;
+    addNewFrameWith(PDRUtils.asUnprimed(transition.getSafetyProperty(), fmgr, transition));
+    currentFrontierLevel++;
   }
 
   @Override
-  public int getMaxLevel() {
-    return currentMaxLevel;
+  public int getFrontierLevel() {
+    return currentFrontierLevel;
   }
 
   @Override
   public Set<BooleanFormula> getStates(int pLevel) {
-    Preconditions.checkPositionIndex(pLevel, currentMaxLevel);
+    Preconditions.checkPositionIndex(pLevel, currentFrontierLevel);
     if (pLevel == 0) { // States in F_0 are only the initial states
       return frames.get(0);
     }
 
     /*
-     *  Initially start with states at the specified level
+     *  Start with states at the specified level
      *  and add all states of higher levels afterwards (delta encoding).
      *  See functionality of blockStates().
      */
@@ -141,7 +137,7 @@ public class DeltaEncodedFrameSet implements FrameSet {
 
   @Override
   public void blockStates(BooleanFormula pStates, int pMaxLevel) {
-    Preconditions.checkPositionIndex(pMaxLevel, currentMaxLevel);
+    Preconditions.checkPositionIndex(pMaxLevel, currentFrontierLevel);
 
     // Only need to add to highest level (delta encoding). See functionality of getStates().
     frames.get(pMaxLevel).add(bfmgr.not(pStates));
@@ -155,8 +151,8 @@ public class DeltaEncodedFrameSet implements FrameSet {
     try {
 
       // For all levels i and all clauses c in F_i, check if UNSAT[F_i & T & not(c)'].
-      // If yes : move c to F_i+1.
-      for (int level = 1; level < currentMaxLevel; ++level) {
+      // Yes : c is inductive relative to F_i and can therefore be moved to F_(i+1).
+      for (int level = 1; level < currentFrontierLevel; ++level) {
         Set<BooleanFormula> currentFrame = frames.get(level);
 
         try (ProverEnvironment prover = solver.newProverEnvironment()) {
@@ -173,15 +169,7 @@ public class DeltaEncodedFrameSet implements FrameSet {
             BooleanFormula clauseToPropagate = it.next();
             prover.push(PDRUtils.asPrimed(bfmgr.not(clauseToPropagate), fmgr, transition));
 
-            boolean couldPropagate;
-            stats.propagationSolverTimer.start();
-            try {
-              couldPropagate = prover.isUnsat();
-            } finally {
-              stats.propagationSolverTimer.stop();
-            }
-
-            if (couldPropagate) {
+            if (PDRUtils.isUnsat(prover, stats.propagationSolverTimer)) {
 
               // Move clause to next frame.
               it.remove();
@@ -192,7 +180,7 @@ public class DeltaEncodedFrameSet implements FrameSet {
           }
         }
 
-        // Subsume at current level.
+        // Remove all clauses in the current frame that are subsumed by any clause in a higher frame.
         stats.subsumptionTimer.start();
         try {
           for (BooleanFormula clauseAtNextLevel : getStates(level + 1)) {
@@ -234,11 +222,15 @@ public class DeltaEncodedFrameSet implements FrameSet {
     return subsumes;
   }
 
+  /**
+   * Creates a formatted String representation of all individual frames including all their clauses.
+   * Be aware that this String can be very large.
+   */
   @Override
   public String toString() {
     StringBuilder stringRepresentation = new StringBuilder("Frame set : ");
 
-    for (int level = 0; level <= currentMaxLevel + 1; ++level) {
+    for (int level = 0; level <= currentFrontierLevel; ++level) {
       stringRepresentation.append("\n  Level ").append(level).append("\n :");
       Set<BooleanFormula> states = getStates(level);
       for (BooleanFormula state : states) {

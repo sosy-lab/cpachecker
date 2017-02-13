@@ -29,7 +29,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
-/** A container for all PDR related options. */
+/** A container for all PDR-related options. */
 @Options(prefix = "pdr")
 public class PDROptions {
 
@@ -44,7 +44,7 @@ public class PDROptions {
   @Option(
     secure = true,
     description =
-        "The maximum number attempts at dropping literals during the inductive generalization of"
+        "The maximum number of attempts at dropping literals during the inductive generalization of"
             + " states."
   )
   private int maxAttemptsToDropLiteralsDuringGeneralization = 10;
@@ -71,7 +71,7 @@ public class PDROptions {
    * Returns the maximum number of attempts at dropping literals during generalization as specified
    * by the configuration file.
    *
-   * @return The maximum number of attempts at dropping literals.
+   * @return The maximum number of attempts to drop literals.
    */
   public int maxAttemptsAtDroppingLiterals() {
     return maxAttemptsToDropLiteralsDuringGeneralization;
@@ -90,7 +90,7 @@ public class PDROptions {
   /**
    * Returns whether the lifted state should be further reduced by trying to manually drop literals.
    *
-   * @return If literals should be manually dropped after lifting.
+   * @return True if literals should be manually dropped after lifting, false otherwise.
    */
   public boolean shouldDropLiteralsAfterLiftingWithUnsatCore() {
     return dropLiteralsBeyondUnsatCoreAfterLifting;

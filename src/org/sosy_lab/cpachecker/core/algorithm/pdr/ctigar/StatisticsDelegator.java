@@ -35,10 +35,10 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * Collects statistics and forwards all calls of {@link #printStatistics(PrintStream, Result,
- * UnmodifiableReachedSet)} to them. This class can be useful, if subcomponents of an algorithm
+ * UnmodifiableReachedSet)} to them. This class can be useful if subcomponents of an algorithm
  * provide statistics, but can only be created at a time when all statistics objects have already
- * been collected. In this case, the subcomponents can register themselves, if this
- * StatisticsDelegator is passed as parameter to their constructor.
+ * been collected. In this case, the subcomponents can register themselves if this
+ * StatisticsDelegator is passed to their constructor as additional parameter.
  */
 public class StatisticsDelegator implements Statistics {
 
@@ -46,25 +46,37 @@ public class StatisticsDelegator implements Statistics {
   private final @Nullable String name;
 
   /**
-   * Creates a new StatisticsDelegator with the provided name and no registered sub statistics.
+   * Creates a new StatisticsDelegator with the provided name and no registered sub-statistics.
    *
-   * @param pName The name of this StatisticsDelegator. May be null.
+   * @param pName The name of this StatisticsDelegator that will be printed. May be null if nothing
+   *     should be printed instead.
    */
   public StatisticsDelegator(String pName) {
     this.delegates = new LinkedList<>();
     this.name = pName;
   }
 
+  /**
+   * Adds the provided statistics object to the list of clients whose content will be printed.
+   *
+   * @param pDelegate The new client statistics to be registered.
+   */
   public void register(Statistics pDelegate) {
     if (!delegates.contains(Objects.requireNonNull(pDelegate))) {
       delegates.add(pDelegate);
     }
   }
 
+  /**
+   * Removes the provided statistics object from the list of clients whose content will be printed.
+   *
+   * @param pDelegate The client statistics to be removed.
+   */
   public void unregister(Statistics pDelegate) {
     delegates.remove(Objects.requireNonNull(pDelegate));
   }
 
+  /** Removes all registered statistics. */
   public void unregisterAll() {
     delegates.clear();
   }

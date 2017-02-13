@@ -50,12 +50,10 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Provides simplified and adapted versions of methods for predicate abstraction and refinement. All
- * input and output formulas are treated as unprimed, based on the transition relation given in the
+ * input and output formulas are treated as unprimed, based on the transition system given in the
  * constructor.
  */
 public class PredicatePrecisionManager {
-  // TODO Handle abstraction of instantiated formulas and avoid uninstantiating and re-instantiating
-  // the result.
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
@@ -66,15 +64,14 @@ public class PredicatePrecisionManager {
 
   /**
    * Creates a new PredicatePrecisionManager. The set of abstraction predicates is initialized with
-   * predicates for the initial condition and inequalities (v1 < v2) for all program variables given
-   * by the transition relation.
+   * predicates of the form (v1 &lt; v2) for all program variables given by the transition system.
    *
-   * @param pFmgr The used formula manager.
+   * @param pFmgr The formula manager used to instantiate and manipulate formulas.
    * @param pAbstractionDelegate The component that actually computes the abstractions.
-   * @param pPfmgr The used path formula manager.
-   * @param pTransition The global transition that provides the initial condition, all program
-   *     variables and the unprimed SSA context.
-   * @param pCFA The CFA of the program.
+   * @param pPfmgr The path formula manager used to create variables.
+   * @param pTransition The transition system that provides the initial condition, all program
+   *     variables and the unprimed ssa context.
+   * @param pCFA The program's CFA.
    * @param pCompStats The statistics delegator that this predicate manager should be registered at.
    *     It takes care of printing the statistics.
    */
@@ -93,12 +90,12 @@ public class PredicatePrecisionManager {
     pamgr = Objects.requireNonNull(pAbstractionDelegate);
     transition = Objects.requireNonNull(pTransition);
     abstractionPredicates = new HashSet<>();
-    addDefaultPredicates(pTransition, pPfmgr, pCFA);
+    addDefaultPredicates(pPfmgr, pCFA);
   }
 
   /**
-   * Extracts conjuncts of the interpolant and add parts as new predicates. Splits equalities,
-   * ignores program counter variable and treats disjunctive parts as single part.
+   * Extracts conjuncts from the interpolant and adds parts as new predicates. Splits equalities,
+   * ignores the program-counter variable and treats disjunctive parts as a single part.
    */
   private void refinePredicates(BooleanFormula pInterpolant) throws InterruptedException {
     stats.numberOfRefinements++;
@@ -129,13 +126,14 @@ public class PredicatePrecisionManager {
   }
 
   /**
-   * Refines the known predicates based on pInterpolant and computes an abstraction of the given
-   * formula with the new predicate set afterwards.
+   * Refines the known predicates based on the provided interpolant and computes an abstraction of
+   * the given formula with the updated predicate set afterwards. Excludes the program-counter
+   * literal from the process and keeps it as it is.
    *
    * <p>The given base formula as well as the abstracted version are treated as unprimed.
    *
    * @param pBaseFormula The formula to be abstracted.
-   * @param pInterpolant The formula used as basis for generating new abstraction predicates.
+   * @param pInterpolant The interpolant used as basis for generating new abstraction predicates.
    * @return An abstracted version of pBaseFormula.
    */
   public BooleanFormula refineAndComputeAbstraction(
@@ -146,8 +144,8 @@ public class PredicatePrecisionManager {
   }
 
   /**
-   * Computes an abstraction of a formula based on the known predicates. Excludes the program
-   * counter information from the process and keeps it as it is.
+   * Computes an abstraction of a formula based on the known predicates. Excludes the program-
+   * counter literal from the process and keeps it as it is.
    *
    * <p>The given base formula as well as the abstracted version are treated as unprimed.
    *
@@ -157,24 +155,26 @@ public class PredicatePrecisionManager {
   public BooleanFormula computeAbstraction(BooleanFormula pBaseFormula)
       throws InterruptedException, SolverException {
     BooleanFormula base = fmgr.uninstantiate(pBaseFormula);
+
+    // Split formula into pc part and non-pc part. Only create abstraction of non-pc part.
     BooleanFormula pcPart =
         fmgr.filterLiterals(
             base,
             literal ->
                 fmgr.extractVariableNames(literal).contains(transition.programCounterName()));
-    BooleanFormula rest = fmgr.filterLiterals(base, literal -> !literal.equals(pcPart));
-    BooleanFormula abstracted = pamgr.computeAbstraction(rest, abstractionPredicates);
+    BooleanFormula nonPcPart = fmgr.filterLiterals(base, literal -> !literal.equals(pcPart));
+    BooleanFormula abstracted = pamgr.computeAbstraction(nonPcPart, abstractionPredicates);
     return PDRUtils.asUnprimed(bfmgr.and(pcPart, abstracted), fmgr, transition);
   }
 
-  /** Adds predicates (v1<v2) for all variables in the program. */
-  private void addDefaultPredicates(TransitionSystem pTrans, PathFormulaManager pPfmgr, CFA pCFA) {
-    List<String> varNames = new ArrayList<>(pTrans.allVariableNames());
+  /** Adds predicates (v1 &lt;v2) for all variables in the program. */
+  private void addDefaultPredicates(PathFormulaManager pPfmgr, CFA pCFA) {
+    List<String> varNames = new ArrayList<>(transition.allVariableNames());
     if (varNames.size() <= 1) {
       return;
     }
 
-    PathFormula unprimedContext = pTrans.getUnprimedContext();
+    PathFormula unprimedContext = transition.getUnprimedContext();
     SSAMap ssa = unprimedContext.getSsa();
     BitvectorFormulaManagerView bvfmgr = fmgr.getBitvectorFormulaManager();
 
@@ -188,7 +188,6 @@ public class PredicatePrecisionManager {
         if (!areComparableSimpleTypes(type1, type2)) {
           continue;
         }
-        // TODO make equality predicates for comparable pointers?
 
         BitvectorFormula var1 =
             (BitvectorFormula) pPfmgr.makeFormulaForVariable(unprimedContext, name1, type1, false);
