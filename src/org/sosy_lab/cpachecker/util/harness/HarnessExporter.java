@@ -72,6 +72,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
@@ -311,7 +313,8 @@ public class HarnessExporter {
         AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
 
         if (!(functionCallExpression.getExpressionType() instanceof CVoidType)
-            && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())) {
+            && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())
+            && !isMalloc(functionCallExpression)) {
 
           AExpression nameExpression = functionCallExpression.getFunctionNameExpression();
           if (nameExpression instanceof AIdExpression) {
@@ -332,6 +335,36 @@ public class HarnessExporter {
       }
     }
     return Optional.of(State.of(pChild, pPrevious.testVector));
+  }
+
+  private static boolean isMalloc(AFunctionCallExpression pFunctionCallExpression) {
+    AFunctionDeclaration declaration = pFunctionCallExpression.getDeclaration();
+    if (declaration == null) {
+      return false;
+    }
+    if (!declaration.getOrigName().equals("malloc")) {
+      return false;
+    }
+    Type type = pFunctionCallExpression.getExpressionType();
+    if (!(type instanceof CPointerType)) {
+      return false;
+    }
+    CPointerType pointerType = (CPointerType) type;
+    if (!(pointerType.getType() instanceof CVoidType)) {
+      return false;
+    }
+    if (declaration.getParameters().size() != 1) {
+      return false;
+    }
+    Type parameterType = declaration.getParameters().iterator().next().getType();
+    if (!(parameterType instanceof CSimpleType)) {
+      return false;
+    }
+    CSimpleType simpleParameterType = (CSimpleType) parameterType;
+    if (!simpleParameterType.getType().isIntegerType()) {
+      return false;
+    }
+    return true;
   }
 
   private Optional<State> handleFunctionCallAssignment(
