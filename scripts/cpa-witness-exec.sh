@@ -6,12 +6,20 @@ CPA_EXEC=`which cpa.sh`
 [[ -z $CPA_EXEC ]] && [[ -f './cpa.sh' ]] && CPA_EXEC='./cpa.sh'
 [[ -z $CPA_EXEC ]] && [[ -f './scripts/cpa.sh' ]] && CPA_EXEC='./scripts/cpa.sh'
 
+echo "$@";
+
 EXPECTED_RETURN_CODE=107
-ARGS="$@"
 
+declare -a ARGS 
 
-for file in $@; do true; done # store last argument into $file
+file=""
+for arg in "$@";
+do
+  ARGS+=("$arg")
+  file="$arg"
+done # store last argument into $file
 output_path='output'
+
 while [[ $# -gt 0 ]]
 do
 key="$1"
@@ -35,8 +43,7 @@ esac
 shift # past argument or value
 done
 
-
-harness_gen_output=`$CPA_EXEC $ARGS`
+harness_gen_output=`"$CPA_EXEC" "${ARGS[@]}"`
 harnesses=`find $output_path -name '*harness.c'` 
 echo "`count $harnesses` harnesses for witness."  
 for harness in $harnesses; do
