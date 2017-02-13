@@ -109,10 +109,10 @@ class BAMCPAStatistics extends AbstractStatistics {
     BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
 
-    put(out, "Number of blocks:", cpa.getBlockPartitioning().getBlocks().size());
-    put(out, "Maximum block depth:", transferRelation.maxRecursiveDepth);
+    put(out, "Number of blocks", cpa.getBlockPartitioning().getBlocks().size());
+    put(out, "Maximum block depth", transferRelation.maxRecursiveDepth);
 
-    put(out, "Time for building block partitioning:", cpa.blockPartitioningTimer);
+    put(out, "Time for building block partitioning", cpa.blockPartitioningTimer);
     put(out, 0, reducer.reduceTime);
     put(out, 0, reducer.expandTime);
     put(out, 0, reducer.reducePrecisionTime);
@@ -144,7 +144,7 @@ class BAMCPAStatistics extends AbstractStatistics {
     exportUsedReachedSets(simplifiedArgFile, reached);
   }
 
-  protected void exportAllReachedSets(final Path superArgFile, final PathTemplate indexedFile,
+  private void exportAllReachedSets(final Path superArgFile, final PathTemplate indexedFile,
                                       final UnmodifiableReachedSet mainReachedSet) {
 
     if (superArgFile != null) {
