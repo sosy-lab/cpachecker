@@ -43,6 +43,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -57,7 +58,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
-  private final BAMCPA bamCpa;
+  private final BlockPartitioning partitioning;
   private final BAMDataManager data;
   private final ARGPath path;
   private final ARGState rootOfSubgraph;
@@ -68,9 +69,9 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       ARGState pRootOfSubgraph,
       StatTimer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
-    this.bamCpa = cpa;
-    this.data = bamCpa.getData();
-    this.logger = bamCpa.getLogger();
+    this.partitioning = cpa.getBlockPartitioning();
+    this.data = cpa.getData();
+    this.logger = cpa.getLogger();
     this.path = pPath;
     this.rootOfSubgraph = pRootOfSubgraph;
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
@@ -161,7 +162,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       }
 
       if (data.hasInitialState(state)) {
-        assert bamCpa.getBlockPartitioning().isCallNode(extractLocation(state))
+        assert partitioning.isCallNode(extractLocation(state))
             : "the mapping of initial state to reached-set should only exist for block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
@@ -199,10 +200,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     assert reached.contains(exitState);
 
     ReachedSet clone = cloneReachedSetPartially(reached, cutState, pPrecisions, pPrecisionTypes);
-    Block block =
-        bamCpa
-            .getBlockPartitioning()
-            .getBlockForCallNode(AbstractStates.extractLocation(rootState));
+    Block block = partitioning.getBlockForCallNode(AbstractStates.extractLocation(rootState));
 
     data.bamCache.remove(clone.getFirstState(), clone.getPrecision(clone.getFirstState()), block);
     data.bamCache.put(
@@ -231,7 +229,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       // we use a loop here, because a return-node can be the exit of several blocks at once.
       ARGState tmp = state;
       while (data.hasExpandedState(tmp) && bamCutState != bamState) {
-        assert bamCpa.getBlockPartitioning().isReturnNode(extractLocation(tmp))
+        assert partitioning.isReturnNode(extractLocation(tmp))
             : "the mapping of expanded to reduced state should only exist for block-return-locations";
         // we are leaving a block, remove the start-state from the stack.
         tmp = (ARGState) data.getReducedStateForExpandedState(tmp);
@@ -243,7 +241,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       }
 
       if (data.hasInitialState(state)) {
-        assert bamCpa.getBlockPartitioning().isCallNode(extractLocation(state))
+        assert partitioning.isCallNode(extractLocation(state))
             : "the mapping of initial state to reached-set should only exist for block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
@@ -337,7 +335,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
     // build reachedset, iteration order is very important here,
     // because pReached and clonedReached should behave similar, e.g. first state is equal
-    ReachedSet clonedReached = bamCpa.getData().reachedSetFactory.create();
+    ReachedSet clonedReached = data.reachedSetFactory.create();
     for (AbstractState abstractState : Iterables.filter(pReached, keepStates)) {
       ARGState state = (ARGState) abstractState;
       ARGState clonedState = cloneMapping.get(state);

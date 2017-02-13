@@ -34,25 +34,16 @@ import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class BAMSubgraphComputer {
 
-  private final BlockPartitioning partitioning;
-  private final Reducer reducer;
   private final BAMDataManager data;
-  private final LogManager logger;
 
-  BAMSubgraphComputer(BAMCPA bamCpa) {
-    this.partitioning = bamCpa.getBlockPartitioning();
-    this.reducer = bamCpa.getReducer();
-    this.data = bamCpa.getData();
-    this.logger = bamCpa.getLogger();
+  BAMSubgraphComputer(BAMDataManager pData) {
+    data = pData;
   }
 
   /**

@@ -121,7 +121,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     try {
       computeSubtreeTimer.start();
       try {
-        final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
+        final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa.getData());
         rootOfSubgraph =
             cexSubgraphComputer.computeCounterexampleSubgraph(pLastElement, pMainReachedSet);
       } finally {

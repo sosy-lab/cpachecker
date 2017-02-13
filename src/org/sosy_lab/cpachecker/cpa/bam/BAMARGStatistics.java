@@ -87,7 +87,7 @@ public class BAMARGStatistics extends ARGStatistics {
     Collection<ARGState> targets = Collections2.filter(root.getChildren(), s -> !s.isCovered());
     assert targets.contains(pReached.getLastState());
     assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
-    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
+    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa.getData());
 
     ARGState rootOfSubgraph = null;
     try {
