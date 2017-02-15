@@ -24,7 +24,14 @@
 package org.sosy_lab.cpachecker.pcc.strategy;
 
 import com.google.common.collect.Maps;
-
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -44,15 +51,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
 @Options(prefix = "pcc.backwardtargets")
 public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy implements StatisticsProvider {
 
@@ -66,9 +64,10 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy im
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
+      final Path pProofFile,
       final @Nullable PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger);
+    super(pConfig, pLogger, pProofFile);
     pConfig.inject(this);
     algorithm =
         pCpa == null

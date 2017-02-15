@@ -26,7 +26,19 @@ package org.sosy_lab.cpachecker.pcc.strategy.arg;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
-
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.zip.ZipInputStream;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,26 +62,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-import java.util.zip.ZipInputStream;
-
-import javax.annotation.Nullable;
-
 public class ARG_CMCStrategy extends AbstractStrategy {
 
   private final Configuration globalConfig;
   private final ShutdownNotifier shutdown;
   private final PartialCPABuilder cpaBuilder;
   private final AssumptionAutomatonGenerator automatonWriter;
+  private final Path proofFile;
 
   private ARGState[] roots;
   private boolean proofKnown = false;
@@ -78,15 +77,17 @@ public class ARG_CMCStrategy extends AbstractStrategy {
       Configuration pConfig,
       LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,
+      final Path pProofFile,
       final @Nullable CFA pCfa,
       final @Nullable Specification pSpecification)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger);
+    super(pConfig, pLogger, pProofFile);
     //pConfig.inject(this);
     globalConfig = pConfig;
     shutdown = pShutdownNotifier;
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
+    proofFile = pProofFile;
   }
 
   @Override
@@ -361,7 +362,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     // strengthening is required for assumption guiding CPA
     Preconditions.checkState(cpa instanceof PropertyCheckerCPA,
             "Conflicting configuration: Partial ARGs must be checked with CPA based strategy but toplevel CPA is not a PropertyCheckerCPA as needed");
-    partialProofChecker = new ARG_CPAStrategy(globalConfig, logger, shutdown, (PropertyCheckerCPA) cpa);
+    partialProofChecker = new ARG_CPAStrategy(globalConfig, logger, shutdown, proofFile, (PropertyCheckerCPA) cpa);
 
     logger.log(Level.FINER, "Start checking algorithm for partial ARG ", iterationNumber);
     return partialProofChecker.checkCertificate(pReachedSet, pRoot, pIncompleteStates);

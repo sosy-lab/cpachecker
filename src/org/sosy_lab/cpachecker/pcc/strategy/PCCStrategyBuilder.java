@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy;
 
+import java.nio.file.Path;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -53,8 +54,8 @@ public class PCCStrategyBuilder {
     }
   )
   private PCCStrategy.Factory strategy =
-      (config, logger, shutdownNotifier, cfa, specification, proofChecker, propertyChecker) ->
-          new ARGProofCheckerStrategy(config, logger, shutdownNotifier, proofChecker);
+      (config, logger, shutdownNotifier, proofFile, cfa, specification, proofChecker, propertyChecker) ->
+          new ARGProofCheckerStrategy(config, logger, shutdownNotifier, proofFile, proofChecker);
 
   private PCCStrategyBuilder() {}
 
@@ -62,6 +63,7 @@ public class PCCStrategyBuilder {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      Path pProofFile,
       ConfigurableProgramAnalysis pCpa,
       CFA pCfa,
       Specification pSpecification)
@@ -75,6 +77,6 @@ public class PCCStrategyBuilder {
         pCpa instanceof PropertyCheckerCPA ? (PropertyCheckerCPA) pCpa : null;
 
     return builder.strategy.create(
-        pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification, proofChecker, propertyChecker);
+        pConfig, pLogger, pShutdownNotifier, pProofFile, pCfa, pSpecification, proofChecker, propertyChecker);
   }
 }
