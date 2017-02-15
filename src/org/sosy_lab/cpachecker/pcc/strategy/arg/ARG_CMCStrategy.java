@@ -68,7 +68,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
   private final ShutdownNotifier shutdown;
   private final PartialCPABuilder cpaBuilder;
   private final AssumptionAutomatonGenerator automatonWriter;
-  private final Path proofFile;
 
   private ARGState[] roots;
   private boolean proofKnown = false;
