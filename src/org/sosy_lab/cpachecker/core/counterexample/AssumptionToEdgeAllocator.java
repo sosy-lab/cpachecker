@@ -94,6 +94,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -791,12 +792,12 @@ public class AssumptionToEdgeAllocator {
       return null;
     }
 
-    private BigDecimal getFieldOffset(CFieldReference fieldReference) {
+    private BigDecimal getFieldOffsetInBits(CFieldReference fieldReference) {
       CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
-      return getFieldOffset(fieldOwnerType, fieldReference.getFieldName());
+      return getFieldOffsetInBits(fieldOwnerType, fieldReference.getFieldName());
     }
 
-    private BigDecimal getFieldOffset(CType ownerType, String fieldName) {
+    private BigDecimal getFieldOffsetInBits(CType ownerType, String fieldName) {
 
       if (ownerType instanceof CElaboratedType) {
 
@@ -806,9 +807,9 @@ public class AssumptionToEdgeAllocator {
           return null;
         }
 
-        return getFieldOffset(realType.getCanonicalType(), fieldName);
+        return getFieldOffsetInBits(realType.getCanonicalType(), fieldName);
       } else if (ownerType instanceof CCompositeType) {
-        return getFieldOffset((CCompositeType) ownerType, fieldName);
+        return getFieldOffsetInBits((CCompositeType) ownerType, fieldName);
       } else if (ownerType instanceof CPointerType) {
 
         /* We do not explicitly transform x->b,
@@ -817,26 +818,37 @@ public class AssumptionToEdgeAllocator {
 
         CType type = ((CPointerType) ownerType).getType().getCanonicalType();
 
-        return getFieldOffset(type, fieldName);
+        return getFieldOffsetInBits(type, fieldName);
       }
 
       throw new AssertionError();
     }
 
-    private BigDecimal getFieldOffset(CCompositeType ownerType, String fieldName) {
+    private BigDecimal getFieldOffsetInBits(CCompositeType ownerType, String fieldName) {
 
       List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
 
-      int offset = 0;
+      int bitOffset = 0;
 
-      for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
-        String memberName = typeMember.getName();
-        if (memberName.equals(fieldName)) {
-          return BigDecimal.valueOf(offset);
-        }
+      if (ownerType.getKind() == ComplexTypeKind.STRUCT) {
+        int sizeOfConsecutiveBitFields = 0;
+        BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(machineModel);
+        for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
+          String memberName = typeMember.getName();
+          if (memberName.equals(fieldName)) {
+            return BigDecimal.valueOf(bitOffset + sizeOfConsecutiveBitFields);
+          }
 
-        if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-          offset = offset + machineModel.getSizeof(typeMember.getType().getCanonicalType());
+          int fieldSizeInBits = machineModel.getBitSizeof(typeMember.getType());
+
+          if (typeMember.getType() instanceof CBitFieldType) {
+            sizeOfConsecutiveBitFields += fieldSizeInBits;
+          } else {
+            bitOffset += sizeOfConsecutiveBitFields;
+            sizeOfConsecutiveBitFields = 0;
+            bitOffset += machineModel.getPadding(sizeofVisitor.calculateByteSize(bitOffset), typeMember.getType());
+            bitOffset += fieldSizeInBits;
+          }
         }
       }
       return null;
@@ -1005,14 +1017,14 @@ public class AssumptionToEdgeAllocator {
 
         CExpression fieldOwner = pIastFieldReference.getFieldOwner();
 
-      //This works because arrays and structs evaluate to their addresses.
+        //This works because arrays and structs evaluate to their addresses.
         Address fieldOwnerAddress = evaluateNumericalValueAsAddress(fieldOwner);
 
         if (fieldOwnerAddress.isUnknown() || fieldOwnerAddress.isSymbolic()) {
           return lookupReferenceAddress(pIastFieldReference);
         }
 
-        BigDecimal fieldOffset = getFieldOffset(pIastFieldReference);
+        BigDecimal fieldOffset = getFieldOffsetInBits(pIastFieldReference);
 
         if (fieldOffset == null) {
           return lookupReferenceAddress(pIastFieldReference);
