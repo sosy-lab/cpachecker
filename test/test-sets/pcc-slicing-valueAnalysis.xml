@@ -12,6 +12,7 @@
   <option name="-setprop">pcc.collectValueAnalysisStateInfo=true</option>
   <option name="-setprop">pcc.proofFile=arg.obj</option>
   <option name="-setprop">pcc.proof=output/arg.obj</option>
+  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 
 
   <rundefinition name="NoRefineNoSlicingReachedSet">
