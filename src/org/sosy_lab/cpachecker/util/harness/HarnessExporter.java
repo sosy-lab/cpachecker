@@ -24,7 +24,9 @@
 package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -33,12 +35,15 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -313,8 +318,7 @@ public class HarnessExporter {
         AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
 
         if (!(functionCallExpression.getExpressionType() instanceof CVoidType)
-            && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())
-            && !isMalloc(functionCallExpression)) {
+            && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())) {
 
           AExpression nameExpression = functionCallExpression.getFunctionNameExpression();
           if (nameExpression instanceof AIdExpression) {
@@ -322,13 +326,25 @@ public class HarnessExporter {
             AIdExpression idExpression = (AIdExpression) nameExpression;
             String name = idExpression.getDeclaration().getQualifiedName();
             if (cfa.getFunctionHead(name) == null) {
+              final Optional<State> nextState;
               if (functionCall instanceof AFunctionCallStatement) {
                 return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
               }
               AFunctionCallAssignmentStatement assignment =
                   (AFunctionCallAssignmentStatement) functionCall;
-              return handleFunctionCallAssignment(
-                  pEdge, pPrevious, pChild, functionCallExpression, assignment, pValueMap);
+              nextState =
+                  handleFunctionCallAssignment(
+                      pEdge, pPrevious, pChild, functionCallExpression, assignment, pValueMap);
+              if (nextState.isPresent()) {
+                return nextState;
+              }
+              AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
+              if (!isMalloc(functionDeclaration) && !isMemcpy(functionDeclaration)) {
+                if (!isSupported(functionDeclaration)) {
+                  return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
+                }
+                return Optional.empty();
+              }
             }
           }
         }
@@ -337,32 +353,84 @@ public class HarnessExporter {
     return Optional.of(State.of(pChild, pPrevious.testVector));
   }
 
-  private static boolean isMalloc(AFunctionCallExpression pFunctionCallExpression) {
-    AFunctionDeclaration declaration = pFunctionCallExpression.getDeclaration();
-    if (declaration == null) {
+  private static boolean isSupported(@Nullable AFunctionDeclaration pDeclaration) {
+    if (pDeclaration == null) {
       return false;
     }
-    if (!declaration.getOrigName().equals("malloc")) {
+    return !returnsPointer(pDeclaration);
+  }
+
+  private static boolean returnsPointer(AFunctionDeclaration pDeclaration) {
+    Type type = pDeclaration.getType().getReturnType();
+    if (type instanceof CType) {
+      type = ((CType) type).getCanonicalType();
+    }
+    return type instanceof CPointerType;
+  }
+
+  private static boolean isMalloc(@Nullable AFunctionDeclaration pDeclaration) {
+    return functionMatches(
+        pDeclaration,
+        "malloc",
+        CPointerType.POINTER_TO_VOID,
+        Collections.singletonList(HarnessExporter::isIntegerType));
+  }
+
+  private static boolean isMemcpy(@Nullable AFunctionDeclaration pDeclaration) {
+    return functionMatches(
+        pDeclaration,
+        "malloc",
+        CPointerType.POINTER_TO_VOID,
+        ImmutableList.of(
+            Predicates.equalTo(CPointerType.POINTER_TO_VOID),
+            Predicates.equalTo(CPointerType.POINTER_TO_VOID)));
+  }
+
+  private static boolean isIntegerType(Type pType) {
+    Type type = pType;
+    if (type instanceof CType) {
+      type = ((CType) type).getCanonicalType();
+    }
+    if (type instanceof JSimpleType) {
+      return ((JSimpleType) type).getType().isIntegerType();
+    }
+    if (type instanceof CSimpleType) {
+      return ((CSimpleType) type).getType().isIntegerType();
+    }
+    assert false : "Unsupported type: " + pType;
+    return false;
+  }
+
+  private static boolean functionMatches(
+      @Nullable AFunctionDeclaration pDeclaration,
+      String pExpectedName,
+      Type pExpectedReturnType,
+      List<Predicate<Type>> pExpectedParameterTypes) {
+    if (pDeclaration == null) {
       return false;
     }
-    Type type = pFunctionCallExpression.getExpressionType();
-    if (!(type instanceof CPointerType)) {
+    if (!pDeclaration.getOrigName().equals(pExpectedName)) {
       return false;
     }
-    CPointerType pointerType = (CPointerType) type;
-    if (!(pointerType.getType() instanceof CVoidType)) {
+    Type actualReturnType = pDeclaration.getType().getReturnType();
+    if (actualReturnType instanceof CType) {
+      actualReturnType = ((CType) actualReturnType).getCanonicalType();
+    }
+    if (!actualReturnType.equals(pExpectedReturnType)) {
       return false;
     }
-    if (declaration.getParameters().size() != 1) {
+    if (pDeclaration.getParameters().size() != pExpectedParameterTypes.size()) {
       return false;
     }
-    Type parameterType = declaration.getParameters().iterator().next().getType();
-    if (!(parameterType instanceof CSimpleType)) {
-      return false;
-    }
-    CSimpleType simpleParameterType = (CSimpleType) parameterType;
-    if (!simpleParameterType.getType().isIntegerType()) {
-      return false;
+    Iterator<Predicate<Type>> expectedParameterTypeIt = pExpectedParameterTypes.iterator();
+    for (AParameterDeclaration parameterDeclaration : pDeclaration.getParameters()) {
+      Type actualParameterType = parameterDeclaration.getType();
+      if (actualParameterType instanceof CType) {
+        actualParameterType = ((CType) actualParameterType).getCanonicalType();
+      }
+      if (!expectedParameterTypeIt.next().apply(actualParameterType)) {
+        return false;
+      }
     }
     return true;
   }
