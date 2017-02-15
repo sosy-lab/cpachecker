@@ -325,7 +325,12 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
             return bitOffset;
           }
 
-          int fieldSizeInBits = evv.getMachineModel().getBitSizeof(typeMember.getType());
+          CType type = typeMember.getType();
+          if (type.isIncomplete()) {
+            return null;
+          }
+
+          int fieldSizeInBits = evv.getMachineModel().getBitSizeof(type);
 
           if (typeMember.getType() instanceof CBitFieldType) {
             sizeOfConsecutiveBitFields += fieldSizeInBits;
