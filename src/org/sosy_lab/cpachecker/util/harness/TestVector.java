@@ -33,36 +33,35 @@ import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class TestVector {
 
-  private final PersistentSortedMap<
-          ComparableFunctionDeclaration, ImmutableList<ALiteralExpression>>
+  private final PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ARightHandSide>>
       inputFunctionValues;
 
   private TestVector() {
     this(
         PathCopyingPersistentTreeMap
-            .<ComparableFunctionDeclaration, ImmutableList<ALiteralExpression>>of());
+            .<ComparableFunctionDeclaration, ImmutableList<ARightHandSide>>of());
   }
 
   private TestVector(
-      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ALiteralExpression>>
+      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ARightHandSide>>
           pInputFunctionValues) {
     inputFunctionValues = pInputFunctionValues;
   }
 
-  public TestVector addInputValue(AFunctionDeclaration pFunction, ALiteralExpression pValue) {
+  public TestVector addInputValue(AFunctionDeclaration pFunction, ARightHandSide pValue) {
     ComparableFunctionDeclaration function = new ComparableFunctionDeclaration(pFunction);
-    ImmutableList<ALiteralExpression> currentValues = inputFunctionValues.get(function);
-    ImmutableList<ALiteralExpression> newValues;
+    ImmutableList<ARightHandSide> currentValues = inputFunctionValues.get(function);
+    ImmutableList<ARightHandSide> newValues;
     if (currentValues == null) {
       newValues = ImmutableList.of(pValue);
     } else {
-      ImmutableList.Builder<ALiteralExpression> valueListBuilder = ImmutableList.builder();
+      ImmutableList.Builder<ARightHandSide> valueListBuilder = ImmutableList.builder();
       valueListBuilder.addAll(currentValues).add(pValue);
       newValues = valueListBuilder.build();
     }
@@ -73,9 +72,9 @@ public class TestVector {
     return FluentIterable.from(inputFunctionValues.keySet()).transform(f -> f.declaration);
   }
 
-  public List<ALiteralExpression> getInputValues(AFunctionDeclaration pFunction) {
+  public List<ARightHandSide> getInputValues(AFunctionDeclaration pFunction) {
     ComparableFunctionDeclaration function = new ComparableFunctionDeclaration(pFunction);
-    ImmutableList<ALiteralExpression> currentValues = inputFunctionValues.get(function);
+    ImmutableList<ARightHandSide> currentValues = inputFunctionValues.get(function);
     if (currentValues == null) {
       return Collections.emptyList();
     }

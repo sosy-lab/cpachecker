@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.harness;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -34,9 +35,11 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -51,6 +54,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -62,14 +66,26 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
@@ -89,6 +105,9 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
@@ -152,9 +171,10 @@ public class HarnessExporter {
       appendln(pTarget, "void __VERIFIER_assume(int cond) { if (!(cond)) { exit(EXIT_SUCCESS); }}");
 
       // implement actual harness
-      TestVector vector = testVector.get();
+      TestVector vector = completeExternalFunctions(testVector.get());
+      copyTypeDeclarations(pTarget);
       for (AFunctionDeclaration inputFunction : vector.getInputFunctions()) {
-        List<ALiteralExpression> inputValues = vector.getInputValues(inputFunction);
+        List<ARightHandSide> inputValues = vector.getInputValues(inputFunction);
         String inputFunctionVectorIndexName = inputFunction.getName() + "_index__";
         if (inputValues.size() > 1) {
           appendVectorIndexDeclaration(pTarget, inputFunctionVectorIndexName);
@@ -173,7 +193,7 @@ public class HarnessExporter {
           pTarget.append(inputFunctionVectorIndexName);
           appendln(pTarget, ") {");
           int i = 0;
-          for (ALiteralExpression value : inputValues) {
+          for (ARightHandSide value : inputValues) {
             pTarget.append("    case ");
             pTarget.append(Integer.toString(i));
             pTarget.append(": ");
@@ -181,7 +201,7 @@ public class HarnessExporter {
             appendln(pTarget, "; break;");
             ++i;
           }
-          appendln(pTarget, "}");
+          appendln(pTarget, "  }");
           pTarget.append("  ++");
           pTarget.append(inputFunctionVectorIndexName);
           appendln(pTarget, ";");
@@ -195,6 +215,75 @@ public class HarnessExporter {
       logger.log(
           Level.INFO, "Could not export a test harness, some test-vector values are missing.");
     }
+  }
+
+  private void copyTypeDeclarations(Appendable pTarget) throws IOException {
+    List<ADeclaration> declarations = new ArrayList<>();
+    CFATraversal.dfs()
+        .traverseOnce(
+            cfa.getMainFunction(),
+            new CFAVisitor() {
+
+              @Override
+              public TraversalProcess visitNode(CFANode pNode) {
+                return TraversalProcess.CONTINUE;
+              }
+
+              @Override
+              public TraversalProcess visitEdge(CFAEdge pEdge) {
+                if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+                  ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+                  ADeclaration declaration = declarationEdge.getDeclaration();
+                  if (declaration instanceof CTypeDeclaration
+                      && !isPredefinedType((CTypeDeclaration) declaration)) {
+                    declarations.add(declaration);
+                  }
+                } else if (pEdge.getEdgeType() == CFAEdgeType.BlankEdge
+                    && !pEdge.getPredecessor().equals(cfa.getMainFunction())) {
+                  return TraversalProcess.ABORT;
+                }
+                return TraversalProcess.CONTINUE;
+              }
+            });
+    for (ADeclaration declaration : declarations) {
+      appendln(pTarget, declaration.toASTString());
+    }
+  }
+
+  private TestVector completeExternalFunctions(TestVector pVector) {
+    Set<AFunctionDeclaration> externalFunctions = new HashSet<>();
+    CFAVisitor externalFunctionCollector =
+        new CFAVisitor() {
+
+          @Override
+          public TraversalProcess visitNode(CFANode pNode) {
+            return TraversalProcess.CONTINUE;
+          }
+
+          @Override
+          public TraversalProcess visitEdge(CFAEdge pEdge) {
+            if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+              ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+              ADeclaration declaration = declarationEdge.getDeclaration();
+              if (declaration instanceof AFunctionDeclaration) {
+                AFunctionDeclaration functionDeclaration = (AFunctionDeclaration) declaration;
+                if (!cfa.getAllFunctionNames().contains(functionDeclaration.getName())
+                    && !isPredefinedFunction(functionDeclaration)) {
+                  externalFunctions.add(functionDeclaration);
+                }
+              }
+            }
+            return TraversalProcess.CONTINUE;
+          }
+        };
+    CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), externalFunctionCollector);
+    TestVector result = pVector;
+    for (AFunctionDeclaration functionDeclaration :
+        Sets.difference(
+            externalFunctions, FluentIterable.from(pVector.getInputFunctions()).toSet())) {
+      result = addDummyValue(result, functionDeclaration);
+    }
+    return result;
   }
 
   private String declare(AFunctionDeclaration pInputFunction) {
@@ -339,8 +428,11 @@ public class HarnessExporter {
                 return nextState;
               }
               AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
-              if (!isMalloc(functionDeclaration) && !isMemcpy(functionDeclaration)) {
+              if (!isPredefinedFunction(functionDeclaration)) {
                 if (!isSupported(functionDeclaration)) {
+                  if (returnsPointer(functionDeclaration)) {
+                    return handlePointerCall(pPrevious, pChild, functionCallExpression);
+                  }
                   return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
                 }
                 return Optional.empty();
@@ -361,11 +453,26 @@ public class HarnessExporter {
   }
 
   private static boolean returnsPointer(AFunctionDeclaration pDeclaration) {
-    Type type = pDeclaration.getType().getReturnType();
-    if (type instanceof CType) {
-      type = ((CType) type).getCanonicalType();
-    }
+    Type type = getCanonicalType(pDeclaration.getType().getReturnType());
     return type instanceof CPointerType;
+  }
+
+  private static boolean isPredefinedFunction(@Nullable AFunctionDeclaration pDeclaration) {
+    return isMalloc(pDeclaration)
+        || isMemcpy(pDeclaration)
+        || isVerifierError(pDeclaration)
+        || isVerifierAssume(pDeclaration);
+  }
+
+  private static boolean isPredefinedType(@Nullable CTypeDeclaration pDeclaration) {
+    if (pDeclaration == null) {
+      return false;
+    }
+    String originalName = pDeclaration.getOrigName();
+    if (originalName == null) {
+      return false;
+    }
+    return originalName.equals("size_t");
   }
 
   private static boolean isMalloc(@Nullable AFunctionDeclaration pDeclaration) {
@@ -379,18 +486,28 @@ public class HarnessExporter {
   private static boolean isMemcpy(@Nullable AFunctionDeclaration pDeclaration) {
     return functionMatches(
         pDeclaration,
-        "malloc",
+        "memcpy",
         CPointerType.POINTER_TO_VOID,
         ImmutableList.of(
             Predicates.equalTo(CPointerType.POINTER_TO_VOID),
-            Predicates.equalTo(CPointerType.POINTER_TO_VOID)));
+            Predicates.equalTo(new CPointerType(false, false, CVoidType.create(true, false))),
+            HarnessExporter::isIntegerType));
+  }
+
+  private static boolean isVerifierError(@Nullable AFunctionDeclaration pDeclaration) {
+    return functionMatches(pDeclaration, "__VERIFIER_error", CVoidType.VOID, ImmutableList.of());
+  }
+
+  private static boolean isVerifierAssume(@Nullable AFunctionDeclaration pDeclaration) {
+    return functionMatches(
+        pDeclaration,
+        "__VERIFIER_assume",
+        CVoidType.VOID,
+        ImmutableList.of(HarnessExporter::isIntegerType));
   }
 
   private static boolean isIntegerType(Type pType) {
-    Type type = pType;
-    if (type instanceof CType) {
-      type = ((CType) type).getCanonicalType();
-    }
+    Type type = getCanonicalType(pType);
     if (type instanceof JSimpleType) {
       return ((JSimpleType) type).getType().isIntegerType();
     }
@@ -412,10 +529,7 @@ public class HarnessExporter {
     if (!pDeclaration.getOrigName().equals(pExpectedName)) {
       return false;
     }
-    Type actualReturnType = pDeclaration.getType().getReturnType();
-    if (actualReturnType instanceof CType) {
-      actualReturnType = ((CType) actualReturnType).getCanonicalType();
-    }
+    Type actualReturnType = getCanonicalType(pDeclaration.getType().getReturnType());
     if (!actualReturnType.equals(pExpectedReturnType)) {
       return false;
     }
@@ -424,10 +538,7 @@ public class HarnessExporter {
     }
     Iterator<Predicate<Type>> expectedParameterTypeIt = pExpectedParameterTypes.iterator();
     for (AParameterDeclaration parameterDeclaration : pDeclaration.getParameters()) {
-      Type actualParameterType = parameterDeclaration.getType();
-      if (actualParameterType instanceof CType) {
-        actualParameterType = ((CType) actualParameterType).getCanonicalType();
-      }
+      Type actualParameterType = getCanonicalType(parameterDeclaration.getType());
       if (!expectedParameterTypeIt.next().apply(actualParameterType)) {
         return false;
       }
@@ -451,7 +562,7 @@ public class HarnessExporter {
         for (AExpression assumption : automatonState.getAssumptions()) {
           Optional<ALiteralExpression> value = getOther(assumption, leftHandSide);
           if (value.isPresent()) {
-            return extendTestVector(pPrevious, argState, functionCallExpression, value);
+            return extendTestVector(pPrevious, argState, functionCallExpression, value.get());
           }
         }
       }
@@ -464,7 +575,7 @@ public class HarnessExporter {
                 .transform(AExpressionStatement::getExpression)) {
           Optional<ALiteralExpression> value = getOther(assumption, leftHandSide);
           if (value.isPresent()) {
-            return extendTestVector(pPrevious, argState, functionCallExpression, value);
+            return extendTestVector(pPrevious, argState, functionCallExpression, value.get());
           }
         }
       }
@@ -484,26 +595,108 @@ public class HarnessExporter {
     return Optional.empty();
   }
 
-  private Optional<State> extendTestVector(
+  private static Optional<State> extendTestVector(
       State pPrevious,
       ARGState pChild,
       AFunctionCallExpression functionCallExpression,
-      Optional<ALiteralExpression> value) {
+      ALiteralExpression value) {
     TestVector newTestVector =
-        pPrevious.testVector.addInputValue(functionCallExpression.getDeclaration(), value.get());
+        addValue(pPrevious.testVector, functionCallExpression.getDeclaration(), value);
     return Optional.of(State.of(pChild, newTestVector));
   }
 
-  private Optional<State> handlePlainFunctionCall(
+  private static Optional<State> handlePlainFunctionCall(
       State pPrevious, ARGState pChild, AFunctionCallExpression functionCallExpression) {
     TestVector newTestVector =
-        pPrevious.testVector.addInputValue(
-            functionCallExpression.getDeclaration(),
-            new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO));
+        addDummyValue(pPrevious.testVector, functionCallExpression.getDeclaration());
     return Optional.of(State.of(pChild, newTestVector));
   }
 
-  private Optional<ALiteralExpression> getOther(
+  private Optional<State> handlePointerCall(
+      State pPrevious, ARGState pChild, AFunctionCallExpression pFunctionCallExpression) {
+    Type expectedType = getCanonicalType(pFunctionCallExpression.getExpressionType());
+    Preconditions.checkArgument(returnsPointer(pFunctionCallExpression.getDeclaration()));
+    CType expectedTargetType = ((CPointerType) expectedType).getType();
+
+    CFunctionType type =
+        new CFunctionType(
+            false,
+            false,
+            CPointerType.POINTER_TO_VOID,
+            Collections.singletonList(CNumericTypes.INT),
+            false);
+    CFunctionDeclaration functionDeclaration =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            type,
+            "malloc",
+            Collections.singletonList(
+                new CParameterDeclaration(
+                    FileLocation.DUMMY, CPointerType.POINTER_TO_VOID, "size")));
+    final CExpression size;
+    if (expectedTargetType.equals(CVoidType.VOID)) {
+      size =
+          new CIntegerLiteralExpression(
+              FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, BigInteger.valueOf(4096));
+    } else {
+      size =
+          new CTypeIdExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.UNSIGNED_INT,
+              CTypeIdExpression.TypeIdOperator.SIZEOF,
+              expectedTargetType);
+    }
+    TestVector newTestVector =
+        addValue(
+            pPrevious.testVector,
+            pFunctionCallExpression.getDeclaration(),
+            new CFunctionCallExpression(
+                FileLocation.DUMMY,
+                CPointerType.POINTER_TO_VOID,
+                new CIdExpression(FileLocation.DUMMY, functionDeclaration),
+                Collections.<CExpression>singletonList(size),
+                functionDeclaration));
+    return Optional.of(State.of(pChild, newTestVector));
+  }
+
+  private static TestVector addDummyValue(
+      TestVector pTestVector, AFunctionDeclaration pFunctionDeclaration) {
+    AExpression value =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, BigInteger.ZERO);
+    return addValue(pTestVector, pFunctionDeclaration, value);
+  }
+
+  private static TestVector addValue(
+      TestVector pTestVector, AFunctionDeclaration pFunctionDeclaration, ARightHandSide pValue) {
+    ARightHandSide value = pValue;
+    Type expectedReturnType = getCanonicalType(pFunctionDeclaration.getType().getReturnType());
+    Type actualType = getCanonicalType(value.getExpressionType());
+    if (!actualType.equals(expectedReturnType)) {
+      if (value instanceof CExpression && expectedReturnType instanceof CType) {
+        if ((expectedReturnType instanceof CPointerType
+                && !expectedReturnType.equals(CPointerType.POINTER_TO_VOID))
+            || (actualType instanceof CPointerType
+                && !actualType.equals(CPointerType.POINTER_TO_VOID))) {
+          value =
+              new CCastExpression(
+                  pValue.getFileLocation(), CPointerType.POINTER_TO_VOID, (CExpression) value);
+        }
+        value =
+            new CCastExpression(
+                pValue.getFileLocation(),
+                (CType) pFunctionDeclaration.getType().getReturnType(),
+                (CExpression) value);
+      } else if (value instanceof JExpression && expectedReturnType instanceof JType) {
+        value =
+            new JCastExpression(
+                pValue.getFileLocation(), (JType) expectedReturnType, (JExpression) value);
+      }
+    }
+    return pTestVector.addInputValue(pFunctionDeclaration, value);
+  }
+
+  private static Optional<ALiteralExpression> getOther(
       AExpression pAssumption, ALeftHandSide pLeftHandSide) {
     if (!(pAssumption instanceof ABinaryExpression)) {
       return Optional.empty();
@@ -576,7 +769,7 @@ public class HarnessExporter {
     appendln(pTarget, ";");
   }
 
-  private void appendAssignment(Appendable pTarget, String pRetvalName, ALiteralExpression pValue)
+  private void appendAssignment(Appendable pTarget, String pRetvalName, ARightHandSide pValue)
       throws IOException {
     pTarget.append(pRetvalName);
     pTarget.append(" = ");
@@ -586,5 +779,12 @@ public class HarnessExporter {
   private static void appendln(Appendable pAppendable, String pLine) throws IOException {
     pAppendable.append(pLine);
     pAppendable.append(System.lineSeparator());
+  }
+
+  private static Type getCanonicalType(Type pType) {
+    if (pType instanceof CType) {
+      return ((CType) pType).getCanonicalType();
+    }
+    return pType;
   }
 }
