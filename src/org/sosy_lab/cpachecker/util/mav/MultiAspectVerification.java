@@ -39,6 +39,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.defaults.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -95,6 +96,10 @@ public class MultiAspectVerification {
   @Option(secure=true, name="assertTimeLimit",
       description="time limit for each assert in MAV")
   private int assertTimeLimit = 0;
+
+  @Option(secure=true, name="divideTimePerPropertyEqually",
+      description="divide all given resources per each property equally in MAV")
+  private boolean divideTimePerPropertyEqually = false;
 
   @Option(secure=true, name="idleIntervalTimeLimit",
       description="time limit for idle intervals in MAV (hard time limit)")
@@ -192,7 +197,6 @@ public class MultiAspectVerification {
 
   /**
    * Adds Adjustable precision to the current checked specification.
-   * @param pPredicatePrecision
    */
   public void addPrecision(AdjustablePrecision addedPrecision) {
     if (currentSpecificationKey == null)
@@ -404,9 +408,6 @@ public class MultiAspectVerification {
 
   /**
    * Get Precision of selected class.
-   * @param specificationKey
-   * @param pPrecisionType
-   * @return
    */
   public AdjustablePrecision getPrecision(SpecificationKey specificationKey,
       Class<? extends AdjustablePrecision> pPrecisionType) {
@@ -424,8 +425,6 @@ public class MultiAspectVerification {
 
   /**
    * Create specification key by known target state.
-   * @param targetState
-   * @return
    */
   public SpecificationKey getViolatedSpecification(AutomatonState targetState) {
     SpecificationKey specificationKey = null;
@@ -496,6 +495,11 @@ public class MultiAspectVerification {
   }
 
   public void startTimers() throws CPAException {
+    if (divideTimePerPropertyEqually) {
+      @SuppressWarnings("deprecation")
+      TimeSpan cpuTimeLimit = TimeSpan.valueOf(config.getProperty("limits.time.cpu"));
+      assertTimeLimit = (int) (cpuTimeLimit.asSeconds() / ruleSpecifications.size());
+    }
     try {
       previousCpuTimeMeasurement = ProcessCpuTime.read();
     } catch (JMException e) {

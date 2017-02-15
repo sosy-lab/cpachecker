@@ -80,7 +80,6 @@ public class ConditionalMAVListener implements AnalysisListener {
    * Hard Time Limit (HTL) - starts after the exhaustion of any "soft" time limit (for example, ATL or STL)
    * and sets limit on selecting new specification to check;
    * in case of exhaustion CPAchecker will be terminated with global verdict 'UNKNOWN'.
-   * @throws CPAException
    */
   @Override
   public void beforeAbstractionStep(ReachedSet reachedSet) throws CPAException {
@@ -308,12 +307,6 @@ public class ConditionalMAVListener implements AnalysisListener {
 
   /**
    * Perform required actions to stop checking this specification.
-   * @param specificationStatus
-   * @param pReached
-   * @param reached
-   * @param path
-   * @param specificationKey
-   * @throws CPAException
    */
   private void stopCheckingSpecification(SpecificationStatus specificationStatus,
       ReachedSet pReached,

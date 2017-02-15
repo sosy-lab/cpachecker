@@ -308,7 +308,6 @@ public class CPAchecker {
           GlobalInfo.getInstance().storeCFA(cfa);
           shutdownNotifier.shutdownIfNecessary();
 
-          AnalysisNotifier.getInstance().onStartAnalysis(cfa);
           ConfigurableProgramAnalysis cpa;
           Specification specification;
           stats.cpaCreationTime.start();
@@ -354,6 +353,7 @@ public class CPAchecker {
         // run analysis
         result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
+        AnalysisNotifier.getInstance().onStartAnalysis(cfa);
         AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
         programNeverTerminates = status.isProramNeverTerminating();
 
