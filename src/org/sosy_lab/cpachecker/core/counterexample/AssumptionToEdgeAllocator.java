@@ -2214,6 +2214,10 @@ public class AssumptionToEdgeAllocator {
           bitOffset = bitOffset.add(fieldSizeInBits);
         }
       }
+    } else if (ownerType.getKind() == ComplexTypeKind.UNION) {
+      for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
+        result.put(pKeyFunction.apply(typeMember), BigInteger.ZERO);
+      }
     }
     return result;
   }

@@ -345,6 +345,10 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         }
       }
 
+      if (membersOfType.stream().anyMatch(m -> m.getName().equals(fieldName))) {
+        return 0;
+      }
+
       return null;
     }
 
