@@ -32,7 +32,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.math.IntMath;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -73,16 +81,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalInt;
-import java.util.Set;
 
 
 public class AssignmentToPathAllocator {
@@ -153,8 +151,6 @@ public class AssignmentToPathAllocator {
       shutdownNotifier.shutdownIfNecessary();
       CFAEdge cfaEdge = pathIt.getOutgoingEdge();
 
-      // TODO is all this copying really necessary?
-      variables = new HashMap<>(variables);
       memory = new HashMap<>(memory);
       variableEnvironment = new HashMap<>(variableEnvironment);
       functionEnvironment = HashMultimap.create(functionEnvironment);
@@ -163,43 +159,36 @@ public class AssignmentToPathAllocator {
 
       SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
-      boolean hasNextPositionAState;
+      boolean isInsideMultiEdge;
 
       if (pathIt.hasNext()) {
         pathIt.advance();
-        hasNextPositionAState = pathIt.isPositionWithState();
+        isInsideMultiEdge = !pathIt.isPositionWithState();
         pathIt.rewind();
       } else {
-        hasNextPositionAState = false;
+        isInsideMultiEdge = false;
       }
 
-      if (!hasNextPositionAState) {
-        pathWithAssignments.add(
-            createIntermediateConcreteStateNode(
-                cfaEdge,
-                pSSAMaps.get(ssaMapIndex),
-                variableEnvironment,
-                variables,
-                functionEnvironment,
-                memory,
-                addressOfVariables,
-                terms,
-                evaluator));
+      ConcreteState concreteState =
+          createConcreteState(
+              ssaMap,
+              variableEnvironment,
+              variables,
+              functionEnvironment,
+              memory,
+              addressOfVariables,
+              terms,
+              evaluator);
 
-        // we are on a normal position in the ARG (state is available)
+      final SingleConcreteState singleConcreteState;
+      if (isInsideMultiEdge) {
+        // we are in a multi-edge
+        singleConcreteState = new IntermediateConcreteState(cfaEdge, concreteState);
       } else {
-        pathWithAssignments.add(
-            createSingleConcreteStateNode(
-                cfaEdge,
-                ssaMap,
-                variableEnvironment,
-                variables,
-                functionEnvironment,
-                memory,
-                addressOfVariables,
-                terms,
-                evaluator));
+        // we are on a normal position in the ARG (state is available)
+        singleConcreteState = new SingleConcreteState(cfaEdge, concreteState);
       }
+      pathWithAssignments.add(singleConcreteState);
       ssaMapIndex++;
 
       pathIt.advance();
@@ -388,26 +377,7 @@ public class AssignmentToPathAllocator {
     }
   }
 
-  private ConcreteStatePathNode createSingleConcreteStateNode(
-      CFAEdge cfaEdge, SSAMap ssaMap,
-      Map<String, ValueAssignment> variableEnvoirment,
-      Map<LeftHandSide, Object> variables,
-      Multimap<String, ValueAssignment> functionEnvoirment,
-      Map<String, Map<Address, Object>> memory,
-      Map<LeftHandSide, Address> addressOfVariables,
-      Collection<ValueAssignment> terms, ConcreteExpressionEvaluator pEvaluator) {
-
-    Map<String, Memory> allocatedMemory =
-        createConcreteStateNode0(
-            ssaMap, variableEnvoirment, variables, functionEnvoirment, memory, terms);
-
-    return new SingleConcreteState(
-        cfaEdge,
-        new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator));
-  }
-
-  private ConcreteStatePathNode createIntermediateConcreteStateNode(
-      CFAEdge cfaEdge,
+  private ConcreteState createConcreteState(
       SSAMap ssaMap,
       Map<String, ValueAssignment> variableEnvoirment,
       Map<LeftHandSide, Object> variables,
@@ -417,30 +387,12 @@ public class AssignmentToPathAllocator {
       Collection<ValueAssignment> terms,
       ConcreteExpressionEvaluator pEvaluator) {
 
-    Map<String, Memory> allocatedMemory =
-        createConcreteStateNode0(
-            ssaMap, variableEnvoirment, variables, functionEnvoirment, memory, terms);
-
-    return new IntermediateConcreteState(
-        cfaEdge,
-        new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator));
-  }
-
-  private Map<String, Memory> createConcreteStateNode0(
-      SSAMap ssaMap,
-      Map<String, ValueAssignment> variableEnvoirment,
-      Map<LeftHandSide, Object> variables,
-      Multimap<String, ValueAssignment> functionEnvoirment,
-      Map<String, Map<Address, Object>> memory,
-      Collection<ValueAssignment> terms) {
-    Set<ValueAssignment> termSet = new HashSet<>();
-
-    createAssignments(terms, termSet, variableEnvoirment, variables, functionEnvoirment, memory);
-
+    createAssignments(terms, variableEnvoirment, variables, functionEnvoirment, memory);
     removeDeallocatedVariables(ssaMap, variableEnvoirment);
-
     Map<String, Memory> allocatedMemory = createAllocatedMemory(memory);
-    return allocatedMemory;
+
+    return new ConcreteState(
+        variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator);
   }
 
   private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
@@ -510,7 +462,6 @@ public class AssignmentToPathAllocator {
    */
   private void createAssignments(
       Collection<ValueAssignment> terms,
-      Set<ValueAssignment> termSet,
       Map<String, ValueAssignment> variableEnvironment,
       Map<LeftHandSide, Object> pVariables,
       Multimap<String, ValueAssignment> functionEnvironment,
@@ -578,7 +529,6 @@ public class AssignmentToPathAllocator {
           addHeapValue(memory, term);
         }
       }
-      termSet.add(term);
     }
   }
 
