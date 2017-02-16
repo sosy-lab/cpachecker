@@ -84,6 +84,10 @@ class TestVector {
     return currentValues;
   }
 
+  public boolean contains(AFunctionDeclaration pFunctionDeclaration) {
+    return inputFunctionValues.containsKey(new ComparableFunctionDeclaration(pFunctionDeclaration));
+  }
+
   @Override
   public int hashCode() {
     return inputFunctionValues.hashCode();
@@ -150,8 +154,8 @@ class TestVector {
               upcast(pOther.declaration.getParameters(), AParameterDeclaration.class),
               PARAMETER_ORDERING.lexicographical())
           .compare(
-              declaration.getType().getReturnType(),
-              pOther.declaration.getType().getReturnType(),
+              PredefinedTypes.getCanonicalType(declaration.getType().getReturnType()),
+              PredefinedTypes.getCanonicalType(pOther.declaration.getType().getReturnType()),
               Ordering.usingToString())
           .compareFalseFirst(declaration.isGlobal(), pOther.declaration.isGlobal())
           .result();

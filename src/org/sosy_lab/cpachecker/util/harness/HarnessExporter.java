@@ -282,7 +282,8 @@ public class HarnessExporter {
               if (declaration instanceof AFunctionDeclaration) {
                 AFunctionDeclaration functionDeclaration = (AFunctionDeclaration) declaration;
                 if (!cfa.getAllFunctionNames().contains(functionDeclaration.getName())
-                    && !isPredefinedFunction(functionDeclaration)) {
+                    && !isPredefinedFunction(functionDeclaration)
+                    && !pVector.contains(functionDeclaration)) {
                   externalFunctions.add(functionDeclaration);
                 }
               }
@@ -292,9 +293,7 @@ public class HarnessExporter {
         };
     CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), externalFunctionCollector);
     TestVector result = pVector;
-    for (AFunctionDeclaration functionDeclaration :
-        Sets.difference(
-            externalFunctions, FluentIterable.from(pVector.getInputFunctions()).toSet())) {
+    for (AFunctionDeclaration functionDeclaration : externalFunctions) {
       result = addDummyValue(result, functionDeclaration);
     }
     return result;
