@@ -526,7 +526,7 @@ public class HarnessExporter {
     return functionMatches(
         pDeclaration,
         "memset",
-        CVoidType.VOID,
+        CPointerType.POINTER_TO_VOID,
         ImmutableList.of(
             Predicates.equalTo(CPointerType.POINTER_TO_VOID),
             HarnessExporter::isIntegerType,
