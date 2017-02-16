@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.harness;
 
+import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.getCanonicalType;
+import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedFunction;
+import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedType;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -40,7 +43,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -102,7 +104,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -481,136 +482,6 @@ public class HarnessExporter {
     return type instanceof CCompositeType;
   }
 
-  private static boolean isPredefinedFunction(@Nullable AFunctionDeclaration pDeclaration) {
-    return isMalloc(pDeclaration)
-        || isMemcpy(pDeclaration)
-        || isMemset(pDeclaration)
-        || isFree(pDeclaration)
-        || isExit(pDeclaration)
-        || isPrintf(pDeclaration)
-        || isVerifierError(pDeclaration)
-        || isVerifierAssume(pDeclaration);
-  }
-
-  private static boolean isPredefinedType(@Nullable CTypeDeclaration pDeclaration) {
-    if (pDeclaration == null) {
-      return false;
-    }
-    String originalName = pDeclaration.getOrigName();
-    if (originalName == null) {
-      return false;
-    }
-    return originalName.equals("size_t");
-  }
-
-  private static boolean isMalloc(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
-        pDeclaration,
-        "malloc",
-        CPointerType.POINTER_TO_VOID,
-        Collections.singletonList(HarnessExporter::isIntegerType));
-  }
-
-  private static boolean isMemcpy(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
-        pDeclaration,
-        "memcpy",
-        CPointerType.POINTER_TO_VOID,
-        ImmutableList.of(
-            Predicates.equalTo(CPointerType.POINTER_TO_VOID),
-            Predicates.equalTo(new CPointerType(false, false, CVoidType.create(true, false))),
-            HarnessExporter::isIntegerType));
-  }
-
-  private static boolean isMemset(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
-        pDeclaration,
-        "memset",
-        CPointerType.POINTER_TO_VOID,
-        ImmutableList.of(
-            Predicates.equalTo(CPointerType.POINTER_TO_VOID),
-            HarnessExporter::isIntegerType,
-            HarnessExporter::isIntegerType));
-  }
-
-  private static boolean isFree(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
-        pDeclaration,
-        "free",
-        CVoidType.VOID,
-        Collections.singletonList(Predicates.equalTo(CPointerType.POINTER_TO_VOID)));
-  }
-
-  private static boolean isExit(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
-        pDeclaration,
-        "exit",
-        CVoidType.VOID,
-        Collections.singletonList(HarnessExporter::isIntegerType));
-  }
-
-  private static boolean isPrintf(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
-        pDeclaration,
-        "printf",
-        CNumericTypes.INT,
-        ImmutableList.of(
-            Predicates.equalTo(
-                new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false)))));
-  }
-
-  private static boolean isVerifierError(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(pDeclaration, "__VERIFIER_error", CVoidType.VOID, ImmutableList.of());
-  }
-
-  private static boolean isVerifierAssume(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
-        pDeclaration,
-        "__VERIFIER_assume",
-        CVoidType.VOID,
-        ImmutableList.of(HarnessExporter::isIntegerType));
-  }
-
-  private static boolean isIntegerType(Type pType) {
-    Type type = getCanonicalType(pType);
-    if (type instanceof JSimpleType) {
-      return ((JSimpleType) type).getType().isIntegerType();
-    }
-    if (type instanceof CSimpleType) {
-      return ((CSimpleType) type).getType().isIntegerType();
-    }
-    assert false : "Unsupported type: " + pType;
-    return false;
-  }
-
-  private static boolean functionMatches(
-      @Nullable AFunctionDeclaration pDeclaration,
-      String pExpectedName,
-      Type pExpectedReturnType,
-      List<Predicate<Type>> pExpectedParameterTypes) {
-    if (pDeclaration == null) {
-      return false;
-    }
-    if (!pDeclaration.getOrigName().equals(pExpectedName)) {
-      return false;
-    }
-    Type actualReturnType = getCanonicalType(pDeclaration.getType().getReturnType());
-    if (!actualReturnType.equals(getCanonicalType(pExpectedReturnType))) {
-      return false;
-    }
-    if (pDeclaration.getParameters().size() != pExpectedParameterTypes.size()) {
-      return false;
-    }
-    Iterator<Predicate<Type>> expectedParameterTypeIt = pExpectedParameterTypes.iterator();
-    for (AParameterDeclaration parameterDeclaration : pDeclaration.getParameters()) {
-      Type actualParameterType = getCanonicalType(parameterDeclaration.getType());
-      if (!expectedParameterTypeIt.next().apply(actualParameterType)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   private Optional<State> handleFunctionCallAssignment(
       CFAEdge pEdge,
       State pPrevious,
@@ -871,12 +742,5 @@ public class HarnessExporter {
     public static State of(ARGState pARGState, TestVector pTestVector) {
       return new State(pARGState, pTestVector);
     }
-  }
-
-  private static Type getCanonicalType(Type pType) {
-    if (pType instanceof CType) {
-      return ((CType) pType).getCanonicalType();
-    }
-    return pType;
   }
 }
