@@ -91,39 +91,42 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     try {
       Files.createDirectories(dir);
 
-    try (final OutputStream fos = Files.newOutputStream(proofFile);
-        final ZipOutputStream zos = new ZipOutputStream(fos)) {
-      zos.setLevel(9);
+      try (final OutputStream fos = Files.newOutputStream(proofFile);
+          final ZipOutputStream zos = new ZipOutputStream(fos)) {
+        zos.setLevel(9);
 
-      ZipEntry ze = new ZipEntry("Proof");
-      zos.putNextEntry(ze);
-      ObjectOutputStream o = new ObjectOutputStream(zos);
-      //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
-      //write ARG
-      writeProofToStream(o, pReached);
-      o.flush();
-      zos.closeEntry();
-
-   // write additional proof information
-      int index = 0;
-      boolean continueWriting;
-      do{
-        ze = new ZipEntry("Additional "+index);
+        ZipEntry ze = new ZipEntry("Proof");
         zos.putNextEntry(ze);
-        o = new ObjectOutputStream(zos);
-        continueWriting = writeAdditionalProofStream(o);
+        ObjectOutputStream o = new ObjectOutputStream(zos);
+        //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
+        //write ARG
+        writeProofToStream(o, pReached);
         o.flush();
         zos.closeEntry();
-        index++;
-      }while (continueWriting);
 
-    } catch (NotSerializableException eS) {
-      logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
-    }  catch (InvalidConfigurationException e) {
-      logger.log(Level.SEVERE, "Proof cannot be constructed due to conflicting configuration.", e.getMessage());
-    } catch (InterruptedException e) {
-      logger.log(Level.SEVERE, "Proof cannot be written due to time out during proof construction");
-    }
+        // write additional proof information
+        int index = 0;
+        boolean continueWriting;
+        do {
+          ze = new ZipEntry("Additional " + index);
+          zos.putNextEntry(ze);
+          o = new ObjectOutputStream(zos);
+          continueWriting = writeAdditionalProofStream(o);
+          o.flush();
+          zos.closeEntry();
+          index++;
+        } while (continueWriting);
+
+      } catch (NotSerializableException eS) {
+        logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage()
+            + " does not implement Serializable interface");
+      } catch (InvalidConfigurationException e) {
+        logger.log(Level.SEVERE, "Proof cannot be constructed due to conflicting configuration.",
+            e.getMessage());
+      } catch (InterruptedException e) {
+        logger.log(Level.SEVERE,
+            "Proof cannot be written due to time out during proof construction");
+      }
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
