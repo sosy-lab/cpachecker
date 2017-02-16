@@ -86,7 +86,6 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     shutdown = pShutdownNotifier;
     cpaBuilder = new PartialCPABuilder(pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
     automatonWriter = new AssumptionAutomatonGenerator(pConfig, pLogger);
-    proofFile = pProofFile;
   }
 
   @Override
