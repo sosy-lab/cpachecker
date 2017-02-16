@@ -205,6 +205,9 @@ analysis.mav.assertTimeLimit = 0
 # time limit for all intervals in MAV algorithm
 analysis.mav.basicIntervalTimeLimit = 0
 
+# divide all given resources per each property equally in MAV
+analysis.mav.divideTimePerPropertyEqually = false
+
 # time limit for idle intervals in MAV (hard time limit)
 analysis.mav.firstIntervalTimeLimit = 0
 analysis.mav.idleIntervalTimeLimit = 0
