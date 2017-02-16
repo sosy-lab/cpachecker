@@ -18,8 +18,10 @@ do
   ARGS+=("$arg")
   file="$arg"
 done # store last argument into $file
-output_path='output'
 
+# Use 32 bit as default since CPAchecker's default is 32bit
+gcc_machine_model_arg="-m32"
+output_path='output'
 while [[ $# -gt 0 ]]
 do
 key="$1"
@@ -27,6 +29,12 @@ case $key in
     -outputpath)
     output_path="$2"
     shift
+    ;;
+    -32)
+    gcc_machine_model_arg="-m32"
+    ;;
+    -64)
+    gcc_machine_model_arg="-m64"
     ;;
     -spec|-config|-cp|-classpath|-cpas|-entryfunction|-logfile|-outputpath|-setprop|-sourcepath|-timelimit|-witness)
     shift
@@ -43,14 +51,15 @@ esac
 shift # past argument or value
 done
 
+GCCARGS_GLOBAL=("$gcc_machine_model_arg" "-o" "${output_path}/test_suite")
+
 harness_gen_output=`"$CPA_EXEC" "${ARGS[@]}"`
 harnesses=`find $output_path -name '*harness.c'` 
 echo "`count $harnesses` harnesses for witness."  
 for harness in $harnesses; do
   echo "Looking at $harness"
 
-  GCCARGS=("-o" "${output_path}/test_suite" "$harness" "$file")
-
+  GCCARGS=(${GCCARGS_GLOBAL[@]} "$harness" "$file")
   gcc -std=c11 "${GCCARGS[@]}"
   test_return=$?
   if [[ test_return -ne 0 ]]; then
