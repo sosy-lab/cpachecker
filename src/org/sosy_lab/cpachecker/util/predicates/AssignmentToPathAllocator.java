@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -33,10 +34,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.math.IntMath;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -411,26 +412,34 @@ public class AssignmentToPathAllocator {
 
     //TODO ugly, refactor (no splitting)
 
-    String[] references = pTermName.split("$");
-    String nameAndFunctionAsString = references[NAME_AND_FUNCTION];
+    List<String> references = ImmutableList.copyOf(Splitter.on('$').split(pTermName));
+    String nameAndFunctionAsString = references.get(NAME_AND_FUNCTION);
 
-    String[] nameAndFunction = nameAndFunctionAsString.split("::");
+    List<String> nameAndFunction = ImmutableList.copyOf(Splitter.on("::").split(nameAndFunctionAsString));
 
     String name;
     String function = null;
-    boolean isNotGlobal = nameAndFunction.length == IS_NOT_GLOBAL;
-    boolean isReference = references.length > IS_FIELD_REFERENCE;
+    boolean isNotGlobal = nameAndFunction.size() == IS_NOT_GLOBAL;
+    boolean isReference = references.size() > IS_FIELD_REFERENCE;
 
     if (isNotGlobal) {
-      function = nameAndFunction[0];
-      name = nameAndFunction[1];
+      function = nameAndFunction.get(0);
+      name = nameAndFunction.get(1);
     } else {
-      name = nameAndFunction[0];
+      name = nameAndFunction.get(0);
     }
 
     if (isReference) {
-      List<String> fieldNames = Arrays.asList(references);
-      fieldNames.remove(NAME_AND_FUNCTION);
+      List<String> fieldNames = new ArrayList<>(references.size() - 1);
+      Iterator<String> fieldNameIterator = references.iterator();
+      int i = 0;
+      while (fieldNameIterator.hasNext()) {
+        String fieldName = fieldNameIterator.next();
+        if (i != NAME_AND_FUNCTION) {
+          fieldNames.add(fieldName);
+        }
+        ++i;
+      }
 
       if (isNotGlobal) {
         return new FieldReference(name, function, fieldNames);
