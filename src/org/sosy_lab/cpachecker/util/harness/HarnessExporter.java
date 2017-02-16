@@ -466,6 +466,7 @@ public class HarnessExporter {
   private static boolean isPredefinedFunction(@Nullable AFunctionDeclaration pDeclaration) {
     return isMalloc(pDeclaration)
         || isMemcpy(pDeclaration)
+        || isMemset(pDeclaration)
         || isFree(pDeclaration)
         || isExit(pDeclaration)
         || isPrintf(pDeclaration)
@@ -500,6 +501,17 @@ public class HarnessExporter {
         ImmutableList.of(
             Predicates.equalTo(CPointerType.POINTER_TO_VOID),
             Predicates.equalTo(new CPointerType(false, false, CVoidType.create(true, false))),
+            HarnessExporter::isIntegerType));
+  }
+
+  private static boolean isMemset(@Nullable AFunctionDeclaration pDeclaration) {
+    return functionMatches(
+        pDeclaration,
+        "memset",
+        CVoidType.VOID,
+        ImmutableList.of(
+            Predicates.equalTo(CPointerType.POINTER_TO_VOID),
+            HarnessExporter::isIntegerType,
             HarnessExporter::isIntegerType));
   }
 
