@@ -89,7 +89,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     Path dir = proofFile.getParent();
 
     try {
-      Files.createDirectories(dir);
+      if (dir != null) {
+        Files.createDirectories(dir);
+      }
 
       try (final OutputStream fos = Files.newOutputStream(proofFile);
           final ZipOutputStream zos = new ZipOutputStream(fos)) {
