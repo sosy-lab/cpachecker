@@ -32,9 +32,9 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class TestVector {
@@ -53,7 +53,7 @@ class TestVector {
     inputFunctionValues = pInputFunctionValues;
   }
 
-  public TestVector addInputValue(AFunctionDeclaration pFunction, ARightHandSide pValue) {
+  public TestVector addInputValue(AFunctionDeclaration pFunction, AExpression pValue) {
     return addInputValue(pFunction, TestValue.of(pValue));
   }
 

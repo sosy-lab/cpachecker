@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -557,7 +556,7 @@ public class HarnessExporter {
     CType expectedTargetType = expectedPointerType.getType();
 
     TestValue pointerValue = assignMallocToTmpVariable(expectedTargetType);
-    ARightHandSide value = castIfNecessary(declaration, (AExpression) pointerValue.getValue());
+    AExpression value = castIfNecessary(declaration, pointerValue.getValue());
 
     TestVector newTestVector =
         pPrevious.testVector.addInputValue(
@@ -651,7 +650,7 @@ public class HarnessExporter {
 
   private static TestVector addValue(
       TestVector pTestVector, AFunctionDeclaration pFunctionDeclaration, AExpression pValue) {
-    ARightHandSide value = castIfNecessary(pFunctionDeclaration, pValue);
+    AExpression value = castIfNecessary(pFunctionDeclaration, pValue);
     return pTestVector.addInputValue(pFunctionDeclaration, value);
   }
 

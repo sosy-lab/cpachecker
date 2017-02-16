@@ -29,15 +29,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 class TestValue {
 
   private final ImmutableList<AAstNode> auxiliaryStatements;
 
-  private final ARightHandSide value;
+  private final AExpression value;
 
-  private TestValue(ImmutableList<AAstNode> pAuxiliaryStatements, ARightHandSide pValue) {
+  private TestValue(ImmutableList<AAstNode> pAuxiliaryStatements, AExpression pValue) {
     auxiliaryStatements = pAuxiliaryStatements;
     value = pValue;
   }
@@ -46,7 +46,7 @@ class TestValue {
     return auxiliaryStatements;
   }
 
-  public ARightHandSide getValue() {
+  public AExpression getValue() {
     return value;
   }
 
@@ -79,11 +79,11 @@ class TestValue {
     return false;
   }
 
-  public static TestValue of(ARightHandSide pValue) {
+  public static TestValue of(AExpression pValue) {
     return of(Collections.emptyList(), pValue);
   }
 
-  public static TestValue of(List<AAstNode> pAuxiliaryStatments, ARightHandSide pValue) {
+  public static TestValue of(List<AAstNode> pAuxiliaryStatments, AExpression pValue) {
     return new TestValue(ImmutableList.copyOf(pAuxiliaryStatments), pValue);
   }
 
