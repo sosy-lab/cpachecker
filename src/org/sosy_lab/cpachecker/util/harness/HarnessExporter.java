@@ -175,40 +175,42 @@ public class HarnessExporter {
       copyTypeDeclarations(pTarget);
       for (AFunctionDeclaration inputFunction : vector.getInputFunctions()) {
         List<ARightHandSide> inputValues = vector.getInputValues(inputFunction);
-        String inputFunctionVectorIndexName = inputFunction.getName() + "_index__";
-        if (inputValues.size() > 1) {
-          appendVectorIndexDeclaration(pTarget, inputFunctionVectorIndexName);
-        }
+        Type returnType = inputFunction.getType().getReturnType();
         pTarget.append(declare(inputFunction));
         appendln(pTarget, " {");
-        Type returnType = inputFunction.getType().getReturnType();
-        pTarget.append("  ");
-        appendDeclaration(pTarget, returnType, RETVAL_NAME);
-        if (inputValues.size() == 1) {
-          pTarget.append("  ");
-          appendAssignment(pTarget, RETVAL_NAME, inputValues.iterator().next());
-          appendln(pTarget, ";");
-        } else if (inputValues.size() > 1) {
-          pTarget.append("  switch (");
-          pTarget.append(inputFunctionVectorIndexName);
-          appendln(pTarget, ") {");
-          int i = 0;
-          for (ARightHandSide value : inputValues) {
-            pTarget.append("    case ");
-            pTarget.append(Integer.toString(i));
-            pTarget.append(": ");
-            appendAssignment(pTarget, RETVAL_NAME, value);
-            appendln(pTarget, "; break;");
-            ++i;
+        if (!returnType.equals(CVoidType.VOID)) {
+          String inputFunctionVectorIndexName = inputFunction.getName() + "_index__";
+          if (inputValues.size() > 1) {
+            appendVectorIndexDeclaration(pTarget, inputFunctionVectorIndexName);
           }
-          appendln(pTarget, "  }");
-          pTarget.append("  ++");
-          pTarget.append(inputFunctionVectorIndexName);
+          pTarget.append("  ");
+          appendDeclaration(pTarget, returnType, RETVAL_NAME);
+          if (inputValues.size() == 1) {
+            pTarget.append("  ");
+            appendAssignment(pTarget, RETVAL_NAME, inputValues.iterator().next());
+            appendln(pTarget, ";");
+          } else if (inputValues.size() > 1) {
+            pTarget.append("  switch (");
+            pTarget.append(inputFunctionVectorIndexName);
+            appendln(pTarget, ") {");
+            int i = 0;
+            for (ARightHandSide value : inputValues) {
+              pTarget.append("    case ");
+              pTarget.append(Integer.toString(i));
+              pTarget.append(": ");
+              appendAssignment(pTarget, RETVAL_NAME, value);
+              appendln(pTarget, "; break;");
+              ++i;
+            }
+            appendln(pTarget, "  }");
+            pTarget.append("  ++");
+            pTarget.append(inputFunctionVectorIndexName);
+            appendln(pTarget, ";");
+          }
+          pTarget.append("  return ");
+          pTarget.append(RETVAL_NAME);
           appendln(pTarget, ";");
         }
-        pTarget.append("  return ");
-        pTarget.append(RETVAL_NAME);
-        appendln(pTarget, ";");
         appendln(pTarget, "}");
       }
     } else {
