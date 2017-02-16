@@ -60,10 +60,14 @@ for harness in $harnesses; do
   echo "Looking at $harness"
 
   GCCARGS=(${GCCARGS_GLOBAL[@]} "$harness" "$file")
-  gcc -std=c11 "${GCCARGS[@]}"
+  GCC_CMD="gcc -std=c11 ${GCCARGS[@]}"
+  echo "$GCC_CMD"
+  $GCC_CMD
   test_return=$?
   if [[ test_return -ne 0 ]]; then
-    gcc -std=c90 "${GCCARGS[@]}"
+    GCC_CMD="gcc -std=c90 ${GCCARGS[@]}"
+    echo "$GCC_CMD"
+    $GCC_CMD
   fi
 
   ${output_path}/test_suite > ${output_path}/stdout.txt 2> ${output_path}/stderr.txt
