@@ -70,16 +70,22 @@ import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
@@ -91,11 +97,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
@@ -164,55 +172,58 @@ public class HarnessExporter {
             pRootState, pIsRelevantState, pIsRelevantEdge, getValueMap(pCounterexampleInfo));
     if (testVector.isPresent()) {
 
+      CodeAppender codeAppender = new CodeAppender(pTarget);
+
       // #include <stdlib.h> for exit function
-      appendln(pTarget, "#include <stdlib.h>");
+      codeAppender.appendln("#include <stdlib.h>");
       // implement __VERIFIER_error with exit(EXIT_FAILURE)
-      appendln(pTarget, "void __VERIFIER_error(void) { exit(" + ERR_REACHED_CODE + "); }");
+      codeAppender.appendln("void __VERIFIER_error(void) { exit(" + ERR_REACHED_CODE + "); }");
       // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
-      appendln(pTarget, "void __VERIFIER_assume(int cond) { if (!(cond)) { exit(EXIT_SUCCESS); }}");
+      codeAppender.appendln(
+          "void __VERIFIER_assume(int cond) { if (!(cond)) { exit(EXIT_SUCCESS); }}");
 
       // implement actual harness
       TestVector vector = completeExternalFunctions(testVector.get());
-      copyTypeDeclarations(pTarget);
+      copyTypeDeclarations(codeAppender);
       for (AFunctionDeclaration inputFunction : vector.getInputFunctions()) {
-        List<ARightHandSide> inputValues = vector.getInputValues(inputFunction);
+        List<TestValue> inputValues = vector.getInputValues(inputFunction);
         Type returnType = inputFunction.getType().getReturnType();
-        pTarget.append(declare(inputFunction));
-        appendln(pTarget, " {");
+        codeAppender.append(declare(inputFunction));
+        codeAppender.appendln(" {");
         if (!returnType.equals(CVoidType.VOID)) {
           String inputFunctionVectorIndexName = inputFunction.getName() + "_index__";
           if (inputValues.size() > 1) {
-            appendVectorIndexDeclaration(pTarget, inputFunctionVectorIndexName);
+            codeAppender.appendVectorIndexDeclaration(inputFunctionVectorIndexName);
           }
-          pTarget.append("  ");
-          appendDeclaration(pTarget, returnType, RETVAL_NAME);
+          codeAppender.append("  ");
+          codeAppender.appendDeclaration(returnType, RETVAL_NAME);
           if (inputValues.size() == 1) {
-            pTarget.append("  ");
-            appendAssignment(pTarget, RETVAL_NAME, inputValues.iterator().next());
-            appendln(pTarget, ";");
+            codeAppender.append("  ");
+            codeAppender.appendAssignment(RETVAL_NAME, inputValues.iterator().next());
+            codeAppender.appendln();
           } else if (inputValues.size() > 1) {
-            pTarget.append("  switch (");
-            pTarget.append(inputFunctionVectorIndexName);
-            appendln(pTarget, ") {");
+            codeAppender.append("  switch (");
+            codeAppender.append(inputFunctionVectorIndexName);
+            codeAppender.appendln(") {");
             int i = 0;
-            for (ARightHandSide value : inputValues) {
-              pTarget.append("    case ");
-              pTarget.append(Integer.toString(i));
-              pTarget.append(": ");
-              appendAssignment(pTarget, RETVAL_NAME, value);
-              appendln(pTarget, "; break;");
+            for (TestValue value : inputValues) {
+              codeAppender.append("    case ");
+              codeAppender.append(Integer.toString(i));
+              codeAppender.append(": ");
+              codeAppender.appendAssignment(RETVAL_NAME, value);
+              codeAppender.appendln(" break;");
               ++i;
             }
-            appendln(pTarget, "  }");
-            pTarget.append("  ++");
-            pTarget.append(inputFunctionVectorIndexName);
-            appendln(pTarget, ";");
+            codeAppender.appendln("  }");
+            codeAppender.append("  ++");
+            codeAppender.append(inputFunctionVectorIndexName);
+            codeAppender.appendln(";");
           }
-          pTarget.append("  return ");
-          pTarget.append(RETVAL_NAME);
-          appendln(pTarget, ";");
+          codeAppender.append("  return ");
+          codeAppender.append(RETVAL_NAME);
+          codeAppender.appendln(";");
         }
-        appendln(pTarget, "}");
+        codeAppender.appendln("}");
       }
     } else {
       logger.log(
@@ -220,7 +231,7 @@ public class HarnessExporter {
     }
   }
 
-  private void copyTypeDeclarations(Appendable pTarget) throws IOException {
+  private void copyTypeDeclarations(CodeAppender pTarget) throws IOException {
     List<ADeclaration> declarations = new ArrayList<>();
     CFATraversal.dfs()
         .traverseOnce(
@@ -249,7 +260,7 @@ public class HarnessExporter {
               }
             });
     for (ADeclaration declaration : declarations) {
-      appendln(pTarget, declaration.toASTString());
+      pTarget.appendln(declaration.toASTString());
     }
   }
 
@@ -408,8 +419,10 @@ public class HarnessExporter {
       if (statement instanceof AFunctionCall) {
         AFunctionCall functionCall = (AFunctionCall) statement;
         AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+        AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
 
-        if (!(functionCallExpression.getExpressionType() instanceof CVoidType)
+        if (!isPredefinedFunction(functionDeclaration)
+            && !(functionCallExpression.getExpressionType() instanceof CVoidType)
             && (functionCallExpression.getExpressionType() != JSimpleType.getVoid())) {
 
           AExpression nameExpression = functionCallExpression.getFunctionNameExpression();
@@ -432,16 +445,16 @@ public class HarnessExporter {
                 if (nextState.isPresent()) {
                   return nextState;
                 }
-                AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
-                if (!isPredefinedFunction(functionDeclaration)) {
-                  if (!isSupported(functionDeclaration)) {
-                    if (returnsPointer(functionDeclaration)) {
-                      return handlePointerCall(pPrevious, pChild, functionCallExpression);
-                    }
-                    return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
+                if (!isSupported(functionDeclaration)) {
+                  if (returnsPointer(functionDeclaration)) {
+                    return handlePointerCall(pPrevious, pChild, functionCallExpression);
                   }
-                  return Optional.empty();
+                  if (returnsComposite(functionDeclaration)) {
+                    return handleCompositeCall(pPrevious, pChild, functionCallExpression);
+                  }
+                  return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
                 }
+                return Optional.empty();
               }
             }
           }
@@ -455,12 +468,17 @@ public class HarnessExporter {
     if (pDeclaration == null) {
       return false;
     }
-    return !returnsPointer(pDeclaration);
+    return !returnsPointer(pDeclaration) && !returnsComposite(pDeclaration);
   }
 
   private static boolean returnsPointer(AFunctionDeclaration pDeclaration) {
     Type type = getCanonicalType(pDeclaration.getType().getReturnType());
     return type instanceof CPointerType;
+  }
+
+  private static boolean returnsComposite(AFunctionDeclaration pDeclaration) {
+    Type type = getCanonicalType(pDeclaration.getType().getReturnType());
+    return type instanceof CCompositeType;
   }
 
   private static boolean isPredefinedFunction(@Nullable AFunctionDeclaration pDeclaration) {
@@ -661,10 +679,61 @@ public class HarnessExporter {
 
   private Optional<State> handlePointerCall(
       State pPrevious, ARGState pChild, AFunctionCallExpression pFunctionCallExpression) {
-    Type expectedType = getCanonicalType(pFunctionCallExpression.getExpressionType());
-    Preconditions.checkArgument(returnsPointer(pFunctionCallExpression.getDeclaration()));
-    CType expectedTargetType = ((CPointerType) expectedType).getType();
+    AFunctionDeclaration declaration = pFunctionCallExpression.getDeclaration();
+    Preconditions.checkArgument(returnsPointer(declaration));
+    CPointerType expectedPointerType =
+        (CPointerType) getCanonicalType(pFunctionCallExpression.getExpressionType());
+    CType expectedTargetType = expectedPointerType.getType();
 
+    TestValue pointerValue = assignMallocToTmpVariable(expectedTargetType);
+    ARightHandSide value = castIfNecessary(declaration, (AExpression) pointerValue.getValue());
+
+    TestVector newTestVector =
+        pPrevious.testVector.addInputValue(
+            declaration, TestValue.of(pointerValue.getAuxiliaryStatements(), value));
+    return Optional.of(State.of(pChild, newTestVector));
+  }
+
+  private Optional<State> handleCompositeCall(
+      State pPrevious, ARGState pChild, AFunctionCallExpression pFunctionCallExpression) {
+    AFunctionDeclaration declaration = pFunctionCallExpression.getDeclaration();
+    Preconditions.checkArgument(returnsComposite(declaration));
+    CType expectedTargetType = (CType) pFunctionCallExpression.getExpressionType();
+
+    TestValue pointerValue = assignMallocToTmpVariable(expectedTargetType);
+
+    AExpression value =
+        new CPointerExpression(
+            FileLocation.DUMMY,
+            CPointerType.POINTER_TO_VOID,
+            (CExpression) pointerValue.getValue());
+    value = castIfNecessary(declaration, value);
+
+    TestVector newTestVector =
+        pPrevious.testVector.addInputValue(
+            declaration, TestValue.of(pointerValue.getAuxiliaryStatements(), value));
+    return Optional.of(State.of(pChild, newTestVector));
+  }
+
+  private static TestValue assignMallocToTmpVariable(CType pExpectedTargetType) {
+    CFunctionCallExpression pointerToValue = callMalloc(pExpectedTargetType);
+    CSimpleDeclaration tmpVarDeclaration =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            CPointerType.POINTER_TO_VOID,
+            "__tmp_malloc_result",
+            "__tmp_malloc_result",
+            "__tmp_malloc_result",
+            null);
+    CLeftHandSide variable = new CIdExpression(FileLocation.DUMMY, tmpVarDeclaration);
+    CAssignment assignment =
+        new CFunctionCallAssignmentStatement(FileLocation.DUMMY, variable, pointerToValue);
+    return TestValue.of(ImmutableList.of(tmpVarDeclaration, assignment), variable);
+  }
+
+  private static CFunctionCallExpression callMalloc(CType expectedTargetType) {
     CFunctionType type =
         new CFunctionType(
             false,
@@ -693,17 +762,12 @@ public class HarnessExporter {
               CTypeIdExpression.TypeIdOperator.SIZEOF,
               expectedTargetType);
     }
-    TestVector newTestVector =
-        addValue(
-            pPrevious.testVector,
-            pFunctionCallExpression.getDeclaration(),
-            new CFunctionCallExpression(
-                FileLocation.DUMMY,
-                CPointerType.POINTER_TO_VOID,
-                new CIdExpression(FileLocation.DUMMY, functionDeclaration),
-                Collections.<CExpression>singletonList(size),
-                functionDeclaration));
-    return Optional.of(State.of(pChild, newTestVector));
+    return new CFunctionCallExpression(
+        FileLocation.DUMMY,
+        CPointerType.POINTER_TO_VOID,
+        new CIdExpression(FileLocation.DUMMY, functionDeclaration),
+        Collections.<CExpression>singletonList(size),
+        functionDeclaration);
   }
 
   private static TestVector addDummyValue(
@@ -715,8 +779,14 @@ public class HarnessExporter {
   }
 
   private static TestVector addValue(
-      TestVector pTestVector, AFunctionDeclaration pFunctionDeclaration, ARightHandSide pValue) {
-    ARightHandSide value = pValue;
+      TestVector pTestVector, AFunctionDeclaration pFunctionDeclaration, AExpression pValue) {
+    ARightHandSide value = castIfNecessary(pFunctionDeclaration, pValue);
+    return pTestVector.addInputValue(pFunctionDeclaration, value);
+  }
+
+  private static AExpression castIfNecessary(
+      AFunctionDeclaration pFunctionDeclaration, AExpression pValue) {
+    AExpression value = pValue;
     Type expectedReturnType = getCanonicalType(pFunctionDeclaration.getType().getReturnType());
     Type actualType = getCanonicalType(value.getExpressionType());
     if (!actualType.equals(expectedReturnType)) {
@@ -740,7 +810,7 @@ public class HarnessExporter {
                 pValue.getFileLocation(), (JType) expectedReturnType, (JExpression) value);
       }
     }
-    return pTestVector.addInputValue(pFunctionDeclaration, value);
+    return value;
   }
 
   private static Optional<ALiteralExpression> getOther(
@@ -801,31 +871,6 @@ public class HarnessExporter {
     public static State of(ARGState pARGState, TestVector pTestVector) {
       return new State(pARGState, pTestVector);
     }
-  }
-
-  private void appendVectorIndexDeclaration(
-      Appendable pTarget, String pInputFunctionVectorIndexName) throws IOException {
-    pTarget.append("  static unsigned int ");
-    pTarget.append(pInputFunctionVectorIndexName);
-    appendln(pTarget, ";");
-  }
-
-  private static void appendDeclaration(Appendable pTarget, Type pType, String pName)
-      throws IOException {
-    pTarget.append(pType.toASTString(pName));
-    appendln(pTarget, ";");
-  }
-
-  private void appendAssignment(Appendable pTarget, String pRetvalName, ARightHandSide pValue)
-      throws IOException {
-    pTarget.append(pRetvalName);
-    pTarget.append(" = ");
-    pTarget.append(pValue.toASTString());
-  }
-
-  private static void appendln(Appendable pAppendable, String pLine) throws IOException {
-    pAppendable.append(pLine);
-    pAppendable.append(System.lineSeparator());
   }
 
   private static Type getCanonicalType(Type pType) {

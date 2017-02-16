@@ -37,31 +37,34 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class TestVector {
+class TestVector {
 
-  private final PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ARightHandSide>>
+  private final PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<TestValue>>
       inputFunctionValues;
 
   private TestVector() {
     this(
-        PathCopyingPersistentTreeMap
-            .<ComparableFunctionDeclaration, ImmutableList<ARightHandSide>>of());
+        PathCopyingPersistentTreeMap.<ComparableFunctionDeclaration, ImmutableList<TestValue>>of());
   }
 
   private TestVector(
-      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ARightHandSide>>
+      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<TestValue>>
           pInputFunctionValues) {
     inputFunctionValues = pInputFunctionValues;
   }
 
   public TestVector addInputValue(AFunctionDeclaration pFunction, ARightHandSide pValue) {
+    return addInputValue(pFunction, TestValue.of(pValue));
+  }
+
+  public TestVector addInputValue(AFunctionDeclaration pFunction, TestValue pValue) {
     ComparableFunctionDeclaration function = new ComparableFunctionDeclaration(pFunction);
-    ImmutableList<ARightHandSide> currentValues = inputFunctionValues.get(function);
-    ImmutableList<ARightHandSide> newValues;
+    ImmutableList<TestValue> currentValues = inputFunctionValues.get(function);
+    ImmutableList<TestValue> newValues;
     if (currentValues == null) {
       newValues = ImmutableList.of(pValue);
     } else {
-      ImmutableList.Builder<ARightHandSide> valueListBuilder = ImmutableList.builder();
+      ImmutableList.Builder<TestValue> valueListBuilder = ImmutableList.builder();
       valueListBuilder.addAll(currentValues).add(pValue);
       newValues = valueListBuilder.build();
     }
@@ -72,9 +75,9 @@ public class TestVector {
     return FluentIterable.from(inputFunctionValues.keySet()).transform(f -> f.declaration);
   }
 
-  public List<ARightHandSide> getInputValues(AFunctionDeclaration pFunction) {
+  public List<TestValue> getInputValues(AFunctionDeclaration pFunction) {
     ComparableFunctionDeclaration function = new ComparableFunctionDeclaration(pFunction);
-    ImmutableList<ARightHandSide> currentValues = inputFunctionValues.get(function);
+    ImmutableList<TestValue> currentValues = inputFunctionValues.get(function);
     if (currentValues == null) {
       return Collections.emptyList();
     }
