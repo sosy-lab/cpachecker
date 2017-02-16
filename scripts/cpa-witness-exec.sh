@@ -48,10 +48,13 @@ harnesses=`find $output_path -name '*harness.c'`
 echo "`count $harnesses` harnesses for witness."  
 for harness in $harnesses; do
   echo "Looking at $harness"
-  gcc -std=c11 -o ${output_path}/test_suite "$harness" "$file"
+
+  GCCARGS=("-o" "${output_path}/test_suite" "$harness" "$file")
+
+  gcc -std=c11 "${GCCARGS[@]}"
   test_return=$?
   if [[ test_return -ne 0 ]]; then
-    gcc -std=c90 -o ${output_path}/test_suite "$harness" "$file"
+    gcc -std=c90 "${GCCARGS[@]}"
   fi
 
   ${output_path}/test_suite > ${output_path}/stdout.txt 2> ${output_path}/stderr.txt
