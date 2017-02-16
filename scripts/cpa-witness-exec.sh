@@ -54,7 +54,7 @@ for harness in $harnesses; do
     gcc -std=c90 -o ${output_path}/test_suite "$harness" "$file"
   fi
 
-  ${output_path}/test_suite
+  ${output_path}/test_suite > ${output_path}/stdout.txt 2> ${output_path}/stderr.txt
   test_return=$?
   if [[ test_return -eq $EXPECTED_RETURN_CODE ]]; then
     echo "Verification result: FALSE. Harness $harness reached expected error location."
