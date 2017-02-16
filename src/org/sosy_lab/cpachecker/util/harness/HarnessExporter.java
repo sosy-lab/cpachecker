@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -415,29 +416,32 @@ public class HarnessExporter {
           if (nameExpression instanceof AIdExpression) {
 
             AIdExpression idExpression = (AIdExpression) nameExpression;
-            String name = idExpression.getDeclaration().getQualifiedName();
-            if (cfa.getFunctionHead(name) == null) {
-              final Optional<State> nextState;
-              if (functionCall instanceof AFunctionCallStatement) {
-                return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
-              }
-              AFunctionCallAssignmentStatement assignment =
-                  (AFunctionCallAssignmentStatement) functionCall;
-              nextState =
-                  handleFunctionCallAssignment(
-                      pEdge, pPrevious, pChild, functionCallExpression, assignment, pValueMap);
-              if (nextState.isPresent()) {
-                return nextState;
-              }
-              AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
-              if (!isPredefinedFunction(functionDeclaration)) {
-                if (!isSupported(functionDeclaration)) {
-                  if (returnsPointer(functionDeclaration)) {
-                    return handlePointerCall(pPrevious, pChild, functionCallExpression);
-                  }
+            ASimpleDeclaration declaration = idExpression.getDeclaration();
+            if (declaration != null) {
+              String name = declaration.getQualifiedName();
+              if (cfa.getFunctionHead(name) == null) {
+                final Optional<State> nextState;
+                if (functionCall instanceof AFunctionCallStatement) {
                   return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
                 }
-                return Optional.empty();
+                AFunctionCallAssignmentStatement assignment =
+                    (AFunctionCallAssignmentStatement) functionCall;
+                nextState =
+                    handleFunctionCallAssignment(
+                        pEdge, pPrevious, pChild, functionCallExpression, assignment, pValueMap);
+                if (nextState.isPresent()) {
+                  return nextState;
+                }
+                AFunctionDeclaration functionDeclaration = functionCallExpression.getDeclaration();
+                if (!isPredefinedFunction(functionDeclaration)) {
+                  if (!isSupported(functionDeclaration)) {
+                    if (returnsPointer(functionDeclaration)) {
+                      return handlePointerCall(pPrevious, pChild, functionCallExpression);
+                    }
+                    return handlePlainFunctionCall(pPrevious, pChild, functionCallExpression);
+                  }
+                  return Optional.empty();
+                }
               }
             }
           }
