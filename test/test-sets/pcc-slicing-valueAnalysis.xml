@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="1800 s" hardtimelimit="1860 s" memlimit="5 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="2700 s" hardtimelimit="2790 s" memlimit="5 GB" cpuCores="2">
 
   <option name="-noout"/>
   <option name="-disable-java-assertions"/>
