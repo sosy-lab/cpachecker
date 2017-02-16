@@ -33,7 +33,6 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,7 +63,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   protected ProofStatesInfoCollector proofInfo;
   private Collection<Statistics> pccStats = new ArrayList<>();
 
-  protected Path proofFile = Paths.get("arg.obj");
+  protected final Path proofFile;
 
   @Option(secure=true,
       name = "useCores",
@@ -86,6 +85,11 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   @Override
   @SuppressFBWarnings(value="OS_OPEN_STREAM", justification="Do not close stream o because it wraps stream zos/fos which need to remain open and would be closed if o.close() is called.")
   public void writeProof(UnmodifiableReachedSet pReached) {
+
+    Path dir = proofFile.getParent();
+
+    try {
+      Files.createDirectories(dir);
 
     try (final OutputStream fos = Files.newOutputStream(proofFile);
         final ZipOutputStream zos = new ZipOutputStream(fos)) {
@@ -115,12 +119,13 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
     } catch (NotSerializableException eS) {
       logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage() + " does not implement Serializable interface");
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    } catch (InvalidConfigurationException e) {
+    }  catch (InvalidConfigurationException e) {
       logger.log(Level.SEVERE, "Proof cannot be constructed due to conflicting configuration.", e.getMessage());
     } catch (InterruptedException e) {
       logger.log(Level.SEVERE, "Proof cannot be written due to time out during proof construction");
+    }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
 
     logger.log(Level.INFO, proofInfo.getInfoAsString());
