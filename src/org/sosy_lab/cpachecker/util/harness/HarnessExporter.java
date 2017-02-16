@@ -467,6 +467,7 @@ public class HarnessExporter {
     return isMalloc(pDeclaration)
         || isMemcpy(pDeclaration)
         || isFree(pDeclaration)
+        || isExit(pDeclaration)
         || isPrintf(pDeclaration)
         || isVerifierError(pDeclaration)
         || isVerifierAssume(pDeclaration);
@@ -508,6 +509,14 @@ public class HarnessExporter {
         "free",
         CVoidType.VOID,
         Collections.singletonList(Predicates.equalTo(CPointerType.POINTER_TO_VOID)));
+  }
+
+  private static boolean isExit(@Nullable AFunctionDeclaration pDeclaration) {
+    return functionMatches(
+        pDeclaration,
+        "exit",
+        CVoidType.VOID,
+        Collections.singletonList(HarnessExporter::isIntegerType));
   }
 
   private static boolean isPrintf(@Nullable AFunctionDeclaration pDeclaration) {
