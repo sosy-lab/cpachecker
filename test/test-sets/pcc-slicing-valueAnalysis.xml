@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="930 s" memlimit="3 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="1800 s" hardtimelimit="1860 s" memlimit="5 GB" cpuCores="2">
 
   <option name="-noout"/>
   <option name="-disable-java-assertions"/>
@@ -12,7 +12,7 @@
   <option name="-setprop">pcc.collectValueAnalysisStateInfo=true</option>
   <option name="-setprop">pcc.proofFile=arg.obj</option>
   <option name="-setprop">pcc.proof=output/arg.obj</option>
-  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
+  <option name="-setprop">cpa.composite.aggregateBasicBlocks=true</option>
 
 
   <rundefinition name="NoRefineNoSlicingReachedSet">
