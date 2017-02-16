@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.harness;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -55,7 +55,7 @@ final class PredefinedTypes {
     if (originalName == null) {
       return false;
     }
-    return originalName.equals("size_t");
+    return ImmutableSet.of("size_t", "wchar_t").contains(originalName);
   }
 
   public static boolean isPredefinedFunction(@Nullable AFunctionDeclaration pDeclaration) {
@@ -65,6 +65,7 @@ final class PredefinedTypes {
         || isFree(pDeclaration)
         || isExit(pDeclaration)
         || isPrintf(pDeclaration)
+        || isSwprintf(pDeclaration)
         || isVerifierError(pDeclaration)
         || isVerifierAssume(pDeclaration);
   }
@@ -90,8 +91,8 @@ final class PredefinedTypes {
         "memcpy",
         CPointerType.POINTER_TO_VOID,
         ImmutableList.of(
-            Predicates.equalTo(CPointerType.POINTER_TO_VOID),
-            Predicates.equalTo(new CPointerType(false, false, CVoidType.create(true, false))),
+            Predicate.isEqual(CPointerType.POINTER_TO_VOID),
+            Predicate.isEqual(new CPointerType(false, false, CVoidType.create(true, false))),
             PredefinedTypes::isIntegerType));
   }
 
@@ -101,7 +102,7 @@ final class PredefinedTypes {
         "memset",
         CPointerType.POINTER_TO_VOID,
         ImmutableList.of(
-            Predicates.equalTo(CPointerType.POINTER_TO_VOID),
+            Predicate.isEqual(CPointerType.POINTER_TO_VOID),
             PredefinedTypes::isIntegerType,
             PredefinedTypes::isIntegerType));
   }
@@ -111,7 +112,7 @@ final class PredefinedTypes {
         pDeclaration,
         "free",
         CVoidType.VOID,
-        Collections.singletonList(Predicates.equalTo(CPointerType.POINTER_TO_VOID)));
+        Collections.singletonList(Predicate.isEqual(CPointerType.POINTER_TO_VOID)));
   }
 
   private static boolean isExit(@Nullable AFunctionDeclaration pDeclaration) {
@@ -127,9 +128,24 @@ final class PredefinedTypes {
         pDeclaration,
         "printf",
         CNumericTypes.INT,
-        ImmutableList.of(
-            Predicates.equalTo(
+        Collections.singletonList(
+            Predicate.isEqual(
                 new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false)))));
+  }
+
+  private static boolean isSwprintf(@Nullable AFunctionDeclaration pDeclaration) {
+    Predicate<Type> isPointerToIntegral = t -> {
+      Type type = getCanonicalType(t);
+      if (!(type instanceof CPointerType)) {
+        return false;
+      }
+      return isIntegerType(((CPointerType) type).getType());
+    };
+    return functionMatches(
+        pDeclaration,
+        "swprintf",
+        CNumericTypes.INT,
+        ImmutableList.of(isPointerToIntegral, isPointerToIntegral));
   }
 
   private static boolean isVerifierError(@Nullable AFunctionDeclaration pDeclaration) {
@@ -177,7 +193,7 @@ final class PredefinedTypes {
     Iterator<Predicate<Type>> expectedParameterTypeIt = pExpectedParameterTypes.iterator();
     for (AParameterDeclaration parameterDeclaration : pDeclaration.getParameters()) {
       Type actualParameterType = getCanonicalType(parameterDeclaration.getType());
-      if (!expectedParameterTypeIt.next().apply(actualParameterType)) {
+      if (!expectedParameterTypeIt.next().test(actualParameterType)) {
         return false;
       }
     }
