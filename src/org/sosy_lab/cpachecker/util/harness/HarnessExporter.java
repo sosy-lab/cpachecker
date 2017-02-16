@@ -556,7 +556,7 @@ public class HarnessExporter {
     CType expectedTargetType = expectedPointerType.getType();
 
     TestValue pointerValue = assignMallocToTmpVariable(expectedTargetType);
-    AExpression value = castIfNecessary(declaration, pointerValue.getValue());
+    AExpression value = castIfNecessary(declaration.getType().getReturnType(), pointerValue.getValue());
 
     TestVector newTestVector =
         pPrevious.testVector.addInputValue(
@@ -569,15 +569,17 @@ public class HarnessExporter {
     AFunctionDeclaration declaration = pFunctionCallExpression.getDeclaration();
     Preconditions.checkArgument(returnsComposite(declaration));
     CType expectedTargetType = (CType) pFunctionCallExpression.getExpressionType();
+    CPointerType pointerType = new CPointerType(false, false, expectedTargetType);
 
     TestValue pointerValue = assignMallocToTmpVariable(expectedTargetType);
+    CExpression pointerExpression = (CExpression) pointerValue.getValue();
 
     AExpression value =
         new CPointerExpression(
             FileLocation.DUMMY,
             CPointerType.POINTER_TO_VOID,
-            (CExpression) pointerValue.getValue());
-    value = castIfNecessary(declaration, value);
+            (CExpression) castIfNecessary(pointerType, pointerExpression));
+    value = castIfNecessary(declaration.getType().getReturnType(), value);
 
     TestVector newTestVector =
         pPrevious.testVector.addInputValue(
@@ -650,21 +652,21 @@ public class HarnessExporter {
 
   private static TestVector addValue(
       TestVector pTestVector, AFunctionDeclaration pFunctionDeclaration, AExpression pValue) {
-    AExpression value = castIfNecessary(pFunctionDeclaration, pValue);
+    AExpression value = castIfNecessary(pFunctionDeclaration.getType().getReturnType(), pValue);
     return pTestVector.addInputValue(pFunctionDeclaration, value);
   }
 
   private static AExpression castIfNecessary(
-      AFunctionDeclaration pFunctionDeclaration, AExpression pValue) {
+      Type pExpectedReturnType, AExpression pValue) {
     AExpression value = pValue;
-    Type expectedReturnType = getCanonicalType(pFunctionDeclaration.getType().getReturnType());
+    Type expectedReturnType = getCanonicalType(pExpectedReturnType);
     Type actualType = getCanonicalType(value.getExpressionType());
     if (!actualType.equals(expectedReturnType)) {
       if (value instanceof CExpression && expectedReturnType instanceof CType) {
-        if ((expectedReturnType instanceof CPointerType
-                && !expectedReturnType.equals(CPointerType.POINTER_TO_VOID))
-            || (actualType instanceof CPointerType
-                && !actualType.equals(CPointerType.POINTER_TO_VOID))) {
+        if (expectedReturnType instanceof CPointerType
+                && !expectedReturnType.equals(CPointerType.POINTER_TO_VOID)
+                && actualType instanceof CPointerType
+                && !actualType.equals(CPointerType.POINTER_TO_VOID)) {
           value =
               new CCastExpression(
                   pValue.getFileLocation(), CPointerType.POINTER_TO_VOID, (CExpression) value);
@@ -672,7 +674,7 @@ public class HarnessExporter {
         value =
             new CCastExpression(
                 pValue.getFileLocation(),
-                (CType) pFunctionDeclaration.getType().getReturnType(),
+                (CType) pExpectedReturnType,
                 (CExpression) value);
       } else if (value instanceof JExpression && expectedReturnType instanceof JType) {
         value =
