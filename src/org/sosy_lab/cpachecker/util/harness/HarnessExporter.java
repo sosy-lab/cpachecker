@@ -780,9 +780,9 @@ public class HarnessExporter {
 
   private void appendVectorIndexDeclaration(
       Appendable pTarget, String pInputFunctionVectorIndexName) throws IOException {
-    pTarget.append("unsigned int ");
+    pTarget.append("  static unsigned int ");
     pTarget.append(pInputFunctionVectorIndexName);
-    appendln(pTarget, " = 0;");
+    appendln(pTarget, ";");
   }
 
   private static void appendDeclaration(Appendable pTarget, Type pType, String pName)
