@@ -462,6 +462,8 @@ public class HarnessExporter {
   private static boolean isPredefinedFunction(@Nullable AFunctionDeclaration pDeclaration) {
     return isMalloc(pDeclaration)
         || isMemcpy(pDeclaration)
+        || isFree(pDeclaration)
+        || isPrintf(pDeclaration)
         || isVerifierError(pDeclaration)
         || isVerifierAssume(pDeclaration);
   }
@@ -494,6 +496,24 @@ public class HarnessExporter {
             Predicates.equalTo(CPointerType.POINTER_TO_VOID),
             Predicates.equalTo(new CPointerType(false, false, CVoidType.create(true, false))),
             HarnessExporter::isIntegerType));
+  }
+
+  private static boolean isFree(@Nullable AFunctionDeclaration pDeclaration) {
+    return functionMatches(
+        pDeclaration,
+        "free",
+        CVoidType.VOID,
+        Collections.singletonList(Predicates.equalTo(CPointerType.POINTER_TO_VOID)));
+  }
+
+  private static boolean isPrintf(@Nullable AFunctionDeclaration pDeclaration) {
+    return functionMatches(
+        pDeclaration,
+        "printf",
+        CNumericTypes.INT,
+        ImmutableList.of(
+            Predicates.equalTo(
+                new CPointerType(false, false, CNumericTypes.CHAR.getCanonicalType(true, false)))));
   }
 
   private static boolean isVerifierError(@Nullable AFunctionDeclaration pDeclaration) {
@@ -532,7 +552,7 @@ public class HarnessExporter {
       return false;
     }
     Type actualReturnType = getCanonicalType(pDeclaration.getType().getReturnType());
-    if (!actualReturnType.equals(pExpectedReturnType)) {
+    if (!actualReturnType.equals(getCanonicalType(pExpectedReturnType))) {
       return false;
     }
     if (pDeclaration.getParameters().size() != pExpectedParameterTypes.size()) {
