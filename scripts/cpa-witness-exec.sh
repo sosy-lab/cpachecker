@@ -51,7 +51,7 @@ esac
 shift # past argument or value
 done
 
-GCCARGS_GLOBAL=("$gcc_machine_model_arg" "-o" "${output_path}/test_suite")
+GCCARGS_GLOBAL=("$gcc_machine_model_arg" "'-D__alias__(x)='" "-o" "${output_path}/test_suite")
 
 harness_gen_output=`"$CPA_EXEC" "${ARGS[@]}"`
 harnesses=`find $output_path -name '*harness.c'` 
