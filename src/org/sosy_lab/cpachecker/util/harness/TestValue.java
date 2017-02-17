@@ -25,19 +25,17 @@ package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
-class TestValue {
+abstract class TestValue {
 
   private final ImmutableList<AAstNode> auxiliaryStatements;
 
-  private final AExpression value;
+  private final AAstNode value;
 
-  private TestValue(ImmutableList<AAstNode> pAuxiliaryStatements, AExpression pValue) {
+  protected TestValue(ImmutableList<AAstNode> pAuxiliaryStatements, AAstNode pValue) {
     auxiliaryStatements = pAuxiliaryStatements;
     value = pValue;
   }
@@ -46,7 +44,7 @@ class TestValue {
     return auxiliaryStatements;
   }
 
-  public AExpression getValue() {
+  public AAstNode getValue() {
     return value;
   }
 
@@ -77,14 +75,6 @@ class TestValue {
           && auxiliaryStatements.equals(other.auxiliaryStatements);
     }
     return false;
-  }
-
-  public static TestValue of(AExpression pValue) {
-    return of(Collections.emptyList(), pValue);
-  }
-
-  public static TestValue of(List<AAstNode> pAuxiliaryStatments, AExpression pValue) {
-    return new TestValue(ImmutableList.copyOf(pAuxiliaryStatments), pValue);
   }
 
 }

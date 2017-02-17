@@ -34,56 +34,61 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class TestVector {
 
-  private final PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<TestValue>>
+  private final PersistentSortedMap<
+          ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>
       inputFunctionValues;
 
-  private final PersistentSortedMap<ComparableVariableDeclaration, TestValue> inputVariableValues;
+  private final PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue>
+      inputVariableValues;
 
   private TestVector() {
     this(
-        PathCopyingPersistentTreeMap.<ComparableFunctionDeclaration, ImmutableList<TestValue>>of(),
-        PathCopyingPersistentTreeMap.<ComparableVariableDeclaration, TestValue>of());
+        PathCopyingPersistentTreeMap
+            .<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>of(),
+        PathCopyingPersistentTreeMap.<ComparableVariableDeclaration, InitializerTestValue>of());
   }
 
   private TestVector(
-      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<TestValue>>
+      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>
           pInputFunctionValues,
-      PersistentSortedMap<ComparableVariableDeclaration, TestValue> pInputVariableValues) {
+      PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue>
+          pInputVariableValues) {
     inputFunctionValues = pInputFunctionValues;
     inputVariableValues = pInputVariableValues;
   }
 
   public TestVector addInputValue(AFunctionDeclaration pFunction, AExpression pValue) {
-    return addInputValue(pFunction, TestValue.of(pValue));
+    return addInputValue(pFunction, ExpressionTestValue.of(pValue));
   }
 
-  public TestVector addInputValue(AFunctionDeclaration pFunction, TestValue pValue) {
+  public TestVector addInputValue(AFunctionDeclaration pFunction, ExpressionTestValue pValue) {
     ComparableFunctionDeclaration function = new ComparableFunctionDeclaration(pFunction);
-    ImmutableList<TestValue> currentValues = inputFunctionValues.get(function);
-    ImmutableList<TestValue> newValues;
+    ImmutableList<ExpressionTestValue> currentValues = inputFunctionValues.get(function);
+    ImmutableList<ExpressionTestValue> newValues;
     if (currentValues == null) {
       newValues = ImmutableList.of(pValue);
     } else {
-      ImmutableList.Builder<TestValue> valueListBuilder = ImmutableList.builder();
+      ImmutableList.Builder<ExpressionTestValue> valueListBuilder = ImmutableList.builder();
       valueListBuilder.addAll(currentValues).add(pValue);
       newValues = valueListBuilder.build();
     }
     return new TestVector(inputFunctionValues.putAndCopy(function, newValues), inputVariableValues);
   }
 
-  public TestVector addInputValue(AVariableDeclaration pVariable, AExpression pValue) {
-    return addInputValue(pVariable, TestValue.of(pValue));
+  public TestVector addInputValue(AVariableDeclaration pVariable, AInitializer pValue) {
+    return addInputValue(pVariable, InitializerTestValue.of(pValue));
   }
 
-  public TestVector addInputValue(AVariableDeclaration pVariable, TestValue pValue) {
+  public TestVector addInputValue(AVariableDeclaration pVariable, InitializerTestValue pValue) {
     ComparableVariableDeclaration variable = new ComparableVariableDeclaration(pVariable);
-    TestValue currentValue = inputVariableValues.get(variable);
+    InitializerTestValue currentValue = inputVariableValues.get(variable);
     if (currentValue != null) {
       throw new IllegalArgumentException(
           String.format("Variable %s already declared with value %s: ", pVariable, pValue));
@@ -95,9 +100,9 @@ class TestVector {
     return FluentIterable.from(inputFunctionValues.keySet()).transform(f -> f.declaration);
   }
 
-  public List<TestValue> getInputValues(AFunctionDeclaration pFunction) {
+  public List<ExpressionTestValue> getInputValues(AFunctionDeclaration pFunction) {
     ComparableFunctionDeclaration function = new ComparableFunctionDeclaration(pFunction);
-    ImmutableList<TestValue> currentValues = inputFunctionValues.get(function);
+    ImmutableList<ExpressionTestValue> currentValues = inputFunctionValues.get(function);
     if (currentValues == null) {
       return Collections.emptyList();
     }
@@ -108,9 +113,9 @@ class TestVector {
     return FluentIterable.from(inputVariableValues.keySet()).transform(f -> f.declaration);
   }
 
-  public TestValue getInputValue(AVariableDeclaration pDeclaration) {
+  public InitializerTestValue getInputValue(AVariableDeclaration pDeclaration) {
     ComparableVariableDeclaration variable = new ComparableVariableDeclaration(pDeclaration);
-    TestValue currentValue = inputVariableValues.get(variable);
+    InitializerTestValue currentValue = inputVariableValues.get(variable);
     if (currentValue == null) {
       throw new IllegalArgumentException("Unknown variable: " + pDeclaration);
     }

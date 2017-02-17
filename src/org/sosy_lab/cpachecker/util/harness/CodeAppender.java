@@ -37,20 +37,14 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -157,11 +151,11 @@ class CodeAppender implements Appendable {
 
   public CodeAppender append(TestVector pVector) throws IOException {
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
-      TestValue inputValue = pVector.getInputValue(inputVariable);
+      InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
       List<AAstNode> auxiliaryStatmenets = inputValue.getAuxiliaryStatements();
       Type type = PredefinedTypes.getCanonicalType(inputVariable.getType());
-      boolean requiresInitialization =
-          !(type instanceof CArrayType || type instanceof CCompositeType);
+      boolean requiresInitialization = HarnessExporter.canInitialize(type);
+      //!(type instanceof CArrayType || type instanceof CCompositeType);
       if (requiresInitialization && !auxiliaryStatmenets.isEmpty()) {
         for (AAstNode statement : inputValue.getAuxiliaryStatements()) {
           appendln(statement.toASTString());
@@ -170,14 +164,8 @@ class CodeAppender implements Appendable {
       final AInitializer initializer;
       if (!requiresInitialization) {
         initializer = null;
-      } else if (inputVariable instanceof CVariableDeclaration) {
-        initializer =
-            new CInitializerExpression(FileLocation.DUMMY, (CExpression) inputValue.getValue());
-      } else if (inputVariable instanceof JVariableDeclaration) {
-        initializer =
-            new JInitializerExpression(FileLocation.DUMMY, (JExpression) inputValue.getValue());
       } else {
-        throw new AssertionError("Unsupported declaration type: " + inputVariable);
+        initializer = inputValue.getValue();
       }
       final AVariableDeclaration internalDeclaration;
       if (inputVariable instanceof CVariableDeclaration) {
@@ -207,7 +195,7 @@ class CodeAppender implements Appendable {
       appendln(internalDeclaration.toASTString());
     }
     for (AFunctionDeclaration inputFunction : pVector.getInputFunctions()) {
-      List<TestValue> inputValues = pVector.getInputValues(inputFunction);
+      List<ExpressionTestValue> inputValues = pVector.getInputValues(inputFunction);
       Type returnType = inputFunction.getType().getReturnType();
       append(declare(inputFunction));
       appendln(" {");

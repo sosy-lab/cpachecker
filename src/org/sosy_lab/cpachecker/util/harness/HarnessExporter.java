@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -96,6 +97,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -105,8 +107,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -420,7 +424,7 @@ public class HarnessExporter {
             State.of(
                 pChild,
                 pPrevious.testVector.addInputValue(
-                    variableDeclaration, getDummyValue(variableDeclaration.getType()))));
+                    variableDeclaration, getDummyInitializer(variableDeclaration.getType()))));
       }
     }
     return Optional.of(State.of(pChild, pPrevious.testVector));
@@ -487,7 +491,7 @@ public class HarnessExporter {
         pPrevious,
         pChild,
         leftHandSide,
-        value -> (vector -> vector.addInputValue(pVariableDeclaration, value)),
+        value -> (vector -> vector.addInputValue(pVariableDeclaration, toInitializer(value))),
         pValueMap);
   }
 
@@ -553,7 +557,7 @@ public class HarnessExporter {
     AFunctionDeclaration declaration = pFunctionCallExpression.getDeclaration();
     Type declarationType = declaration.getType().getReturnType();
     Preconditions.checkArgument(declarationType instanceof CPointerType);
-    TestValue pointerValue = handlePointer((CPointerType) declarationType, false);
+    ExpressionTestValue pointerValue = handlePointer((CPointerType) declarationType, false);
     TestVector newTestVector = pPrevious.testVector.addInputValue(declaration, pointerValue);
     return Optional.of(State.of(pChild, newTestVector));
   }
@@ -562,17 +566,32 @@ public class HarnessExporter {
       State pPrevious, ARGState pChild, AVariableDeclaration pVariableDeclaration) {
     Type declarationType = pVariableDeclaration.getType();
     Preconditions.checkArgument(declarationType instanceof CPointerType);
-    TestValue pointerValue = handlePointer((CPointerType) declarationType, true);
+    ExpressionTestValue pointerValue = handlePointer((CPointerType) declarationType, true);
+    AExpression value = pointerValue.getValue();
+    final AInitializer initializer = toInitializer(value);
+    InitializerTestValue initializerTestValue =
+        InitializerTestValue.of(pointerValue.getAuxiliaryStatements(), initializer);
     TestVector newTestVector =
-        pPrevious.testVector.addInputValue(pVariableDeclaration, pointerValue);
+        pPrevious.testVector.addInputValue(pVariableDeclaration, initializerTestValue);
     return Optional.of(State.of(pChild, newTestVector));
   }
 
-  private TestValue handlePointer(CPointerType pType, boolean pIsGlobal) {
+  private static AInitializer toInitializer(AExpression pValue) {
+    if (pValue instanceof CExpression) {
+      return new CInitializerExpression(FileLocation.DUMMY, (CExpression) pValue);
+    }
+    if (pValue instanceof JExpression) {
+      return new JInitializerExpression(FileLocation.DUMMY, (JExpression) pValue);
+    }
+    throw new AssertionError("Unsupported expression type: " + pValue);
+  }
+
+  private ExpressionTestValue handlePointer(CPointerType pType, boolean pIsGlobal) {
     return handlePointer(pType, getSizeOf(pType.getType()), pIsGlobal);
   }
 
-  private TestValue handlePointer(CPointerType pType, CExpression pTargetSize, boolean pIsGlobal) {
+  private ExpressionTestValue handlePointer(
+      CPointerType pType, CExpression pTargetSize, boolean pIsGlobal) {
     if (pIsGlobal) {
       String varName = TMP_VAR + "_" + idGenerator.getFreshId();
       CVariableDeclaration tmpDeclaration =
@@ -584,15 +603,16 @@ public class HarnessExporter {
               varName,
               varName,
               varName,
-              null);
+              (CInitializer) getDummyInitializer(pType.getType()));
       CIdExpression var = new CIdExpression(FileLocation.DUMMY, tmpDeclaration);
-      return TestValue.of(
+      return ExpressionTestValue.of(
           Collections.singletonList(tmpDeclaration),
           new CUnaryExpression(FileLocation.DUMMY, pType, var, UnaryOperator.AMPER));
     }
     assert !pIsGlobal;
-    TestValue pointerValue = assignMallocToTmpVariable(pTargetSize, pType.getType(), false);
-    return TestValue.of(pointerValue.getAuxiliaryStatements(), pointerValue.getValue());
+    ExpressionTestValue pointerValue =
+        assignMallocToTmpVariable(pTargetSize, pType.getType(), false);
+    return ExpressionTestValue.of(pointerValue.getAuxiliaryStatements(), pointerValue.getValue());
   }
 
   private Optional<State> handleCompositeCall(
@@ -614,15 +634,11 @@ public class HarnessExporter {
 
     TestVector newTestVector =
         pPrevious.testVector.addInputValue(
-            pVariableDeclaration,
-            handleComposite(
-                (CType) expectedTargetType,
-                getSizeOf((CVariableDeclaration) pVariableDeclaration),
-                true));
+            pVariableDeclaration, getDummyInitializer(pVariableDeclaration.getType()));
     return Optional.of(State.of(pChild, newTestVector));
   }
 
-  private TestValue handleComposite(CType pType, CExpression pSize, boolean pIsGlobal) {
+  private ExpressionTestValue handleComposite(CType pType, CExpression pSize, boolean pIsGlobal) {
     Preconditions.checkArgument(getCanonicalType(pType) instanceof CCompositeType);
     CPointerType pointerType = new CPointerType(false, false, pType);
 
@@ -636,25 +652,18 @@ public class HarnessExporter {
             (CExpression) castIfNecessary(pointerType, pointerExpression));
     value = castIfNecessary(pType, value);
 
-    return TestValue.of(pointerValue.getAuxiliaryStatements(), value);
+    return ExpressionTestValue.of(pointerValue.getAuxiliaryStatements(), value);
   }
 
   private Optional<State> handleArrayDeclaration(
       State pPrevious, ARGState pChild, AVariableDeclaration pVariableDeclaration) {
-    Type expectedTargetType = getCanonicalType(pVariableDeclaration.getType());
-    Preconditions.checkArgument(expectedTargetType instanceof CArrayType);
-
-    TestValue value =
-        assignMallocToTmpVariable(
-            getSizeOf((CVariableDeclaration) pVariableDeclaration),
-            (CType) pVariableDeclaration.getType(),
-            true);
-
-    TestVector newTestVector = pPrevious.testVector.addInputValue(pVariableDeclaration, value);
+    TestVector newTestVector =
+        pPrevious.testVector.addInputValue(
+            pVariableDeclaration, getDummyInitializer(pVariableDeclaration.getType()));
     return Optional.of(State.of(pChild, newTestVector));
   }
 
-  private TestValue assignMallocToTmpVariable(
+  private ExpressionTestValue assignMallocToTmpVariable(
       CExpression pSize, CType pTargetType, boolean pIsGlobal) {
     CFunctionCallExpression pointerToValue = callMalloc(pSize);
     String variableName = TMP_VAR;
@@ -674,7 +683,7 @@ public class HarnessExporter {
     CLeftHandSide variable = new CIdExpression(FileLocation.DUMMY, tmpVarDeclaration);
     CAssignment assignment =
         new CFunctionCallAssignmentStatement(FileLocation.DUMMY, variable, pointerToValue);
-    return TestValue.of(ImmutableList.of(tmpVarDeclaration, assignment), variable);
+    return ExpressionTestValue.of(ImmutableList.of(tmpVarDeclaration, assignment), variable);
   }
 
   private CExpression getSizeOf(CVariableDeclaration pVariableDeclaration) {
@@ -751,7 +760,7 @@ public class HarnessExporter {
 
   private static final AExpression getDummyValue(Type pType) {
     if (pType instanceof CType) {
-      if (!pType.equals(CVoidType.VOID)) {
+      if (canInitialize(pType)) {
         CInitializer initializer = CDefaults.forType((CType) pType, FileLocation.DUMMY);
         if (initializer instanceof CInitializerExpression) {
           return ((CInitializerExpression) initializer).getExpression();
@@ -761,6 +770,34 @@ public class HarnessExporter {
           FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, BigInteger.ZERO);
     }
     return new JIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ZERO);
+  }
+
+  private static final AInitializer getDummyInitializer(Type pType) {
+    if (pType instanceof CType) {
+      if (canInitialize(pType)) {
+        return CDefaults.forType((CType) pType, FileLocation.DUMMY);
+      }
+      return new CInitializerExpression(
+          FileLocation.DUMMY,
+          new CIntegerLiteralExpression(
+              FileLocation.DUMMY, CNumericTypes.UNSIGNED_INT, BigInteger.ZERO));
+    }
+    return new JInitializerExpression(
+        FileLocation.DUMMY, new JIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ZERO));
+  }
+
+  static boolean canInitialize(Type pType) {
+    Type canonicalType = getCanonicalType(pType);
+    if (canonicalType.equals(CVoidType.VOID)) {
+      return false;
+    }
+    if (canonicalType instanceof CCompositeType) {
+      return !((CCompositeType) canonicalType).isIncomplete();
+    }
+    if (canonicalType instanceof CElaboratedType) {
+      return ((CElaboratedType) canonicalType).getKind() == ComplexTypeKind.ENUM;
+    }
+    return true;
   }
 
   private static TestVector addValue(
