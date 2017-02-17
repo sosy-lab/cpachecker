@@ -56,7 +56,7 @@ final class PredefinedTypes {
       return false;
     }
     return ImmutableSet.of("size_t", "wchar_t").contains(originalName)
-        || isDiv(originalName);
+        || isCalledDiv(originalName);
   }
 
   public static boolean isPredefinedFunction(@Nullable AFunctionDeclaration pDeclaration) {
@@ -204,10 +204,10 @@ final class PredefinedTypes {
   }
 
   private static boolean isDiv(Type pType) {
-    return isDiv(pType.toString().trim());
+    return isCalledDiv(pType.toString().trim());
   }
 
-  private static boolean isDiv(String pTypeName) {
+  private static boolean isCalledDiv(String pTypeName) {
     return ImmutableList.of("div_t", "ldiv_t", "lldiv_t").contains(pTypeName);
   }
 
