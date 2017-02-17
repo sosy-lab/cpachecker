@@ -55,7 +55,8 @@ final class PredefinedTypes {
     if (originalName == null) {
       return false;
     }
-    return ImmutableSet.of("size_t", "wchar_t").contains(originalName);
+    return ImmutableSet.of("size_t", "wchar_t").contains(originalName)
+        || isDiv(originalName);
   }
 
   public static boolean isPredefinedFunction(@Nullable AFunctionDeclaration pDeclaration) {
@@ -64,8 +65,11 @@ final class PredefinedTypes {
         || isMemset(pDeclaration)
         || isFree(pDeclaration)
         || isExit(pDeclaration)
+        || isAbort(pDeclaration)
         || isPrintf(pDeclaration)
         || isSwprintf(pDeclaration)
+        || isWcstombs(pDeclaration)
+        || isDiv(pDeclaration)
         || isVerifierError(pDeclaration)
         || isVerifierAssume(pDeclaration);
   }
@@ -118,9 +122,17 @@ final class PredefinedTypes {
   private static boolean isExit(@Nullable AFunctionDeclaration pDeclaration) {
     return functionMatches(
         pDeclaration,
-        "exit",
-        CVoidType.VOID,
+        ImmutableList.of("exit", "_Exit")::contains,
+        Predicate.isEqual(CVoidType.VOID),
         Collections.singletonList(PredefinedTypes::isIntegerType));
+  }
+
+  private static boolean isAbort(@Nullable AFunctionDeclaration pDeclaration) {
+    return functionMatches(
+        pDeclaration,
+        "abort",
+        CVoidType.VOID,
+        Collections.emptyList());
   }
 
   private static boolean isPrintf(@Nullable AFunctionDeclaration pDeclaration) {
@@ -148,6 +160,57 @@ final class PredefinedTypes {
         ImmutableList.of(isPointerToIntegral, isPointerToIntegral));
   }
 
+  private static boolean isWcstombs(@Nullable AFunctionDeclaration pDeclaration) {
+    Predicate<Type> isPointerToIntegral = t -> {
+      Type type = getCanonicalType(t);
+      if (!(type instanceof CPointerType)) {
+        return false;
+      }
+      return isIntegerType(((CPointerType) type).getType());
+    };
+    return functionMatches(
+        pDeclaration,
+        "wcstombs",
+        PredefinedTypes::isIntegerType,
+        ImmutableList.of(isPointerToIntegral, isPointerToIntegral, PredefinedTypes::isIntegerType));
+  }
+
+  private static boolean isDiv(@Nullable AFunctionDeclaration pDeclaration) {
+    if (functionMatches(
+        pDeclaration,
+        "div",
+        PredefinedTypes::isDiv,
+        ImmutableList.of(
+            Predicate.isEqual(CNumericTypes.INT),
+            Predicate.isEqual(CNumericTypes.INT)))) {
+      return true;
+    }
+    if (functionMatches(
+            pDeclaration,
+            "ldiv",
+            PredefinedTypes::isDiv,
+            ImmutableList.of(
+                Predicate.isEqual(CNumericTypes.LONG_INT),
+                Predicate.isEqual(CNumericTypes.LONG_INT)))) {
+      return true;
+    }
+    return functionMatches(
+        pDeclaration,
+        "lldiv",
+        PredefinedTypes::isDiv,
+        ImmutableList.of(
+            Predicate.isEqual(CNumericTypes.LONG_LONG_INT),
+            Predicate.isEqual(CNumericTypes.LONG_LONG_INT)));
+  }
+
+  private static boolean isDiv(Type pType) {
+    return isDiv(pType.toString().trim());
+  }
+
+  private static boolean isDiv(String pTypeName) {
+    return ImmutableList.of("div_t", "ldiv_t", "lldiv_t").contains(pTypeName);
+  }
+
   private static boolean isVerifierError(@Nullable AFunctionDeclaration pDeclaration) {
     return functionMatches(pDeclaration, "__VERIFIER_error", CVoidType.VOID, ImmutableList.of());
   }
@@ -168,7 +231,6 @@ final class PredefinedTypes {
     if (type instanceof CSimpleType) {
       return ((CSimpleType) type).getType().isIntegerType();
     }
-    assert false : "Unsupported type: " + pType;
     return false;
   }
 
@@ -177,14 +239,31 @@ final class PredefinedTypes {
       String pExpectedName,
       Type pExpectedReturnType,
       List<Predicate<Type>> pExpectedParameterTypes) {
+    return functionMatches(pDeclaration, pExpectedName, Predicate.isEqual(getCanonicalType(pExpectedReturnType)), pExpectedParameterTypes);
+  }
+
+  private static boolean functionMatches(
+      @Nullable AFunctionDeclaration pDeclaration,
+      String pExpectedName,
+      Predicate<Type> pExpectedReturnType,
+      List<Predicate<Type>> pExpectedParameterTypes) {
+    return functionMatches(pDeclaration, Predicate.isEqual(pExpectedName), pExpectedReturnType, pExpectedParameterTypes);
+  }
+
+  private static boolean functionMatches(
+      @Nullable AFunctionDeclaration pDeclaration,
+      Predicate<String> pExpectedName,
+      Predicate<Type> pExpectedReturnType,
+      List<Predicate<Type>> pExpectedParameterTypes) {
     if (pDeclaration == null) {
       return false;
     }
-    if (!pDeclaration.getOrigName().equals(pExpectedName)) {
+    if (!pExpectedName.test(pDeclaration.getOrigName())) {
       return false;
     }
-    Type actualReturnType = getCanonicalType(pDeclaration.getType().getReturnType());
-    if (!actualReturnType.equals(getCanonicalType(pExpectedReturnType))) {
+    Type actualReturnType = pDeclaration.getType().getReturnType();
+    if (!pExpectedReturnType.test(actualReturnType)
+        && !pExpectedReturnType.test(getCanonicalType(actualReturnType))) {
       return false;
     }
     if (pDeclaration.getParameters().size() != pExpectedParameterTypes.size()) {
@@ -192,8 +271,10 @@ final class PredefinedTypes {
     }
     Iterator<Predicate<Type>> expectedParameterTypeIt = pExpectedParameterTypes.iterator();
     for (AParameterDeclaration parameterDeclaration : pDeclaration.getParameters()) {
-      Type actualParameterType = getCanonicalType(parameterDeclaration.getType());
-      if (!expectedParameterTypeIt.next().test(actualParameterType)) {
+      Type actualParameterType = parameterDeclaration.getType();
+      Predicate<Type> expectedParameterType = expectedParameterTypeIt.next();
+      if (!expectedParameterType.test(actualParameterType)
+          && !expectedParameterType.test(getCanonicalType(actualParameterType))) {
         return false;
       }
     }
