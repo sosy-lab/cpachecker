@@ -37,12 +37,11 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -77,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -107,10 +107,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -209,7 +211,7 @@ public class HarnessExporter {
   }
 
   private void copyTypeDeclarations(CodeAppender pTarget) throws IOException {
-    List<ADeclaration> declarations = new ArrayList<>();
+    Set<ADeclaration> declarations = new LinkedHashSet<>();
     CFATraversal.dfs()
         .traverseOnce(
             cfa.getMainFunction(),
@@ -225,9 +227,29 @@ public class HarnessExporter {
                 if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
                   ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
                   ADeclaration declaration = declarationEdge.getDeclaration();
-                  if (declaration instanceof CTypeDeclaration
-                      && !isPredefinedType((CTypeDeclaration) declaration)) {
-                    declarations.add(declaration);
+                  if (declaration instanceof CTypeDeclaration) {
+                    CTypeDeclaration typeDeclaration = (CTypeDeclaration) declaration;
+                    if (!isPredefinedType((CTypeDeclaration) declaration)) {
+                      CType declaredType = typeDeclaration.getType().getCanonicalType();
+                      if (declaredType instanceof CElaboratedType && declaredType.isIncomplete()) {
+                        CElaboratedType elaboratedType = (CElaboratedType) declaredType;
+                        final CComplexType dummyType;
+                        switch (elaboratedType.getKind()) {
+                          case ENUM:
+                            dummyType = new CEnumType(elaboratedType.isConst(), elaboratedType.isVolatile(), Collections.emptyList(), elaboratedType.getName(), elaboratedType.getOrigName());
+                            break;
+                          case STRUCT:
+                          case UNION:
+                            dummyType = new CCompositeType(elaboratedType.isConst(), elaboratedType.isVolatile(), elaboratedType.getKind(), Collections.emptyList(), elaboratedType.getName(), elaboratedType.getOrigName());
+                            break;
+                          default:
+                            throw new AssertionError("Unsupported kind of elaborated type: " + elaboratedType.getKind());
+                        }
+                        declarations.add(new CComplexTypeDeclaration(FileLocation.DUMMY, typeDeclaration.isGlobal(), dummyType));
+                      } else {
+                        declarations.add(declaration);
+                      }
+                    }
                   }
                 } else if (pEdge.getEdgeType() == CFAEdgeType.BlankEdge
                     && !pEdge.getPredecessor().equals(cfa.getMainFunction())) {
