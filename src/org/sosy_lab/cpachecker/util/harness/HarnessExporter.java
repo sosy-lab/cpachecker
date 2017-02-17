@@ -565,7 +565,7 @@ public class HarnessExporter {
     return Optional.empty();
   }
 
-  private static Optional<State> handlePlainFunctionCall(
+  private Optional<State> handlePlainFunctionCall(
       State pPrevious, ARGState pChild, AFunctionCallExpression functionCallExpression) {
     TestVector newTestVector =
         addDummyValue(pPrevious.testVector, functionCallExpression.getDeclaration());
@@ -574,12 +574,15 @@ public class HarnessExporter {
 
   private Optional<State> handlePointerCall(
       State pPrevious, ARGState pChild, AFunctionCallExpression pFunctionCallExpression) {
-    AFunctionDeclaration declaration = pFunctionCallExpression.getDeclaration();
-    Type declarationType = declaration.getType().getReturnType();
+    TestVector newTestVector = handlePointerCall(pPrevious.testVector, pFunctionCallExpression.getDeclaration());
+    return Optional.of(State.of(pChild, newTestVector));
+  }
+
+  private TestVector handlePointerCall(TestVector pTestVector, AFunctionDeclaration pDeclaration) {
+    Type declarationType = pDeclaration.getType().getReturnType();
     Preconditions.checkArgument(declarationType instanceof CPointerType);
     ExpressionTestValue pointerValue = handlePointer((CPointerType) declarationType, false);
-    TestVector newTestVector = pPrevious.testVector.addInputValue(declaration, pointerValue);
-    return Optional.of(State.of(pChild, newTestVector));
+    return pTestVector.addInputValue(pDeclaration, pointerValue);
   }
 
   private Optional<State> handlePointerDeclaration(
@@ -638,13 +641,18 @@ public class HarnessExporter {
   private Optional<State> handleCompositeCall(
       State pPrevious, ARGState pChild, AFunctionCallExpression pFunctionCallExpression) {
     AFunctionDeclaration declaration = pFunctionCallExpression.getDeclaration();
-    Preconditions.checkArgument(returnsComposite(declaration));
-    CType expectedTargetType = (CType) pFunctionCallExpression.getExpressionType();
-
-    TestVector newTestVector =
-        pPrevious.testVector.addInputValue(
-            declaration, handleComposite(expectedTargetType, getSizeOf(expectedTargetType), false));
+    TestVector newTestVector = handleCompositeCall(pPrevious.testVector, declaration);
     return Optional.of(State.of(pChild, newTestVector));
+  }
+
+  private TestVector handleCompositeCall(
+      TestVector pTestVector, AFunctionDeclaration pDeclaration) {
+    Preconditions.checkArgument(returnsComposite(pDeclaration));
+    CType expectedTargetType = (CType) pDeclaration.getType().getReturnType();
+
+    return pTestVector.addInputValue(
+            pDeclaration,
+            handleComposite(expectedTargetType, getSizeOf(expectedTargetType), false));
   }
 
   private Optional<State> handleCompositeDeclaration(
@@ -758,8 +766,16 @@ public class HarnessExporter {
         functionDeclaration);
   }
 
-  private static TestVector addDummyValue(
+  private TestVector addDummyValue(
       TestVector pTestVector, AFunctionDeclaration pFunctionDeclaration) {
+    Type returnType = pFunctionDeclaration.getType().getReturnType();
+    Type canonicalReturnType = getCanonicalType(returnType);
+    if (canonicalReturnType instanceof CPointerType) {
+      return handlePointerCall(pTestVector, pFunctionDeclaration);
+    }
+    if (canonicalReturnType instanceof CCompositeType) {
+      return handleCompositeCall(pTestVector, pFunctionDeclaration);
+    }
     AExpression value = getDummyValue(pFunctionDeclaration.getType().getReturnType());
     return addValue(pTestVector, pFunctionDeclaration, value);
   }
