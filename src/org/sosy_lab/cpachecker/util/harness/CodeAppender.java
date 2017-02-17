@@ -155,7 +155,6 @@ class CodeAppender implements Appendable {
       List<AAstNode> auxiliaryStatmenets = inputValue.getAuxiliaryStatements();
       Type type = PredefinedTypes.getCanonicalType(inputVariable.getType());
       boolean requiresInitialization = HarnessExporter.canInitialize(type);
-      //!(type instanceof CArrayType || type instanceof CCompositeType);
       if (requiresInitialization && !auxiliaryStatmenets.isEmpty()) {
         for (AAstNode statement : inputValue.getAuxiliaryStatements()) {
           appendln(statement.toASTString());
