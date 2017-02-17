@@ -114,10 +114,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -684,20 +682,6 @@ public class HarnessExporter {
     CAssignment assignment =
         new CFunctionCallAssignmentStatement(FileLocation.DUMMY, variable, pointerToValue);
     return ExpressionTestValue.of(ImmutableList.of(tmpVarDeclaration, assignment), variable);
-  }
-
-  private CExpression getSizeOf(CVariableDeclaration pVariableDeclaration) {
-    CType type = pVariableDeclaration.getType();
-    if (type instanceof CTypedefType
-        || type.getCanonicalType() instanceof CSimpleType
-        || type.getCanonicalType() instanceof CPointerType) {
-      return getSizeOf(type);
-    }
-    return new CUnaryExpression(
-        FileLocation.DUMMY,
-        CNumericTypes.UNSIGNED_INT,
-        new CIdExpression(FileLocation.DUMMY, pVariableDeclaration),
-        UnaryOperator.SIZEOF);
   }
 
   private CExpression getSizeOf(CType pExpectedTargetType) {
