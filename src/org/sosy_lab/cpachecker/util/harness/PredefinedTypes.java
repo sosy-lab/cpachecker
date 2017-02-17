@@ -82,7 +82,7 @@ final class PredefinedTypes {
   }
 
   private static boolean isMalloc(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
+    return functionMatchesExactType(
         pDeclaration,
         "malloc",
         CPointerType.POINTER_TO_VOID,
@@ -90,7 +90,7 @@ final class PredefinedTypes {
   }
 
   private static boolean isMemcpy(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
+    return functionMatchesExactType(
         pDeclaration,
         "memcpy",
         CPointerType.POINTER_TO_VOID,
@@ -101,7 +101,7 @@ final class PredefinedTypes {
   }
 
   private static boolean isMemset(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
+    return functionMatchesExactType(
         pDeclaration,
         "memset",
         CPointerType.POINTER_TO_VOID,
@@ -112,7 +112,7 @@ final class PredefinedTypes {
   }
 
   private static boolean isFree(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
+    return functionMatchesExactType(
         pDeclaration,
         "free",
         CVoidType.VOID,
@@ -128,7 +128,7 @@ final class PredefinedTypes {
   }
 
   private static boolean isAbort(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
+    return functionMatchesExactType(
         pDeclaration,
         "abort",
         CVoidType.VOID,
@@ -136,7 +136,7 @@ final class PredefinedTypes {
   }
 
   private static boolean isPrintf(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
+    return functionMatchesExactType(
         pDeclaration,
         "printf",
         CNumericTypes.INT,
@@ -153,7 +153,7 @@ final class PredefinedTypes {
       }
       return isIntegerType(((CPointerType) type).getType());
     };
-    return functionMatches(
+    return functionMatchesExactType(
         pDeclaration,
         "swprintf",
         CNumericTypes.INT,
@@ -179,7 +179,7 @@ final class PredefinedTypes {
     if (functionMatches(
         pDeclaration,
         "div",
-        PredefinedTypes::isDiv,
+        PredefinedTypes::isDivType,
         ImmutableList.of(
             Predicate.isEqual(CNumericTypes.INT),
             Predicate.isEqual(CNumericTypes.INT)))) {
@@ -188,7 +188,7 @@ final class PredefinedTypes {
     if (functionMatches(
             pDeclaration,
             "ldiv",
-            PredefinedTypes::isDiv,
+            PredefinedTypes::isDivType,
             ImmutableList.of(
                 Predicate.isEqual(CNumericTypes.LONG_INT),
                 Predicate.isEqual(CNumericTypes.LONG_INT)))) {
@@ -197,13 +197,13 @@ final class PredefinedTypes {
     return functionMatches(
         pDeclaration,
         "lldiv",
-        PredefinedTypes::isDiv,
+        PredefinedTypes::isDivType,
         ImmutableList.of(
             Predicate.isEqual(CNumericTypes.LONG_LONG_INT),
             Predicate.isEqual(CNumericTypes.LONG_LONG_INT)));
   }
 
-  private static boolean isDiv(Type pType) {
+  private static boolean isDivType(Type pType) {
     return isCalledDiv(pType.toString().trim());
   }
 
@@ -212,11 +212,11 @@ final class PredefinedTypes {
   }
 
   private static boolean isVerifierError(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(pDeclaration, "__VERIFIER_error", CVoidType.VOID, ImmutableList.of());
+    return functionMatchesExactType(pDeclaration, "__VERIFIER_error", CVoidType.VOID, ImmutableList.of());
   }
 
   private static boolean isVerifierAssume(@Nullable AFunctionDeclaration pDeclaration) {
-    return functionMatches(
+    return functionMatchesExactType(
         pDeclaration,
         "__VERIFIER_assume",
         CVoidType.VOID,
@@ -234,7 +234,7 @@ final class PredefinedTypes {
     return false;
   }
 
-  private static boolean functionMatches(
+  private static boolean functionMatchesExactType(
       @Nullable AFunctionDeclaration pDeclaration,
       String pExpectedName,
       Type pExpectedReturnType,
