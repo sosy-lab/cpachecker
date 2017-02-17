@@ -580,7 +580,10 @@ public class HarnessExporter {
 
   private TestVector handlePointerCall(TestVector pTestVector, AFunctionDeclaration pDeclaration) {
     Type declarationType = pDeclaration.getType().getReturnType();
-    Preconditions.checkArgument(declarationType instanceof CPointerType);
+    Preconditions.checkArgument(getCanonicalType(declarationType) instanceof CPointerType);
+    if (!(declarationType instanceof CPointerType)) {
+      declarationType = getCanonicalType(declarationType);
+    }
     ExpressionTestValue pointerValue = handlePointer((CPointerType) declarationType, false);
     return pTestVector.addInputValue(pDeclaration, pointerValue);
   }
