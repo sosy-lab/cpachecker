@@ -63,10 +63,10 @@ import org.sosy_lab.cpachecker.util.automaton.NFA;
 import org.sosy_lab.cpachecker.util.automaton.NFA.State;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
+import javax.annotation.Nullable;
+
 import java.util.Collections;
 import java.util.List;
-
-import javax.annotation.Nullable;
 
 public class Goal implements SafetyProperty {
 
@@ -107,8 +107,12 @@ public class Goal implements SafetyProperty {
   public String getName() {
     CFAEdge ce = getCriticalEdge();
     CFANode pred = ce.getPredecessor();
+    CFANode succ = ce.getSuccessor();
     if (pred instanceof CLabelNode && !((CLabelNode) pred).getLabel().isEmpty()) {
       String lbl = ((CLabelNode) pred).getLabel();
+      return String.format("%d@%s", getIndex(), lbl);
+    } else if (succ instanceof CLabelNode && !((CLabelNode) succ).getLabel().isEmpty()) {
+      String lbl = ((CLabelNode) succ).getLabel();
       return String.format("%d@%s", getIndex(), lbl);
     } else {
       return Integer.toString(getIndex());

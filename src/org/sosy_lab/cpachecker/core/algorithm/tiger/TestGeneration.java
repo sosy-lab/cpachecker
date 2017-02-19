@@ -149,6 +149,21 @@ public class TestGeneration implements Statistics {
       pOut.append("      Time for creating a test case " + createTestcaseTime + "\n");
       pOut.append("      Time for updating the test coverage " + updateTestsuiteByCoverageOfTime + "\n");
       pOut.append("        Time for checking acceptance " + acceptsTime + "\n");
+
+      ImmutableSet<Goal> goals = testsuite.getGoals();
+      Set<Goal> feasible = testsuite.getFeasibleGoals();
+      Map<Goal, PresenceCondition> timedout = testsuite.getTimedOutGoals();
+      Set<Goal> infeasible = Sets.difference(goals, feasible);
+      infeasible = Sets.difference(infeasible, timedout.keySet());
+
+      pOut.append("Feasible Goals:");
+      for (Goal goal : feasible) {
+        pOut.append("  " + goal.getName());
+      }
+      pOut.append("Infeasible Goals:");
+      for (Goal goal : infeasible) {
+        pOut.append("  " + goal.getName());
+      }
     }
 
   }
