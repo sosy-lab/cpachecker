@@ -228,7 +228,7 @@ public class CounterexampleInfo extends AbstractAppender {
       elem.put("source", edge.getPredecessor().getNodeNumber());
       elem.put("target", edge.getSuccessor().getNodeNumber());
       elem.put("desc", edge.getDescription().replaceAll("\n", " "));
-      elem.put("line", edge.getFileLocation().getStartingLineNumber());
+      elem.put("line", edge.getFileLocation().getStartingLineInOrigin());
       elem.put("file", edge.getFileLocation().getFileName());
 
       // cfa path with assignments has no padding (only inner edges of argpath).
