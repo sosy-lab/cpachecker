@@ -67,6 +67,27 @@ class ValidationError(Exception):
         return self._msg
 
 
+class ExecutionResult(object):
+    """Results of a subprocess execution."""
+
+    def __init__(self, returncode, stdout, stderr):
+        self._returncode = returncode
+        self._stdout = stdout
+        self._stderr = stderr
+
+    @property
+    def returncode(self):
+        return self._returncode
+
+    @property
+    def stdout(self):
+        return self._stdout
+
+    @property
+    def stderr(self):
+        return self._stderr
+
+
 def get_cpachecker_version():
     executable = get_cpachecker_executable()
     result = execute([executable, "-help"], quiet=True)
@@ -247,11 +268,16 @@ def get_target_name(harness_name):
 def execute(command, quiet=False):
     if not quiet:
         logging.info(" ".join(command))
-    return subprocess.run(command,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
-                          universal_newlines=True
-                          )
+    p = subprocess.Popen(command,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         universal_newlines=True
+                         )
+    returncode = p.wait()
+    output = p.stdout.read()
+    err_output = p.stderr.read()
+
+    return ExecutionResult(returncode, output, err_output)
 
 
 def analyze_result(test_result, harness):
