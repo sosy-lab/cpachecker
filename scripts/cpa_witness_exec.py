@@ -286,11 +286,16 @@ def execute(command, quiet=False):
 
 def analyze_result(test_result, harness):
     if test_result.returncode == EXPECTED_RETURN:
-        logging.info("Verification result: FALSE." +
-                     " Harness {} reached expected error location.".format(harness))
+        print("Verification result: FALSE." +
+              " Harness {} reached expected error location.".format(harness))
         return True
-    else:
+    else:  # Only log failures to info level
         logging.info("Run with harness {} was not successful".format(harness))
+
+
+def log_multiline(msg, level=logging.INFO):
+    for line in msg.split('\n'):
+        logging.log(level, line) if line else None
 
 
 def run():
@@ -299,8 +304,8 @@ def run():
 
     harness_gen_cmd = create_harness_gen_cmd(args)
     harness_gen_result = execute(harness_gen_cmd)
-    logging.debug(harness_gen_result.stdout)
-    logging.error(harness_gen_result.stderr)
+    log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
+    log_multiline(harness_gen_result.stderr, level=logging.INFO)
 
     created_harnesses = find_harnesses(output_dir)
     logging.info("{} harness(es) for witness produced.".format(len(created_harnesses)))
@@ -312,9 +317,14 @@ def run():
         compile_cmd = create_compile_cmd(harness, exe_target, args)
         compile_result = execute(compile_cmd)
 
+        log_multiline(compile_result.stdout, level=logging.DEBUG)
+        log_multiline(compile_result.stderr, level=logging.INFO)
+
         if compile_result.returncode != 0:
             compile_cmd = create_compile_cmd(harness, exe_target, args, 'c90')
             compile_result = execute(compile_cmd)
+            log_multiline(compile_result.stdout, level=logging.DEBUG)
+            log_multiline(compile_result.stderr, level=logging.INFO)
 
             if compile_result.returncode != 0:
                 logging.warning("Compilation failed for harness {}".format(harness))
@@ -333,11 +343,11 @@ def run():
             break
 
     if not done:
-        logging.info("Verification result: UNKNOWN." +
-                     " No harness for witness was successful or no harness was produced.")
+        print("Verification result: UNKNOWN." +
+              " No harness for witness was successful or no harness was produced.")
 
 
-logging.basicConfig(format="%(message)s",
+logging.basicConfig(format="%(levelname)s: %(message)s",
                     level=logging.INFO)
 
 try:
