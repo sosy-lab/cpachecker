@@ -117,6 +117,11 @@ def create_parser():
                         help="Path where output should be stored"
                         )
 
+    parser.add_argument('--timelimit',
+                        type=str,
+                        action='store',
+                        help='Time limit of analysis')
+
     parser.add_argument('--cpa-args',
                         dest='cpa_args',
                         type=_postprocess_args,
@@ -181,7 +186,6 @@ def _postprocess_args(arg):
         new_arg = '-' + arg[len(ARG_PLACEHOLDER):]
     return new_arg.split()
 
-
 def _parse_args(argv=sys.argv[1:]):
     parser = create_parser()
     args = parser.parse_args(_preprocess_args(argv))
@@ -222,6 +226,9 @@ def _create_cpachecker_args(args):
     # An explicit output path that is set using -cpa-args will be respected
     if '-outputpath' not in cpachecker_args:
         cpachecker_args += ["-outputpath", args.output_path]
+
+    if '-timelimit' not in cpachecker_args:
+        cpachecker_args += ["-timelimit", args.timelimit]
 
     if args.machine_model == MACHINE_MODEL_64:
         cpachecker_args.append('-64')
