@@ -190,24 +190,58 @@ public class HarnessExporter {
             pRootState, pIsRelevantState, pIsRelevantEdge, getValueMap(pCounterexampleInfo));
     if (testVector.isPresent()) {
 
+      Set<AFunctionDeclaration> externalFunctions = getExternalFunctions();
+
       CodeAppender codeAppender = new CodeAppender(pTarget);
 
       // #include <stdlib.h> for exit function
       codeAppender.appendln("#include <stdlib.h>");
       // implement __VERIFIER_error with exit(EXIT_FAILURE)
       codeAppender.appendln("void __VERIFIER_error(void) { exit(" + ERR_REACHED_CODE + "); }");
-      // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
-      codeAppender.appendln(
-          "void __VERIFIER_assume(int cond) { if (!(cond)) { exit(EXIT_SUCCESS); }}");
+
+      if (externalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
+        // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
+        codeAppender.appendln(
+            "void __VERIFIER_assume(int cond) { if (!(cond)) { exit(EXIT_SUCCESS); }}");
+      }
 
       // implement actual harness
-      TestVector vector = completeExternalFunctions(testVector.get());
+      TestVector vector = completeExternalFunctions(testVector.get(), externalFunctions);
       copyTypeDeclarations(codeAppender);
       codeAppender.append(vector);
     } else {
       logger.log(
           Level.INFO, "Could not export a test harness, some test-vector values are missing.");
     }
+  }
+
+  private Set<AFunctionDeclaration> getExternalFunctions() {
+    Set<AFunctionDeclaration> externalFunctions = new HashSet<>();
+    CFAVisitor externalFunctionCollector =
+        new CFAVisitor() {
+
+          @Override
+          public TraversalProcess visitNode(CFANode pNode) {
+            return TraversalProcess.CONTINUE;
+          }
+
+          @Override
+          public TraversalProcess visitEdge(CFAEdge pEdge) {
+            if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+              ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+              ADeclaration declaration = declarationEdge.getDeclaration();
+              if (declaration instanceof AFunctionDeclaration) {
+                AFunctionDeclaration functionDeclaration = (AFunctionDeclaration) declaration;
+                if (!cfa.getAllFunctionNames().contains(functionDeclaration.getName())) {
+                  externalFunctions.add(functionDeclaration);
+                }
+              }
+            }
+            return TraversalProcess.CONTINUE;
+          }
+        };
+    CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), externalFunctionCollector);
+    return externalFunctions;
   }
 
   private void copyTypeDeclarations(CodeAppender pTarget) throws IOException {
@@ -263,37 +297,13 @@ public class HarnessExporter {
     }
   }
 
-  private TestVector completeExternalFunctions(TestVector pVector) {
-    Set<AFunctionDeclaration> externalFunctions = new HashSet<>();
-    CFAVisitor externalFunctionCollector =
-        new CFAVisitor() {
-
-          @Override
-          public TraversalProcess visitNode(CFANode pNode) {
-            return TraversalProcess.CONTINUE;
-          }
-
-          @Override
-          public TraversalProcess visitEdge(CFAEdge pEdge) {
-            if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-              ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
-              ADeclaration declaration = declarationEdge.getDeclaration();
-              if (declaration instanceof AFunctionDeclaration) {
-                AFunctionDeclaration functionDeclaration = (AFunctionDeclaration) declaration;
-                if (!cfa.getAllFunctionNames().contains(functionDeclaration.getName())
-                    && !isPredefinedFunction(functionDeclaration)
-                    && !pVector.contains(functionDeclaration)) {
-                  externalFunctions.add(functionDeclaration);
-                }
-              }
-            }
-            return TraversalProcess.CONTINUE;
-          }
-        };
-    CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), externalFunctionCollector);
+  private TestVector completeExternalFunctions(TestVector pVector, Iterable<AFunctionDeclaration> pExternalFunctions) {
     TestVector result = pVector;
-    for (AFunctionDeclaration functionDeclaration : externalFunctions) {
-      result = addDummyValue(result, functionDeclaration);
+    for (AFunctionDeclaration functionDeclaration : pExternalFunctions) {
+      if (!isPredefinedFunction(functionDeclaration)
+          && !pVector.contains(functionDeclaration)) {
+        result = addDummyValue(result, functionDeclaration);
+      }
     }
     return result;
   }

@@ -215,7 +215,7 @@ final class PredefinedTypes {
     return functionMatchesExactType(pDeclaration, "__VERIFIER_error", CVoidType.VOID, ImmutableList.of());
   }
 
-  private static boolean isVerifierAssume(@Nullable AFunctionDeclaration pDeclaration) {
+  public static boolean isVerifierAssume(@Nullable AFunctionDeclaration pDeclaration) {
     return functionMatchesExactType(
         pDeclaration,
         "__VERIFIER_assume",
