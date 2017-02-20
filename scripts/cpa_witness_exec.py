@@ -120,8 +120,8 @@ def create_parser():
     parser.add_argument('--cpa-args',
                         dest='cpa_args',
                         type=_postprocess_args,
-                        action='store',
-                        default='-generateTestHarness',
+                        action='append',
+                        default=[],
                         help='List of arguments to use for CPAchecker when generating the test harnesses. ' +
                              'This should include -generateTestHarness .'
                         )
@@ -129,8 +129,8 @@ def create_parser():
     parser.add_argument('--gcc-args',
                         dest='gcc_args',
                         type=_postprocess_args,
-                        action='store',
-                        default='',
+                        action='append',
+                        default=[],
                         help='List of arguments to use when compiling the counterexample test'
                         )
 
@@ -176,10 +176,10 @@ def _preprocess_args(argv):
 
 def _postprocess_args(arg):
     """ Undo the preprocessing steps from above. """
+    new_arg = arg
     if arg.startswith(ARG_PLACEHOLDER):
-        return '-' + arg[len(ARG_PLACEHOLDER):]
-    else:
-        return arg
+        new_arg = '-' + arg[len(ARG_PLACEHOLDER):]
+    return new_arg.split()
 
 
 def _parse_args(argv=sys.argv[1:]):
@@ -189,8 +189,12 @@ def _parse_args(argv=sys.argv[1:]):
     return args
 
 
+def flatten(list_of_lists):
+    return sum(list_of_lists, [])
+
+
 def _create_gcc_basic_args(args):
-    gcc_args = GCC_ARGS_FIXED + args.gcc_args.split()
+    gcc_args = GCC_ARGS_FIXED + flatten(args.gcc_args)
     if args.machine_model == MACHINE_MODEL_64:
         gcc_args.append('-m64')
     elif args.machine_model == MACHINE_MODEL_32:
@@ -213,7 +217,7 @@ def create_compile_cmd(harness, target, args, c_version='c11'):
 
 
 def _create_cpachecker_args(args):
-    cpachecker_args = args.cpa_args.split()
+    cpachecker_args = flatten(args.cpa_args)
 
     # An explicit output path that is set using -cpa-args will be respected
     if '-outputpath' not in cpachecker_args:
