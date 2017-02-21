@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.isPredefinedT
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -167,7 +168,7 @@ public class HarnessExporter {
       throws IOException {
 
     // Find a path with sufficient test vector info
-    Optional<TestVector> testVector =
+    Optional<TargetTestVector> testVector =
         extractTestVector(
             pRootState, pIsRelevantState, pIsRelevantEdge, getValueMap(pCounterexampleInfo));
     if (testVector.isPresent()) {
@@ -179,8 +180,16 @@ public class HarnessExporter {
       // #include <stdlib.h> for exit function
       codeAppender.appendln("#include <stdlib.h>");
 
-      // implement __VERIFIER_error with exit(EXIT_FAILURE)
-      codeAppender.appendln("void __VERIFIER_error(void) { exit(" + ERR_REACHED_CODE + "); }");
+      // implement error-function
+      CFAEdge edgeToTarget = testVector.get().edgeToTarget;
+      Optional<AFunctionDeclaration> errorFunction =
+          getErrorFunction(edgeToTarget, externalFunctions);
+      if (errorFunction.isPresent()) {
+        codeAppender.append(errorFunction.get());
+        codeAppender.appendln(" { exit(" + ERR_REACHED_CODE + "); }");
+      } else {
+        logger.log(Level.WARNING, "Could not find a call to an error function.");
+      }
 
       if (externalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
         // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
@@ -189,13 +198,37 @@ public class HarnessExporter {
       }
 
       // implement actual harness
-      TestVector vector = completeExternalFunctions(testVector.get(), externalFunctions);
+      TestVector vector =
+          completeExternalFunctions(
+              testVector.get().testVector,
+              errorFunction.isPresent()
+                  ? FluentIterable.from(externalFunctions)
+                      .filter(Predicates.not(Predicates.equalTo(errorFunction)))
+                  : externalFunctions);
       copyTypeDeclarations(codeAppender);
       codeAppender.append(vector);
     } else {
       logger.log(
           Level.INFO, "Could not export a test harness, some test-vector values are missing.");
     }
+  }
+
+  private Optional<AFunctionDeclaration> getErrorFunction(
+      CFAEdge pEdgeToTarget, Set<AFunctionDeclaration> pExternalFunctions) {
+    if (pEdgeToTarget instanceof AStatementEdge) {
+      AStatementEdge statementEdge = (AStatementEdge) pEdgeToTarget;
+      AStatement statement = statementEdge.getStatement();
+      if (statement instanceof AFunctionCall) {
+        AFunctionCall functionCallStatement = (AFunctionCall) statement;
+        AFunctionCallExpression functionCallExpression =
+            functionCallStatement.getFunctionCallExpression();
+        AFunctionDeclaration declaration = functionCallExpression.getDeclaration();
+        if (declaration != null && pExternalFunctions.contains(declaration)) {
+          return Optional.of(functionCallExpression.getDeclaration());
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   private Set<AFunctionDeclaration> getExternalFunctions() {
@@ -299,19 +332,26 @@ public class HarnessExporter {
     return ImmutableMultimap.of();
   }
 
-  private Optional<TestVector> extractTestVector(
+  private Optional<TargetTestVector> extractTestVector(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
     Set<State> visited = Sets.newHashSet();
     Deque<State> stack = Queues.newArrayDeque();
+    Deque<CFAEdge> lastEdgeStack = Queues.newArrayDeque();
     stack.push(State.of(pRootState, TestVector.newTestVector()));
     visited.addAll(stack);
     while (!stack.isEmpty()) {
       State previous = stack.pop();
+      CFAEdge lastEdge = null;
+      if (!lastEdgeStack.isEmpty()) {
+        lastEdge = lastEdgeStack.pop();
+      }
       if (AbstractStates.isTargetState(previous.argState)) {
-        return Optional.of(previous.testVector);
+        assert lastEdge != null
+            : "Expected target state to be different from root state, but was not";
+        return Optional.of(new TargetTestVector(lastEdge, previous.testVector));
       }
       ARGState parent = previous.argState;
       Iterable<CFANode> parentLocs = AbstractStates.extractLocations(parent);
@@ -325,6 +365,7 @@ public class HarnessExporter {
                 Optional<State> nextState = computeNextState(previous, child, edge, pValueMap);
                 if (nextState.isPresent() && visited.add(nextState.get())) {
                   stack.push(nextState.get());
+                  lastEdgeStack.push(edge);
                 }
               }
             }
@@ -425,13 +466,18 @@ public class HarnessExporter {
         Type type = variableDeclaration.getType();
         Type canonicalType = getCanonicalType(type);
         if (canonicalType instanceof CPointerType) {
-          return handlePointerDeclaration(pPrevious, pChild, variableDeclaration);
+          return Optional.of(
+              State.of(
+                  pChild, handlePointerDeclaration(pPrevious.testVector, variableDeclaration)));
         }
         if (canonicalType instanceof CCompositeType) {
-          return handleCompositeDeclaration(pPrevious, pChild, variableDeclaration);
+          return Optional.of(
+              State.of(
+                  pChild, handleCompositeDeclaration(pPrevious.testVector, variableDeclaration)));
         }
         if (canonicalType instanceof CArrayType) {
-          return handleArrayDeclaration(pPrevious, pChild, variableDeclaration);
+          return Optional.of(
+              State.of(pChild, handleArrayDeclaration(pPrevious.testVector, variableDeclaration)));
         }
         return Optional.of(
             State.of(
@@ -581,8 +627,8 @@ public class HarnessExporter {
     return pTestVector.addInputValue(pDeclaration, pointerValue);
   }
 
-  private Optional<State> handlePointerDeclaration(
-      State pPrevious, ARGState pChild, AVariableDeclaration pVariableDeclaration) {
+  private TestVector handlePointerDeclaration(
+      TestVector pTestVector, AVariableDeclaration pVariableDeclaration) {
     Type declarationType = pVariableDeclaration.getType();
     Preconditions.checkArgument(declarationType instanceof CPointerType);
     ExpressionTestValue pointerValue = handlePointer((CPointerType) declarationType, true);
@@ -590,9 +636,7 @@ public class HarnessExporter {
     final AInitializer initializer = toInitializer(value);
     InitializerTestValue initializerTestValue =
         InitializerTestValue.of(pointerValue.getAuxiliaryStatements(), initializer);
-    TestVector newTestVector =
-        pPrevious.testVector.addInputValue(pVariableDeclaration, initializerTestValue);
-    return Optional.of(State.of(pChild, newTestVector));
+    return pTestVector.addInputValue(pVariableDeclaration, initializerTestValue);
   }
 
   private static AInitializer toInitializer(AExpression pValue) {
@@ -651,15 +695,13 @@ public class HarnessExporter {
             handleComposite(expectedTargetType, getSizeOf(expectedTargetType), false));
   }
 
-  private Optional<State> handleCompositeDeclaration(
-      State pPrevious, ARGState pChild, AVariableDeclaration pVariableDeclaration) {
+  private TestVector handleCompositeDeclaration(
+      TestVector pTestVector, AVariableDeclaration pVariableDeclaration) {
     Type expectedTargetType = pVariableDeclaration.getType();
     Preconditions.checkArgument(getCanonicalType(expectedTargetType) instanceof CCompositeType);
 
-    TestVector newTestVector =
-        pPrevious.testVector.addInputValue(
-            pVariableDeclaration, getDummyInitializer(pVariableDeclaration.getType()));
-    return Optional.of(State.of(pChild, newTestVector));
+    return pTestVector.addInputValue(
+        pVariableDeclaration, getDummyInitializer(pVariableDeclaration.getType()));
   }
 
   private ExpressionTestValue handleComposite(CType pType, CExpression pSize, boolean pIsGlobal) {
@@ -679,12 +721,10 @@ public class HarnessExporter {
     return ExpressionTestValue.of(pointerValue.getAuxiliaryStatements(), value);
   }
 
-  private Optional<State> handleArrayDeclaration(
-      State pPrevious, ARGState pChild, AVariableDeclaration pVariableDeclaration) {
-    TestVector newTestVector =
-        pPrevious.testVector.addInputValue(
-            pVariableDeclaration, getDummyInitializer(pVariableDeclaration.getType()));
-    return Optional.of(State.of(pChild, newTestVector));
+  private TestVector handleArrayDeclaration(
+      TestVector pTestVector, AVariableDeclaration pVariableDeclaration) {
+    return pTestVector.addInputValue(
+        pVariableDeclaration, getDummyInitializer(pVariableDeclaration.getType()));
   }
 
   private ExpressionTestValue assignMallocToTmpVariable(
@@ -911,5 +951,40 @@ public class HarnessExporter {
     public static State of(ARGState pARGState, TestVector pTestVector) {
       return new State(pARGState, pTestVector);
     }
+  }
+
+  private static class TargetTestVector {
+
+    private final CFAEdge edgeToTarget;
+
+    private final TestVector testVector;
+
+    public TargetTestVector(CFAEdge pEdgeToTarget, TestVector pTestVector) {
+      edgeToTarget = Objects.requireNonNull(pEdgeToTarget);
+      testVector = Objects.requireNonNull(pTestVector);
+    }
+
+    @Override
+    public String toString() {
+      return testVector.toString();
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(edgeToTarget, testVector);
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (pObj == this) {
+        return true;
+      }
+      if (pObj instanceof TargetTestVector) {
+        TargetTestVector other = (TargetTestVector) pObj;
+        return edgeToTarget.equals(other.edgeToTarget) && testVector.equals(other.testVector);
+      }
+      return false;
+    }
+
   }
 }

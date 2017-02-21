@@ -196,7 +196,7 @@ class CodeAppender implements Appendable {
     for (AFunctionDeclaration inputFunction : pVector.getInputFunctions()) {
       List<ExpressionTestValue> inputValues = pVector.getInputValues(inputFunction);
       Type returnType = inputFunction.getType().getReturnType();
-      append(declare(inputFunction));
+      append(inputFunction);
       appendln(" {");
       if (!returnType.equals(CVoidType.VOID)) {
         String inputFunctionVectorIndexName = "test_vector_index";
@@ -236,8 +236,8 @@ class CodeAppender implements Appendable {
     return this;
   }
 
-  private static String declare(AFunctionDeclaration pInputFunction) {
-    return enforceParameterNames(pInputFunction).toASTString(pInputFunction.getName());
+  public CodeAppender append(AFunctionDeclaration pInputFunction) throws IOException {
+    return append(enforceParameterNames(pInputFunction).toASTString(pInputFunction.getName()));
   }
 
   private static AFunctionType enforceParameterNames(AFunctionDeclaration pInputFunction) {
