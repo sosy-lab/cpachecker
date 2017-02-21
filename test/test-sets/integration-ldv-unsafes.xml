@@ -92,6 +92,11 @@
       <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-sound--usb--snd-usb-audio.ko-ldv_main7_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/unsafes/39_7a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-39_7a-net--tipc--tipc.ko-ldv_main17_false-unreach-label.cil.out.c</exclude>
       <exclude>../programs/ldv-benchmarks/validator/v0.7/linux-stable-47dffc7-1-144_1a-drivers--net--usb--cdc-phonet.ko-ldv_main0_false-unreach-label.cil.out.c</exclude>
+
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main1_true-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main4_false-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-3.12-rc1/linux-3.12-rc1.tar.xz-32_7a-fs--ncpfs--ncpfs.ko-ldv_main9_true-unreach-label.cil.out.c</exclude>
+      <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--amd--amdgpu--amdgpu.ko-ldv_main14_false-unreach-label.cil.out.c</exclude>
     </tasks>
 
     <tasks>
