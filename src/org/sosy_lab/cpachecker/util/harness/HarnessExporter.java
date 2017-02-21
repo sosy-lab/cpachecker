@@ -147,32 +147,14 @@ public class HarnessExporter {
 
   private final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
-  private final HackyOptions hackyOptions = new HackyOptions();
-
   @Option(secure = true, description = "Use the counterexample model to provide test-vector values")
   private boolean useModel = true;
-
-  /**
-   * This is a temporary hack to easily obtain verification tasks. TODO: Obtain the values without
-   * this hack.
-   */
-  @Options
-  private static class HackyOptions {
-
-    @Option(
-      secure = true,
-      name = "analysis.programNames",
-      description = "A String, denoting the programs to be analyzed"
-    )
-    private String programs;
-  }
 
   public HarnessExporter(Configuration pConfig, LogManager pLogger, CFA pCFA)
       throws InvalidConfigurationException {
     cfa = pCFA;
     logger = pLogger;
     binExpBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
-    pConfig.inject(hackyOptions);
     pConfig.inject(this);
   }
 
@@ -196,6 +178,7 @@ public class HarnessExporter {
 
       // #include <stdlib.h> for exit function
       codeAppender.appendln("#include <stdlib.h>");
+
       // implement __VERIFIER_error with exit(EXIT_FAILURE)
       codeAppender.appendln("void __VERIFIER_error(void) { exit(" + ERR_REACHED_CODE + "); }");
 
