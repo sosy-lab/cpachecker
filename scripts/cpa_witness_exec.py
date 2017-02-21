@@ -227,7 +227,7 @@ def _create_cpachecker_args(args):
     if '-outputpath' not in cpachecker_args:
         cpachecker_args += ["-outputpath", args.output_path]
 
-    if '-timelimit' not in cpachecker_args:
+    if '-timelimit' not in cpachecker_args and args.timelimit is not None:
         cpachecker_args += ["-timelimit", args.timelimit]
 
     if args.machine_model == MACHINE_MODEL_64:
