@@ -203,7 +203,7 @@ public class HarnessExporter {
               testVector.get().testVector,
               errorFunction.isPresent()
                   ? FluentIterable.from(externalFunctions)
-                      .filter(Predicates.not(Predicates.equalTo(errorFunction)))
+                      .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
                   : externalFunctions);
       copyTypeDeclarations(codeAppender);
       codeAppender.append(vector);
