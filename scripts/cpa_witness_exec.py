@@ -361,3 +361,4 @@ try:
     run()
 except ValidationError as e:
     logging.error(e.msg)
+    print("Verification result: ERROR.")
