@@ -135,6 +135,10 @@ def create_parser():
                         help='list of arguments to use when compiling the counterexample test'
                         )
 
+    parser.add_argument('-stats',
+                        action='store_true',
+                        help="show statistics")
+
     parser.add_argument("file",
                         type=str,
                         nargs='?',
@@ -236,69 +240,99 @@ def execute(command, quiet=False):
     returncode = p.wait()
     output = p.stdout.read()
     err_output = p.stderr.read()
-
     return ExecutionResult(returncode, output, err_output)
 
 
 def analyze_result(test_result, harness):
     if test_result.returncode == EXPECTED_RETURN:
-        print("Verification result: FALSE." +
-              " Harness {} reached expected error location.".format(harness))
+        logging.info("Harness {} reached expected error location.".format(harness))
         return True
-    else:  # Only log failures to info level
+    else:
         logging.info("Run with harness {} was not successful".format(harness))
+        return False
 
 
 def log_multiline(msg, level=logging.INFO):
-    for line in msg.split('\n'):
-        logging.log(level, line) if line else None
+    if type(msg) is list:
+        msg_lines = msg
+    else:
+        msg_lines = msg.split('\n')
+    for line in msg_lines:
+        logging.log(level, line)
 
 
 def run():
+    statistics = []
     args = _parse_args()
     output_dir = args.output_path
 
     harness_gen_cmd = create_harness_gen_cmd(args)
     harness_gen_result = execute(harness_gen_cmd)
-    log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
     log_multiline(harness_gen_result.stderr, level=logging.INFO)
+    log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
 
     created_harnesses = find_harnesses(output_dir)
-    logging.info("{} harness(es) for witness produced.".format(len(created_harnesses)))
+    statistics.append(("Harnesses produced", len(created_harnesses)))
 
-    done = False
+    success = False
+    successful_harness = None
+    iter_count = 0
+    compile_success_count = 0
+    c11_success_count = 0
     for harness in created_harnesses:
+        iter_count += 1
         logging.info("Looking at {}".format(harness))
         exe_target = output_dir + os.sep + get_target_name(harness)
         compile_cmd = create_compile_cmd(harness, exe_target, args)
         compile_result = execute(compile_cmd)
 
-        log_multiline(compile_result.stdout, level=logging.DEBUG)
         log_multiline(compile_result.stderr, level=logging.INFO)
+        log_multiline(compile_result.stdout, level=logging.DEBUG)
 
         if compile_result.returncode != 0:
             compile_cmd = create_compile_cmd(harness, exe_target, args, 'c90')
             compile_result = execute(compile_cmd)
-            log_multiline(compile_result.stdout, level=logging.DEBUG)
             log_multiline(compile_result.stderr, level=logging.INFO)
+            log_multiline(compile_result.stdout, level=logging.DEBUG)
 
             if compile_result.returncode != 0:
                 logging.warning("Compilation failed for harness {}".format(harness))
                 continue
+
+        else:
+            c11_success_count += 1
+        compile_success_count += 1
 
         test_result = execute([exe_target])
         test_stdout_file = output_dir + os.sep + 'stdout.txt'
         test_stderr_file = output_dir + os.sep + 'stderr.txt'
         with open(test_stdout_file, 'w+') as output:
             output.write(test_result.stdout)
+            logging.info("Wrote stdout of test execution to {}".format(test_stdout_file))
         with open(test_stderr_file, 'w+') as error_output:
             error_output.write(test_result.stderr)
+            logging.info("Wrote stderr of test execution to {}".format(test_stderr_file))
 
-        done = analyze_result(test_result, harness)
-        if done:
+        success = analyze_result(test_result, harness)
+        if success:
+            successful_harness = harness
             break
 
-    if not done:
+    if compile_success_count == 0:
+        raise ValidationError("Compilation failed for every harness/file pair.")
+
+    statistics.append(("Harnesses tested", iter_count))
+    statistics.append(("C11 compatible", c11_success_count))
+
+    if args.stats:
+        print(os.linesep + "Statistics:")
+        for prop, value in statistics:
+            print("\t" + str(prop) + ": " + str(value))
+        print()
+
+    if success:
+        print("Verification result: FALSE. Harness {} was successful.".format(successful_harness))
+    else:
         print("Verification result: UNKNOWN." +
               " No harness for witness was successful or no harness was produced.")
 
