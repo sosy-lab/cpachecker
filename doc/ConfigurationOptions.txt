@@ -863,8 +863,8 @@ cpa.bam.argFile = "BlockedARG.dot"
 # or any class that implements a PartitioningHeuristic
 cpa.bam.blockHeuristic = no default value
 
-# only consider function with a matching name, i.e., select only some special
-# functions.
+# only consider functions with a matching name, i.e., select only some
+# functions directly.
 cpa.bam.blockHeuristic.functionPartitioning.matchFunctions = no default value
 
 # only consider function with a minimum number of calls. This approach is
