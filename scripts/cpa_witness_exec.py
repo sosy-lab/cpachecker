@@ -126,6 +126,7 @@ def create_parser():
                         type=str,
                         action='store',
                         nargs=argparse.REMAINDER,
+                        default=[],
                         help='list of arguments to use when compiling the counterexample test'
                         )
 
@@ -177,10 +178,9 @@ def create_compile_cmd(harness, target, args, c_version='c11'):
 def _create_cpachecker_args(args):
     cpachecker_args = sys.argv[1:]
 
-    if args.gcc_args is not None:
-        for gcc_arg in ['-gcc-args'] + args.gcc_args:
-            if gcc_arg in cpachecker_args:
-                cpachecker_args.remove(gcc_arg)
+    for gcc_arg in ['-gcc-args'] + args.gcc_args:
+        if gcc_arg in cpachecker_args:
+            cpachecker_args.remove(gcc_arg)
 
     return cpachecker_args
 
