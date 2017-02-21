@@ -100,95 +100,49 @@ def get_cpachecker_version():
 def create_parser():
     parser = argparse.ArgumentParser(description="Validate a given violation witness for an input file.")
 
+    parser.add_argument("-version",
+                        action="version", version='{}'.format(get_cpachecker_version())
+                        )
+
     machine_model_args = parser.add_mutually_exclusive_group(required=False)
     machine_model_args.add_argument('-32',
                                     dest='machine_model', action='store_const', const=MACHINE_MODEL_32,
-                                    help="Use 32 bit machine model"
+                                    help="use 32 bit machine model"
                                     )
     machine_model_args.add_argument('-64',
                                     dest='machine_model', action='store_const', const=MACHINE_MODEL_64,
-                                    help="Use 64 bit machine model"
+                                    help="use 64 bit machine model"
                                     )
     machine_model_args.set_defaults(machine_model=MACHINE_MODEL_32)
 
-    parser.add_argument('--outputpath',
+    parser.add_argument('-outputpath',
                         dest='output_path',
                         type=str, action='store', default="output",
-                        help="Path where output should be stored"
+                        help="path where output should be stored"
                         )
 
-    parser.add_argument('--timelimit',
+    parser.add_argument('-gcc-args',
+                        dest='gcc_args',
                         type=str,
                         action='store',
-                        help='Time limit of analysis')
-
-    parser.add_argument('--cpa-args',
-                        dest='cpa_args',
-                        type=_postprocess_args,
-                        action='append',
-                        default=[],
-                        help='List of arguments to use for CPAchecker when generating the test harnesses. ' +
-                             'This should include -generateTestHarness .'
-                        )
-
-    parser.add_argument('--gcc-args',
-                        dest='gcc_args',
-                        type=_postprocess_args,
-                        action='append',
-                        default=[],
-                        help='List of arguments to use when compiling the counterexample test'
-                        )
-
-    parser.add_argument("--version", '-v',
-                        action="version", version='{}'.format(get_cpachecker_version())
+                        nargs=argparse.REMAINDER,
+                        help='list of arguments to use when compiling the counterexample test'
                         )
 
     parser.add_argument("file",
                         type=str,
-                        nargs='+',
-                        help="File(s) to validate witness for"
+                        nargs='?',
+                        help="file to validate witness for"
                         )
 
     return parser
 
 
-def _preprocess_args(argv):
-    """ Preprocess command line parameters.
-        Replaces the '-' of the first argument given as parameter to --gcc-args and --cpa-args
-        with some placeholder so that argparse does recognize it as a parameter.
-        Otherwise, it will look at it as another argument and raise an error.
-
-        Example argv where this happens:
-            --gcc-args "-ggdb" --outputpath output example.i
-
-        This misbehavior only appears if a single argument is given, but works otherwise, e.g.:
-            --gcc-args "-ggdb -O2" --outputpath output example.i
-        """
-    new_argv = []
-    change_next = False
-    for arg in argv:
-        new_arg = arg
-        if change_next:
-            assert arg.startswith('-')
-            new_arg = ARG_PLACEHOLDER + arg[1:]
-            change_next = False
-        elif new_arg == '--gcc-args' or new_arg == '--cpa-args':
-            change_next = True
-
-        new_argv.append(new_arg)
-    return new_argv
-
-
-def _postprocess_args(arg):
-    """ Undo the preprocessing steps from above. """
-    new_arg = arg
-    if arg.startswith(ARG_PLACEHOLDER):
-        new_arg = '-' + arg[len(ARG_PLACEHOLDER):]
-    return new_arg.split()
-
 def _parse_args(argv=sys.argv[1:]):
     parser = create_parser()
-    args = parser.parse_args(_preprocess_args(argv))
+    args = parser.parse_known_args(argv[:-1])[0]
+    args_file = parser.parse_args([argv[-1]])  # Parse the file name
+    args.file = args_file.file
 
     return args
 
@@ -198,7 +152,7 @@ def flatten(list_of_lists):
 
 
 def _create_gcc_basic_args(args):
-    gcc_args = GCC_ARGS_FIXED + flatten(args.gcc_args)
+    gcc_args = GCC_ARGS_FIXED + args.gcc_args
     if args.machine_model == MACHINE_MODEL_64:
         gcc_args.append('-m64')
     elif args.machine_model == MACHINE_MODEL_32:
@@ -210,7 +164,7 @@ def _create_gcc_basic_args(args):
 
 
 def _create_gcc_cmd_tail(harness, file, target):
-    return ['-o', target, harness] + file
+    return ['-o', target, harness, file]
 
 
 def create_compile_cmd(harness, target, args, c_version='c11'):
@@ -221,23 +175,12 @@ def create_compile_cmd(harness, target, args, c_version='c11'):
 
 
 def _create_cpachecker_args(args):
-    cpachecker_args = flatten(args.cpa_args)
+    cpachecker_args = sys.argv[1:]
 
-    # An explicit output path that is set using -cpa-args will be respected
-    if '-outputpath' not in cpachecker_args:
-        cpachecker_args += ["-outputpath", args.output_path]
+    for gcc_arg in ['-gcc-args'] + args.gcc_args:
+        if gcc_arg in cpachecker_args:
+            cpachecker_args.remove(gcc_arg)
 
-    if '-timelimit' not in cpachecker_args and args.timelimit is not None:
-        cpachecker_args += ["-timelimit", args.timelimit]
-
-    if args.machine_model == MACHINE_MODEL_64:
-        cpachecker_args.append('-64')
-    elif args.machine_model == MACHINE_MODEL_32:
-        cpachecker_args.append('-32')
-    else:
-        raise ValidationError('Neither 32 nor 64 bit machine model specified')
-
-    cpachecker_args += args.file
     return cpachecker_args
 
 
