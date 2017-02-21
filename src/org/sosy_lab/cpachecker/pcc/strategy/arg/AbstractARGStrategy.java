@@ -25,13 +25,12 @@ package org.sosy_lab.cpachecker.pcc.strategy.arg;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
-
 import javax.annotation.Nullable;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -52,8 +51,8 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   private final ShutdownNotifier shutdownNotifier;
 
   public AbstractARGStrategy(Configuration pConfig, LogManager pLogger, PropertyChecker pPropertyChecker,
-      ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    super(pConfig, pLogger);
+      ShutdownNotifier pShutdownNotifier, Path pProofFile) throws InvalidConfigurationException {
+    super(pConfig, pLogger, pProofFile);
     propChecker = pPropertyChecker;
     shutdownNotifier = pShutdownNotifier;
   }

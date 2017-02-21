@@ -29,38 +29,40 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * A list of stepwise over-approximations of reachable states called frames. More specifically, the
- * frame at level 'i' represents the states reachable in at most 'i' steps from the program start
- * location. Frames are sets of clauses representing constraints. The current frontier can be
- * queried with {@link #getMaxLevel()}. Note that there is always a frame '0' containing the initial
- * states. New frames have to be explicitly created by {@link #openNextFrame()}. Due to the stepwise
- * interpretation, clauses added to frame 'i' are also added to all frames below level 'i'.
+ * A list of stepwise overapproximations of reachable states called frames. More specifically, the
+ * frame at level <i>i</i> represents the states reachable in at most <i>i</i> steps from the
+ * program's start-location. Frames are sets of clauses representing constraints. The current
+ * frontier can be queried with {@link #getFrontierLevel()}. Note that there is always a frame F_0
+ * containing the initial states. New frames have to be explicitly created by {@link
+ * #openNextFrame()}. Due to the stepwise interpretation, states blocked at frame <i>i</i> are also
+ * blocked at all frames below level <i>i</i>.
  */
 public interface FrameSet {
 
   /**
    * Adds a new frame to the list and increases the current maximum level. The frame is initialized
-   * with the safety property, thereby assuming it holds.
+   * with the safety property, thereby assuming it holds. This method should only be called when the
+   * above assumption is justified.
    *
-   * @see #getMaxLevel()
+   * @see #getFrontierLevel()
    */
   void openNextFrame();
 
   /**
-   * Gets the current maximum frame level. A frontier level of 'n' means there are 'n + 1' frames
-   * F(0) to F(n).
+   * Gets the current frontier frame level. A frontier level of <i>k</i> means there are <i>k +
+   * 1</i> frames <i>F</i>_0 to <i>F</i>_k.
    *
    * @return The currently highest frame level in this FrameSet.
    */
-  int getMaxLevel();
+  int getFrontierLevel();
 
   /**
-   * Gets all reachable states of the frame at the specified level.
+   * Gets all reachable states in the frame at the specified level.
    *
    * <p>The returned formulas are instantiated as unprimed.
    *
    * @param pLevel The frame level.
-   * @return A set of formulas representing an over-approximation of states reachable in at most
+   * @return A set of formulas representing an overapproximation of states reachable in at most
    *     {@code pLevel} steps from the initial states.
    */
   Set<BooleanFormula> getStates(int pLevel);
@@ -77,13 +79,13 @@ public interface FrameSet {
 
   /**
    * Tries to push states forward based on whether they are inductive relative to the frame they are
-   * in. Subsumes redundant states during the process. Returns whether 2 adjacent frames became
-   * equal.
+   * in. Subsumes redundant states during the process. Returns whether two adjacent frames became
+   * equal during the whole process.
    *
    * @param pShutdownNotifier The notifier that checks if propagation takes too long and should be
    *     interrupted.
-   * @return True, if there exists any level i so that the states in frame F(i) are equal to the
-   *     states in frame F(i+1)
+   * @return True if there exists any level <i>i</i> so that the states in frame <i>F_i</i> are
+   *     equal to the states in frame <i>F_(i+1)</i>, false otherwise.
    * @throws SolverException If one of the SAT checks performed during propagation throws an
    *     exception.
    * @throws InterruptedException If propagation was interrupted.

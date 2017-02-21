@@ -108,14 +108,14 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<Interval, Unrecog
 
       case GREATER_EQUAL: // a>=b == a+1>b, works only for integers
         return getLogicInterval(
-            BinaryOperator.GREATER_THAN, interval1.plus(new Interval(1L)), interval2);
+            BinaryOperator.GREATER_THAN, interval1.plus(Interval.ONE), interval2);
 
       case LESS_THAN: // a<b == b>a
         return getLogicInterval(BinaryOperator.GREATER_THAN, interval2, interval1);
 
       case LESS_EQUAL: // a<=b == b+1>a, works only for integers
         return getLogicInterval(
-            BinaryOperator.GREATER_THAN, interval2.plus(new Interval(1L)), interval1);
+            BinaryOperator.GREATER_THAN, interval2.plus(Interval.ONE), interval1);
 
       default:
         throw new AssertionError("unknown binary operator: " + operator);

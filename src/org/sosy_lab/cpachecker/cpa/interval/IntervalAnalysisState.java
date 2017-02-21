@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -43,8 +44,13 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 
-public class IntervalAnalysisState implements Serializable, LatticeAbstractState<IntervalAnalysisState>,
-    AbstractQueryableState, Graphable, FormulaReportingState {
+public class IntervalAnalysisState
+    implements Serializable,
+        LatticeAbstractState<IntervalAnalysisState>,
+        AbstractQueryableState,
+        Graphable,
+        FormulaReportingState,
+        PseudoPartitionable {
 
   private static final long serialVersionUID = -2030700797958100666L;
 
@@ -414,5 +420,15 @@ public class IntervalAnalysisState implements Serializable, LatticeAbstractState
       }
     }
     return pMgr.getBooleanFormulaManager().and(result);
+  }
+
+  @Override
+  public Comparable<?> getPseudoPartitionKey() {
+    return intervals.size();
+  }
+
+  @Override
+  public Object getPseudoHashCode() {
+    return this;
   }
 }

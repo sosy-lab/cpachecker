@@ -53,10 +53,10 @@ import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * A transition system with a global transition relation, modeling all transitions in CFA in one
- * boolean formula. It basically is the disjunction of all transitions between block heads in the
- * CFA. A program counter variable is conjoined to all block transitions to encode the block start
- * and end locations. Also provides formulas for the initial condition and the safety property.
+ * A transition system with a global transition relation modeling all transitions in CFA in one
+ * Boolean formula. A dedicated program-counter variable is used to encode the locations. The
+ * initial condition and safety property of the transition system are computed based on the initial
+ * location and all target-locations.
  */
 public class TransitionSystem {
 
@@ -70,7 +70,7 @@ public class TransitionSystem {
   private final BooleanFormula initialCondition;
   private final BooleanFormula safetyProperty;
   private final Map<Integer, CFANode> idToLocation;
-  private final Set<CFANode> targetLocs;
+  private final Set<CFANode> targetLocations;
   private final Set<String> programVariableNames;
   private final Map<String, CType> programVariableTypes;
 
@@ -80,13 +80,16 @@ public class TransitionSystem {
   private int highestSSA;
 
   /**
-   * Creates a new TransitionSystem for the given CFA.
+   * Creates a new TransitionSystem for the given CFA. The computed transition relation encodes all
+   * transitions between blocks that are found by a forward reachability check starting from
+   * pMainEntry. The size of the blocks is defined by pForwardTransition.
    *
-   * @param pCFA The CFA that this transition relation is based on.
-   * @param pForwardTransition The component that computes the single block transitions.
-   * @param pFmgr The used formula manager.
-   * @param pPfmgr The used path formula manager.
-   * @param pMainEntry The initial location.
+   * @param pCFA The CFA this transition system is based on.
+   * @param pForwardTransition The component that computes the block transitions in the CFA.
+   * @param pFmgr The formula manager used during the creation process.
+   * @param pPfmgr The path formula manager used for creating variables.
+   * @param pMainEntry The location that is treated as start-location. This should normally be the
+   *     initial location in the CFA, but this is not required.
    * @throws CPAException If the analysis creating the blocks encounters an exception.
    * @throws InterruptedException If the computation of the blocks is interrupted.
    */
@@ -112,7 +115,7 @@ public class TransitionSystem {
     this.programVariableTypes = new HashMap<>();
     this.idToLocation = new TreeMap<>();
     this.initialCondition = makeProgramcounterFormula(getID(pMainEntry), bvfmgr, pCFA);
-    this.targetLocs = new HashSet<>();
+    this.targetLocations = new HashSet<>();
     this.transitionRelation =
         createTransitionRelation(
             pForwardTransition, pFmgr, bfmgr, bvfmgr, pPfmgr, pCFA, pMainEntry);
@@ -120,9 +123,9 @@ public class TransitionSystem {
   }
 
   /**
-   * Collects all blocks in the CFA, adds the program counter to the block formula and creates a big
-   * disjunction of those formulas. Takes care of adjusting the ssa indices for primed and unprimed
-   * variables in different block formulas.
+   * Collects all blocks in the CFA, adds the program-counter to the block formulas and creates a
+   * big disjunction of them. Takes care of equalizing the ssa indices for primed and unprimed
+   * variables between different block formulas.
    */
   private BooleanFormula createTransitionRelation(
       ForwardTransition pForwardTransition,
@@ -142,8 +145,8 @@ public class TransitionSystem {
     }
 
     /*
-     * Create final pointer target set, as well as primed and unprimed ssa map including ALL
-     * variables at max index (found in getForwardReachableBlocks()) and pc at 2.
+     * Create final pointer target set, as well as the primed (all
+     * variables at max index plus pc at 2) and unprimed (all variables plus pc at index 1) ssa maps.
      */
     SSAMapBuilder globalPrimedSSAMapBuilder = SSAMap.emptySSAMap().builder();
     SSAMapBuilder globalUnprimedSSAMapBuilder = SSAMap.emptySSAMap().builder();
@@ -164,12 +167,14 @@ public class TransitionSystem {
             varName, blockPrimedMap.getType(varName), STANDARD_UNPRIMED_SSA);
       }
     }
+
+    // Add pc
     globalPrimedSSAMapBuilder.setIndex(
         PROGRAM_COUNTER_VARIABLE_NAME, PROGRAM_COUNTER_TYPE, PC_PRIMED_SSA);
     globalUnprimedSSAMapBuilder.setIndex(
         PROGRAM_COUNTER_VARIABLE_NAME, PROGRAM_COUNTER_TYPE, STANDARD_UNPRIMED_SSA);
 
-    // The final contexts.
+    // The final contexts
     this.primedContext =
         new PathFormula(
             pBfmgr.makeTrue(),
@@ -193,7 +198,7 @@ public class TransitionSystem {
       Block next = exploredBlockIterator.next();
       PathFormula adjusted = withCorrectionTermsAndPC(next, pFmgr, pBfmgr, pBvfmgr, pPfmgr, pCFA);
 
-      // This takes care of disjoining the formulas themselves and merging pointer target sets.
+      // Takes care of disjoining the formulas.
       transitionRelation = pPfmgr.makeOr(transitionRelation, adjusted);
     }
 
@@ -201,8 +206,8 @@ public class TransitionSystem {
   }
 
   /**
-   * Performs a DFS and collects all blocks that are forward reachable from the provided starting
-   * location. After this, all variable names are known, as well as the globally highest ssa index.
+   * Collects all blocks that are forward reachable from the provided starting location. After this,
+   * all variables' names are known, as well as the globally highest ssa index.
    */
   private Collection<Block> getForwardReachableBlocks(
       CFANode pStartPoint, ForwardTransition pForwardTransition)
@@ -233,12 +238,12 @@ public class TransitionSystem {
   }
 
   /**
-   * Saves block successor location if it is a target location, adds all variables to known program
-   * variables and updates highest known ssa index.
+   * Saves the block's successor-location if it is a target-location, adds all variables to known
+   * program variables and updates highest known ssa index.
    */
   private void processBlock(Block pBlock) {
     if (AbstractStates.IS_TARGET_STATE.apply(pBlock.getSuccessor())) {
-      targetLocs.add(pBlock.getSuccessorLocation());
+      targetLocations.add(pBlock.getSuccessorLocation());
     }
     SSAMap primedMap = pBlock.getPrimedContext().getSsa();
     programVariableNames.addAll(primedMap.allVariables());
@@ -279,7 +284,7 @@ public class TransitionSystem {
 
     for (String varName : programVariableNames) {
 
-      // Add general correction v@1 = v@max, if v is not in block formula (= not in primed context),
+      // Add general correction v_1 = v_max if v is not in block formula (= not in primed context),
       if (!primedSSAMap.containsVariable(varName)) {
         BooleanFormula correctionterm =
             pBvfmgr.equal(
@@ -288,7 +293,7 @@ public class TransitionSystem {
         extendedBlockFormula = pBfmgr.and(extendedBlockFormula, correctionterm);
       } else {
 
-        // Add low correction v@1 = v@? if unprimed context for v has higher index (? > 1).
+        // Add low correction v_1 = v_? if unprimed context for v has higher index (? > 1).
         if (unprimedSSAMap.containsVariable(varName)
             && unprimedSSAMap.getIndex(varName) > STANDARD_UNPRIMED_SSA) {
           BooleanFormula correctionterm =
@@ -303,8 +308,7 @@ public class TransitionSystem {
           extendedBlockFormula = pBfmgr.and(extendedBlockFormula, correctionterm);
         }
 
-        // Add high correction v@? = v@max if primed context for v has lower index (? < max),
-        // and update primed ssa map.
+        // Add high correction v_? = v_max if primed context for v has lower index (? < max)
         if (primedSSAMap.getIndex(varName) < highestSSA) {
           BooleanFormula correctionterm =
               pBvfmgr.equal(
@@ -316,7 +320,7 @@ public class TransitionSystem {
       }
     }
 
-    // Add program counter.
+    // Add program counter
     int predID = getID(pBlock.getPredecessorLocation());
     int succID = getID(pBlock.getSuccessorLocation());
     BooleanFormula pcBefore =
@@ -333,26 +337,31 @@ public class TransitionSystem {
         primedBlockContext.updateFormula(extendedBlockFormula), this.primedContext.getSsa());
   }
 
-  /** Creates the variable with the given name, type, and index. */
-  private BitvectorFormula makeVar(
+  /** Creates a variable with the given name, type, and ssa index. */
+  private static BitvectorFormula makeVar(
       PathFormulaManager pPfmgr,
       FormulaManagerView pFmgr,
       PathFormula pContext,
       String pName,
       int pIndex) {
+
+    // TODO The restriction "no function param" of makeFormulaForVariable may be a problem.
     BitvectorFormula var =
         (BitvectorFormula)
-            pPfmgr.makeFormulaForVariable( // TODO ??? no function param?
-                pContext, pName, pContext.getSsa().getType(pName), false);
+            pPfmgr.makeFormulaForVariable(pContext, pName, pContext.getSsa().getType(pName), false);
     return pFmgr.instantiate(var, SSAMap.emptySSAMap().withDefault(pIndex));
   }
 
+  /**
+   * Special inclusion check, because two blocks that only differ in their reached sets are to be
+   * treated as equal.
+   */
   private static boolean isBlockContainedIn(Block pBlock, Collection<Block> pCollection) {
     return pCollection.stream().anyMatch(pBlock::equalsIgnoreReachedSet);
   }
 
   /** Returns the formula (pc=pLocationNumber). */
-  private BooleanFormula makeProgramcounterFormula(
+  private static BooleanFormula makeProgramcounterFormula(
       int pLocationNumber, BitvectorFormulaManagerView pBvfmgr, CFA pCFA) {
     int bitLength =
         pCFA.getMachineModel().getSizeof(PROGRAM_COUNTER_TYPE)
@@ -362,12 +371,12 @@ public class TransitionSystem {
     return pBvfmgr.equal(pc, value);
   }
 
-  /** SafetyProperty = (pc != l_E1) & (pc != l_E2) ... for all error locations. */
+  /** SafetyProperty = (pc != l_E1) & (pc != l_E2) ... for all target-locations. */
   private BooleanFormula createSafetyProperty(
       BooleanFormulaManagerView pBfmgr, BitvectorFormulaManagerView pBvfmgr, CFA pCFA) {
     BooleanFormula safetyProperty = pBfmgr.makeTrue();
-    for (CFANode errorLocation : targetLocs) {
-      int id = getID(errorLocation);
+    for (CFANode targetLocation : targetLocations) {
+      int id = getID(targetLocation);
       safetyProperty =
           pBfmgr.and(safetyProperty, pBfmgr.not(makeProgramcounterFormula(id, pBvfmgr, pCFA)));
     }
@@ -375,8 +384,8 @@ public class TransitionSystem {
   }
 
   /**
-   * Returns a unique identifier for each node that is used as value for the program counter. Also
-   * caches this mapping.
+   * Returns a unique identifier for each location that is used as value for the program-counter.
+   * Also caches this mapping.
    */
   private int getID(CFANode pLocation) {
     int id = pLocation.getNodeNumber();
@@ -386,19 +395,19 @@ public class TransitionSystem {
 
 
   /**
-   * Returns a set of all names for variables occurring in this transition system. The program
-   * counter is excluded.
+   * Returns a set containing all names of variables occurring in this transition system. The
+   * program-counter is excluded.
    *
-   * <p>If the dedicated name for the program counter is needed, use {@link #programCounterName()}.
+   * <p>If the dedicated name for the program-counter is needed, use {@link #programCounterName()}.
    */
   public Set<String> allVariableNames() {
     return programVariableNames;
   }
 
   /**
-   * Returns the global transition relation as a single boolean formula.
+   * Returns the global transition relation as a single Boolean formula.
    *
-   * @return A boolean formula describing the transition relation.
+   * @return A Boolean formula describing the transition relation.
    */
   public BooleanFormula getTransitionRelationFormula() {
     return transitionRelation;
@@ -407,7 +416,7 @@ public class TransitionSystem {
   /**
    * Returns the location with the specified identifier used in the transition relation.
    *
-   * @param pID The identifier of the wanted location.
+   * @param pID The identifier of the location.
    * @return An Optional containing the CFANode with this id, or an empty Optional if no such
    *     CFANode exists.
    */
@@ -416,21 +425,21 @@ public class TransitionSystem {
   }
 
   /**
-   * Returns the used String representation of the program counter variable.
+   * Returns the chosen String representation of the program-counter variable.
    *
-   * @return The String representation of the program counter variable.
+   * @return The String representation of the program-counter variable.
    */
   public String programCounterName() {
     return PROGRAM_COUNTER_VARIABLE_NAME;
   }
 
   /**
-   * Returns the set of all target location for this transition system.
+   * Returns the set of all target-locations for this transition system.
    *
-   * @return A set of all target locations.
+   * @return The set of all target-locations.
    */
   public Set<CFANode> getTargetLocations() {
-    return targetLocs;
+    return targetLocations;
   }
 
   /**
@@ -454,10 +463,10 @@ public class TransitionSystem {
   }
 
   /**
-   * Returns a formula describing the initial condition (pc = start location) for this transition
+   * Returns a formula describing the initial condition (pc = initial location) for this transition
    * system.
    *
-   * @return The initial condition (pc = start location).
+   * @return The initial condition (pc = initial location).
    */
   public BooleanFormula getInitialCondition() {
     return initialCondition;
@@ -465,8 +474,8 @@ public class TransitionSystem {
 
   /**
    * Returns a formula describing the safety property for this transition system. This formula
-   * encodes that the program counter is never at a target location: (pc != error location 1) & (pc
-   * != error location 2) & ... for all error locations.
+   * asserts that the program-counter is never at a target-location: (pc != error location 1) &amp;
+   * (pc != error location 2) &amp; ... for all target-locations.
    *
    * @return The safety property of this transition system.
    */
@@ -474,6 +483,12 @@ public class TransitionSystem {
     return safetyProperty;
   }
 
+  /**
+   * Creates a String representation of this transition system. It contains the initial condition,
+   * the safety property and the transition relation.
+   *
+   * <p>Be aware that this String can be extremely long for big transition relations.
+   */
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();

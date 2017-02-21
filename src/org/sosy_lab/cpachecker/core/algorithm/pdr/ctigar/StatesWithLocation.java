@@ -28,10 +28,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * A simple pair of a BooleanFormula representing a set of program states and a CFANode representing
- * the program location for those states.
- *
- * <p>Instances of this class are immutable.
+ * The triple of a concrete state, its abstract version and the location that is encoded in both of
+ * their program-counter literal.
  */
 public class StatesWithLocation {
 
@@ -39,14 +37,21 @@ public class StatesWithLocation {
   private final BooleanFormula abstracted;
   private final CFANode location;
 
+  /**
+   * Creates a new triple of an abstract state, its concrete version and their program location.
+   *
+   * @param pAbstracted The abstracted version of pConcrete.
+   * @param pConcrete The concrete version of pAbstract.
+   * @param pLocation The program location that corresponds to both states' program-counter value.
+   */
   public StatesWithLocation(
-      BooleanFormula pAbstracted, CFANode pLocation, BooleanFormula pConcrete) {
+      BooleanFormula pAbstracted, BooleanFormula pConcrete, CFANode pLocation) {
     this.abstracted = Objects.requireNonNull(pAbstracted);
     this.location = Objects.requireNonNull(pLocation);
-    this.concrete = pConcrete;
+    this.concrete = Objects.requireNonNull(pConcrete);
   }
 
-  public BooleanFormula getFormula() {
+  public BooleanFormula getAbstract() {
     return abstracted;
   }
 

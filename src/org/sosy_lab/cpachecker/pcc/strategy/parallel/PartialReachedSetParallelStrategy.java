@@ -23,6 +23,16 @@
  */
 package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,17 +48,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.PartialReachedSetStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 @Options(prefix = "pcc.partial")
 public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy {
 
@@ -60,9 +59,10 @@ public class PartialReachedSetParallelStrategy extends PartialReachedSetStrategy
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      final Path pProofFile,
       @Nullable PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier, pCpa);
+    super(pConfig, pLogger, pShutdownNotifier, pProofFile, pCpa);
     pConfig.inject(this);
   }
 

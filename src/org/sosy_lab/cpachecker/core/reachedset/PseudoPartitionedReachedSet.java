@@ -27,18 +27,16 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Table;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
-
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 /**
  * Special implementation of the partitioned reached set {@link PartitionedReachedSet}.
@@ -140,19 +138,19 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
     return Collections.unmodifiableSet(states);
   }
 
-  private Comparable<?> getPseudoPartitionKey(AbstractState pState) {
+  private static Comparable<?> getPseudoPartitionKey(AbstractState pState) {
     assert pState instanceof PseudoPartitionable
         : "PseudoPartitionable states necessary for PseudoPartitionedReachedSet";
     return ((PseudoPartitionable) pState).getPseudoPartitionKey();
   }
 
-  private Object getPseudoHashCode(AbstractState pState) {
+  private static Object getPseudoHashCode(AbstractState pState) {
     assert pState instanceof PseudoPartitionable
         : "PseudoPartitionable states necessary for PseudoPartitionedReachedSet";
     return ((PseudoPartitionable) pState).getPseudoHashCode();
   }
 
-  private Object getPartitionKey(AbstractState pState) {
+  private static Object getPartitionKey(AbstractState pState) {
     assert pState instanceof Partitionable
         : "Partitionable states necessary for PartitionedReachedSet";
     return ((Partitionable) pState).getPartitionKey();

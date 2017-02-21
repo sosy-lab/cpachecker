@@ -32,59 +32,107 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-public class TestVector {
+class TestVector {
 
   private final PersistentSortedMap<
-          ComparableFunctionDeclaration, ImmutableList<ALiteralExpression>>
+          ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>
       inputFunctionValues;
+
+  private final PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue>
+      inputVariableValues;
 
   private TestVector() {
     this(
         PathCopyingPersistentTreeMap
-            .<ComparableFunctionDeclaration, ImmutableList<ALiteralExpression>>of());
+            .<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>of(),
+        PathCopyingPersistentTreeMap.<ComparableVariableDeclaration, InitializerTestValue>of());
   }
 
   private TestVector(
-      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ALiteralExpression>>
-          pInputFunctionValues) {
+      PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>
+          pInputFunctionValues,
+      PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue>
+          pInputVariableValues) {
     inputFunctionValues = pInputFunctionValues;
+    inputVariableValues = pInputVariableValues;
   }
 
-  public TestVector addInputValue(AFunctionDeclaration pFunction, ALiteralExpression pValue) {
+  public TestVector addInputValue(AFunctionDeclaration pFunction, AExpression pValue) {
+    return addInputValue(pFunction, ExpressionTestValue.of(pValue));
+  }
+
+  public TestVector addInputValue(AFunctionDeclaration pFunction, ExpressionTestValue pValue) {
     ComparableFunctionDeclaration function = new ComparableFunctionDeclaration(pFunction);
-    ImmutableList<ALiteralExpression> currentValues = inputFunctionValues.get(function);
-    ImmutableList<ALiteralExpression> newValues;
+    ImmutableList<ExpressionTestValue> currentValues = inputFunctionValues.get(function);
+    ImmutableList<ExpressionTestValue> newValues;
     if (currentValues == null) {
       newValues = ImmutableList.of(pValue);
     } else {
-      ImmutableList.Builder<ALiteralExpression> valueListBuilder = ImmutableList.builder();
+      ImmutableList.Builder<ExpressionTestValue> valueListBuilder = ImmutableList.builder();
       valueListBuilder.addAll(currentValues).add(pValue);
       newValues = valueListBuilder.build();
     }
-    return new TestVector(inputFunctionValues.putAndCopy(function, newValues));
+    return new TestVector(inputFunctionValues.putAndCopy(function, newValues), inputVariableValues);
+  }
+
+  public TestVector addInputValue(AVariableDeclaration pVariable, AInitializer pValue) {
+    return addInputValue(pVariable, InitializerTestValue.of(pValue));
+  }
+
+  public TestVector addInputValue(AVariableDeclaration pVariable, InitializerTestValue pValue) {
+    ComparableVariableDeclaration variable = new ComparableVariableDeclaration(pVariable);
+    InitializerTestValue currentValue = inputVariableValues.get(variable);
+    if (currentValue != null) {
+      throw new IllegalArgumentException(
+          String.format("Variable %s already declared with value %s: ", pVariable, pValue));
+    }
+    return new TestVector(inputFunctionValues, inputVariableValues.putAndCopy(variable, pValue));
   }
 
   public Iterable<AFunctionDeclaration> getInputFunctions() {
     return FluentIterable.from(inputFunctionValues.keySet()).transform(f -> f.declaration);
   }
 
-  public List<ALiteralExpression> getInputValues(AFunctionDeclaration pFunction) {
+  public List<ExpressionTestValue> getInputValues(AFunctionDeclaration pFunction) {
     ComparableFunctionDeclaration function = new ComparableFunctionDeclaration(pFunction);
-    ImmutableList<ALiteralExpression> currentValues = inputFunctionValues.get(function);
+    ImmutableList<ExpressionTestValue> currentValues = inputFunctionValues.get(function);
     if (currentValues == null) {
       return Collections.emptyList();
     }
     return currentValues;
   }
 
+  public Iterable<AVariableDeclaration> getInputVariables() {
+    return FluentIterable.from(inputVariableValues.keySet()).transform(f -> f.declaration);
+  }
+
+  public InitializerTestValue getInputValue(AVariableDeclaration pDeclaration) {
+    ComparableVariableDeclaration variable = new ComparableVariableDeclaration(pDeclaration);
+    InitializerTestValue currentValue = inputVariableValues.get(variable);
+    if (currentValue == null) {
+      throw new IllegalArgumentException("Unknown variable: " + pDeclaration);
+    }
+    return currentValue;
+  }
+
+  public boolean contains(AFunctionDeclaration pFunctionDeclaration) {
+    return inputFunctionValues.containsKey(new ComparableFunctionDeclaration(pFunctionDeclaration));
+  }
+
   @Override
   public int hashCode() {
-    return inputFunctionValues.hashCode();
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + inputFunctionValues.hashCode();
+    result = prime * result + inputVariableValues.hashCode();
+    return result;
   }
 
   @Override
@@ -93,14 +141,16 @@ public class TestVector {
       return true;
     }
     if (pObj instanceof TestVector) {
-      return inputFunctionValues.equals(((TestVector) pObj).inputFunctionValues);
+      TestVector other = (TestVector) pObj;
+      return inputFunctionValues.equals(other.inputFunctionValues)
+          && inputVariableValues.equals(other.inputVariableValues);
     }
     return false;
   }
 
   @Override
   public String toString() {
-    return inputFunctionValues.toString();
+    return inputFunctionValues.toString() + inputVariableValues.toString();
   }
 
   public static TestVector newTestVector() {
@@ -148,8 +198,8 @@ public class TestVector {
               upcast(pOther.declaration.getParameters(), AParameterDeclaration.class),
               PARAMETER_ORDERING.lexicographical())
           .compare(
-              declaration.getType().getReturnType(),
-              pOther.declaration.getType().getReturnType(),
+              PredefinedTypes.getCanonicalType(declaration.getType().getReturnType()),
+              PredefinedTypes.getCanonicalType(pOther.declaration.getType().getReturnType()),
               Ordering.usingToString())
           .compareFalseFirst(declaration.isGlobal(), pOther.declaration.isGlobal())
           .result();
@@ -162,6 +212,52 @@ public class TestVector {
       }
       if (pObj instanceof ComparableFunctionDeclaration) {
         return declaration.equals(((ComparableFunctionDeclaration) pObj).declaration);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return declaration.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return declaration.toString();
+    }
+  }
+
+  private static class ComparableVariableDeclaration
+      implements Comparable<ComparableVariableDeclaration> {
+
+    private final AVariableDeclaration declaration;
+
+    public ComparableVariableDeclaration(AVariableDeclaration pDeclaration) {
+      this.declaration = Objects.requireNonNull(pDeclaration);
+    }
+
+    @Override
+    public int compareTo(ComparableVariableDeclaration pOther) {
+      if (declaration.equals(pOther.declaration)) {
+        return 0;
+      }
+      return ComparisonChain.start()
+          .compare(declaration.getQualifiedName(), pOther.declaration.getQualifiedName())
+          .compare(
+              PredefinedTypes.getCanonicalType(declaration.getType()),
+              PredefinedTypes.getCanonicalType(pOther.declaration.getType()),
+              Ordering.usingToString())
+          .compareFalseFirst(declaration.isGlobal(), pOther.declaration.isGlobal())
+          .result();
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+      if (pObj instanceof ComparableVariableDeclaration) {
+        return declaration.equals(((ComparableVariableDeclaration) pObj).declaration);
       }
       return false;
     }

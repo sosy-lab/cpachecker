@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.truth.Truth;
-
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -37,9 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class AssumptionToEdgeAllocatorTest {
 
@@ -107,44 +105,44 @@ public class AssumptionToEdgeAllocatorTest {
     variables.put(makeVariable("x",""), 0);
 
     Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
-    variableAddressMap.put(makeVariable("a", "main"), makeConcreteAddress(20));
-    variableAddressMap.put(makeVariable("b", "main"), makeConcreteAddress(24));
-    variableAddressMap.put(makeVariable("c", "main"), makeConcreteAddress(28));
-    variableAddressMap.put(makeVariable("d", "main"), makeConcreteAddress(32));
-    variableAddressMap.put(makeVariable("e", "main"), makeConcreteAddress(56));
-    variableAddressMap.put(makeVariable("list", "main"), makeConcreteAddress(80));
+    variableAddressMap.put(makeVariable("a", "main"), makeConcreteAddress(160));
+    variableAddressMap.put(makeVariable("b", "main"), makeConcreteAddress(192));
+    variableAddressMap.put(makeVariable("c", "main"), makeConcreteAddress(224));
+    variableAddressMap.put(makeVariable("d", "main"), makeConcreteAddress(256));
+    variableAddressMap.put(makeVariable("e", "main"), makeConcreteAddress(448));
+    variableAddressMap.put(makeVariable("list", "main"), makeConcreteAddress(640));
 
     Map<String, Memory> allocatedMemory = new HashMap<>();
     Map<Address, Object> values = new HashMap<>();
-    values.put(makeConcreteAddress(20), 1); // a = 1
-    values.put(makeConcreteAddress(24), 20); // *b = 1
-    values.put(makeConcreteAddress(28), 24); // **c = 1
-    values.put(makeConcreteAddress(32), 21); // d[0] = 21
-    values.put(makeConcreteAddress(36), 22); // d[1] = 22
-    values.put(makeConcreteAddress(40), 23); // d[2] = 23
-    values.put(makeConcreteAddress(44), 24); // d[3] = 24
-    values.put(makeConcreteAddress(48), 25); // d[4] = 25
-    values.put(makeConcreteAddress(52), 26); // d[5] = 26
-    values.put(makeConcreteAddress(56), 21); // e[0][0] = 21
-    values.put(makeConcreteAddress(60), 22); // e[0][1] = 22
-    values.put(makeConcreteAddress(64), 23); // e[0][2] = 23
-    values.put(makeConcreteAddress(68), 24); // e[1][0] = 24
-    values.put(makeConcreteAddress(72), 25); // e[1][1] = 25
-    values.put(makeConcreteAddress(76), 26); // e[1][2] = 26
-    values.put(makeConcreteAddress(80), 31); // list.h = 31
-    values.put(makeConcreteAddress(84), 108); // list.n->h = 41
-    values.put(makeConcreteAddress(88), 32);  // list.d.h = 32
-    values.put(makeConcreteAddress(92), 33);  // list.d.h2[0] = 33
-    values.put(makeConcreteAddress(96), 34);  // list.d.h2[1] = 34
-    values.put(makeConcreteAddress(100), 35); // list.d.h2[2] = 35
-    values.put(makeConcreteAddress(104), 32); //list.d.h3 = 21
-    values.put(makeConcreteAddress(108), 41); // list.n.h = 41
-    values.put(makeConcreteAddress(112), 80); // list.n->n.h = 31
-    values.put(makeConcreteAddress(116), 42); // list.n->d.h = 42
-    values.put(makeConcreteAddress(120), 43); // list.n->d.h2[0] = 43
-    values.put(makeConcreteAddress(124), 44); // list.n->d.h2[1] = 44
-    values.put(makeConcreteAddress(128), 45); // list.n->d.h2[2] = 45
-    values.put(makeConcreteAddress(132), 36); // list.n->d.h3 = 22
+    values.put(makeConcreteAddress(160), 1); // a = 1
+    values.put(makeConcreteAddress(192), 160); // *b = 1
+    values.put(makeConcreteAddress(224), 192); // **c = 1
+    values.put(makeConcreteAddress(256), 21); // d[0] = 21
+    values.put(makeConcreteAddress(288), 22); // d[1] = 22
+    values.put(makeConcreteAddress(320), 23); // d[2] = 23
+    values.put(makeConcreteAddress(352), 24); // d[3] = 24
+    values.put(makeConcreteAddress(384), 25); // d[4] = 25
+    values.put(makeConcreteAddress(416), 26); // d[5] = 26
+    values.put(makeConcreteAddress(448), 21); // e[0][0] = 21
+    values.put(makeConcreteAddress(480), 22); // e[0][1] = 22
+    values.put(makeConcreteAddress(512), 23); // e[0][2] = 23
+    values.put(makeConcreteAddress(544), 24); // e[1][0] = 24
+    values.put(makeConcreteAddress(576), 25); // e[1][1] = 25
+    values.put(makeConcreteAddress(608), 26); // e[1][2] = 26
+    values.put(makeConcreteAddress(640), 31); // list.h = 31
+    values.put(makeConcreteAddress(672), 864); // list.n->h = 41
+    values.put(makeConcreteAddress(704), 32); // list.d.h = 32
+    values.put(makeConcreteAddress(736), 33); // list.d.h2[0] = 33
+    values.put(makeConcreteAddress(768), 34); // list.d.h2[1] = 34
+    values.put(makeConcreteAddress(800), 35); // list.d.h2[2] = 35
+    values.put(makeConcreteAddress(832), 256); //list.d.h3 = 21
+    values.put(makeConcreteAddress(864), 41); // list.n.h = 41
+    values.put(makeConcreteAddress(896), 640); // list.n->n.h = 31
+    values.put(makeConcreteAddress(928), 42); // list.n->d.h = 42
+    values.put(makeConcreteAddress(960), 43); // list.n->d.h2[0] = 43
+    values.put(makeConcreteAddress(992), 44); // list.n->d.h2[1] = 44
+    values.put(makeConcreteAddress(1024), 45); // list.n->d.h2[2] = 45
+    values.put(makeConcreteAddress(1056), 288); // list.n->d.h3 = 22
 
     Memory memory = new Memory(MEMORYNAME, values);
     allocatedMemory.put(MEMORYNAME, memory);
@@ -174,44 +172,44 @@ public class AssumptionToEdgeAllocatorTest {
     variables.put(makeVariable("x",""), 0);
 
     Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
-    variableAddressMap.put(makeVariable("a", "main"), makeSymbolicAddress(20));
-    variableAddressMap.put(makeVariable("b", "main"), makeSymbolicAddress(24));
-    variableAddressMap.put(makeVariable("c", "main"), makeSymbolicAddress(28));
-    variableAddressMap.put(makeVariable("d", "main"), makeSymbolicAddress(32));
-    variableAddressMap.put(makeVariable("e", "main"), makeSymbolicAddress(56));
-    variableAddressMap.put(makeVariable("list", "main"), makeSymbolicAddress(80));
+    variableAddressMap.put(makeVariable("a", "main"), makeSymbolicAddress(160));
+    variableAddressMap.put(makeVariable("b", "main"), makeSymbolicAddress(192));
+    variableAddressMap.put(makeVariable("c", "main"), makeSymbolicAddress(224));
+    variableAddressMap.put(makeVariable("d", "main"), makeSymbolicAddress(256));
+    variableAddressMap.put(makeVariable("e", "main"), makeSymbolicAddress(448));
+    variableAddressMap.put(makeVariable("list", "main"), makeSymbolicAddress(640));
 
     Map<String, Memory> allocatedMemory = new HashMap<>();
     Map<Address, Object> values = new HashMap<>();
-    values.put(makeSymbolicAddress(20), 1); // a = 1
-    values.put(makeSymbolicAddress(24), "20"); // *b = 1
-    values.put(makeSymbolicAddress(28), "24"); // **c = 1
-    values.put(makeSymbolicAddress(32), 21); // d[0] = 21
-    values.put(makeSymbolicAddress(36), 22); // d[1] = 22
-    values.put(makeSymbolicAddress(40), 23); // d[2] = 23
-    values.put(makeSymbolicAddress(44), 24); // d[3] = 24
-    values.put(makeSymbolicAddress(48), 25); // d[4] = 25
-    values.put(makeSymbolicAddress(52), 26); // d[5] = 26
-    values.put(makeSymbolicAddress(56), 21); // e[0][0] = 21
-    values.put(makeSymbolicAddress(60), 22); // e[0][1] = 22
-    values.put(makeSymbolicAddress(64), 23); // e[0][2] = 23
-    values.put(makeSymbolicAddress(68), 24); // e[1][0] = 24
-    values.put(makeSymbolicAddress(72), 25); // e[1][1] = 25
-    values.put(makeSymbolicAddress(76), 26); // e[1][2] = 26
-    values.put(makeSymbolicAddress(80), 31); // list.h = 31
-    values.put(makeSymbolicAddress(84), "108"); // list.n->h = 41
-    values.put(makeSymbolicAddress(88), 32);  // list.d.h = 32
-    values.put(makeSymbolicAddress(92), 33);  // list.d.h2[0] = 33
-    values.put(makeSymbolicAddress(96), 34);  // list.d.h2[1] = 34
-    values.put(makeSymbolicAddress(100), 35); // list.d.h2[2] = 35
-    values.put(makeSymbolicAddress(104), "32"); //list.d->h3 = 21
-    values.put(makeSymbolicAddress(108), 41); // list.n.h = 41
-    values.put(makeSymbolicAddress(112), "80"); // list.n->n.h = 31
-    values.put(makeSymbolicAddress(116), 42); // list.n->d.h = 42
-    values.put(makeSymbolicAddress(120), 43); // list.n->d.h2[0] = 43
-    values.put(makeSymbolicAddress(124), 44); // list.n->d.h2[1] = 44
-    values.put(makeSymbolicAddress(128), 45); // list.n->d.h2[2] = 45
-    values.put(makeSymbolicAddress(132), "36"); // list.n->d.h3 = 22
+    values.put(makeSymbolicAddress(160), 1); // a = 1
+    values.put(makeSymbolicAddress(192), "160"); // *b = 1
+    values.put(makeSymbolicAddress(224), "192"); // **c = 1
+    values.put(makeSymbolicAddress(256), 21); // d[0] = 21
+    values.put(makeSymbolicAddress(288), 22); // d[1] = 22
+    values.put(makeSymbolicAddress(320), 23); // d[2] = 23
+    values.put(makeSymbolicAddress(352), 24); // d[3] = 24
+    values.put(makeSymbolicAddress(384), 25); // d[4] = 25
+    values.put(makeSymbolicAddress(416), 26); // d[5] = 26
+    values.put(makeSymbolicAddress(448), 21); // e[0][0] = 21
+    values.put(makeSymbolicAddress(480), 22); // e[0][1] = 22
+    values.put(makeSymbolicAddress(512), 23); // e[0][2] = 23
+    values.put(makeSymbolicAddress(544), 24); // e[1][0] = 24
+    values.put(makeSymbolicAddress(576), 25); // e[1][1] = 25
+    values.put(makeSymbolicAddress(608), 26); // e[1][2] = 26
+    values.put(makeSymbolicAddress(640), 31); // list.h = 31
+    values.put(makeSymbolicAddress(672), "864"); // list.n->h = 41
+    values.put(makeSymbolicAddress(704), 32); // list.d.h = 32
+    values.put(makeSymbolicAddress(736), 33); // list.d.h2[0] = 33
+    values.put(makeSymbolicAddress(768), 34); // list.d.h2[1] = 34
+    values.put(makeSymbolicAddress(800), 35); // list.d.h2[2] = 35
+    values.put(makeSymbolicAddress(832), "256"); //list.d->h3 = 21
+    values.put(makeSymbolicAddress(864), 41); // list.n.h = 41
+    values.put(makeSymbolicAddress(896), "640"); // list.n->n.h = 31
+    values.put(makeSymbolicAddress(928), 42); // list.n->d.h = 42
+    values.put(makeSymbolicAddress(960), 43); // list.n->d.h2[0] = 43
+    values.put(makeSymbolicAddress(992), 44); // list.n->d.h2[1] = 44
+    values.put(makeSymbolicAddress(1024), 45); // list.n->d.h2[2] = 45
+    values.put(makeSymbolicAddress(1056), "288"); // list.n->d.h3 = 22
 
     Memory memory = new Memory(MEMORYNAME, values);
     allocatedMemory.put(MEMORYNAME, memory);
@@ -262,55 +260,59 @@ public class AssumptionToEdgeAllocatorTest {
       Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("a == (1);");
       Truth.assertThat(assignmentEdgeSymbolic.getAsCode()).contains("a == (1);");
       break;
-    case "int* b;":
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(b)) == (1);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("b == (20LL);");
-      Truth.assertThat(assignmentEdgeSymbolic.getAsCode()).contains("(*(b)) == (1);");
-      break;
-    case "int** c;":
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(*(c))) == (1);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(c)) == (20LL);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("c == (24LL);");
-      Truth.assertThat(assignmentEdgeSymbolic.getAsCode()).contains("(*(*(c))) == (1);");
-      break;
-    case "int  d[6];":
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(&d) == (32LL);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[0]) == (21);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[1]) == (22);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[2]) == (23);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[3]) == (24);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[4]) == (25);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[5]) == (26);");
-      break;
-    case "int  e[2][3];":
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(&e) == (56LL);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[0][0]) == (21);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[0][1]) == (22);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[0][2]) == (23);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][0]) == (24);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][1]) == (25);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][2]) == (26);");
-      break;
-    case "List list;":
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(signed long long int)(&list)) == (80LL);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.h) == (31);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n) == (108LL);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->h) == (41);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n) == (80LL);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n->d.h) == (32);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->n->d.h2)[0]) == (33);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->n->d.h2)[1]) == (34);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->n->d.h2)[2]) == (35);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n->d.h3) == (32LL);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->n->d.h3)) == (21);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->d.h) == (42);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[0]) == (43);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[1]) == (44);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[2]) == (45);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->d.h3) == (36LL);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->d.h3)) == (22);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->d.h3)) == (22);");
-      break;
+      case "int* b;":
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(b)) == (1);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("b == (160LL);");
+        Truth.assertThat(assignmentEdgeSymbolic.getAsCode()).contains("(*(b)) == (1);");
+        break;
+      case "int** c;":
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(*(c))) == (1);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(c)) == (160LL);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("c == (192LL);");
+        Truth.assertThat(assignmentEdgeSymbolic.getAsCode()).contains("(*(*(c))) == (1);");
+        break;
+      case "int  d[6];":
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(&d) == (256LL);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[0]) == (21);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[1]) == (22);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[2]) == (23);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[3]) == (24);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[4]) == (25);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(d[5]) == (26);");
+        break;
+      case "int  e[2][3];":
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(&e) == (448LL);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[0][0]) == (21);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[0][1]) == (22);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[0][2]) == (23);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][0]) == (24);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][1]) == (25);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(e[1][2]) == (26);");
+        break;
+      case "List list;":
+        Truth.assertThat(assignmentEdgeFull.getAsCode())
+            .contains("(signed long long int)(&list)) == (640LL);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.h) == (31);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n) == (864LL);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->h) == (41);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n) == (640LL);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n->d.h) == (32);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode())
+            .contains("((list.n->n->d.h2)[0]) == (33);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode())
+            .contains("((list.n->n->d.h2)[1]) == (34);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode())
+            .contains("((list.n->n->d.h2)[2]) == (35);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n->d.h3) == (256LL);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->n->d.h3)) == (21);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->d.h) == (42);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[0]) == (43);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[1]) == (44);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[2]) == (45);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->d.h3) == (288LL);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->d.h3)) == (22);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->d.h3)) == (22);");
+        break;
     case "a = a;":
       Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("a == (1);");
       break;
@@ -332,21 +334,21 @@ public class AssumptionToEdgeAllocatorTest {
     case "list.h = list.h;":
       Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.h) == (31);");
       break;
-    case "list.n = list.n;":
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n) == (108LL);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->h) == (41);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n->h) == (31);");
-      break;
+      case "list.n = list.n;":
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n) == (864LL);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->h) == (41);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->n->h) == (31);");
+        break;
     case "list.d.h = list.d.h;":
       Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.d.h) == (32);");
       break;
     case "list.n->d.h2[0] = list.n->d.h2[0];":
       Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("((list.n->d.h2)[0]) == (43);");
       break;
-    case "list.n->d.h3 = list.n->d.h3;":
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->d.h3) == (36LL);");
-      Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->d.h3)) == (22);");
-      break;
+      case "list.n->d.h3 = list.n->d.h3;":
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(list.n->d.h3) == (288LL);");
+        Truth.assertThat(assignmentEdgeFull.getAsCode()).contains("(*(list.n->d.h3)) == (22);");
+        break;
     default:
       Truth.assertThat(pEdge.getRawStatement()).doesNotContain(" = ");
     }

@@ -24,10 +24,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -47,6 +50,12 @@ public class ProofGenerator {
       name = "pcc.sliceProof",
       description = "Make proof more abstract, remove some of the information not needed to prove the property.")
   private boolean slicingEnabled = false;
+
+  @Option(secure=true,
+      name = "pcc.proofFile",
+      description = "file in which proof representation will be stored")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  protected Path file = Paths.get("arg.obj");
 
   private PCCStrategy checkingStrategy;
 
@@ -81,7 +90,7 @@ public class ProofGenerator {
     logger = pLogger;
 
     checkingStrategy =
-        PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, null, null, null);
+        PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, file, null, null, null);
   }
 
   public void generateProof(CPAcheckerResult pResult) {
