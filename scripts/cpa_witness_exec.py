@@ -177,9 +177,10 @@ def create_compile_cmd(harness, target, args, c_version='c11'):
 def _create_cpachecker_args(args):
     cpachecker_args = sys.argv[1:]
 
-    for gcc_arg in ['-gcc-args'] + args.gcc_args:
-        if gcc_arg in cpachecker_args:
-            cpachecker_args.remove(gcc_arg)
+    if args.gcc_args is not None:
+        for gcc_arg in ['-gcc-args'] + args.gcc_args:
+            if gcc_arg in cpachecker_args:
+                cpachecker_args.remove(gcc_arg)
 
     return cpachecker_args
 
