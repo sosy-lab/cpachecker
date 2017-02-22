@@ -98,8 +98,11 @@ def get_cpachecker_version():
 
 
 def create_parser():
-    parser = argparse.ArgumentParser(description="Validate a given violation witness for an input file.",
-                                     add_help=False, allow_abbrev=False)
+    descr="Validate a given violation witness for an input file."
+    if sys.version_info >= (3,5):
+        parser = argparse.ArgumentParser(description=descr, add_help=False, allow_abbrev=False)
+    else:
+        parser = argparse.ArgumentParser(description=descr, add_help=False)
 
     parser.add_argument("-help",
                         action='help'
