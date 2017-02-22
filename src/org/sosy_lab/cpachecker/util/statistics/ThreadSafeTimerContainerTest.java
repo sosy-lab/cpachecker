@@ -25,72 +25,89 @@ package org.sosy_lab.cpachecker.util.statistics;
 
 import static com.google.common.truth.Truth.assert_;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 public class ThreadSafeTimerContainerTest {
 
+  private ThreadSafeTimerContainer container;
+
   public ThreadSafeTimerContainerTest() {}
+
+  @Before
+  public void init() {
+    container = new ThreadSafeTimerContainer("");
+  }
 
   @Test
   public void singleTimer() {
-    ThreadSafeTimerContainer container = new ThreadSafeTimerContainer("");
-
     TimerWrapper timer = container.getNewTimer();
     for (int i = 0; i < 5; i++) {
-      assert_().that(container.getNumberOfIntervals()).isEqualTo(i);
+      checkIntervalNum(i);
       timer.start();
+      checkIntervalNum(i + 1);
       timer.stop();
-      assert_().that(container.getNumberOfIntervals()).isEqualTo(i+1);
+      checkIntervalNum(i + 1);
     }
   }
 
   @Test
   public void multipleTimer() {
-    ThreadSafeTimerContainer container = new ThreadSafeTimerContainer("");
-
     for (int i = 0; i < 5; i++) {
       TimerWrapper timer = container.getNewTimer();
-      assert_().that(container.getNumberOfIntervals()).isEqualTo(i);
+      checkIntervalNum(i);
       timer.start();
+      checkIntervalNum(i + 1);
       timer.stop();
-      assert_().that(container.getNumberOfIntervals()).isEqualTo(i+1);
+      checkIntervalNum(i + 1);
     }
   }
 
   @Test
   public void multipleTimerInterleaved() {
-    ThreadSafeTimerContainer container = new ThreadSafeTimerContainer("");
-
     TimerWrapper timer = container.getNewTimer();
     for (int i = 0; i < 5; i++) {
       TimerWrapper timer2 = container.getNewTimer();
-      assert_().that(container.getNumberOfIntervals()).isEqualTo(2*i);
+      checkIntervalNum(2 * i);
       timer.start();
+      checkIntervalNum(2 * i + 1);
       timer2.start();
+      checkIntervalNum(2 * i + 2);
       timer.stop();
+      checkIntervalNum(2 * i + 2);
       timer2.stop();
-      assert_().that(container.getNumberOfIntervals()).isEqualTo(2*i+2);
+      checkIntervalNum(2 * i + 2);
     }
   }
 
   @Test
   public void multipleTimerInterleaved2() {
-    ThreadSafeTimerContainer container = new ThreadSafeTimerContainer("");
-
     TimerWrapper timer = container.getNewTimer();
     TimerWrapper timer1 = container.getNewTimer();
     for (int i = 0; i < 5; i++) {
       TimerWrapper timer2 = container.getNewTimer();
-      assert_().that(container.getNumberOfIntervals()).isEqualTo(3*i);
+      checkIntervalNum(3 * i);
       timer.start();
+      checkIntervalNum(3 * i + 1);
       timer1.start();
+      checkIntervalNum(3 * i + 2);
       timer1.stop();
+      checkIntervalNum(3 * i + 2);
       timer2.start();
+      checkIntervalNum(3 * i + 3);
       timer2.stop();
+      checkIntervalNum(3 * i + 3);
       timer.stop();
-      assert_().that(container.getNumberOfIntervals()).isEqualTo(3*i+3);
+      checkIntervalNum(3 * i + 3);
     }
+  }
+
+  private void checkIntervalNum(int num) {
+    assert_()
+        .withFailureMessage("number of intervals does not match")
+        .that(container.getNumberOfIntervals())
+        .isEqualTo(num);
   }
 
 }
