@@ -61,7 +61,7 @@ class AutomatonStatistics extends AbstractStatistics {
       put(out, 0, trans.totalStrengthenTime);
     }
 
-    int stateBranchings = trans.automatonSuccessors.getValueCount()
+    long stateBranchings = trans.automatonSuccessors.getValueCount()
         - trans.automatonSuccessors.getTimesWithValue(0)
         - trans.automatonSuccessors.getTimesWithValue(1);
     put(out, 0, "Automaton transfers with branching", stateBranchings);

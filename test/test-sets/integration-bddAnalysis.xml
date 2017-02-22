@@ -51,6 +51,7 @@
       <include>../programs/benchmarks/ssh/*srvr*1*.c</include>
       <include>../programs/benchmarks/ssh-simplified/*srvr*1*.c</include>
       <include>../programs/benchmarks/product-lines/*product3*.c</include>
+      <exclude reason="java heap size near limit">../programs/benchmarks/product-lines/elevator_spec13_product30_true-unreach-call_false-termination.cil.c</exclude>
       <exclude>../programs/benchmarks/product-lines/email*</exclude>
     </tasks>
 

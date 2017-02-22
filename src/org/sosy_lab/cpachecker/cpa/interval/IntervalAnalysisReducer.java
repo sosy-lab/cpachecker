@@ -26,45 +26,41 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Pair;
 
 
-public class IntervalAnalysisReducer implements Reducer {
+class IntervalAnalysisReducer extends GenericReducer<IntervalAnalysisState, Precision> {
 
   @Override
-  public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
-    IntervalAnalysisState expandedState = (IntervalAnalysisState)pExpandedState;
-
-    IntervalAnalysisState clonedElement = expandedState;
-    for (String trackedVar : expandedState.getIntervalMap().keySet()) {
+  protected IntervalAnalysisState getVariableReducedState0(
+      IntervalAnalysisState pExpandedState, Block pContext, CFANode pCallNode) {
+    IntervalAnalysisState clonedElement = pExpandedState;
+    for (String trackedVar : pExpandedState.getIntervalMap().keySet()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       if (!pContext.getVariables().contains(trackedVar)) {
         clonedElement = clonedElement.removeInterval(trackedVar);
       }
     }
-
     return clonedElement;
   }
 
   @Override
-  public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    IntervalAnalysisState rootState = (IntervalAnalysisState)pRootState;
-    IntervalAnalysisState reducedState = (IntervalAnalysisState)pReducedState;
-
+  protected IntervalAnalysisState getVariableExpandedState0(
+      IntervalAnalysisState pRootState,
+      Block pReducedContext,
+      IntervalAnalysisState pReducedState) {
     // the expanded state will contain:
     // - all variables of the reduced state -> copy the state
     // - all non-block variables of the rootState -> copy those values
     // - not the variables of rootState used in the block -> just ignore those values
-    IntervalAnalysisState diffElement = reducedState;
+    IntervalAnalysisState diffElement = pReducedState;
 
-    for (String trackedVar : rootState.getIntervalMap().keySet()) {
+    for (String trackedVar : pRootState.getIntervalMap().keySet()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       if (!pReducedContext.getVariables().contains(trackedVar)) {
-        diffElement = diffElement.addInterval(trackedVar, rootState.getInterval(trackedVar), -1);
+        diffElement = diffElement.addInterval(trackedVar, pRootState.getInterval(trackedVar), -1);
 
       //} else {
         // ignore this case, the variables are part of the reduced state
@@ -76,7 +72,7 @@ public class IntervalAnalysisReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
+  protected Precision getVariableReducedPrecision0(Precision pPrecision, Block pContext) {
 
     // TODO: anything meaningful we can do here?
 
@@ -84,8 +80,8 @@ public class IntervalAnalysisReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
-      Precision pReducedPrecision) {
+  protected Precision getVariableExpandedPrecision0(
+      Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
 
     // TODO: anything meaningful we can do here?
 
@@ -93,17 +89,20 @@ public class IntervalAnalysisReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-    IntervalAnalysisState elementKey = (IntervalAnalysisState)pElementKey;
-    return Pair.of(elementKey.getIntervalMap(), pPrecisionKey);
+  protected Object getHashCodeForState0(
+      IntervalAnalysisState pElementKey, Precision pPrecisionKey) {
+    return Pair.of(pElementKey.getIntervalMap(), pPrecisionKey);
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState,
-      AbstractState pExpandedState, FunctionExitNode exitLocation) {
+  protected IntervalAnalysisState rebuildStateAfterFunctionCall0(
+      IntervalAnalysisState pRootState,
+      IntervalAnalysisState entryState,
+      IntervalAnalysisState pExpandedState,
+      FunctionExitNode exitLocation) {
 
-    IntervalAnalysisState rootState = (IntervalAnalysisState)pRootState;
-    IntervalAnalysisState expandedState = (IntervalAnalysisState)pExpandedState;
+    IntervalAnalysisState rootState = pRootState;
+    IntervalAnalysisState expandedState = pExpandedState;
 
     return expandedState.rebuildStateAfterFunctionCall(rootState, exitLocation);
   }

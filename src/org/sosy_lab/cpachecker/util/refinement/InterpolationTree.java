@@ -224,7 +224,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
    *
    * @param file file the file to write to
    */
-  public void exportToDot(PathTemplate file, int refinementCounter) {
+  public void exportToDot(PathTemplate file, long refinementCounter) {
     StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
       if (interpolants.containsKey(current.getKey())) {

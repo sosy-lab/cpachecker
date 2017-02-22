@@ -25,32 +25,59 @@ package org.sosy_lab.cpachecker.util.statistics;
 
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Multiset.Entry;
 
 /**
  * Thread-safe implementation of numerical statistics.
- * This class tracks the number how often each value is added.
+ * This class tracks how often a value is used in a series of values.
+ * Use case might be sampling of values during an analysis.
  */
-public class StatIntHist extends StatInt {
+public class StatHist extends AbstractStatValue {
 
-  private Multiset<Integer> hist = ConcurrentHashMultiset.create();
+  private final Multiset<Integer> hist = ConcurrentHashMultiset.create();
 
-  public StatIntHist(StatKind pMainStatisticKind, String pTitle) {
-    super(pMainStatisticKind, pTitle);
+  public StatHist(String pTitle) {
+    super(StatKind.AVG, pTitle);
   }
 
   public int getTimesWithValue(Integer value) {
     return hist.count(value);
   }
 
-  @Override
-  public void setNextValue(int pNewValue) {
-    super.setNextValue(pNewValue);
+  public void insertValue(int pNewValue) {
     hist.add(pNewValue);
   }
 
   @Override
   public String toString() {
-    return super.toString() + " " + hist.toString();
+    return String.format("%s (avg=%.2f, dev=%.2f)", hist, getAvg(), getStdDeviation());
+  }
+
+  private double getStdDeviation() {
+    synchronized (hist) {
+      final double avg = getAvg();
+      double sum = 0;
+      for (Entry<Integer> e : hist.entrySet()) {
+        double deviation = avg - e.getElement();
+        sum += (deviation * deviation * e.getCount());
+      }
+      return sum / hist.size();
+    }
+  }
+
+  private double getAvg() {
+    synchronized (hist) {
+      long sum = 0;
+      for (Entry<Integer> e : hist.entrySet()) {
+        sum += (e.getElement() * e.getCount());
+      }
+      return (double) sum / hist.size();
+    }
+  }
+
+  @Override
+  public int getUpdateCount() {
+    return hist.size();
   }
 
 }

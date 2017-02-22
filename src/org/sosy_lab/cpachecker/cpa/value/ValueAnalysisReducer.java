@@ -26,51 +26,45 @@ package org.sosy_lab.cpachecker.cpa.value;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
-public class ValueAnalysisReducer implements Reducer {
+class ValueAnalysisReducer extends GenericReducer<ValueAnalysisState, VariableTrackingPrecision> {
 
   @Override
-  public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
-    ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
-
-    ValueAnalysisState clonedElement = ValueAnalysisState.copyOf(expandedState);
-    for (MemoryLocation trackedVar : expandedState.getTrackedMemoryLocations()) {
+  protected ValueAnalysisState getVariableReducedState0(
+      ValueAnalysisState pExpandedState, Block pContext, CFANode pCallNode) {
+    ValueAnalysisState clonedElement = ValueAnalysisState.copyOf(pExpandedState);
+    for (MemoryLocation trackedVar : pExpandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
       if (!pContext.getVariables().contains(simpleName)) {
         clonedElement.forget(trackedVar);
       }
     }
-
     return clonedElement;
   }
 
-
-
   @Override
-  public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) {
-    ValueAnalysisState rootState = (ValueAnalysisState)pRootState;
-    ValueAnalysisState reducedState = (ValueAnalysisState)pReducedState;
-
+  protected ValueAnalysisState getVariableExpandedState0(
+      ValueAnalysisState pRootState, Block pReducedContext, ValueAnalysisState pReducedState) {
     // the expanded state will contain:
     // - all variables of the reduced state -> copy the state
     // - all non-block variables of the rootState -> copy those values
     // - not the variables of rootState used in the block -> just ignore those values
-    ValueAnalysisState diffElement = ValueAnalysisState.copyOf(reducedState);
+    ValueAnalysisState diffElement = ValueAnalysisState.copyOf(pReducedState);
 
-    for (MemoryLocation trackedVar : rootState.getTrackedMemoryLocations()) {
+    for (MemoryLocation trackedVar : pRootState.getTrackedMemoryLocations()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
       if (!pReducedContext.getVariables().contains(simpleName)) {
-        diffElement.assignConstant(trackedVar, rootState.getValueFor(trackedVar), rootState.getTypeForMemoryLocation(trackedVar));
+        diffElement.assignConstant(
+            trackedVar,
+            pRootState.getValueFor(trackedVar),
+            pRootState.getTypeForMemoryLocation(trackedVar));
 
       //} else {
         // ignore this case, the variables are part of the reduced state
@@ -82,8 +76,9 @@ public class ValueAnalysisReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
-    VariableTrackingPrecision precision = (VariableTrackingPrecision)pPrecision;
+  protected VariableTrackingPrecision getVariableReducedPrecision0(
+      VariableTrackingPrecision pPrecision, Block pContext) {
+    VariableTrackingPrecision precision = pPrecision;
 
     // TODO: anything meaningful we can do here?
 
@@ -91,30 +86,28 @@ public class ValueAnalysisReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(Precision pRootPrecision, Block pRootContext,
-      Precision pReducedPrecision) {
-    VariableTrackingPrecision rootPrecision = (VariableTrackingPrecision)pRootPrecision;
-    VariableTrackingPrecision reducedPrecision = (VariableTrackingPrecision)pReducedPrecision;
+  protected VariableTrackingPrecision getVariableExpandedPrecision0(
+      VariableTrackingPrecision pRootPrecision,
+      Block pRootContext,
+      VariableTrackingPrecision pReducedPrecision) {
     // After a refinement, rootPrecision can contain more variables than reducedPrecision.
     // This happens for recursive files or imprecise caching.
     // In this case we just merge the two precisions.
-    return reducedPrecision.join(rootPrecision);
+    return pReducedPrecision.join(pRootPrecision);
   }
 
   @Override
-  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-    ValueAnalysisState elementKey = (ValueAnalysisState)pElementKey;
-    VariableTrackingPrecision precisionKey = (VariableTrackingPrecision)pPrecisionKey;
-    return Pair.of(elementKey, precisionKey);
+  protected Object getHashCodeForState0(
+      ValueAnalysisState pElementKey, VariableTrackingPrecision pPrecisionKey) {
+    return Pair.of(pElementKey, pPrecisionKey);
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState pRootState, AbstractState entryState,
-      AbstractState pExpandedState, FunctionExitNode exitLocation) {
-
-    ValueAnalysisState rootState = (ValueAnalysisState)pRootState;
-    ValueAnalysisState expandedState = (ValueAnalysisState)pExpandedState;
-
-    return expandedState.rebuildStateAfterFunctionCall(rootState, exitLocation);
+  protected ValueAnalysisState rebuildStateAfterFunctionCall0(
+      ValueAnalysisState pRootState,
+      ValueAnalysisState entryState,
+      ValueAnalysisState pExpandedState,
+      FunctionExitNode exitLocation) {
+    return pExpandedState.rebuildStateAfterFunctionCall(pRootState, exitLocation);
   }
 }

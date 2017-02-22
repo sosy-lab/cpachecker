@@ -98,97 +98,64 @@ def get_cpachecker_version():
 
 
 def create_parser():
-    parser = argparse.ArgumentParser(description="Validate a given violation witness for an input file.")
+    descr="Validate a given violation witness for an input file."
+    if sys.version_info >= (3,5):
+        parser = argparse.ArgumentParser(description=descr, add_help=False, allow_abbrev=False)
+    else:
+        parser = argparse.ArgumentParser(description=descr, add_help=False)
+
+    parser.add_argument("-help",
+                        action='help'
+                        )
+
+    parser.add_argument("-version",
+                        action="version", version='{}'.format(get_cpachecker_version())
+                        )
 
     machine_model_args = parser.add_mutually_exclusive_group(required=False)
     machine_model_args.add_argument('-32',
                                     dest='machine_model', action='store_const', const=MACHINE_MODEL_32,
-                                    help="Use 32 bit machine model"
+                                    help="use 32 bit machine model"
                                     )
     machine_model_args.add_argument('-64',
                                     dest='machine_model', action='store_const', const=MACHINE_MODEL_64,
-                                    help="Use 64 bit machine model"
+                                    help="use 64 bit machine model"
                                     )
     machine_model_args.set_defaults(machine_model=MACHINE_MODEL_32)
 
-    parser.add_argument('--outputpath',
+    parser.add_argument('-outputpath',
                         dest='output_path',
                         type=str, action='store', default="output",
-                        help="Path where output should be stored"
+                        help="path where output should be stored"
                         )
 
-    parser.add_argument('--timelimit',
+    parser.add_argument('-gcc-args',
+                        dest='gcc_args',
                         type=str,
                         action='store',
-                        help='Time limit of analysis')
-
-    parser.add_argument('--cpa-args',
-                        dest='cpa_args',
-                        type=_postprocess_args,
-                        action='append',
+                        nargs=argparse.REMAINDER,
                         default=[],
-                        help='List of arguments to use for CPAchecker when generating the test harnesses. ' +
-                             'This should include -generateTestHarness .'
+                        help='list of arguments to use when compiling the counterexample test'
                         )
 
-    parser.add_argument('--gcc-args',
-                        dest='gcc_args',
-                        type=_postprocess_args,
-                        action='append',
-                        default=[],
-                        help='List of arguments to use when compiling the counterexample test'
-                        )
-
-    parser.add_argument("--version", '-v',
-                        action="version", version='{}'.format(get_cpachecker_version())
-                        )
+    parser.add_argument('-stats',
+                        action='store_true',
+                        help="show statistics")
 
     parser.add_argument("file",
                         type=str,
-                        nargs='+',
-                        help="File(s) to validate witness for"
+                        nargs='?',
+                        help="file to validate witness for"
                         )
 
     return parser
 
 
-def _preprocess_args(argv):
-    """ Preprocess command line parameters.
-        Replaces the '-' of the first argument given as parameter to --gcc-args and --cpa-args
-        with some placeholder so that argparse does recognize it as a parameter.
-        Otherwise, it will look at it as another argument and raise an error.
-
-        Example argv where this happens:
-            --gcc-args "-ggdb" --outputpath output example.i
-
-        This misbehavior only appears if a single argument is given, but works otherwise, e.g.:
-            --gcc-args "-ggdb -O2" --outputpath output example.i
-        """
-    new_argv = []
-    change_next = False
-    for arg in argv:
-        new_arg = arg
-        if change_next:
-            assert arg.startswith('-')
-            new_arg = ARG_PLACEHOLDER + arg[1:]
-            change_next = False
-        elif new_arg == '--gcc-args' or new_arg == '--cpa-args':
-            change_next = True
-
-        new_argv.append(new_arg)
-    return new_argv
-
-
-def _postprocess_args(arg):
-    """ Undo the preprocessing steps from above. """
-    new_arg = arg
-    if arg.startswith(ARG_PLACEHOLDER):
-        new_arg = '-' + arg[len(ARG_PLACEHOLDER):]
-    return new_arg.split()
-
 def _parse_args(argv=sys.argv[1:]):
     parser = create_parser()
-    args = parser.parse_args(_preprocess_args(argv))
+    args = parser.parse_known_args(argv[:-1])[0]
+    args_file = parser.parse_args([argv[-1]])  # Parse the file name
+    args.file = args_file.file
 
     return args
 
@@ -198,7 +165,7 @@ def flatten(list_of_lists):
 
 
 def _create_gcc_basic_args(args):
-    gcc_args = GCC_ARGS_FIXED + flatten(args.gcc_args)
+    gcc_args = GCC_ARGS_FIXED + args.gcc_args
     if args.machine_model == MACHINE_MODEL_64:
         gcc_args.append('-m64')
     elif args.machine_model == MACHINE_MODEL_32:
@@ -210,7 +177,7 @@ def _create_gcc_basic_args(args):
 
 
 def _create_gcc_cmd_tail(harness, file, target):
-    return ['-o', target, harness] + file
+    return ['-o', target, harness, file]
 
 
 def create_compile_cmd(harness, target, args, c_version='c11'):
@@ -221,23 +188,12 @@ def create_compile_cmd(harness, target, args, c_version='c11'):
 
 
 def _create_cpachecker_args(args):
-    cpachecker_args = flatten(args.cpa_args)
+    cpachecker_args = sys.argv[1:]
 
-    # An explicit output path that is set using -cpa-args will be respected
-    if '-outputpath' not in cpachecker_args:
-        cpachecker_args += ["-outputpath", args.output_path]
+    for gcc_arg in ['-gcc-args'] + args.gcc_args:
+        if gcc_arg in cpachecker_args:
+            cpachecker_args.remove(gcc_arg)
 
-    if '-timelimit' not in cpachecker_args:
-        cpachecker_args += ["-timelimit", args.timelimit]
-
-    if args.machine_model == MACHINE_MODEL_64:
-        cpachecker_args.append('-64')
-    elif args.machine_model == MACHINE_MODEL_32:
-        cpachecker_args.append('-32')
-    else:
-        raise ValidationError('Neither 32 nor 64 bit machine model specified')
-
-    cpachecker_args += args.file
     return cpachecker_args
 
 
@@ -287,69 +243,99 @@ def execute(command, quiet=False):
     returncode = p.wait()
     output = p.stdout.read()
     err_output = p.stderr.read()
-
     return ExecutionResult(returncode, output, err_output)
 
 
 def analyze_result(test_result, harness):
     if test_result.returncode == EXPECTED_RETURN:
-        print("Verification result: FALSE." +
-              " Harness {} reached expected error location.".format(harness))
+        logging.info("Harness {} reached expected error location.".format(harness))
         return True
-    else:  # Only log failures to info level
+    else:
         logging.info("Run with harness {} was not successful".format(harness))
+        return False
 
 
 def log_multiline(msg, level=logging.INFO):
-    for line in msg.split('\n'):
-        logging.log(level, line) if line else None
+    if type(msg) is list:
+        msg_lines = msg
+    else:
+        msg_lines = msg.split('\n')
+    for line in msg_lines:
+        logging.log(level, line)
 
 
 def run():
+    statistics = []
     args = _parse_args()
     output_dir = args.output_path
 
     harness_gen_cmd = create_harness_gen_cmd(args)
     harness_gen_result = execute(harness_gen_cmd)
-    log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
     log_multiline(harness_gen_result.stderr, level=logging.INFO)
+    log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
 
     created_harnesses = find_harnesses(output_dir)
-    logging.info("{} harness(es) for witness produced.".format(len(created_harnesses)))
+    statistics.append(("Harnesses produced", len(created_harnesses)))
 
-    done = False
+    success = False
+    successful_harness = None
+    iter_count = 0
+    compile_success_count = 0
+    c11_success_count = 0
     for harness in created_harnesses:
+        iter_count += 1
         logging.info("Looking at {}".format(harness))
         exe_target = output_dir + os.sep + get_target_name(harness)
         compile_cmd = create_compile_cmd(harness, exe_target, args)
         compile_result = execute(compile_cmd)
 
-        log_multiline(compile_result.stdout, level=logging.DEBUG)
         log_multiline(compile_result.stderr, level=logging.INFO)
+        log_multiline(compile_result.stdout, level=logging.DEBUG)
 
         if compile_result.returncode != 0:
             compile_cmd = create_compile_cmd(harness, exe_target, args, 'c90')
             compile_result = execute(compile_cmd)
-            log_multiline(compile_result.stdout, level=logging.DEBUG)
             log_multiline(compile_result.stderr, level=logging.INFO)
+            log_multiline(compile_result.stdout, level=logging.DEBUG)
 
             if compile_result.returncode != 0:
                 logging.warning("Compilation failed for harness {}".format(harness))
                 continue
+
+        else:
+            c11_success_count += 1
+        compile_success_count += 1
 
         test_result = execute([exe_target])
         test_stdout_file = output_dir + os.sep + 'stdout.txt'
         test_stderr_file = output_dir + os.sep + 'stderr.txt'
         with open(test_stdout_file, 'w+') as output:
             output.write(test_result.stdout)
+            logging.info("Wrote stdout of test execution to {}".format(test_stdout_file))
         with open(test_stderr_file, 'w+') as error_output:
             error_output.write(test_result.stderr)
+            logging.info("Wrote stderr of test execution to {}".format(test_stderr_file))
 
-        done = analyze_result(test_result, harness)
-        if done:
+        success = analyze_result(test_result, harness)
+        if success:
+            successful_harness = harness
             break
 
-    if not done:
+    if compile_success_count == 0:
+        raise ValidationError("Compilation failed for every harness/file pair.")
+
+    statistics.append(("Harnesses tested", iter_count))
+    statistics.append(("C11 compatible", c11_success_count))
+
+    if args.stats:
+        print(os.linesep + "Statistics:")
+        for prop, value in statistics:
+            print("\t" + str(prop) + ": " + str(value))
+        print()
+
+    if success:
+        print("Verification result: FALSE. Harness {} was successful.".format(successful_harness))
+    else:
         print("Verification result: UNKNOWN." +
               " No harness for witness was successful or no harness was produced.")
 
@@ -361,3 +347,4 @@ try:
     run()
 except ValidationError as e:
     logging.error(e.msg)
+    print("Verification result: ERROR.")
