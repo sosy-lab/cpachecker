@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,13 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
-import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
 
-
+/**
+ * Thread-safe implementation of numerical statistics.
+ * This class tracks the number how often each value is added.
+ */
 public class StatIntHist extends StatInt {
 
-  private Multiset<Integer> hist = HashMultiset.create();
+  private Multiset<Integer> hist = ConcurrentHashMultiset.create();
 
   public StatIntHist(StatKind pMainStatisticKind, String pTitle) {
     super(pMainStatisticKind, pTitle);
