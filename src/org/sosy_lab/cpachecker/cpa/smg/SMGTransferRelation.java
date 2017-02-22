@@ -596,8 +596,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           logger.log(Level.INFO, "Free on expression ", pointerExp.toASTString(),
               " is invalid, because the target of the address could not be calculated.");
           SMGState invalidFreeState = currentState.setInvalidFree();
-          invalidFreeState.setErrorDescription("Free on expression " + pointerExp.toASTString() +
-              " is invalid, because the target of the address could not be calculated.");
+          invalidFreeState.setErrorDescription("Free is invalid, because the target of the address could not be calculated.");
           resultStates.add(invalidFreeState);
           continue;
         }
@@ -1606,9 +1605,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return msg;
       });
       SMGState newState = pNewState.setInvalidWrite();
-      newState.setErrorDescription("Field with type " + pRValueType.toASTString("") + " can't be"
-              + " written at offset " + pFieldOffset.longValue() + " bit of object " + pMemoryOfField);
-      newState.addInvalidObject(pMemoryOfField);
+      if (pMemoryOfField.notNull()) {
+        newState.setErrorDescription("Field with size " + expressionEvaluator.getBitSizeof(pEdge,
+            pRValueType, pNewState) + " bit can't be written at offset " + pFieldOffset.longValue()
+            + " bit of object " + pMemoryOfField.getSize() + " bit size");
+        newState.addInvalidObject(pMemoryOfField);
+      } else {
+        newState.setErrorDescription("NULL pointer dereference on write");
+      }
       return newState;
     }
 
@@ -2038,9 +2042,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             " does not fit object ", pObject, ".");
 
         SMGState newState = pSmgState.setInvalidRead();
-        newState.setErrorDescription(pEdge.getRawStatement() + ": Field with type \"" + pType.toASTString("")
-            + "\" can't be readed from offset " + fieldOffset.longValue() + " bit of object " + pObject + ".");
-        newState.addInvalidObject(pObject);
+        if (pObject.notNull()) {
+          newState.setErrorDescription("Field with " + getBitSizeof(pEdge, pType, pSmgState)
+              + " bit size can't be read from offset " + fieldOffset.longValue() + " bit of "
+              + "object " + pObject.getSize() + " bit size");
+          newState.addInvalidObject(pObject);
+        } else {
+          newState.setErrorDescription("NULL pointer dereference on read");
+        }
 
         return SMGValueAndState.of(newState);
       }
