@@ -23,20 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-import java.util.HashSet;
-import java.util.Set;
-
-public class BDDReducer implements Reducer {
+class BDDReducer extends GenericReducer<BDDState, Precision> {
 
   private final PredicateManager predmgr;
 
@@ -53,8 +51,9 @@ public class BDDReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pBlock, CFANode pCallNode) {
-    BDDState state = (BDDState)pExpandedState;
+  protected BDDState getVariableReducedState0(
+      BDDState pExpandedState, Block pBlock, CFANode pCallNode) {
+    BDDState state = pExpandedState;
 
     final Set<String> trackedVars = predmgr.getTrackedVars().keySet();
     final Set<String> blockVars = getVarsOfBlock(pBlock);
@@ -70,9 +69,10 @@ public class BDDReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableExpandedState(AbstractState pRootState, Block reducedContext, AbstractState pReducedState) {
-    BDDState state = (BDDState)pRootState;
-    BDDState reducedState = (BDDState)pReducedState;
+  protected BDDState getVariableExpandedState0(
+      BDDState pRootState, Block reducedContext, BDDState pReducedState) {
+    BDDState state = pRootState;
+    BDDState reducedState = pReducedState;
 
     // remove all vars, that are used in the block
     final Set<String> trackedVars = predmgr.getTrackedVars().keySet();
@@ -97,25 +97,29 @@ public class BDDReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableReducedPrecision(Precision precision, Block context) {
+  protected Precision getVariableReducedPrecision0(Precision precision, Block context) {
     // TODO what to do?
     return precision;
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+  protected Precision getVariableExpandedPrecision0(
+      Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
     // TODO what to do?
     return reducedPrecision;
   }
 
   @Override
-  public Object getHashCodeForState(AbstractState stateKey, Precision precisionKey) {
-    return Pair.of(((BDDState)stateKey).getRegion(), precisionKey);
+  protected Object getHashCodeForState0(BDDState stateKey, Precision precisionKey) {
+    return Pair.of(stateKey.getRegion(), precisionKey);
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
-      AbstractState expandedState, FunctionExitNode exitLocation) {
+  protected BDDState rebuildStateAfterFunctionCall0(
+      BDDState rootState,
+      BDDState entryState,
+      BDDState expandedState,
+      FunctionExitNode exitLocation) {
     throw new UnsupportedOperationException("not implemented");
   }
 }
