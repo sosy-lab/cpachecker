@@ -23,10 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
@@ -42,23 +40,14 @@ class BDDReducer extends GenericReducer<BDDState, Precision> {
     predmgr = pPredmgr;
   }
 
-  private Set<String> getVarsOfBlock(Block pBlock) {
-    Set<String> vars = new HashSet<>();
-    for (ReferencedVariable referencedVar : pBlock.getReferencedVariables()) {
-      vars.add(referencedVar.getName());
-    }
-    return vars;
-  }
-
   @Override
   protected BDDState getVariableReducedState0(
       BDDState pExpandedState, Block pBlock, CFANode pCallNode) {
     BDDState state = pExpandedState;
 
     final Set<String> trackedVars = predmgr.getTrackedVars().keySet();
-    final Set<String> blockVars = getVarsOfBlock(pBlock);
     for (final String var : trackedVars) {
-      if (!blockVars.contains(var)) {
+      if (!pBlock.getVariables().contains(var)) {
         int size = predmgr.getTrackedVars().get(var);
         Region[] toRemove = predmgr.createPredicateWithoutPrecisionCheck(var, size);
         state = state.forget(toRemove);
@@ -76,9 +65,8 @@ class BDDReducer extends GenericReducer<BDDState, Precision> {
 
     // remove all vars, that are used in the block
     final Set<String> trackedVars = predmgr.getTrackedVars().keySet();
-    final Set<String> blockVars = getVarsOfBlock(reducedContext);
     for (final String var : trackedVars) {
-      if (blockVars.contains(var)) {
+      if (reducedContext.getVariables().contains(var)) {
         int size = predmgr.getTrackedVars().get(var);
         Region[] toRemove = predmgr.createPredicateWithoutPrecisionCheck(var, size);
         state = state.forget(toRemove);
