@@ -68,10 +68,10 @@ class CodeAppender implements Appendable {
     return appendable.toString();
   }
 
-  public CodeAppender appendVectorIndexDeclaration(String pInputFunctionVectorIndexName) throws IOException {
+  private CodeAppender appendVectorIndexDeclaration(String pInputFunctionVectorIndexName) throws IOException {
     appendable.append("  static unsigned int ");
     appendable.append(pInputFunctionVectorIndexName);
-    appendln(";");
+    appendln(" = 0;");
     return this;
   }
 
