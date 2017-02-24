@@ -34,7 +34,7 @@ import logging
 import re
 
 """
-CPA-Witness-Exec module for validating witness files by using a generate and validate approach.
+CPA-witness2test module for validating witness files by using a generate and validate approach.
 Creates a test harness based on the violation witness given for an input file,
 compiles the file with the created harness and checks whether the created program
 reaches the target location specified by the violation witness.
