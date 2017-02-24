@@ -117,6 +117,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -869,7 +870,7 @@ public class HarnessExporter {
     AExpression value = pValue;
     Type expectedReturnType = getCanonicalType(pExpectedReturnType);
     Type actualType = getCanonicalType(value.getExpressionType());
-    if (!actualType.equals(expectedReturnType)) {
+    if (!areTypesCompatible(pValue, expectedReturnType)) {
       if (value instanceof CExpression && expectedReturnType instanceof CType) {
         if (expectedReturnType instanceof CPointerType
                 && !expectedReturnType.equals(CPointerType.POINTER_TO_VOID)
@@ -891,6 +892,21 @@ public class HarnessExporter {
       }
     }
     return value;
+  }
+
+  private static boolean areTypesCompatible(AExpression pValue, Type pExpectedType) {
+    Type actualType = getCanonicalType(pValue.getExpressionType());
+    if (actualType.equals(pExpectedType)) {
+      return true;
+    }
+    if (actualType instanceof CSimpleType && pExpectedType instanceof CSimpleType) {
+      CSimpleType simpleActualType = (CSimpleType) actualType;
+      CSimpleType simpleExpectedType = (CSimpleType) pExpectedType;
+      if (simpleActualType.isUnsigned() && simpleExpectedType.isUnsigned()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static Optional<ALiteralExpression> getOther(
