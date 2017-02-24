@@ -133,6 +133,10 @@ def create_parser():
                         help="path where output should be stored"
                         )
 
+    parser.add_argument('-stats',
+                        action='store_true',
+                        help="show statistics")
+
     parser.add_argument('-gcc-args',
                         dest='gcc_args',
                         type=str,
@@ -141,10 +145,6 @@ def create_parser():
                         default=[],
                         help='list of arguments to use when compiling the counterexample test'
                         )
-
-    parser.add_argument('-stats',
-                        action='store_true',
-                        help="show statistics")
 
     parser.add_argument("file",
                         type=str,
