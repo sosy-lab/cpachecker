@@ -278,7 +278,7 @@ def run():
 
     harness_gen_cmd = create_harness_gen_cmd(args)
     harness_gen_result = execute(harness_gen_cmd)
-    log_multiline(harness_gen_result.stderr, level=logging.INFO)
+    print(harness_gen_result.stderr)
     log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
 
     created_harnesses = find_harnesses(output_dir)
