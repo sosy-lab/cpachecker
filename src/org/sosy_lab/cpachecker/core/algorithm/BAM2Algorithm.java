@@ -40,7 +40,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -68,6 +71,7 @@ public class BAM2Algorithm implements Algorithm {
   private final BAMCPA2 bamcpa;
   private final CPAAlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
+  private final AtomicReference<Throwable> error = new AtomicReference<>(null);
 
   public BAM2Algorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -84,18 +88,6 @@ public class BAM2Algorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(final ReachedSet mainReachedSet)
       throws CPAException, InterruptedException {
-    try {
-      return run0(mainReachedSet);
-    } catch (CPAException | InterruptedException e) {
-      throw e;
-    } catch (Throwable e) {
-      logger.logException(Level.WARNING, e, this + " -- " + e.getClass().getSimpleName());
-      throw new AssertionError(e);
-    }
-  }
-
-  private AlgorithmStatus run0(final ReachedSet mainReachedSet)
-      throws Exception {
 
     //    boolean targetStateFound = false;
 
@@ -138,14 +130,25 @@ public class BAM2Algorithm implements Algorithm {
   }
 
   /** We check here whether an error occured in a CompletableFuture.
-   * We could also ignore this step, but that might be dangerous and error-prone. */
+   * We could also ignore this step, but that might be dangerous and error-prone.
+   */
   private void collectExceptions(
       Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping)
-      throws InterruptedException, ExecutionException {
+      throws InterruptedException, CPAException {
     for (Pair<ReachedSetExecutor, CompletableFuture<Void>> entry : pReachedSetMapping.values()) {
-      entry.getSecond().get();
+      try{
+        entry.getSecond().get();
+      } catch (RejectedExecutionException e) {
+        // ignore
+      } catch (ExecutionException e) {
+        error.compareAndSet(null, e);
+      }
       logger.log(Level.INFO, "finishing", entry.getFirst(),
           entry.getSecond().isCompletedExceptionally());
+    }
+    Throwable toThrow = error.get();
+    if (toThrow != null) {
+      throw new CPAException(toThrow.getMessage());
     }
   }
 
@@ -393,7 +396,8 @@ public class BAM2Algorithm implements Algorithm {
     private void registerJob(ReachedSetExecutor pRse, Runnable r) {
       Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(pRse.rs);
       assert p.getFirst() == pRse;
-      CompletableFuture<Void> future = p.getSecond().thenRunAsync(r, pool);
+      CompletableFuture<Void> future = p.getSecond().thenRunAsync(r, pool)
+          .exceptionally(new ExceptionHandler(pool));
       reachedSetMapping.put(pRse.rs, Pair.of(pRse, future));
     }
 
@@ -401,7 +405,8 @@ public class BAM2Algorithm implements Algorithm {
       ReachedSetExecutor subRse =
           new ReachedSetExecutor(newRs, mainReachedSet, reachedSetMapping, pool);
       // register NOOP here. Callback for results is registered later, we have "lazy" computation.
-      final CompletableFuture<Void> future = CompletableFuture.runAsync(NOOP, pool);
+      CompletableFuture<Void> future = CompletableFuture.runAsync(NOOP, pool)
+          .exceptionally(new ExceptionHandler(pool));
       assert !reachedSetMapping.containsKey(newRs) : "reached-set already registered";
       reachedSetMapping.put(newRs, Pair.of(subRse, future));
       logger.logf(Level.INFO, "%s :: register subRSE %s", this, id(newRs));
@@ -411,5 +416,27 @@ public class BAM2Algorithm implements Algorithm {
     public String toString() {
       return "RSE " + idd();
     }
+  }
+
+  private class ExceptionHandler implements Function<Throwable, Void> {
+
+    private final ExecutorService pool;
+
+    public ExceptionHandler(ExecutorService pPool) {
+      pool = pPool;
+    }
+
+    @Override
+    public Void apply(Throwable e) {
+      if (e instanceof RejectedExecutionException) {
+        // ignore, might happen when target-state is found
+        // TODO cleanup waiting states and dependencies?
+      } else {
+        error.compareAndSet(null, e);
+      }
+      pool.shutdownNow();
+      return null;
+    }
+
   }
 }
