@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 public class SMGEdgeHasValue extends SMGEdge {
@@ -61,6 +62,10 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public int getSizeInBits(MachineModel pMachineModel) {
+    if (!(type instanceof CVoidType) && type.isIncomplete()) {
+      throw new IllegalArgumentException("Cannot compute size of " + object.getLabel() + " with "
+          + "incomplete type " + type);
+    }
     return pMachineModel.getBitSizeof(type);
   }
 
