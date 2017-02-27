@@ -26,14 +26,13 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -68,6 +67,7 @@ public class BAM2Algorithm implements Algorithm {
   private final LogManager logger;
   private final BAMCPA2 bamcpa;
   private final CPAAlgorithmFactory algorithmFactory;
+  private final ShutdownNotifier shutdownNotifier;
 
   public BAM2Algorithm(
       ConfigurableProgramAnalysis pCpa,
@@ -77,6 +77,7 @@ public class BAM2Algorithm implements Algorithm {
       throws InvalidConfigurationException {
     bamcpa = (BAMCPA2) pCpa;
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     algorithmFactory = new CPAAlgorithmFactory(bamcpa, logger, pConfig, pShutdownNotifier);
   }
 
@@ -107,7 +108,7 @@ public class BAM2Algorithm implements Algorithm {
       ReachedSetExecutor rse =
           new ReachedSetExecutor(
               mainReachedSet, mainReachedSet, reachedSetMapping, pool);
-      CompletableFuture<Void> future = CompletableFuture.runAsync(rse, pool);
+      CompletableFuture<Void> future = CompletableFuture.runAsync(rse.asRunnable(), pool);
       reachedSetMapping.put(mainReachedSet, Pair.of(rse, future));
     }
 
@@ -163,23 +164,21 @@ public class BAM2Algorithm implements Algorithm {
     return id(pRs.getFirstState());
   }
 
-  class ReachedSetExecutor implements Runnable {
+  private class ReachedSetExecutor {
 
     private final ReachedSet rs;
     private final ReachedSet mainReachedSet;
-    private final Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping; // important central data structure, shared over all threads.
+    /** important central data structure, shared over all threads. */
+    private final Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping;
     private final ExecutorService pool;
 
     private boolean targetStateFound = false;
-
-    /** Results are added to this list and applied, when scheduled. Synchronized access needed! */
-    private final List<AbstractState> statesToBeAdded = new ArrayList<>();
 
     /**
      * Sub-reached-sets have to be finished before the current one.
      * The state is unique. Synchronized access needed!
      */
-    private final Set<AbstractState> dependsOn = Collections.synchronizedSet(new LinkedHashSet<>());
+    private final Set<AbstractState> dependsOn = new LinkedHashSet<>();
 
     /**
      * The current reached-set has to be finished before parent reached-set.
@@ -200,11 +199,40 @@ public class BAM2Algorithm implements Algorithm {
       logger.logf(Level.INFO, "%s :: creating RSE", this);
     }
 
-    @Override
-    public void run() {
+    public Runnable asRunnable() {
+      return asRunnable(ImmutableSet.of());
+    }
+
+    public Runnable asRunnable(Collection<AbstractState> pStatesToBeAdded) {
+      // copy needed, because access to pStatesToBeAdded is done in the future
+      ImmutableSet<AbstractState> copy = ImmutableSet.copyOf(pStatesToBeAdded);
+      return () -> apply(copy);
+    }
+
+    /** Wrapper-method around {@link #apply0} for handling errors. */
+    private void apply(Collection<AbstractState> pStatesToBeAdded) {
+      if (shutdownNotifier.shouldShutdown()) {
+        return;
+      }
+
+      try {
+        apply0(pStatesToBeAdded);
+
+      } catch (CPAException | InterruptedException e) {
+        logger.logException(Level.INFO, e, e.getClass().getName());
+      }
+    }
+
+    /**
+     * This method should be synchronized by design of the algorithm.
+     * There exists a mapping of ReachedSet to ReachedSetExecutor
+     * that guarantees single-threaded access to each ReachedSet.
+     */
+    private void apply0(Collection<AbstractState> pStatesToBeAdded)
+        throws CPAException, InterruptedException {
       logger.logf(Level.INFO, "%s :: RSE.run starting", this);
 
-      updateStates();
+      updateStates(pStatesToBeAdded);
       analyzeReachedSet();
 
       logger.logf(Level.INFO, "%s :: RSE.run exiting", this);
@@ -214,23 +242,14 @@ public class BAM2Algorithm implements Algorithm {
       return id(rs);
     }
 
-    private void updateStates() {
-      synchronized (statesToBeAdded) {
-        for (AbstractState state : statesToBeAdded) {
-          rs.reAddToWaitlist(state);
-        }
-        statesToBeAdded.clear();
+    private void updateStates(Collection<AbstractState> pStatesToBeAdded) {
+      for (AbstractState state : pStatesToBeAdded) {
+        rs.reAddToWaitlist(state);
+        dependsOn.remove(state);
       }
     }
 
-    private void reAddState(AbstractState pState) {
-      synchronized (statesToBeAdded) {
-        statesToBeAdded.add(pState);
-        dependsOn.remove(pState); // dependency fulfilled, thus removing it
-      }
-    }
-
-    private void analyzeReachedSet() {
+    private void analyzeReachedSet() throws CPAException, InterruptedException {
       try {
         CPAAlgorithm algorithm = algorithmFactory.newInstance();
 
@@ -241,8 +260,6 @@ public class BAM2Algorithm implements Algorithm {
       } catch (BlockSummaryMissingException bsme) {
         handleMissingBlock(bsme);
 
-      } catch (CPAException | InterruptedException e) {
-        logger.logException(Level.INFO, e, e.getClass().getName());
       }
     }
 
@@ -315,9 +332,9 @@ public class BAM2Algorithm implements Algorithm {
 
     private void reAddStatesToDependingReachedSets() {
       synchronized (dependingFrom) {
-        for (Entry<ReachedSetExecutor, AbstractState> parent : dependingFrom.entries()) {
-          parent.getKey().reAddState(parent.getValue());
-          registerJob(parent.getKey());
+        for (Entry<ReachedSetExecutor, Collection<AbstractState>> parent :
+            dependingFrom.asMap().entrySet()) {
+          registerJob(parent.getKey(), parent.getKey().asRunnable(parent.getValue()));
         }
         dependingFrom.clear();
       }
@@ -358,12 +375,12 @@ public class BAM2Algorithm implements Algorithm {
             id(pBsme.getReachedSet()));
 
         // register callback to get results of terminated analysis
-        registerJob(subRse);
+        registerJob(subRse, subRse.asRunnable());
       }
 
       // register current RSE for further analysis
       synchronized (reachedSetMapping) {
-        registerJob(this);
+        registerJob(this, this.asRunnable());
       }
 
       logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock exiting", this);
@@ -373,10 +390,10 @@ public class BAM2Algorithm implements Algorithm {
      * build a chain of jobs,
      * append a new job after the last registered job for the given reached-set.
      */
-    private void registerJob(ReachedSetExecutor pRse) {
+    private void registerJob(ReachedSetExecutor pRse, Runnable r) {
       Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(pRse.rs);
       assert p.getFirst() == pRse;
-      CompletableFuture<Void> future = p.getSecond().thenRunAsync(pRse, pool);
+      CompletableFuture<Void> future = p.getSecond().thenRunAsync(r, pool);
       reachedSetMapping.put(pRse.rs, Pair.of(pRse, future));
     }
 
