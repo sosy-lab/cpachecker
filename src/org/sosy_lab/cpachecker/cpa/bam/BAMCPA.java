@@ -123,7 +123,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
               wrappedProofChecker,
               pShutdownNotifier);
     }
-    stats = new BAMCPAStatistics(this, data, config, logger);
+    stats = new BAMCPAStatistics(this);
   }
 
   @Override
