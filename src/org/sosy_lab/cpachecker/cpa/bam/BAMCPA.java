@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,7 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -60,7 +57,6 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
 
   private final BAMTransferRelation transfer;
   private final BAMCPAStatistics stats;
-  private final BAMARGStatistics argStats;
   private final ProofChecker wrappedProofChecker;
   private final BAMDataManager data;
   private final BAMPCCManager bamPccManager;
@@ -86,7 +82,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException, CPAException {
-    super(pCpa, config, pLogger, pShutdownNotifier, pCfa);
+    super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa);
     config.inject(this);
 
     if (pCpa instanceof ProofChecker) {
@@ -128,7 +124,6 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
               pShutdownNotifier);
     }
     stats = new BAMCPAStatistics(this, data, config, logger);
-    argStats = new BAMARGStatistics(config, pLogger, this, pCpa, pSpecification, pCfa);
   }
 
   @Override
@@ -167,11 +162,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    assert !Iterables.any(pStatsCollection, Predicates.instanceOf(ARGStatistics.class))
-        : "exporting ARGs should only be done at this place, when using BAM.";
-    pStatsCollection.add(argStats);
     pStatsCollection.add(stats);
-    pStatsCollection.add(data.bamCache);
     super.collectStatistics(pStatsCollection);
   }
 

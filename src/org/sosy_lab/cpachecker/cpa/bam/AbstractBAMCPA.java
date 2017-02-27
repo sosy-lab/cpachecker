@@ -24,8 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -42,10 +45,13 @@ import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.ExtendedBlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix = "cpa.bam")
@@ -82,12 +88,14 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   protected final ShutdownNotifier shutdownNotifier;
   protected final BlockPartitioning blockPartitioning;
   private final TimedReducer reducer;
+  private final BAMARGStatistics argStats;
 
   public AbstractBAMCPA(
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException, CPAException {
     super(pCpa);
@@ -106,6 +114,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
     Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
     reducer = new TimedReducer(wrappedReducer);
+    argStats = new BAMARGStatistics(pConfig, pLogger, this, pCpa, pSpecification, pCfa);
   }
 
   private BlockPartitioning buildBlockPartitioning(CFA pCfa, Configuration pConfig)
@@ -143,6 +152,15 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   TimedReducer getReducer() {
     return reducer;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    assert !Iterables.any(pStatsCollection, Predicates.instanceOf(ARGStatistics.class))
+        : "exporting ARGs should only be done at this place, when using BAM.";
+    pStatsCollection.add(argStats);
+    pStatsCollection.add(getData().bamCache);
+    super.collectStatistics(pStatsCollection);
   }
 
   abstract BAMDataManager getData();

@@ -479,6 +479,5 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(bamcpa.getCache());
   }
 }

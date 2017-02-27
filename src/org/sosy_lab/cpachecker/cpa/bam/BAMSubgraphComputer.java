@@ -52,7 +52,7 @@ public class BAMSubgraphComputer {
   private final BAMDataManager data;
   private final LogManager logger;
 
-  BAMSubgraphComputer(BAMCPA bamCpa) {
+  BAMSubgraphComputer(AbstractBAMCPA bamCpa) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.reducer = bamCpa.getReducer();
     this.data = bamCpa.getData();

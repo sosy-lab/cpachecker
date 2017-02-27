@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -50,11 +51,12 @@ public class BAMCPA2 extends AbstractBAMCPA {
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
+      ReachedSetFactory reachedsetFactory,
       ShutdownNotifier pShutdownNotifier,
-      CFA pCfa,
-      ReachedSetFactory reachedsetFactory)
+      Specification pSpecification,
+      CFA pCfa)
       throws InvalidConfigurationException, CPAException {
-    super(pCpa, pConfig, pLogger, pShutdownNotifier, pCfa);
+    super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
 
     reducer = getWrappedCpa().getReducer();
     cache = new BAMCacheSynchronized(new BAMCacheImpl(pConfig, reducer, pLogger));

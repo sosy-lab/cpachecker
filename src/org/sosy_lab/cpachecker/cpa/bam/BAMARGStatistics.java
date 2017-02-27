@@ -47,12 +47,12 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMARGStatistics extends ARGStatistics {
 
-  private final BAMCPA bamCpa;
+  private final AbstractBAMCPA bamCpa;
 
   public BAMARGStatistics(
       Configuration pConfig,
       LogManager pLogger,
-      BAMCPA pBamCpa,
+      AbstractBAMCPA pBamCpa,
       ConfigurableProgramAnalysis pCpa,
       Specification pSpecification,
       CFA pCfa)
