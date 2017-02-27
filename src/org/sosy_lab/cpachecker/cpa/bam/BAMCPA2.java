@@ -57,7 +57,7 @@ public class BAMCPA2 extends AbstractBAMCPA {
     super(pCpa, pConfig, pLogger, pShutdownNotifier, pCfa);
 
     reducer = getWrappedCpa().getReducer();
-    cache = new BAMCacheImpl(pConfig, reducer, pLogger);
+    cache = new BAMCacheSynchronized(new BAMCacheImpl(pConfig, reducer, pLogger));
     data = new BAMDataManager(cache, reachedsetFactory, pLogger);
   }
 
