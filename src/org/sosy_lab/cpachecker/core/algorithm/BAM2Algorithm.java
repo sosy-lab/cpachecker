@@ -30,6 +30,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,9 +45,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,6 +58,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -62,12 +66,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA2;
 import org.sosy_lab.cpachecker.cpa.bam.BlockSummaryMissingException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.StatHist;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix="algorithm.bam2")
 public class BAM2Algorithm implements Algorithm, StatisticsProvider {
@@ -75,6 +82,9 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
   @Option(description="number of threads, positive values match exactly, "
       + "with -1 we use the number of available cores or the machine automatically.")
   private int numberOfThreads = -1;
+
+  private final AtomicInteger numActiveThreads = new AtomicInteger(0);
+  private final StatHist histActiveThreads = new StatHist("Active threads");
 
   private final static Level level = Level.ALL;
   private final static Runnable NOOP = () -> {};
@@ -238,6 +248,9 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
 
     /** Wrapper-method around {@link #apply0} for handling errors. */
     private void apply(Collection<AbstractState> pStatesToBeAdded) {
+      int running = numActiveThreads.incrementAndGet();
+      histActiveThreads.insertValue(running);
+
       if (shutdownNotifier.shouldShutdown()) {
         pool.shutdownNow();
         return;
@@ -249,6 +262,8 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
       } catch (CPAException | InterruptedException e) {
         logger.logException(level, e, e.getClass().getName());
       }
+
+      numActiveThreads.decrementAndGet();
     }
 
     /**
@@ -479,5 +494,19 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new Statistics () {
+
+      @Override
+      public void printStatistics(PrintStream pOut, Result pResult,
+          UnmodifiableReachedSet pReached) {
+        StatisticsUtils.write(pOut, 0, 50, histActiveThreads);
+      }
+
+      @Override
+      public @Nullable String getName() {
+        return "BAM-parallel";
+      }
+
+    });
   }
 }
