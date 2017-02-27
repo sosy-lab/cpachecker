@@ -26,14 +26,17 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Collections2;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -174,17 +177,15 @@ public class BAM2Algorithm implements Algorithm {
 
     /**
      * Sub-reached-sets have to be finished before the current one.
-     * The state is unique, RSE is not. Synchronized access needed!
+     * The state is unique. Synchronized access needed!
      */
-    private final Map<AbstractState, ReachedSetExecutor> dependsOn =
-        Collections.synchronizedMap(new LinkedHashMap<>());
+    private final Set<AbstractState> dependsOn = Collections.synchronizedSet(new LinkedHashSet<>());
 
     /**
      * The current reached-set has to be finished before parent reached-set.
      * The state is unique, RSE is not. Synchronized access needed!
      */
-    private final Map<AbstractState, ReachedSetExecutor> dependingFrom =
-        Collections.synchronizedMap(new LinkedHashMap<>());
+    private final Multimap<ReachedSetExecutor, AbstractState> dependingFrom = LinkedHashMultimap.create();
 
     ReachedSetExecutor(
         ReachedSet pRs,
@@ -314,9 +315,9 @@ public class BAM2Algorithm implements Algorithm {
 
     private void reAddStatesToDependingReachedSets() {
       synchronized (dependingFrom) {
-        for (Entry<AbstractState, ReachedSetExecutor> parent : dependingFrom.entrySet()) {
-          parent.getValue().reAddState(parent.getKey());
-          registerJob(parent.getValue());
+        for (Entry<ReachedSetExecutor, AbstractState> parent : dependingFrom.entries()) {
+          parent.getKey().reAddState(parent.getValue());
+          registerJob(parent.getKey());
         }
         dependingFrom.clear();
       }
@@ -349,8 +350,10 @@ public class BAM2Algorithm implements Algorithm {
         ReachedSetExecutor subRse = p.getFirst();
 
         // add dependencies
-        dependsOn.put(pBsme.getState(), subRse);
-        subRse.dependingFrom.put(pBsme.getState(), this);
+        dependsOn.add(pBsme.getState());
+        synchronized(subRse.dependingFrom) {
+          subRse.dependingFrom.put(this, pBsme.getState());
+        }
         logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock %s -> %s", this, this,
             id(pBsme.getReachedSet()));
 
