@@ -64,7 +64,7 @@ public class ARGSubtreeRemover {
   private final StatTimer removeCachedSubtreeTimer;
   private final boolean doPrecisionRefinementForAllStates;
 
-  public ARGSubtreeRemover(BAMCPA bamCpa, StatTimer pRemoveCachedSubtreeTimer) {
+  public ARGSubtreeRemover(AbstractBAMCPA bamCpa, StatTimer pRemoveCachedSubtreeTimer) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.data = bamCpa.getData();
     this.wrappedReducer = bamCpa.getReducer();

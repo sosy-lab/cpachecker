@@ -212,9 +212,9 @@ public class BAM2Algorithm implements Algorithm {
 
   private Block getBlockForState(AbstractState state) {
     CFANode location = extractLocation(state);
-    assert bamcpa.getPartitioning().isCallNode(location)
+    assert bamcpa.getBlockPartitioning().isCallNode(location)
         : "root of reached-set must be located at block entry.";
-    return bamcpa.getPartitioning().getBlockForCallNode(location);
+    return bamcpa.getBlockPartitioning().getBlockForCallNode(location);
   }
 
   /**
