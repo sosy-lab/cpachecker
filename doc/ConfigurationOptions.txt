@@ -114,6 +114,10 @@ solver.z3.usePhantomReferences = false
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
+# number of threads, positive values match exactly, with -1 we use the number
+# of available cores or the machine automatically.
+algorithm.bam2.numberOfThreads = -1
+
 # use a BMC like algorithm that checks for satisfiability after the analysis
 # has finished, works only with PredicateCPA
 analysis.algorithm.BMC = false

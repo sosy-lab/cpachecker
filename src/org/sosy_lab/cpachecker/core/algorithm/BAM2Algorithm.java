@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
@@ -49,6 +50,8 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -66,7 +69,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
+@Options(prefix="algorithm.bam2")
 public class BAM2Algorithm implements Algorithm, StatisticsProvider {
+
+  @Option(description="number of threads, positive values match exactly, "
+      + "with -1 we use the number of available cores or the machine automatically.")
+  private int numberOfThreads = -1;
 
   private final static Level level = Level.ALL;
   private final static Runnable NOOP = () -> {};
@@ -83,6 +91,7 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+    pConfig.inject(this);
     bamcpa = (BAMCPA2) pCpa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
@@ -97,8 +106,9 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
 
     Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping =
         new HashMap<>();
-    ExecutorService pool =
-        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    final int numberOfCores = getNumberOfCores();
+    logger.logf(Level.INFO, "creating pool for %d threads", numberOfCores);
+    ExecutorService pool = Executors.newFixedThreadPool(numberOfCores);
 
     synchronized (reachedSetMapping) {
       ReachedSetExecutor rse =
@@ -130,6 +140,14 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
     //    readdStatesToWaitlists(dependencyGraph);
 
     return AlgorithmStatus.SOUND_AND_PRECISE;
+  }
+
+  private int getNumberOfCores() {
+    if (numberOfThreads > 0) {
+      return numberOfThreads;
+    }
+    Preconditions.checkState(numberOfThreads == -1, "positive number or -1 expected");
+    return Runtime.getRuntime().availableProcessors();
   }
 
   /**
