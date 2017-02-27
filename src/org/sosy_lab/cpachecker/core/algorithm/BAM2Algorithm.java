@@ -68,6 +68,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class BAM2Algorithm implements Algorithm, StatisticsProvider {
 
+  private final static Level level = Level.ALL;
   private final static Runnable NOOP = () -> {};
 
   private final LogManager logger;
@@ -146,7 +147,7 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
       } catch (InterruptedException | ExecutionException e) {
         error.compareAndSet(null, e);
       }
-      logger.log(Level.INFO, "finishing", entry.getFirst(),
+      logger.log(level, "finishing", entry.getFirst(),
           entry.getSecond().isCompletedExceptionally());
     }
     Throwable toThrow = error.get();
@@ -204,7 +205,7 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
       reachedSetMapping = pReachedSetMapping;
       pool = pPool;
 
-      logger.logf(Level.INFO, "%s :: creating RSE", this);
+      logger.logf(level, "%s :: creating RSE", this);
     }
 
     public Runnable asRunnable() {
@@ -228,7 +229,7 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
         apply0(pStatesToBeAdded);
 
       } catch (CPAException | InterruptedException e) {
-        logger.logException(Level.INFO, e, e.getClass().getName());
+        logger.logException(level, e, e.getClass().getName());
       }
     }
 
@@ -239,12 +240,12 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
      */
     private void apply0(Collection<AbstractState> pStatesToBeAdded)
         throws CPAException, InterruptedException {
-      logger.logf(Level.INFO, "%s :: RSE.run starting", this);
+      logger.logf(level, "%s :: RSE.run starting", this);
 
       updateStates(pStatesToBeAdded);
       analyzeReachedSet();
 
-      logger.logf(Level.INFO, "%s :: RSE.run exiting", this);
+      logger.logf(level, "%s :: RSE.run exiting", this);
     }
 
     private String idd() {
@@ -279,7 +280,7 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
     }
 
     private void handleTermination() {
-      logger.logf(Level.INFO, "%s :: RSE.handleTermination starting", this);
+      logger.logf(level, "%s :: RSE.handleTermination starting", this);
 
       boolean isFinished = isFinished();
       boolean endsWithTargetState = endsWithTargetState();
@@ -289,19 +290,19 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
       }
 
       if (isFinished || endsWithTargetState) {
-        logger.logf(Level.INFO, "%s :: finished=%s, endsWithTargetState=%s", this, isFinished,
+        logger.logf(level, "%s :: finished=%s, endsWithTargetState=%s", this, isFinished,
             endsWithTargetState);
 
         updateCache(endsWithTargetState);
         reAddStatesToDependingReachedSets();
 
         if (rs == mainReachedSet) {
-          logger.logf(Level.INFO, "%s :: mainRS finished, shutdown threadpool", this);
+          logger.logf(level, "%s :: mainRS finished, shutdown threadpool", this);
           pool.shutdown();
         }
       }
 
-      logger.logf(Level.INFO, "%s :: RSE.handleTermination exiting", this);
+      logger.logf(level, "%s :: RSE.handleTermination exiting", this);
     }
 
     private void updateCache(boolean pEndsWithTargetState) {
@@ -348,7 +349,7 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
     }
 
     private void handleMissingBlock(BlockSummaryMissingException pBsme) {
-      logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock starting", this);
+      logger.logf(level, "%s :: RSE.handleMissingBlock starting", this);
 
       if (targetStateFound) {
         // ignore further sub-analyses
@@ -387,7 +388,7 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
           CompletableFuture<Void> future = CompletableFuture.runAsync(NOOP, pool)
               .exceptionally(new ExceptionHandler(pool, subRse));
           reachedSetMapping.put(newRs, Pair.of(subRse, future));
-          logger.logf(Level.INFO, "%s :: register subRSE %s", this, id(newRs));
+          logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
 
         } else {
           Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(newRs);
@@ -401,7 +402,7 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
         synchronized(subRse.dependingFrom) {
           subRse.dependingFrom.put(this, pBsme.getState());
         }
-        logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock %s -> %s", this, this, id(newRs));
+        logger.logf(level, "%s :: RSE.handleMissingBlock %s -> %s", this, this, id(newRs));
 
         // register callback to get results of terminated analysis
         registerJob(subRse, subRse.asRunnable());
@@ -410,7 +411,7 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
       // register current RSE for further analysis
       registerJob(this, this.asRunnable());
 
-      logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock exiting", this);
+      logger.logf(level, "%s :: RSE.handleMissingBlock exiting", this);
     }
 
     /**
