@@ -210,16 +210,6 @@ public class BAM2TransferRelation implements TransferRelation {
     if (cachedReturnStates == null) {
       // no cache hit, block summary missing, -> compute states from scratch or from waitlist
 
-      if (cachedReached == null) {
-        // we have not even cached a partly computed reach-set,
-        // so we must compute the subgraph specification from scratch
-        cachedReached =
-            data.createAndRegisterNewReachedSet(
-                reducedInitialState, reducedInitialPrecision, innerSubtree);
-      } else {
-        // partial cache hit
-      }
-
       throw new BlockSummaryMissingException(
           initialState, reducedInitialState, reducedInitialPrecision, innerSubtree, cachedReached);
     }

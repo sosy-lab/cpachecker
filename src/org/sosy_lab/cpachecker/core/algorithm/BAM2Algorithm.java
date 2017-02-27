@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -55,6 +56,8 @@ import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA2;
@@ -63,7 +66,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class BAM2Algorithm implements Algorithm {
+public class BAM2Algorithm implements Algorithm, StatisticsProvider {
 
   private final static Runnable NOOP = () -> {};
 
@@ -119,7 +122,6 @@ public class BAM2Algorithm implements Algorithm {
 
     collectExceptions(reachedSetMapping);
 
-
     //    assert targetStateFound
     //        || (dependencyGraph.dependsOn.isEmpty()
     //            && dependencyGraph.dependsFrom.isEmpty()) : "dependencyGraph:" + dependencyGraph;
@@ -129,18 +131,19 @@ public class BAM2Algorithm implements Algorithm {
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  /** We check here whether an error occured in a CompletableFuture.
-   * We could also ignore this step, but that might be dangerous and error-prone.
+  /**
+   * We check here whether an error occured in a CompletableFuture. We could also ignore this step,
+   * but that might be dangerous and error-prone.
    */
   private void collectExceptions(
       Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping)
-      throws InterruptedException, CPAException {
+      throws CPAException {
     for (Pair<ReachedSetExecutor, CompletableFuture<Void>> entry : pReachedSetMapping.values()) {
       try{
         entry.getSecond().get();
       } catch (RejectedExecutionException e) {
         // ignore
-      } catch (ExecutionException e) {
+      } catch (InterruptedException | ExecutionException e) {
         error.compareAndSet(null, e);
       }
       logger.log(Level.INFO, "finishing", entry.getFirst(),
@@ -174,6 +177,8 @@ public class BAM2Algorithm implements Algorithm {
     /** important central data structure, shared over all threads. */
     private final Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping;
     private final ExecutorService pool;
+    private final CPAAlgorithm algorithm = algorithmFactory.newInstance();
+
 
     private boolean targetStateFound = false;
 
@@ -215,6 +220,7 @@ public class BAM2Algorithm implements Algorithm {
     /** Wrapper-method around {@link #apply0} for handling errors. */
     private void apply(Collection<AbstractState> pStatesToBeAdded) {
       if (shutdownNotifier.shouldShutdown()) {
+        pool.shutdownNow();
         return;
       }
 
@@ -254,8 +260,6 @@ public class BAM2Algorithm implements Algorithm {
 
     private void analyzeReachedSet() throws CPAException, InterruptedException {
       try {
-        CPAAlgorithm algorithm = algorithmFactory.newInstance();
-
         @SuppressWarnings("unused")
         AlgorithmStatus tmpStatus = algorithm.run(rs);
         handleTermination();
@@ -356,35 +360,55 @@ public class BAM2Algorithm implements Algorithm {
       assert rs.contains(pBsme.getState()) : "parent reachedset must contain entry state";
       rs.removeOnlyFromWaitlist(pBsme.getState());
 
-      // register sub analysis as asynchronous/parallel/future work
+      // register new sub-analysis as asynchronous/parallel/future work, if not existent
       synchronized (reachedSetMapping) {
-        if (!reachedSetMapping.containsKey(pBsme.getReachedSet())) {
-          createNewSubAnalysis(pBsme.getReachedSet());
-        }
-      }
 
-      // register dependencies to wait for results and to get results, asynchronous
-      synchronized (reachedSetMapping) {
-        Pair<ReachedSetExecutor, CompletableFuture<Void>> p =
-            reachedSetMapping.get(pBsme.getReachedSet());
-        ReachedSetExecutor subRse = p.getFirst();
+        ReachedSet newRs = pBsme.getReachedSet();
+        if (newRs == null) {
+          // We are only synchronized in the current method. Thus, we need to check
+          // the cache again, maybe another thread already created the needed reached-set.
+          final Pair<ReachedSet, Collection<AbstractState>> pair =
+              bamcpa.getCache().get(pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
+          newRs = pair.getFirst();
+        }
+
+        // now we can be sure, whether the sub-reached-set exists or not.
+        final ReachedSetExecutor subRse;
+        if (newRs == null) {
+          // we have not even cached a partly computed reached-set,
+          // so we must compute the subgraph specification from scratch
+          newRs = bamcpa.getData().createAndRegisterNewReachedSet(
+                  pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
+
+          // we have not even cached a partly computed reach-set,
+          // so we must compute the subgraph specification from scratch
+          subRse = new ReachedSetExecutor(newRs, mainReachedSet, reachedSetMapping, pool);
+          // register NOOP here. Callback for results is registered later, we have "lazy" computation.
+          CompletableFuture<Void> future = CompletableFuture.runAsync(NOOP, pool)
+              .exceptionally(new ExceptionHandler(pool, subRse));
+          reachedSetMapping.put(newRs, Pair.of(subRse, future));
+          logger.logf(Level.INFO, "%s :: register subRSE %s", this, id(newRs));
+
+        } else {
+          Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(newRs);
+          subRse = p.getFirst();
+        }
+
+        // register dependencies to wait for results and to get results, asynchronous
 
         // add dependencies
         dependsOn.add(pBsme.getState());
         synchronized(subRse.dependingFrom) {
           subRse.dependingFrom.put(this, pBsme.getState());
         }
-        logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock %s -> %s", this, this,
-            id(pBsme.getReachedSet()));
+        logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock %s -> %s", this, this, id(newRs));
 
         // register callback to get results of terminated analysis
         registerJob(subRse, subRse.asRunnable());
       }
 
       // register current RSE for further analysis
-      synchronized (reachedSetMapping) {
-        registerJob(this, this.asRunnable());
-      }
+      registerJob(this, this.asRunnable());
 
       logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock exiting", this);
     }
@@ -394,22 +418,13 @@ public class BAM2Algorithm implements Algorithm {
      * append a new job after the last registered job for the given reached-set.
      */
     private void registerJob(ReachedSetExecutor pRse, Runnable r) {
-      Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(pRse.rs);
-      assert p.getFirst() == pRse;
-      CompletableFuture<Void> future = p.getSecond().thenRunAsync(r, pool)
-          .exceptionally(new ExceptionHandler(pool));
-      reachedSetMapping.put(pRse.rs, Pair.of(pRse, future));
-    }
-
-    private void createNewSubAnalysis(ReachedSet newRs) {
-      ReachedSetExecutor subRse =
-          new ReachedSetExecutor(newRs, mainReachedSet, reachedSetMapping, pool);
-      // register NOOP here. Callback for results is registered later, we have "lazy" computation.
-      CompletableFuture<Void> future = CompletableFuture.runAsync(NOOP, pool)
-          .exceptionally(new ExceptionHandler(pool));
-      assert !reachedSetMapping.containsKey(newRs) : "reached-set already registered";
-      reachedSetMapping.put(newRs, Pair.of(subRse, future));
-      logger.logf(Level.INFO, "%s :: register subRSE %s", this, id(newRs));
+      synchronized (reachedSetMapping) {
+        Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(pRse.rs);
+        assert p.getFirst() == pRse;
+        CompletableFuture<Void> future = p.getSecond().thenRunAsync(r, pool)
+            .exceptionally(new ExceptionHandler(pool, pRse));
+        reachedSetMapping.put(pRse.rs, Pair.of(pRse, future));
+      }
     }
 
     @Override
@@ -421,22 +436,30 @@ public class BAM2Algorithm implements Algorithm {
   private class ExceptionHandler implements Function<Throwable, Void> {
 
     private final ExecutorService pool;
+    private final ReachedSetExecutor rse;
 
-    public ExceptionHandler(ExecutorService pPool) {
+    public ExceptionHandler(ExecutorService pPool, ReachedSetExecutor pRse) {
       pool = pPool;
+      rse = pRse;
     }
 
     @Override
     public Void apply(Throwable e) {
-      if (e instanceof RejectedExecutionException) {
+      if (e instanceof RejectedExecutionException || e instanceof CompletionException) {
         // ignore, might happen when target-state is found
         // TODO cleanup waiting states and dependencies?
       } else {
+        logger.logException(Level.WARNING, e, rse + " :: " + e.getClass().getSimpleName());
         error.compareAndSet(null, e);
       }
       pool.shutdownNow();
       return null;
     }
 
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(bamcpa.getCache());
   }
 }

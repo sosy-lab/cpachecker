@@ -122,7 +122,7 @@ public class BAMDataManager {
   /**
    * Create a new reached-set with the given state as root and register it in the cache.
    **/
-  ReachedSet createAndRegisterNewReachedSet(
+  public ReachedSet createAndRegisterNewReachedSet(
       AbstractState initialState, Precision initialPrecision, Block context) {
     final ReachedSet reached = reachedSetFactory.create();
     reached.add(initialState, initialPrecision);

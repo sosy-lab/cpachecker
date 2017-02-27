@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -39,7 +40,7 @@ public final class BlockSummaryMissingException extends CPATransferException {
   private final AbstractState reducedState;
   private final Precision reducedPrecision;
   private final Block block;
-  private final ReachedSet reachedSet;
+  private final @Nullable ReachedSet reachedSet;
 
   public BlockSummaryMissingException(
       AbstractState pState,
@@ -52,7 +53,7 @@ public final class BlockSummaryMissingException extends CPATransferException {
     reducedState = checkNotNull(pReducedState);
     reducedPrecision = checkNotNull(pReducedPrecision);
     block = checkNotNull(pBlock);
-    reachedSet = checkNotNull(pReachedSet);
+    reachedSet = pReachedSet;
   }
 
   public AbstractState getState() {
