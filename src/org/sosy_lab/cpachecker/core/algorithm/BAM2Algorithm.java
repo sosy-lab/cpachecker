@@ -25,16 +25,20 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Table;
-import com.google.common.collect.Table.Cell;
+import com.google.common.collect.Collections2;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -56,6 +60,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class BAM2Algorithm implements Algorithm {
 
+  private final static Runnable NOOP = () -> {};
+
   private final LogManager logger;
   private final BAMCPA2 bamcpa;
   private final CPAAlgorithmFactory algorithmFactory;
@@ -72,12 +78,14 @@ public class BAM2Algorithm implements Algorithm {
   }
 
   @Override
-  public AlgorithmStatus run(final ReachedSet mainReachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet mainReachedSet)
+      throws CPAException, InterruptedException {
     try {
       return run0(mainReachedSet);
     } catch (CPAException | InterruptedException e) {
       throw e;
-    } catch (Exception e) {
+    } catch (Throwable e) {
+      logger.logException(Level.WARNING, e, this + " -- " + e.getClass().getSimpleName());
       throw new AssertionError(e);
     }
   }
@@ -85,64 +93,55 @@ public class BAM2Algorithm implements Algorithm {
   private AlgorithmStatus run0(final ReachedSet mainReachedSet)
       throws Exception {
 
-    ReachedSetDependencyGraph dependencyGraph = new ReachedSetDependencyGraph();
-    boolean targetStateFound = false;
-    Task task =
-        new ReachedSetAnalyzer(mainReachedSet, mainReachedSet, dependencyGraph, targetStateFound);
+    //    boolean targetStateFound = false;
 
-    while (task != null) {
-      if (task.targetStateFound) {
-        targetStateFound = true;
-      }
-      task = task.call();
+    Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping =
+        new HashMap<>();
+    ExecutorService pool =
+        Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+    synchronized (reachedSetMapping) {
+      ReachedSetExecutor rse =
+          new ReachedSetExecutor(
+              mainReachedSet, mainReachedSet, reachedSetMapping, pool);
+      CompletableFuture<Void> future = CompletableFuture.runAsync(rse, pool);
+      reachedSetMapping.put(mainReachedSet, Pair.of(rse, future));
     }
 
-    assert targetStateFound
-        || (dependencyGraph.dependsOn.isEmpty()
-            && dependencyGraph.dependsFrom.isEmpty()) : "dependencyGraph:" + dependencyGraph;
+    try {
+      // TODO set timelimit to global limit minus overhead?
+      pool.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
 
-    readdStatesToWaitlists(dependencyGraph);
+    } finally {
+      if (!pool.isTerminated()) {
+        // in case of problems we must kill the thread pool,
+        // otherwise we have a running daemon thread and CPAchecker does not terminate.
+        logger.log(Level.WARNING, "threadpool did not terminate, killing threadpool now.");
+        pool.shutdownNow();
+      }
+    }
+
+    collectExceptions(reachedSetMapping);
+
+
+    //    assert targetStateFound
+    //        || (dependencyGraph.dependsOn.isEmpty()
+    //            && dependencyGraph.dependsFrom.isEmpty()) : "dependencyGraph:" + dependencyGraph;
+
+    //    readdStatesToWaitlists(dependencyGraph);
 
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  private void updateCacheEntryForBlockResult(
-      ReachedSet rs, final ReachedSet mainReachedSet, boolean endsWithTargetState) {
-    if (rs != mainReachedSet) {
-      // update BAM-cache
-      // we do not cache main reached set, because it should not be used internally
-      AbstractState reducedInitialState = rs.getFirstState();
-      Precision reducedInitialPrecision = rs.getPrecision(reducedInitialState);
-      Block block = getBlockForState(reducedInitialState);
-      Collection<AbstractState> exitStates = new ArrayList<>();
-      if (endsWithTargetState) {
-        exitStates.add(rs.getLastState());
-      } else {
-        for (AbstractState returnState : AbstractStates.filterLocations(rs,
-            block.getReturnNodes())) {
-          if (((ARGState) returnState).getChildren().isEmpty()) {
-            exitStates.add(returnState);
-          }
-        }
-      }
-      Pair<ReachedSet, Collection<AbstractState>> check =
-          bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, block);
-      assert check.getFirst() == rs;
-      assert check.getSecond() == null;
-      bamcpa.getCache().put(reducedInitialState, reducedInitialPrecision, block, exitStates, null);
-    }
-  }
-
-  private void reAddStatesToDependingWaitlists(
-      ReachedSet rs, ReachedSetDependencyGraph dependencyGraph) {
-    for (Entry<AbstractState, ReachedSet> entry : dependencyGraph.getDependsFrom(rs).entrySet()) {
-      logger.log(
-          Level.INFO,
-          "re-adding",
-          getId(entry.getKey()),
-          "to",
-          getId(entry.getValue().getFirstState()));
-      entry.getValue().reAddToWaitlist(entry.getKey());
+  /** We check here whether an error occured in a CompletableFuture.
+   * We could also ignore this step, but that might be dangerous and error-prone. */
+  private void collectExceptions(
+      Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping)
+      throws InterruptedException, ExecutionException {
+    for (Pair<ReachedSetExecutor, CompletableFuture<Void>> entry : pReachedSetMapping.values()) {
+      entry.getSecond().get();
+      logger.log(Level.INFO, "finishing", entry.getFirst(),
+          entry.getSecond().isCompletedExceptionally());
     }
   }
 
@@ -153,242 +152,244 @@ public class BAM2Algorithm implements Algorithm {
     return bamcpa.getBlockPartitioning().getBlockForCallNode(location);
   }
 
-  /**
-   * Cleanup when termination the algorithm. If a target state was not found, the dependency graph
-   * should be empty If a target state was found, we must re-add all block entry states to their
-   * reached-sets in order to have valid reached-sets and to re-explore them later.
-   */
-  private void readdStatesToWaitlists(ReachedSetDependencyGraph dependencyGraph) {
-    for (Cell<ReachedSet, AbstractState, ReachedSet> entry : dependencyGraph.dependsOn.cellSet()) {
-      entry.getRowKey().reAddToWaitlist(entry.getColumnKey());
-    }
-    dependencyGraph.dependsOn.clear();
-    dependencyGraph.dependsFrom.clear();
+  private static String id(final AbstractState state) {
+    return ((ARGState) state).getStateId() + "@" + AbstractStates.extractLocation(state);
   }
 
-  private static int getId(final AbstractState state) {
-    return ((ARGState) state).getStateId();
+  private static String id(ReachedSet pRs) {
+    return id(pRs.getFirstState());
   }
 
-  private static final class ReachedSetDependencyGraph {
+  class ReachedSetExecutor implements Runnable {
 
-    private final Table<ReachedSet, AbstractState, ReachedSet> dependsOn = HashBasedTable.create();
-    private final Table<ReachedSet, AbstractState, ReachedSet> dependsFrom =
-        HashBasedTable.create();
+    private final ReachedSet rs;
+    private final ReachedSet mainReachedSet;
+    private final Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping; // important central data structure, shared over all threads.
+    private final ExecutorService pool;
+
+    private boolean targetStateFound = false;
+
+    /** Results are added to this list and applied, when scheduled. Synchronized access needed! */
+    private final List<AbstractState> statesToBeAdded = new ArrayList<>();
 
     /**
-     * Adds a dependency for a child reachedsets. The child has to be analyzed first, afterwards the
-     * parent can be analyzed further.
+     * Sub-reached-sets have to be finished before the current one.
+     * The state is unique, RSE is not. Synchronized access needed!
      */
-    void addDependency(final ReachedSet parent, final ReachedSet child, final AbstractState state) {
-      assert dependsOn.size() == dependsFrom.size();
-      assert parent.contains(state) : "parent reachedset must contain entry state";
-      dependsOn.put(parent, state, child);
-      dependsFrom.put(child, state, parent);
-      assert dependsOn.size() == dependsFrom.size();
-    }
+    private final Map<AbstractState, ReachedSetExecutor> dependsOn =
+        Collections.synchronizedMap(new LinkedHashMap<>());
 
-    void unregisterDependency(final ReachedSet child) {
-      assert dependsOn.size() == dependsFrom.size();
-      for (Entry<AbstractState, ReachedSet> entry : dependsFrom.row(child).entrySet()) {
-        dependsOn.remove(entry.getValue(), entry.getKey());
-      }
-      dependsFrom.row(child).clear();
-      assert dependsOn.size() == dependsFrom.size() : "sizes do not match: " + this;
-    }
+    /**
+     * The current reached-set has to be finished before parent reached-set.
+     * The state is unique, RSE is not. Synchronized access needed!
+     */
+    private final Map<AbstractState, ReachedSetExecutor> dependingFrom =
+        Collections.synchronizedMap(new LinkedHashMap<>());
 
-    ImmutableMap<AbstractState, ReachedSet> getDependsFrom(ReachedSet child) {
-      return ImmutableMap.copyOf(dependsFrom.row(child));
-    }
-
-    ImmutableSet<ReachedSet> getDependsOn(final ReachedSet parent) {
-      return ImmutableSet.copyOf(dependsOn.row(parent).values());
-    }
-
-    @Override
-    public String toString() {
-      StringBuilder str = new StringBuilder();
-
-      str.append("dependsOn={");
-      for (Cell<ReachedSet, AbstractState, ReachedSet> cell : dependsOn.cellSet()) {
-        str.append(getId(cell.getRowKey().getFirstState()))
-            .append("@")
-            .append(getId(cell.getColumnKey()))
-            .append("=>")
-            .append(getId(cell.getValue().getFirstState()))
-            .append(", ");
-      }
-      str.append("}, ");
-
-      str.append("dependsFrom={");
-      for (Cell<ReachedSet, AbstractState, ReachedSet> cell : dependsFrom.cellSet()) {
-        str.append(getId(cell.getRowKey().getFirstState()))
-            .append("<=")
-            .append(getId(cell.getValue().getFirstState()))
-            .append("@")
-            .append(getId(cell.getColumnKey()))
-            .append(", ");
-      }
-      str.append("}");
-
-      return str.toString();
-    }
-  }
-
-  abstract class Task {
-
-    final ReachedSet rs;
-    final ReachedSet mainReachedSet;
-    final ReachedSetDependencyGraph dependencyGraph;
-    boolean targetStateFound;
-
-    Task(ReachedSet pRs, ReachedSet pMainReachedSet,
-        ReachedSetDependencyGraph pDependencyGraph,
-        boolean pTargetStateFound) {
+    ReachedSetExecutor(
+        ReachedSet pRs,
+        ReachedSet pMainReachedSet,
+        Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping,
+        ExecutorService pPool) {
       rs = pRs;
       mainReachedSet = pMainReachedSet;
-      dependencyGraph = pDependencyGraph;
-      targetStateFound = pTargetStateFound;
-    }
+      reachedSetMapping = pReachedSetMapping;
+      pool = pPool;
 
-    @SuppressWarnings("unused")
-    abstract Task call() throws CPAException, InterruptedException;
-  }
-
-  class ReachedSetAnalyzer extends Task {
-
-    ReachedSetAnalyzer(ReachedSet pRs, ReachedSet pMainReachedSet,
-        ReachedSetDependencyGraph pDependencyGraph, boolean pTargetStateFound) {
-      super(pRs, pMainReachedSet, pDependencyGraph, pTargetStateFound);
+      logger.logf(Level.INFO, "%s :: creating RSE", this);
     }
 
     @Override
-    public Task call() throws CPAException, InterruptedException {
-      logger.log(Level.INFO, "using reached-set", getId(rs.getFirstState()));
+    public void run() {
+      logger.logf(Level.INFO, "%s :: RSE.run starting", this);
 
+      updateStates();
+      analyzeReachedSet();
+
+      logger.logf(Level.INFO, "%s :: RSE.run exiting", this);
+    }
+
+    private String idd() {
+      return id(rs);
+    }
+
+    private void updateStates() {
+      synchronized (statesToBeAdded) {
+        for (AbstractState state : statesToBeAdded) {
+          rs.reAddToWaitlist(state);
+        }
+        statesToBeAdded.clear();
+      }
+    }
+
+    private void reAddState(AbstractState pState) {
+      synchronized (statesToBeAdded) {
+        statesToBeAdded.add(pState);
+        dependsOn.remove(pState); // dependency fulfilled, thus removing it
+      }
+    }
+
+    private void analyzeReachedSet() {
       try {
         CPAAlgorithm algorithm = algorithmFactory.newInstance();
 
         @SuppressWarnings("unused")
         AlgorithmStatus tmpStatus = algorithm.run(rs);
-        return new TerminationHandler(rs, mainReachedSet, dependencyGraph, targetStateFound);
+        handleTermination();
 
       } catch (BlockSummaryMissingException bsme) {
-        return new MissingBlockHandler(rs, mainReachedSet, dependencyGraph, targetStateFound, bsme);
+        handleMissingBlock(bsme);
+
+      } catch (CPAException | InterruptedException e) {
+        logger.logException(Level.INFO, e, e.getClass().getName());
       }
     }
-  }
 
-  class TerminationHandler extends Task {
-
-    TerminationHandler(ReachedSet pRs, ReachedSet pMainReachedSet,
-        ReachedSetDependencyGraph pDependencyGraph, boolean pTargetStateFound) {
-      super(pRs, pMainReachedSet, pDependencyGraph, pTargetStateFound);
+    private boolean isFinished() {
+      return !rs.hasWaitingState() && dependsOn.isEmpty();
     }
 
-    @Override
-    public Task call() {
-      boolean isFinished = !rs.hasWaitingState() && dependencyGraph.getDependsOn(rs).isEmpty();
-      boolean endsWithTargetState =
-          rs.getLastState() != null && AbstractStates.isTargetState(rs.getLastState());
+    private boolean endsWithTargetState() {
+      return rs.getLastState() != null && AbstractStates.isTargetState(rs.getLastState());
+    }
 
-      logger.log(
-          Level.INFO,
-          "leaving reached set",
-          getId(rs.getFirstState()),
-          ", isFinished=",
-          isFinished,
-          ", endsWithTargetState=",
-          endsWithTargetState);
+    private void handleTermination() {
+      logger.logf(Level.INFO, "%s :: RSE.handleTermination starting", this);
 
-      if (isFinished || endsWithTargetState) {
-        reAddStatesToDependingWaitlists(rs, dependencyGraph);
-        dependencyGraph.unregisterDependency(rs);
+      boolean isFinished = isFinished();
+      boolean endsWithTargetState = endsWithTargetState();
 
-        updateCacheEntryForBlockResult(rs, mainReachedSet, endsWithTargetState);
-      }
-
-      if (endsWithTargetState && !targetStateFound) {
-        // TODO when finding the most inner target state,
-        //      pop unnecessary reachedsets from the queue
-        // TODO thread-safe access? updates of parent reached-set possible after finding target-state.
+      if (endsWithTargetState) {
         targetStateFound = true;
       }
-      return null;
+
+      if (isFinished || endsWithTargetState) {
+        logger.logf(Level.INFO, "%s :: finished=%s, endsWithTargetState=%s", this, isFinished,
+            endsWithTargetState);
+
+        updateCache(endsWithTargetState);
+        reAddStatesToDependingReachedSets();
+
+        if (rs == mainReachedSet) {
+          logger.logf(Level.INFO, "%s :: mainRS finished, shutdown threadpool", this);
+          pool.shutdown();
+        }
+      }
+
+      logger.logf(Level.INFO, "%s :: RSE.handleTermination exiting", this);
     }
-  }
 
-  class MissingBlockHandler extends Task {
+    private void updateCache(boolean pEndsWithTargetState) {
+      if (rs == mainReachedSet) {
+        // we do not cache main reached set, because it should not be used internally
+        return;
+      }
 
-    private final BlockSummaryMissingException bsme;
-
-    MissingBlockHandler(ReachedSet pRs,ReachedSet pMainReachedSet,
-        ReachedSetDependencyGraph pDependencyGraph, boolean pTargetStateFound,
-        BlockSummaryMissingException pBbsme) {
-      super(pRs, pMainReachedSet, pDependencyGraph, pTargetStateFound);
-      bsme = pBbsme;
+      AbstractState reducedInitialState = rs.getFirstState();
+      Precision reducedInitialPrecision = rs.getPrecision(reducedInitialState);
+      Block block = getBlockForState(reducedInitialState);
+      final Collection<AbstractState> exitStates;
+      if (pEndsWithTargetState) {
+        exitStates = Collections.singletonList(rs.getLastState());
+      } else {
+        exitStates =
+            AbstractStates.filterLocations(rs, block.getReturnNodes())
+                .filter(s -> ((ARGState) s).getChildren().isEmpty())
+                .toList();
+      }
+      Pair<ReachedSet, Collection<AbstractState>> check =
+          bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, block);
+      assert check.getFirst() == rs : String.format(
+          "reached-set for initial state should be unique: current rs = %s, cached entry = %s",
+          id(rs), check.getFirst());
+      if (!exitStates.equals(check.getSecond())) {
+        assert check.getSecond() == null: String.format(
+            "result-states already registered for reached-set %s: current = %s, cached = %s",
+            id(rs),
+            Collections2.transform(exitStates, s -> id(s)),
+            Collections2.transform(check.getSecond(), s -> id(s)));
+        bamcpa.getCache().put(reducedInitialState, reducedInitialPrecision, block, exitStates, null);
+      }
     }
 
-    @Override
-    public Task call() {
+    private void reAddStatesToDependingReachedSets() {
+      synchronized (dependingFrom) {
+        for (Entry<AbstractState, ReachedSetExecutor> parent : dependingFrom.entrySet()) {
+          parent.getValue().reAddState(parent.getKey());
+          registerJob(parent.getValue());
+        }
+        dependingFrom.clear();
+      }
+    }
+
+    private void handleMissingBlock(BlockSummaryMissingException pBsme) {
+      logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock starting", this);
+
+      if (targetStateFound) {
+        // ignore further sub-analyses
+      }
+
       // remove current state from waitlist to avoid exploration until all sub-blocks are done.
       // The state was removed for exploration,
       // but re-added by CPA-algorithm when throwing the exception
-      rs.removeOnlyFromWaitlist(bsme.getState());
+      assert rs.contains(pBsme.getState()) : "parent reachedset must contain entry state";
+      rs.removeOnlyFromWaitlist(pBsme.getState());
 
-      dependencyGraph.addDependency(rs, bsme.getReachedSet(), bsme.getState());
-
-      // register as future work
-      TaskList lst = new TaskList(rs, mainReachedSet, dependencyGraph, targetStateFound);
-      if (targetStateFound) {
-        // ignore further sub-analyses
-
-      } else {
-        // push for further analysis
-        logger.log(
-            Level.INFO, "pushing child reached-set", getId(bsme.getReachedSet().getFirstState()));
-        lst.add(
-            new ReachedSetAnalyzer(
-                bsme.getReachedSet(), mainReachedSet, dependencyGraph, targetStateFound));
+      // register sub analysis as asynchronous/parallel/future work
+      synchronized (reachedSetMapping) {
+        if (!reachedSetMapping.containsKey(pBsme.getReachedSet())) {
+          createNewSubAnalysis(pBsme.getReachedSet());
+        }
       }
-      logger.log(Level.INFO, "pushing parent reached-set", getId(rs.getFirstState()));
-      lst.add(new ReachedSetAnalyzer(rs, mainReachedSet, dependencyGraph, targetStateFound));
 
-      return lst;
+      // register dependencies to wait for results and to get results, asynchronous
+      synchronized (reachedSetMapping) {
+        Pair<ReachedSetExecutor, CompletableFuture<Void>> p =
+            reachedSetMapping.get(pBsme.getReachedSet());
+        ReachedSetExecutor subRse = p.getFirst();
+
+        // add dependencies
+        dependsOn.put(pBsme.getState(), subRse);
+        subRse.dependingFrom.put(pBsme.getState(), this);
+        logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock %s -> %s", this, this,
+            id(pBsme.getReachedSet()));
+
+        // register callback to get results of terminated analysis
+        registerJob(subRse);
+      }
+
+      // register current RSE for further analysis
+      synchronized (reachedSetMapping) {
+        registerJob(this);
+      }
+
+      logger.logf(Level.INFO, "%s :: RSE.handleMissingBlock exiting", this);
     }
-  }
 
-  class TaskList extends Task {
-
-    private final List<Task> tasks = new LinkedList<>();
-
-    TaskList(
-        ReachedSet pRs,
-        ReachedSet pMainReachedSet,
-        ReachedSetDependencyGraph pDependencyGraph,
-        boolean pTargetStateFound) {
-      super(pRs, pMainReachedSet, pDependencyGraph, pTargetStateFound);
+    /**
+     * build a chain of jobs,
+     * append a new job after the last registered job for the given reached-set.
+     */
+    private void registerJob(ReachedSetExecutor pRse) {
+      Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(pRse.rs);
+      assert p.getFirst() == pRse;
+      CompletableFuture<Void> future = p.getSecond().thenRunAsync(pRse, pool);
+      reachedSetMapping.put(pRse.rs, Pair.of(pRse, future));
     }
 
-    void add(Task task) {
-      tasks.add(task);
+    private void createNewSubAnalysis(ReachedSet newRs) {
+      ReachedSetExecutor subRse =
+          new ReachedSetExecutor(newRs, mainReachedSet, reachedSetMapping, pool);
+      // register NOOP here. Callback for results is registered later, we have "lazy" computation.
+      final CompletableFuture<Void> future = CompletableFuture.runAsync(NOOP, pool);
+      assert !reachedSetMapping.containsKey(newRs) : "reached-set already registered";
+      reachedSetMapping.put(newRs, Pair.of(subRse, future));
+      logger.logf(Level.INFO, "%s :: register subRSE %s", this, id(newRs));
     }
 
     @Override
-    Task call() throws CPAException, InterruptedException {
-      if (tasks.isEmpty()) {
-        return null;
-      }
-      TaskList lst = new TaskList(rs, mainReachedSet, dependencyGraph, targetStateFound);
-      Task succ = tasks.remove(0).call();
-      if (succ != null) {
-        lst.add(succ);
-      }
-      for (Task tmp : tasks) {
-        lst.add(tmp);
-      }
-      return lst;
+    public String toString() {
+      return "RSE " + idd();
     }
-
   }
 }
