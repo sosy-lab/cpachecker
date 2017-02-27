@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -45,7 +44,6 @@ public class BAMCPA2 extends AbstractBAMCPA {
 
   private final BAMCache cache;
   private final BAMDataManager data;
-  private final Reducer reducer;
 
   public BAMCPA2(
       ConfigurableProgramAnalysis pCpa,
@@ -58,8 +56,7 @@ public class BAMCPA2 extends AbstractBAMCPA {
       throws InvalidConfigurationException, CPAException {
     super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
 
-    reducer = getWrappedCpa().getReducer();
-    cache = new BAMCacheSynchronized(new BAMCacheImpl(pConfig, reducer, pLogger));
+    cache = new BAMCacheSynchronized(new BAMCacheImpl(pConfig, getReducer(), pLogger));
     data = new BAMDataManager(cache, reachedsetFactory, pLogger);
   }
 
@@ -69,7 +66,7 @@ public class BAMCPA2 extends AbstractBAMCPA {
         blockPartitioning,
         shutdownNotifier,
         getWrappedCpa().getTransferRelation(),
-        reducer,
+        getReducer(),
         data,
         logger);
   }

@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -113,9 +112,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     blockPartitioning = buildBlockPartitioning(pCfa, pConfig);
     blockPartitioningTimer.stop();
 
-    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
-    reducer = new TimedReducer(wrappedReducer);
-
+    reducer = new TimedReducer(getWrappedCpa().getReducer());
     argStats = new BAMARGStatistics(pConfig, pLogger, this, pCpa, pSpecification, pCfa);
     exporter = new BAMReachedSetExporter(pConfig, pLogger, this);
   }
