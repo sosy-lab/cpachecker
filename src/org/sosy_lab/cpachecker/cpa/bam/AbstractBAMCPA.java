@@ -160,7 +160,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
         : "exporting ARGs should only be done at this place, when using BAM.";
     pStatsCollection.add(argStats);
     pStatsCollection.add(exporter);
-    pStatsCollection.add(getData().bamCache);
+    pStatsCollection.add(getData().getCache());
     super.collectStatistics(pStatsCollection);
   }
 

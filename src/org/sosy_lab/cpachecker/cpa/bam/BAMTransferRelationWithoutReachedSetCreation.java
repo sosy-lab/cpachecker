@@ -201,7 +201,7 @@ public class BAMTransferRelationWithoutReachedSetCreation implements TransferRel
     // Try to get an element from cache. A previously computed element consists of
     // a reached set associated with the recursive call.
     final Pair<ReachedSet, Collection<AbstractState>> pair =
-        data.bamCache.get(reducedInitialState, reducedInitialPrecision, innerSubtree);
+        data.getCache().get(reducedInitialState, reducedInitialPrecision, innerSubtree);
     ReachedSet cachedReached = pair.getFirst();
     final Collection<AbstractState> cachedReturnStates = pair.getSecond();
 
@@ -220,7 +220,7 @@ public class BAMTransferRelationWithoutReachedSetCreation implements TransferRel
 
     // use 'reducedResult' for cache and 'statesForFurtherAnalysis' as return value,
     // both are always equal, except analysis of recursive procedures (@fixpoint-algorithm)
-    data.bamCache.put(
+    data.getCache().put(
         reducedInitialState, reducedInitialPrecision, innerSubtree, cachedReturnStates, null);
 
     return Pair.of(cachedReturnStates, cachedReached);

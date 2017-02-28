@@ -186,7 +186,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   /** update waitlists of all reachedsets to re-explore the previously found recursive function-call. */
   private void reAddStatesForFixPointIteration() {
     for (final AbstractState recursionUpdateState : potentialRecursionUpdateStates) {
-      for (final ReachedSet reachedSet : data.bamCache.getAllCachedReachedStates()) {
+      for (final ReachedSet reachedSet : data.getCache().getAllCachedReachedStates()) {
         if (reachedSet.contains(recursionUpdateState)) {
           logger.log(Level.FINEST, "re-adding state", recursionUpdateState);
           reachedSet.reAddToWaitlist(recursionUpdateState);
@@ -385,7 +385,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     // try to get previously computed states from cache
     final Pair<ReachedSet, Collection<AbstractState>> pair =
             //argCache.get(reducedInitialState, reducedInitialPrecision, currentBlock);
-            data.bamCache.get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
+            data.getCache().get(pCoveringLevel.getFirst(), pCoveringLevel.getSecond(), pCoveringLevel.getThird());
     final ReachedSet reached = pair.getFirst();
     final Collection<AbstractState> previousResult = pair.getSecond();
     final Collection<AbstractState> reducedResult;

@@ -130,7 +130,7 @@ public class BAMTransferRelation implements TransferRelation {
       final AbstractState pState, final Precision pPrecision)
           throws CPAException, InterruptedException {
 
-    data.expandedStateToExpandedPrecision.clear();
+    data.clearExpandedStateToExpandedPrecision();
 
     final CFANode node = extractLocation(pState);
     final ARGState argState = (ARGState) pState;
@@ -417,7 +417,7 @@ public class BAMTransferRelation implements TransferRelation {
     // A previously computed element consists of a reached set associated
     // with the recursive call, and
     final Pair<ReachedSet, Collection<AbstractState>> pair =
-        data.bamCache.get(reducedInitialState, reducedInitialPrecision, innerSubtree);
+        data.getCache().get(reducedInitialState, reducedInitialPrecision, innerSubtree);
     final ReachedSet cachedReached = pair.getFirst();
     final Collection<AbstractState> cachedReturnStates = pair.getSecond();
 
@@ -479,7 +479,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     // use 'reducedResult' for cache and 'statesForFurtherAnalysis' as return value,
     // both are always equal, except analysis of recursive procedures (@fixpoint-algorithm)
-    data.bamCache.put(
+    data.getCache().put(
         reducedInitialState,
         reached.getPrecision(reached.getFirstState()),
         innerSubtree,

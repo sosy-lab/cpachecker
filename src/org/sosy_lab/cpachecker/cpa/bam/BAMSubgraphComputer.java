@@ -231,7 +231,7 @@ public class BAMSubgraphComputer {
       final CFANode rootNode = extractLocation(expandedRoot);
       final Block rootBlock = partitioning.getBlockForCallNode(rootNode);
       final AbstractState reducedRootState = reducer.getVariableReducedState(expandedRoot, rootBlock, rootNode);
-      data.bamCache.remove(reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
+      data.getCache().remove(reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
       throw new MissingBlockException();
     }
 

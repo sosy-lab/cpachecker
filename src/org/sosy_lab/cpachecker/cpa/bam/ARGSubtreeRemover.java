@@ -68,8 +68,8 @@ public class ARGSubtreeRemover {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.data = bamCpa.getData();
     this.wrappedReducer = bamCpa.getReducer();
-    this.bamCache = bamCpa.getData().bamCache;
-    this.logger = bamCpa.getData().logger;
+    this.bamCache = bamCpa.getData().getCache();
+    this.logger = bamCpa.getLogger();
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
     doPrecisionRefinementForAllStates = bamCpa.doPrecisionRefinementForAllStates();
   }

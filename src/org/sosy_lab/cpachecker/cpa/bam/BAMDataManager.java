@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -45,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
  * */
 public class BAMDataManager {
 
-  final LogManager logger;
+  private final LogManager logger;
 
   /**
    * Main data structure.
@@ -53,7 +54,7 @@ public class BAMDataManager {
    * {@link org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm}
    * invocation.
    * */
-  final BAMCache bamCache;
+  private final BAMCache bamCache;
 
   private final ReachedSetFactory reachedSetFactory;
 
@@ -80,7 +81,7 @@ public class BAMDataManager {
    * Mapping from expanded states at a block-end to
    * corresponding expanded precisions.
    **/
-  final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new LinkedHashMap<>();
+  private final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new LinkedHashMap<>();
 
   public BAMDataManager(
       BAMCache pArgCache,
@@ -221,6 +222,19 @@ public class BAMDataManager {
 
   static int getId(AbstractState state) {
     return ((ARGState) state).getStateId();
+  }
+
+  BAMCache getCache() {
+    return bamCache;
+  }
+
+  public void clearExpandedStateToExpandedPrecision() {
+    expandedStateToExpandedPrecision.clear();
+  }
+
+  /** return a matching precision for the given state, or Null if state is not found. */
+  public @Nullable Precision getExpandedPrecisionForState(AbstractState pState) {
+    return expandedStateToExpandedPrecision.get(pState);
   }
 
   @Override

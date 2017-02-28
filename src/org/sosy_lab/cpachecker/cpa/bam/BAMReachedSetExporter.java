@@ -108,7 +108,7 @@ class BAMReachedSetExporter implements Statistics {
     if (superArgFile != null) {
 
       final Set<UnmodifiableReachedSet> allReachedSets = new HashSet<>();
-      allReachedSets.addAll(bamcpa.getData().bamCache.getAllCachedReachedStates());
+      allReachedSets.addAll(bamcpa.getData().getCache().getAllCachedReachedStates());
       allReachedSets.add(mainReachedSet);
 
       final Set<ARGState> rootStates = new HashSet<>();
