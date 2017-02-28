@@ -372,6 +372,14 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
           logger.logf(level, "%s :: mainRS finished, shutdown threadpool", this);
           pool.shutdown();
         }
+
+        // we never need to execute this RSE again,
+        // thus we can clean up and avoid a (small) memory-leak
+        synchronized (reachedSetMapping) {
+          Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.remove(rs);
+          executionCounter.insertValue(execCounter);
+          // no need to wait for p.getSecond(), we assume a error-free exit after this point.
+        }
       }
 
       logger.logf(level, "%s :: RSE.handleTermination exiting", this);
@@ -438,25 +446,33 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         // ignore further sub-analyses
       }
 
-      // remove current state from waitlist to avoid exploration until all sub-blocks are done.
-      // The state was removed for exploration,
-      // but re-added by CPA-algorithm when throwing the exception
-      assert rs.contains(pBsme.getState()) : "parent reachedset must contain entry state";
-      rs.removeOnlyFromWaitlist(pBsme.getState());
-
       // register new sub-analysis as asynchronous/parallel/future work, if not existent
       synchronized (reachedSetMapping) {
         ReachedSet newRs = createAndRegisterNewReachedSet(pBsme);
         Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(newRs);
-        ReachedSetExecutor subRse = p.getFirst();
 
-        // register dependencies to wait for results and to get results, asynchronous
-        addDependencies(pBsme, subRse);
+        if (p == null) {
+          // BSME interleaved with termination of sub-reached-set analysis,
+          // cache-update was too slow, but cleanup of RSE in reachedSetMapping was too fast.
+          // Restarting the procedure once should be sufficient,
+          // such that the analysis tries a normal cache-access again.
+          // --> nothing to do
 
-        logger.logf(level, "%s :: RSE.handleMissingBlock %s -> %s", this, this, id(newRs));
+        } else {
+          // remove current state from waitlist to avoid exploration until all sub-blocks are done.
+          // The state was removed for exploration,
+          // but re-added by CPA-algorithm when throwing the exception
+          assert rs.contains(pBsme.getState()) : "parent reachedset must contain entry state";
+          rs.removeOnlyFromWaitlist(pBsme.getState());
 
-        // register callback to get results of terminated analysis
-        registerJob(subRse, subRse.asRunnable());
+          // register dependencies to wait for results and to get results, asynchronous
+          ReachedSetExecutor subRse = p.getFirst();
+          addDependencies(pBsme, subRse);
+          logger.logf(level, "%s :: RSE.handleMissingBlock %s -> %s", this, this, id(newRs));
+
+          // register callback to get results of terminated analysis
+          registerJob(subRse, subRse.asRunnable());
+        }
       }
 
       // register current RSE for further analysis
