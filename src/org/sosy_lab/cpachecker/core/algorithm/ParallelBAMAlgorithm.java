@@ -212,17 +212,29 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     return id(pRs.getFirstState());
   }
 
+  /**
+   * A wrapper for a single reached-set and the corresponding data-structures.
+   * We assume that each reachedset is contained in only one ReachedSetExecutor and
+   * that each instance of ReachedSetExecutor is only executed by a single thread,
+   * because this guarantees us single-threaded access to the reached-sets.
+   */
   private class ReachedSetExecutor {
 
+    /** the working reached-set, single-threaded access. */
     private final ReachedSet rs;
-    private final ReachedSet mainReachedSet;
-    /** important central data structure, shared over all threads. */
-    private final Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping;
-    private final ExecutorService pool;
+
+    /** the working algorithm for the reached-set, single-threaded access. */
     private final CPAAlgorithm algorithm = algorithmFactory.newInstance();
 
-
+    /** flag that causes termination if enabled. */
     private boolean targetStateFound = false;
+
+    /** main reached-set is used for checking termination of the algorithm. */
+    private final ReachedSet mainReachedSet;
+
+    /** important central data structure, shared over all threads, need to be synchronized directly. */
+    private final Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping;
+    private final ExecutorService pool;
 
     private int execCounter = 0; // statistics
 
@@ -306,6 +318,12 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       return id(rs);
     }
 
+    /**
+     * This method re-adds states to the waitlist.
+     * The states were removed due to missing blocks,
+     * and we re-add them when the missing block is finished.
+     * The states are at block-start locations.
+     */
     private void updateStates(Collection<AbstractState> pStatesToBeAdded) {
       for (AbstractState state : pStatesToBeAdded) {
         rs.reAddToWaitlist(state);
