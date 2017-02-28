@@ -386,15 +386,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       AbstractState reducedInitialState = rs.getFirstState();
       Precision reducedInitialPrecision = rs.getPrecision(reducedInitialState);
       Block block = getBlockForState(reducedInitialState);
-      final Collection<AbstractState> exitStates;
-      if (pEndsWithTargetState) {
-        exitStates = Collections.singletonList(rs.getLastState());
-      } else {
-        exitStates =
-            AbstractStates.filterLocations(rs, block.getReturnNodes())
-                .filter(s -> ((ARGState) s).getChildren().isEmpty())
-                .toList();
-      }
+      final Collection<AbstractState> exitStates = extractExitStates(pEndsWithTargetState, block);
       Pair<ReachedSet, Collection<AbstractState>> check =
           bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, block);
       assert check.getFirst() == rs : String.format(
@@ -410,6 +402,17 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
+    private Collection<AbstractState> extractExitStates(boolean pEndsWithTargetState, Block pBlock) {
+      if (pEndsWithTargetState) {
+        assert AbstractStates.isTargetState(rs.getLastState());
+        return Collections.singletonList(rs.getLastState());
+      } else {
+        return AbstractStates.filterLocations(rs, pBlock.getReturnNodes())
+                .filter(s -> ((ARGState) s).getChildren().isEmpty())
+                .toList();
+      }
+    }
+
     private void reAddStatesToDependingReachedSets() {
       synchronized (dependingFrom) {
         for (Entry<ReachedSetExecutor, Collection<AbstractState>> parent :
@@ -417,6 +420,14 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
           registerJob(parent.getKey(), parent.getKey().asRunnable(parent.getValue()));
         }
         dependingFrom.clear();
+      }
+    }
+
+    private void addDependencies(BlockSummaryMissingException pBsme,
+        final ReachedSetExecutor subRse) {
+      dependsOn.add(pBsme.getState());
+      synchronized(subRse.dependingFrom) {
+        subRse.dependingFrom.put(this, pBsme.getState());
       }
     }
 
@@ -435,45 +446,13 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
       // register new sub-analysis as asynchronous/parallel/future work, if not existent
       synchronized (reachedSetMapping) {
-
-        ReachedSet newRs = pBsme.getReachedSet();
-        if (newRs == null) {
-          // We are only synchronized in the current method. Thus, we need to check
-          // the cache again, maybe another thread already created the needed reached-set.
-          final Pair<ReachedSet, Collection<AbstractState>> pair =
-              bamcpa.getCache().get(pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
-          newRs = pair.getFirst();
-        }
-
-        // now we can be sure, whether the sub-reached-set exists or not.
-        final ReachedSetExecutor subRse;
-        if (newRs == null) {
-          // we have not even cached a partly computed reached-set,
-          // so we must compute the subgraph specification from scratch
-          newRs = bamcpa.getData().createAndRegisterNewReachedSet(
-                  pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
-
-          // we have not even cached a partly computed reach-set,
-          // so we must compute the subgraph specification from scratch
-          subRse = new ReachedSetExecutor(newRs, mainReachedSet, reachedSetMapping, pool);
-          // register NOOP here. Callback for results is registered later, we have "lazy" computation.
-          CompletableFuture<Void> future = CompletableFuture.runAsync(NOOP, pool)
-              .exceptionally(new ExceptionHandler(pool, subRse));
-          reachedSetMapping.put(newRs, Pair.of(subRse, future));
-          logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
-
-        } else {
-          Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(newRs);
-          subRse = p.getFirst();
-        }
+        ReachedSet newRs = createAndRegisterNewReachedSet(pBsme);
+        Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(newRs);
+        ReachedSetExecutor subRse = p.getFirst();
 
         // register dependencies to wait for results and to get results, asynchronous
+        addDependencies(pBsme, subRse);
 
-        // add dependencies
-        dependsOn.add(pBsme.getState());
-        synchronized(subRse.dependingFrom) {
-          subRse.dependingFrom.put(this, pBsme.getState());
-        }
         logger.logf(level, "%s :: RSE.handleMissingBlock %s -> %s", this, this, id(newRs));
 
         // register callback to get results of terminated analysis
@@ -484,6 +463,43 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       registerJob(this, this.asRunnable());
 
       logger.logf(level, "%s :: RSE.handleMissingBlock exiting", this);
+    }
+
+    /**
+     * Get the reached-set for the missing block's analysis.
+     * If we already have a valid reached-set, we return it.
+     * If the reached-set was missing when throwing the exception, we check the cache again.
+     * If the reached-set is missing, we create a new reached-set and the ReachedSetExecutor.
+     *
+     * @return a valid reached-set to be analyzed
+     */
+    private ReachedSet createAndRegisterNewReachedSet(BlockSummaryMissingException pBsme) {
+      ReachedSet newRs = pBsme.getReachedSet();
+      if (newRs == null) {
+        // We are only synchronized in the current method. Thus, we need to check
+        // the cache again, maybe another thread already created the needed reached-set.
+        final Pair<ReachedSet, Collection<AbstractState>> pair =
+            bamcpa.getCache().get(pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
+        newRs = pair.getFirst(); // @Nullable
+      }
+
+      // now we can be sure, whether the sub-reached-set exists or not.
+      if (newRs == null) {
+        // we have not even cached a partly computed reached-set,
+        // so we must compute the subgraph specification from scratch
+        newRs = bamcpa.getData().createAndRegisterNewReachedSet(
+                pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
+
+        // we have not even cached a partly computed reach-set,
+        // so we must compute the subgraph specification from scratch
+        ReachedSetExecutor subRse = new ReachedSetExecutor(newRs, mainReachedSet, reachedSetMapping, pool);
+        // register NOOP here. Callback for results is registered later, we have "lazy" computation.
+        CompletableFuture<Void> future = CompletableFuture.runAsync(NOOP, pool)
+            .exceptionally(new ExceptionHandler(pool, subRse));
+        reachedSetMapping.put(newRs, Pair.of(subRse, future));
+        logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
+      }
+      return newRs;
     }
 
     /**
