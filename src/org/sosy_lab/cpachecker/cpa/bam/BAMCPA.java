@@ -97,7 +97,7 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
     } else {
       cache = new BAMCacheImpl(config, getReducer(), logger);
     }
-    data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
+    data = new BAMDataManagerImpl(cache, pReachedSetFactory, pLogger);
 
     bamPccManager = new BAMPCCManager(
         wrappedProofChecker,

@@ -57,7 +57,8 @@ public class BAMCPAWithoutReachedSetCreation extends AbstractBAMCPA {
     super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
 
     cache = new BAMCacheSynchronized(new BAMCacheImpl(pConfig, getReducer(), pLogger));
-    data = new BAMDataManager(cache, reachedsetFactory, pLogger);
+    data =
+        new BAMDataManagerSynchronized(new BAMDataManagerImpl(cache, reachedsetFactory, pLogger));
   }
 
   @Override
