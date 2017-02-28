@@ -50,7 +50,8 @@ public class StatHist extends AbstractStatValue {
 
   @Override
   public String toString() {
-    return String.format("%s (avg=%.2f, dev=%.2f)", hist, getAvg(), getStdDeviation());
+    return String.format(
+        "%s (cnt=%d, avg=%.2f, dev=%.2f)", hist, hist.size(), getAvg(), getStdDeviation());
   }
 
   private double getStdDeviation() {
