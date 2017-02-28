@@ -1592,9 +1592,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   //FIXME Does not work with variable array length.
     //TODO: write value with bit precise size
+    int rValueTypeBitSize = expressionEvaluator.getBitSizeof(pEdge, pRValueType, pNewState);
+    int memoryBitSize = pMemoryOfField.getSize();
     boolean doesNotFitIntoObject = pFieldOffset.compareTo(BigInteger.valueOf(0)) < 0
-        || pFieldOffset.compareTo(BigInteger.valueOf(pMemoryOfField.getSize() -
-        expressionEvaluator.getBitSizeof(pEdge, pRValueType, pNewState))) > 0;
+        || pFieldOffset.compareTo(BigInteger.valueOf(memoryBitSize - rValueTypeBitSize)) > 0;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
@@ -1606,9 +1607,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       });
       SMGState newState = pNewState.setInvalidWrite();
       if (pMemoryOfField.notNull()) {
-        newState.setErrorDescription("Field with size " + expressionEvaluator.getBitSizeof(pEdge,
-            pRValueType, pNewState) + " bit can't be written at offset " + pFieldOffset.longValue()
-            + " bit of object " + pMemoryOfField.getSize() + " bit size");
+        long fieldOffsetLongValue = pFieldOffset.longValue();
+        if (rValueTypeBitSize % 8 != 0 || fieldOffsetLongValue % 8 != 0 || memoryBitSize % 8 != 0) {
+          newState.setErrorDescription(
+              "Field with size " + rValueTypeBitSize + " bit can't be written at offset "
+                  + fieldOffsetLongValue + " bit of object " + memoryBitSize + " bit size");
+        } else {
+          newState.setErrorDescription("Field with size " + rValueTypeBitSize / 8 + " byte can't "
+              + "be written at offset " + fieldOffsetLongValue / 8 + " byte of object " +
+              memoryBitSize /8 + " byte size");
+        }
         newState.addInvalidObject(pMemoryOfField);
       } else {
         newState.setErrorDescription("NULL pointer dereference on write");
@@ -2031,9 +2039,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       BigInteger fieldOffset = pOffset.getValue();
 
       //FIXME Does not work with variable array length.
+      int typeBitSize = getBitSizeof(pEdge, pType, pSmgState);
+      int objectBitSize = pObject.getSize();
+      long fieldOffsetLongValue = fieldOffset.longValue();
       boolean doesNotFitIntoObject = fieldOffset.compareTo(BigInteger.valueOf(0)) < 0
-          || fieldOffset.compareTo(BigInteger.valueOf(pObject.getSize() - getBitSizeof(pEdge,
-          pType, pSmgState))) > 0;
+          || fieldOffset.compareTo(BigInteger.valueOf(objectBitSize - typeBitSize)) > 0;
 
       if (doesNotFitIntoObject) {
         // Field does not fit size of declared Memory
@@ -2043,9 +2053,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         SMGState newState = pSmgState.setInvalidRead();
         if (pObject.notNull()) {
-          newState.setErrorDescription("Field with " + getBitSizeof(pEdge, pType, pSmgState)
-              + " bit size can't be read from offset " + fieldOffset.longValue() + " bit of "
-              + "object " + pObject.getSize() + " bit size");
+          if (typeBitSize % 8 != 0 || fieldOffsetLongValue % 8 != 0 || objectBitSize % 8 != 0) {
+            newState.setErrorDescription("Field with " + typeBitSize
+                + " bit size can't be read from offset " + fieldOffsetLongValue + " bit of "
+                + "object " + objectBitSize + " bit size");
+          } else {
+            newState.setErrorDescription("Field with " + typeBitSize / 8
+                + " byte size can't be read from offset " + fieldOffsetLongValue / 8 + " byte of "
+                + "object " + objectBitSize / 8 + " byte size");
+
+          }
           newState.addInvalidObject(pObject);
         } else {
           newState.setErrorDescription("NULL pointer dereference on read");
