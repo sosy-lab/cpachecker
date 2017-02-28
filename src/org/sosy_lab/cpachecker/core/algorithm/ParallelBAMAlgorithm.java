@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -167,17 +168,17 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
   private void collectExceptions(
       Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping)
       throws CPAException {
-    for (Pair<ReachedSetExecutor, CompletableFuture<Void>> entry : pReachedSetMapping.values()) {
+    pReachedSetMapping.values().parallelStream().forEach(entry -> {
       try{
-        entry.getSecond().get();
+        entry.getSecond().get(5, TimeUnit.SECONDS);
       } catch (RejectedExecutionException e) {
         // ignore
-      } catch (InterruptedException | ExecutionException e) {
+      } catch (InterruptedException | ExecutionException  | TimeoutException e) {
         error.compareAndSet(null, e);
       }
       logger.log(level, "finishing", entry.getFirst(),
           entry.getSecond().isCompletedExceptionally());
-    }
+    });
     Throwable toThrow = error.get();
     if (toThrow != null) {
       throw new CPAException(toThrow.getMessage());
@@ -486,7 +487,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         logger.logException(Level.WARNING, e, rse + " :: " + e.getClass().getSimpleName());
         error.compareAndSet(null, e);
       }
-      pool.shutdownNow();
+//      pool.shutdownNow();
       return null;
     }
 
