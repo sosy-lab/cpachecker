@@ -52,6 +52,7 @@ class TimedReducer implements Reducer {
       CFANode pCallNode) throws InterruptedException {
 
     TimerWrapper reduceTimer = reduceTime.getNewTimer();
+    reduceTimer.start();
     try {
       return wrappedReducer.getVariableReducedState(pExpandedState, pContext, pCallNode);
     } finally {
@@ -65,6 +66,7 @@ class TimedReducer implements Reducer {
       AbstractState pReducedState) throws InterruptedException {
 
     TimerWrapper expandTimer = expandTime.getNewTimer();
+    expandTimer.start();
     try {
       return wrappedReducer.getVariableExpandedState(pRootState, pReducedContext, pReducedState);
     } finally {
@@ -81,6 +83,7 @@ class TimedReducer implements Reducer {
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
     TimerWrapper reducePrecisionTimer = reducePrecisionTime.getNewTimer();
+    reducePrecisionTimer.start();
     try {
       return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
     } finally {
@@ -91,6 +94,7 @@ class TimedReducer implements Reducer {
   @Override
   public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
     TimerWrapper expandPrecisionTimer = expandPrecisionTime.getNewTimer();
+    expandPrecisionTimer.start();
     try {
       return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
     } finally {
