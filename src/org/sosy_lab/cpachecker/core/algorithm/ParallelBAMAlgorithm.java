@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAccumulator;
 import java.util.function.Function;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -74,18 +75,26 @@ import org.sosy_lab.cpachecker.cpa.bam.BlockSummaryMissingException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options(prefix="algorithm.parallelBam")
 public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
-  @Option(description="number of threads, positive values match exactly, "
-      + "with -1 we use the number of available cores or the machine automatically.")
+  @Option(
+    description =
+        "number of threads, positive values match exactly, "
+            + "with -1 we use the number of available cores or the machine automatically.",
+    secure = true
+  )
   private int numberOfThreads = -1;
 
+  private final LongAccumulator numMaxRSE = new LongAccumulator(Math::max, 0);
   private final AtomicInteger numActiveThreads = new AtomicInteger(0);
   private final StatHist histActiveThreads = new StatHist("Active threads");
+  private final StatHist executionCounter = new StatHist("RSE execution counter");
+  private final StatCounter unfinishedRSEcounter = new StatCounter("unfinished reached-sets");
 
   private final static Level level = Level.ALL;
   private final static Runnable NOOP = () -> {};
@@ -157,7 +166,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     if (numberOfThreads > 0) {
       return numberOfThreads;
     }
-    Preconditions.checkState(numberOfThreads == -1, "positive number or -1 expected");
+    Preconditions.checkState(
+        numberOfThreads == -1, "number of threads can only be a positive number or -1.");
     return Runtime.getRuntime().availableProcessors();
   }
 
@@ -171,6 +181,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     pReachedSetMapping.values().parallelStream().forEach(entry -> {
       try{
         entry.getSecond().get(5, TimeUnit.SECONDS);
+        executionCounter.insertValue(entry.getFirst().execCounter);
+        unfinishedRSEcounter.inc();
       } catch (RejectedExecutionException e) {
         // ignore
       } catch (InterruptedException | ExecutionException  | TimeoutException e) {
@@ -212,6 +224,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
     private boolean targetStateFound = false;
 
+    private int execCounter = 0; // statistics
+
     /**
      * Sub-reached-sets have to be finished before the current one.
      * The state is unique. Synchronized access needed!
@@ -251,6 +265,10 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     private void apply(Collection<AbstractState> pStatesToBeAdded) {
       int running = numActiveThreads.incrementAndGet();
       histActiveThreads.insertValue(running);
+      numMaxRSE.accumulate(reachedSetMapping.size());
+      execCounter++;
+
+      try {
 
       if (shutdownNotifier.shouldShutdown()) {
         pool.shutdownNow();
@@ -264,7 +282,9 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         logger.logException(level, e, e.getClass().getName());
       }
 
-      numActiveThreads.decrementAndGet();
+      } finally {
+        numActiveThreads.decrementAndGet();
+      }
     }
 
     /**
@@ -500,7 +520,10 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       @Override
       public void printStatistics(PrintStream pOut, Result pResult,
           UnmodifiableReachedSet pReached) {
+        StatisticsUtils.write(pOut, 0, 50, "max number of executors", numMaxRSE);
         StatisticsUtils.write(pOut, 0, 50, histActiveThreads);
+        StatisticsUtils.write(pOut, 0, 50, executionCounter);
+        StatisticsUtils.write(pOut, 0, 50, unfinishedRSEcounter);
       }
 
       @Override
