@@ -36,16 +36,16 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class BAMCPA2 extends AbstractBAMCPA {
+public class BAMCPAWithoutReachedSetCreation extends AbstractBAMCPA {
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(BAMCPA2.class);
+    return AutomaticCPAFactory.forType(BAMCPAWithoutReachedSetCreation.class);
   }
 
   private final BAMCache cache;
   private final BAMDataManager data;
 
-  public BAMCPA2(
+  public BAMCPAWithoutReachedSetCreation(
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
@@ -62,13 +62,12 @@ public class BAMCPA2 extends AbstractBAMCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new BAM2TransferRelation(
+    return new BAMTransferRelationWithoutReachedSetCreation(
         blockPartitioning,
         shutdownNotifier,
         getWrappedCpa().getTransferRelation(),
         getReducer(),
-        data,
-        logger);
+        data);
   }
 
   public BAMCache getCache() {

@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -46,28 +45,30 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class BAM2TransferRelation implements TransferRelation {
+/**
+ * This {@link TransferRelation} behaves similar to {@link BAMTransferRelation}.
+ * It does not create a new sub-reached-set when reaching a block-entry location,
+ * but throws a {@link BlockSummaryMissingException}.
+ */
+public class BAMTransferRelationWithoutReachedSetCreation implements TransferRelation {
 
   private final BlockPartitioning partitioning;
   private final ShutdownNotifier shutdownNotifier;
   private final TransferRelation wrappedTransfer;
   private final Reducer wrappedReducer;
   private final BAMDataManager data;
-  private final LogManager logger;
 
-  public BAM2TransferRelation(
+  public BAMTransferRelationWithoutReachedSetCreation(
       BlockPartitioning pPartitioning,
       ShutdownNotifier pShutdownNotifier,
       TransferRelation pTransfer,
       Reducer pReducer,
-      BAMDataManager pData,
-      LogManager pLogger) {
+      BAMDataManager pData) {
     partitioning = pPartitioning;
     shutdownNotifier = pShutdownNotifier;
     wrappedTransfer = pTransfer;
     wrappedReducer = pReducer;
     data = pData;
-    logger = pLogger;
   }
 
   @Override

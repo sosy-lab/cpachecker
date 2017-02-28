@@ -116,7 +116,7 @@ adjustableconditions.adjustmentLimit = -1
 
 # number of threads, positive values match exactly, with -1 we use the number
 # of available cores or the machine automatically.
-algorithm.bam2.numberOfThreads = -1
+algorithm.parallelBam.numberOfThreads = -1
 
 # use a BMC like algorithm that checks for satisfiability after the analysis
 # has finished, works only with PredicateCPA
@@ -153,8 +153,8 @@ analysis.algorithm.propertyCheck = false
 # Use termination algorithm to prove (non-)termination.
 analysis.algorithm.termination = false
 
-# run the BAM2 algortihm.
-analysis.algorithm.useBAM2 = false
+# run the parallel BAM algortihm.
+analysis.algorithm.useParallelBAM = false
 
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples

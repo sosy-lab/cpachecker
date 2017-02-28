@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.BAM2Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
@@ -162,8 +162,8 @@ public class CoreComponentsFactory {
       description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
   private boolean useRestartAlgorithmWithARGReplay = false;
 
-  @Option(secure = true, name = "algorithm.useBAM2", description = "run the BAM2 algortihm.")
-  private boolean useBAM2Algorithm = false;
+  @Option(secure = true, name = "algorithm.useParallelBAM", description = "run the parallel BAM algortihm.")
+  private boolean useParallelBAM = false;
 
   @Option(secure=true, name="unknownIfUnrestrictedProgram",
       description="stop the analysis with the result unknown if the program does not satisfies certain restrictions.")
@@ -287,8 +287,8 @@ public class CoreComponentsFactory {
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
-      if (useBAM2Algorithm) {
-        algorithm = new BAM2Algorithm(cpa, config, logger, shutdownNotifier);
+      if (useParallelBAM) {
+        algorithm = new ParallelBAMAlgorithm(cpa, config, logger, shutdownNotifier);
       }
 
       if (useAnalysisWithEnablerCPAAlgorithm) {

@@ -68,7 +68,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.bam.BAMCPA2;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
 import org.sosy_lab.cpachecker.cpa.bam.BlockSummaryMissingException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -76,8 +76,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
-@Options(prefix="algorithm.bam2")
-public class BAM2Algorithm implements Algorithm, StatisticsProvider {
+@Options(prefix="algorithm.parallelBam")
+public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(description="number of threads, positive values match exactly, "
       + "with -1 we use the number of available cores or the machine automatically.")
@@ -90,19 +90,19 @@ public class BAM2Algorithm implements Algorithm, StatisticsProvider {
   private final static Runnable NOOP = () -> {};
 
   private final LogManager logger;
-  private final BAMCPA2 bamcpa;
+  private final BAMCPAWithoutReachedSetCreation bamcpa;
   private final CPAAlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
   private final AtomicReference<Throwable> error = new AtomicReference<>(null);
 
-  public BAM2Algorithm(
+  public ParallelBAMAlgorithm(
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    bamcpa = (BAMCPA2) pCpa;
+    bamcpa = (BAMCPAWithoutReachedSetCreation) pCpa;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     algorithmFactory = new CPAAlgorithmFactory(bamcpa, logger, pConfig, pShutdownNotifier);
