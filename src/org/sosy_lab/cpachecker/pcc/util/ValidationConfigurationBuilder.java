@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.Scanner;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.cpachecker.exceptions.ValidationConfigurationConstructionFailed;
 
 public class ValidationConfigurationBuilder {
 
@@ -39,11 +40,15 @@ public class ValidationConfigurationBuilder {
     veriConfig = pVerifConfig;
   }
 
-  public Configuration getValidationConfiguration() {
+  public Configuration getValidationConfiguration() throws ValidationConfigurationConstructionFailed{
     ConfigurationBuilder configBuilder = Configuration.builder();
 
     Map<String, String> relPropEntries =
         extractRelevantPropertyEntriesAndClearAnalysisOptions(configBuilder);
+
+    if (relPropEntries.containsKey("analysis.restartAfterUnknown")
+        && relPropEntries.get("analysis.restartAfterUnknown")
+            .equals("true")) { throw new ValidationConfigurationConstructionFailed(); }
 
     clearProofCreationOptions(configBuilder);
 
@@ -73,10 +78,13 @@ public class ValidationConfigurationBuilder {
         if (prop.equals("specification") || prop.startsWith("analysis.")
             || prop.startsWith("statistics.") || prop.startsWith("limits.")) {
           pConfigBuilder.clearOption(prop);
-          continue;
+          if(!prop.equals("analysis.restartAfterUnknown")) {
+            continue;
+          }
         }
 
-        if (prop.startsWith("cpa") || prop.equals("pcc.strategy")) {
+        if (prop.startsWith("cpa") || prop.equals("pcc.strategy")
+            || prop.equals("analysis.restartAfterUnknown")) {
           value = line.substring(eqSignPos + 1, line.length()).trim();
           relevantPropertyEntries.put(prop, value);
         }

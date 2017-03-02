@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.ValidationConfigurationConstructionFailed;
 import org.sosy_lab.cpachecker.pcc.util.ProofStatesInfoCollector;
 import org.sosy_lab.cpachecker.pcc.util.ValidationConfigurationBuilder;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -133,8 +134,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           o = new ObjectOutputStream(zos);
           try {
             writeConfiguration(o);
-          } catch (UnsupportedOperationException eU) {
-            logger.log(Level.WARNING, "Selected PCC strategy does not support construction of validation configuration. Validation configuration is empty.");
+          } catch (ValidationConfigurationConstructionFailed eIC) {
+            logger.log(Level.WARNING, "Construction of validation configuration failed. Validation configuration is empty.");
           }
 
           o.flush();
@@ -179,7 +180,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     return false;
   }
 
-  protected void writeConfiguration(ObjectOutputStream pO) throws UnsupportedOperationException {
+  protected void writeConfiguration(ObjectOutputStream pO) throws ValidationConfigurationConstructionFailed {
     new PrintStream(pO).print(new ValidationConfigurationBuilder(config)
         .getValidationConfiguration().asPropertiesString());
   }
