@@ -53,15 +53,17 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.util.ProofStatesInfoCollector;
+import org.sosy_lab.cpachecker.pcc.util.ValidationConfigurationBuilder;
 import org.sosy_lab.cpachecker.util.Triple;
 
 @Options(prefix="pcc")
 public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
 
+  private final Configuration config;
   protected LogManager logger;
-  protected PCStrategyStatistics stats;
-  protected ProofStatesInfoCollector proofInfo;
-  private Collection<Statistics> pccStats = new ArrayList<>();
+  protected final PCStrategyStatistics stats;
+  protected final ProofStatesInfoCollector proofInfo;
+  private final Collection<Statistics> pccStats = new ArrayList<>();
 
   protected final Path proofFile;
 
@@ -71,8 +73,14 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   @IntegerOption(min=1)
   protected int numThreads = 1;
 
+  @Option(secure=true,
+      name="storeConfig",
+      description = "writes the validation configuration required for checking to proof")
+  boolean storeConfig = false;
+
   public AbstractStrategy(Configuration pConfig, LogManager pLogger, Path pProofFile) throws InvalidConfigurationException {
     pConfig.inject(this, AbstractStrategy.class);
+    config = pConfig;
     numThreads = Math.max(1, numThreads);
     numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
@@ -119,6 +127,20 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           index++;
         } while (continueWriting);
 
+        if (storeConfig) {
+          ze = new ZipEntry("Config");
+          zos.putNextEntry(ze);
+          o = new ObjectOutputStream(zos);
+          try {
+            writeConfiguration(o);
+          } catch (UnsupportedOperationException eU) {
+            logger.log(Level.WARNING, "Selected PCC strategy does not support construction of validation configuration. Validation configuration is empty.");
+          }
+
+          o.flush();
+          zos.closeEntry();
+        }
+
       } catch (NotSerializableException eS) {
         logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage()
             + " does not implement Serializable interface");
@@ -156,6 +178,12 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   protected boolean writeAdditionalProofStream(final ObjectOutputStream pOut) throws IOException {
     return false;
   }
+
+  protected void writeConfiguration(ObjectOutputStream pO) throws UnsupportedOperationException {
+    new PrintStream(pO).print(new ValidationConfigurationBuilder(config)
+        .getValidationConfiguration().asPropertiesString());
+  }
+
 
   protected Triple<InputStream, ZipInputStream, ObjectInputStream> openProofStream() throws IOException {
     InputStream fis = Files.newInputStream(proofFile);

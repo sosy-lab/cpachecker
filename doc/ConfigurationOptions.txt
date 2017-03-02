@@ -2665,6 +2665,9 @@ pcc.resultcheck.writeProof = false
 # prove the property.
 pcc.sliceProof = false
 
+# writes the validation configuration required for checking to proof
+pcc.storeConfig = false
+
 # Qualified name for class which implements certification strategy, hence
 # proof writing, to be used.
 pcc.strategy = no default value
