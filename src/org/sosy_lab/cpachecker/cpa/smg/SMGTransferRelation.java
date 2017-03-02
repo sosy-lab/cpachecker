@@ -2206,20 +2206,15 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
               addressOfField.getOffset().getValue(), getRealExpressionType(lValue), rSymValue, edge);
         }
         int size = getBitSizeof(edge, getRealExpressionType(lValue), assignableState);
+        assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
         if (truthValue) {
           if (op == BinaryOperator.EQUALS) {
-            assignableState.addPredicateRelation(rSymValue, size, rValue, size, BinaryOperator.EQUALS, edge);
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
-          } else {
-            assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
           }
         } else {
           if (op == BinaryOperator.NOT_EQUALS) {
-            assignableState.addPredicateRelation(rSymValue, size, rValue, size, BinaryOperator.EQUALS, edge);
             assignableState.putExplicit((SMGKnownSymValue) rSymValue, (SMGKnownExpValue) rValue);
             //TODO more precise
-          } else {
-            assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
           }
         }
       }
