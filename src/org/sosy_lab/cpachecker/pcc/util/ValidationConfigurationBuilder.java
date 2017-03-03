@@ -24,13 +24,24 @@
 package org.sosy_lab.cpachecker.pcc.util;
 
 import com.google.common.collect.Maps;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.exceptions.ValidationConfigurationConstructionFailed;
+import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 
 public class ValidationConfigurationBuilder {
 
@@ -190,6 +201,34 @@ public class ValidationConfigurationBuilder {
       final String pOptionName, final String pValue) {
     pConfigBuilder.clearOption(pOptionName);
     pConfigBuilder.setOption(pOptionName, pValue);
+  }
+
+  public static Configuration readConfigFromProof(Path proofFile)
+      throws IOException, InvalidConfigurationException {
+    // TODO Werte der vorhandenen Configuration erlauben?
+
+    try (InputStream fis = Files.newInputStream(proofFile);
+        ZipInputStream zis = new ZipInputStream(fis);) {
+      ZipEntry entry;
+      while ((entry = zis.getNextEntry()) != null) {
+        if (entry.getName().equals(AbstractStrategy.CONFIG_ZIPENTRY_NAME)) {
+          break;
+        }
+      }
+
+      if (entry == null) { throw new IOException("Unable to find configuration entry in proof."); }
+
+      Path valConfig = Files.createTempFile("pcc-check-config", "properties");
+
+      try (ObjectInputStream in = new ObjectInputStream(zis);
+          PrintStream out = new PrintStream(new FileOutputStream(valConfig.toFile()))) {
+        out.print(in.readObject());
+      } catch (ClassNotFoundException e) {
+        throw new IOException("Failed to read configuration");
+      }
+
+      return Configuration.builder().loadFromFile(valConfig).build();
+    }
   }
 
 }
