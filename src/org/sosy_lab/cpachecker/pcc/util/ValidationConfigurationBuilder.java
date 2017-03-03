@@ -95,7 +95,7 @@ public class ValidationConfigurationBuilder {
           }
         }
 
-        if (prop.startsWith("cpa") || prop.equals("pcc.strategy")
+        if (prop.contains("cpa") || prop.equals("pcc.strategy")
             || prop.equals("analysis.restartAfterUnknown")) {
           value = line.substring(eqSignPos + 1, line.length()).trim();
           relevantPropertyEntries.put(prop, value);
@@ -131,8 +131,17 @@ public class ValidationConfigurationBuilder {
     String topCPA = pRelPropEntries.get("cpa");
     String strategy = pRelPropEntries.get("pcc.strategy");
 
+    if(strategy==null) {
+      // no strategy explicitly configured, default strategy is used
+      strategy = "arg.ARGProofCheckerStrategy";
+      pConfigBuilder.setOption("pcc.strategy", "arg.ARGProofCheckerStrategy");
+    }
+
     if (notIsARGStrategy(strategy)) {
       removeARGCPA(pConfigBuilder, pRelPropEntries);
+      if(topCPA.equals("cpa.arg.ARGCPA")) {
+        topCPA = pRelPropEntries.get("ARGCPA.cpa");
+      }
     }
 
     if (notIsARGCPAStrategyNorContainsPropertyChecker(strategy, topCPA)) {
@@ -150,7 +159,7 @@ public class ValidationConfigurationBuilder {
 
 
   private boolean notIsARGStrategy(String pProofValStrategy) {
-    return pProofValStrategy.contains("ARG");
+    return !pProofValStrategy.contains("ARG");
   }
 
   private void removeARGCPA(final ConfigurationBuilder pConfigBuilder,
@@ -205,7 +214,6 @@ public class ValidationConfigurationBuilder {
 
   public static Configuration readConfigFromProof(Path proofFile)
       throws IOException, InvalidConfigurationException {
-    // TODO Werte der vorhandenen Configuration erlauben?
 
     try (InputStream fis = Files.newInputStream(proofFile);
         ZipInputStream zis = new ZipInputStream(fis);) {

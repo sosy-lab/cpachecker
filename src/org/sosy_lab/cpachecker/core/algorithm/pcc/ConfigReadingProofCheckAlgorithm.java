@@ -39,7 +39,9 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -47,6 +49,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.util.ValidationConfigurationBuilder;
+import org.sosy_lab.cpachecker.util.error.DummyErrorState;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options(prefix = "pcc")
 public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsProvider {
@@ -59,23 +63,32 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
   protected Path proofFile = Paths.get("arg.obj");
 
   private final Configuration valConfig;
-
   private final ProofCheckAlgorithm checkingAlgorithm;
+  private final CoreComponentsFactory coreFact;
+  private final ConfigurableProgramAnalysis valCPA;
+  private final CFA cfa;
 
   public ConfigReadingProofCheckAlgorithm(final Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier, final CFA pCfa,
       final Specification pSpecification) throws InvalidConfigurationException {
     pConfig.inject(this);
 
+    cfa = pCfa;
+
     valConfig = readValidationConfiguration();
+
+    coreFact = new CoreComponentsFactory(valConfig, pLogger, pShutdownNotifier,
+        new AggregatedReachedSets());
 
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.copyFrom(pConfig);
     configBuilder.copyOptionFrom(valConfig, "pcc.strategy");
 
-    checkingAlgorithm = new ProofCheckAlgorithm(
-        instantiateCPA(pLogger, pShutdownNotifier, pCfa, pSpecification),
-        configBuilder.build(), pLogger, pShutdownNotifier, pCfa, pSpecification);
+    valCPA = instantiateCPA(pCfa, pSpecification);
+    GlobalInfo.getInstance().setUpInfoFromCPA(valCPA);
+
+    checkingAlgorithm = new ProofCheckAlgorithm(valCPA, configBuilder.build(), pLogger,
+        pShutdownNotifier, pCfa, pSpecification);
   }
 
   private Configuration readValidationConfiguration() throws InvalidConfigurationException {
@@ -87,14 +100,9 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
     }
   }
 
-  private ConfigurableProgramAnalysis instantiateCPA(final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCfa, final Specification pSpecification)
+  private ConfigurableProgramAnalysis instantiateCPA(final CFA pCfa, final Specification pSpecification)
       throws InvalidConfigurationException {
     try {
-      CoreComponentsFactory coreFact =
-          new CoreComponentsFactory(valConfig, pLogger, pShutdownNotifier,
-              new AggregatedReachedSets());
-
       return coreFact.createCPA(pCfa, pSpecification);
     } catch (CPAException e) {
       throw new InvalidConfigurationException(
@@ -110,7 +118,22 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
-    return checkingAlgorithm.run(pReachedSet);
+    ReachedSet internalReached = coreFact.createReachedSet();
+    internalReached.add(
+        valCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+        valCPA.getInitialPrecision(cfa.getMainFunction(),
+            StateSpacePartition.getDefaultPartition()));
+
+    AlgorithmStatus status = checkingAlgorithm.run(internalReached);
+
+    pReachedSet.popFromWaitlist();
+
+    if (!status.isSound()) {
+      pReachedSet.add(new DummyErrorState(pReachedSet.getFirstState()),
+          SingletonPrecision.getInstance());
+    }
+
+    return status;
   }
 
 }
