@@ -29,6 +29,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -56,28 +58,45 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   protected Path proofFile = Paths.get("arg.obj");
 
+  private final Configuration valConfig;
+
   private final ProofCheckAlgorithm checkingAlgorithm;
 
   public ConfigReadingProofCheckAlgorithm(final Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier, final CFA pCfa,
       final Specification pSpecification) throws InvalidConfigurationException {
     pConfig.inject(this);
+
+    valConfig = readValidationConfiguration();
+
+    ConfigurationBuilder configBuilder = Configuration.builder();
+    configBuilder.copyFrom(pConfig);
+    configBuilder.copyOptionFrom(valConfig, "pcc.strategy");
+
     checkingAlgorithm = new ProofCheckAlgorithm(
         instantiateCPA(pLogger, pShutdownNotifier, pCfa, pSpecification),
-        pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
+        configBuilder.build(), pLogger, pShutdownNotifier, pCfa, pSpecification);
+  }
+
+  private Configuration readValidationConfiguration() throws InvalidConfigurationException {
+    try {
+      return ValidationConfigurationBuilder.readConfigFromProof(proofFile);
+    } catch (IOException e) {
+      throw new InvalidConfigurationException(
+          "Failed to read and build validation configuration from proof", e);
+    }
   }
 
   private ConfigurableProgramAnalysis instantiateCPA(final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa, final Specification pSpecification)
       throws InvalidConfigurationException {
     try {
-      Configuration valConfig = ValidationConfigurationBuilder.readConfigFromProof(proofFile);
-
       CoreComponentsFactory coreFact =
-          new CoreComponentsFactory(valConfig, pLogger, pShutdownNotifier, null);
+          new CoreComponentsFactory(valConfig, pLogger, pShutdownNotifier,
+              new AggregatedReachedSets());
 
       return coreFact.createCPA(pCfa, pSpecification);
-    } catch (IOException | CPAException e) {
+    } catch (CPAException e) {
       throw new InvalidConfigurationException(
           "Failed to read and build validation configuration from proof", e);
     }
