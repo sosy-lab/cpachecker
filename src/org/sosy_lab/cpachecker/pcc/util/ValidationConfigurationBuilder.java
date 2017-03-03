@@ -91,7 +91,7 @@ public class ValidationConfigurationBuilder {
 
       }
     }
-    return null;
+    return relevantPropertyEntries;
   }
 
 
