@@ -135,17 +135,16 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         if (storeConfig) {
           ze = new ZipEntry(CONFIG_ZIPENTRY_NAME);
           zos.putNextEntry(ze);
-          PrintStream ps = new PrintStream(zos);
+          o = new ObjectOutputStream(zos);
           try {
-            writeConfiguration(ps);
+            writeConfiguration(o);
           } catch (ValidationConfigurationConstructionFailed eIC) {
             logger.log(Level.WARNING, "Construction of validation configuration failed. Validation configuration is empty.");
           }
 
-          ps.flush();
+          o.flush();
           zos.closeEntry();
         }
-
       } catch (NotSerializableException eS) {
         logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage()
             + " does not implement Serializable interface");
@@ -184,8 +183,9 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     return false;
   }
 
-  protected void writeConfiguration(PrintStream pS) throws ValidationConfigurationConstructionFailed {
-    pS.print(new ValidationConfigurationBuilder(config)
+  protected void writeConfiguration(ObjectOutputStream pO)
+      throws ValidationConfigurationConstructionFailed, IOException {
+    pO.writeObject(new ValidationConfigurationBuilder(config)
         .getValidationConfiguration().asPropertiesString());
   }
 
