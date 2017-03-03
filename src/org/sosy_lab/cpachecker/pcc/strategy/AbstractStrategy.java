@@ -135,14 +135,14 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         if (storeConfig) {
           ze = new ZipEntry(CONFIG_ZIPENTRY_NAME);
           zos.putNextEntry(ze);
-          o = new ObjectOutputStream(zos);
+          PrintStream ps = new PrintStream(zos);
           try {
-            writeConfiguration(o);
+            writeConfiguration(ps);
           } catch (ValidationConfigurationConstructionFailed eIC) {
             logger.log(Level.WARNING, "Construction of validation configuration failed. Validation configuration is empty.");
           }
 
-          o.flush();
+          ps.flush();
           zos.closeEntry();
         }
 
@@ -184,8 +184,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     return false;
   }
 
-  protected void writeConfiguration(ObjectOutputStream pO) throws ValidationConfigurationConstructionFailed {
-    new PrintStream(pO).print(new ValidationConfigurationBuilder(config)
+  protected void writeConfiguration(PrintStream pS) throws ValidationConfigurationConstructionFailed {
+    pS.print(new ValidationConfigurationBuilder(config)
         .getValidationConfiguration().asPropertiesString());
   }
 
