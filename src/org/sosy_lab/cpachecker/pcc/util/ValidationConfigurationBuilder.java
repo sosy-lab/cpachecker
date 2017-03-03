@@ -42,6 +42,7 @@ public class ValidationConfigurationBuilder {
 
   public Configuration getValidationConfiguration() throws ValidationConfigurationConstructionFailed{
     ConfigurationBuilder configBuilder = Configuration.builder();
+    configBuilder.copyFrom(veriConfig);
 
     Map<String, String> relPropEntries =
         extractRelevantPropertyEntriesAndClearAnalysisOptions(configBuilder);
