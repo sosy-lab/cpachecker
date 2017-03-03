@@ -142,6 +142,10 @@ analysis.algorithm.pdr = false
 # use a proof check algorithm to validate a previously generated proof
 analysis.algorithm.proofCheck = false
 
+# use a proof check algorithm to validate a previously generated proofand
+# read the configuration for checking from the proof
+analysis.algorithm.proofCheckReadConfig = false
+
 # do analysis and then check if reached set fulfills property specified by
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
