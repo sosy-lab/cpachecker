@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -62,26 +63,26 @@ public class BAMDataManagerImpl implements BAMDataManager {
    * Mapping of non-reduced initial states
    * to {@link ReachedSet}.
    **/
-  private final Map<AbstractState, ReachedSet> initialStateToReachedSet = new LinkedHashMap<>();
+  private final Map<AbstractState, ReachedSet> initialStateToReachedSet = new HashMap<>();
 
   /**
    * Mapping from expanded states at the end of the block to corresponding
    * reduced states, from which the key state was originally expanded.
    * */
-  private final Map<AbstractState, AbstractState> expandedStateToReducedState = new LinkedHashMap<>();
+  private final Map<AbstractState, AbstractState> expandedStateToReducedState = new HashMap<>();
 
   /**
    * Mapping from expanded states at a block-end to
    * inner blocks of the corresponding reduced state,
    * from which the key was originally expanded.
    **/
-  private final Map<AbstractState, Block> expandedStateToBlock = new LinkedHashMap<>();
+  private final Map<AbstractState, Block> expandedStateToBlock = new HashMap<>();
 
   /**
    * Mapping from expanded states at a block-end to
    * corresponding expanded precisions.
    **/
-  private final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new LinkedHashMap<>();
+  private final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new HashMap<>();
 
   BAMDataManagerImpl(BAMCache pArgCache, ReachedSetFactory pReachedSetFactory, LogManager pLogger) {
     bamCache = pArgCache;
@@ -249,17 +250,24 @@ public class BAMDataManagerImpl implements BAMDataManager {
     StringBuilder str = new StringBuilder("BAM DATA MANAGER\n");
 
     str.append("initial state to (first state of) reached set:\n");
-    for (Entry<AbstractState, ReachedSet> entry : initialStateToReachedSet.entrySet()) {
+    for (Entry<AbstractState, ReachedSet> entry : sorted(initialStateToReachedSet)) {
       str.append(
           String.format(
               "    %s -> %s%n", getId(entry.getKey()), getId((entry.getValue()).getFirstState())));
     }
 
     str.append("expanded state to reduced state:\n");
-    for (Entry<AbstractState, AbstractState> entry : expandedStateToReducedState.entrySet()) {
+    for (Entry<AbstractState, AbstractState> entry : sorted(expandedStateToReducedState)) {
       str.append(String.format("    %s -> %s%n", getId(entry.getKey()), getId(entry.getValue())));
     }
 
     return str.toString();
+  }
+
+  /** sort map-entries by their key. */
+  private static <T> List<Entry<AbstractState, T>> sorted(Map<AbstractState, T> map) {
+    List<Entry<AbstractState, T>> sorted = new ArrayList<>(map.entrySet());
+    Collections.sort(sorted, (x, y) -> Integer.compare(getId(x.getKey()), getId(y.getKey())));
+    return sorted;
   }
 }
