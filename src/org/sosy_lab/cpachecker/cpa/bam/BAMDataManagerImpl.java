@@ -162,9 +162,9 @@ public class BAMDataManagerImpl implements BAMDataManager {
   }
 
   @Override
-  public ARGState getInnermostState(ARGState state) {
+  public AbstractState getInnermostState(AbstractState state) {
     while (expandedStateToReducedState.containsKey(state)) {
-      state = (ARGState) expandedStateToReducedState.get(state);
+      state = expandedStateToReducedState.get(state);
     }
     return state;
   }

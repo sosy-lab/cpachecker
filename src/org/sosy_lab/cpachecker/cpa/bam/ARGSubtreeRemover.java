@@ -146,7 +146,7 @@ public class ARGSubtreeRemover {
   }
 
   private ARGState getReachedState(ARGState state) {
-    return data.getInnermostState(((BackwardARGState) state).getARGState());
+    return (ARGState) data.getInnermostState(((BackwardARGState) state).getARGState());
   }
 
   /** just remove a state and its subtree from the given reachedSet. */

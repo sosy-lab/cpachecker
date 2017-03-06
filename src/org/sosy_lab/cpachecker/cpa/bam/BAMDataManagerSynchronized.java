@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class BAMDataManagerSynchronized implements BAMDataManager {
 
@@ -74,7 +73,7 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
   }
 
   @Override
-  public ARGState getInnermostState(ARGState pState) {
+  public AbstractState getInnermostState(AbstractState pState) {
     synchronized (this) {
       return manager.getInnermostState(pState);
     }

@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 
 public interface BAMDataManager {
@@ -69,7 +68,7 @@ public interface BAMDataManager {
    **/
   boolean alreadyReturnedFromSameBlock(AbstractState state, Block block);
 
-  ARGState getInnermostState(ARGState state);
+  AbstractState getInnermostState(AbstractState state);
 
   /**
    * Get a list of states {@code [s1,s2,s3...]},
