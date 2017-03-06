@@ -52,16 +52,23 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.exceptions.ValidationConfigurationConstructionFailed;
 import org.sosy_lab.cpachecker.pcc.util.ProofStatesInfoCollector;
+import org.sosy_lab.cpachecker.pcc.util.ValidationConfigurationBuilder;
 import org.sosy_lab.cpachecker.util.Triple;
 
 @Options(prefix="pcc")
 public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvider {
 
+  public static final String CONFIG_ZIPENTRY_NAME = "Config";
+  public static final String PROOF_ZIPENTRY_NAME = "Proof";
+  public static final String ADDITIONAL_PROOFINFO_ZIPENTRY_NAME = "Additional";
+
+  private final Configuration config;
   protected LogManager logger;
-  protected PCStrategyStatistics stats;
-  protected ProofStatesInfoCollector proofInfo;
-  private Collection<Statistics> pccStats = new ArrayList<>();
+  protected final PCStrategyStatistics stats;
+  protected final ProofStatesInfoCollector proofInfo;
+  private final Collection<Statistics> pccStats = new ArrayList<>();
 
   protected final Path proofFile;
 
@@ -71,8 +78,14 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   @IntegerOption(min=1)
   protected int numThreads = 1;
 
+  @Option(secure=true,
+      name="storeConfig",
+      description = "writes the validation configuration required for checking to proof")
+  boolean storeConfig = false;
+
   public AbstractStrategy(Configuration pConfig, LogManager pLogger, Path pProofFile) throws InvalidConfigurationException {
     pConfig.inject(this, AbstractStrategy.class);
+    config = pConfig;
     numThreads = Math.max(1, numThreads);
     numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
@@ -97,7 +110,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           final ZipOutputStream zos = new ZipOutputStream(fos)) {
         zos.setLevel(9);
 
-        ZipEntry ze = new ZipEntry("Proof");
+        ZipEntry ze = new ZipEntry(PROOF_ZIPENTRY_NAME);
         zos.putNextEntry(ze);
         ObjectOutputStream o = new ObjectOutputStream(zos);
         //TODO might also want to write used configuration to the file so that proof checker does not need to get it as an argument
@@ -110,7 +123,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
         int index = 0;
         boolean continueWriting;
         do {
-          ze = new ZipEntry("Additional " + index);
+          ze = new ZipEntry(ADDITIONAL_PROOFINFO_ZIPENTRY_NAME + index);
           zos.putNextEntry(ze);
           o = new ObjectOutputStream(zos);
           continueWriting = writeAdditionalProofStream(o);
@@ -119,6 +132,19 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           index++;
         } while (continueWriting);
 
+        if (storeConfig) {
+          ze = new ZipEntry(CONFIG_ZIPENTRY_NAME);
+          zos.putNextEntry(ze);
+          o = new ObjectOutputStream(zos);
+          try {
+            writeConfiguration(o);
+          } catch (ValidationConfigurationConstructionFailed eIC) {
+            logger.log(Level.WARNING, "Construction of validation configuration failed. Validation configuration is empty.");
+          }
+
+          o.flush();
+          zos.closeEntry();
+        }
       } catch (NotSerializableException eS) {
         logger.log(Level.SEVERE, "Proof cannot be written. Class " + eS.getMessage()
             + " does not implement Serializable interface");
@@ -157,11 +183,18 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     return false;
   }
 
+  protected void writeConfiguration(ObjectOutputStream pO)
+      throws ValidationConfigurationConstructionFailed, IOException {
+    pO.writeObject(new ValidationConfigurationBuilder(config)
+        .getValidationConfiguration().asPropertiesString());
+  }
+
+
   protected Triple<InputStream, ZipInputStream, ObjectInputStream> openProofStream() throws IOException {
     InputStream fis = Files.newInputStream(proofFile);
     ZipInputStream zis = new ZipInputStream(fis);
     ZipEntry entry = zis.getNextEntry();
-    assert entry.getName().equals("Proof");
+    assert entry.getName().equals(PROOF_ZIPENTRY_NAME);
     return Triple.of(fis, zis, new ObjectInputStream(zis));
   }
 
@@ -175,7 +208,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       entry = zis.getNextEntry();
     }
 
-    assert entry.getName().equals("Additional " + index);
+    assert entry.getName().equals("ADDITIONAL_PROOFINFO_ZIPENTRY_NAME " + index);
     return Triple.of(fis, zis, new ObjectInputStream(zis));
   }
 
