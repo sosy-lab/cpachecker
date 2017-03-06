@@ -510,8 +510,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         // so we must compute the subgraph specification from scratch
         ReachedSetExecutor subRse = new ReachedSetExecutor(newRs, mainReachedSet, reachedSetMapping, pool);
         // register NOOP here. Callback for results is registered later, we have "lazy" computation.
-        CompletableFuture<Void> future = CompletableFuture.runAsync(NOOP, pool)
-            .exceptionally(new ExceptionHandler(pool, subRse));
+        CompletableFuture<Void> future =
+            CompletableFuture.runAsync(NOOP, pool).exceptionally(new ExceptionHandler(subRse));
         reachedSetMapping.put(newRs, Pair.of(subRse, future));
         logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
       }
@@ -526,8 +526,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       synchronized (reachedSetMapping) {
         Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(pRse.rs);
         assert p.getFirst() == pRse;
-        CompletableFuture<Void> future = p.getSecond().thenRunAsync(r, pool)
-            .exceptionally(new ExceptionHandler(pool, pRse));
+        CompletableFuture<Void> future =
+            p.getSecond().thenRunAsync(r, pool).exceptionally(new ExceptionHandler(pRse));
         reachedSetMapping.put(pRse.rs, Pair.of(pRse, future));
       }
     }
@@ -540,11 +540,9 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
   private class ExceptionHandler implements Function<Throwable, Void> {
 
-    private final ExecutorService pool;
     private final ReachedSetExecutor rse;
 
-    public ExceptionHandler(ExecutorService pPool, ReachedSetExecutor pRse) {
-      pool = pPool;
+    public ExceptionHandler(ReachedSetExecutor pRse) {
       rse = pRse;
     }
 
@@ -557,7 +555,6 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
         logger.logException(Level.WARNING, e, rse + " :: " + e.getClass().getSimpleName());
         error.compareAndSet(null, e);
       }
-//      pool.shutdownNow();
       return null;
     }
 
