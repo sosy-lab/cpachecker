@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.statistics.StatHist;
 
 @Options(prefix = "cpa.bam")
 public class BAMCacheImpl implements BAMCache {
@@ -275,12 +276,19 @@ public class BAMCacheImpl implements BAMCache {
 
     int sumCalls = cacheMisses + partialCacheHits + fullCacheHits;
 
-    int sumARTElements = 0;
+    StatHist argSizes = new StatHist("Sizes of ARGs");
     for (UnmodifiableReachedSet subreached : getAllCachedReachedStates()) {
-      sumARTElements += subreached.size();
+      argSizes.insertValue(subreached.size());
     }
 
-    out.println("Total size of all ARGs:                              " + sumARTElements);
+    StatHist resultSizes = new StatHist("Number of block-exit states");
+    for (Collection<AbstractState> result : returnCache.values()) {
+      resultSizes.insertValue(result.size());
+    }
+
+    out.println("Total size of all ARGs:                              " + argSizes.getSum());
+    out.println("Sizes of ARGs:                                       " + argSizes);
+    out.println("Number of block-exit states:                         " + resultSizes);
     out.println("Total number of recursive CPA calls:                 " + sumCalls);
     out.println("  Number of cache misses:                            " + cacheMisses + " (" + toPercent(cacheMisses, sumCalls) + " of all calls)");
     out.println("  Number of partial cache hits:                      " + partialCacheHits + " (" + toPercent(partialCacheHits, sumCalls) + " of all calls)");
