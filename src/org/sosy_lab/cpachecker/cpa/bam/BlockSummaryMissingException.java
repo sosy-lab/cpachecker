@@ -75,4 +75,10 @@ public final class BlockSummaryMissingException extends CPATransferException {
   public ReachedSet getReachedSet() {
     return reachedSet;
   }
+
+  @Override
+  public synchronized Throwable fillInStackTrace() {
+    // overridden for performance issues, creating stacktrace is expensive and not needed here.
+    return this;
+  }
 }
