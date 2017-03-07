@@ -23,32 +23,52 @@
  */
 package org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor;
 
+import java.io.PrintStream;
+import java.util.Collection;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.statistics.StatHist;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 public class SingleSuccessorCompactorCPA extends AbstractSingleWrapperCPA
-implements ConfigurableProgramAnalysisWithBAM {
+    implements ConfigurableProgramAnalysisWithBAM {
 
   /** if BAM is used, break chains of edges at block entry and exit. */
   @Nullable private BlockPartitioning partitioning = null;
+
+  private final StatHist chainSizes =
+      new StatHist("Avg length of skipped chains") {
+        @Override
+        public String toString() {
+          // overriding, because printing all chain-sizes is not that interesting
+          return String.format("%.2f", getAvg());
+        }
+      };
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SingleSuccessorCompactorCPA.class);
   }
 
-  public SingleSuccessorCompactorCPA(ConfigurableProgramAnalysis pCpa) {
+  private final LogManager logger;
+
+  public SingleSuccessorCompactorCPA(ConfigurableProgramAnalysis pCpa, LogManager pLogger) {
     super(pCpa);
+    logger = pLogger;
   }
 
   @Override
-  public TransferRelation getTransferRelation() {
-    return new SingleSuccessorCompactorTransferRelation(getWrappedCpa().getTransferRelation(), partitioning);
+  public SingleSuccessorCompactorTransferRelation getTransferRelation() {
+    return new SingleSuccessorCompactorTransferRelation(
+        getWrappedCpa().getTransferRelation(), partitioning, chainSizes);
   }
 
   @Override
@@ -57,5 +77,28 @@ implements ConfigurableProgramAnalysisWithBAM {
       ((ConfigurableProgramAnalysisWithBAM)getWrappedCpa()).setPartitioning(pPartitioning);
     }
     partitioning = pPartitioning;
+  }
+
+  LogManager getLogger() {
+    return logger;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    super.collectStatistics(pStatsCollection);
+    pStatsCollection.add(
+        new Statistics() {
+
+          @Override
+          public void printStatistics(
+              PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+            StatisticsUtils.write(pOut, 0, 50, chainSizes);
+          }
+
+          @Override
+          public @Nullable String getName() {
+            return "SSC-CPA";
+          }
+        });
   }
 }
