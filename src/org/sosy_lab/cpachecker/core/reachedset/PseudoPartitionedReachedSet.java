@@ -61,7 +61,7 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
    * column/second key: the pseudo-partition, see {@link PseudoPartitionable}.
    */
   private final Table<Object, Comparable<?>, SetMultimap<Object, AbstractState>> partitionedReached =
-      HashBasedTable.create();
+      HashBasedTable.create(1,1);
 
   public PseudoPartitionedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);

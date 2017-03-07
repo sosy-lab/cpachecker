@@ -99,8 +99,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     ARGPath path = ARGUtils.getRandomPath(rootOfSubgraph);
     StatTimer dummyTimer = new StatTimer("dummy");
-    BAMReachedSet bamReachedSet =
-        new BAMReachedSet(bamCpa, pMainReachedSet, path, rootOfSubgraph, dummyTimer);
+    BAMReachedSet bamReachedSet = new BAMReachedSet(bamCpa, pMainReachedSet, path, dummyTimer);
 
     super.printStatistics(pOut, pResult, bamReachedSet.asReachedSet());
   }

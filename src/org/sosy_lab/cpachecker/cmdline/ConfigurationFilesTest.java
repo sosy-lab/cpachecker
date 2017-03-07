@@ -57,6 +57,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -222,6 +223,26 @@ public class ConfigurationFilesTest {
         Writer w =
             MoreFiles.openOutputFile(
                 Paths.get("output/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
+  }
+
+  @Before
+  public void createDummyInputAutomatonFiles() throws IOException {
+    // Create files that some analyses expect as input files.
+
+    try (Reader r =
+            Files.newBufferedReader(Paths.get("config/specification/AssumptionGuidingAutomaton.spc"));
+        Writer w =
+            MoreFiles.openOutputFile(
+                Paths.get(tempFolder.newFolder("config").getAbsolutePath()+"/specification/AssumptionGuidingAutomaton.spc"), StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
+    try (Reader r =
+        Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
+        Writer w =
+            MoreFiles.openOutputFile(
+                Paths.get(tempFolder.newFolder("output").getAbsolutePath()+"/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
   }

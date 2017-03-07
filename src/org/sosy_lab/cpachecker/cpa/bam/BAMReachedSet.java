@@ -61,33 +61,28 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   private final BlockPartitioning partitioning;
   private final BAMDataManager data;
   private final ARGPath path;
-  private final ARGState rootOfSubgraph;
   private final StatTimer removeCachedSubtreeTimer;
   private final LogManager logger;
 
   public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
-      ARGState pRootOfSubgraph,
       StatTimer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.partitioning = cpa.getBlockPartitioning();
     this.data = cpa.getData();
     this.logger = cpa.getLogger();
     this.path = pPath;
-    this.rootOfSubgraph = pRootOfSubgraph;
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
 
-    assert rootOfSubgraph.getSubgraph().containsAll(path.asStatesList()) : "path should traverse reachable states";
-    assert pRootOfSubgraph == path.getFirstState() : "path should start with root-state";
+    assert path.getFirstState().getSubgraph().containsAll(path.asStatesList()) : "path should traverse reachable states";
   }
 
   @Override
   public UnmodifiableReachedSet asReachedSet() {
-    return new BAMReachedSetView(rootOfSubgraph, path.getLastState(),
+    return new BAMReachedSetView(path.getFirstState(), path.getLastState(),
         s -> super.asReachedSet().getPrecision(super.asReachedSet().getLastState()));
     // TODO do we really need the target-precision for refinements and not the actual one?
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void removeSubtree(
       ARGState element, Precision newPrecision, Predicate<? super Precision> pPrecisionType)
@@ -102,14 +97,14 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
     Preconditions.checkArgument(pPrecisionTypes.size() == pPrecisionTypes.size());
-    assert rootOfSubgraph.getSubgraph().contains(cutState);
+    assert path.getFirstState().getSubgraph().contains(cutState);
 
     // get blocks that need to be touched
     Map<BackwardARGState, ARGState> blockInitAndExitStates =
         getBlockInitAndExitStates(path.asStatesList());
     Deque<ARGState> relevantCallStates = getRelevantCallStates(path.asStatesList(), cutState);
-    assert relevantCallStates.peekLast() == rootOfSubgraph
-        : "root should be relevant: " + relevantCallStates.peekLast() + " + " + rootOfSubgraph;
+    assert relevantCallStates.peekLast() == path.getFirstState()
+        : "root should be relevant: " + relevantCallStates.peekLast() + " + " + path.getFirstState();
     assert relevantCallStates.size() >= 1
         : "at least the main-function should be open at the target-state";
     // TODO add element's block, if necessary?

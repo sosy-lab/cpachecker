@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar.PDRAlgorithm;
@@ -145,6 +146,11 @@ public class CoreComponentsFactory {
       description="use a proof check algorithm to validate a previously generated proof")
   private boolean useProofCheckAlgorithm = false;
 
+  @Option(secure=true, name="algorithm.proofCheckReadConfig",
+      description="use a proof check algorithm to validate a previously generated proof"
+          + "and read the configuration for checking from the proof")
+  private boolean useProofCheckAlgorithmWithStoredConfig = false;
+
   @Option(secure=true, name="algorithm.propertyCheck",
       description = "do analysis and then check "
       + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
@@ -223,6 +229,7 @@ public class CoreComponentsFactory {
     // We must not create such a new ShutdownManager if it is not needed,
     // because otherwise the GC will throw it away and shutdowns will NOT WORK!
     return !useProofCheckAlgorithm
+        && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
         && !useRestartAlgorithmWithARGReplay
@@ -248,7 +255,11 @@ public class CoreComponentsFactory {
 
     Algorithm algorithm;
 
-    if (useProofCheckAlgorithm) {
+    if(useProofCheckAlgorithmWithStoredConfig) {
+      logger.log(Level.INFO, "Using Proof Check Algorithm");
+      algorithm =
+          new ConfigReadingProofCheckAlgorithm(config, logger, shutdownNotifier, cfa, specification);
+    } else if (useProofCheckAlgorithm) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
           new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa, specification);
@@ -425,7 +436,7 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useRestartingAlgorithm || useParallelAlgorithm) {
+    if (useRestartingAlgorithm || useParallelAlgorithm || useProofCheckAlgorithmWithStoredConfig) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
