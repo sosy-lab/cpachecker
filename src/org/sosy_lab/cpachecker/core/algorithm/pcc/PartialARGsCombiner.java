@@ -269,10 +269,17 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   private boolean noConcreteSuccessorExist(final ARGState pPredecessor, final CFAEdge pSuccEdge,
       HistoryForwardingReachedSet pForwaredReachedSet) {
     // check if analysis stopped exploration due e.g. time limit
+    boolean inReached = false;
     for(ReachedSet reached :pForwaredReachedSet.getAllReachedSetsUsedAsDelegates()) {
       if(reached.getWaitlist().contains(pPredecessor)) {
         return false;
       }
+      if (reached.contains(pPredecessor)) {
+        inReached = true;
+      }
+    }
+    if (!inReached) {
+      return false;
     }
   // check if analysis stopped exploration due to true state in automaton --> concrete successors may exist
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
