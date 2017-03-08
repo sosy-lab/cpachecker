@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -49,9 +50,9 @@ import java.util.logging.Level;
  * non-linear numerical operations (overflow/etc), and if the model does not
  * hold anymore, generate a new one.
  */
-public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironment<T> {
+public class UFCheckingBasicProverEnvironment implements BasicProverEnvironment {
 
-  private final BasicProverEnvironment<T> delegate;
+  private final BasicProverEnvironment delegate;
   private final LogManager logger;
   private final BooleanFormulaManager bfmgr;
   private final FunctionApplicationManager faMgr;
@@ -88,7 +89,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
     }
   }
 
-  public UFCheckingBasicProverEnvironment(LogManager pLogger, BasicProverEnvironment<T> bpe,
+  public UFCheckingBasicProverEnvironment(LogManager pLogger, BasicProverEnvironment bpe,
       FormulaManagerView pFmgr, UFCheckingProverOptions options) {
     this.delegate = bpe;
     this.logger = pLogger;
@@ -98,7 +99,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   }
 
   @Override
-  public T push(BooleanFormula f) {
+  public InterpolationHandle push(BooleanFormula f) {
 
     // add new level
     pushedConstraints.addLast(0);
@@ -122,7 +123,7 @@ public class UFCheckingBasicProverEnvironment<T> implements BasicProverEnvironme
   }
 
   @Override
-  public T addConstraint(BooleanFormula constraint) {
+  public InterpolationHandle addConstraint(BooleanFormula constraint) {
     return delegate.addConstraint(constraint);
   }
 

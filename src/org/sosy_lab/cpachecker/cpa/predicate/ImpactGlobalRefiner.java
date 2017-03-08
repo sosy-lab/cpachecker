@@ -29,6 +29,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -62,6 +63,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -231,18 +233,18 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     // We do not descend beyond unreachable states,
     // but instead perform refinement on them.
 
-    try (InterpolatingProverEnvironment<?> itpProver = solver.newProverEnvironmentWithInterpolation()) {
+    try (InterpolatingProverEnvironment itpProver = solver.newProverEnvironmentWithInterpolation()) {
       return performRefinement0(root, successors, predecessors, pReached, targets, itpProver);
     }
   }
 
   // This is just a separate method to get the generics right.
   // (The arguments of the list and the prover need to match.)
-  private <T> boolean performRefinement0(ARGState current, SetMultimap<ARGState, ARGState> successors,
+  private boolean performRefinement0(ARGState current, SetMultimap<ARGState, ARGState> successors,
       Map<ARGState, ARGState> predecessors, ReachedSet pReached, List<AbstractState> targets,
-      InterpolatingProverEnvironment<T> itpProver)
+      InterpolatingProverEnvironment itpProver)
       throws InterruptedException, SolverException, CPAException {
-    List<T> itpStack = new ArrayList<>();
+    List<InterpolationHandle> itpStack = new ArrayList<>();
     boolean successful = step(current, itpStack, successors, predecessors, pReached, targets, itpProver);
     assert itpStack.isEmpty();
     return successful;
@@ -272,9 +274,12 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * @param targets The set of target states.
    * @return False if a feasible counterexample was found, True if refinement was successful.
    */
-  private <T> boolean step(ARGState current, List<T> itpStack, SetMultimap<ARGState, ARGState> successors,
+  private boolean step(
+      ARGState current,
+      List<InterpolationHandle> itpStack,
+      SetMultimap<ARGState, ARGState> successors,
       Map<ARGState, ARGState> predecessors, ReachedSet pReached, List<AbstractState> targets,
-      InterpolatingProverEnvironment<T> itpProver)
+      InterpolatingProverEnvironment itpProver)
       throws InterruptedException, SolverException, CPAException {
 
     for (ARGState succ : successors.get(current)) {
@@ -335,12 +340,11 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
    * @param predecessors The predecessor relation of abstraction states.
    * @param reached The reached set.
    */
-  private <T> void performRefinementOnPath(List<T> itpStack, final ARGState unreachableState,
+  private  void performRefinementOnPath(List<InterpolationHandle> itpStack, final ARGState unreachableState,
       Map<ARGState, ARGState> predecessors, ReachedSet reached,
-      InterpolatingProverEnvironment<T> itpProver) throws CPAException,
+      InterpolatingProverEnvironment itpProver) throws CPAException,
       SolverException, InterruptedException {
     assert !itpStack.isEmpty();
-    assert bfmgr.isFalse(itpProver.getInterpolant(itpStack)); // last interpolant is False
 
     pathsRefined++;
     totalPathLengthToInfeasibility += itpStack.size();
@@ -351,17 +355,16 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     // going upwards from unreachableState refining states with interpolants
     ARGState currentState = unreachableState;
     do {
-      itpStack.remove(itpStack.size()-1); // remove last
+      InterpolationHandle lastIdx = itpStack.remove(itpStack.size() - 1); // remove last
       currentState = predecessors.get(currentState);
       if (itpStack.isEmpty()) {
         assert currentState.getParents().isEmpty(); // we should have reached the ARG root
-        assert bfmgr.isTrue(itpProver.getInterpolant(itpStack));
         break;
       }
 
 
       getInterpolantTime.start();
-      BooleanFormula currentItp = itpProver.getInterpolant(itpStack);
+      BooleanFormula currentItp = itpProver.getInterpolant(itpStack, ImmutableSet.of(lastIdx));
       getInterpolantTime.stop();
 
       if (bfmgr.isTrue(currentItp)) {

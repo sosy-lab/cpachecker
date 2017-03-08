@@ -59,6 +59,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 
@@ -149,7 +150,7 @@ public class PolicyInterpolationRefiner implements Refiner {
     Preconditions.checkState(!policyState.isAbstract(),
         "Property violation should be associated with an intermediate state.");
 
-    try (InterpolatingProverEnvironment<?> itp = solver.newProverEnvironmentWithInterpolation()) {
+    try (InterpolatingProverEnvironment itp = solver.newProverEnvironmentWithInterpolation()) {
       return injectPrecision(itp, policyState.asIntermediate());
     }
   }
@@ -158,14 +159,14 @@ public class PolicyInterpolationRefiner implements Refiner {
    * Inject precision derived from interpolants into PolicyCPA.
    * Return whether the precision was changed.
    */
-  private <T> boolean injectPrecision(
-      InterpolatingProverEnvironment<T> itp,
+  private boolean injectPrecision(
+      InterpolatingProverEnvironment itp,
       final PolicyIntermediateState iState) throws SolverException, InterruptedException {
-    List<Set<T>> handles = new ArrayList<>();
+    List<Set<InterpolationHandle>> handles = new ArrayList<>();
 
     int pushed = 0;
     for (PolicyIntermediateState predecessor : iState.allStatesToRoot()) {
-      T handle = itp.push(predecessor.getPathFormula().getFormula());
+      InterpolationHandle handle = itp.push(predecessor.getPathFormula().getFormula());
       assert handle != null;
       handles.add(ImmutableSet.of(handle));
       pushed++;
@@ -223,12 +224,12 @@ public class PolicyInterpolationRefiner implements Refiner {
    * @return new interpolants or {@code Optional.empty()} if the generalized
    * conjunction is satisfiable.
    */
-  private <T> Optional<List<BooleanFormula>> getGeneralizedInterpolants(
+  private Optional<List<BooleanFormula>> getGeneralizedInterpolants(
       final PolicyIntermediateState pState,
-      InterpolatingProverEnvironment<T> itp
+      InterpolatingProverEnvironment itp
       ) throws SolverException, InterruptedException {
 
-    List<Set<T>> handles = new ArrayList<>();
+    List<Set<InterpolationHandle>> handles = new ArrayList<>();
 
     for (PolicyIntermediateState predecessor : pState.allStatesToRoot()) {
       BooleanFormula f = predecessor.getPathFormula().getFormula();
@@ -236,7 +237,7 @@ public class PolicyInterpolationRefiner implements Refiner {
       Set<String> varsToRemove = getRelevantInstantiatedVars(predecessor.getBackpointerState());
       BooleanFormula weakened = weaken(f, varsToRemove);
 
-      T handle = itp.push(weakened);
+      InterpolationHandle handle = itp.push(weakened);
       assert handle != null;
       handles.add(ImmutableSet.of(handle));
     }

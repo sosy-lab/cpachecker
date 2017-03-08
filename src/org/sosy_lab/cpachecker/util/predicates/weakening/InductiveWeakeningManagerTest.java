@@ -51,9 +51,10 @@ import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 import java.util.Set;
+import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 @RunWith(Parameterized.class)
-public class InductiveWeakeningManagerTest {
+public class InductiveWeakeningManagerTest extends SolverBasedTest0 {
   @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
     return Solvers.values();
@@ -61,6 +62,11 @@ public class InductiveWeakeningManagerTest {
 
   @Parameter(0)
   public Solvers solver;
+
+  @Override
+  protected Solvers solverToUse() {
+    return solver;
+  }
 
   private InductiveWeakeningManager inductiveWeakeningManager;
   private IntegerFormulaManager ifmgr;
@@ -88,6 +94,8 @@ public class InductiveWeakeningManagerTest {
   }
 
   @Test public void testSlicingVerySimple() throws Exception {
+    requireAssumptions();
+
     SSAMap startingSsa = SSAMap.emptySSAMap().withDefault(0);
     PathFormula transition = new PathFormula(
         ifmgr.equal(

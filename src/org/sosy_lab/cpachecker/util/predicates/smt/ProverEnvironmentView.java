@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
 
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model;
@@ -79,7 +80,7 @@ class ProverEnvironmentView implements ProverEnvironment{
 
   @Nullable
   @Override
-  public Void push(BooleanFormula f) {
+  public InterpolationHandle push(BooleanFormula f) {
     return delegate.push(f);
   }
 
@@ -89,7 +90,7 @@ class ProverEnvironmentView implements ProverEnvironment{
   }
 
   @Override
-  public Void addConstraint(BooleanFormula constraint) {
+  public InterpolationHandle addConstraint(BooleanFormula constraint) {
     return delegate.addConstraint(constraint);
   }
 

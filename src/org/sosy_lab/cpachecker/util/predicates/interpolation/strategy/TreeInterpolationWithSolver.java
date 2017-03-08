@@ -30,6 +30,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 import com.google.common.primitives.Ints;
 
-public class TreeInterpolationWithSolver<T> extends AbstractTreeInterpolation<T> {
+public class TreeInterpolationWithSolver extends AbstractTreeInterpolation {
 
   /**
    * This strategy uses a SMT solver that directly computes tree interpolants.
@@ -52,10 +53,10 @@ public class TreeInterpolationWithSolver<T> extends AbstractTreeInterpolation<T>
 
   @Override
   public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+          final InterpolationManager.Interpolator interpolator,
+          final List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> formulasWithStatesAndGroupdIds)
           throws InterruptedException, SolverException {
-    final Pair<List<Triple<BooleanFormula, AbstractState, T>>, List<Integer>> p = buildTreeStructure(formulasWithStatesAndGroupdIds);
+    final Pair<List<Triple<BooleanFormula, AbstractState, InterpolationHandle>>, List<Integer>> p = buildTreeStructure(formulasWithStatesAndGroupdIds);
     final List<BooleanFormula> itps = interpolator.itpProver.getTreeInterpolants(
             wrapAllInSets(projectToThird(p.getFirst())), Ints.toArray(p.getSecond()));
     return flattenTreeItps(formulasWithStatesAndGroupdIds, itps);

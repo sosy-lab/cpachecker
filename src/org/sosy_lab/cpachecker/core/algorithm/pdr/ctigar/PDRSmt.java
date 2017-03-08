@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -62,6 +62,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -231,7 +232,7 @@ public class PDRSmt {
       throws InterruptedException, SolverException, CPAException {
 
     stats.liftingTimer.start();
-    try (InterpolatingProverEnvironment<?> concreteProver =
+    try (InterpolatingProverEnvironment concreteProver =
             solver.newProverEnvironmentWithInterpolation();
         ProverEnvironment abstractProver = solver.newProverEnvironment()) {
       return abstractLift(
@@ -253,18 +254,20 @@ public class PDRSmt {
       BooleanFormula pSuccessorStates,
       CFANode pPredLoc,
       CFANode pSuccLoc,
-      InterpolatingProverEnvironment<T> pConcrProver,
+      InterpolatingProverEnvironment pConcrProver,
       ProverEnvironment pAbstrProver)
       throws InterruptedException, SolverException, CPAException {
     BooleanFormula abstractState = abstractionManager.computeAbstraction(pConcreteState);
 
+    List<InterpolationHandle> otherIds = new ArrayList<>();
+
     // Push unsatisfiable formula (state & T & not(successor)'). Push state last,
     // so it can be popped and replaced with a refined version later if necessary.
     pAbstrProver.push(transition.getTransitionRelationFormula());
-    pConcrProver.push(transition.getTransitionRelationFormula());
+    otherIds.add(pConcrProver.push(transition.getTransitionRelationFormula()));
     pAbstrProver.push(PDRUtils.asPrimed(bfmgr.not(pSuccessorStates), fmgr, transition));
-    pConcrProver.push(PDRUtils.asPrimed(bfmgr.not(pSuccessorStates), fmgr, transition));
-    T idForInterpolation = pConcrProver.push(pConcreteState);
+    otherIds.add(pConcrProver.push(PDRUtils.asPrimed(bfmgr.not(pSuccessorStates), fmgr, transition)));
+    InterpolationHandle idForInterpolation = pConcrProver.push(pConcreteState);
     pAbstrProver.push(abstractState);
 
     boolean isConcreteQueryUnsat = PDRUtils.isUnsat(pConcrProver, stats.pureLiftingSatTimer);
@@ -277,7 +280,8 @@ public class PDRSmt {
      */
     if (!isConcreteQueryUnsat) {
       idForInterpolation =
-          removeNondetVariables(pConcreteState, pSuccessorStates, pPredLoc, pSuccLoc, pConcrProver);
+          removeNondetVariables(
+              pConcreteState, pSuccessorStates, pPredLoc, pSuccLoc, pConcrProver, otherIds);
     }
     if (!PDRUtils.isUnsat(pConcrProver, stats.pureLiftingSatTimer)) {
       logger.log(
@@ -296,7 +300,10 @@ public class PDRSmt {
       // Abstraction was too broad => Refine.
       stats.numberFailedLifts++;
       BooleanFormula interpolant =
-          pConcrProver.getInterpolant(Collections.singletonList(idForInterpolation));
+          pConcrProver.getInterpolant(
+              ImmutableSet.of(idForInterpolation),
+              otherIds
+          );
       assert PDRUtils.isUnprimed(interpolant, fmgr, transition);
       abstractState = abstractionManager.refineAndComputeAbstraction(pConcreteState, interpolant);
 
@@ -550,17 +557,20 @@ public class PDRSmt {
    *
    * <p>The prover is supposed to already contain the lifting query.
    */
-  private <T> T removeNondetVariables(
+  private InterpolationHandle removeNondetVariables(
       BooleanFormula pPred,
       BooleanFormula pSucc,
       CFANode pPredLoc,
       CFANode pSuccLoc,
-      InterpolatingProverEnvironment<T> pConcrProver)
+      InterpolatingProverEnvironment pConcrProver,
+      List<InterpolationHandle> otherIds)
       throws InterruptedException, CPAException {
 
     // Pop pPred and pSucc first (in that order!).
     pConcrProver.pop();
+    otherIds.remove(otherIds.size() - 1);
     pConcrProver.pop();
+    otherIds.remove(otherIds.size() - 1);
 
     Set<Formula> nondetVars = nondetVarsOfConnectingBlock(pPredLoc, pSuccLoc);
     List<Formula> nondetsAsPrimed =
@@ -575,10 +585,9 @@ public class PDRSmt {
         fmgr.filterLiterals(pSucc, lit -> !nondetNames.containsAll(fmgr.extractVariableNames(lit)));
 
     // Re-push adjusted not(succ)' and old pred (in that order!).
-    pConcrProver.push(PDRUtils.asPrimed(bfmgr.not(succWithoutNondet), fmgr, transition));
-    T idForInterpolation = pConcrProver.push(pPred);
-
-    return idForInterpolation;
+    otherIds.add(pConcrProver.push(PDRUtils.asPrimed(bfmgr.not(succWithoutNondet), fmgr,
+        transition)));
+    return pConcrProver.push(pPred);
   }
 
   /**
@@ -605,106 +614,98 @@ public class PDRSmt {
       throws SolverException, InterruptedException, CPAException {
     stats.consecutionTimer.start();
 
-    // Wrapper method to capture the wildcard type.
-    try (InterpolatingProverEnvironment<?> concreteProver =
+    try (InterpolatingProverEnvironment concreteProver =
             solver.newProverEnvironmentWithInterpolation();
         ProverEnvironment abstractProver =
             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      return consecution(pLevel, pStates, concreteProver, abstractProver);
+
+      BooleanFormula abstr = pStates.getAbstract();
+      BooleanFormula concrete = pStates.getConcrete();
+      List<InterpolationHandle> idsForInterpolation = new ArrayList<>();
+
+      // Push consecution query (F_pLevel & not(s) & T & s')
+      for (BooleanFormula frameClause : frameSet.getStates(pLevel)) {
+        abstractProver.push(frameClause);
+        idsForInterpolation.add(concreteProver.push(frameClause));
+      }
+      abstractProver.push(transition.getTransitionRelationFormula());
+      idsForInterpolation.add(concreteProver.push(transition.getTransitionRelationFormula()));
+      abstractProver.push(bfmgr.not(abstr));
+      idsForInterpolation.add(concreteProver.push(bfmgr.not(concrete)));
+      abstractProver.push(PDRUtils.asPrimed(abstr, fmgr, transition));
+      InterpolationHandle primedHandle =
+          concreteProver.push(PDRUtils.asPrimed(concrete, fmgr, transition));
+
+      boolean abstractConsecutionWorks =
+          PDRUtils.isUnsat(abstractProver, stats.pureConsecutionSatTimer);
+      boolean concreteConsecutionWorks =
+          PDRUtils.isUnsat(concreteProver, stats.pureConsecutionSatTimer);
+
+      if (!abstractConsecutionWorks) {
+        if (concreteConsecutionWorks) {
+
+          // Concrete states and abstract states disagree. Abstraction was too broad => Refine
+          BooleanFormula interpolant = concreteProver.getInterpolant(
+              idsForInterpolation, ImmutableSet.of(primedHandle));
+          BooleanFormula forRefinement = bfmgr.not(interpolant);
+          abstr = abstractionManager.refineAndComputeAbstraction(concrete, forRefinement);
+
+          // Update not(s) and s'
+          abstractProver.pop();
+          abstractProver.pop();
+          abstractProver.push(bfmgr.not(abstr));
+          abstractProver.push(PDRUtils.asPrimed(abstr, fmgr, transition));
+
+          abstractConsecutionWorks = PDRUtils.isUnsat(abstractProver, stats.pureConsecutionSatTimer);
+          assert abstractConsecutionWorks;
+          assert isConsecutionValid(pLevel, abstr);
+        } else {
+
+          // Concrete states and abstract states both agree that there is a predecessor.
+          stats.numberFailedConsecutions++;
+          StatesWithLocation predecessorState = getSatisfyingState(concreteProver.getModel());
+
+          // No need to lift and abstract if states are initial.
+          // PDR will terminate with counterexample anyway.
+          if (isInitial(predecessorState.getConcrete())) {
+            return new ConsecutionResult(false, predecessorState);
+          }
+          BooleanFormula abstractLiftedPredecessor =
+              abstractLift(
+                  predecessorState.getAbstract(),
+                  concrete,
+                  predecessorState.getLocation(),
+                  pStates.getLocation());
+          return new ConsecutionResult(
+              false,
+              new StatesWithLocation(
+                  abstractLiftedPredecessor,
+                  predecessorState.getConcrete(),
+                  predecessorState.getLocation()));
+        }
+      }
+
+      // Must work at this point. Real predecessor would have been found before.
+      assert abstractConsecutionWorks;
+
+      // Generalize: Drop parts of abstr' that are not in unsat-core.
+      stats.numberSuccessfulConsecutions++;
+      BooleanFormula generalized =
+          PDRUtils.asUnprimed(
+              reduceByUnsatCore(
+                  PDRUtils.asPrimed(abstr, fmgr, transition),
+                  abstractProver,
+                  ReductionMode.CONSECUTION),
+              fmgr,
+              transition);
+      generalized =
+          dropIrrelevantConjunctiveParts(generalized, abstractProver, ReductionMode.CONSECUTION);
+      assert isConsecutionValid(pLevel, generalized);
+      return new ConsecutionResult(
+          true, new StatesWithLocation(generalized, pStates.getConcrete(), pStates.getLocation()));
     } finally {
       stats.consecutionTimer.stop();
     }
-  }
-
-  private <T> ConsecutionResult consecution(
-      int pLevel,
-      StatesWithLocation pStates,
-      InterpolatingProverEnvironment<T> pConcreteProver,
-      ProverEnvironment pAbstractProver)
-      throws SolverException, InterruptedException, CPAException {
-
-    BooleanFormula abstr = pStates.getAbstract();
-    BooleanFormula concrete = pStates.getConcrete();
-    List<T> idsForInterpolation = new ArrayList<>();
-
-    // Push consecution query (F_pLevel & not(s) & T & s')
-    for (BooleanFormula frameClause : frameSet.getStates(pLevel)) {
-      pAbstractProver.push(frameClause);
-      idsForInterpolation.add(pConcreteProver.push(frameClause));
-    }
-    pAbstractProver.push(transition.getTransitionRelationFormula());
-    idsForInterpolation.add(pConcreteProver.push(transition.getTransitionRelationFormula()));
-    pAbstractProver.push(bfmgr.not(abstr));
-    idsForInterpolation.add(pConcreteProver.push(bfmgr.not(concrete)));
-    pAbstractProver.push(PDRUtils.asPrimed(abstr, fmgr, transition));
-    pConcreteProver.push(PDRUtils.asPrimed(concrete, fmgr, transition));
-
-    boolean abstractConsecutionWorks =
-        PDRUtils.isUnsat(pAbstractProver, stats.pureConsecutionSatTimer);
-    boolean concreteConsecutionWorks =
-        PDRUtils.isUnsat(pConcreteProver, stats.pureConsecutionSatTimer);
-
-    if (!abstractConsecutionWorks) {
-      if (concreteConsecutionWorks) {
-
-        // Concrete states and abstract states disagree. Abstraction was too broad => Refine
-        BooleanFormula interpolant = pConcreteProver.getInterpolant(idsForInterpolation);
-        BooleanFormula forRefinement = bfmgr.not(interpolant);
-        abstr = abstractionManager.refineAndComputeAbstraction(concrete, forRefinement);
-
-        // Update not(s) and s'
-        pAbstractProver.pop();
-        pAbstractProver.pop();
-        pAbstractProver.push(bfmgr.not(abstr));
-        pAbstractProver.push(PDRUtils.asPrimed(abstr, fmgr, transition));
-
-        abstractConsecutionWorks = PDRUtils.isUnsat(pAbstractProver, stats.pureConsecutionSatTimer);
-        assert abstractConsecutionWorks;
-        assert isConsecutionValid(pLevel, abstr);
-      } else {
-
-        // Concrete states and abstract states both agree that there is a predecessor.
-        stats.numberFailedConsecutions++;
-        StatesWithLocation predecessorState = getSatisfyingState(pConcreteProver.getModel());
-
-        // No need to lift and abstract if states are initial.
-        // PDR will terminate with counterexample anyway.
-        if (isInitial(predecessorState.getConcrete())) {
-          return new ConsecutionResult(false, predecessorState);
-        }
-        BooleanFormula abstractLiftedPredecessor =
-            abstractLift(
-                predecessorState.getAbstract(),
-                concrete,
-                predecessorState.getLocation(),
-                pStates.getLocation());
-        return new ConsecutionResult(
-            false,
-            new StatesWithLocation(
-                abstractLiftedPredecessor,
-                predecessorState.getConcrete(),
-                predecessorState.getLocation()));
-      }
-    }
-
-    // Must work at this point. Real predecessor would have been found before.
-    assert abstractConsecutionWorks;
-
-    // Generalize: Drop parts of abstr' that are not in unsat-core.
-    stats.numberSuccessfulConsecutions++;
-    BooleanFormula generalized =
-        PDRUtils.asUnprimed(
-            reduceByUnsatCore(
-                PDRUtils.asPrimed(abstr, fmgr, transition),
-                pAbstractProver,
-                ReductionMode.CONSECUTION),
-            fmgr,
-            transition);
-    generalized =
-        dropIrrelevantConjunctiveParts(generalized, pAbstractProver, ReductionMode.CONSECUTION);
-    assert isConsecutionValid(pLevel, generalized);
-    return new ConsecutionResult(
-        true, new StatesWithLocation(generalized, pStates.getConcrete(), pStates.getLocation()));
   }
 
   // Simple double check to assert that consecution for the given formula works.

@@ -24,33 +24,31 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
-import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Model wrapping for InterpolatingProverEnvironment
  */
-class InterpolatingProverEnvironmentView<E> implements InterpolatingProverEnvironment<E> {
+class InterpolatingProverEnvironmentView implements InterpolatingProverEnvironment {
 
-  private final InterpolatingProverEnvironment<E> delegate;
+  private final InterpolatingProverEnvironment delegate;
   private final FormulaWrappingHandler wrappingHandler;
 
   InterpolatingProverEnvironmentView(
-      InterpolatingProverEnvironment<E> pDelegate, FormulaWrappingHandler pWrappingHandler) {
+      InterpolatingProverEnvironment pDelegate, FormulaWrappingHandler pWrappingHandler) {
     delegate = pDelegate;
     wrappingHandler = pWrappingHandler;
   }
 
   @Override
-  public E push(BooleanFormula f) {
+  public InterpolationHandle push(BooleanFormula f) {
     return delegate.push(f);
   }
 
@@ -60,7 +58,7 @@ class InterpolatingProverEnvironmentView<E> implements InterpolatingProverEnviro
   }
 
   @Override
-  public E addConstraint(BooleanFormula constraint) {
+  public InterpolationHandle addConstraint(BooleanFormula constraint) {
     return delegate.addConstraint(constraint);
   }
 
@@ -90,21 +88,15 @@ class InterpolatingProverEnvironmentView<E> implements InterpolatingProverEnviro
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<E> formulasOfA)
-      throws SolverException, InterruptedException {
-    return delegate.getInterpolant(formulasOfA);
-  }
-
-  @Override
   public List<BooleanFormula> getSeqInterpolants(
-      List<Set<E>> partitionedFormulas)
+      List<? extends Iterable<InterpolationHandle>> partitionedFormulas)
       throws SolverException, InterruptedException {
     return delegate.getSeqInterpolants(partitionedFormulas);
   }
 
   @Override
   public List<BooleanFormula> getTreeInterpolants(
-      List<Set<E>> partitionedFormulas, int[] startOfSubTree)
+      List<? extends Iterable<InterpolationHandle>> partitionedFormulas, int[] startOfSubTree)
       throws SolverException, InterruptedException {
     return delegate.getTreeInterpolants(partitionedFormulas, startOfSubTree);
   }

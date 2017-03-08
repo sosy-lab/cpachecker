@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -36,12 +37,13 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 
-public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
+public class TreeInterpolation extends AbstractTreeInterpolation {
 
   /**
    * This strategy is similar to "Tree Interpolation in Vampire*" from Blanc et al.
@@ -55,10 +57,10 @@ public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
 
   @Override
   public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+          final InterpolationManager.Interpolator interpolator,
+          final List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> formulasWithStatesAndGroupdIds)
               throws InterruptedException, SolverException {
-    final Pair<List<Triple<BooleanFormula, AbstractState, T>>, List<Integer>> p = buildTreeStructure(formulasWithStatesAndGroupdIds);
+    final Pair<List<Triple<BooleanFormula, AbstractState, InterpolationHandle>>, List<Integer>> p = buildTreeStructure(formulasWithStatesAndGroupdIds);
     final List<BooleanFormula> itps = new ArrayList<>();
     final Deque<Pair<BooleanFormula, Integer>> itpStack = new ArrayDeque<>();
     for (int positionOfA = 0; positionOfA < p.getFirst().size() - 1; positionOfA++) {
@@ -69,19 +71,19 @@ public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
   }
 
   private BooleanFormula getTreeInterpolant(
-      final InterpolationManager.Interpolator<T> interpolator,
+      final InterpolationManager.Interpolator interpolator,
       final Deque<Pair<BooleanFormula, Integer>> itpStack,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulas,
+      final List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> formulas,
       final List<Integer> startOfSubTree,
       final int positionOfA)
           throws SolverException, InterruptedException {
 
     // use a new prover, because we use several distinct interpolation-queries
-    try (final InterpolatingProverEnvironment<T> itpProver = interpolator.newEnvironment()) {
+    try (final InterpolatingProverEnvironment itpProver = interpolator.newEnvironment()) {
       final int currentSubtree = startOfSubTree.get(positionOfA);
 
       // build partition A
-      final List<T> A = new ArrayList<>();
+      final List<InterpolationHandle> A = new ArrayList<>();
       while(!itpStack.isEmpty() && currentSubtree <= itpStack.peekLast().getSecond()) {
         A.add(itpProver.push(itpStack.pollLast().getFirst()));
       }
@@ -92,18 +94,19 @@ public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
                       startOfSubTree + "@" + positionOfA + "=" + currentSubtree + " vs " + itpStack.size();
 
       // build partition B
+      final List<InterpolationHandle> B = new ArrayList<>();
       for (Pair<BooleanFormula, Integer> externalChild : itpStack) {
-        itpProver.push(externalChild.getFirst());
+        B.add(itpProver.push(externalChild.getFirst()));
       }
       for (int i = positionOfA + 1; i < formulas.size(); i++) {
-        itpProver.push(formulas.get(i).getFirst());
+        B.add(itpProver.push(formulas.get(i).getFirst()));
       }
 
       final boolean check = itpProver.isUnsat();
       assert check : "asserted formulas should be UNSAT";
 
       // get interpolant via Craig interpolation
-      final BooleanFormula interpolant = itpProver.getInterpolant(A);
+      final BooleanFormula interpolant = itpProver.getSeqInterpolants(ImmutableList.of(A, B)).get(0);
 
       // update the stack for further computation
       itpStack.addLast(Pair.of(interpolant, currentSubtree));

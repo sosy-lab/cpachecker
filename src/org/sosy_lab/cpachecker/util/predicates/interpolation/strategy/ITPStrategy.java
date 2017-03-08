@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -38,16 +42,13 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
+import org.sosy_lab.java_smt.api.SolverException;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-public abstract class ITPStrategy<T> {
+public abstract class ITPStrategy {
 
   protected final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -78,8 +79,8 @@ public abstract class ITPStrategy<T> {
    * @return a list of (N-1) interpolants for a list of N formulae
    */
   public abstract List<BooleanFormula> getInterpolants(
-      final InterpolationManager.Interpolator<T> interpolator,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStateAndGroupId)
+      final InterpolationManager.Interpolator interpolator,
+      final List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException;
 
 
@@ -99,7 +100,7 @@ public abstract class ITPStrategy<T> {
    * @param interpolants computed with {@link #getInterpolants} and will be checked.
    */
   public void checkInterpolants(final Solver solver,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
+      final List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> formulasWithStatesAndGroupdIds,
       final List<BooleanFormula> interpolants)
       throws InterruptedException, SolverException {
 
@@ -194,15 +195,27 @@ public abstract class ITPStrategy<T> {
    * Each formula is identified by its GroupId,
    * The sublist is taken from the list of GroupIds, including both start and end of A.
    */
-  protected final BooleanFormula getInterpolantFromSublist(final InterpolatingProverEnvironment<T> pItpProver,
-      final List<T> itpGroupsIds, final int start_of_A, final int end_of_A)
+  protected final BooleanFormula getInterpolantFromSublist(
+      final InterpolatingProverEnvironment pItpProver,
+      final List<InterpolationHandle> itpGroupsIds,
+      final int start_of_A,
+      final int end_of_A)
           throws InterruptedException, SolverException {
     shutdownNotifier.shutdownIfNecessary();
 
     logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A);
 
     getInterpolantTimer.start();
-    final BooleanFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));
+    List<InterpolationHandle> others = new ArrayList<>(itpGroupsIds.subList(0, start_of_A));
+    others.addAll(itpGroupsIds.subList(end_of_A + 1, itpGroupsIds.size()));
+
+    final BooleanFormula itp =
+        pItpProver.getInterpolant(
+            itpGroupsIds.subList(start_of_A, end_of_A + 1),
+            Iterables.concat(
+                itpGroupsIds.subList(0, start_of_A),
+                itpGroupsIds.subList(end_of_A + 1, itpGroupsIds.size())
+            ));
     getInterpolantTimer.stop();
 
     logger.log(Level.ALL, "Received interpolant", itp);

@@ -26,18 +26,16 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FormulaManager;
-import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
-import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaManager;
+import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This is a class that allows to use a different SMT solver for interpolation
@@ -45,24 +43,24 @@ import java.util.Set;
  * Whenever it is used, it copies the formulas to the interpolation SMT solver
  * and back accordingly.
  */
-public class SeparateInterpolatingProverEnvironment<T>
-    implements InterpolatingProverEnvironment<T> {
+public class SeparateInterpolatingProverEnvironment
+    implements InterpolatingProverEnvironment {
 
   private final FormulaManager mainFmgr;
   private final FormulaManager itpFmgr;
-  private final InterpolatingProverEnvironment<T> itpEnv;
+  private final InterpolatingProverEnvironment itpEnv;
 
   public SeparateInterpolatingProverEnvironment(
       FormulaManager pMainFmgr,
       FormulaManager pItpFmgr,
-      InterpolatingProverEnvironment<T> pItpEnv) {
+      InterpolatingProverEnvironment pItpEnv) {
     mainFmgr = checkNotNull(pMainFmgr);
     itpFmgr = checkNotNull(pItpFmgr);
     itpEnv = checkNotNull(pItpEnv);
   }
 
   @Override
-  public T push(BooleanFormula mainF) {
+  public InterpolationHandle push(BooleanFormula mainF) {
     BooleanFormula itpF = itpFmgr.parse(mainFmgr.dumpFormula(mainF).toString());
     return itpEnv.push(itpF);
   }
@@ -73,7 +71,7 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   @Override
-  public T addConstraint(BooleanFormula constraint) {
+  public InterpolationHandle addConstraint(BooleanFormula constraint) {
     return itpEnv.addConstraint(convertToItp(constraint));
   }
 
@@ -99,14 +97,8 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<T> pFormulasOfA)
-      throws SolverException, InterruptedException {
-    BooleanFormula itpF = itpEnv.getInterpolant(pFormulasOfA);
-    return convertToMain(itpF);
-  }
-
-  @Override
-  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas)
+  public List<BooleanFormula> getSeqInterpolants(List<? extends Iterable<InterpolationHandle>>
+                                                       partitionedFormulas)
       throws SolverException, InterruptedException {
     final List<BooleanFormula> itps = itpEnv.getSeqInterpolants(partitionedFormulas);
     final List<BooleanFormula> result = new ArrayList<>();
@@ -117,7 +109,7 @@ public class SeparateInterpolatingProverEnvironment<T>
   }
 
   @Override
-  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree)
+  public List<BooleanFormula> getTreeInterpolants(List<? extends Iterable<InterpolationHandle>> partitionedFormulas, int[] startOfSubTree)
       throws SolverException, InterruptedException {
     final List<BooleanFormula> itps = itpEnv.getTreeInterpolants(partitionedFormulas, startOfSubTree);
     final List<BooleanFormula> result = new ArrayList<>();

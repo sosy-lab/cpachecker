@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix.RawInfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
@@ -104,7 +105,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
     List<RawInfeasiblePrefix> rawPrefixes;
 
-    try (InterpolatingProverEnvironment<?> prover =
+    try (InterpolatingProverEnvironment prover =
         solver.newProverEnvironmentWithInterpolation()) {
       rawPrefixes = extractInfeasiblePrefixes(pPath, blockFormulas, prover);
     }
@@ -119,13 +120,13 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     return infeasiblePrefixes;
   }
 
-  private <T> List<RawInfeasiblePrefix> extractInfeasiblePrefixes(
+  private List<RawInfeasiblePrefix> extractInfeasiblePrefixes(
       final ARGPath pPath,
       List<BooleanFormula> blockFormulas,
-      InterpolatingProverEnvironment<T> prover)
+      InterpolatingProverEnvironment prover)
       throws CPAException, InterruptedException {
     List<RawInfeasiblePrefix> rawPrefixes = new ArrayList<>();
-    List<T> terms = new ArrayList<>(blockFormulas.size());
+    List<InterpolationHandle> terms = new ArrayList<>(blockFormulas.size());
 
     List<BooleanFormula> pathFormula = new ArrayList<>();
     PathFormula formula = pathFormulaManager.makeEmptyPathFormula();
@@ -153,7 +154,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
 
         try {
           formula = pathFormulaManager.makeAnd(makeEmpty(formula), currentBlockFormula);
-          T term = prover.push(formula.getFormula());
+          InterpolationHandle term = prover.push(formula.getFormula());
           terms.add(term);
 
           if (checkUnsat(pPath, iterator.getOutgoingEdge()) && prover.isUnsat()) {
@@ -215,14 +216,18 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     return rawPrefixes;
   }
 
-  private <T> List<BooleanFormula> extractInterpolantSequence(
-      final List<T> pTerms, final InterpolatingProverEnvironment<T> pProver)
+  private List<BooleanFormula> extractInterpolantSequence(
+      final List<InterpolationHandle> pTerms,
+      final InterpolatingProverEnvironment pProver)
       throws SolverException, InterruptedException {
 
     List<BooleanFormula> interpolantSequence = new ArrayList<>();
 
     for(int i = 1; i < pTerms.size(); i++) {
-      interpolantSequence.add(pProver.getInterpolant(pTerms.subList(0, i)));
+      interpolantSequence.add(pProver.getInterpolant(
+          pTerms.subList(0, i),
+          pTerms.subList(i, pTerms.size())
+      ));
     }
 
     return interpolantSequence;

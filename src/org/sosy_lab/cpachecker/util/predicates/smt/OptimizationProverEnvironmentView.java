@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -53,7 +54,7 @@ class OptimizationProverEnvironmentView implements OptimizationProverEnvironment
 
 
   @Override
-  public Void addConstraint(BooleanFormula constraint) {
+  public InterpolationHandle addConstraint(BooleanFormula constraint) {
     return delegate.addConstraint(constraint);
   }
 
@@ -79,7 +80,7 @@ class OptimizationProverEnvironmentView implements OptimizationProverEnvironment
   }
 
   @Override
-  public Void push(BooleanFormula f) {
+  public InterpolationHandle push(BooleanFormula f) {
     return delegate.push(f);
   }
 

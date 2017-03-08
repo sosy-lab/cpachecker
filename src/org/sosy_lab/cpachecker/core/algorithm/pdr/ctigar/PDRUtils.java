@@ -212,7 +212,7 @@ public final class PDRUtils {
    * @throws SolverException If the solver encountered a problem during its check.
    * @throws InterruptedException If the solving process was interrupted.
    */
-  public static <T> boolean isUnsat(BasicProverEnvironment<T> pProver, Timer pTimer)
+  public static boolean isUnsat(BasicProverEnvironment pProver, Timer pTimer)
       throws SolverException, InterruptedException {
     pTimer.start();
     try {

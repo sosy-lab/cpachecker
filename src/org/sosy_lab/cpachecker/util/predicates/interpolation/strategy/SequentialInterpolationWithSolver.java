@@ -29,6 +29,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -37,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 import com.google.common.collect.Lists;
 
-public class SequentialInterpolationWithSolver<T> extends ITPStrategy<T> {
+public class SequentialInterpolationWithSolver extends ITPStrategy {
 
   /**
    * This strategy uses a SMT solver that directly computes a sequence of inductive interpolants.
@@ -50,8 +51,8 @@ public class SequentialInterpolationWithSolver<T> extends ITPStrategy<T> {
 
   @Override
   public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+          final InterpolationManager.Interpolator interpolator,
+          final List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> formulasWithStatesAndGroupdIds)
           throws InterruptedException, SolverException {
     return interpolator.itpProver.getSeqInterpolants(
         wrapAllInSets(Lists.transform(formulasWithStatesAndGroupdIds, Triple::getThird)));

@@ -219,26 +219,24 @@ public final class Solver implements AutoCloseable {
    * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
    * It is recommended to use the try-with-resources syntax.
    */
-  public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation() {
-    InterpolatingProverEnvironment<?> ipe = interpolatingContext.newProverEnvironmentWithInterpolation();
+  public InterpolatingProverEnvironment newProverEnvironmentWithInterpolation() {
+    InterpolatingProverEnvironment ipe = interpolatingContext.newProverEnvironmentWithInterpolation();
 
     if (solvingContext != interpolatingContext) {
       // If interpolatingContext is not the normal solver,
       // we use SeparateInterpolatingProverEnvironment
       // which copies formula back and forth using strings.
       // We don't need this if the solvers are the same anyway.
-      ipe =
-          new SeparateInterpolatingProverEnvironment<>(
+      ipe = new SeparateInterpolatingProverEnvironment(
               solvingContext.getFormulaManager(), interpolatingContext.getFormulaManager(), ipe);
     }
 
     if (checkUFs) {
-      ipe =
-          new UFCheckingInterpolatingProverEnvironment<>(
+      ipe = new UFCheckingInterpolatingProverEnvironment(
               logger, ipe, fmgr, ufCheckingProverOptions);
     }
 
-    ipe = new InterpolatingProverEnvironmentView<>(ipe, fmgr.getFormulaWrappingHandler());
+    ipe = new InterpolatingProverEnvironmentView(ipe, fmgr.getFormulaWrappingHandler());
 
     return ipe;
   }

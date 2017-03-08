@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
@@ -123,7 +124,7 @@ public final class InterpolationManager {
   private final PathFormulaManager pmgr;
   private final Solver solver;
 
-  private final Interpolator<?> interpolator;
+  private final Interpolator interpolator;
 
   @Option(secure=true, description="apply deletion-filter to the abstract counterexample, to get "
     + "a minimal set of blocks, before applying interpolation-based refinement")
@@ -206,7 +207,7 @@ public final class InterpolationManager {
     }
 
     if (reuseInterpolationEnvironment) {
-      interpolator = new Interpolator<>();
+      interpolator = new Interpolator();
     } else {
       interpolator = null;
     }
@@ -284,11 +285,11 @@ public final class InterpolationManager {
     try {
       final List<BooleanFormula> f = prepareCounterexampleFormulas(pFormulas);
 
-      final Interpolator<?> currentInterpolator;
+      final Interpolator currentInterpolator;
       if (reuseInterpolationEnvironment) {
         currentInterpolator = checkNotNull(interpolator);
       } else {
-        currentInterpolator = new Interpolator<>();
+        currentInterpolator = new Interpolator();
       }
 
       try {
@@ -606,29 +607,29 @@ public final class InterpolationManager {
    *        The list is sorted in the "correct" order along the counterexample.
    * @return A list of (N-1) interpolants for N formulae.
    */
-  private <T> List<BooleanFormula> getInterpolants(Interpolator<T> pInterpolator,
-      List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+  private List<BooleanFormula> getInterpolants(Interpolator pInterpolator,
+      List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> formulasWithStatesAndGroupdIds)
           throws SolverException, InterruptedException {
     // TODO replace with Config-Class-Constructor-Injection?
-    final  ITPStrategy<T> itpStrategy;
+    final  ITPStrategy itpStrategy;
     switch (strategy) {
       case SEQ_CPACHECKER:
-        itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new SequentialInterpolation(logger, shutdownNotifier, fmgr, bfmgr);
         break;
       case SEQ:
-        itpStrategy = new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new SequentialInterpolationWithSolver(logger, shutdownNotifier, fmgr, bfmgr);
         break;
       case TREE_WELLSCOPED:
-        itpStrategy = new WellScopedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new WellScopedInterpolation(logger, shutdownNotifier, fmgr, bfmgr);
         break;
       case TREE_NESTED:
-        itpStrategy = new NestedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new NestedInterpolation(logger, shutdownNotifier, fmgr, bfmgr);
         break;
       case TREE_CPACHECKER:
-        itpStrategy = new TreeInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new TreeInterpolation(logger, shutdownNotifier, fmgr, bfmgr);
         break;
       case TREE:
-        itpStrategy = new TreeInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new TreeInterpolationWithSolver(logger, shutdownNotifier, fmgr, bfmgr);
         break;
       default:
         throw new AssertionError("unknown interpolation strategy");
@@ -655,7 +656,7 @@ public final class InterpolationManager {
    * @return Information about the error path, including a satisfying assignment.
    */
   private CounterexampleTraceInfo getErrorPath(List<BooleanFormula> f,
-      BasicProverEnvironment<?> pProver, Set<ARGState> elementsOnPath)
+      BasicProverEnvironment pProver, Set<ARGState> elementsOnPath)
       throws CPATransferException, SolverException, InterruptedException {
 
     // get the branchingFormula
@@ -724,20 +725,17 @@ public final class InterpolationManager {
    * When an instance won't be used anymore, call {@link #close()}.
    *
    */
-  public class Interpolator<T> {
+  public class Interpolator {
 
-    public InterpolatingProverEnvironment<T> itpProver;
-    private final List<Triple<BooleanFormula, AbstractState, T>> currentlyAssertedFormulas = new ArrayList<>();
+    public InterpolatingProverEnvironment itpProver;
+    private final List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> currentlyAssertedFormulas = new ArrayList<>();
 
     Interpolator() {
       itpProver = newEnvironment();
     }
 
-    @SuppressWarnings("unchecked")
-    public InterpolatingProverEnvironment<T> newEnvironment() {
-      // This is safe because we don't actually care about the value of T,
-      // only the InterpolatingProverEnvironment itself cares about it.
-      return (InterpolatingProverEnvironment<T>)solver.newProverEnvironmentWithInterpolation();
+    public InterpolatingProverEnvironment newEnvironment() {
+      return solver.newProverEnvironmentWithInterpolation();
     }
 
     /**
@@ -773,7 +771,7 @@ public final class InterpolationManager {
        *      Depending on different directions, different interpolants
        *      might be computed from the solver's proof for unsatisfiability.
        */
-      List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds;
+      List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> formulasWithStatesAndGroupdIds;
       List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas;
 
       if (pAbstractionStates.isEmpty()) {
@@ -796,7 +794,7 @@ public final class InterpolationManager {
         assert orderedFormulas.size() == f.size();
 
         // initialize all interpolation group ids with "null"
-        formulasWithStatesAndGroupdIds = new ArrayList<>(Collections.<Triple<BooleanFormula, AbstractState, T>>nCopies(f.size(), null));
+        formulasWithStatesAndGroupdIds = new ArrayList<>(Collections.<Triple<BooleanFormula, AbstractState, InterpolationHandle>>nCopies(f.size(), null));
 
         // ask solver for satisfiability
         spurious = checkInfeasabilityOfTrace(orderedFormulas, formulasWithStatesAndGroupdIds);
@@ -847,19 +845,19 @@ public final class InterpolationManager {
      */
     private boolean checkInfeasabilityOfTrace(
         final List<Triple<BooleanFormula, AbstractState, Integer>> traceFormulas,
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+        final List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> formulasWithStatesAndGroupdIds)
             throws InterruptedException, SolverException {
 
       // first identify which formulas are already on the solver stack,
       // which formulas need to be removed from the solver stack,
       // and which formulas need to be added to the solver stack
       ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator = traceFormulas.listIterator();
-      ListIterator<Triple<BooleanFormula, AbstractState, T>> assertedIterator = currentlyAssertedFormulas.listIterator();
+      ListIterator<Triple<BooleanFormula, AbstractState, InterpolationHandle>> assertedIterator = currentlyAssertedFormulas.listIterator();
 
       int firstBadIndex = -1; // index of first mis-matching formula in both lists
 
       while (assertedIterator.hasNext()) {
-        Triple<BooleanFormula, AbstractState, T> assertedFormula = assertedIterator.next();
+        Triple<BooleanFormula, AbstractState, InterpolationHandle> assertedFormula = assertedIterator.next();
 
         if (!todoIterator.hasNext()) {
           firstBadIndex = assertedIterator.previousIndex();
@@ -895,7 +893,7 @@ public final class InterpolationManager {
         assert firstBadIndex > 0;
         // list with all formulas on solver stack that we need to remove
         // (= remaining formulas in currentlyAssertedFormulas list)
-        List<Triple<BooleanFormula, AbstractState, T>> toDeleteFormulas =
+        List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> toDeleteFormulas =
             currentlyAssertedFormulas.subList(firstBadIndex,
                                               currentlyAssertedFormulas.size());
 
@@ -924,8 +922,8 @@ public final class InterpolationManager {
         int index = p.getThird();
 
         assert formulasWithStatesAndGroupdIds.get(index) == null;
-        T itpGroupId = itpProver.push(f);
-        final Triple<BooleanFormula, AbstractState, T> assertedFormula = Triple.of(f, state, itpGroupId);
+        InterpolationHandle itpGroupId = itpProver.push(f);
+        final Triple<BooleanFormula, AbstractState, InterpolationHandle> assertedFormula = Triple.of(f, state, itpGroupId);
         formulasWithStatesAndGroupdIds.set(index, assertedFormula);
         currentlyAssertedFormulas.add(assertedFormula);
 

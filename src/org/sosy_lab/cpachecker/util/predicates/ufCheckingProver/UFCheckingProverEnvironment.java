@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class UFCheckingProverEnvironment
-    extends UFCheckingBasicProverEnvironment<Void>
+    extends UFCheckingBasicProverEnvironment
     implements ProverEnvironment {
 
   private final ProverEnvironment delegate;

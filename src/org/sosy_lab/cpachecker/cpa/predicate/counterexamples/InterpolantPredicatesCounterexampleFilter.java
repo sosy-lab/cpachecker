@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -84,13 +85,12 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
     return getCounterexampleRepresentation0(pFormulas);
   }
 
-  private <T> Optional<ImmutableSet<AbstractionPredicate>> getCounterexampleRepresentation0(List<BooleanFormula> formulas) throws InterruptedException {
+  private Optional<ImmutableSet<AbstractionPredicate>> getCounterexampleRepresentation0(List<BooleanFormula> formulas) throws InterruptedException {
 
-    try (@SuppressWarnings("unchecked")
-         InterpolatingProverEnvironment<T> itpProver =
-           (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation()) {
+    try (InterpolatingProverEnvironment itpProver =
+            solver.newProverEnvironmentWithInterpolation()) {
 
-      List<T> itpGroupIds = new ArrayList<>(formulas.size());
+      List<InterpolationHandle> itpGroupIds = new ArrayList<>(formulas.size());
       for (BooleanFormula f : formulas) {
         itpGroupIds.add(itpProver.push(f));
       }
@@ -103,7 +103,8 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
 
       Set<AbstractionPredicate> predicates = new HashSet<>();
       for (int i = 1; i < itpGroupIds.size(); i++) {
-        BooleanFormula itp = itpProver.getInterpolant(itpGroupIds.subList(0, i));
+        BooleanFormula itp = itpProver.getInterpolant(
+            itpGroupIds.subList(0, i), itpGroupIds.subList(i, itpGroupIds.size()));
         predicates.addAll(predAbsMgr.getPredicatesForAtomsOf(itp));
       }
       return Optional.of(ImmutableSet.copyOf(predicates));

@@ -31,13 +31,14 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-public class WellScopedInterpolation<T> extends AbstractTreeInterpolation<T> {
+public class WellScopedInterpolation extends AbstractTreeInterpolation {
 
   /**
    * This strategy returns a sequence of interpolants by computing
@@ -52,10 +53,11 @@ public class WellScopedInterpolation<T> extends AbstractTreeInterpolation<T> {
 
   @Override
   public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+          final InterpolationManager.Interpolator interpolator,
+          final List<Triple<BooleanFormula, AbstractState, InterpolationHandle>> formulasWithStatesAndGroupdIds)
           throws InterruptedException, SolverException {
-    final Pair<List<Triple<BooleanFormula, AbstractState, T>>, List<Integer>> p = buildTreeStructure(formulasWithStatesAndGroupdIds);
+    final Pair<List<Triple<BooleanFormula, AbstractState, InterpolationHandle>>, List<Integer>> p =
+        buildTreeStructure(formulasWithStatesAndGroupdIds);
     final List<BooleanFormula> itps = new ArrayList<>();
     for (int end_of_A = 0; end_of_A < p.getFirst().size() - 1; end_of_A++) {
       // last iteration is left out because B would be empty

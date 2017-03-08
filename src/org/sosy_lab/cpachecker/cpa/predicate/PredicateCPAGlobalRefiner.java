@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
+import org.sosy_lab.java_smt.api.InterpolationHandle;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -194,7 +195,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
     // We do not descend beyond unreachable states,
     // but instead perform refinement on them.
 
-    try (InterpolatingProverEnvironment<?> itpProver =
+    try (InterpolatingProverEnvironment itpProver =
         solver.newProverEnvironmentWithInterpolation()) {
       return doPathWiseRefinement(root, successors, predecessors, pReached, targets, itpProver);
     }
@@ -202,15 +203,15 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
 
   // This is just a separate method to get the generics right.
   // (The arguments of the list and the prover need to match.)
-  private <T> Optional<ARGState> doPathWiseRefinement(
+  private Optional<ARGState> doPathWiseRefinement(
       ARGState current,
       SetMultimap<ARGState, ARGState> successors,
       Map<ARGState, ARGState> predecessors,
       ARGReachedSet pReached,
       List<AbstractState> targets,
-      InterpolatingProverEnvironment<T> itpProver)
+      InterpolatingProverEnvironment itpProver)
       throws InterruptedException, SolverException, CPAException {
-    List<T> itpStack = new ArrayList<>();
+    List<InterpolationHandle> itpStack = new ArrayList<>();
     LinkedList<ARGState> currentPath = new LinkedList<>();
     currentPath.add(current);
     Optional<ARGState> errorState =
@@ -242,14 +243,14 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
    * @param targets The set of target states.
    * @return The feasible error location or absent
    */
-  private <T> Optional<ARGState> step(
+  private Optional<ARGState> step(
       final LinkedList<ARGState> currentPath,
-      final List<T> itpStack,
+      final List<InterpolationHandle> itpStack,
       final SetMultimap<ARGState, ARGState> successors,
       final Map<ARGState, ARGState> predecessors,
       final ARGReachedSet pReached,
       final List<AbstractState> targets,
-      InterpolatingProverEnvironment<T> itpProver)
+      InterpolatingProverEnvironment itpProver)
       throws InterruptedException, SolverException, CPAException {
 
     for (final ARGState succ : successors.get(currentPath.getLast())) {
@@ -316,15 +317,14 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
    * @param pAbstractionStatesTrace The complete trace of abstraction states including the unreachable state
    * @param reached The reached set.
    */
-  private <T> void performRefinementOnPath(
-      List<T> itpStack,
+  private void performRefinementOnPath(
+      List<InterpolationHandle> itpStack,
       final ARGState unreachableState,
       List<ARGState> pAbstractionStatesTrace,
       ARGReachedSet reached,
-      InterpolatingProverEnvironment<T> itpProver)
+      InterpolatingProverEnvironment itpProver)
       throws CPAException, SolverException, InterruptedException {
     assert !itpStack.isEmpty();
-    assert bfmgr.isFalse(itpProver.getInterpolant(itpStack)); // last interpolant is False
 
     pAbstractionStatesTrace = FluentIterable.from(pAbstractionStatesTrace).skip(1).toList();
     List<BooleanFormula> interpolants = Lists.newArrayList();
@@ -339,7 +339,9 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
         // fill up interpolants with false as the states are unreachable.
         interpolants.add(bfmgr.makeFalse());
       } else {
-        interpolants.add(itpProver.getInterpolant(itpStack.subList(0, sublistCounter)));
+        interpolants.add(itpProver.getInterpolant(
+            itpStack.subList(0, sublistCounter),
+            itpStack.subList(sublistCounter, itpStack.size())));
         sublistCounter++;
       }
       interpolationTime.stop();
