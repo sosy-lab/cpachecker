@@ -382,6 +382,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     blockEnded = pOriginalState.blockEnded;
   }
 
+  public int getExternalAllocationSize() {
+    return externalAllocationSize;
+  }
   /**
    * Makes SMGState create a new object and put it into the global namespace
    *
@@ -1733,6 +1736,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     performConsistencyCheck(SMGRuntimeCheck.HALF);
     return SMGKnownAddVal.valueOf(new_value, new_object, BigInteger.valueOf
         (externalAllocationSize/2));
+  }
+
+  public void setExternallyAllocatedFlag(SMGObject pObject) {
+    heap.setExternallyAllocatedFlag(pObject, true);
   }
 
   /** memory allocated on the stack is automatically freed when leaving the current function scope */

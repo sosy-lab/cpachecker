@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -175,6 +176,10 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure = true, name="externalAllocationFunction", description = "Functions which indicate on external allocated memory")
   private ImmutableSet<String> externalAllocationFunction = ImmutableSet.of(
       "ext_allocation");
+
+  @Option(secure = true, name="handleExternVariableAsExternalAllocation", description = "Handle "
+      + "extern variables with incomplete type (extern int array[]) as external allocation")
+  private boolean handleExternVariableAsExternalAllocation = false;
 
   final private LogManagerWithoutDuplicates logger;
   final private MachineModel machineModel;
@@ -1678,6 +1683,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     if (newObject == null) {
       int typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
 
+      // Handle incomplete type of extern variables as externally allocated
+      if (handleExternVariableAsExternalAllocation && cType.isIncomplete() &&
+          pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
+        typeSize = pState.getExternalAllocationSize();
+      }
       if (pVarDecl.isGlobal()) {
         newObject = pState.addGlobalVariable(typeSize, varName);
       } else {
@@ -1715,10 +1725,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return handleInitializer(pState, pVarDecl, pEdge, pObject, BigInteger.valueOf(0), cType,
           newInitializer);
     } else if (pVarDecl.isGlobal()) {
-
-      // Global variables without initializer are nullified in C
-      pState = writeValue(pState, pObject, BigInteger.valueOf(0), cType, SMGKnownSymValue.ZERO,
+      // Don't nullify extern variables
+      if (pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
+        if (handleExternVariableAsExternalAllocation) {
+          pState.setExternallyAllocatedFlag(pObject);
+        }
+      } else {
+        // Global variables without initializer are nullified in C
+        pState = writeValue(pState, pObject, BigInteger.valueOf(0), cType, SMGKnownSymValue.ZERO,
           pEdge);
+      }
     }
 
     return ImmutableList.of(pState);
