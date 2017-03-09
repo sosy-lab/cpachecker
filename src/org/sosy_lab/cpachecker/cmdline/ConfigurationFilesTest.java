@@ -123,8 +123,6 @@ public class ConfigurationFilesTest {
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
           // handled by component that is loaded lazily on demand
-          "invariantGeneration.adjustConditions",
-          "invariantGeneration.async",
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
           "invariantGeneration.kInduction.guessCandidatesFromCFA",
