@@ -751,14 +751,24 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             currentState.setErrorDescription("Can't evaluate memcpy src");
           }
         }
+
+        if (!sourceStr2Address.isUnknown() && !sourceStr2Address.getObject().notNull()) {
+          currentState = currentState.setInvalidRead();
+          currentState.setErrorDescription("Memcpy src is null pointer");
+        }
+        if (!targetStr1Address.isUnknown() && !targetStr1Address.getObject().notNull()) {
+          currentState = currentState.setInvalidWrite();
+          currentState.setErrorDescription("Memcpy to null pointer dst");
+        }
+
         if (targetStr1Address.isUnknown()) {
           currentState.unknownWrite();
-          return SMGAddressValueAndState.of(currentState);
         } else {
           //TODO More precise clear of values
           currentState.writeUnknownValueInUnknownField(targetStr1Address.getAddress().getObject());
-          return SMGAddressValueAndState.of(currentState);
         }
+
+        return SMGAddressValueAndState.of(currentState);
       }
 
       SMGObject source = sourceStr2Address.getObject();
