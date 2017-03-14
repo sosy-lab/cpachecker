@@ -34,7 +34,22 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
-
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,24 +66,6 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.annotation.Nullable;
-
 @Options
 public class ReportGenerator {
 
@@ -77,34 +74,36 @@ public class ReportGenerator {
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
   private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults();
 
-  private static final String HTML_TEMPLATE = "report-template.html";
+  private static final String HTML_TEMPLATE = "report.html";
+  private static final String CSS_TEMPLATE = "report.css";
+  private static final String JS_TEMPLATE = "report.js";
 
   private final Configuration config;
   private final LogManager logger;
 
   @Option(
-    secure = true,
-    name = "analysis.programNames",
-    description = "A String, denoting the programs to be analyzed"
-  )
+      secure = true,
+      name = "analysis.programNames",
+      description = "A String, denoting the programs to be analyzed")
   private String programs;
 
   @Option(
-    secure = true,
-    name = "report.export",
-    description = "Generate HTML report with analysis result."
-  )
+      secure = true,
+      name = "report.export",
+      description = "Generate HTML report with analysis result.")
   private boolean generateReport = true;
 
-  @Option(secure = true, name = "report.file", description = "File name for analysis report in case no counterexample was found.")
+  @Option(
+      secure = true,
+      name = "report.file",
+      description = "File name for analysis report in case no counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reportFile = Paths.get("Report.html");
 
   @Option(
-    secure = true,
-    name = "counterexample.export.report",
-    description = "File name for analysis report in case a counterexample was found."
-  )
+      secure = true,
+      name = "counterexample.export.report",
+      description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
@@ -125,9 +124,7 @@ public class ReportGenerator {
     checkNotNull(pReached);
     checkNotNull(pStatistics);
 
-    if (!generateReport) {
-      return false;
-    }
+    if (!generateReport) { return false; }
 
     Iterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
@@ -161,6 +158,14 @@ public class ReportGenerator {
     }
   }
 
+  //TODO: insert in HTML
+  /**
+  <!-- SOURCE_CONTENT -->
+  <!-- LOG -->
+  <!-- STATISTICS -->
+  <!-- CONFIGURATION -->
+   */
+
   private void fillOutTemplate(
       @Nullable CounterexampleInfo counterExample,
       Path reportPath,
@@ -168,82 +173,143 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       String statistics) {
 
-    try (BufferedReader template =
-            Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
-                .openBufferedStream();
-        Writer report = MoreFiles.openOutputFile(reportPath, Charsets.UTF_8)) {
+    try (BufferedReader reader =
+        Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
+            .openBufferedStream();
+        Writer writer = MoreFiles.openOutputFile(reportPath, Charsets.UTF_8)) {
 
       String line;
-      while (null != (line = template.readLine())) {
+      while (null != (line = reader.readLine())) {
         if (line.contains("CONFIGURATION")) {
-          insertConfiguration(report);
+          insertConfiguration(writer);
+        } else if (line.contains("REPORT_CSS")) {
+          insertCss(writer);
+        } else if (line.contains("REPORT_JS")) { // inserts the JSON info
+          insertJs(writer, cfa, dotBuilder, counterExample);
         } else if (line.contains("STATISTICS")) {
-          insertStatistics(report, statistics);
+          insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
-          insertSources(report);
+          insertSources(writer);
         } else if (line.contains("LOG")) {
-          insertLog(report);
-        } else if (line.contains("ERRORPATH") && counterExample != null) {
-          insertErrorPathData(counterExample, report);
-        } else if (line.contains("FUNCTIONS")) {
-          insertFunctionNames(report, cfa);
-        } else if (line.contains("SOURCE_FILE_NAMES")) {
-          insertSourceFileNames(report);
-        } else if (line.contains("COMBINEDNODES")) {
-          insertCombinedNodesData(report, dotBuilder);
-        } else if (line.contains("CFAINFO")) {
-          insertCfaInfoData(report, dotBuilder);
-        } else if (line.contains("FCALLEDGES")) {
-          insertFCallEdges(report, dotBuilder);
+          insertLog(writer);
         } else if (line.contains("REPORT_NAME")) {
-          insertReportName(counterExample, report);
+          insertReportName(counterExample, writer);
         } else if (line.contains("METATAGS")) {
-          insertMetaTags(report);
+          insertMetaTags(writer);
         } else if (line.contains("GENERATED")) {
-          insertDateAndVersion(report);
+          insertDateAndVersion(writer);
         } else {
-          report.write(line + "\n");
+          writer.write(line + "\n");
         }
       }
-
+      reader.close();
+      writer.close();
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Processing of HTML template failed.");
     }
   }
 
-  private void insertMetaTags(Writer report) throws IOException {
-    report.write("<meta name='generator'"
-        + " content='CPAchecker " + CPAchecker.getCPAcheckerVersion() + "'>");
-  }
-
-  private void insertDateAndVersion(Writer report) throws IOException {
-    String generated =
-        String.format(
-            "Generated on %s by CPAchecker %s",
-            new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()),
-            CPAchecker.getCPAcheckerVersion());
-    report.write(generated);
-  }
-
-  private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer report) throws IOException {
-    if (counterExample == null) {
-      report.write(sourceFiles.get(0));
-
-    } else {
-      String title = String.format(
-          "%s (Counterexample %s)",
-          sourceFiles.get(0),
-          counterExample.getUniqueId());
-      report.write(title);
+  private void insertJs(Writer writer, CFA cfa, DOTBuilder2 dotBuilder,
+      @Nullable CounterexampleInfo counterExample) throws IOException {
+    try (BufferedReader reader =
+        Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
+            .openBufferedStream();) {
+      String line;
+      while (null != (line = reader.readLine())) {
+        if (line.contains("JSON_INPUT")) {
+          insertJson(writer, cfa, dotBuilder, counterExample);
+        } else {
+          writer.write(line + "\n");
+        }
+      }
+      reader.close();
     }
   }
 
-  private void insertStatistics(Writer report, String statistics) throws IOException {
+  private void insertJson(Writer writer, CFA cfa, DOTBuilder2 dotBuilder,
+      @Nullable CounterexampleInfo counterExample) {
+    try {
+      writer.write("var json = {\n");
+      insertFunctionNames(writer, cfa);
+      writer.write(",\n");
+      insertFCallEdges(writer, dotBuilder);
+      writer.write(",\n");
+      insertCombinedNodesData(writer, dotBuilder);
+      writer.write(",\n");
+      if (counterExample != null) {
+        insertErrorPathData(counterExample, writer);
+      }
+      insertSourceFileNames(writer);
+      dotBuilder.writeCfaInfo(writer);
+      writer.write("\n}\n");
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: generall IO Exception occured.");
+    }
+
+  }
+
+  private void insertCss(Writer writer) throws IOException {
+    try (BufferedReader reader =
+        Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
+            .openBufferedStream();) {
+      writer.write("<style>" + "\n");
+      String line;
+      while (null != (line = reader.readLine())) {
+        writer.write(line + "\n");
+      }
+      writer.write("</style>");
+      reader.close();
+    }
+  }
+
+  private void insertMetaTags(Writer writer) {
+    try {
+      writer.write("<meta name='generator'"
+          + " content='CPAchecker " + CPAchecker.getCPAcheckerVersion() + "'>\n");
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Inserting metatags failed.");
+    }
+  }
+
+  private void insertDateAndVersion(Writer writer) {
+    try {
+      String generated =
+          String.format(
+              "Generated on %s by CPAchecker %s",
+              new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()),
+              CPAchecker.getCPAcheckerVersion());
+      writer.write(generated);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Inserting date and version failed.");
+    }
+  }
+
+  private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer writer) {
+    try {
+      if (counterExample == null) {
+        writer.write(sourceFiles.get(0));
+      } else {
+        String title = String.format(
+            "%s (Counterexample %s)",
+            sourceFiles.get(0),
+            counterExample.getUniqueId());
+        writer.write(title);
+      }
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Inserting report name failed.");
+    }
+  }
+
+  private void insertStatistics(Writer writer, String statistics) throws IOException {
     int iterator = 0;
     for (String line : LINE_SPLITTER.split(statistics)) {
       line = "<pre id=\"statistics-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
-      report.write(line);
+      writer.write(line);
       iterator++;
     }
   }
@@ -256,7 +322,7 @@ public class ReportGenerator {
     }
   }
 
-  private void insertSource(Path sourcePath, Writer report, int sourceFileNumber)
+  private void insertSource(Path sourcePath, Writer writer, int sourceFileNumber)
       throws IOException {
 
     if (isReadable(sourcePath)) {
@@ -266,7 +332,7 @@ public class ReportGenerator {
               new InputStreamReader(
                   new FileInputStream(sourcePath.toFile()), Charset.defaultCharset()))) {
 
-        report.write(
+        writer.write(
             "<div class=\"sourceContent content\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
                 + ")\">\n<table>\n");
@@ -274,7 +340,7 @@ public class ReportGenerator {
         String line;
         while (null != (line = source.readLine())) {
           line = "<td><pre class=\"prettyprint\">" + htmlEscape(line) + "  </pre></td>";
-          report.write(
+          writer.write(
               "<tr id=\"source-"
                   + lineNumber
                   + "\"><td><pre>"
@@ -285,7 +351,7 @@ public class ReportGenerator {
           lineNumber++;
         }
 
-        report.write("</table></div>\n");
+        writer.write("</table></div>\n");
 
       } catch (IOException e) {
         logger.logUserException(
@@ -293,87 +359,89 @@ public class ReportGenerator {
       }
 
     } else {
-      report.write("<p>No Source-File available</p>");
+      writer.write("<p>No Source-File available</p>");
     }
   }
 
 
-  private void insertConfiguration(Writer report) throws IOException {
+  private void insertConfiguration(Writer writer) throws IOException {
 
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
 
     int iterator = 0;
     for (String line : lines) {
       line = "<pre id=\"config-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
-      report.write(line);
+      writer.write(line);
       iterator++;
     }
   }
 
-  private void insertLog(Writer bufferedWriter) throws IOException {
-    if (logFile != null && Files.isReadable(logFile)) {
-      try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
-
-        int iterator = 0;
-        String line;
-        while (null != (line = log.readLine())) {
-          line = "<pre id=\"log-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
-          bufferedWriter.write(line);
-          iterator++;
+  private void insertLog(Writer writer) {
+    try {
+      if (logFile != null && Files.isReadable(logFile)) {
+        try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
+          int iterator = 0;
+          String line;
+          while (null != (line = log.readLine())) {
+            line = "<pre id=\"log-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
+            writer.write(line);
+            iterator++;
+          }
         }
-
-      } catch (IOException e) {
-        logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
+      } else {
+          writer.write("<p>No Log-File available</p>");
       }
-
-    } else {
-      bufferedWriter.write("<p>No Log-File available</p>");
+    } catch (IOException e) {
+      logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
     }
   }
 
-  private void insertFCallEdges(Writer report, DOTBuilder2 dotBuilder) throws IOException {
-    report.write("var fCallEdges = ");
-    dotBuilder.writeFunctionCallEdges(report);
-    report.write(";\n");
-  }
-
-  private void insertCombinedNodesData(Writer report, DOTBuilder2 dotBuilder) throws IOException {
-    report.write("var combinedNodes = ");
-    dotBuilder.writeCombinedNodes(report);
-    report.write(";\n");
-  }
-
-  private void insertCfaInfoData(Writer report, DOTBuilder2 dotBuilder) throws IOException {
-    report.write("var cfaInfo = ");
-    dotBuilder.writeCfaInfo(report);
-    report.write(";\n");
-  }
-
-  private void insertErrorPathData(CounterexampleInfo counterExample, Writer report)
-      throws IOException {
-    report.write("var errorPathData = ");
-    counterExample.toJSON(report);
-    report.write(";\n");
-  }
-
-  private void insertFunctionNames(Writer report, CFA cfa) {
+  private void insertFCallEdges(Writer writer, DOTBuilder2 dotBuilder) {
     try {
-      report.write("var functions = ");
-      JSON.writeJSONString(cfa.getAllFunctionNames(), report);
-      report.write(";\n");
+      writer.write("\"functionCallEdges\":");
+      dotBuilder.writeFunctionCallEdges(writer);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Insertion of function call edges failed.");
+    }
+  }
 
+  private void insertCombinedNodesData(Writer writer, DOTBuilder2 dotBuilder) {
+    try {
+      writer.write("\"combinedNodes\":");
+      dotBuilder.writeCombinedNodes(writer);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Insertion of combined nodes failed.");
+    }
+  }
+
+  private void insertErrorPathData(CounterexampleInfo counterExample, Writer writer) {
+    try {
+      writer.write("\"errorPath\":");
+      counterExample.toJSON(writer);
+      writer.write("," + "//CounterExample\n");
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Insertion of counter example failed.");
+    }
+  }
+
+  private void insertFunctionNames(Writer writer, CFA cfa) {
+    try {
+      writer.write("\"functionNames\":");
+      JSON.writeJSONString(cfa.getAllFunctionNames(), writer);
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of function names failed.");
     }
   }
 
-  private void insertSourceFileNames(Writer report) {
-    try{
-      report.write("var sourceFiles = ");
-      JSON.writeJSONString(sourceFiles, report);
-      report.write(";\n");
-
+  private void insertSourceFileNames(Writer writer) {
+    try {
+      writer.write("\"sourceFiles\":");
+      JSON.writeJSONString(sourceFiles, writer);
+      writer.write(",\n");
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of source file names failed.");

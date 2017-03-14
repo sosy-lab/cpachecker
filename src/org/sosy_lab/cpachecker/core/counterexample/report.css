@@ -1,0 +1,61 @@
+.entry-node {
+	fill: #00ffd0;
+}
+
+g.node-start > polygon {
+  fill: #00ffd0;
+}
+
+text {
+  font-weight: 300;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+  font-size: 14px;
+}
+
+.node rect {
+  stroke: #999;
+  fill: #fff;
+  stroke-width: 1.5px;
+}
+
+.node polygon {
+  stroke: #999;
+  fill: #fff;
+  stroke-width: 1.5px;
+}
+
+.edgePath path {
+  stroke: blue;
+  stroke-width: 1.5px;
+}
+
+.edge-loop path {
+	stroke: red;
+}
+
+.edge-high-level path {
+  stroke: gray;
+}
+
+#infoBoxNode, #infoBoxEdge {
+visibility:hidden;
+position:absolute;
+top:10px;
+left:10px;
+z-index:1;
+
+width:200px;
+background-color:#FDFEFF;
+border:2px solid blue;
+}
+
+#insideBox {
+padding:15px;
+}
+
+#boxContentNode, #boxContentEdge {
+font-family:Verdana,Arial,Helvetica,sans-serif;
+font-size:12px;
+color:black;
+line-height:130%;
+}

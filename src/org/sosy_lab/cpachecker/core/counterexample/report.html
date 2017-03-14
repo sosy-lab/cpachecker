@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html ng-app='report'>
+<head>
+<meta charset="UTF-8">
+<!-- METATAGS -->
+<title>CPAchecker Report</title>
+<!-- REPORT_CSS -->
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js"></script>
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script>
+<!-- REPORT_JS -->
+	
+</script>
+</head>
+<body id="body">
+	<header class="header">
+		<a href="https://cpachecker.sosy-lab.org/"><img class="logo"
+			ng-src="{{logo}}" /></a>
+		<h1>
+			Report for
+			<!-- REPORT_NAME -->
+		</h1>
+
+		<span class="generated"> 
+		<!-- GENERATED -->
+		</span>
+	</header>
+	<div id="infoBoxNode" style="z-index: 1; visibility: hidden;">
+		<div id="insideBoxNode">
+			<span id="boxContentNode">&nbsp;</span>
+		</div>
+	</div>
+	<div id="infoBoxEdge" style="z-index: 1; visibility: hidden;">
+		<div id="insideBoxEdge">
+			<span id="boxContentEdge">&nbsp;</span>
+		</div>
+	</div>	
+</body>
+</html>

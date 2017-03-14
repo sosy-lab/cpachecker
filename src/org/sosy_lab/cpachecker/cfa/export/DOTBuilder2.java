@@ -27,14 +27,24 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder.ListMultimapBuilder;
 import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,17 +57,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * Generates one DOT file per function for the report.
@@ -100,7 +99,10 @@ public final class DOTBuilder2 {
   }
 
   public void writeCfaInfo(Writer out) throws IOException {
-    JSON.writeJSONString(jsoner.getJSON(), out);
+    out.write("\"nodes\":");
+    JSON.writeJSONString(jsoner.getNodes(), out);
+    out.write(",\n\"edges\":");
+    JSON.writeJSONString(jsoner.getEdges(), out);
   }
 
   public void writeFunctionCallEdges(Writer out) throws IOException {
@@ -329,8 +331,10 @@ public final class DOTBuilder2 {
     @Override
     public TraversalProcess visitNode(CFANode node) {
       Map<String, Object> jnode = new HashMap<>();
-      jnode.put("no", node.getNodeNumber());
+      jnode.put("index", node.getNodeNumber());
       jnode.put("func", node.getFunctionName());
+      jnode.put("type", determineNodeType(node.describeFileLocation()));
+
       nodes.put(node.getNodeNumber(), jnode);
 
       return TraversalProcess.CONTINUE;
@@ -353,11 +357,18 @@ public final class DOTBuilder2 {
       return TraversalProcess.CONTINUE;
     }
 
-    Map<String, Object> getJSON() {
-      Map<String, Object> obj = new HashMap<>();
-      obj.put("nodes", nodes);
-      obj.put("edges", edges);
-      return obj;
+    private String determineNodeType(String nodeFileLocation) {
+      String[] result = nodeFileLocation.split(" ");
+      return result[0];
     }
+
+    Collection<Object> getNodes() {
+      return nodes.values();
+    }
+
+    Collection<Object> getEdges() {
+      return edges.values();
+    }
+
   }
 }
