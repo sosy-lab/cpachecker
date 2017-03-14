@@ -25,7 +25,17 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
-
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -33,7 +43,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -67,30 +76,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstruction;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParser;
 import org.sosy_lab.cpachecker.util.ci.AppliedCustomInstructionParsingFailedException;
 import org.sosy_lab.cpachecker.util.ci.CustomInstruction;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications;
-import org.sosy_lab.cpachecker.util.ci.CustomInstructionRequirementsWriter;
-import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
+import org.sosy_lab.cpachecker.util.ci.CustomInstructionRequirementsExtractor;
 
 
 @Options(prefix="custominstructions")
@@ -109,27 +100,15 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
   private Path ciSpec = Paths.get("ci_spec.txt");
 
   @Option(secure = true,
-      description = "Where to dump the requirements on custom instruction extracted from analysis")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathCounterTemplate dumpCIRequirements = PathCounterTemplate.ofFormatString("ci%d.smt");
-
-  @Option(secure=true, description="Qualified name of class for abstract state which provides custom instruction requirements.")
-  private String requirementsStateClassName;
-
-  @Option(secure = true,
       description = "Specify simple custom instruction by specifying the binary operator op. All simple cis are of the form r = x op y. Leave empty (default) if you specify a more complex custom instruction within code.",
       values = { "MULTIPLY", "DIVIDE", "MODULO", "PLUS", "MINUS", "SHIFT_LEFT", "SHIFT_RIGHT", "LESS_THAN",
           "GREATER_THAN", "LESS_EQUAL", "GREATER_EQUAL", "BINARY_AND", "BINARY_XOR", "BINARY_OR", "EQUALS",
           "NOT_EQUALS", ""})
   private String binaryOperatorForSimpleCustomInstruction = "";
 
-  @Option(secure=true, description="Try to remove informations from requirements which is irrelevant for custom instruction behavior")
-  private boolean enableRequirementSlicing = false;
-
-  private Class<? extends AbstractState> requirementsStateClass;
-
   private CFA cfa;
   private final ConfigurableProgramAnalysis cpa;
+  private final CustomInstructionRequirementsExtractor ciExtractor;
 
   /**
    * Constructor of CustomInstructionRequirementsExtractingAlgorithm
@@ -140,7 +119,6 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
    * @param sdNotifier ShutdownNotifier
    * @throws InvalidConfigurationException if the given Path not exists
    */
-  @SuppressWarnings("unchecked")
   public CustomInstructionRequirementsExtractingAlgorithm(final Algorithm analysisAlgorithm,
       final ConfigurableProgramAnalysis cpa, final Configuration config, final LogManager logger,
       final ShutdownNotifier sdNotifier, final CFA cfa) throws InvalidConfigurationException {
@@ -165,14 +143,9 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       throw new InvalidConfigurationException("The given path '" + appliedCustomInstructionsDefinition + "' is not a valid path to a file.");
     }
 
-    try {
-      requirementsStateClass = (Class<? extends AbstractState>) Class.forName(requirementsStateClassName);
-    } catch (ClassNotFoundException e) {
-      throw new InvalidConfigurationException("The abstract state " + requirementsStateClassName + " is unknown.");
-    } catch (ClassCastException ex) {
-      throw new InvalidConfigurationException(requirementsStateClassName + "is not an abstract state.");
-    }
+    ciExtractor = new CustomInstructionRequirementsExtractor(config, logger, sdNotifier, cpa);
 
+    Class<? extends AbstractState> requirementsStateClass = ciExtractor.getRequirementsStateClass();
     try {
       if (AbstractStates.extractStateByType(cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
                                             requirementsStateClass) == null) {
@@ -214,7 +187,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
 
-    if (requirementsStateClass.equals(PredicateAbstractState.class)) {
+    if (ciExtractor.getRequirementsStateClass().equals(PredicateAbstractState.class)) {
       PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
       if (predCPA == null) {
         logger.log(Level.SEVERE,
@@ -238,7 +211,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
     shutdownNotifier.shutdownIfNecessary();
     logger.log(Level.INFO, "Start extracting requirements for applied custom instructions");
 
-    extractRequirements((ARGState)pReachedSet.getFirstState(), cia);
+    ciExtractor.extractRequirements((ARGState)pReachedSet.getFirstState(), cia);
     return status;
   }
 
@@ -313,131 +286,6 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
         parse(ci, appliedCustomInstructionsDefinition);
   }
 
-  /**
-   * Extracts all start and end nodes of the ARGState root and writes them via
-   * CustomInstrucionRequirementsWriter.
-   * @param root ARGState
-   * @param cia CustomInstructionApplications
-   * @throws InterruptedException if a shutdown was requested
-   */
-  private void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
-      throws InterruptedException, CPAException {
-    CustomInstructionRequirementsWriter writer =
-        new CustomInstructionRequirementsWriter(dumpCIRequirements,
-            requirementsStateClass, logger, cpa, enableRequirementSlicing);
-    Collection<ARGState> ciStartNodes = getCustomInstructionStartNodes(root, cia);
-
-    List<Pair<ARGState, Collection<ARGState>>> requirements = new ArrayList<>(ciStartNodes.size());
-    List<Pair<List<String>, List<String>>> signatures = new ArrayList<>(ciStartNodes.size());
-    for (ARGState start : ciStartNodes) {
-      shutdownNotifier.shutdownIfNecessary();
-      requirements.add(Pair.of(start, findEndStatesFor(start, cia)));
-      signatures.add(Pair.of(cia.getAppliedCustomInstructionFor(start)
-          .getInputVariablesAndConstants(), cia.getAppliedCustomInstructionFor(start)
-          .getOutputVariables()));
-    }
-
-    if (enableRequirementSlicing) {
-      requirements =
-          RedundantRequirementsRemover.removeRedundantRequirements(requirements, signatures,
-              requirementsStateClass);
-    }
-
-    for (Pair<ARGState, Collection<ARGState>> requirement : requirements) {
-      shutdownNotifier.shutdownIfNecessary();
-      try {
-        writer.writeCIRequirement(requirement.getFirst(), requirement.getSecond(),
-            cia.getAppliedCustomInstructionFor(requirement.getFirst()));
-      } catch (IOException e) {
-        logger.log(Level.SEVERE,
-            "Writing  the CIRequirement failed at node " + requirement.getFirst() + ".", e);
-      }
-    }
-  }
-
-  /**
-   * Returns a Set of ARGState with all states of the root-tree which are startStates
-   * of the given CustomInstructionApplications
-   * @param root ARGState
-   * @param pCustomIA CustomInstructionApplication
-   * @return ImmutableSet of ARGState
-   */
-  private Collection<ARGState> getCustomInstructionStartNodes(final ARGState root, final CustomInstructionApplications pCustomIA)
-      throws InterruptedException, CPAException{
-
-    Builder<ARGState> set = new ImmutableSet.Builder<>();
-    Set<ARGState> visitedNodes = new HashSet<>();
-    Queue<ARGState> queue = new ArrayDeque<>();
-
-    queue.add(root);
-    visitedNodes.add(root);
-
-    ARGState tmp;
-
-    while (!queue.isEmpty()) {
-      shutdownNotifier.shutdownIfNecessary();
-      tmp = queue.poll();
-      visitedNodes.add(tmp);
-
-      if (pCustomIA.isStartState(tmp)) {
-        set.add(uncover(tmp));
-      }
-
-      // breadth-first-search
-      for (ARGState child : tmp.getChildren()) {
-        if (!visitedNodes.contains(child)) {
-          queue.add(child);
-          visitedNodes.add(child);
-        }
-      }
-    }
-
-    return set.build();
-  }
-
-  /**
-   * Returns a Collection of ARGState of all EndStates which are in the tree of ciStart
-   * @param ciStart ARGState
-   * @return Collection of ARGState
-   * @throws InterruptedException if a shutdown was requested
-   */
-  private Collection<ARGState> findEndStatesFor(final ARGState ciStart, final CustomInstructionApplications pCustomIA)
-      throws InterruptedException, CPAException {
-    ArrayList<ARGState> list = new ArrayList<>();
-    Queue<ARGState> queue = new ArrayDeque<>();
-    Set<ARGState> visitedNodes = new HashSet<>();
-
-    queue.add(ciStart);
-    visitedNodes.add(ciStart);
-
-    while (!queue.isEmpty()) {
-      shutdownNotifier.shutdownIfNecessary();
-      ARGState tmp = queue.poll();
-
-      if (pCustomIA.isEndState(tmp, ciStart)) {
-        list.add(tmp);
-        continue;
-      }
-
-      // breadth-first-search
-      for (ARGState child : tmp.getChildren()) {
-        child = uncover(child);
-        if (!visitedNodes.contains(child)) {
-          queue.add(child);
-          visitedNodes.add(child);
-        }
-      }
-    }
-
-    return list;
-  }
-
-  private ARGState uncover(final ARGState state){
-    if(state.isCovered()) {
-      return uncover(state.getCoveringState());
-    }
-    return state;
-  }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
