@@ -688,15 +688,15 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           List<SMGExplicitValueAndState> sizeValueAndStates = evaluateExplicitValue(currentState, pCfaEdge, sizeExpr);
 
           for (SMGExplicitValueAndState sizeValueAndState : sizeValueAndStates) {
-            SMGState sizeState = sizeValueAndState.getSmgState();
+            currentState = sizeValueAndState.getSmgState();
             SMGAddressValue targetObject = targetStr1AndState.getObject();
             SMGAddressValue sourceObject = sourceStr2AndState.getObject();
             SMGExplicitValue explicitSizeValue = sizeValueAndState.getObject();
             if (!targetObject.isUnknown() && !sourceObject.isUnknown()) {
               SMGValueAndStateList sizeSymbolicValueAndStates =
-                  evaluateExpressionValue(sizeState, pCfaEdge, sizeExpr);
+                  evaluateExpressionValue(currentState, pCfaEdge, sizeExpr);
               int symbolicValueSize = expressionEvaluator.getBitSizeof(pCfaEdge, sizeExpr
-                  .getExpressionType(), sizeState);
+                  .getExpressionType(), currentState);
               for (SMGValueAndState sizeSymbolicValueAndState : sizeSymbolicValueAndStates
                   .getValueAndStateList()) {
                 SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
@@ -710,14 +710,18 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
                 int availableTarget = targetSize - targetRangeOffset;
 
                 if (explicitSizeValue.isUnknown()) {
-                  sizeState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
-                      .valueOf(availableSource), symbolicValueSize, pCfaEdge);
-                  sizeState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
-                      .valueOf(availableTarget), symbolicValueSize, pCfaEdge);
+                  if (!currentState.isObjectExternallyAllocated(sourceObject.getObject())) {
+                    currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
+                        .valueOf(availableSource), symbolicValueSize, pCfaEdge);
+                  }
+                  if (!currentState.isObjectExternallyAllocated(targetObject.getObject())) {
+                    currentState.addErrorPredicate(symbolicValue, symbolicValueSize, SMGKnownExpValue
+                        .valueOf(availableTarget), symbolicValueSize, pCfaEdge);
+                  }
                 }
               }
             }
-            result.add(evaluateMemcpy(sizeState, targetObject, sourceObject,
+            result.add(evaluateMemcpy(currentState, targetObject, sourceObject,
                 explicitSizeValue));
           }
         }
