@@ -2377,8 +2377,8 @@ custominstructions.binaryOperatorForSimpleCustomInstruction = PLUS
 # output variables of a custom instruction
 custominstructions.ciSignature = "ci_spec.txt"
 
-# File to dump start location of identified custom instruction applications
 # File specifying start locations of custom instruction applications
+# File to dump start location of identified custom instruction applications
 custominstructions.definitionFile = "ci_def.txt"
 
 # Where to dump the requirements on custom instruction extracted from
