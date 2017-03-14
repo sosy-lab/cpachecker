@@ -282,7 +282,7 @@ public class CustomInstructionApplications {
               stmt = (CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement();
               if (stmt.getRightHandSide() instanceof CBinaryExpression
                   && ((CBinaryExpression) stmt.getRightHandSide()).getOperator()
-                      .equals(foundCustomInstructionsDefinition)
+                      .equals(binaryOperatorForSimpleCustomInstruction)
                   && stmt.getLeftHandSide().getExpressionType().equals(type)) {
                 // application of custom instruction found, add to definition file
                 aciDef.write(node.getNodeNumber() + "\n");
