@@ -2368,15 +2368,18 @@ cpa.value.trackJavaArrayValues = true
 # Specify simple custom instruction by specifying the binary operator op. All
 # simple cis are of the form r = x op y. Leave empty (default) if you specify
 # a more complex custom instruction within code.
-custominstructions.binaryOperatorForSimpleCustomInstruction = ""
-  allowed values: [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN, GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR, EQUALS, NOT_EQUALS, ]
+custominstructions.binaryOperatorForSimpleCustomInstruction = PLUS
+  enum:     [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN,
+             GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR,
+             EQUALS, NOT_EQUALS]
 
 # Signature for custom instruction, describes names and order of input and
 # output variables of a custom instruction
 custominstructions.ciSignature = "ci_spec.txt"
 
-# File to be parsed
-custominstructions.definitionFile = no default value
+# File to dump start location of identified custom instruction applications
+# File specifying start locations of custom instruction applications
+custominstructions.definitionFile = "ci_def.txt"
 
 # Where to dump the requirements on custom instruction extracted from
 # analysis
@@ -2385,6 +2388,11 @@ custominstructions.dumpCIRequirements = "ci%d.smt"
 # Try to remove informations from requirements which is irrelevant for custom
 # instruction behavior
 custominstructions.enableRequirementSlicing = false
+
+# Specifies the mode how custom instruction applications in program are
+# identified.
+custominstructions.mode = OPERATOR
+  enum:     [MANUAL, OPERATOR]
 
 # Qualified name of class for abstract state which provides custom
 # instruction requirements.
