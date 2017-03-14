@@ -27,6 +27,7 @@ import com.google.common.collect.Collections2;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,6 +36,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -124,6 +126,15 @@ public class BAMARGStatistics extends ARGStatistics {
     BAMReachedSet bamReachedSet =
         new BAMReachedSet(bamCpa, pMainReachedSet, path, rootOfSubgraph, dummyTimer);
 
-    super.printStatistics(pOut, pResult, bamReachedSet.asReachedSet());
+    ARGState argState = (ARGState) pReached.getLastState();
+    UnmodifiableReachedSet bamReachedSetView = bamReachedSet.asReachedSet();
+    if (argState.isTarget()) {
+      Optional<CounterexampleInfo> cex = argState.getCounterexampleInformation();
+      argState = (ARGState) bamReachedSetView.getLastState();
+      if (cex.isPresent()) {
+        argState.addCounterexampleInformation(cex.get());
+      }
+    }
+    super.printStatistics(pOut, pResult, bamReachedSetView);
   }
 }
