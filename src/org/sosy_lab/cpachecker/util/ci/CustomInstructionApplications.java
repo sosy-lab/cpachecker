@@ -182,7 +182,7 @@ public class CustomInstructionApplications {
         throws InvalidConfigurationException {
       switch (type) {
         case MANUAL:
-          return new ManuallyDefinedCustomInstructionApplicationBuilder(pConfig, pCfa, pLogger,
+          return new CustomInstructionApplicationsFromFile(pConfig, pCfa, pLogger,
               pSdNotifier);
         case OPERATOR:
           return new CustomInstructionsForBinaryOperator(pConfig, pLogger, pSdNotifier, pCfa);
@@ -195,13 +195,13 @@ public class CustomInstructionApplications {
   }
 
   @Options(prefix="custominstructions")
-  public static class ManuallyDefinedCustomInstructionApplicationBuilder extends CustomInstructionApplicationBuilder{
+  private static class CustomInstructionApplicationsFromFile extends CustomInstructionApplicationBuilder{
 
     @Option(secure=true, name="definitionFile", description = "File specifying start locations of custom instruction applications")
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
     private Path appliedCustomInstructionsDefinition = Paths.get("ci_def.txt");
 
-    public ManuallyDefinedCustomInstructionApplicationBuilder(Configuration pConfig, final CFA pCfa,
+    public CustomInstructionApplicationsFromFile(Configuration pConfig, final CFA pCfa,
         LogManager pLogger, ShutdownNotifier pSdNotifier) throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
       pConfig.inject(this);
@@ -222,7 +222,7 @@ public class CustomInstructionApplications {
   }
 
   @Options(prefix="custominstructions")
-  public static class CustomInstructionsForBinaryOperator extends CustomInstructionApplicationBuilder {
+  private static class CustomInstructionsForBinaryOperator extends CustomInstructionApplicationBuilder {
 
     @Option(secure = true,
         description = "Specify simple custom instruction by specifying the binary operator op. All simple cis are of the form r = x op y. Leave empty (default) if you specify a more complex custom instruction within code.")
