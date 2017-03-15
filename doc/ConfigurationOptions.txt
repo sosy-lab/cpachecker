@@ -143,6 +143,10 @@ analysis.algorithm.pdr = false
 analysis.algorithm.proofCheck = false
 
 # use a proof check algorithm to validate a previously generated proofand
+# extract requirements on a (reconfigurable) HW from the proof
+analysis.algorithm.proofCheckAndGetHWRequirements = false
+
+# use a proof check algorithm to validate a previously generated proofand
 # read the configuration for checking from the proof
 analysis.algorithm.proofCheckReadConfig = false
 
@@ -2565,6 +2569,10 @@ parser.transformTokensToLines = false
 # file numbers printed by CPAchecker will refer to the pre-processed file,
 # not the original input file.
 parser.usePreprocessor = false
+
+# Specifies the mode how HW requirements are detected in the proof.
+pcc.HWrequirements.extraction.mode = OPERATOR
+  enum:     [MANUAL, OPERATOR]
 
 # Enable if used property checker implements satisfiesProperty(AbstractState)
 # and checked property is violated for a set iff an element in this set

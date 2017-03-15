@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar.PDRAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
@@ -150,6 +151,12 @@ public class CoreComponentsFactory {
       description="use a proof check algorithm to validate a previously generated proof"
           + "and read the configuration for checking from the proof")
   private boolean useProofCheckAlgorithmWithStoredConfig = false;
+
+  @Option(secure=true, name="algorithm.proofCheckAndGetHWRequirements",
+      description="use a proof check algorithm to validate a previously generated proof"
+      + "and extract requirements on a (reconfigurable) HW from the proof")
+  private boolean useProofCheckAndExtractCIRequirementsAlgorithm = false;
+
 
   @Option(secure=true, name="algorithm.propertyCheck",
       description = "do analysis and then check "
@@ -264,6 +271,11 @@ public class CoreComponentsFactory {
       algorithm =
           new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa, specification);
 
+    } else if (useProofCheckAndExtractCIRequirementsAlgorithm) {
+      logger.log(Level.INFO, "Using Proof Check Algorithm");
+      algorithm =
+          new ProofCheckAndExtractCIRequirementsAlgorithm(cpa, config, logger, shutdownNotifier,
+              cfa, specification);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm =

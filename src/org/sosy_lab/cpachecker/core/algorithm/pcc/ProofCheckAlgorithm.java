@@ -75,9 +75,9 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private final CPAStatistics stats = new CPAStatistics();
-  private final LogManager logger;
+  protected final LogManager logger;
 
-  private PCCStrategy checkingStrategy;
+  protected final PCCStrategy checkingStrategy;
 
   @Option(secure=true,
       name = "proof",

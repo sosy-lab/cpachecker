@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.pcc.strategy.arg;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Preconditions;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashSet;
@@ -55,6 +56,11 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
     super(pConfig, pLogger, pProofFile);
     propChecker = pPropertyChecker;
     shutdownNotifier = pShutdownNotifier;
+  }
+
+  public ARGState getARG() {
+    Preconditions.checkNotNull(root);
+    return root;
   }
 
   @Override
