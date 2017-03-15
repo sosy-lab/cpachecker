@@ -119,6 +119,9 @@ public class ConfigurationFilesTest {
           "witness.validation.violation.config",
           "witness.validation.correctness.config",
           "pcc.proofgen.doPCC",
+          "pcc.strategy",
+          "pcc.cmc.configFiles",
+          "pcc.cmc.file",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
