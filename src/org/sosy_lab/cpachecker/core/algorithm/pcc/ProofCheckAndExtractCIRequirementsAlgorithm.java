@@ -112,8 +112,13 @@ public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgor
     // proof checking
     AlgorithmStatus status = super.run(reachedSet);
 
-    logger.log(Level.INFO, "Extracting custom instruction requirements.");
-    ciExtractor.extractRequirements(((AbstractARGStrategy)checkingStrategy).getARG(), cia);
+    if (status.isSound()) {
+      logger.log(Level.INFO, "Extracting custom instruction requirements.");
+      ciExtractor.extractRequirements(((AbstractARGStrategy) checkingStrategy).getARG(), cia);
+    } else {
+      logger.log(Level.INFO, "Proof checking failed, do not extract requirements!");
+    }
+
     return status;
 
   }
