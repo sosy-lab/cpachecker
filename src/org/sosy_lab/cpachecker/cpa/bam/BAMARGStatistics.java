@@ -128,7 +128,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     ARGState argState = (ARGState) pReached.getLastState();
     UnmodifiableReachedSet bamReachedSetView = bamReachedSet.asReachedSet();
-    if (argState.isTarget()) {
+    if (argState != null && argState.isTarget()) {
       Optional<CounterexampleInfo> cex = argState.getCounterexampleInformation();
       argState = (ARGState) bamReachedSetView.getLastState();
       if (cex.isPresent()) {
