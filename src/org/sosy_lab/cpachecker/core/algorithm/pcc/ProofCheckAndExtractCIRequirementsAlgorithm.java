@@ -92,6 +92,7 @@ public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgor
 
     CustomInstructionApplications cia;
     try {
+      logger.log(Level.INFO, "Get custom instruction applications in program.");
       cia = ciasBuilder.identifyCIApplications();
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Detecting the custom instruction applications in program failed.", e);
@@ -111,6 +112,7 @@ public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgor
     // proof checking
     AlgorithmStatus status = super.run(reachedSet);
 
+    logger.log(Level.INFO, "Extracting custom instruction requirements.");
     ciExtractor.extractRequirements(((AbstractARGStrategy)checkingStrategy).getARG(), cia);
     return status;
 
