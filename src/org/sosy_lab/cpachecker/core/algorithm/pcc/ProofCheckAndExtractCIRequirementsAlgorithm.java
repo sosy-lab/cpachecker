@@ -66,6 +66,8 @@ public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgor
       Specification pSpecification) throws InvalidConfigurationException {
     super(pCpa, pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
 
+    pConfig.inject(this);
+
     ciasBuilder = CustomInstructionApplicationBuilder.getBuilder(ciMode, pConfig, pLogger, pShutdownNotifier, pCfa);
     ciExtractor = new CustomInstructionRequirementsExtractor(pConfig, pLogger, pShutdownNotifier, pCpa);
     cpa = pCpa;

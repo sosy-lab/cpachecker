@@ -93,7 +93,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       CFA pCfa,
       Specification specification)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
+    pConfig.inject(this, ProofCheckAlgorithm.class);
 
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(
@@ -125,7 +125,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       Specification specification)
       throws InvalidConfigurationException, InterruptedException {
 
-    pConfig.inject(this);
+    pConfig.inject(this, ProofCheckAlgorithm.class);
 
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(
