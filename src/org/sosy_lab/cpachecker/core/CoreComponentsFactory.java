@@ -157,6 +157,9 @@ public class CoreComponentsFactory {
       + "and extract requirements on a (reconfigurable) HW from the proof")
   private boolean useProofCheckAndExtractCIRequirementsAlgorithm = false;
 
+  @Option(secure=true, name="algorithm.proofCheckWithARGCMCStrategy",
+      description="use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to validate a previously generated proofenable")
+  private boolean useProofCheckWithARGCMCStrategy = false;
 
   @Option(secure=true, name="algorithm.propertyCheck",
       description = "do analysis and then check "
@@ -266,7 +269,7 @@ public class CoreComponentsFactory {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
           new ConfigReadingProofCheckAlgorithm(config, logger, shutdownNotifier, cfa, specification);
-    } else if (useProofCheckAlgorithm) {
+    } else if (useProofCheckAlgorithm || useProofCheckWithARGCMCStrategy) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
           new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa, specification);
@@ -448,7 +451,8 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useRestartingAlgorithm || useParallelAlgorithm || useProofCheckAlgorithmWithStoredConfig) {
+    if (useRestartingAlgorithm || useParallelAlgorithm || useProofCheckAlgorithmWithStoredConfig
+        || useProofCheckWithARGCMCStrategy) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

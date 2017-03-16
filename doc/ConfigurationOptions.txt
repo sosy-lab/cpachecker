@@ -150,6 +150,10 @@ analysis.algorithm.proofCheckAndGetHWRequirements = false
 # read the configuration for checking from the proof
 analysis.algorithm.proofCheckReadConfig = false
 
+# use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to
+# validate a previously generated proofenable
+analysis.algorithm.proofCheckWithARGCMCStrategy = false
+
 # do analysis and then check if reached set fulfills property specified by
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
