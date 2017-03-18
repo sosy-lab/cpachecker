@@ -410,6 +410,16 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     in.defaultReadObject();
     int stateId = in.readInt();
     internalState = GlobalInfo.getInstance().getAutomatonInfo().getStateById(stateId);
+    if(internalState == null) {
+      if(stateId == AutomatonInternalState.ERROR.getStateId()) {
+        internalState = AutomatonInternalState.ERROR;
+      } else if(stateId == AutomatonInternalState.BREAK.getStateId()) {
+        internalState = AutomatonInternalState.BREAK;
+      } else if(stateId == AutomatonInternalState.BOTTOM.getStateId()) {
+        internalState = AutomatonInternalState.BOTTOM;
+      } 
+    }
+
     automatonCPA = GlobalInfo.getInstance().getAutomatonInfo().getCPAForAutomaton((String)in.readObject());
   }
 
