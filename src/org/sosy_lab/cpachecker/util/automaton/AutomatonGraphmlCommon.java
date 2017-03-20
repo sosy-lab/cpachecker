@@ -117,6 +117,7 @@ public class AutomatonGraphmlCommon {
     SOURCECODE("sourcecode", ElementType.EDGE, "sourcecode", "string"),
     STARTLINE("startline", ElementType.EDGE, "startline", "int"),
     OFFSET("startoffset", ElementType.EDGE, "startoffset", "int"),
+    ENDOFFSET("endoffset", ElementType.EDGE, "endoffset", "int"),
     ORIGINFILE("originfile", ElementType.EDGE, "originFileName", "string"),
     LINECOLS("lineCols", ElementType.EDGE, "lineColSet", "string"),
     CONTROLCASE("control", ElementType.EDGE, "control", "string"),
