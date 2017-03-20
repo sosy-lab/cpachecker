@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -60,7 +58,6 @@ public class BAMBasedRefiner extends AbstractARGBasedRefiner {
   final StatTimer removeCachedSubtreeTimer = new StatTimer("Removing cached subtrees");
 
   private final BAMCPA bamCpa;
-  protected final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
   protected ARGState rootOfSubgraph = null;
 
   private BAMBasedRefiner(
@@ -110,7 +107,7 @@ public class BAMBasedRefiner extends AbstractARGBasedRefiner {
     } else {
 
       // wrap the original reached-set to have a valid "view" on all reached states.
-      pReached = new BAMReachedSet(bamCpa, pReached, pPath, rootOfSubgraph, removeCachedSubtreeTimer);
+      pReached = new BAMReachedSet(bamCpa, pReached, pPath, removeCachedSubtreeTimer);
       return super.performRefinementForPath(pReached, pPath);
     }
   }
@@ -124,6 +121,7 @@ public class BAMBasedRefiner extends AbstractARGBasedRefiner {
     computePathTimer.start();
     try {
       computeSubtreeTimer.start();
+      ARGState rootOfSubgraph;
       try {
         try {
           rootOfSubgraph = computeCounterexampleSubgraph(pLastElement, pMainReachedSet);

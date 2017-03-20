@@ -65,13 +65,19 @@ public class StatHist extends AbstractStatValue {
     }
   }
 
-  private double getAvg() {
+  protected double getAvg() {
+    synchronized (hist) {
+      return getSum() / hist.size();
+    }
+  }
+
+  public double getSum() {
     synchronized (hist) {
       long sum = 0;
       for (Entry<Integer> e : hist.entrySet()) {
         sum += (e.getElement() * e.getCount());
       }
-      return (double) sum / hist.size();
+      return sum;
     }
   }
 

@@ -181,14 +181,13 @@ public class IntervalAnalysisState
     PersistentMap<String, Interval> newIntervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> newReferences = referenceCounts;
 
-    int newRefCount;
-    Interval mergedInterval;
-
     for (String variableName : reachedState.intervals.keySet()) {
+      Integer otherRefCount = reachedState.getReferenceCount(variableName);
+      Interval otherInterval = reachedState.getInterval(variableName);
       if (intervals.containsKey(variableName)) {
         // update the interval
-        mergedInterval = getInterval(variableName).union(reachedState.getInterval(variableName));
-        if (mergedInterval != reachedState.getInterval(variableName)) {
+        Interval mergedInterval = getInterval(variableName).union(otherInterval);
+        if (mergedInterval != otherInterval) {
           changed = true;
         }
 
@@ -197,17 +196,16 @@ public class IntervalAnalysisState
         }
 
         // update the references
-        newRefCount = Math.max(getReferenceCount(variableName), reachedState.getReferenceCount(variableName));
-        if (mergedInterval != reachedState.getInterval(variableName)
-            && newRefCount > reachedState.getReferenceCount(variableName)) {
+        Integer thisRefCount = getReferenceCount(variableName);
+        if (mergedInterval != otherInterval && thisRefCount > otherRefCount) {
           changed = true;
-          newReferences = newReferences.putAndCopy(variableName, newRefCount);
+          newReferences = newReferences.putAndCopy(variableName, thisRefCount);
         } else {
-          newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
+          newReferences = newReferences.putAndCopy(variableName, otherRefCount);
         }
 
       } else {
-        newReferences = newReferences.putAndCopy(variableName, reachedState.getReferenceCount(variableName));
+        newReferences = newReferences.putAndCopy(variableName, otherRefCount);
         changed = true;
       }
     }
