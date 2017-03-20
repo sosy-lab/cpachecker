@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.not;
@@ -240,7 +239,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   private ListMultimap<LocationInstance, AbstractionPredicate> newPredicates;
-
+  protected PredicatePrecision newPrecisionFromPredicates;
 
   final void setUseAtomicPredicates(boolean atomicPredicates) {
     this.atomicPredicates = atomicPredicates;
@@ -333,7 +332,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  protected final void finishRefinementOfPath(
+  protected void finishRefinementOfPath(
       ARGState pUnreachableState,
       List<ARGState> pAffectedStates,
       ARGReachedSet pReached,
@@ -370,7 +369,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       precisionTypes.add(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
     }
 
-    pReached.removeSubtree(pRefinementRoot, precisions, precisionTypes);
+    //Lockator: we do not remove subgraph directly
+    //pReached.removeSubtree(pRefinementRoot, precisions, precisionTypes);
+    pReached.updateFirstStatePrecision(pNewPrecision, Predicates.instanceOf(PredicatePrecision.class));
+
 
     assert (refinementCount > 0) || reached.size() == 1;
 
@@ -440,10 +442,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     logger.log(Level.ALL, "Old predicate map is", basePrecision);
     logger.log(Level.ALL, "New predicates are", newPredicates);
 
-    PredicatePrecision newPrecision;
+    newPrecisionFromPredicates = PredicatePrecision.empty();
     switch (predicateSharing) {
     case GLOBAL:
-      newPrecision = basePrecision.addGlobalPredicates(newPredicates.values());
+      newPrecisionFromPredicates = newPrecisionFromPredicates.addGlobalPredicates(newPredicates.values());
       break;
     case SCOPE:
       Set<AbstractionPredicate> globalPredicates = new HashSet<>();
@@ -452,26 +454,27 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       splitInLocalAndGlobalPredicates(globalPredicates, localPredicates);
 
-      newPrecision = basePrecision.addGlobalPredicates(globalPredicates);
-      newPrecision =
-          newPrecision.addLocalPredicates(mergePredicatesPerLocation(localPredicates.entries()));
+      newPrecisionFromPredicates = basePrecision.addGlobalPredicates(globalPredicates);
+      newPrecisionFromPredicates = newPrecisionFromPredicates.addLocalPredicates(
+          mergePredicatesPerLocation(localPredicates.entries()));
 
       break;
     case FUNCTION:
-      newPrecision =
-          basePrecision.addFunctionPredicates(
-              mergePredicatesPerFunction(newPredicates.entries()));
+      newPrecisionFromPredicates = newPrecisionFromPredicates.addFunctionPredicates(
+          mergePredicatesPerFunction(newPredicates.entries()));
       break;
     case LOCATION:
-      newPrecision =
-          basePrecision.addLocalPredicates(mergePredicatesPerLocation(newPredicates.entries()));
+      newPrecisionFromPredicates = newPrecisionFromPredicates.addLocalPredicates(
+          mergePredicatesPerLocation(newPredicates.entries()));
       break;
     case LOCATION_INSTANCE:
-      newPrecision = basePrecision.addLocationInstancePredicates(newPredicates.entries());
+      newPrecisionFromPredicates = newPrecisionFromPredicates.addLocationInstancePredicates(newPredicates.entries());
       break;
     default:
       throw new AssertionError();
     }
+
+    PredicatePrecision newPrecision = basePrecision.mergeWith(newPrecisionFromPredicates);
 
     logger.log(Level.ALL, "Predicate map now is", newPrecision);
 

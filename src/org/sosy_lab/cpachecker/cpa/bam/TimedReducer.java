@@ -48,6 +48,19 @@ class TimedReducer implements Reducer {
 
   @Override
   public AbstractState getVariableReducedState(
+      AbstractState pExpandedState, Block pContext, Block outerContext,
+      CFANode pCallNode) throws InterruptedException {
+
+    reduceTime.start();
+    try {
+      return wrappedReducer.getVariableReducedState(pExpandedState, pContext, outerContext, pCallNode);
+    } finally {
+      reduceTime.stop();
+    }
+  }
+
+  @Override
+  public AbstractState getVariableReducedState(
       AbstractState pExpandedState, Block pContext,
       CFANode pCallNode) throws InterruptedException {
 
@@ -56,6 +69,19 @@ class TimedReducer implements Reducer {
       return wrappedReducer.getVariableReducedState(pExpandedState, pContext, pCallNode);
     } finally {
       reduceTime.stop();
+    }
+  }
+
+  @Override
+  public AbstractState getVariableExpandedState(
+      AbstractState pRootState, Block pReducedContext, Block outerSubtree,
+      AbstractState pReducedState) throws InterruptedException {
+
+    expandTime.start();
+    try {
+      return wrappedReducer.getVariableExpandedState(pRootState, pReducedContext, outerSubtree, pReducedState);
+    } finally {
+      expandTime.stop();
     }
   }
 

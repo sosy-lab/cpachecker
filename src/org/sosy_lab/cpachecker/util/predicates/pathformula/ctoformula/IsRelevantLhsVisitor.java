@@ -24,24 +24,32 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
-class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
+public class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeException> {
 
   private final CtoFormulaConverter conv;
 
-  IsRelevantLhsVisitor(CtoFormulaConverter pConv) {
+  public IsRelevantLhsVisitor(CtoFormulaConverter pConv) {
     conv = pConv;
   }
 
@@ -52,7 +60,14 @@ class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeExc
 
   @Override
   public Boolean visit(final CCastExpression e) {
-    return e.getOperand().accept(this);
+    CType resultType = e.getExpressionType();
+    CExpression operand = e.getOperand();
+    if (resultType instanceof CPointerType && operand instanceof CIntegerLiteralExpression &&
+        ((CIntegerLiteralExpression)operand).asLong() != 0) {
+      return false;
+    } else {
+      return operand.accept(this);
+    }
   }
 
   @Override
@@ -62,6 +77,9 @@ class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeExc
 
   @Override
   public Boolean visit(final CFieldReference e) {
+    if (!e.getFieldOwner().accept(this)) {
+      return false;
+    }
     CType fieldOwnerType = e.getFieldOwner().getExpressionType().getCanonicalType();
     if (fieldOwnerType instanceof CPointerType) {
       fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
@@ -72,11 +90,48 @@ class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, RuntimeExc
 
   @Override
   public Boolean visit(final CIdExpression e) {
+    CSimpleDeclaration sDecl = e.getDeclaration();
+    if (sDecl instanceof CVariableDeclaration) {
+      if (((CVariableDeclaration)sDecl).isGlobal()) {
+        return false;
+      }
+    }
     return conv.isRelevantVariable(e.getDeclaration());
   }
 
   @Override
   public Boolean visit(CPointerExpression e) {
+    return e.getOperand().accept(this);
+  }
+
+  @Override
+  public Boolean visit(CBinaryExpression e) {
+    return e.getOperand1().accept(this) && e.getOperand2().accept(this);
+  }
+
+  @Override
+  public Boolean visit(CIntegerLiteralExpression e) {
+    return true;
+  }
+
+  @Override
+  public Boolean visit(CStringLiteralExpression e) {
+    return true;
+  }
+
+  @Override
+  public Boolean visit(CCharLiteralExpression e) {
+    return true;
+  }
+
+
+  @Override
+  public Boolean visit(CFloatLiteralExpression e) {
+   return true;
+  }
+
+  @Override
+  public Boolean visit(CTypeIdExpression e) {
     return true;
   }
 

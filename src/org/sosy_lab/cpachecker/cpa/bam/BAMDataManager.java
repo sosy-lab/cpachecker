@@ -119,7 +119,16 @@ public class BAMDataManager {
     }
   }
 
-  /**
+  /** unused? */
+  void clearCaches() {
+    bamCache.clear();
+    initialStateToReachedSet.clear();
+    expandedStateToBlock.clear();
+    expandedStateToExpandedPrecision.clear();
+    expandedStateToReducedState.clear();
+  }
+
+ /**
    * Create a new reached-set with the given state as root and register it in the cache.
    **/
   ReachedSet createAndRegisterNewReachedSet(
@@ -209,6 +218,9 @@ public class BAMDataManager {
     return initialStateToReachedSet.containsKey(state);
   }
 
+  boolean removeInitialState(AbstractState state) {
+    return initialStateToReachedSet.remove(state) != null;
+  }
 
   AbstractState getReducedStateForExpandedState(AbstractState state) {
     assert expandedStateToReducedState.containsKey(state) : "no match for state: " + state;
@@ -217,6 +229,10 @@ public class BAMDataManager {
 
   boolean hasExpandedState(AbstractState state) {
     return expandedStateToReducedState.containsKey(state);
+  }
+
+  boolean removeExpandedState(AbstractState state) {
+    return expandedStateToReducedState.remove(state) != null;
   }
 
   static int getId(AbstractState state) {

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
+import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -39,8 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-
-import java.util.Collection;
 
 public class FunctionPointerCPA extends AbstractCPA
     implements ConfigurableProgramAnalysisWithBAM, ProofChecker {

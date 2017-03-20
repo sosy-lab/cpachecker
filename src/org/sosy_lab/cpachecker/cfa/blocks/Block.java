@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
 /**
  * Represents a block as described in the BAM paper.
@@ -38,21 +40,37 @@ public class Block {
   private final ImmutableSet<CFANode> callNodes;
   private final ImmutableSet<CFANode> returnNodes;
   private final ImmutableSet<CFANode> nodes;
+  private final ImmutableSet<LockIdentifier> capturedLocks;
 
-  public Block(
-      Iterable<ReferencedVariable> pReferencedVariables,
-      Set<CFANode> pCallNodes,
-      Set<CFANode> pReturnNodes,
-      Iterable<CFANode> allNodes) {
+  public Block(ImmutableSet<ReferencedVariable> pReferencedVariables,
+      Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes,
+      ImmutableSet<CFANode> allNodes, ImmutableSet<LockIdentifier> locks) {
 
-    referencedVariables = ImmutableSet.copyOf(pReferencedVariables);
+    referencedVariables = pReferencedVariables;
     callNodes = ImmutableSet.copyOf(pCallNodes);
     returnNodes = ImmutableSet.copyOf(pReturnNodes);
-    nodes = ImmutableSet.copyOf(allNodes);
+    nodes = allNodes;
+    capturedLocks = locks;
+  }
+
+  public Block(ImmutableSet<ReferencedVariable> pReferencedVariables,
+      Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes,
+      ImmutableSet<CFANode> allNodes) {
+    this(pReferencedVariables, pCallNodes, pReturnNodes, allNodes, ImmutableSet.of());
+  }
+
+  public Block(Iterable<ReferencedVariable> pReferencedVariables,
+      Set<CFANode> pCallNodes, Set<CFANode> pReturnNodes,
+      Iterable<CFANode> allNodes) {
+    this(ImmutableSet.copyOf(pReferencedVariables), pCallNodes, pReturnNodes, ImmutableSet.copyOf(allNodes));
   }
 
   public Set<CFANode> getCallNodes() {
     return callNodes;
+  }
+
+  public Set<LockIdentifier> getCapturedLocks() {
+    return Collections.unmodifiableSet(capturedLocks);
   }
 
   public CFANode getCallNode() {

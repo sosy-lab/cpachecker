@@ -26,6 +26,8 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import com.google.common.collect.Collections2;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,7 +35,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
@@ -43,6 +47,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
+import org.sosy_lab.cpachecker.cpa.local.LocalCPA;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMARGStatistics extends ARGStatistics {
@@ -67,6 +73,27 @@ public class BAMARGStatistics extends ARGStatistics {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.WARNING, "statistic export needs ARG-CPA");
       return; // invalid CPA, nothing to do
+    }
+
+    LocalCPA lCPA = CPAs.retrieveCPA(bamCpa, LocalCPA.class);
+
+    if (lCPA != null) {
+      Set<Statistics> stats = new HashSet<>();
+      lCPA.collectStatistics(stats);
+      Collection<ReachedSet> cachedStates = bamCpa.getData().bamCache.getAllCachedReachedStates();
+
+      AbstractState initialState = pReached.getFirstState();
+      ReachedSet reached = bamCpa.getData().getReachedSetForInitialState(initialState);
+      for (ReachedSet set : cachedStates) {
+        set.forEach(
+            (state, precision) -> {
+              // Method 'add' adds state not only in list of reached states, but also in waitlist,
+              // so we should delete it.
+              reached.add(state, precision);
+              reached.removeOnlyFromWaitlist(state);
+            });
+      }
+      stats.iterator().next().printStatistics(pOut, pResult, reached);
     }
 
     if (pReached.size() <= 1) {

@@ -111,4 +111,10 @@ public class BAMCacheAggressiveImpl extends BAMCacheImpl {
 
     return result;
   }
+
+  @Override
+  public void clear() {
+    super.clear();
+    impreciseReachedCache.clear();
+  }
 }

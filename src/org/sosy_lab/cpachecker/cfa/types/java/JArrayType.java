@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.types.java;
 
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
 /**

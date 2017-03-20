@@ -66,6 +66,9 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 class BAMCPAStatistics extends AbstractStatistics {
 
   @Option(secure=true, description="export blocked ARG as .dot file")
+  private boolean exportARGs = true;
+
+  @Option(secure=true, description="export blocked ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("BlockedARG.dot");
 
@@ -140,8 +143,10 @@ class BAMCPAStatistics extends AbstractStatistics {
 //          });
 //    }
 
-    exportAllReachedSets(argFile, indexedArgFile, reached);
-    exportUsedReachedSets(simplifiedArgFile, reached);
+    if (exportARGs) {
+      exportAllReachedSets(argFile, indexedArgFile, reached);
+      exportUsedReachedSets(simplifiedArgFile, reached);
+    }
   }
 
   private void exportAllReachedSets(final Path superArgFile, final PathTemplate indexedFile,

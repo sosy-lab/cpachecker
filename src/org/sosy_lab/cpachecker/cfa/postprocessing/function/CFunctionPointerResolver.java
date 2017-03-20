@@ -130,9 +130,11 @@ public class CFunctionPointerResolver {
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
-  private final ImmutableSetMultimap<String, String> candidateFunctionsForField;
-
   private final BiPredicate<CFunctionCall, CFunctionType> matchingFunctionCall;
+  //private final BiPredicate<CFunctionCall, CFunctionType> localMatchingFunctionCall;
+
+  private final ImmutableSetMultimap<String, String> candidateFunctionsForField;
+  private final ImmutableSetMultimap<String, String> globalsMatching;
 
   private final MutableCFA cfa;
   private final LogManager logger;
@@ -145,6 +147,11 @@ public class CFunctionPointerResolver {
     config.inject(this);
 
     matchingFunctionCall = getFunctionSetPredicate(functionSets);
+
+    /*Set<FunctionSet> localFunctionSets =
+        ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_COUNT, FunctionSet.EQ_PARAM_TYPES, FunctionSet.RETURN_VALUE);
+
+    localMatchingFunctionCall = getFunctionSetPredicate(localFunctionSets);*/
 
     if (functionSets.contains(FunctionSet.USED_IN_CODE)) {
       CReferencedFunctionsCollector varCollector;
@@ -175,8 +182,12 @@ public class CFunctionPointerResolver {
             ImmutableSetMultimap.copyOf(
                 ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector)
                     .getFieldMatching());
+
+        globalsMatching = ImmutableSetMultimap.copyOf(
+            ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector).getGlobalMatching());
       } else {
         candidateFunctionsForField = null;
+        globalsMatching = null;
       }
 
       if (logger.wouldBeLogged(Level.ALL)) {
@@ -187,6 +198,7 @@ public class CFunctionPointerResolver {
     } else {
       candidateFunctions = cfa.getAllFunctionHeads();
       candidateFunctionsForField = null;
+      globalsMatching = null;
     }
   }
 
@@ -301,17 +313,25 @@ public class CFunctionPointerResolver {
       if (expression instanceof CPointerExpression) {
         expression = ((CPointerExpression) expression).getOperand();
       }
+      final Set<String> matchedFuncs;
       if( expression instanceof CFieldReference) {
         String fieldName = ((CFieldReference)expression).getFieldName();
-        Set<String> matchedFuncs = candidateFunctionsForField.get(fieldName);
-        if (matchedFuncs.isEmpty()) {
-          //TODO means, that our heuristics missed something
-          funcs = Collections.emptySet();
-        } else {
-          funcs = from(funcs).
-              filter(f -> matchedFuncs.contains(f.getFunctionName())).
-              toSet();
-        }
+        matchedFuncs = candidateFunctionsForField.get(fieldName);
+
+      } else if (expression instanceof CIdExpression) {
+        String variableName = ((CIdExpression)expression).getName();
+        matchedFuncs = globalsMatching.get(variableName);
+
+      } else {
+        matchedFuncs = Collections.emptySet();
+      }
+      if (matchedFuncs.isEmpty()) {
+        //TODO means, that our heuristics missed something
+        funcs = Collections.emptySet();
+      } else {
+        funcs = from(funcs).
+            filter(f -> matchedFuncs.contains(f.getFunctionName())).
+            toSet();
       }
     }
 

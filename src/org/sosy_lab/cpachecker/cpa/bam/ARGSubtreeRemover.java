@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -56,13 +57,13 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class ARGSubtreeRemover {
 
-  private final BlockPartitioning partitioning;
-  private final BAMDataManager data;
-  private final Reducer wrappedReducer;
-  private final BAMCache bamCache;
-  private final LogManager logger;
-  private final StatTimer removeCachedSubtreeTimer;
-  private final boolean doPrecisionRefinementForAllStates;
+  protected final BlockPartitioning partitioning;
+  protected final BAMDataManager data;
+  protected final Reducer wrappedReducer;
+  protected final BAMCache bamCache;
+  protected final LogManager logger;
+  protected final StatTimer removeCachedSubtreeTimer;
+  protected final boolean doPrecisionRefinementForAllStates;
 
   public ARGSubtreeRemover(BAMCPA bamCpa, StatTimer pRemoveCachedSubtreeTimer) {
     this.partitioning = bamCpa.getBlockPartitioning();
@@ -83,7 +84,8 @@ public class ARGSubtreeRemover {
     final ARGState lastState = (ARGState)mainReachedSet.asReachedSet().getLastState();
 
     assert pPath.asStatesList().get(0).getWrappedState() == firstState : "path should start with root state";
-    assert Iterables.getLast(pPath.asStatesList()).getWrappedState() == lastState : "path should end with target state";
+    //Lockator: wrong assertion for us
+    //assert Iterables.getLast(pPath.asStatesList()).getWrappedState() == lastState : "path should end with target state";
     assert lastState.isTarget();
 
     final List<ARGState> relevantCallStates = getRelevantCallStates(pPath.asStatesList(), element);
@@ -145,6 +147,7 @@ public class ARGSubtreeRemover {
     mainReachedSet.removeSubtree(lastState);
   }
 
+
   private ARGState getReachedState(ARGState state) {
     return data.getInnermostState(((BackwardARGState) state).getARGState());
   }
@@ -175,7 +178,7 @@ public class ARGSubtreeRemover {
    * This is basically the same as {@link ARGReachedSet#removeSubtree(ARGState)},
    * but we also update the BAM-cache.
    */
-  private void removeCachedSubtree(ARGState rootState, ARGState removeElement,
+  protected void removeCachedSubtree(ARGState rootState, ARGState removeElement,
                                    List<Precision> pNewPrecisions,
                                    List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
@@ -201,6 +204,7 @@ public class ARGSubtreeRemover {
     } else {
       final Pair<Precision, Predicate<? super Precision>> newPrecision = getUpdatedPrecision(
           reachedSet.getPrecision(removeElement), rootSubtree, pNewPrecisions, pPrecisionTypes);
+
       if (removeElement.getParents().contains(reachedSet.getFirstState())) {
         // after removing the state, only the root-state (and maybe other branches
         // starting at root) would remain, with a new precision for root.
@@ -309,7 +313,6 @@ public class ARGSubtreeRemover {
 
         ARGState rootState = rootStates.removeLast();
         if ((removedUnpreciseInnerBlock || isNewPrecisionEntry) && !isNewPrecisionEntryForOuterBlock && !foundInnerUnpreciseEntry) {
-
           if (cutStateFound) {
             // we indeed found an inner block that was imprecise,
             // if we are in a reached set that already uses the new precision and this is the first such entry
@@ -367,5 +370,11 @@ public class ARGSubtreeRemover {
     Precision usedPrecision = innerReachedSet.getPrecision(innerReachedSet.getFirstState());
     boolean isNewPrecisionEntry = !usedPrecision.equals(reducedNewPrecision);
     return isNewPrecisionEntry;
+  }
+
+
+  protected void handleEndOfThePath(ARGPath pPath, ARGState affectedState,
+      Map<ARGState, ARGState> pSubgraphStatesToReachedState) {
+    //Dummy method, it is implemented in the MultiARGSubtreeRemover
   }
 }

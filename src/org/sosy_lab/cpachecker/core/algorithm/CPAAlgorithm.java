@@ -27,7 +27,6 @@ import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.CallToReturnEdge;
 import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.FunctionReturnEdge;
 import static org.sosy_lab.cpachecker.cfa.model.CFAEdgeType.ReturnStatementEdge;
 import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
@@ -70,6 +69,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
+import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -77,16 +78,16 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
-  private static class CPAStatistics implements Statistics {
+  protected static class CPAStatistics implements Statistics {
 
-    private Timer totalTimer         = new Timer();
-    private Timer chooseTimer        = new Timer();
-    private Timer precisionTimer     = new Timer();
-    private Timer transferTimer      = new Timer();
-    private Timer mergeTimer         = new Timer();
-    private Timer stopTimer          = new Timer();
-    private Timer addTimer           = new Timer();
-    private Timer forcedCoveringTimer = new Timer();
+    protected Timer totalTimer         = new Timer();
+    protected Timer chooseTimer        = new Timer();
+    protected Timer precisionTimer     = new Timer();
+    protected Timer transferTimer      = new Timer();
+    protected Timer mergeTimer         = new Timer();
+    protected Timer stopTimer          = new Timer();
+    protected Timer addTimer           = new Timer();
+    protected Timer forcedCoveringTimer = new Timer();
 
     private int   countIterations   = 0;
     private int   maxWaitlistSize   = 0;
@@ -185,7 +186,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final ForcedCovering forcedCovering;
 
-  private final CPAStatistics               stats = new CPAStatistics();
+  protected final CPAStatistics               stats = new CPAStatistics();
 
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
@@ -198,7 +199,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private final AlgorithmStatus status;
 
-  private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
+  public CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
       boolean pIsImprecise) {
@@ -422,6 +423,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.FINER, "Successor is covered or unreachable, not adding to waitlist");
         stats.countStop++;
 
+        if (reachedSet instanceof UsageReachedSet) {
+          //removing this if-condition increase the number of predicates by 1000 at 10 circles
+          //Do not remove!
+          UsageState USstate = AbstractStates.extractStateByType(successor, UsageState.class);
+          USstate.saveUnsafesInContainerIfNecessary(successor);
+        }
+
       } else {
         logger.log(Level.FINER, "No need to stop, adding successor to waitlist");
 
@@ -455,6 +463,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         if (isTargetState(state)) {
           return false; // target state ==> terminating
         }
+
         if (asIterable(state)
             .filter(LocationState.class)
             .transform(LocationState::getLocationNode)
@@ -468,7 +477,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
                         || et.equals(CallToReturnEdge))) {
           return false; // main exit state ==> terminating
         }
-        if (extractLocation(state) instanceof CFATerminationNode) {
+        if (state instanceof CFATerminationNode) {
           return false; // terminating state after __VERIFIER_assume ==> terminating
         }
       }

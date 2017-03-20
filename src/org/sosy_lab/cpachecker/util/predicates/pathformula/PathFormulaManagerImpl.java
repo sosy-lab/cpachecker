@@ -476,6 +476,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap pM,
+      PointerTargetSet pts) {
+    return new PathFormula(oldFormula.getFormula(),
+        pM,
+        pts,
+        oldFormula.getLength());
+  }
+
+  @Override
+  public void clearCaches() {
+  }
+
+  @Override
   public Formula expressionToFormula(PathFormula pFormula,
       CIdExpression expr,
       CFAEdge edge) throws UnrecognizedCCodeException {

@@ -25,7 +25,8 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -45,9 +46,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-
-import java.util.List;
-import java.util.Set;
+import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.GlobalVariableIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
+import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 
 /**
  * Helper class that collects all functions referenced by some CFAEdges,
@@ -66,23 +69,27 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
     return collector.functionToFieldMatching;
   }
 
+  Multimap<String, String> getGlobalMatching() {
+    return collector.functionToFieldMatching;
+  }
+
   @Override
   public void visitDeclaration(CVariableDeclaration decl) {
     if (decl.getInitializer() != null) {
       decl.getInitializer().accept(collector);
-      saveDeclaration(decl.getType(), decl.getInitializer());
+      saveDeclaration(decl.getType(), decl.getInitializer(), decl.isGlobal() ? decl.getName() : null);
     }
   }
 
-  private void saveDeclaration(CType type, CInitializer init) {
+  private void saveDeclaration(CType type, CInitializer init, String name) {
     if (init instanceof CInitializerList) {
       //Only structures
       if (type instanceof CArrayType) {
         for (CInitializer cInit : ((CInitializerList)init).getInitializers()) {
-          saveDeclaration(((CArrayType)type).getType(), cInit);
+          saveDeclaration(((CArrayType)type).getType(), cInit, name);
         }
       } else if (type instanceof CElaboratedType) {
-        saveDeclaration(type.getCanonicalType(), init);
+        saveDeclaration(type.getCanonicalType(), init, name);
       } else if (type instanceof CCompositeType) {
         //Structure
         List<CCompositeTypeMemberDeclaration> list = ((CCompositeType) type).getMembers();
@@ -90,15 +97,18 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
         for (int i = 0; i < list.size(); i++) {
           CCompositeTypeMemberDeclaration decl = list.get(i);
           CInitializer cInit = initList.get(i);
-          saveInitializerExpression(cInit, decl.getName());
+          saveInitializerExpression(collector.functionToFieldMatching, cInit, decl.getName());
         }
       } else if (type instanceof CTypedefType) {
-        saveDeclaration(((CTypedefType) type).getRealType(), init);
+        saveDeclaration(((CTypedefType) type).getRealType(), init, name);
       }
+    } else {
+      //Assignement to global id
+      saveInitializerExpression(collector.funcToGlobal, init, name);
     }
   }
 
-  private void saveInitializerExpression(CInitializer cInit, String fieldName) {
+  private void saveInitializerExpression(Multimap<String, String> map, CInitializer cInit, String fieldName) {
 
     if (cInit instanceof CInitializerExpression) {
       CInitializerExpression init = (CInitializerExpression) cInit;
@@ -118,8 +128,7 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
             initExpression = ((CUnaryExpression)initExpression).getOperand();
           }
           if (initExpression instanceof CIdExpression) {
-            collector.functionToFieldMatching.put(
-                fieldName, ((CIdExpression) initExpression).getName());
+            map.put(fieldName, ((CIdExpression) initExpression).getName());
           }
         }
       }
@@ -129,7 +138,10 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
   private static class CollectFunctionsVisitorWithFieldMatching extends CollectFunctionsVisitor {
 
     private final Multimap<String, String> functionToFieldMatching = HashMultimap.create();
+    private final Multimap<String, String> funcToGlobal = HashMultimap.create();
     private String lastFunction;
+
+    private IdentifierCreator idCreator = new IdentifierCreator();
 
     public CollectFunctionsVisitorWithFieldMatching(Set<String> collectedFuncs) {
       super(collectedFuncs);
@@ -155,6 +167,13 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
         CLeftHandSide left = pIastExpressionAssignmentStatement.getLeftHandSide();
         if (left instanceof CFieldReference) {
           functionToFieldMatching.put(((CFieldReference) left).getFieldName(), lastFunction);
+        } else {
+          AbstractIdentifier id = left.accept(idCreator);
+          if (id instanceof StructureIdentifier) {
+            assert false : "Structures should be handled above";
+          } else if (id instanceof GlobalVariableIdentifier) {
+            funcToGlobal.put(((SingleIdentifier) id).getName(), lastFunction);
+          }
         }
       }
       return null;

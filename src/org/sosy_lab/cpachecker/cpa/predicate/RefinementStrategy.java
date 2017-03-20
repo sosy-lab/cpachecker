@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
-
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
 import com.google.errorprone.annotations.ForOverride;
@@ -104,7 +103,7 @@ public abstract class RefinementStrategy {
 
     // The last state along the path is the target (error) state
     ARGState lastElement = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
-    assert lastElement.isTarget();
+    //assert lastElement.isTarget();
 
     Pair<ARGState, List<ARGState>> rootOfInfeasibleArgAndChangedElements;
     try {
@@ -245,7 +244,7 @@ public abstract class RefinementStrategy {
    * @throws CPAException may be thrown in subclasses
    * @throws InterruptedException may be thrown in subclasses
    */
-  @ForOverride
+
   protected abstract void finishRefinementOfPath(
       final ARGState unreachableState,
       List<ARGState> affectedStates,

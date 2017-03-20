@@ -25,8 +25,11 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import com.google.common.collect.ImmutableSet;
-
+import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -55,17 +58,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.logging.Level;
-
 @Options(prefix="cpa.callstack")
 public class CallstackTransferRelation extends SingleEdgeTransferRelation {
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  @Option(secure=true, description = "unsupported functions cause an exception")
-  protected ImmutableSet<String> unsupportedFunctions = ImmutableSet.of("pthread_create");
+  static final Map<String, String> UNSUPPORTED_FUNCTIONS
+      = ImmutableMap.of();
 
   @Option(secure=true, name="depth",
       description = "depth of recursion bound")
@@ -117,7 +116,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         AExpression functionNameExp = ((AFunctionCall)edge.getStatement()).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
           String functionName = ((AIdExpression)functionNameExp).getName();
-          if (unsupportedFunctions.contains(functionName)) {
+          if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
             throw new UnsupportedCodeException(functionName,
                 edge, edge.getStatement());
           }
@@ -125,8 +124,12 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
       }
 
       if (pEdge instanceof CFunctionSummaryStatementEdge) {
-        if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
-          // should go by function call and skip the current edge
+        CFunctionSummaryStatementEdge summary = (CFunctionSummaryStatementEdge)pEdge;
+        if (shouldGoByFunctionSummaryStatement(e, summary)) {
+          //skip call, return the same element
+          return Collections.singleton(pElement);
+        } else if (!shouldGoByFunctionSummaryStatement(e, summary)) {
+          //should go by function call (skip current edge)
           return Collections.emptySet();
         }
         // otherwise use this edge just like a normal edge
@@ -161,7 +164,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
         final String calledFunction = succ.getFunctionName();
         final CFANode callerNode = pred;
 
-        if (hasRecursion(e, calledFunction)) {
+        if (!shouldGoByFunctionCall(e, (FunctionCallEdge)pEdge)) {
           if (skipRecursiveFunctionCall(e, (FunctionCallEdge)pEdge)) {
             // skip recursion, don't enter function
             logger.logOnce(Level.WARNING, "Skipping recursive function call from",
@@ -267,7 +270,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     if (skipRecursion) {
       return true;
     }
-    if (skipFunctionPointerRecursion && hasFunctionPointerRecursion(element, callEdge)) {
+    if (skipFunctionPointerRecursion && shouldGoByFunctionCall(element, callEdge)) {
       return true;
     }
     if (skipVoidRecursion && hasVoidRecursion(element, callEdge)) {
@@ -296,8 +299,18 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     return false;
   }
 
+
+  //call edge
+  private boolean shouldGoByFunctionCall(CallstackState element, FunctionCallEdge pCallEdge) {
+    if (!skipRecursion) {
+      return true;
+    }
+    return !hasRecursion(element, pCallEdge.getSuccessor().getFunctionName());
+  }
+
   protected boolean hasFunctionPointerRecursion(final CallstackState element,
       final FunctionCallEdge pCallEdge) {
+
     if (pCallEdge.getRawStatement().startsWith("pointer call(")) { // Hack, see CFunctionPointerResolver
       return true;
     }

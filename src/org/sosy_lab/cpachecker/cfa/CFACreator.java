@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ExpandFunctionPointerArrayAssignments;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
+import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
@@ -176,6 +177,12 @@ public class CFACreator {
           + "PointerExpression, or a dereferenced field access the expression is "
           + "checked if it is 0")
   private boolean checkNullPointers = false;
+
+  @Option(secure=true, name="cfa.skippedFunctionCalls",
+      description="function calls, which were deleted from cfa."
+          + "This option is useful to avoid unimportant recursion in final functions "
+          + "like exit() or abort()")
+  private Set<String> skippedFunctionCalls = new HashSet<>();
 
   @Option(secure=true, name="cfa.expandFunctionPointerArrayAssignments",
       description="When a function pointer array element is written with a variable as index, "
@@ -569,6 +576,10 @@ private boolean classifyNodes = false;
       fptrResolver.resolveFunctionPointers();
     }
 
+    //Transform ldv_thread_create
+    ThreadCreateTransformer TCtransformer = new ThreadCreateTransformer(logger);
+    TCtransformer.transform(cfa);
+
     // Transform dummy loops into edges to termination nodes
     transformDummyLoopsToEdges(cfa);
 
@@ -591,6 +602,11 @@ private boolean classifyNodes = false;
       insertGlobalDeclarations(cfa, globalDeclarations);
     }
 
+    if (!skippedFunctionCalls.isEmpty()) {
+      for (String functionName : skippedFunctionCalls) {
+        cfa.removeFunction(functionName);
+      }
+    }
     return cfa;
   }
 

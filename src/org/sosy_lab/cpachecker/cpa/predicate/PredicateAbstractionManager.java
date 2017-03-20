@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.equalTo;
 
@@ -277,6 +276,12 @@ public class PredicateAbstractionManager {
         noAbstractionReuse);
   }
 
+  public void clear() {
+    if (useCache) {
+      abstractionCache.clear();
+      unsatisfiabilityCache.clear();
+    }
+  }
   /**
    * Compute an abstraction of the conjunction of an AbstractionFormula and
    * a PathFormula. The AbstractionFormula will be used in its instantiated form,
@@ -296,7 +301,6 @@ public class PredicateAbstractionManager {
       throws SolverException, InterruptedException {
 
     stats.numCallsAbstraction++;
-
     logger.log(Level.FINEST, "Computing abstraction", stats.numCallsAbstraction, "with", pPredicates.size(), "predicates");
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula.asFormula());
     logger.log(Level.ALL, "Path formula:", pathFormula);
@@ -304,7 +308,7 @@ public class PredicateAbstractionManager {
 
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
     final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
-    final BooleanFormula f = bfmgr.and(absFormula, symbFormula);
+    BooleanFormula f = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
     // Try to reuse stored abstractions
@@ -321,6 +325,12 @@ public class PredicateAbstractionManager {
     if (pPredicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
       logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "with empty precision is true");
       stats.numSymbolicAbstractions++;
+      boolean unsat = unsat(abstractionFormula, pathFormula);
+      if (unsat) {
+        return new AbstractionFormula(fmgr, rmgr.makeFalse(),
+            bfmgr.makeBoolean(false), bfmgr.makeBoolean(false),
+            pathFormula, noAbstractionReuse);
+      }
       return makeTrueAbstractionFormula(pathFormula);
     }
 
@@ -332,6 +342,17 @@ public class PredicateAbstractionManager {
     // and should remove those from this set afterwards.
     final Collection<AbstractionPredicate> remainingPredicates =
         getRelevantPredicates(pPredicates, f, instantiator);
+
+    if (fmgr.useBitwiseAxioms()) {
+      for (AbstractionPredicate predicate : remainingPredicates) {
+        BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(predicate.getSymbolicAtom());
+        if (!bfmgr.isTrue(bitwiseAxioms)) {
+          f = bfmgr.and(f, bitwiseAxioms);
+
+          logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
+        }
+      }
+    }
 
     // caching
     Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>> absKey = null;
@@ -402,9 +423,7 @@ public class PredicateAbstractionManager {
     } else {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
     }
-
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
-
     if (useCache) {
       abstractionCache.put(absKey, result);
 

@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -50,7 +52,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
  * Warning: Although the ARG is flattened at this point, the elements in it have
  * not been expanded due to performance reasons.
  */
-public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
+public class BAMBasedRefiner extends AbstractARGBasedRefiner {
 
   final StatTimer computePathTimer = new StatTimer("Compute path for refinement");
   final StatTimer computeSubtreeTimer = new StatTimer("Constructing flat ARG");
@@ -58,7 +60,8 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   final StatTimer removeCachedSubtreeTimer = new StatTimer("Removing cached subtrees");
 
   private final BAMCPA bamCpa;
-  private ARGState rootOfSubgraph = null;
+  protected final Map<ARGState, ARGState> subgraphStatesToReachedState = new HashMap<>();
+  protected ARGState rootOfSubgraph = null;
 
   private BAMBasedRefiner(
       ARGBasedRefiner pRefiner, ARGCPA pArgCpa, BAMCPA pBamCpa, LogManager pLogger) {
@@ -115,7 +118,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   @Override
   protected final ARGPath computePath(
       ARGState pLastElement, ARGReachedSet pMainReachedSet) throws InterruptedException, CPATransferException {
-    assert pLastElement.isTarget();
+    //assert pLastElement.isTarget();
     assert pMainReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
 
     computePathTimer.start();

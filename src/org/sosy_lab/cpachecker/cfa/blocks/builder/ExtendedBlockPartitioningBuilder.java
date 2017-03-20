@@ -29,6 +29,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -40,8 +41,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
+import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 
 /**
  *  Class implements more intelligent partitioning building,
@@ -50,6 +54,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
  *  because it doesn't wait a fixpoint
  */
 public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
+
+  private final LockTransferRelation ltransfer;
+
+  public ExtendedBlockPartitioningBuilder(LockTransferRelation t) {
+    ltransfer = t;
+  }
 
   @Override
   public BlockPartitioning build(CFA cfa) {
@@ -143,6 +153,7 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
     //Try to optimize the memory
     Map<CFANode, ImmutableSet<ReferencedVariable>> immutableVariablesMap = new HashMap<>();
     Map<CFANode, ImmutableSet<CFANode>> immutableNodesMap = new HashMap<>();
+    Map<CFANode, ImmutableSet<LockIdentifier>> immutableLocksMap = new HashMap<>();
     //Resolve loop mapping
     for (Entry<CFANode, CFANode> nodeMapping : loopMapping.entrySet()) {
       CFANode node = nodeMapping.getKey();
@@ -155,6 +166,7 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
        */
       ImmutableSet<ReferencedVariable> resultVars;
       ImmutableSet<CFANode> resultNodes;
+      ImmutableSet<LockIdentifier> resultLocks;
       if (!immutableVariablesMap.containsKey(mappedNode)) {
         resultVars = ImmutableSet.copyOf(referencedVariablesMap.get(mappedNode));
         immutableVariablesMap.put(mappedNode, resultVars);
@@ -169,6 +181,13 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
         resultNodes = immutableNodesMap.get(mappedNode);
       }
       immutableNodesMap.put(node, resultNodes);
+      if (!immutableLocksMap.containsKey(mappedNode)) {
+        resultLocks = ImmutableSet.copyOf(capturedLocksMap.get(mappedNode));
+        immutableLocksMap.put(mappedNode, resultLocks);
+      } else {
+        resultLocks = immutableLocksMap.get(mappedNode);
+      }
+      immutableLocksMap.put(node, resultLocks);
     }
 
     //now we can create the Blocks for the BlockPartitioning
@@ -177,10 +196,10 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
       CFANode key = returnNodesEntry.getKey();
       if (immutableVariablesMap.containsKey(key)) {
         assert immutableNodesMap.containsKey(key);
-        blocks.add(new Block(immutableVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), immutableNodesMap.get(key)));
+        blocks.add(new Block(immutableVariablesMap.get(key), callNodesMap.get(key), returnNodesMap.get(key), immutableNodesMap.get(key), immutableLocksMap.get(key)));
       } else {
         blocks.add(new Block(ImmutableSet.copyOf(referencedVariablesMap.get(key)), callNodesMap.get(key),
-            returnNodesEntry.getValue(), ImmutableSet.copyOf(blockNodesMap.get(key))));
+            returnNodesEntry.getValue(), ImmutableSet.copyOf(blockNodesMap.get(key)), ImmutableSet.copyOf(capturedLocksMap.get(key))));
       }
     }
     return new BlockPartitioning(blocks, cfa.getMainFunction());
@@ -191,5 +210,56 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
     Set<CFANode> functionBody = blockNodesMap.get(caller);
     referencedVariablesMap.get(node).addAll(functionVars);
     blockNodesMap.get(node).addAll(functionBody);
+  }
+
+  @Override
+  public void addBlock(Set<CFANode> nodes, CFANode blockHead) {
+    Set<ReferencedVariable> referencedVariables = collectReferencedVariables(nodes);
+    Set<CFANode> callNodes = collectCallNodes(nodes);
+    Set<CFANode> returnNodes = collectReturnNodes(nodes);
+    Set<FunctionEntryNode> innerFunctionCalls = collectInnerFunctionCalls(nodes);
+    Set<LockIdentifier> innerLocks = Sets.newHashSet();
+    if (ltransfer != null) {
+      innerLocks = collectLocks(nodes);
+    }
+
+    if (callNodes.isEmpty()) {
+     /* What shall we do with function, which is not called from anywhere?
+      * There are problems with them at partitioning building stage
+      */
+      return;
+    }
+
+    CFANode registerNode = null;
+    for (CFANode node : callNodes) {
+      registerNode = node;
+      if (node instanceof FunctionEntryNode) {
+        break;
+      }
+    }
+    if (registerNode == null) {
+      //It means, that there is no entry in this block. Don't add it
+      return;
+    }
+    referencedVariablesMap.put(registerNode, referencedVariables);
+    callNodesMap.put(registerNode, callNodes);
+    returnNodesMap.put(registerNode, returnNodes);
+    innerFunctionCallsMap.put(registerNode, innerFunctionCalls);
+    blockNodesMap.put(registerNode, nodes);
+    capturedLocksMap.put(registerNode, innerLocks);
+  }
+
+  private Set<LockIdentifier> collectLocks(Set<CFANode> pNodes) {
+    Set<LockIdentifier> result = new HashSet<>();
+    if (ltransfer == null) {
+      return Collections.emptySet();
+    }
+    for (CFANode node : pNodes) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        CFAEdge e = node.getLeavingEdge(i);
+        result.addAll(ltransfer.getAffectedLocks(e));
+      }
+    }
+    return result;
   }
 }

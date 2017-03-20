@@ -21,8 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -53,9 +56,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-
-import java.util.HashSet;
-import java.util.Set;
 
 
 /**
@@ -105,12 +105,16 @@ class CReferencedFunctionsCollector {
     default:
       throw new AssertionError();
     }
+    collectedFunctions.addAll(collector.collectedFunctions);
+    collector.collectedFunctions.clear();
   }
 
   public void visitDeclaration(CVariableDeclaration decl) {
     if (decl.getInitializer() != null) {
       decl.getInitializer().accept(collector);
     }
+    collectedFunctions.addAll(collector.collectedFunctions);
+    collector.collectedFunctions.clear();
   }
 
   static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>

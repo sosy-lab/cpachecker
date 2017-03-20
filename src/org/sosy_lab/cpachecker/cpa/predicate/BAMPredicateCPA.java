@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantP
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableOccurrenceComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 
@@ -124,5 +125,12 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   @Override
   public void setPartitioning(BlockPartitioning partitioning) {
     blk.setPartitioning(partitioning);
+  }
+
+  public void clearAllCaches() {
+    getPredicateManager().clear();
+    relevantPredicatesComputer.clear();
+    PathFormulaManager pamgr = getPathFormulaManager();
+    pamgr.clearCaches();
   }
 }

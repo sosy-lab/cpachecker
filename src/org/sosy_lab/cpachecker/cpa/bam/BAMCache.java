@@ -86,4 +86,6 @@ public interface BAMCache extends Statistics {
 
   /** Return all cached reached-sets. Useful for statistics. */
   Collection<ReachedSet> getAllCachedReachedStates();
+
+  public void clear();
 }

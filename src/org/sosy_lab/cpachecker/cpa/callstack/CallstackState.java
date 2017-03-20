@@ -145,6 +145,60 @@ public class CallstackState
         .getCanonicalName()));
   }
 
+  public int hashCodeWithoutNode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((currentFunction == null) ? 0 : currentFunction.hashCode());
+    result = prime * result + depth;
+    result = prime * result + ((previousState == null) ? 0 : previousState.hashCodeWithoutNode());
+    return result;
+  }
+
+  public boolean equalsWithoutNode(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    CallstackState other = (CallstackState) obj;
+    if (currentFunction == null) {
+      if (other.currentFunction != null) {
+        return false;
+      }
+    } else if (!currentFunction.equals(other.currentFunction)) {
+      return false;
+    }
+    if (depth != other.depth) {
+      return false;
+    }
+    if (previousState == null) {
+      if (other.previousState != null) {
+        return false;
+      }
+    } else if (!previousState.equalsWithoutNode(other.previousState)) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public CallstackState clone() {
+    if (this.previousState != null) {
+      return new CallstackState(this.previousState.clone(), this.currentFunction, this.callerNode);
+    } else {
+      return new CallstackState(null, this.currentFunction, this.callerNode);
+    }
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("modifyProperty not implemented by " + this.getClass().getCanonicalName());
+  }
+
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     out.writeInt(callerNode.getNodeNumber());

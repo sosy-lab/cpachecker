@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Function;
@@ -503,8 +502,9 @@ class EclipseCParser implements CParser {
       // http://research.microsoft.com/en-us/um/redmond/projects/invisible/include/stdarg.h.htm
       macrosBuilder.put("_INTSIZEOF(n)", "((sizeof(n) + sizeof(int) - 1) & ~(sizeof(int) - 1))"); // at least size of smallest addressable unit
       //macrosBuilder.put("__builtin_va_start(ap,v)", "(ap = (va_list)&v + _INTSIZEOF(v))");
-      macrosBuilder.put("__builtin_va_arg(ap,t)", "*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))");
+      //macrosBuilder.put("__builtin_va_arg(ap,t)", "*(t *)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))");
       // macrosBuilder.put("__builtin_va_end(ap)", "(ap = (va_list)0)");
+      macrosBuilder.put("__builtin_va_arg", "__builtin_va_arg");
 
       MACROS = macrosBuilder.build();
     }

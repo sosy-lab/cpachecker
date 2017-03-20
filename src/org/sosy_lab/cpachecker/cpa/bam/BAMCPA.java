@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.ExtendedBlockPartitioningBuilder;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
+import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionPartitioning;
 import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -61,8 +61,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
+import org.sosy_lab.cpachecker.cpa.lock.LockCPA;
+import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
+import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 
 @Options(prefix = "cpa.bam")
@@ -93,7 +97,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
             + "or any class that implements a PartitioningHeuristic"
   )
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
-  private PartitioningHeuristic.Factory blockHeuristic = FunctionAndLoopPartitioning::new;
+  private PartitioningHeuristic.Factory blockHeuristic = FunctionPartitioning::new;
 
   @Option(secure=true, description = "export blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -155,6 +159,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     } else {
       cache = new BAMCacheImpl(config, reducer, logger);
     }
+
     data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
 
     heuristic = blockHeuristic.create(pLogger, pCfa, config);
@@ -172,7 +177,6 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
         data);
 
     if (handleRecursiveProcedures) {
-
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
               config,
@@ -187,6 +191,10 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
               wrappedProofChecker,
               pShutdownNotifier);
     }
+    UsageCPA usageCPA = CPAs.retrieveCPA(pCpa, UsageCPA.class);
+    if (usageCPA != null) {
+      usageCPA.getStats().setBAMTransfer(transfer);
+    }
     stats = new BAMCPAStatistics(this, data, config, logger);
     argStats = new BAMARGStatistics(config, pLogger, this, pCpa, pSpecification, pCfa);
   }
@@ -194,7 +202,8 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   private BlockPartitioning buildBlockPartitioning(CFA pCfa) {
     BlockPartitioningBuilder blockBuilder;
     if (useExtendedPartitioningBuilder) {
-      blockBuilder = new ExtendedBlockPartitioningBuilder();
+      LockCPA cpa = retrieveWrappedCpa(LockCPA.class);
+      blockBuilder = new ExtendedBlockPartitioningBuilder(cpa == null ? null : (LockTransferRelation)cpa.getTransferRelation());
     } else {
       blockBuilder = new BlockPartitioningBuilder();
     }

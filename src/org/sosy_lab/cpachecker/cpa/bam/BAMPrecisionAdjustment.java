@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.usage.UsageState.UsageExitableState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -70,7 +71,8 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
     final Precision validPrecision;
     if (data.expandedStateToExpandedPrecision.containsKey(pElement)) {
       assert AbstractStates.isTargetState(pElement)
-          || blockPartitioning.isReturnNode(AbstractStates.extractLocation(pElement));
+          || blockPartitioning.isReturnNode(AbstractStates.extractLocation(pElement))
+          || (AbstractStates.extractStateByType(pElement, UsageExitableState.class) != null);
       validPrecision = data.expandedStateToExpandedPrecision.get(pElement);
     } else {
       validPrecision = pPrecision;

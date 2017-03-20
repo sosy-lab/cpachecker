@@ -25,10 +25,7 @@ package org.sosy_lab.cpachecker.cfa.types.java;
 
 import static com.google.common.base.Preconditions.*;
 
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 

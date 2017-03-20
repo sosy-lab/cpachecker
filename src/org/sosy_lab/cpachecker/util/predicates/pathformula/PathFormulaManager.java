@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import java.io.PrintStream;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -36,11 +40,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import java.io.PrintStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public interface PathFormulaManager {
 
@@ -70,6 +69,8 @@ public interface PathFormulaManager {
   Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula oldFormula, CFAEdge edge) throws CPATransferException, InterruptedException;
 
   PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM);
+
+  PathFormula makeNewPathFormula(PathFormula pOldFormula, SSAMap pM, PointerTargetSet pts);
 
   PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException;
 
@@ -114,6 +115,8 @@ public interface PathFormulaManager {
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> pModel);
+
+  public void clearCaches();
 
   /**
    * Convert a simple C expression to a formula consistent with the

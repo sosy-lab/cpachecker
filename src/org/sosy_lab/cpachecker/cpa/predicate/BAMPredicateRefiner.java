@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
-
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -69,6 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -114,7 +114,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
     Solver solver = predicateCpa.getSolver();
     PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
 
-    BlockFormulaStrategy blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
+    BlockFormulaStrategy blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr, solver.getFormulaManager());
 
     RefinementStrategy strategy =
         new BAMPredicateAbstractionRefinementStrategy(
@@ -125,12 +125,14 @@ public abstract class BAMPredicateRefiner implements Refiner {
         .create(strategy);
   }
 
-  private static final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
+  public static final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
 
     private final PathFormulaManager pfmgr;
+    private final FormulaManagerView fmgr;
 
-    private BAMBlockFormulaStrategy(PathFormulaManager pPfmgr) {
+    public BAMBlockFormulaStrategy(PathFormulaManager pPfmgr, FormulaManagerView pFmgr) {
       pfmgr = pPfmgr;
+      fmgr = pFmgr;
     }
 
     @Override
@@ -233,8 +235,16 @@ public abstract class BAMPredicateRefiner implements Refiner {
           // TODO disabled, we need to keep callStates for later usage
 
           // start new block with empty formula
+
           currentFormula = getOnlyElement(currentFormulas);
-          abstractionFormulas.add(currentFormula.getFormula());
+          BooleanFormula f = currentFormula.getFormula();
+          if (fmgr.useBitwiseAxioms()) {
+            BooleanFormula a = fmgr.getBitwiseAxioms(f);
+            if (!fmgr.getBooleanFormulaManager().isTrue(a)) {
+              f =  fmgr.getBooleanFormulaManager().and(f, a);
+            }
+          }
+          abstractionFormulas.add(f);
           currentFormula = pfmgr.makeEmptyPathFormula(currentFormula);
 
         } else {
@@ -265,12 +275,12 @@ public abstract class BAMPredicateRefiner implements Refiner {
    * This is an extension of {@link PredicateAbstractionRefinementStrategy}
    * that takes care of updating the BAM state.
    */
-  private static class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
+  public static class BAMPredicateAbstractionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
 
     private final BAMPredicateCPA predicateCpa;
     private boolean secondRepeatedCEX = false;
 
-    private BAMPredicateAbstractionRefinementStrategy(
+    protected BAMPredicateAbstractionRefinementStrategy(
         final Configuration config,
         final LogManager logger,
         final BAMPredicateCPA predicateCpa,
@@ -318,7 +328,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
           if (newRelevantPredicatesComputer.equals(relevantPredicatesComputer)) {
             // repeated CEX && relevantPredicatesComputer was refined && refinement does not produce progress -> error
             // TODO if this happens, there might be a bug in the analysis!
-            throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+            //throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
 
           } else {
             // we have a better relevantPredicatesComputer, thus update it.

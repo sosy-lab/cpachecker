@@ -155,6 +155,12 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   @Option(secure=true, name="globalRefinement", description="Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely.")
   private boolean globalRefinement = false;
 
+  @Option(name="refinementLoops", description="Number of loops of refinement")
+  private int refinementLoops = -1;
+
+  @Option(name="timeLimit", description="Limitation of time in millis for the refinement")
+  private long refinementLimit = Long.MAX_VALUE;
+
   private final LogManager logger;
   private final Algorithm algorithm;
   private final Refiner mRefiner;
@@ -197,8 +203,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         status = status.update(algorithm.run(reached));
         notifyReachedSetUpdateListeners(reached);
 
+        if (stats.countRefinements == refinementLoops) {
+          break;
+        }
         // if there is any target state do refinement
-        if (refinementNecessary(reached, previousLastState)) {
+        //if (refinementNecessary(reached, previousLastState)) {
           refinementSuccessful = refine(reached);
           refinedInPreviousIteration = true;
           // assert that reached set is free of target states,
@@ -207,7 +216,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
             assert !from(reached).anyMatch(IS_TARGET_STATE) : "Target state should not be present"
                 + " in the reached set after refinement.";
           }
-        }
+        //}
 
         // restart exploration for unsound refiners, as due to unsound refinement
         // a sound over-approximation has to be found for proving safety
@@ -250,6 +259,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     stats.totalReachedSizeBeforeRefinement += reached.size();
     stats.maxReachedSizeBeforeRefinement = Math.max(stats.maxReachedSizeBeforeRefinement, reached.size());
     sizeOfReachedSetBeforeRefinement = reached.size();
+
+    if (stats.refinementTimer.getSumTime().asMillis() > refinementLimit) {
+      logger.log(Level.WARNING, "Refinement is stopped due to the limitation of time");
+      return false;
+    }
 
     stats.refinementTimer.start();
     boolean refinementResult;

@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
@@ -59,6 +58,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantLhsVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
@@ -145,13 +145,23 @@ class AssignmentHandler {
       return conv.bfmgr.makeTrue();
     }
 
+    /*if (rhs instanceof CExpression && !((CExpression)rhs).accept(new IsRelevantLhsVisitor(conv))) {
+      //remove global variable assignments
+      return conv.bfmgr.makeBoolean(true);
+    }*/
+
     final CType rhsType =
         rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
 
     // RHS handling
     final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
 
-    final Expression rhsExpression = createRHSExpression(rhs, lhsType, rhsVisitor);
+    final Expression rhsExpression;
+    if (rhs == null || (rhs instanceof CExpression && !((CExpression)rhs).accept(new IsRelevantLhsVisitor(conv)))) {
+      rhsExpression = Value.nondetValue();
+    } else {
+      rhsExpression = createRHSExpression(rhs, lhsType, rhsVisitor);
+    }
 
     pts.addEssentialFields(rhsVisitor.getInitializedFields());
     pts.addEssentialFields(rhsVisitor.getUsedFields());
@@ -482,6 +492,8 @@ class AssignmentHandler {
     if(region == null) {
       region = regionMgr.makeMemoryRegion(lvalueType);
     }
+    //Michael suggestion to switch the order.
+    //Important in case when we do not sure what update, add retention to the lvalueType
     addRetentionForAssignment(region,
                               lvalueType,
                               lvalue.getAddress(),
@@ -521,6 +533,11 @@ class AssignmentHandler {
       final CArrayType lvalueArrayType = (CArrayType) lvalueType;
       final CType lvalueElementType = checkIsSimplified(lvalueArrayType.getType());
 
+      if (rvalue.isNondetValue()) {
+        //This is fix for races, global assignements are replaced by nondet
+        return bfmgr.makeBoolean(true);
+      }
+      //tmpFix
       // There are only two cases of assignment to an array
       Preconditions.checkArgument(
           // Initializing array with a value (possibly nondet), useful for stack declarations and memset implementation

@@ -221,6 +221,14 @@ public class BAMCacheImpl implements BAMCache {
     return preciseReachedCache.values();
   }
 
+  @Override
+  public void clear() {
+    preciseReachedCache.clear();
+    returnCache.clear();
+    blockARGCache.clear();
+    lastAnalyzedBlockCache = null;
+  }
+
   class AbstractStateHash {
 
     private final Object wrappedHash;

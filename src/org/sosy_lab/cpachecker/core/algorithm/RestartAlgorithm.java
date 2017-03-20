@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.core.algorithm;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -182,6 +181,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
             + " directly after the components computation is finished"
   )
   private boolean printIntermediateStatistics = true;
+
+  @Option(name="alwaysrun",
+      description="if it's true, we always run other algorithm, even previous is sound and finished correctly")
+  private boolean alwaysRunOtherAlgorithm = false;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -344,10 +347,15 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
             // continue with the next algorithm
             logger.log(Level.INFO, "Analysis not completed: There are still states to be processed.");
 
+          } else if (alwaysRunOtherAlgorithm && configFilesIterator.hasNext()) {
+            logger.log(Level.INFO, "Analysis is finished");
+
           } else if (!(from(currentReached).anyMatch(IS_TARGET_STATE) && !status.isPrecise())) {
 
             // sound analysis and completely finished, terminate
-            return status;
+            if (!configFilesIterator.hasNext()) {
+              return status;
+            }
           }
           lastAnalysisTerminated = true;
           isLastReachedSetUsable = true;
@@ -478,6 +486,8 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     singleConfigBuilder.copyFrom(globalConfig);
     singleConfigBuilder.clearOption("restartAlgorithm.configFiles");
     singleConfigBuilder.clearOption("analysis.restartAfterUnknown");
+    singleConfigBuilder.clearOption("analysis.saveLocalResult");
+
     singleConfigBuilder.loadFromFile(singleConfigFileName);
 
     Configuration singleConfig = singleConfigBuilder.build();

@@ -88,6 +88,11 @@ public class MutableCFA implements CFA {
     }
   }
 
+  public void removeFunction(String function) {
+    functions.remove(function);
+    allNodes.removeAll(function);
+  }
+
   @Override
   public MachineModel getMachineModel() {
     return machineModel;

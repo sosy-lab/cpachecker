@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
-
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -39,6 +38,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.LoopCollectingEdgeVisitor;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -83,6 +84,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 /**
  * This class provides a basic refiner implementation for predicate analysis.
@@ -301,7 +303,18 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         wereInvariantsUsedInLastRefinement = wereInvariantsusedInCurrentRefinement;
         wereInvariantsusedInCurrentRefinement = false;
 
-        return CounterexampleInfo.spurious();
+        BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
+        LinkedList<ARGState> relatedStates = new LinkedList<>();
+        for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(counterexample.getInterpolants(), abstractionStatesTrace.subList(0, abstractionStatesTrace.size()-1))) {
+          BooleanFormula itp = interpolationPoint.getFirst();
+          if (bfmgr.isTrue(itp) || bfmgr.isFalse(itp)) {
+            continue;
+          }
+          relatedStates.add(interpolationPoint.getSecond());
+        }
+        CounterexampleInfo info = CounterexampleInfo.spurious(formulas);
+        info.addFurtherInformation(relatedStates, null);
+        return info;
 
       } else {
         // we have a real error

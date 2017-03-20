@@ -283,11 +283,11 @@ public class PredicateCPA
     return solver;
   }
 
-  Configuration getConfiguration() {
+  public Configuration getConfiguration() {
     return config;
   }
 
-  LogManager getLogger() {
+  public LogManager getLogger() {
     return logger;
   }
 

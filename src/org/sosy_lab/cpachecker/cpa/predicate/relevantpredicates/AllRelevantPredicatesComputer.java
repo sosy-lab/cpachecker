@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates;
 
+import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
-
-import java.util.Collection;
 
 /**
  * This is a dummy computer, that considers all predicates as relevant.
@@ -46,5 +45,9 @@ public class AllRelevantPredicatesComputer implements RelevantPredicatesComputer
   public Collection<AbstractionPredicate> getRelevantPredicates(
       Block pContext, Collection<AbstractionPredicate> pPredicates) {
     return pPredicates;
+  }
+
+  @Override
+  public void clear() {
   }
 }

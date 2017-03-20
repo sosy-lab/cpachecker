@@ -35,6 +35,16 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
  */
 public interface Reducer {
 
+  default AbstractState getVariableReducedState(
+      AbstractState expandedState, Block context, Block outerContext, CFANode callNode) throws InterruptedException {
+    return getVariableReducedState(expandedState, context, callNode);
+  }
+
+  default AbstractState getVariableExpandedState(
+      AbstractState rootState, Block reducedContext, Block outerContext, AbstractState reducedState) throws InterruptedException {
+    return getVariableExpandedState(rootState, reducedContext, reducedState);
+  }
+
   /**
    * Return an over-approximation of {@code expandedState},
    * discarding all information which is not relevant to the block
@@ -131,4 +141,6 @@ public interface Reducer {
    */
   AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
       AbstractState expandedState, FunctionExitNode exitLocation);
+
+  //Object getHashCodeForState(AbstractState pStateKey);
   }

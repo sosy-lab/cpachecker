@@ -77,10 +77,10 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   private final int stateId;
 
+  private static UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+
   // If this is a target state, we may store additional information here.
   private transient CounterexampleInfo counterexample;
-
-  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   public ARGState(@Nullable AbstractState pWrappedState, @Nullable ARGState pParentElement) {
     super(pWrappedState);
@@ -539,5 +539,9 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     }
 
     destroyed = true;
+  }
+
+  public static void clearIdGenerator() {
+    idGenerator = new UniqueIdGenerator();
   }
 }

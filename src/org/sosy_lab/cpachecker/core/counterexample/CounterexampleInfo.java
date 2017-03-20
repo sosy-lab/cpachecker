@@ -73,15 +73,21 @@ public class CounterexampleInfo extends AbstractAppender {
     assignments = pAssignments;
     isPreciseCounterExample = pIsPreciseCEX;
 
-    if (!spurious) {
+    //if (!spurious) {
       furtherInfo = Lists.newArrayListWithExpectedSize(1);
-    } else {
+    /*} else {
       furtherInfo = null;
-    }
+    }*/
   }
 
   public static CounterexampleInfo spurious() {
     return SPURIOUS;
+  }
+
+  public static CounterexampleInfo spurious(Object data) {
+    CounterexampleInfo result = new CounterexampleInfo(true, null, null, false);
+    result.furtherInfo.add(Pair.of(data, (PathTemplate)null));
+    return result;
   }
 
   public int getUniqueId() {
@@ -286,7 +292,7 @@ public class CounterexampleInfo extends AbstractAppender {
    * @param dumpFile The file where "info.toString()" should be dumped (may be null).
    */
   public void addFurtherInformation(Object info, PathTemplate dumpFile) {
-    checkState(!spurious);
+    //checkState(!spurious);
 
     furtherInfo.add(Pair.of(checkNotNull(info), dumpFile));
   }
@@ -297,7 +303,7 @@ public class CounterexampleInfo extends AbstractAppender {
    * of the pair may be null.
    */
   public Collection<Pair<Object, PathTemplate>> getAllFurtherInformation() {
-    checkState(!spurious);
+    //checkState(!spurious);
 
     return Collections.unmodifiableCollection(furtherInfo);
   }

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -56,12 +57,11 @@ public class BlockPartitioningBuilder {
   private static final CFATraversal TRAVERSE_CFA_INSIDE_FUNCTION = CFATraversal.dfs().ignoreFunctionCalls();
 
   protected final Map<CFANode, Set<ReferencedVariable>> referencedVariablesMap = new HashMap<>();
+  protected final Map<CFANode, Set<LockIdentifier>> capturedLocksMap = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> callNodesMap = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> returnNodesMap = new HashMap<>();
   protected final Map<CFANode, Set<FunctionEntryNode>> innerFunctionCallsMap = new HashMap<>();
   protected final Map<CFANode, Set<CFANode>> blockNodesMap = new HashMap<>();
-
-  public BlockPartitioningBuilder() {}
 
   public BlockPartitioning build(CFA cfa) {
 
@@ -155,7 +155,10 @@ public class BlockPartitioningBuilder {
         break;
       }
     }
-
+    if (registerNode == null) {
+      //It means, that there is no entry in this block. Don't add it
+      return;
+    }
     referencedVariablesMap.put(registerNode, referencedVariables);
     callNodesMap.put(registerNode, callNodes);
     returnNodesMap.put(registerNode, returnNodes);
@@ -168,7 +171,7 @@ public class BlockPartitioningBuilder {
    * (except we have a function-block of a recursive function)
    *
    *  @return all directly called functions (transitive function calls not included) */
-  private Set<FunctionEntryNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
+  protected Set<FunctionEntryNode> collectInnerFunctionCalls(Set<CFANode> pNodes) {
     Builder<FunctionEntryNode> result = ImmutableSet.builder();
     for (CFANode node : pNodes) {
       for (CFAEdge e : CFAUtils.leavingEdges(node).filter(CFunctionCallEdge.class)) {
@@ -183,7 +186,7 @@ public class BlockPartitioningBuilder {
    *
    * <p>Precondition: the block does not yet include function-calls
    */
-  private Set<CFANode> collectCallNodes(Set<CFANode> pNodes) {
+  protected Set<CFANode> collectCallNodes(Set<CFANode> pNodes) {
     Builder<CFANode> result = ImmutableSet.builder();
     for (CFANode node : pNodes) {
 
@@ -216,7 +219,7 @@ public class BlockPartitioningBuilder {
    *
    * <p>Precondition: the block does not yet include function-calls
    */
-  private Set<CFANode> collectReturnNodes(Set<CFANode> pNodes) {
+  protected Set<CFANode> collectReturnNodes(Set<CFANode> pNodes) {
     Builder<CFANode> result = ImmutableSet.builder();
     for (CFANode node : pNodes) {
 
@@ -245,7 +248,7 @@ public class BlockPartitioningBuilder {
     return result.build();
   }
 
-  private Set<ReferencedVariable> collectReferencedVariables(Set<CFANode> nodes) {
+  protected Set<ReferencedVariable> collectReferencedVariables(Set<CFANode> nodes) {
     return (new ReferencedVariablesCollector(nodes)).getVars();
   }
 }

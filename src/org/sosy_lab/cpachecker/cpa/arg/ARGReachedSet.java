@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Precisions;
 
@@ -243,6 +244,21 @@ public class ARGReachedSet {
         });
   }
 
+  public void updateFirstStatePrecision(Precision pNewPrecision,
+      Predicate<? super Precision> pPrecisionType) {
+
+    ARGState s = (ARGState) mReached.getFirstState();
+    Precision oldPrecision = mReached.getPrecision(s);
+    PredicatePrecision old = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
+    if (old != null) {
+      PredicatePrecision newP = Precisions.extractPrecisionByType(pNewPrecision, PredicatePrecision.class);
+      PredicatePrecision merged = newP.mergeWith(old);
+      pNewPrecision = Precisions.replaceByType(pNewPrecision, merged, pPrecisionType);
+    }
+    Precision newPrecision = adaptPrecision(oldPrecision, pNewPrecision, pPrecisionType);
+    mReached.updatePrecision(s, newPrecision);
+  }
+
   /**
    * Adapts a precision with a new precision.
    * If the old precision is a wrapper precision, pNewPrecision replaces the
@@ -253,7 +269,7 @@ public class ARGReachedSet {
    * @return The adapted precision.
    */
   private Precision adaptPrecision(Precision pOldPrecision, Precision pNewPrecision,
-      Predicate<? super Precision> pPrecisionType) {
+    Predicate<? super Precision> pPrecisionType) {
     return Precisions.replaceByType(pOldPrecision, pNewPrecision, pPrecisionType);
   }
 

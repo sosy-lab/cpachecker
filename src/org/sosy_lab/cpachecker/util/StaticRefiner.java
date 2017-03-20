@@ -111,4 +111,5 @@ abstract public class StaticRefiner {
 
     return result;
   }
+
 }

@@ -23,22 +23,33 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
@@ -57,6 +68,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
+import org.sosy_lab.cpachecker.cpa.usage.UsageState.UsageExitableState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -65,7 +77,20 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
+@Options(prefix="cpa.bam")
 public class BAMTransferRelation implements TransferRelation {
+
+  @Option(name = "handleRecursiveProcedures", secure = true,
+      description = "BAM allows to analyse recursive procedures depending on the underlying CPA.")
+  private boolean handleRecursiveProcedures = false;
+
+  @Option(name = "cleanARGAfterAllRefinements", secure = true,
+      description = "allow to clean caches and ARG after all refinements")
+  private boolean cleanARGAfterAllRefinements = false;
+
+  final Map<AbstractState, AbstractState> reducedToExpand = new IdentityHashMap<>();
+  final Multimap<AbstractState, AbstractState> multiReducedToExpand = LinkedListMultimap.create();
+
   final BAMDataManager data;
 
   protected final BlockPartitioning partitioning;
@@ -80,6 +105,13 @@ public class BAMTransferRelation implements TransferRelation {
 
   // Callstack-CPA is used for additional recursion handling
   private final CallstackTransferRelation callstackTransfer;
+  private MultipleARGSubtreeRemover multipleARGRemover;
+
+  private Map<Pair<ARGState, Block>, Collection<ARGState>> correctARGsForBlocks = null;
+
+  //We use map functionName -> State, because we cannot find the first inner state using only usage
+  private final Multimap<String, ReachedSet> innerStateToExternStates = HashMultimap.create();
+  private final Multimap<AbstractState, AbstractState> stateToInnerFunctionCalls = HashMultimap.create();
 
   //Stats
   int maxRecursiveDepth = 0;
@@ -195,7 +227,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     return partitioning.isReturnNode(node)
         // multiple exits at same location possible.
-        && partitioning.getBlocksForReturnNode(node).contains(getBlockForState(argState));
+        && (!stack.isEmpty() && partitioning.getBlocksForReturnNode(node).contains(stack.getLast().getThird()));
   }
 
   /**
@@ -270,13 +302,13 @@ public class BAMTransferRelation implements TransferRelation {
     assert innerSubtree.getCallNodes().contains(node);
 
     logger.log(Level.FINEST, "Reducing state", initialState);
-    final AbstractState reducedInitialState =
-        wrappedReducer.getVariableReducedState(initialState, innerSubtree, node);
-    final Precision reducedInitialPrecision =
-        wrappedReducer.getVariableReducedPrecision(pPrecision, innerSubtree);
+    final AbstractState reducedInitialState = wrappedReducer.getVariableReducedState(initialState, innerSubtree, outerSubtree, node);
+    final Precision reducedInitialPrecision = wrappedReducer.getVariableReducedPrecision(pPrecision, innerSubtree);
 
-    final Triple<AbstractState, Precision, Block> currentLevel =
-        Triple.of(reducedInitialState, reducedInitialPrecision, innerSubtree);
+    if (!stack.isEmpty()) {
+      stateToInnerFunctionCalls.put(stack.getLast().getFirst(), initialState);
+    }
+    final Triple<AbstractState, Precision, Block> currentLevel = Triple.of(reducedInitialState, reducedInitialPrecision, innerSubtree);
     stack.push(currentLevel);
     logger.log(
         Level.FINEST,
@@ -374,7 +406,7 @@ public class BAMTransferRelation implements TransferRelation {
       Precision reducedPrecision = reached.getPrecision(reducedState);
 
       AbstractState expandedState =
-          wrappedReducer.getVariableExpandedState(state, innerSubtree, reducedState);
+          wrappedReducer.getVariableExpandedState(state, innerSubtree, outerSubtree, reducedState);
 
       Precision expandedPrecision =
               outerSubtree == null ? reducedPrecision : // special case: return from main
@@ -459,6 +491,9 @@ public class BAMTransferRelation implements TransferRelation {
         logger.log(Level.FINEST, "Partial cache hit: starting recursive CPAAlgorithm with partial reached-set with root", reached.getFirstState());
       }
 
+      //Who should add to this cache in case of partial hit?
+      reducedToExpand.put(reducedInitialState, initialState);
+
       reducedResult = performCompositeAnalysisWithCPAAlgorithm(reached, innerSubtree);
 
       assert reducedResult != null;
@@ -467,6 +502,13 @@ public class BAMTransferRelation implements TransferRelation {
     }
 
     assert reached != null;
+    /* We cannot put reducedInitialState, because it is new.
+     * We should get the first state of reached set - this is one, whish was put there at the first time
+     */
+    multiReducedToExpand.put(reached.getFirstState(), initialState);
+
+    String functionName = AbstractStates.extractLocation(reducedInitialState).getFunctionName();
+    innerStateToExternStates.put(functionName, reached);
     data.registerInitialState(initialState, reached);
 
     ARGState rootOfBlock = null;
@@ -517,9 +559,9 @@ public class BAMTransferRelation implements TransferRelation {
       throws InterruptedException, CPAException {
 
     // CPAAlgorithm is not re-entrant due to statistics
-    final CPAAlgorithm algorithm = algorithmFactory.newInstance();
-    algorithm.run(reached);
+    CPAAlgorithm algorithm =  algorithmFactory.newInstance();
 
+    algorithm.run(reached);
     // if the element is an error element
     final Collection<AbstractState> returnStates;
     final AbstractState lastState = reached.getLastState();
@@ -540,9 +582,64 @@ public class BAMTransferRelation implements TransferRelation {
           returnStates.add(returnState);
         }
       }
+      Set<AbstractState> exitableStates = from(reached).filter(s ->
+           AbstractStates.extractStateByType(s, UsageExitableState.class) != null).toSet();
+      for (AbstractState returnState : exitableStates) {
+        returnStates.add(returnState);
+      }
     }
 
     return returnStates;
+  }
+
+  public BAMMultipleCEXSubgraphComputer createBAMMultipleSubgraphComputer() {
+    final BAMMultipleCEXSubgraphComputer cexSubgraphComputer = new BAMMultipleCEXSubgraphComputer(bamCPA,
+        reducedToExpand);
+
+        return cexSubgraphComputer;
+  }
+
+
+  public void removeStateFromAuxiliaryCaches(Set<ARGState> statesToRemove) {
+    Set<ARGState> statesToRemoveFromOneCache = new HashSet<>(statesToRemove);
+    for (ARGState state : statesToRemove) {
+      AbstractState reducedState = data.getReachedSetForInitialState(state).getFirstState();
+      Collection<AbstractState> innerFunctionCalls = stateToInnerFunctionCalls.get(reducedState);
+      if (innerFunctionCalls != null && !innerFunctionCalls.isEmpty()) {
+        for (AbstractState calledFunction : innerFunctionCalls) {
+          statesToRemoveFromOneCache.add((ARGState)calledFunction);
+        }
+      }
+      stateToInnerFunctionCalls.removeAll(reducedState);
+    }
+
+    for (ARGState state : statesToRemoveFromOneCache) {
+      AbstractState reducedState = data.getReachedSetForInitialState(state).getFirstState();
+      multiReducedToExpand.remove(reducedState, state);
+
+      Collection<ARGState> children = state.getChildren();
+      for (ARGState child : children) {
+        data.removeExpandedState(child);
+        //TODO need to remove from block cache as well
+        //expandedToBlockCache.remove(child);
+      }
+      data.removeInitialState(state);
+    }
+    reducedToExpand.clear();
+    if (correctARGsForBlocks != null) {
+      correctARGsForBlocks.clear();
+    }
+  }
+
+  public void cleanCaches() {
+    data.clearCaches();
+    reducedToExpand.clear();
+    multiReducedToExpand.clear();
+    innerStateToExternStates.clear();
+    stateToInnerFunctionCalls.clear();
+    if (correctARGsForBlocks != null) {
+      correctARGsForBlocks.clear();
+    }
   }
 
   @Override
@@ -567,5 +664,16 @@ public class BAMTransferRelation implements TransferRelation {
     throw new UnsupportedOperationException(
         "BAMCPA needs to be used as the outermost CPA,"
         + " thus it does not support returning successors for a single edge.");
+  }
+
+
+  public MultipleARGSubtreeRemover getMultipleARGSubtreeRemover() {
+    Preconditions.checkNotNull(multipleARGRemover);
+
+    return multipleARGRemover;
+  }
+
+  public Multimap<AbstractState, AbstractState> getMapFromReducedToExpand() {
+    return multiReducedToExpand;
   }
 }
