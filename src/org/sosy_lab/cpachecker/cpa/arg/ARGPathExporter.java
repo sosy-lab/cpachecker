@@ -499,6 +499,7 @@ public class ARGPathExporter {
       }
 
       Optional<FileLocation> minFileLocation = getMinFileLocation(pEdge);
+      Optional<FileLocation> maxFileLocation = getMaxFileLocation(pEdge);
       if (exportLineNumbers && minFileLocation.isPresent()) {
         FileLocation min = minFileLocation.get();
         if (!min.getFileName().equals(defaultSourcefileName)) {
@@ -514,6 +515,10 @@ public class ARGPathExporter {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
         result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
+        if(maxFileLocation.isPresent()) {
+          FileLocation max = maxFileLocation.get();
+          result = result.putAndCopy(KeyDef.ENDOFFSET, Integer.toString(max.getNodeOffset()+max.getNodeLength()));
+        }
       }
 
       if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
@@ -535,6 +540,22 @@ public class ARGPathExporter {
           }
         }
         return Optional.of(min);
+      }
+      return Optional.empty();
+    }
+
+    private Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge) {
+      Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+      if (locations.size() > 0) {
+        Iterator<FileLocation> locationIterator = locations.iterator();
+        FileLocation max = locationIterator.next();
+        while (locationIterator.hasNext()) {
+          FileLocation l = locationIterator.next();
+          if (l.getNodeOffset()+l.getNodeLength() > max.getNodeOffset()+max.getNodeLength()) {
+            max = l;
+          }
+        }
+        return Optional.of(max);
       }
       return Optional.empty();
     }
