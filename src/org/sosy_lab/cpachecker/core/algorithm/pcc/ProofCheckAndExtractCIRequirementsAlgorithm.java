@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,10 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm;
+package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,18 +32,15 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.pcc.strategy.arg.AbstractARGStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications;
@@ -52,68 +48,51 @@ import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications.CustomInstr
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications.CustomInstructionApplicationBuilder.CIDescriptionType;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionRequirementsExtractor;
 
+@Options
+public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgorithm {
 
-@Options(prefix="custominstructions")
-public class CustomInstructionRequirementsExtractingAlgorithm implements Algorithm, StatisticsProvider {
-
-  private final Algorithm analysis;
-  private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
-
-  private final ConfigurableProgramAnalysis cpa;
   private final CustomInstructionApplicationBuilder ciasBuilder;
   private final CustomInstructionRequirementsExtractor ciExtractor;
+  private final ConfigurableProgramAnalysis cpa;
 
   @Option(secure = true,
-      description = "Specifies the mode how custom instruction applications in program are identified.")
-  private CIDescriptionType mode = CIDescriptionType.OPERATOR;
+      name = "pcc.HWrequirements.extraction.mode",
+      description = "Specifies the mode how HW requirements are detected in the proof.")
+  private CIDescriptionType ciMode = CIDescriptionType.OPERATOR;
 
-  /**
-   * Constructor of CustomInstructionRequirementsExtractingAlgorithm
-   * @param analysisAlgorithm Algorithm
-   * @param cpa ConfigurableProgramAnalysis
-   * @param config Configuration
-   * @param logger LogManager
-   * @param sdNotifier ShutdownNotifier
-   * @throws InvalidConfigurationException if the given Path not exists
-   */
-  public CustomInstructionRequirementsExtractingAlgorithm(final Algorithm analysisAlgorithm,
-      final ConfigurableProgramAnalysis cpa, final Configuration config, final LogManager logger,
-      final ShutdownNotifier sdNotifier, final CFA cfa) throws InvalidConfigurationException {
 
-    config.inject(this);
+  public ProofCheckAndExtractCIRequirementsAlgorithm(ConfigurableProgramAnalysis pCpa,
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa,
+      Specification pSpecification) throws InvalidConfigurationException {
+    super(pCpa, pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
 
-    analysis = analysisAlgorithm;
-    this.logger = logger;
-    this.shutdownNotifier = sdNotifier;
-    this.cpa = cpa;
+    pConfig.inject(this);
 
-    if (!(cpa instanceof ARGCPA)) {
-      throw new InvalidConfigurationException("The given cpa " + cpa + "is not an instance of ARGCPA");
-    }
-
-    ciasBuilder = CustomInstructionApplicationBuilder.getBuilder(mode, config, logger, sdNotifier, cfa);
-    ciExtractor = new CustomInstructionRequirementsExtractor(config, logger, sdNotifier, cpa);
+    ciasBuilder = CustomInstructionApplicationBuilder.getBuilder(ciMode, pConfig, pLogger, pShutdownNotifier, pCfa);
+    ciExtractor = new CustomInstructionRequirementsExtractor(pConfig, pLogger, pShutdownNotifier, pCpa);
+    cpa = pCpa;
 
     Class<? extends AbstractState> requirementsStateClass = ciExtractor.getRequirementsStateClass();
     try {
-      if (AbstractStates.extractStateByType(cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+      if (AbstractStates.extractStateByType(pCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
                                             requirementsStateClass) == null) {
         throw new InvalidConfigurationException(requirementsStateClass + "is not an abstract state.");
       }
     } catch (InterruptedException e) {
       throw new InvalidConfigurationException(requirementsStateClass + "initial state computation did not finish in time");
     }
+
+    if(!(checkingStrategy instanceof AbstractARGStrategy)) {
+      throw new InvalidConfigurationException("Custom instruction requirements extraction only works with proofs that are ARGs.");
+    }
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException,
-      CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
 
-    logger.log(Level.INFO, "Get custom instruction applications in program.");
-
-    CustomInstructionApplications cia = null;
+    CustomInstructionApplications cia;
     try {
+      logger.log(Level.INFO, "Get custom instruction applications in program.");
       cia = ciasBuilder.identifyCIApplications();
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Detecting the custom instruction applications in program failed.", e);
@@ -130,28 +109,18 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       predCPA.changeExplicitAbstractionNodes(cia.getStartAndEndLocationsOfCIApplications());
     }
 
-    shutdownNotifier.shutdownIfNecessary();
-    logger.log(Level.INFO, "Start analysing to compute requirements.");
+    // proof checking
+    AlgorithmStatus status = super.run(reachedSet);
 
-    AlgorithmStatus status = analysis.run(pReachedSet);
-
-    // analysis was unsound
-    if (!status.isSound()) {
-      logger.log(Level.SEVERE, "Do not extract requirements since analysis failed.");
-      return status;
+    if (status.isSound()) {
+      logger.log(Level.INFO, "Extracting custom instruction requirements.");
+      ciExtractor.extractRequirements(((AbstractARGStrategy) checkingStrategy).getARG(), cia);
+    } else {
+      logger.log(Level.INFO, "Proof checking failed, do not extract requirements!");
     }
 
-    shutdownNotifier.shutdownIfNecessary();
-    logger.log(Level.INFO, "Start extracting requirements for applied custom instructions");
-
-    ciExtractor.extractRequirements((ARGState)pReachedSet.getFirstState(), cia);
     return status;
+
   }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (analysis instanceof StatisticsProvider) {
-      ((StatisticsProvider) analysis).collectStatistics(pStatsCollection);
-    }
-  }
 }

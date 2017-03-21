@@ -119,12 +119,13 @@ public class ConfigurationFilesTest {
           "witness.validation.violation.config",
           "witness.validation.correctness.config",
           "pcc.proofgen.doPCC",
+          "pcc.strategy",
+          "pcc.cmc.configFiles",
+          "pcc.cmc.file",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
           // handled by component that is loaded lazily on demand
-          "invariantGeneration.adjustConditions",
-          "invariantGeneration.async",
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
           "invariantGeneration.kInduction.guessCandidatesFromCFA",
