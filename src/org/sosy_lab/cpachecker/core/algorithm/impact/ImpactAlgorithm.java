@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -209,8 +210,9 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       // build list of formulas for edges
       List<BooleanFormula> pathFormulas = new ArrayList<>(path.size());
       addPathFormulasToList(path, pathFormulas);
+      BlockFormulas formulas = new BlockFormulas(pathFormulas);
 
-      CounterexampleTraceInfo cex = imgr.buildCounterexampleTrace(pathFormulas);
+      CounterexampleTraceInfo cex = imgr.buildCounterexampleTrace(formulas);
 
       if (!cex.isSpurious()) {
         return Collections.emptyList(); // real counterexample
@@ -330,7 +332,8 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     path.add(0, x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
-    CounterexampleTraceInfo interpolantInfo = imgr.buildCounterexampleTrace(formulas);
+    CounterexampleTraceInfo interpolantInfo =
+        imgr.buildCounterexampleTrace(new BlockFormulas(formulas));
 
     if (!interpolantInfo.isSpurious()) {
       logger.log(Level.FINER, "Forced covering unsuccessful.");

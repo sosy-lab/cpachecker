@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import java.io.PrintStream;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -36,11 +40,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import java.io.PrintStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public interface PathFormulaManager {
 
@@ -101,6 +100,21 @@ public interface PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    */
   BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
+      throws CPATransferException, InterruptedException;
+
+  /**
+   * Build a formula containing a predicate for all branching situations in the
+   * ARG. If a satisfying assignment is created for this formula, it can be used
+   * to find out which paths in the ARG are feasible.
+   *
+   * This method may be called with an empty set, in which case it does nothing
+   * and returns the formula "true".
+   *
+   * @param elementsOnPath The ARG states that should be considered.
+   * @param parentFormulasOnPath TODO.
+   * @return A formula containing a predicate for each branching.
+   */
+  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath, Map<Pair<ARGState,CFAEdge>, PathFormula> parentFormulasOnPath)
       throws CPATransferException, InterruptedException;
 
   /**
