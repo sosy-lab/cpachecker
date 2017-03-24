@@ -56,12 +56,12 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
-import org.sosy_lab.cpachecker.cpa.bounds.BoundsState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -570,7 +570,7 @@ class KInductionProver implements AutoCloseable {
           if (pArg0 == null) {
             return false;
           }
-          BoundsState ls = AbstractStates.extractStateByType(pArg0, BoundsState.class);
+          LoopIterationReportingState ls = AbstractStates.extractStateByType(pArg0, LoopIterationReportingState.class);
           return ls != null && ls.getDeepestIteration() == pIteration;
         });
   }
