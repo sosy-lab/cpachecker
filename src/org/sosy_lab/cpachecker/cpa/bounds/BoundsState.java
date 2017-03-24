@@ -28,11 +28,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Ordering;
-
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -41,11 +44,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Set;
-
-public class BoundsState implements AbstractState, Partitionable, AvoidanceReportingState {
+public class BoundsState
+    implements AbstractState, Partitionable, AvoidanceReportingState, LoopIterationReportingState {
 
   private final int deepestIteration;
 
@@ -134,6 +134,7 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
     return new BoundsState(stopIt, stopRec, iterations, deepestIteration, deepestRecursion, currentFunction, returnFromCounter + 1);
   }
 
+  @Override
   public int getIteration(Loop pLoop) {
     Integer iteration = iterations.get(new ComparableLoop(pLoop));
     return iteration == null ? 0 : iteration;
@@ -151,6 +152,7 @@ public class BoundsState implements AbstractState, Partitionable, AvoidanceRepor
     return returnFromCounter;
   }
 
+  @Override
   public Set<Loop> getDeepestIterationLoops() {
     return FluentIterable.from(iterations.entrySet()).filter(new Predicate<Entry<ComparableLoop, Integer>>() {
 

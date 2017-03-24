@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
@@ -71,7 +72,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
-import org.sosy_lab.cpachecker.cpa.bounds.BoundsState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
@@ -423,8 +423,9 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
               @Override
               public boolean apply(AbstractState pLoopHeadState) {
-                BoundsState state =
-                    AbstractStates.extractStateByType(pLoopHeadState, BoundsState.class);
+                LoopIterationReportingState state =
+                    AbstractStates.extractStateByType(
+                        pLoopHeadState, LoopIterationReportingState.class);
                 for (CFANode location : AbstractStates.extractLocations(pLoopHeadState)) {
                   Set<Loop> loops = cfa.getLoopStructure().get().getLoopsForLoopHead(location);
                   for (Loop loop : loops) {
