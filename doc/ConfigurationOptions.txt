@@ -320,6 +320,10 @@ assumptions.automatonIgnoreAssumptions = false
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
+# If it is enabled, check if a state that should lead to false state indeed
+# has successors.
+assumptions.removeNonExploredWithoutSuccessors = false
+
 # comma-separated list of files with specifications that should be used 
 # in a backwards analysis; used if the analysis starts at the target states!
 # (see config/specification/ for examples)
