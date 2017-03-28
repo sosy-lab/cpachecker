@@ -1013,6 +1013,7 @@
 
       <tasks>
     <option name="-combinations-value+apron-cmc-proofcheck"/>
+    <option name="-skipRecursion"/>
 	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
 	<option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
     <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${sourcefile_name}_cmcarg.proof</option>
