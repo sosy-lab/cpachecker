@@ -73,7 +73,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
       assert (pState.isAbstractionState());
     }
 
-    openElements.add(target);
+    openElements.addAll(target.getParents());
     while (!openElements.isEmpty()) {
       currentState = openElements.pollLast();
       BackwardARGState newCurrentElement = new BackwardARGState(currentState);
