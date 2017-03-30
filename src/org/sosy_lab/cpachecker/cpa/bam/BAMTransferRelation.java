@@ -181,6 +181,18 @@ public class BAMTransferRelation implements TransferRelation {
    * @param node the node of the location
    */
   protected boolean startNewBlockAnalysis(final ARGState pState, final CFANode node) {
+    if (node.getFunctionName().equals("ldv_init_zalloc") ||
+        node.getFunctionName().equals("ldv_malloc") ||
+        node.getFunctionName().equals("ldv_calloc") ||
+        node.getFunctionName().equals("ldv_zalloc") ||
+        node.getFunctionName().equals("ldv_xmalloc") ||
+        node.getFunctionName().equals("ldv_xzalloc") ||
+        node.getFunctionName().equals("ldv_malloc_unknown_size") ||
+        node.getFunctionName().equals("ldv_calloc_unknown_size") ||
+        node.getFunctionName().equals("ldv_zalloc_unknown_size") ||
+        node.getFunctionName().equals("ldv_xmalloc_unknown_size")) {
+      return false;
+    }
     return partitioning.isCallNode(node)
         // at begin of a block, we do not want to enter it again immediately
         && !partitioning
