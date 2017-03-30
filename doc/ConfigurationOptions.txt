@@ -2271,6 +2271,9 @@ cpa.usage.precisionReset = Integer.MAX_VALUE
 # print all unsafe cases in report
 cpa.usage.printFalseUnsafes = false
 
+# output only true unsafes
+cpa.usage.printOnlyTrueUnsafes = false
+
 # a limit for paths for one usage, which could be refined
 cpa.usage.refinablePathLimitation = Integer.MAX_VALUE
 
@@ -2288,9 +2291,6 @@ cpa.usage.unsafedetector.ignoreEmptyLockset = false
 
 # The functions, which cannot be executed in parallel with themselves
 cpa.usagestatistics.notSelfParallelFunctions = new HashSet<>()
-
-# output only true unsafes
-cpa.usagestatistics.printOnlyTrueUnsafes = false
 
 # The functions, which are executed in one thread
 cpa.usagestatistics.singleThreadFunctions = new HashSet<>()
