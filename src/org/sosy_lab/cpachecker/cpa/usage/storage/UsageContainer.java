@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementResult;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-@Options(prefix="cpa.usagestatistics")
+@Options(prefix="cpa.usage")
 public class UsageContainer {
   private final SortedMap<SingleIdentifier, UnrefinedUsagePointSet> unrefinedIds;
   private final SortedMap<SingleIdentifier, RefinedUsagePointSet> refinedIds;
