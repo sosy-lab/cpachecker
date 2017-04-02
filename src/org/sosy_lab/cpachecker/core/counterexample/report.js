@@ -5,14 +5,16 @@ $(function() {
 	// variable declarations
 	var nodes = json.nodes;
 	var edges = json.edges;
-	var functions = json.functionNames;
+	var functions = json.functionNames; //TODO: display only the graph for selected function
 	var combinedNodes = json.combinedNodes;
+	var combinedNodesLabels = json.combinedNodesLabels;
+	var mergedNodes = json.mergedNodes;
 	var functionCallEdges = json.functionCallEdges;
 	var errorPath;
 	if (json.hasOwnProperty("errorPath"))
 		erroPath = json.errorPath;
 	var requiredGraphs = 1;
-	var graphSplitThreshold = 700; // TODO: allow user input with max value 1000
+	var graphSplitThreshold = 700; // TODO: allow user input with max value 900
 	var zoomEnabled = false; // TODO: allow user to witch between zoom possibilities
 
 	// TODO: different edge weights based on type?
@@ -31,7 +33,7 @@ $(function() {
 		beforeNode : "before",
 		margin : 20,
 	}
-
+	
 	if (nodes.length > graphSplitThreshold) {
 		buildMultipleGraphs();
 	} else {
@@ -40,9 +42,7 @@ $(function() {
 	
 	//TODO: Test
 	function buildMultipleGraphs() {
-		requiredGraphs = Math.floor(nodes.length/graphSplitThreshold);
-		var remainder = nodes.length % graphSplitThreshold;
-		if (remainder > 0) requiredGraphs++;
+		requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
 		var firstGraphBuild = false;
 		var nodesPerGraph
 		for (var i in requiredGraphs) {
@@ -56,44 +56,32 @@ $(function() {
 				else
 					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1) + 1)
 			}
-			var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
-					function() {
-						return {};
-					});
-			g.graph().transition = function(selection) {
-				return selection.transition().duration(500);
-			};
-			setGraphNodes(g, nodesPerGraph);
-			roundNodeCorners(g);
-			setGraphEdges(g, edges); // TODO: edgesPerGraph
+			var graph = createGraph();
+			setGraphNodes(graph, nodesPerGraph);
+			roundNodeCorners(graph);
+			
+			setGraphEdges(graph, edges, true); // TODO: edgesPerGraph
 			var render = new dagreD3.render();
 			var svg = d3.select("#graph" + i).append("svg").attr("id", "svg" + i), svgGroup = svg
 					.append("g");
-			render(d3.select("#svg" + i + " g"), g);
-			svg.attr("height", g.graph().height + constants.margin * 2);
-			svg.attr("width", g.graph().width * 2 + constants.margin * 2);
+			render(d3.select("#svg" + i + " g"), graph);
+			svg.attr("height", graph.graph().height + constants.margin * 2);
+			svg.attr("width", graph.graph().width * 2 + constants.margin * 2);
 			var xCenterOffset = (svg.attr("width") / 2);
 			svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
 			addEventsToNodes();
 			addEventsToEdges();
 		}
-		
 	}
 
 	// build single graph for all contained nodes
 	function buildSingleGraph() {
 		d3.select("#body").append("div").attr("id", "graph");
 		// Create the graph
-		var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
-				function() {
-					return {};
-				});
-		g.graph().transition = function(selection) {
-			return selection.transition().duration(500);
-		};
+		var g = createGraph();
 		setGraphNodes(g, nodes);
 		roundNodeCorners(g);
-		setGraphEdges(g, edges);
+		setGraphEdges(g, edges, false);
 		// Create the renderer
 		var render = new dagreD3.render();
 		// Set up an SVG group so that we can translate the final graph.
@@ -118,17 +106,49 @@ $(function() {
 		addEventsToNodes();
 		addEventsToEdges();
 	}
+	
+	// create and return a graph element with a set transition
+	function createGraph() {
+		var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
+				function() {
+					return {};
+				});
+		g.graph().transition = function(selection) {
+			return selection.transition().duration(500);
+		};
+		return g;
+	}
 
-	// Set nodes for the graph
+	// Set nodes for the graph contained in the json nodes
 	function setGraphNodes(graph, nodesToSet) {
 		nodesToSet.forEach(function(n) {
-			graph.setNode(n.index, {
-				label : "N" + n.index,
-				class : n.type + "-node",
-				id : "node" + n.index,
-				shape : nodeShapeDecider(n)
-			});
+			if (!mergedNodes.includes(n.index)) {
+				graph.setNode(n.index, {
+					label : setNodeLabel(n),
+					class : n.type,
+					id : setNodeId(n),
+					shape : nodeShapeDecider(n)
+				});
+			}
 		})
+	}
+	
+	// Node id, either its index or a combined ID of all indexes if its a combined node
+	function setNodeId(node) {
+		if (Object.keys(combinedNodes).includes(node.index)) {
+			var id = "";
+			combinedNodes.nodeIndex.forEach(function(it){id += it;})
+			return  id;
+		}
+		else return "node" + node.index;
+	}
+	
+	// Node label, the label from combined nodes or a simple label
+	function setNodeLabel(node) {
+		var nodeIndex = "" + node.index;
+		if (Object.keys(combinedNodesLabels).includes(nodeIndex))
+			return combinedNodesLabels[nodeIndex];
+		else return "N" + nodeIndex;
 	}
 
 	// Add desired events to the nodes
@@ -154,17 +174,31 @@ $(function() {
 			return "rect";
 	}
 
-	function setGraphEdges(graph, edgesToSet) {
-		edgesToSet.forEach(function(e) {
-			// TODO: different arrowhead for different type + class function
-			// (for errorPath)
-			graph.setEdge(e.source, e.target, {
-				label : e.source + "->" + e.target,
-				class : e.type,
-				id : "edge" + e.source + e.target,
-				weight : edgeWeightDecider(e)
+	// set the graph edges
+	function setGraphEdges(graph, edgesToSet, multigraph) {
+		if (multigraph) {
+			edgesToSet.forEach(function(e) {
+				// TODO: different arrowhead for different type + class function
+				// (for errorPath)
+					graph.setEdge(e.source, e.target, {
+						label : e.source + "->" + e.target,
+						class : e.type,
+						id : "edge" + e.source + e.target,
+						weight : edgeWeightDecider(e)
+					});
+			})
+		} else {
+			edgesToSet.forEach(function(e) {
+				if (!mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
+					graph.setEdge(e.source, e.target, {
+						label: e.source + "->" + e.target, 
+						class: e.type, 
+						id: "edge"+ e.source + e.target, 
+						weight: edgeWeightDecider(e)
+					});
+				}
 			});
-		})
+		}
 	}
 
 	// Add desired events to edge
