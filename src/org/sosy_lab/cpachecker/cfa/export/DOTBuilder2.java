@@ -118,6 +118,10 @@ public final class DOTBuilder2 {
     JSON.writeJSONString(dotter.comboNodesLabels, out);
   }
 
+  public void writeMergedNodesList(Writer out) throws IOException {
+    JSON.writeJSONString(dotter.mergedNodes, out);
+  }
+
   private static String getEdgeText(CFAEdge edge) {
     //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
     //future updates of dotty may make this obsolete.
@@ -136,6 +140,7 @@ public final class DOTBuilder2 {
     // global state for all functions
     private final Map<Integer, List<Integer>> comboNodes = new HashMap<>();
     private final Map<Integer, String> comboNodesLabels = new HashMap<>();
+    private final List<Integer> mergedNodes = new ArrayList<>();
     private final Map<Integer, List<Integer>> virtFuncCallEdges = new HashMap<>();
     private int virtFuncCallNodeIdCounter = 100000;
 
@@ -216,6 +221,9 @@ public final class DOTBuilder2 {
               comboNodesLabels.put(firstNo, edge.getDescription());
             }
           }
+          comboNodes.forEach((k,v) -> {
+            mergedNodes.addAll(v);
+          });
         }
       }
 

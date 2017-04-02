@@ -239,6 +239,8 @@ public class ReportGenerator {
       writer.write(",\n");
       insertCombinedNodesLabelsData(writer, dotBuilder);
       writer.write(",\n");
+      insertMergedNodesListData(writer, dotBuilder);
+      writer.write(",\n");
       if (counterExample != null) {
         insertErrorPathData(counterExample, writer);
       }
@@ -425,6 +427,16 @@ public class ReportGenerator {
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of combined nodes labels failed.");
+    }
+  }
+
+  private void insertMergedNodesListData(Writer writer, DOTBuilder2 dotBuilder) {
+    try {
+      writer.write("\"mergedNodes\":");
+      dotBuilder.writeMergedNodesList(writer);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Insertion of merged nodes failed.");
     }
   }
 
