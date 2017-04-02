@@ -38,6 +38,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -110,7 +111,11 @@ public final class DOTBuilder2 {
   }
 
   public  void writeCombinedNodes(Writer out) throws IOException {
-    JSON.writeJSONString(dotter.node2combo, out);
+    JSON.writeJSONString(dotter.comboNodes, out);
+  }
+
+  public void writeCombinedNodesLabels(Writer out) throws IOException {
+    JSON.writeJSONString(dotter.comboNodesLabels, out);
   }
 
   private static String getEdgeText(CFAEdge edge) {
@@ -129,7 +134,8 @@ public final class DOTBuilder2 {
    */
   private static class DOTViewBuilder extends DefaultCFAVisitor {
     // global state for all functions
-    private final Map<Integer, Integer> node2combo = new HashMap<>();
+    private final Map<Integer, List<Integer>> comboNodes = new HashMap<>();
+    private final Map<Integer, String> comboNodesLabels = new HashMap<>();
     private final Map<Integer, List<Integer>> virtFuncCallEdges = new HashMap<>();
     private int virtFuncCallNodeIdCounter = 100000;
 
@@ -199,7 +205,16 @@ public final class DOTBuilder2 {
           for (CFAEdge edge : combo) {
             CFAEdge first = combo.get(0);
             int firstNo = first.getPredecessor().getNodeNumber();
-            node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
+            if (comboNodes.containsKey(firstNo)) {
+              comboNodes.get(firstNo).add(edge.getSuccessor().getNodeNumber());
+              comboNodesLabels.put(firstNo, comboNodesLabels.get(firstNo) + "\n" +edge.getDescription());
+            }
+            else {
+              List<Integer> nodesCombined = new ArrayList<>();
+              nodesCombined.add(first.getSuccessor().getNodeNumber());
+              comboNodes.put(firstNo, nodesCombined);
+              comboNodesLabels.put(firstNo, edge.getDescription());
+            }
           }
         }
       }
