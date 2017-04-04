@@ -701,7 +701,7 @@ public class ARGPathExporter {
             }
             String noteDesc = smgState.getNoteDescription();
             if (noteDesc != null) {
-              result = result.putAndCopy(KeyDef.NOTE, noteDesc);
+              result = result.putAndCopy(KeyDef.NOTE, pEdge.getRawStatement());
             }
           }
         }

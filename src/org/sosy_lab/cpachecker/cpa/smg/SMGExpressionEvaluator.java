@@ -580,6 +580,7 @@ public class SMGExpressionEvaluator {
 
       SMGState state = getInitialSmgState();
       SMGObject object = state.getObjectForVisibleVariable(variableName.getName());
+      state.addElementToCurrentChain(object);
 
       if (object == null && variableName.getDeclaration() != null) {
         CSimpleDeclaration dcl = variableName.getDeclaration();
@@ -596,8 +597,7 @@ public class SMGExpressionEvaluator {
         }
       }
 
-      return SMGAddressAndState.listOf(getInitialSmgState(),
-          SMGAddress.valueOf(object, SMGKnownExpValue.ZERO));
+      return SMGAddressAndState.listOf(state, SMGAddress.valueOf(object, SMGKnownExpValue.ZERO));
     }
 
     @Override
@@ -838,6 +838,7 @@ public class SMGExpressionEvaluator {
       if (variableObject == null) {
         return SMGAddressValueAndStateList.of(state);
       } else {
+        state.addElementToCurrentChain(variableObject);
         return createAddress(state, variableObject, SMGKnownExpValue.ZERO);
       }
     }
@@ -1786,8 +1787,10 @@ public class SMGExpressionEvaluator {
         SMGObject variableObject = smgState
             .getObjectForVisibleVariable(idExpression.getName());
 
+        smgState.addElementToCurrentChain(variableObject);
         SMGValueAndState result = readValue(smgState, variableObject, SMGKnownExpValue.ZERO,
             getRealExpressionType(idExpression), cfaEdge);
+        result.getSmgState().addElementToCurrentChain(result.getObject());
 
         return SMGValueAndStateList.of(result);
       }

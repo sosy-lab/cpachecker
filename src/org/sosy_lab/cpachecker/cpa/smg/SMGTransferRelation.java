@@ -860,7 +860,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     List<SMGState> successors;
 
-    SMGState smgState = state;
+    SMGState smgState = new SMGState(state);
+    smgState.cleanCurrentChain();
 
     switch (cfaEdge.getEdgeType()) {
     case DeclarationEdge:
@@ -943,7 +944,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       if (smgPredicateManager.isErrorPathFeasible(smg)) {
         SMGState invalidState = smg.setInvalidRead().setInvalidWrite();
         invalidState.resetErrorRelation();
-        invalidState.setErrorDescription("Possible overflow on current code block");
+        invalidState.setErrorDescription("Possible overflow");
         successors = ImmutableList.of(invalidState);
       } else {
         smg.resetErrorRelation();
