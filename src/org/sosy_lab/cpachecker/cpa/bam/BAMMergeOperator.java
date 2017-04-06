@@ -48,7 +48,7 @@ public class BAMMergeOperator implements MergeOperator {
     AbstractState out = wrappedMergeOp.merge(
         pState1,
         pState2,
-        pPrecision
+        ((BAMPrecision)pPrecision).getWrappedPrecision()
     );
     if (bamPccManager.isPCCEnabled()) {
       return bamPccManager.attachAdditionalInfoToCallNode(out);

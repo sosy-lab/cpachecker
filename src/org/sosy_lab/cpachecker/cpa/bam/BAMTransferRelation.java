@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -136,6 +137,7 @@ public class BAMTransferRelation implements TransferRelation {
 
     final CFANode node = extractLocation(pState);
     final ARGState argState = (ARGState) pState;
+    final BAMPrecision prec = (BAMPrecision) pPrecision;
 
     // we are at some location inside the program,
     // this part is always and only reached as recursive call with 'doRecursiveAnalysis'
@@ -146,7 +148,7 @@ public class BAMTransferRelation implements TransferRelation {
       return Collections.emptySet();
     }
 
-    if (startNewBlockAnalysis(argState, node)) {
+    if (startNewBlockAnalysis(argState, node, prec)) {
 
       // we are at the entryNode of a new BAMblock and we are in a new context,
       // so we have to start a recursive analysis
@@ -167,7 +169,8 @@ public class BAMTransferRelation implements TransferRelation {
     if (foundRecursion) {
       callstackTransfer.enableRecursiveContext();
     }
-    final Collection<? extends AbstractState> result = wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+    Precision wrappedPrecision = (((BAMPrecision)pPrecision).getWrappedPrecision());
+    final Collection<? extends AbstractState> result = wrappedTransfer.getAbstractSuccessors(pState, wrappedPrecision);
     if (foundRecursion) {
       callstackTransfer.disableRecursiveContext();
     }
@@ -180,24 +183,19 @@ public class BAMTransferRelation implements TransferRelation {
    * @param pState the abstract state at the location
    * @param node the node of the location
    */
-  protected boolean startNewBlockAnalysis(final ARGState pState, final CFANode node) {
-    if (node.getFunctionName().equals("ldv_init_zalloc") ||
-        node.getFunctionName().equals("ldv_malloc") ||
-        node.getFunctionName().equals("ldv_calloc") ||
-        node.getFunctionName().equals("ldv_zalloc") ||
-        node.getFunctionName().equals("ldv_xmalloc") ||
-        node.getFunctionName().equals("ldv_xzalloc") ||
-        node.getFunctionName().equals("ldv_malloc_unknown_size") ||
-        node.getFunctionName().equals("ldv_calloc_unknown_size") ||
-        node.getFunctionName().equals("ldv_zalloc_unknown_size") ||
-        node.getFunctionName().equals("ldv_xmalloc_unknown_size")) {
-      return false;
-    }
-    return partitioning.isCallNode(node)
+  protected boolean startNewBlockAnalysis(final ARGState pState, final CFANode node, final BAMPrecision prec) {
+    boolean result = partitioning.isCallNode(node)
         // at begin of a block, we do not want to enter it again immediately
         && !partitioning
             .getBlockForCallNode(node)
             .equals(stack.isEmpty() ? null : stack.peek().getThird());
+
+    if (result) {
+      if (prec.shouldBeSkipped(node)) {
+        return false;
+      }
+    }
+    return result;
   }
 
   /**
@@ -387,6 +385,8 @@ public class BAMTransferRelation implements TransferRelation {
     logger.log(Level.FINEST, "Expanding states", reducedResult);
 
     final List<AbstractState> expandedResult = new ArrayList<>(reducedResult.size());
+    boolean needToSkip = false;
+    BAMPrecision BAMPrec = (BAMPrecision) precision;
     for (AbstractState reducedState : reducedResult) {
       Precision reducedPrecision = reached.getPrecision(reducedState);
 
@@ -401,6 +401,15 @@ public class BAMTransferRelation implements TransferRelation {
       expandedResult.add(expandedState);
 
       data.registerExpandedState(expandedState, expandedPrecision, reducedState, innerSubtree);
+
+      if (!needToSkip && AbstractStates.extractStateByType(reducedState, PredicateAbstractState.class).hasDeferedAllocations()) {
+        needToSkip = true;
+      }
+      BAMPrec.copyUncachedBlocks((BAMPrecision) expandedPrecision);
+    }
+
+    if (needToSkip) {
+      BAMPrec.addUncachedBlock(innerSubtree.getCallNode());
     }
 
     logger.log(Level.FINEST, "Expanded results:", expandedResult);

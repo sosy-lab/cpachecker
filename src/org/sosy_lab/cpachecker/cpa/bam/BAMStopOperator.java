@@ -42,7 +42,7 @@ public class BAMStopOperator implements StopOperator {
   @Override
   public boolean stop(AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
       throws CPAException, InterruptedException {
-    return wrappedStop.stop(pState, pReached, pPrecision);
+    return wrappedStop.stop(pState, pReached, ((BAMPrecision)pPrecision).getWrappedPrecision());
   }
 
 

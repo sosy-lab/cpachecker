@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 public class BAMPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -76,9 +77,10 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       validPrecision = pPrecision;
     }
 
+
     Optional<PrecisionAdjustmentResult> result = wrappedPrecisionAdjustment.prec(
         pElement,
-        validPrecision,
+        ((BAMPrecision)validPrecision).getWrappedPrecision(),
         pElements,
         projection,
         fullState);
@@ -102,6 +104,8 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       data.replaceStateInCaches(pElement, result.get().abstractState(), false);
     }
 
-    return result;
+    PrecisionAdjustmentResult wrappedResult = result.get();
+    BAMPrecision oldPrecision = Precisions.extractPrecisionByType(pPrecision, BAMPrecision.class);
+    return Optional.of(wrappedResult.withPrecision(oldPrecision.clone(wrappedResult.precision())));
   }
 }

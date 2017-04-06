@@ -73,15 +73,18 @@ class TimedReducer implements Reducer {
 
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-    return wrappedReducer.getHashCodeForState(pElementKey, pPrecisionKey);
+    BAMPrecision prec = (BAMPrecision) pPrecisionKey;
+    return wrappedReducer.getHashCodeForState(pElementKey, prec.getWrappedPrecision());
   }
 
   @Override
   public Precision getVariableReducedPrecision(Precision pPrecision,
       Block pContext) {
     reducePrecisionTime.start();
+    BAMPrecision prec = (BAMPrecision) pPrecision;
     try {
-      return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
+      Precision wrapped = wrappedReducer.getVariableReducedPrecision(prec.getWrappedPrecision(), pContext);
+      return prec.clone(wrapped);
     } finally {
       reducePrecisionTime.stop();
     }
@@ -90,8 +93,11 @@ class TimedReducer implements Reducer {
   @Override
   public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
     expandPrecisionTime.start();
+    BAMPrecision rootPrec = (BAMPrecision) rootPrecision;
+    BAMPrecision reducedPrec = (BAMPrecision) reducedPrecision;
     try {
-      return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
+      Precision wrapped = wrappedReducer.getVariableExpandedPrecision(rootPrec.getWrappedPrecision(), rootContext, reducedPrec.getWrappedPrecision());
+      return rootPrec.clone(reducedPrec, wrapped);
     } finally {
       expandPrecisionTime.stop();
     }
@@ -100,7 +106,8 @@ class TimedReducer implements Reducer {
 
   @Override
   public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
-    return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
+    BAMPrecision prec = (BAMPrecision) pPrecision;
+    return wrappedReducer.measurePrecisionDifference(prec.getWrappedPrecision(), pOtherPrecision);
   }
 
   @Override

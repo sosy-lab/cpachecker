@@ -101,7 +101,10 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   }
 
   @Override
-  protected boolean startNewBlockAnalysis(final ARGState pState, final CFANode node) {
+  protected boolean startNewBlockAnalysis(final ARGState pState, final CFANode node, final BAMPrecision prec) {
+    if (prec.shouldBeSkipped(node)) {
+      return false;
+    }
     return partitioning.isCallNode(node)
         && !pState.getParents().isEmpty() // if no parents, we have already started a new block
         && (!partitioning
