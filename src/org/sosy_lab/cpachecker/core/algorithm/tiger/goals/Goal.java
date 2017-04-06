@@ -23,24 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import java.util.ArrayList;
-import java.util.List;
-import javax.annotation.Nullable;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPNodeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPRepetition;
@@ -48,161 +35,63 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPUnion;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePattern;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.InverseGuardedEdgeLabel;
-import org.sosy_lab.cpachecker.core.interfaces.PropertyInstance;
-import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
-import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonSafetyPropertyFactory;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
-import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
-import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
-import org.sosy_lab.cpachecker.cpa.automaton.SafetyPropertyInstance;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.automaton.NFA;
-import org.sosy_lab.cpachecker.util.automaton.NFA.State;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-public class Goal implements SafetyProperty {
+public class Goal {
 
-  private final int mIndex;
-  private final ElementaryCoveragePattern mPattern;
-  private final NFA<GuardedEdgeLabel> mAutomaton;
-  @Nullable
-  private Automaton mCheckedWithAutomaton;
+  private ElementaryCoveragePattern mPattern;
+  private NondeterministicFiniteAutomaton<GuardedEdgeLabel> mAutomaton;
+  private int mIndex;
+  private Region mPresenceCondition;
 
-  public Goal(int pIndex, ElementaryCoveragePattern pPattern,
-      NFA<GuardedEdgeLabel> pAutomaton) {
+  public Goal(int pIndex, ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, Region pPresenceCondition) {
+    mIndex = pIndex;
+    mPattern = pPattern;
+    mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
+    mPresenceCondition = pPresenceCondition;
+  }
+
+  public Goal(int pIndex, ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Region pPresenceCondition) {
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = pAutomaton;
+    mPresenceCondition = pPresenceCondition;
   }
 
   public int getIndex() {
     return mIndex;
   }
 
-  public ElementaryCoveragePattern getPattern() {
-    return mPattern;
-  }
-
-  public NFA<GuardedEdgeLabel> getAutomaton() {
-    return mAutomaton;
-  }
-
-  @Override
-  public String toString() {
-    return getName();
-  }
-
-  /**
-   * Provide a UNIQUE name for the goal!
-   *
-   * @return Unique name of the goal.
-   */
   public String getName() {
     CFAEdge ce = getCriticalEdge();
     CFANode pred = ce.getPredecessor();
     if (pred instanceof CLabelNode && !((CLabelNode) pred).getLabel().isEmpty()) {
-      String lbl = ((CLabelNode) pred).getLabel();
-      return String.format("%d@%s", getIndex(), lbl);
+      return ((CLabelNode) pred).getLabel();
     } else {
       return Integer.toString(getIndex());
     }
   }
 
-
-  public String getGoalLablesString() {
-    List<CFAEdge> ceList = getAllCriticalEdges();
-    String result = "(";
-    boolean start = true;
-    for (CFAEdge ce : ceList) {
-      CFANode pred = ce.getPredecessor();
-      if (pred instanceof CLabelNode && !((CLabelNode) pred).getLabel().isEmpty()) {
-        String lbl = ((CLabelNode) pred).getLabel();
-        if (start) {
-          result = result + lbl;
-        } else {
-          result = result + " and " + lbl;
-        }
-        start = false;
-      } else {
-        if (start) {
-          result = result + Integer.toString(getIndex());
-        } else {
-          result = result + " and " + Integer.toString(getIndex());
-        }
-        start = false;
-      }
-    }
-    result = result + ")";
-    return result;
+  public ElementaryCoveragePattern getPattern() {
+    return mPattern;
   }
 
-  public List<CFAEdge> getAllCriticalEdges() {
-    final ECPVisitor<List<CFAEdge>> edgesVisitor = new ECPVisitor<List<CFAEdge>>() {
-
-      @Override
-      public List<CFAEdge> visit(ECPEdgeSet pEdgeSet) {
-        List<CFAEdge> result = new ArrayList<>();
-        if (pEdgeSet.size() == 1) {
-          result.add(pEdgeSet.iterator().next());
-        }
-        return result;
-      }
-
-      @Override
-      public List<CFAEdge> visit(ECPNodeSet pNodeSet) {
-        return null;
-      }
-
-      @Override
-      public List<CFAEdge> visit(ECPPredicate pPredicate) {
-        return null;
-      }
-
-      @Override
-      public List<CFAEdge> visit(ECPConcatenation pConcatenation) {
-        List<CFAEdge> result = new ArrayList<>();
-
-        for (int i = 0; i < pConcatenation.size(); i++) {
-          ElementaryCoveragePattern ecp = pConcatenation.get(i);
-
-          List<CFAEdge> tmpEdge = ecp.accept(this);
-
-          if (tmpEdge != null) {
-            result.addAll(tmpEdge);
-          }
-        }
-
-        return result;
-      }
-
-      @Override
-      public List<CFAEdge> visit(ECPUnion pUnion) {
-        return null;
-      }
-
-      @Override
-      public List<CFAEdge> visit(ECPRepetition pRepetition) {
-        return null;
-      }
-
-    };
-
-    return getPattern().accept(edgesVisitor);
+  public NondeterministicFiniteAutomaton<GuardedEdgeLabel> getAutomaton() {
+    return mAutomaton;
   }
 
   public CFAEdge getCriticalEdge() {
-    final ECPVisitor<CFAEdge> edgeVisitor = new ECPVisitor<CFAEdge>() {
+    final ECPVisitor<CFAEdge> visitor = new ECPVisitor<CFAEdge>() {
 
       @Override
       public CFAEdge visit(ECPEdgeSet pEdgeSet) {
         if (pEdgeSet.size() == 1) {
           return pEdgeSet.iterator().next();
-        } else {
+        }
+        else {
           return null;
         }
       }
@@ -246,8 +135,15 @@ public class Goal implements SafetyProperty {
 
     };
 
-    return getPattern().accept(edgeVisitor);
+    return getPattern().accept(visitor);
+  }
 
+  public Region getPresenceCondition() {
+    return mPresenceCondition;
+  }
+
+  public void setPresenceCondition(Region pPresenceCondition) {
+    mPresenceCondition = pPresenceCondition;
   }
 
   public String toSkeleton() {
@@ -255,7 +151,9 @@ public class Goal implements SafetyProperty {
 
       @Override
       public Boolean visit(ECPEdgeSet pEdgeSet) {
-        if (pEdgeSet.size() <= 1) { return true; }
+        if (pEdgeSet.size() <= 1) {
+          return true;
+        }
 
         return false;
       }
@@ -275,7 +173,9 @@ public class Goal implements SafetyProperty {
         for (int i = 0; i < pConcatenation.size(); i++) {
           ElementaryCoveragePattern ecp = pConcatenation.get(i);
 
-          if (ecp.accept(this)) { return true; }
+          if (ecp.accept(this)) {
+            return true;
+          }
         }
 
         return false;
@@ -286,7 +186,9 @@ public class Goal implements SafetyProperty {
         for (int i = 0; i < pUnion.size(); i++) {
           ElementaryCoveragePattern ecp = pUnion.get(i);
 
-          if (ecp.accept(this)) { return true; }
+          if (ecp.accept(this)) {
+            return true;
+          }
         }
 
         return false;
@@ -294,7 +196,9 @@ public class Goal implements SafetyProperty {
 
       @Override
       public Boolean visit(ECPRepetition pRepetition) {
-        if (pRepetition.getSubpattern().accept(this)) { return true; }
+        if (pRepetition.getSubpattern().accept(this)) {
+          return true;
+        }
 
         return false;
       }
@@ -307,9 +211,11 @@ public class Goal implements SafetyProperty {
       public String visit(ECPEdgeSet pEdgeSet) {
         if (pEdgeSet.size() == 1) {
           return "[" + pEdgeSet.toString() + "]";
-        } else if (pEdgeSet.size() == 0) {
+        }
+        else if (pEdgeSet.size() == 0) {
           return "{}";
-        } else {
+        }
+        else {
           return "E";
         }
       }
@@ -338,13 +244,15 @@ public class Goal implements SafetyProperty {
 
             if (a) {
               str.append(".");
-            } else if (i > 0) {
+            }
+            else if (i > 0) {
               str.append("E.");
             }
             str.append(ecp.accept(this));
 
             a = true;
-          } else if (b) {
+          }
+          else if (b) {
             b = false;
 
             if (a) {
@@ -373,13 +281,15 @@ public class Goal implements SafetyProperty {
 
             if (a) {
               str.append("+");
-            } else if (i > 0) {
+            }
+            else if (i > 0) {
               str.append("E+");
             }
             str.append(ecp.accept(this));
 
             a = true;
-          } else if (b) {
+          }
+          else if (b) {
             b = false;
 
             if (a) {
@@ -398,7 +308,8 @@ public class Goal implements SafetyProperty {
       public String visit(ECPRepetition pRepetition) {
         if (pRepetition.getSubpattern().accept(booleanVisitor)) {
           return "(" + pRepetition.getSubpattern().accept(this) + "*)";
-        } else {
+        }
+        else {
           return "E";
         }
       }
@@ -406,226 +317,6 @@ public class Goal implements SafetyProperty {
     };
 
     return getPattern().accept(visitor);
-  }
-
-  /**
-   * Converts the NFA<GuardedEdgeLabel>
-   *    into a ControlAutomaton
-   *
-   * @return  A control automaton
-   */
-  public Automaton createControlAutomaton() {
-    Preconditions.checkNotNull(mAutomaton);
-
-    if (mCheckedWithAutomaton != null) { return mCheckedWithAutomaton; }
-
-    // TODO: add/handle alpha, and omega edges!!
-
-    final String automatonName = getName();
-    final String initialStateName = Integer.toString(mAutomaton.getInitialState().ID);
-    final List<AutomatonInternalState> automatonStates = Lists.newArrayList();
-
-    final CFAEdge criticalEdge = getCriticalEdge();
-
-    for (State q : mAutomaton.getStates()) {
-
-      final boolean isTarget = mAutomaton.getFinalStates().contains(q);
-      final String stateName = Integer.toString(q.ID);
-      final List<AutomatonTransition> transitions = Lists.newArrayList();
-      final List<AutomatonTransition> stutterTransitions = Lists.newArrayList();
-
-      for (NFA<GuardedEdgeLabel>.Edge t : mAutomaton.getOutgoingEdges(q)) {
-
-        final String sucessorStateName = Integer.toString(t.getTarget().ID);
-        final AutomatonBoolExpr trigger = createMatcherForLabel(t.getLabel());
-        final ImmutableList<AStatement> assumptions = createAssumesForLabel(t.getLabel());
-        final ImmutableList<AutomatonAction> actions;
-
-        final boolean matchesAnyting = isMatchAnythingTransition(t);
-        final boolean matchesCriticalEdge = t.getLabel().contains(criticalEdge);
-        final boolean isStutterTransition = t.getTarget().equals(q);
-        if (matchesCriticalEdge && !isStutterTransition && !matchesAnyting) {// Ignore stutter transitions
-          // This ensures that each path is along a critical edge!
-          actions = ImmutableList.of(
-              AutomatonAction.CheckFeasibility.getInstance(),
-              AutomatonAction.SetMarkerVariable.getInstance());
-        } else {
-          actions = ImmutableList.of();
-        }
-
-        AutomatonTransition ct = AutomatonTransition.builder().setTrigger(trigger)
-            .setAssumptions(assumptions).setAssumeTruth(true)
-            .setActions(actions).setFollowStateName(sucessorStateName)
-            .setViolatedWhenEnteringTarget(ImmutableSet.<SafetyProperty> of(this)).build();
-        /*
-        AutomatonTransition ct = new AutomatonTransition(
-            trigger,
-            Collections.emptyList(),
-            assumptions,
-            true,
-            null,
-            ExpressionTrees.getTrue(),
-            actions,
-            sucessorStateName,
-            null,
-            ImmutableSet.<SafetyProperty> of(this),
-            ImmutableSet.of());*/
-
-
-        if (isStutterTransition) {
-          stutterTransitions.add(ct);
-        } else {
-          transitions.add(ct);
-        }
-      }
-
-      // The stutter transitions should be the last ones in the list
-      transitions.addAll(stutterTransitions);
-
-      if (isTarget) {
-        // Disable the automata after the goal (target state)
-        //  has been reached by transiting to BOTTOM
-        AutomatonTransition t =
-            AutomatonTransition.builder().setTrigger(AutomatonBoolExpr.TRUE)
-                .setAssumeTruth(true)
-                .setFollowState(AutomatonInternalState.BOTTOM)
-                .setViolatedWhenEnteringTarget(ImmutableSet.of()).build();
-
-        transitions.add(t);
-      }
-
-      final boolean nonDetMatchAllTransitions = false;
-      automatonStates.add(
-          new AutomatonInternalState(stateName, transitions, isTarget, nonDetMatchAllTransitions));
-    }
-
-    try {
-      mCheckedWithAutomaton = new Automaton(new AutomatonSafetyPropertyFactory(Configuration
-          .defaultConfiguration(), ""),
-          automatonName, Maps.newHashMap(),
-          automatonStates, initialStateName);
-
-      return mCheckedWithAutomaton;
-
-    } catch (InvalidConfigurationException | InvalidAutomatonException e) {
-      throw new RuntimeException("Conversion failed!", e);
-    }
-  }
-
-  private boolean isMatchAnythingTransition(NFA<GuardedEdgeLabel>.Edge pT) {
-    // TODO: This is a hack because we have not yet a better way if all edges get matched.
-    if (pT.getLabel() instanceof InverseGuardedEdgeLabel) { return false; }
-    if (pT.getLabel().getEdgeSet().size() != 1) { return true; }
-    return false;
-  }
-
-  private ImmutableList<AStatement> createAssumesForLabel(GuardedEdgeLabel pLabel) {
-    Builder<AStatement> result = ImmutableList.builder();
-
-    for (ECPGuard g : pLabel) {
-      if (g instanceof ECPPredicate) { throw new RuntimeException(
-          "ECPPredicate not yet supported as an assumption!"); }
-    }
-
-    return result.build();
-  }
-
-  private static class GuardedEdgeMatcher implements AutomatonBoolExpr {
-
-    private final GuardedEdgeLabel label;
-
-    public GuardedEdgeMatcher(GuardedEdgeLabel pLabel) {
-      this.label = Preconditions.checkNotNull(pLabel);
-    }
-
-    @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
-        throws CPATransferException {
-      return label.contains(pArgs.getCfaEdge()) ? CONST_TRUE : CONST_FALSE;
-    }
-
-    @Override
-    public String toString() {
-      return label.toString();
-    }
-
-    @Override
-    public boolean equals(Object pO) {
-      if (this == pO) { return true; }
-      if (pO == null || getClass() != pO.getClass()) { return false; }
-
-      GuardedEdgeMatcher that = (GuardedEdgeMatcher) pO;
-
-      if (!label.equals(that.label)) { return false; }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      return label.hashCode();
-    }
-
-    /**
-     * Does this matcher behave semantically equal to
-     * other matchers?
-     */
-    @Override
-    public Equality equalityTo(Object pOther) {
-      if (!(pOther instanceof GuardedEdgeMatcher)) {
-        // Also matches that are implemented in other classes might
-        // implement the semantically same behavior, i.e.,
-        //  they might match exactly the same set of control-flow transitions
-        return Equality.UNKNOWN;
-      }
-
-      GuardedEdgeMatcher other = (GuardedEdgeMatcher) pOther;
-
-      if (this.label.equals(other.label)) { return Equality.EQUAL; }
-
-      return Equality.UNKNOWN;
-    }
-
-  }
-
-  private AutomatonBoolExpr createMatcherForLabel(GuardedEdgeLabel pLabel) {
-    return new GuardedEdgeMatcher(pLabel);
-  }
-
-  @Override
-  public PropertyInstance<CFANode, ? extends SafetyProperty> instantiate(AutomatonExpressionArguments pArgs) {
-    final CFANode targetLocation;
-    if (pArgs.getCfaEdge() == null) {
-      targetLocation = new CFANode("DUMMY");
-    } else {
-      targetLocation = pArgs.getCfaEdge().getSuccessor();
-    }
-    return SafetyPropertyInstance.of(this, targetLocation);
-  }
-
-  @Override
-  public void setAutomaton(Automaton pAutomaton) {
-    // Do nothing here!!
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((mAutomaton == null) ? 0 : mAutomaton.hashCode());
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) { return true; }
-    if (obj == null) { return false; }
-    if (!(obj instanceof Goal)) { return false; }
-    Goal other = (Goal) obj;
-    if (mAutomaton == null) {
-      if (other.mAutomaton != null) { return false; }
-    } else if (!mAutomaton.equals(other.mAutomaton)) { return false; }
-    return true;
   }
 
 }

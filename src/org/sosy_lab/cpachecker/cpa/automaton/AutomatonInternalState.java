@@ -37,7 +37,7 @@ public class AutomatonInternalState {
   private final int stateId = idGenerator.getFreshId();
 
   /** State representing BOTTOM */
-  static final AutomatonInternalState BOTTOM =
+  public static final AutomatonInternalState BOTTOM =
       new AutomatonInternalState("_predefinedState_BOTTOM", Collections.emptyList());
 
   /** Error State */

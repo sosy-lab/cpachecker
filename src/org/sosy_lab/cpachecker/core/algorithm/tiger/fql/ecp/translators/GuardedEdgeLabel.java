@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPGuard;
@@ -102,16 +103,16 @@ public class GuardedEdgeLabel extends GuardedLabel {
       mIds.put(mEdgeSet, mIds.size());
     }
 
-    String lIdString = "Set: ";
+    String lIdString = null;
 
     if (mEdgeSet.size() == 1) {
-      lIdString = lIdString + mEdgeSet.toString();
+      lIdString = mEdgeSet.toString();
     }
     else {
-      lIdString = lIdString + mIds.get(mEdgeSet);
+      lIdString = "E" + mIds.get(mEdgeSet);
     }
 
-    return lIdString + " Guard: " + getGuards().toString();
+    return lIdString + " " + getGuards().toString();
   }
 
 }

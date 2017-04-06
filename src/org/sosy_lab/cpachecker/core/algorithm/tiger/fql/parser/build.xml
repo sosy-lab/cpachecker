@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE project> <!-- generic AcceptAllDTD to make the Eclipse Warning go away -->
+<project name="FQLParserGeneration" default="generate-parser" basedir="./../../../../../../../../../">
+  <!-- basedir should be the "CPAchecker" directory -->
+  <property name="dir.parser" location="src/org/sosy_lab/cpachecker/core/algorithm/tiger/fql/parser/" />
+  <property name="scanner.target" value="FQLLexer"/>
+  <property name="parser.target" value="FQLParser"/>
+  <property name="symbols.target" value="FQLSym"/>
+
+  <import file="${basedir}/build/build-parser.xml"/>
+</project>

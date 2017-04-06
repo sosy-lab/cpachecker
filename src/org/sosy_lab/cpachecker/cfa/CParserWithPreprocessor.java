@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -54,6 +55,21 @@ class CParserWithPreprocessor implements CParser {
       throw new CParserException("Preprocessor returned empty program");
     }
     return realParser.parseString(pFilename, programCode);
+  }
+
+  @Override
+  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException,
+      InvalidConfigurationException, InterruptedException {
+
+    List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
+    for (FileToParse p : pFilenames) {
+      String programCode = preprocessor.preprocess(p.getFileName());
+      if (programCode.isEmpty()) {
+        throw new CParserException("Preprocessor returned empty program");
+      }
+      programs.add(new FileContentToParse(p.getFileName(), programCode));
+    }
+    return realParser.parseString(programs, sourceOriginMapping);
   }
 
   @Override

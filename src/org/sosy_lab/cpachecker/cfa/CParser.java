@@ -97,6 +97,21 @@ public interface CParser extends Parser {
       throws CParserException, IOException, InterruptedException;
 
   /**
+   * Parse the content of files into a single CFA.
+   *
+   * @param filenames  The List of files to parse. The first part of the pair
+   *                   should be the filename, the second part should be the
+   *                   prefix which will be appended to static variables
+   * @param sourceOriginMapping A mapping from real input file locations to original file locations (before pre-processing).
+   * @return The CFA.
+   * @throws IOException If file cannot be read.
+   * @throws InterruptedException If an exception occurs while a thread is interrupted.
+   * @throws CParserException If parser or CFA builder cannot handle the C code.
+   */
+  ParseResult parseFile(List<FileToParse> filenames, CSourceOriginMapping sourceOriginMapping)
+      throws CParserException, IOException, InvalidConfigurationException, InterruptedException;
+
+  /**
    * Parse the content of Strings into a single CFA.
    *
    * @param code The List of code fragments to parse. The first part of the pair should be the code,

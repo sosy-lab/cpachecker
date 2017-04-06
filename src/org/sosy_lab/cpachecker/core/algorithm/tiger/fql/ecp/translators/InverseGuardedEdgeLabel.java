@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 
 public class InverseGuardedEdgeLabel extends GuardedEdgeLabel {
 

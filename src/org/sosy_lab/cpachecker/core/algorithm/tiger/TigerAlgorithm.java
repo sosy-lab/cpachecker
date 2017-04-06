@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class TigerAlgorithm implements Algorithm {
 
+  public static String originalMainFunction = null;
+
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {

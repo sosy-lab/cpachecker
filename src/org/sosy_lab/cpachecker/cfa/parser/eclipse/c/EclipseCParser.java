@@ -63,6 +63,7 @@ import org.eclipse.cdt.internal.core.parser.InternalParserUtil;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContent;
 import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
 import org.eclipse.core.runtime.CoreException;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -204,6 +205,17 @@ class EclipseCParser implements CParser {
   public ParseResult parseFile(String pFileName) throws CParserException, IOException {
 
     return parseFile(ImmutableList.of(pFileName));
+  }
+
+  @Override
+  public ParseResult parseFile(List<FileToParse> pFilenames, CSourceOriginMapping sourceOriginMapping) throws CParserException, IOException, InvalidConfigurationException {
+
+    List<IASTTranslationUnit> astUnits = new ArrayList<>();
+
+    for (FileToParse f: pFilenames) {
+      astUnits.add(parse(wrapFile(f.getFileName()), null));
+    }
+    return buildCFA(astUnits, null, null);
   }
 
   /** This method parses a single string, where no prefix for static variables is needed. */

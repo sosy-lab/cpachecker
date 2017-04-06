@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import java.io.IOException;
 import java.util.List;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -49,6 +50,13 @@ public class DummyParser implements CParser {
   @Override
   public ParseResult parseFile(String pFilename)
       throws ParserException, IOException, InterruptedException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public ParseResult parseFile(List<FileToParse> pFilenames,
+      CSourceOriginMapping pSourceOriginMapping)
+      throws CParserException, IOException, InvalidConfigurationException, InterruptedException {
     throw new UnsupportedOperationException();
   }
 

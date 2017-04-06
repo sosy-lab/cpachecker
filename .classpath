@@ -49,5 +49,6 @@
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="lib/jgrapht-core.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
