@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,13 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automaton;
+package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp;
 
-public class InvalidAutomatonException extends Exception {
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-  private static final long serialVersionUID = 4881083051895812266L;
+public interface ECPEdgeSet extends ECPAtom, Iterable<CFAEdge> {
 
-  public InvalidAutomatonException(String msg) {
-    super(msg);
-  }
+  public boolean contains(CFAEdge pCFAEdge);
+
+  public ECPEdgeSet startIn(ECPNodeSet pNodeSet);
+  public ECPEdgeSet endIn(ECPNodeSet pNodeSet);
+
+  public ECPEdgeSet intersect(ECPEdgeSet pOther);
+  public ECPEdgeSet union(ECPEdgeSet pOther);
+
+  public int size();
+  public boolean isEmpty();
+
 }

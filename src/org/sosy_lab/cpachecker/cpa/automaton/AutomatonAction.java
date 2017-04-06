@@ -37,8 +37,10 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
  * Implements an Action with side-effects that has no return value.
  * The Action can be executed multiple times.
  */
-abstract class AutomatonAction {
+public abstract class AutomatonAction {
+
   private AutomatonAction() {}
+
   private static ResultValue<String> defaultResultValue = new ResultValue<>("");
 
   // in this method the Value inside the resultValueObject is not important (most ActionClasses will return "" as inner value)
@@ -57,25 +59,75 @@ abstract class AutomatonAction {
   //abstract void execute(AutomatonExpressionArguments pArgs);
 
   /**
+   * Perform a feasibility check for the current abstract state.
+   */
+  public static class CheckFeasibility extends AutomatonAction {
+
+    static CheckFeasibility instance = new CheckFeasibility();
+
+    public static CheckFeasibility getInstance() {
+      return instance;
+    }
+
+    private CheckFeasibility() {}
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      return defaultResultValue;
+    }
+
+    @Override
+    public String toString() {
+      return "CheckFeasibility";
+    }
+
+  }
+
+  public static class SetMarkerVariable extends AutomatonAction {
+
+    static SetMarkerVariable instance = new SetMarkerVariable();
+
+    public static SetMarkerVariable getInstance() {
+      return instance;
+    }
+
+    private SetMarkerVariable() {}
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+      return defaultResultValue;
+    }
+
+    @Override
+    public String toString() {
+      return "CouldSetMarker";
+    }
+
+  }
+
+  /**
    * Logs a String when executed.
    */
   static class Print extends AutomatonAction {
+
     private List<AutomatonExpression> toPrint;
 
-    public Print(List<AutomatonExpression> pArgs) { toPrint = pArgs; }
+    public Print(List<AutomatonExpression> pArgs) {
+      toPrint = pArgs;
+    }
 
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) throws CPATransferException {
       // TODO: every action is computed twice (once here, once in eval)
       for (AutomatonExpression expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
-        if (res.canNotEvaluate()) {
-          return false;
-        }
+        if (res.canNotEvaluate()) { return false; }
       }
       return true;
     }
-    @Override ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) throws CPATransferException {
       StringBuilder sb = new StringBuilder();
       for (AutomatonExpression expr : toPrint) {
         ResultValue<?> res = expr.eval(pArgs);
@@ -94,21 +146,24 @@ abstract class AutomatonAction {
   /** Assigns the value of a AutomatonIntExpr to a AutomatonVariable determined by its name.
    */
   static class Assignment extends AutomatonAction {
+
     private String varId;
     private AutomatonIntExpr var;
+
     public Assignment(String pVarId, AutomatonIntExpr pVar) {
       this.varId = pVarId;
       this.var = pVar;
     }
+
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
-      return ! var.eval(pArgs).canNotEvaluate();
+      return !var.eval(pArgs).canNotEvaluate();
     }
-    @Override  ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
+
+    @Override
+    ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       ResultValue<Integer> res = var.eval(pArgs);
-      if (res.canNotEvaluate()) {
-        return res;
-      }
+      if (res.canNotEvaluate()) { return res; }
       Map<String, AutomatonVariable> vars = pArgs.getAutomatonVariables();
       if (vars.containsKey(varId)) {
         vars.get(varId).setValue(res.getValue());
@@ -116,7 +171,8 @@ abstract class AutomatonAction {
         AutomatonVariable newVar = new AutomatonVariable("int", varId);
         newVar.setValue(res.getValue());
         vars.put(varId, newVar);
-        pArgs.getLogger().log(Level.WARNING, "Defined a Variable " + varId + " that was unknown before (not set in automaton Definition).");
+        pArgs.getLogger().log(Level.WARNING, "Defined a Variable " + varId
+            + " that was unknown before (not set in automaton Definition).");
       }
       return defaultResultValue;
     }
@@ -131,6 +187,7 @@ abstract class AutomatonAction {
    * Modifies the state of a CPA
    */
   static class CPAModification extends AutomatonAction {
+
     private final String cpaName;
     private final String modificationString;
 
@@ -138,28 +195,30 @@ abstract class AutomatonAction {
       cpaName = pCPAName;
       modificationString = pModification;
     }
+
     @Override
     boolean canExecuteOn(AutomatonExpressionArguments pArgs) {
-      if (pArgs.replaceVariables(modificationString) == null) {
-        return false;
-      }
+      if (pArgs.replaceVariables(modificationString) == null) { return false; }
       for (AbstractState ae : pArgs.getAbstractStates()) {
         if (ae instanceof AbstractQueryableState) {
           AbstractQueryableState aqe = (AbstractQueryableState) ae;
-          if (aqe.getCPAName().equals(cpaName)) {
-            return true;
-          }
+          if (aqe.getCPAName().equals(cpaName)) { return true; }
         }
       }
       return false;
     }
+
     @Override
     ResultValue<?> eval(AutomatonExpressionArguments pArgs) {
       // replace transition variables
       String processedModificationString = pArgs.replaceVariables(modificationString);
       if (processedModificationString == null) {
-        pArgs.getLogger().log(Level.WARNING, "Modification String \"" + modificationString + "\" could not be processed (Variable not found).");
-        return new ResultValue<>("Modification String \"" + modificationString + "\" could not be processed (Variable not found).", "AutomatonActionExpr.CPAModification");
+        pArgs.getLogger().log(Level.WARNING, "Modification String \"" + modificationString
+            + "\" could not be processed (Variable not found).");
+        return new ResultValue<>(
+            "Modification String \"" + modificationString
+                + "\" could not be processed (Variable not found).",
+            "AutomatonActionExpr.CPAModification");
       }
       for (AbstractState ae : pArgs.getAbstractStates()) {
         if (ae instanceof AbstractQueryableState) {
@@ -170,13 +229,16 @@ abstract class AutomatonAction {
             } catch (InvalidQueryException e) {
               pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                  + cpaName + " CPA (Element " + aqe.toString() + ") on Edge " + pArgs.getCfaEdge().getDescription());
+                      + cpaName + " CPA (Element " + aqe.toString() + ") on Edge "
+                      + pArgs.getCfaEdge().getDescription());
               return defaultResultValue; // try to carry on with the further evaluation
             }
           }
         }
       }
-      return new ResultValue<>("Did not find an element of the CPA \"" + cpaName + "\" to be modified.", "AutomatonActionExpr.CPAModification");
+      return new ResultValue<>(
+          "Did not find an element of the CPA \"" + cpaName + "\" to be modified.",
+          "AutomatonActionExpr.CPAModification");
     }
 
     @Override

@@ -60,6 +60,10 @@ interface AutomatonExpression {
         return new ResultValue<>(str);
       }
     }
+    public String getRawExpression() {
+      // TODO Auto-generated method stub
+      return null;
+    }
   }
   /**
    * Sends a query-String to an <code>AbstractState</code> of another analysis and returns the query-Result.

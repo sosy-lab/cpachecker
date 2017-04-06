@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,13 +21,21 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automaton;
+package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
-public class InvalidAutomatonException extends Exception {
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-  private static final long serialVersionUID = 4881083051895812266L;
 
-  public InvalidAutomatonException(String msg) {
-    super(msg);
+public class TigerAlgorithm implements Algorithm {
+
+  @Override
+  public AlgorithmStatus run(ReachedSet pReachedSet)
+      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+    // TODO Auto-generated method stub
+    return null;
   }
+
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2011  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,13 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automaton;
+package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators;
 
-public class InvalidAutomatonException extends Exception {
+public interface GuardedLabelVisitor<T> {
 
-  private static final long serialVersionUID = 4881083051895812266L;
+  public T visit(GuardedLambdaLabel pLabel);
+  public T visit(GuardedEdgeLabel pLabel);
 
-  public InvalidAutomatonException(String msg) {
-    super(msg);
-  }
 }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,11 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-public class InvalidAutomatonException extends Exception {
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.PropertyInstance;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 
-  private static final long serialVersionUID = 4881083051895812266L;
+/**
+ * Representation of safety properties.
+ *  A safety property is always encoded in an automaton!
+ */
+public interface SafetyProperty extends Property {
 
-  public InvalidAutomatonException(String msg) {
-    super(msg);
-  }
+  PropertyInstance<CFANode, ? extends SafetyProperty>
+      instantiate(AutomatonExpressionArguments pArgs);
+
+  void setAutomaton(Automaton pAutomaton);
+
 }

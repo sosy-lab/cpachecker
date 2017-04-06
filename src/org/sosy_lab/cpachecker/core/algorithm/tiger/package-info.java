@@ -21,13 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automaton;
-
-public class InvalidAutomatonException extends Exception {
-
-  private static final long serialVersionUID = 4881083051895812266L;
-
-  public InvalidAutomatonException(String msg) {
-    super(msg);
-  }
-}
+/**
+ * Implementation of test-case generation based on "Information Reuse for Multi-Goal Reachability Analyses" (ESOP'13).
+ */
+package org.sosy_lab.cpachecker.core.algorithm.tiger;

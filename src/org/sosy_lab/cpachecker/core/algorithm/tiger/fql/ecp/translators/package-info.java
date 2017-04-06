@@ -21,13 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.automaton;
-
-public class InvalidAutomatonException extends Exception {
-
-  private static final long serialVersionUID = 4881083051895812266L;
-
-  public InvalidAutomatonException(String msg) {
-    super(msg);
-  }
-}
+/**
+ * This package contains the translators for the ECP of the FQL language.
+ */
+package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators;

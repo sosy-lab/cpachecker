@@ -61,6 +61,8 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirem
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar.PDRAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerConfiguration;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
@@ -385,6 +387,11 @@ public class CoreComponentsFactory {
 
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      TigerConfiguration tigerConfig = new TigerConfiguration(config);
+      if (tigerConfig.useTigerAlgorithm) {
+        algorithm = new TigerAlgorithm(algorithm, cpa, shutdownManager, cfa, config, logger, programDenotation, stats, reachedSetFactory);
       }
 
       if (usePropertyCheckingAlgorithm) {
