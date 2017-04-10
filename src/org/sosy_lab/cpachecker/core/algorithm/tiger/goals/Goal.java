@@ -47,18 +47,28 @@ public class Goal {
   private int mIndex;
   private Region mPresenceCondition;
 
-  public Goal(int pIndex, ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel, GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, Region pPresenceCondition) {
+  public Goal(int pIndex, ElementaryCoveragePattern pPattern, GuardedEdgeLabel pAlphaLabel,
+      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, Region pPresenceCondition) {
     mIndex = pIndex;
     mPattern = pPattern;
-    mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel);
+    mAutomaton = ToGuardedAutomatonTranslator.toAutomaton(mPattern, pAlphaLabel, pInverseAlphaLabel,
+        pOmegaLabel);
     mPresenceCondition = pPresenceCondition;
   }
 
-  public Goal(int pIndex, ElementaryCoveragePattern pPattern, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Region pPresenceCondition) {
+  public Goal(int pIndex, ElementaryCoveragePattern pPattern,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, Region pPresenceCondition) {
     mIndex = pIndex;
     mPattern = pPattern;
     mAutomaton = pAutomaton;
     mPresenceCondition = pPresenceCondition;
+  }
+
+  public Goal(int pI, ElementaryCoveragePattern pElementaryCoveragePattern,
+      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton) {
+    mIndex = pI;
+    mPattern = pElementaryCoveragePattern;
+    mAutomaton = pAutomaton;
   }
 
   public int getIndex() {
@@ -90,8 +100,7 @@ public class Goal {
       public CFAEdge visit(ECPEdgeSet pEdgeSet) {
         if (pEdgeSet.size() == 1) {
           return pEdgeSet.iterator().next();
-        }
-        else {
+        } else {
           return null;
         }
       }
@@ -151,9 +160,7 @@ public class Goal {
 
       @Override
       public Boolean visit(ECPEdgeSet pEdgeSet) {
-        if (pEdgeSet.size() <= 1) {
-          return true;
-        }
+        if (pEdgeSet.size() <= 1) { return true; }
 
         return false;
       }
@@ -173,9 +180,7 @@ public class Goal {
         for (int i = 0; i < pConcatenation.size(); i++) {
           ElementaryCoveragePattern ecp = pConcatenation.get(i);
 
-          if (ecp.accept(this)) {
-            return true;
-          }
+          if (ecp.accept(this)) { return true; }
         }
 
         return false;
@@ -186,9 +191,7 @@ public class Goal {
         for (int i = 0; i < pUnion.size(); i++) {
           ElementaryCoveragePattern ecp = pUnion.get(i);
 
-          if (ecp.accept(this)) {
-            return true;
-          }
+          if (ecp.accept(this)) { return true; }
         }
 
         return false;
@@ -196,9 +199,7 @@ public class Goal {
 
       @Override
       public Boolean visit(ECPRepetition pRepetition) {
-        if (pRepetition.getSubpattern().accept(this)) {
-          return true;
-        }
+        if (pRepetition.getSubpattern().accept(this)) { return true; }
 
         return false;
       }
@@ -211,11 +212,9 @@ public class Goal {
       public String visit(ECPEdgeSet pEdgeSet) {
         if (pEdgeSet.size() == 1) {
           return "[" + pEdgeSet.toString() + "]";
-        }
-        else if (pEdgeSet.size() == 0) {
+        } else if (pEdgeSet.size() == 0) {
           return "{}";
-        }
-        else {
+        } else {
           return "E";
         }
       }
@@ -244,15 +243,13 @@ public class Goal {
 
             if (a) {
               str.append(".");
-            }
-            else if (i > 0) {
+            } else if (i > 0) {
               str.append("E.");
             }
             str.append(ecp.accept(this));
 
             a = true;
-          }
-          else if (b) {
+          } else if (b) {
             b = false;
 
             if (a) {
@@ -281,15 +278,13 @@ public class Goal {
 
             if (a) {
               str.append("+");
-            }
-            else if (i > 0) {
+            } else if (i > 0) {
               str.append("E+");
             }
             str.append(ecp.accept(this));
 
             a = true;
-          }
-          else if (b) {
+          } else if (b) {
             b = false;
 
             if (a) {
@@ -308,8 +303,7 @@ public class Goal {
       public String visit(ECPRepetition pRepetition) {
         if (pRepetition.getSubpattern().accept(booleanVisitor)) {
           return "(" + pRepetition.getSubpattern().accept(this) + "*)";
-        }
-        else {
+        } else {
           return "E";
         }
       }

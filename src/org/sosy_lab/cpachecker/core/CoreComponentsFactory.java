@@ -391,7 +391,7 @@ public class CoreComponentsFactory {
 
       TigerConfiguration tigerConfig = new TigerConfiguration(config);
       if (tigerConfig.useTigerAlgorithm) {
-        algorithm = new TigerAlgorithm();
+        algorithm = new TigerAlgorithm(logger,cfa);
       }
 
       if (usePropertyCheckingAlgorithm) {
