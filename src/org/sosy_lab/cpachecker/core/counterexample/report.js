@@ -7,6 +7,7 @@ $(function() {
 	var edges = json.edges;
 	var functions = json.functionNames; //TODO: display only the graph for selected function
 	var combinedNodes = json.combinedNodes;
+	var inversedCombinedNodes = json.inversedCombinedNodes;
 	var combinedNodesLabels = json.combinedNodesLabels;
 	var mergedNodes = json.mergedNodes;
 	var functionCallEdges = json.functionCallEdges;
@@ -129,7 +130,7 @@ $(function() {
 					id : setNodeId(n),
 					shape : nodeShapeDecider(n)
 				});
-			}
+			} 
 		})
 	}
 	
@@ -137,10 +138,9 @@ $(function() {
 	function setNodeId(node) {
 		if (Object.keys(combinedNodes).includes(node.index)) {
 			var id = "";
-			combinedNodes.nodeIndex.forEach(function(it){id += it;})
+			combinedNodes[node.index].forEach(function(it){id += it;})
 			return  id;
-		}
-		else return "node" + node.index;
+		} else return "node" + node.index;
 	}
 	
 	// Node label, the label from combined nodes or a simple label
@@ -162,6 +162,7 @@ $(function() {
 	function roundNodeCorners(graph) {
 		graph.nodes().forEach(function(it) {
 			var item = graph.node(it);
+			// TODO: check if shapes/labels etc. can be updated here
 			item.rx = item.ry = 5;
 		});
 	}
@@ -175,11 +176,10 @@ $(function() {
 	}
 
 	// set the graph edges
+	// TODO: different arrowhead for different type + class function AND errorPath
 	function setGraphEdges(graph, edgesToSet, multigraph) {
 		if (multigraph) {
 			edgesToSet.forEach(function(e) {
-				// TODO: different arrowhead for different type + class function
-				// (for errorPath)
 					graph.setEdge(e.source, e.target, {
 						label : e.source + "->" + e.target,
 						class : e.type,
@@ -187,18 +187,44 @@ $(function() {
 						weight : edgeWeightDecider(e)
 					});
 			})
-		} else {
-			edgesToSet.forEach(function(e) {
-				if (!mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
-					graph.setEdge(e.source, e.target, {
-						label: e.source + "->" + e.target, 
-						class: e.type, 
-						id: "edge"+ e.source + e.target, 
-						weight: edgeWeightDecider(e)
-					});
-				}
-			});
-		}
+		} else setEdgesForSingleGraph(graph, edgesToSet);
+	}
+	
+	// Set the edges for a single graph while considering merged nodes and edges between them
+	function setEdgesForSingleGraph(graph, edgesToSet) {
+		edgesToSet.forEach(function(e) {
+			var source, target;
+			if (!mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
+				source = e.source;
+				target = e.target;
+			} else if (!mergedNodes.includes(e.source) && mergedNodes.includes(e.target)) {
+				source = e.source;
+				target = getMergingNode(e.target);
+			} else if (mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
+				source = getMergingNode(e.source);
+				target = e.target;
+			}
+			if ((source !== undefined && target !== undefined) && (source !== target)) {
+				graph.setEdge(source, target, {
+					label: source + "->" + target, 
+					class: e.type, 
+					id: "edge"+ source + target, 
+					weight: edgeWeightDecider(e)
+				});
+			}
+		});
+	}
+	
+	// Retrieve the node in which this node was merged
+	function getMergingNode(index) {
+		var result = "";
+		Object.keys(inversedCombinedNodes).some(function(key){
+			if (key.includes(index)) {
+				result = inversedCombinedNodes[key];
+				return result;
+			}
+		})
+		return result;
 	}
 
 	// Add desired events to edge
