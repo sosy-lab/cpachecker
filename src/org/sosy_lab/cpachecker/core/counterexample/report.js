@@ -45,23 +45,28 @@ $(function() {
 	function buildMultipleGraphs() {
 		requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
 		var firstGraphBuild = false;
-		var nodesPerGraph
-		for (var i in requiredGraphs) {
+		var nodesPerGraph = [];
+		for (var i = 1; i <= requiredGraphs; i++) {
 			d3.select("#body").append("div").attr("id", "graph" + i);
 			if (!firstGraphBuild) {
-				nodesPerGraph = nodes.slice(0, graphSplitThreshold + i);
+				nodesPerGraph = nodes.slice(0, graphSplitThreshold);
 				firstGraphBuild = true;
 			} else {
-				if (nodes[graphSplitThreshold * i + 1] !== undefined) 
-					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1) + 1, graphSplitThreshold * i + 1)
+				if (nodes[graphSplitThreshold * i - 1] !== undefined)
+					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
 				else
-					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1) + 1)
+					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1));
 			}
 			var graph = createGraph();
 			setGraphNodes(graph, nodesPerGraph);
 			roundNodeCorners(graph);
-			
-			setGraphEdges(graph, edges, true); // TODO: edgesPerGraph
+			var graphEdges = edges.filter(function(e) {
+				if ( (nodesPerGraph[0].index <= e.source && e.source <= nodesPerGraph[nodesPerGraph.length - 1].index ) &&
+						(nodesPerGraph[0].index <= e.target && e.target <= nodesPerGraph[nodesPerGraph.length - 1].index) ) {
+					return e;
+				}
+			});
+			setGraphEdges(graph, graphEdges, true);
 			var render = new dagreD3.render();
 			var svg = d3.select("#graph" + i).append("svg").attr("id", "svg" + i), svgGroup = svg
 					.append("g");
@@ -70,9 +75,10 @@ $(function() {
 			svg.attr("width", graph.graph().width * 2 + constants.margin * 2);
 			var xCenterOffset = (svg.attr("width") / 2);
 			svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
-			addEventsToNodes();
-			addEventsToEdges();
 		}
+		addEventsToNodes();
+		addEventsToEdges();
+		// TODO: handle between graph edges + addEvents
 	}
 
 	// build single graph for all contained nodes
@@ -88,7 +94,8 @@ $(function() {
 		// Set up an SVG group so that we can translate the final graph.
 		var svg = d3.select("#graph").append("svg").attr("id", "svg"), svgGroup = svg
 				.append("g");
-		// Set up zoom support //TODO: own function pass the svgGroup
+		// Set up zoom support 
+		//TODO: own function pass the svgGroup -> zoom can be set later (after svg is rendered)
 		var zoom = d3.behavior.zoom().on(
 				"zoom",
 				function() {
@@ -100,6 +107,7 @@ $(function() {
 		// Run the renderer. This is what draws the final graph.
 		render(d3.select("#svg g"), g);
 		// Center the graph - calculate svg.attributes
+		// TODO: own function for svg size -> compare with parent size after bootstrap is used. i.e. col-lg-12 etc.
 		svg.attr("height", g.graph().height + constants.margin * 2);
 		svg.attr("width", g.graph().width * 2 + constants.margin * 2);
 		var xCenterOffset = (svg.attr("width") / 2);
@@ -174,24 +182,10 @@ $(function() {
 		else
 			return "rect";
 	}
-
-	// set the graph edges
-	// TODO: different arrowhead for different type + class function AND errorPath
-	function setGraphEdges(graph, edgesToSet, multigraph) {
-		if (multigraph) {
-			edgesToSet.forEach(function(e) {
-					graph.setEdge(e.source, e.target, {
-						label : e.source + "->" + e.target,
-						class : e.type,
-						id : "edge" + e.source + e.target,
-						weight : edgeWeightDecider(e)
-					});
-			})
-		} else setEdgesForSingleGraph(graph, edgesToSet);
-	}
 	
 	// Set the edges for a single graph while considering merged nodes and edges between them
-	function setEdgesForSingleGraph(graph, edgesToSet) {
+	// TODO: different arrowhead for different type + class function AND errorPath
+	function setGraphEdges(graph, edgesToSet, multigraph) {
 		edgesToSet.forEach(function(e) {
 			var source, target;
 			if (!mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
@@ -204,6 +198,8 @@ $(function() {
 				source = getMergingNode(e.source);
 				target = e.target;
 			}
+			if (multigraph && (!graph.nodes().includes("" + source) || !graph.nodes().includes("" + target))) 
+				source = undefined;
 			if ((source !== undefined && target !== undefined) && (source !== target)) {
 				graph.setEdge(source, target, {
 					label: source + "->" + target, 
