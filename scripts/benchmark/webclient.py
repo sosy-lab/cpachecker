@@ -432,7 +432,7 @@ class WebInterface:
         params = {}
 
         with open(witness_path, 'rb') as witness_file:
-            params['errorWitnessText'] = witness_file.read()
+            params['witnessText'] = witness_file.read()
 
         with open(program_path, 'rb') as program_file:
             params['programText'] = program_file.read()

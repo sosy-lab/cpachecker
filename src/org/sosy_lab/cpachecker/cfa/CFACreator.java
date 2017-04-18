@@ -386,7 +386,6 @@ public class CFACreator {
    */
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
-
     Preconditions.checkArgument(!sourceFiles.isEmpty(),
         "At least one source file must be provided!");
 
@@ -413,24 +412,22 @@ public class CFACreator {
             WrapperUtil.addWrapper((CParser) parser, parseResult, new CSourceOriginMapping());
       }
 
-      final ParseResult c = parseToCFAs(sourceFiles);
-
       logger.log(Level.FINE, "Parser Finished");
 
       FunctionEntryNode mainFunction;
 
       switch (language) {
         case JAVA:
-          mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
+          mainFunction = getJavaMainMethod(sourceFiles, parseResult.getFunctions());
           break;
         case C:
-          mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+          mainFunction = getCMainFunction(sourceFiles, parseResult.getFunctions());
           break;
         default:
           throw new AssertionError();
       }
 
-      return createCFA(c, mainFunction);
+      return createCFA(parseResult, mainFunction);
 
     } finally {
       stats.totalTime.stop();
