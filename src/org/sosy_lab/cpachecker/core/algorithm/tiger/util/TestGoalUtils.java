@@ -70,11 +70,13 @@ public class TestGoalUtils {
     mInverseAlphaLabel = pInverseAlphaLabel;
     mOmegaLabel = pOmegaLabel;
 
-    bdpvwl = bdpvwl.replaceAll("%28", "(");
-    bdpvwl = bdpvwl.replaceAll("%29", ")");
-    bdpvwl = bdpvwl.replaceAll("%5C", "\\\\");
-    bdpvwl = bdpvwl.replaceAll("%2A", "*");
-    variableWhitelist = Pattern.compile(bdpvwl);
+    if (bdpvwl != null) {
+      bdpvwl = bdpvwl.replaceAll("%28", "(");
+      bdpvwl = bdpvwl.replaceAll("%29", ")");
+      bdpvwl = bdpvwl.replaceAll("%5C", "\\\\");
+      bdpvwl = bdpvwl.replaceAll("%2A", "*");
+      variableWhitelist = Pattern.compile(bdpvwl);
+    }
   }
 
   public FQLSpecification parseFQLQuery(String fqlQuery) throws InvalidConfigurationException {
@@ -97,15 +99,18 @@ public class TestGoalUtils {
     if (fqlSpecification.hasPredicate()) {
       logger.logf(Level.SEVERE, "No predicates in FQL queries supported at the moment!");
 
-      throw new InvalidConfigurationException("No predicates in FQL queries supported at the moment!");
+      throw new InvalidConfigurationException(
+          "No predicates in FQL queries supported at the moment!");
     }
 
     return fqlSpecification;
   }
 
-  public Set<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification, Prediction[] pGoalPrediction,
+  public Set<Goal> extractTestGoalPatterns(FQLSpecification pFqlSpecification,
+      Prediction[] pGoalPrediction,
       Pair<Boolean, LinkedList<Edges>> pInfeasibilityPropagation,
-      CoverageSpecificationTranslator pCoverageSpecificationTranslator, boolean pOptimizeGoalAutomata, boolean pUseOmegaLabel) {
+      CoverageSpecificationTranslator pCoverageSpecificationTranslator,
+      boolean pOptimizeGoalAutomata, boolean pUseOmegaLabel) {
     LinkedList<ElementaryCoveragePattern> goalPatterns;
 
     if (pInfeasibilityPropagation.getFirst()) {
@@ -131,8 +136,9 @@ public class TestGoalUtils {
     Set<Goal> goalsToCover = Sets.newLinkedHashSet();
 
     for (int i = 0; i < goalPatterns.size(); i++) {
-      Goal lGoal = constructGoal(i + 1, goalPatterns.get(i), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
-          pOptimizeGoalAutomata, pUseOmegaLabel);
+      Goal lGoal =
+          constructGoal(i + 1, goalPatterns.get(i), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
+              pOptimizeGoalAutomata, pUseOmegaLabel);
       if (lGoal != null) {
         goalsToCover.add(lGoal);
       }
@@ -148,10 +154,12 @@ public class TestGoalUtils {
 
     CFANode lInitialNode = this.mAlphaLabel.getEdgeSet().iterator().next().getSuccessor();
     ClusteringCoverageSpecificationTranslator lTranslator =
-        new ClusteringCoverageSpecificationTranslator(pCoverageSpecificationTranslator.mPathPatternTranslator, pEdges,
+        new ClusteringCoverageSpecificationTranslator(
+            pCoverageSpecificationTranslator.mPathPatternTranslator, pEdges,
             lInitialNode);
 
-    ElementaryCoveragePattern[] lGoalPatterns = lTranslator.createElementaryCoveragePatternsAndClusters();
+    ElementaryCoveragePattern[] lGoalPatterns =
+        lTranslator.createElementaryCoveragePatternsAndClusters();
 
     LinkedList<ElementaryCoveragePattern> goalPatterns = new LinkedList<>();
 
@@ -171,9 +179,11 @@ public class TestGoalUtils {
     // TODO enable use of infeasibility propagation
 
     IncrementalCoverageSpecificationTranslator lTranslator =
-        new IncrementalCoverageSpecificationTranslator(pCoverageSpecificationTranslator.mPathPatternTranslator);
+        new IncrementalCoverageSpecificationTranslator(
+            pCoverageSpecificationTranslator.mPathPatternTranslator);
 
-    Iterator<ElementaryCoveragePattern> lGoalIterator = lTranslator.translate(pFQLQuery.getCoverageSpecification());
+    Iterator<ElementaryCoveragePattern> lGoalIterator =
+        lTranslator.translate(pFQLQuery.getCoverageSpecification());
     LinkedList<ElementaryCoveragePattern> lGoalPatterns = new LinkedList<>();
 
     int numberOfTestGoals = lTranslator.getNumberOfTestGoals(pFQLQuery.getCoverageSpecification());
@@ -194,18 +204,19 @@ public class TestGoalUtils {
    * @param pUseOmegaLabel
    * @return
    */
-  public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern, GuardedEdgeLabel pAlphaLabel,
-      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel, boolean pUseAutomatonOptimization, boolean pUseOmegaLabel) {
+  public Goal constructGoal(int pIndex, ElementaryCoveragePattern pGoalPattern,
+      GuardedEdgeLabel pAlphaLabel,
+      GuardedEdgeLabel pInverseAlphaLabel, GuardedLabel pOmegaLabel,
+      boolean pUseAutomatonOptimization, boolean pUseOmegaLabel) {
 
     NondeterministicFiniteAutomaton<GuardedEdgeLabel> automaton =
-        ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel, pOmegaLabel, pUseOmegaLabel);
+        ToGuardedAutomatonTranslator.toAutomaton(pGoalPattern, pAlphaLabel, pInverseAlphaLabel,
+            pOmegaLabel, pUseOmegaLabel);
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
     Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);
 
-    if (isFeatureAutomaton(automaton)) {
-      return null;
-    }
+    if (isFeatureAutomaton(automaton)) { return null; }
 
     return lGoal;
   }
@@ -216,9 +227,7 @@ public class TestGoalUtils {
           .getIncomingEdges(state)) {
         String label = edge.getLabel().toString();
 
-        if (variableWhitelist.matcher(label).find()) {
-          return true;
-        }
+        if (variableWhitelist.matcher(label).find()) { return true; }
       }
     }
 
