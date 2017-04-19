@@ -76,6 +76,8 @@ public class TestGoalUtils {
       bdpvwl = bdpvwl.replaceAll("%5C", "\\\\");
       bdpvwl = bdpvwl.replaceAll("%2A", "*");
       variableWhitelist = Pattern.compile(bdpvwl);
+    } else {
+      variableWhitelist = Pattern.compile("");
     }
   }
 
