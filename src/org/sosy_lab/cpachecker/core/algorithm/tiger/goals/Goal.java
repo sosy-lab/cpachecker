@@ -23,11 +23,20 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger.goals;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import java.util.Collections;
+import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPConcatenation;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPEdgeSet;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPGuard;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPNodeSet;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPPredicate;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ECPRepetition;
@@ -37,7 +46,17 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.ElementaryCoveragePa
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedEdgeLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.GuardedLabel;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuardedAutomatonTranslator;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
+import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
+import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton.State;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 public class Goal {
@@ -311,6 +330,86 @@ public class Goal {
     };
 
     return getPattern().accept(visitor);
+  }
+
+  /**
+   * Converts the NondeterministicFiniteAutomaton<GuardedEdgeLabel>
+   *    into a ControlAutomaton
+   *
+   * @return  A control automaton
+   */
+  public Automaton createControlAutomaton() {
+    Preconditions.checkNotNull(mAutomaton);
+
+    final String automatonName = getName();
+    final String initialStateName = Integer.toString(mAutomaton.getInitialState().ID);
+    final List<AutomatonInternalState> automatonStates = Lists.newArrayList();
+
+    for (State q : mAutomaton.getStates()) {
+
+      final boolean isTarget = mAutomaton.getFinalStates().contains(q);
+      final String stateName = Integer.toString(q.ID);
+      final List<AutomatonTransition> transitions = Lists.newArrayList();
+
+      for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge t : mAutomaton
+          .getOutgoingEdges(q)) {
+
+        final String sucessorStateName = Integer.toString(t.getTarget().ID);
+        final AutomatonBoolExpr trigger = createMatcherForLabel(t.getLabel());
+        final ImmutableList<AExpression> assumptions = createAssumesForLabel(t.getLabel());
+
+        AutomatonTransition ct =
+            new AutomatonTransition(trigger,
+                Collections.<AutomatonBoolExpr> emptyList(),
+                assumptions,
+                Collections.<AutomatonAction> emptyList(),
+                sucessorStateName);
+
+        transitions.add(ct);
+      }
+
+      automatonStates.add(new AutomatonInternalState(stateName, transitions, isTarget, true));
+    }
+
+    try {
+      return new Automaton(automatonName,
+          Maps.<String, AutomatonVariable> newHashMap(),
+          automatonStates, initialStateName);
+
+    } catch (InvalidAutomatonException e) {
+      throw new RuntimeException("Conversion failed!", e);
+    }
+  }
+
+  private ImmutableList<AExpression> createAssumesForLabel(GuardedEdgeLabel pLabel) {
+    Builder<AExpression> result = ImmutableList.builder();
+
+    for (ECPGuard g : pLabel) {
+      if (g instanceof ECPPredicate) { throw new RuntimeException(
+          "ECPPredicate not yet supported as an assumption!"); }
+    }
+
+    return result.build();
+  }
+
+  private static class GuardedEdgeMatcher implements AutomatonBoolExpr {
+
+    private final GuardedEdgeLabel label;
+
+    public GuardedEdgeMatcher(GuardedEdgeLabel pLabel) {
+      this.label = pLabel;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      return label.contains(pArgs.getCfaEdge()) ? CONST_TRUE : CONST_FALSE;
+    }
+
+  }
+
+  private AutomatonBoolExpr createMatcherForLabel(GuardedEdgeLabel pLabel) {
+    return new GuardedEdgeMatcher(pLabel);
   }
 
 }
