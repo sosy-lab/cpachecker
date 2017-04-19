@@ -60,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.TestOutputStream;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AlgorithmIterationListener;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -247,9 +246,6 @@ public class MainCPAStatistics implements Statistics, AlgorithmIterationListener
     checkNotNull(out);
     checkNotNull(result);
     checkArgument(result == Result.NOT_YET_STARTED || reached != null);
-
-    TestOutputStream stream = new TestOutputStream(logger, Level.INFO);
-    out = new PrintStream(stream);
 
     // call stop again in case CPAchecker was terminated abnormally
     if (analysisTime.isRunning()) {
