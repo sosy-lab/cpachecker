@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -67,12 +68,13 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix="cpa.loopstack")
-public class LoopstackCPA extends AbstractCPA implements
-                                              ReachedSetAdjustingCPA,
-                                              StatisticsProvider,
-                                              Statistics,
-                                              ConfigurableProgramAnalysisWithBAM {
+@Options(prefix = "cpa.loopstack")
+public class LoopstackCPA extends AbstractCPA
+    implements ReachedSetAdjustingCPA,
+        StatisticsProvider,
+        Statistics,
+        ConfigurableProgramAnalysisWithBAM,
+        LoopIterationBounding {
 
   private final LogManager logger;
 
@@ -378,6 +380,7 @@ public class LoopstackCPA extends AbstractCPA implements
         maxLoopIterations, loopStructure));
   }
 
+  @Override
   public int getMaxLoopIterations() {
     return this.maxLoopIterations;
   }

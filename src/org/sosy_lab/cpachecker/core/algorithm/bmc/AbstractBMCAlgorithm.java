@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -71,7 +72,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-import org.sosy_lab.cpachecker.cpa.bounds.BoundsCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
@@ -359,7 +359,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
 
             // try to prove program safety via induction
             if (induction) {
-              final int k = CPAs.retrieveCPA(cpa, BoundsCPA.class).getMaxLoopIterations();
+              final int k =
+                  CPAs.retrieveCPA(cpa, LoopIterationBounding.class).getMaxLoopIterations();
 
               if (immediateLoopHeads == null) {
                 immediateLoopHeads = getImmediateLoopHeads(reachedSet);
