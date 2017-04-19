@@ -373,6 +373,7 @@ public class LoopstackCPA extends AbstractCPA
     return "Loopstack CPA";
   }
 
+  @Override
   public void setMaxLoopIterations(int pMaxLoopIterations) {
     this.maxLoopIterations = pMaxLoopIterations;
     this.transferRelation.setDelegate(new LoopstackTransferRelation(

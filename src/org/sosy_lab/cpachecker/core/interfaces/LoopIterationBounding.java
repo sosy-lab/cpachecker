@@ -27,4 +27,6 @@ package org.sosy_lab.cpachecker.core.interfaces;
 public interface LoopIterationBounding extends ConfigurableProgramAnalysis {
 
   int getMaxLoopIterations();
+
+  void setMaxLoopIterations(int pK);
 }

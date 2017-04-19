@@ -361,6 +361,7 @@ public class BoundsCPA extends AbstractCPA
     return "Bounds CPA";
   }
 
+  @Override
   public void setMaxLoopIterations(int pMaxLoopIterations) {
     this.maxLoopIterations = pMaxLoopIterations;
     this.transferRelation.setDelegate(new BoundsTransferRelation(
