@@ -70,15 +70,14 @@ public class TestGoalUtils {
     mInverseAlphaLabel = pInverseAlphaLabel;
     mOmegaLabel = pOmegaLabel;
 
-    if (bdpvwl != null) {
-      bdpvwl = bdpvwl.replaceAll("%28", "(");
-      bdpvwl = bdpvwl.replaceAll("%29", ")");
-      bdpvwl = bdpvwl.replaceAll("%5C", "\\\\");
-      bdpvwl = bdpvwl.replaceAll("%2A", "*");
-      variableWhitelist = Pattern.compile(bdpvwl);
-    } else {
-      variableWhitelist = Pattern.compile("");
+    if (bdpvwl == null) {
+      bdpvwl = "";
     }
+    bdpvwl = bdpvwl.replaceAll("%28", "(");
+    bdpvwl = bdpvwl.replaceAll("%29", ")");
+    bdpvwl = bdpvwl.replaceAll("%5C", "\\\\");
+    bdpvwl = bdpvwl.replaceAll("%2A", "*");
+    variableWhitelist = Pattern.compile(bdpvwl);
   }
 
   public FQLSpecification parseFQLQuery(String fqlQuery) throws InvalidConfigurationException {
@@ -217,8 +216,6 @@ public class TestGoalUtils {
     automaton = FQLSpecificationUtil.optimizeAutomaton(automaton, pUseAutomatonOptimization);
 
     Goal lGoal = new Goal(pIndex, pGoalPattern, automaton);
-
-    if (isFeatureAutomaton(automaton)) { return null; }
 
     return lGoal;
   }
