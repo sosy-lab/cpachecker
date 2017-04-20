@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -38,6 +39,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
@@ -57,8 +59,11 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputStatFileName = Paths.get("unsafe_rawdata");
 
+  @Option(description="use single file for output or dump every error trace to its own file")
+  private boolean singleFileOutput = false;
+
   private final LockTransferRelation lTransfer;
-  private Writer writer;
+  private Writer globalWriter;
 
   public ETVErrorTracePrinter(Configuration pC, BAMTransferRelation pT, LogManager pL, LockTransferRelation t) {
     super(pC, pT, pL);
@@ -68,9 +73,9 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   @Override
   protected void init() {
     try {
-      writer = Files.newBufferedWriter(Paths.get(outputStatFileName.toString()), Charset.defaultCharset());
+      globalWriter = Files.newBufferedWriter(Paths.get(outputStatFileName.toString()), Charset.defaultCharset());
       logger.log(Level.FINE, "Print statistics about unsafe cases");
-      printCountStatistics(writer, container.getUnsafeIterator());
+      printCountStatistics(globalWriter, container.getUnsafeIterator());
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Exception during init actions: " + e.getMessage());
     }
@@ -79,7 +84,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   @Override
   protected void finish() {
     try {
-      writer.close();
+      globalWriter.close();
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Exception during finish actions: " + e.getMessage());
     }
@@ -87,7 +92,15 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
   @Override
   protected void printUnsafe(SingleIdentifier id, Pair<UsageInfo, UsageInfo> pPair) {
+    File name = new File("output/ErrorPath." + createUniqueName(id) + ".txt");
+    Writer writer;
     try {
+      if (singleFileOutput) {
+        writer = globalWriter;
+      } else {
+        writer = Files.newBufferedWriter(name.toPath(), Charset.defaultCharset());
+      }
+
       if (id instanceof StructureFieldIdentifier) {
         writer.append("###\n");
       } else if (id instanceof GlobalVariableIdentifier) {
@@ -108,6 +121,9 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
       createVisualization(id, pPair.getFirst(), writer);
       createVisualization(id, pPair.getSecond(), writer);
+      if (!singleFileOutput) {
+        writer.close();
+      }
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Exception while printing unsafe " + id + ": " + e.getMessage());
     }
@@ -134,6 +150,9 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     Iterator<CFAEdge> iterator = usage.getPath().iterator();
     while (iterator.hasNext()) {
       CFAEdge edge = iterator.next();
+      if (edge instanceof CDeclarationEdge) {
+        continue;
+      }
       if (edge instanceof CFunctionCallEdge && iterator.hasNext()) {
         callstackDepth++;
       } else if (edge instanceof CFunctionReturnEdge) {
