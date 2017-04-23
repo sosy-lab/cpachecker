@@ -23,16 +23,21 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ast.FQLSpecification;
@@ -45,9 +50,18 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.Coverage
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -75,6 +89,13 @@ public class TigerAlgorithm implements Algorithm {
       description = "Time limit per test goal in seconds (-1 for infinity).")
   private long cpuTimelimitPerGoal = -1;
 
+  @Option(
+      secure = true,
+      name = "algorithmConfigurationFile",
+      description = "Configuration file for internal cpa algorithm.")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private Path algorithmConfigurationFile = Paths.get("config/tiger-internal-algorithm.properties");
+
   private FQLSpecification fqlSpecification;
   private final LogManager logger;
   private final CFA cfa;
@@ -88,6 +109,8 @@ public class TigerAlgorithm implements Algorithm {
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
   private final Configuration config;
   private ReachedSet outsideReachedSet = null;
+  private ReachedSet reachedSet = null;
+  private StartupConfig startupConfig;
 
   enum ReachabilityAnalysisResult {
     SOUND,
@@ -96,10 +119,12 @@ public class TigerAlgorithm implements Algorithm {
   }
 
   public TigerAlgorithm(LogManager pLogger, CFA pCfa, Configuration pConfig,
-      ConfigurableProgramAnalysis pCpa)
+      ConfigurableProgramAnalysis pCpa,ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     cfa = pCfa;
     cpa = pCpa;
+    startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
+    startupConfig.getConfig().inject(this);
     logger = pLogger;
     assert TigerAlgorithm.originalMainFunction != null;
     mCoverageSpecificationTranslator =
@@ -192,10 +217,10 @@ public class TigerAlgorithm implements Algorithm {
   }
 
   private ReachabilityAnalysisResult runReachabilityAnalysis(Goal pGoal, int goalIndex,
-      Region pRemainingPresenceCondition) {
+      Region pRemainingPresenceCondition) throws CPAException, InterruptedException {
     Automaton goalAutomaton = pGoal.createControlAutomaton();
 
-    /* CPAFactory automataFactory = ControlAutomatonCPA.factory();
+    CPAFactory automataFactory = ControlAutomatonCPA.factory();
     automataFactory
         .setConfiguration(Configuration.copyWithNewPrefix(config, goalAutomaton.getName()));
     automataFactory.setLogger(logger.withComponentName(goalAutomaton.getName()));
@@ -210,12 +235,9 @@ public class TigerAlgorithm implements Algorithm {
     }
 
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
-    // TODO what is the more efficient order for the CPAs? Can we substitute a placeholder CPA? or inject an automaton in to an automaton CPA?
-    //int lProductAutomatonIndex = lComponentAnalyses.size();
     int lProductAutomatonIndex = lComponentAnalyses.size();
-    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false, config));
+    //lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false, config));
 
-    // TODO experiment
     if (cpa instanceof CompositeCPA) {
       CompositeCPA compositeCPA = (CompositeCPA) cpa;
       lComponentAnalyses.addAll(compositeCPA.getWrappedCPAs());
@@ -224,7 +246,6 @@ public class TigerAlgorithm implements Algorithm {
     } else {
       lComponentAnalyses.add(cpa);
     }
-
 
     ARGCPA lARTCPA;
     try {
@@ -250,7 +271,6 @@ public class TigerAlgorithm implements Algorithm {
     }
 
     reachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
-
     AbstractState lInitialElement =
         lARTCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
     Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction(),
@@ -260,19 +280,14 @@ public class TigerAlgorithm implements Algorithm {
 
     outsideReachedSet.add(lInitialElement, lInitialPrecision);
 
-    ShutdownNotifier algNotifier =
-        ShutdownNotifier.createWithParent(startupConfig.getShutdownNotifier());
-
-    startupConfig.getConfig();
+    //startupConfig.getConfig();
 
     Algorithm algorithm;
 
-    try {
-      Configuration internalConfiguration =
-          Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
+    /*try {
+      Configuration internalConfiguration = Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
 
-      CoreComponentsFactory coreFactory =
-          new CoreComponentsFactory(internalConfiguration, logger, algNotifier);
+      CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier);
 
       algorithm = coreFactory.createAlgorithm(lARTCPA, programDenotation, cfa, stats);
 
@@ -286,8 +301,7 @@ public class TigerAlgorithm implements Algorithm {
 
         ARGStatistics lARTStatistics;
         try {
-          lARTStatistics = new ARGStatistics(internalConfiguration, logger, lARTCPA,
-              cfa.getMachineModel(), cfa.getLanguage(), null);
+          lARTStatistics = new ARGStatistics(internalConfiguration, logger, lARTCPA, cfa.getMachineModel(), cfa.getLanguage(), null);
         } catch (InvalidConfigurationException e) {
           throw new RuntimeException(e);
         }
@@ -297,15 +311,8 @@ public class TigerAlgorithm implements Algorithm {
       }
     } catch (IOException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
-    }
+    }*/
 
-    boolean analysisWasSound = false;
-    if (cpuTimelimitPerGoal < 0) {
-      // run algorithm without time limit
-      analysisWasSound = algorithm.run(reachedSet).isSound();
-    }
-
-    logger.log(Level.INFO, (ARGState) reachedSet.getFirstState());*/
     return ReachabilityAnalysisResult.SOUND;
   }
 
