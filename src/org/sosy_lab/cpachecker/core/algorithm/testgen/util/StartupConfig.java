@@ -26,21 +26,12 @@ package org.sosy_lab.cpachecker.core.algorithm.testgen.util;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.testgen.TestGenAlgorithm;
 
-/**
- * Encapsulates {@link Configuration}, {@link ShutdownNotifier} and {@link LogManager} instances
- * intended for easier passing them from {@link TestGenAlgorithm} to its various strategies.
- */
 public class StartupConfig {
 
-  /**
-   * Utility Method which handles creating a new {@link StartupConfig} instance while using
-   * {@link ShutdownNotifier#createWithParent(ShutdownNotifier)}
-   */
   public static StartupConfig createWithParent(StartupConfig pStartupConfig) {
     return new StartupConfig(pStartupConfig.getConfig(), pStartupConfig.getLog(),
-        ShutdownNotifier.createWithParent(pStartupConfig.getShutdownNotifier()));
+        pStartupConfig.getShutdownNotifier());
   }
 
   private final Configuration config;

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
