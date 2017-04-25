@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cpa.composite;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ForcedCoveringStopOperator;
@@ -35,15 +37,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+public class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator {
 
-class CompositeStopOperator implements StopOperator, ForcedCoveringStopOperator {
+  protected final ImmutableList<StopOperator> stopOperators;
 
-  private final ImmutableList<StopOperator> stopOperators;
-
-  CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {
+  protected CompositeStopOperator(ImmutableList<StopOperator> stopOperators) {
     this.stopOperators = stopOperators;
   }
 

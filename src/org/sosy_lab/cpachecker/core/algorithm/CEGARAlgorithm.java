@@ -159,6 +159,11 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   private final Algorithm algorithm;
   private final Refiner mRefiner;
 
+
+  public Refiner getmRefiner() {
+    return mRefiner;
+  }
+
   public CEGARAlgorithm(Algorithm algorithm, ConfigurableProgramAnalysis pCpa, Configuration config, LogManager logger) throws InvalidConfigurationException, CPAException {
     config.inject(this);
     verifyNotNull(refinerFactory);

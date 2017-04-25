@@ -23,13 +23,19 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -38,7 +44,10 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.testgen.util.StartupConfig;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.FQLSpecificationUtil;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
@@ -51,19 +60,29 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuarde
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -113,6 +132,8 @@ public class TigerAlgorithm implements Algorithm {
   private ReachedSet outsideReachedSet = null;
   private ReachedSet reachedSet = null;
   private StartupConfig startupConfig;
+  private String programDenotation;
+  private Specification stats;
 
   enum ReachabilityAnalysisResult {
     SOUND,
@@ -121,7 +142,8 @@ public class TigerAlgorithm implements Algorithm {
   }
 
   public TigerAlgorithm(LogManager pLogger, CFA pCfa, Configuration pConfig,
-      ConfigurableProgramAnalysis pCpa,ShutdownNotifier pShutdownNotifier)
+      ConfigurableProgramAnalysis pCpa, ShutdownNotifier pShutdownNotifier,
+      String programDenotation, @Nullable final Specification stats)
       throws InvalidConfigurationException {
     cfa = pCfa;
     cpa = pCpa;
@@ -141,6 +163,8 @@ public class TigerAlgorithm implements Algorithm {
     logger.logf(Level.INFO, "FQL query string: %s", fqlQuery);
     fqlSpecification = FQLSpecificationUtil.getFQLSpecification(fqlQuery);
     logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
+    this.programDenotation = programDenotation;
+    this.stats = stats;
   }
 
   @Override
@@ -148,7 +172,6 @@ public class TigerAlgorithm implements Algorithm {
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     LinkedList<ElementaryCoveragePattern> goalPatterns;
     LinkedList<Pair<ElementaryCoveragePattern, Region>> pTestGoalPatterns = new LinkedList<>();
-
     logger.logf(Level.INFO,
         "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
@@ -171,6 +194,14 @@ public class TigerAlgorithm implements Algorithm {
       logger.log(Level.INFO, lGoal.getName());
       pGoalsToCover.add(lGoal);
       goalIndex++;
+    }
+
+    for (Goal goal : pGoalsToCover) {
+      try {
+        runReachabilityAnalysis(goal, goal.getIndex());
+      } catch (InvalidConfigurationException e) {
+        logger.log(Level.SEVERE, "Failed to run reachability analysis!");
+      }
     }
 
     return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -218,8 +249,8 @@ public class TigerAlgorithm implements Algorithm {
     return lGoalPatterns;
   }
 
-  private ReachabilityAnalysisResult runReachabilityAnalysis(Goal pGoal, int goalIndex,
-      Region pRemainingPresenceCondition) throws CPAException, InterruptedException {
+  private ReachabilityAnalysisResult runReachabilityAnalysis(Goal pGoal, int goalIndex)
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     Automaton goalAutomaton = pGoal.createControlAutomaton();
 
     CPAFactory automataFactory = ControlAutomatonCPA.factory();
@@ -238,7 +269,7 @@ public class TigerAlgorithm implements Algorithm {
 
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     int lProductAutomatonIndex = lComponentAnalyses.size();
-    //lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false, config));
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false, config));
 
     if (cpa instanceof CompositeCPA) {
       CompositeCPA compositeCPA = (CompositeCPA) cpa;
@@ -282,28 +313,41 @@ public class TigerAlgorithm implements Algorithm {
 
     outsideReachedSet.add(lInitialElement, lInitialPrecision);
 
-    //startupConfig.getConfig();
+    ShutdownManager algNotifier =
+        ShutdownManager.createWithParent(startupConfig.getShutdownNotifier());
+
+    startupConfig.getConfig();
 
     Algorithm algorithm;
 
-    /*try {
-      Configuration internalConfiguration = Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
+    try {
+      Configuration internalConfiguration =
+          Configuration.builder().loadFromFile(algorithmConfigurationFile).build();
 
-      CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger, algNotifier);
+      Set<UnmodifiableReachedSet> unmodifiableReachedSets = new HashSet<>();
+
+      unmodifiableReachedSets.add(reachedSet);
+
+      AggregatedReachedSets aggregatedReachedSets =
+          new AggregatedReachedSets(unmodifiableReachedSets);
+
+      CoreComponentsFactory coreFactory = new CoreComponentsFactory(internalConfiguration, logger,
+          algNotifier.getNotifier(), aggregatedReachedSets);
 
       algorithm = coreFactory.createAlgorithm(lARTCPA, programDenotation, cfa, stats);
 
       if (algorithm instanceof CEGARAlgorithm) {
         CEGARAlgorithm cegarAlg = (CEGARAlgorithm) algorithm;
 
-        Refiner refiner = cegarAlg.getRefiner();
+        Refiner refiner = cegarAlg.getmRefiner();
         if (refiner instanceof PredicateCPARefiner) {
           PredicateCPARefiner predicateRefiner = (PredicateCPARefiner) refiner;
         }
 
         ARGStatistics lARTStatistics;
         try {
-          lARTStatistics = new ARGStatistics(internalConfiguration, logger, lARTCPA, cfa.getMachineModel(), cfa.getLanguage(), null);
+          lARTStatistics = new ARGStatistics(internalConfiguration, logger, lARTCPA,
+              stats, cfa);
         } catch (InvalidConfigurationException e) {
           throw new RuntimeException(e);
         }
@@ -313,8 +357,43 @@ public class TigerAlgorithm implements Algorithm {
       }
     } catch (IOException | InvalidConfigurationException e) {
       throw new RuntimeException(e);
-    }*/
+    }
 
+    boolean analysisWasSound = false;
+
+    if (cpuTimelimitPerGoal < 0) {
+      // run algorithm without time limit
+      analysisWasSound = algorithm.run(reachedSet).isSound();
+    } else {
+      // run algorithm with time limit
+      WorkerRunnable workerRunnable =
+          new WorkerRunnable(algorithm, reachedSet, cpuTimelimitPerGoal, algNotifier);
+
+      Thread workerThread = new Thread(workerRunnable);
+
+      workerThread.start();
+      workerThread.join();
+
+      if (workerRunnable.throwableWasCaught()) {
+        // TODO: handle exception
+        analysisWasSound = false;
+        //        throw new RuntimeException(workerRunnable.getCaughtThrowable());
+      } else {
+        analysisWasSound = workerRunnable.analysisWasSound();
+
+        if (workerRunnable.hasTimeout()) {
+          logger.logf(Level.INFO, "Test goal timed out!");
+        }
+
+        Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
+
+        try (FileWriter w = new FileWriter(argFile.toString())) {
+          ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+        }
+      }
+    }
     return ReachabilityAnalysisResult.SOUND;
   }
 

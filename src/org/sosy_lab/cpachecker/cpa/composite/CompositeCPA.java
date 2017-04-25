@@ -207,7 +207,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
   private final CFA cfa;
   private final CompositeOptions options;
 
-  private CompositeCPA(
+  protected CompositeCPA(
       CFA pCfa,
       MergeOperator mergeOperator,
       CompositeStopOperator stopOperator,

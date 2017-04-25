@@ -85,7 +85,7 @@ import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options
-class MainCPAStatistics implements Statistics {
+public class MainCPAStatistics implements Statistics {
 
   // Beyond this many states, we omit some statistics because they are costly.
   private static final int MAX_SIZE_FOR_REACHED_STATISTICS = 1000000;

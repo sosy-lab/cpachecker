@@ -57,16 +57,16 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-final class CompositeTransferRelation implements TransferRelation {
+public class CompositeTransferRelation implements TransferRelation {
 
-  private final ImmutableList<TransferRelation> transferRelations;
+  protected final ImmutableList<TransferRelation> transferRelations;
   private final CFA cfa;
-  private final int size;
+  protected final int size;
   private final int assumptionIndex;
   private final int predicatesIndex;
   private final boolean aggregateBasicBlocks;
 
-  CompositeTransferRelation(
+  protected CompositeTransferRelation(
       ImmutableList<TransferRelation> pTransferRelations, CFA pCFA, boolean pAggregateBasicBlocks) {
     transferRelations = pTransferRelations;
     cfa = pCFA;
