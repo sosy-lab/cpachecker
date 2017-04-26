@@ -216,7 +216,6 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     if (!pIsInvariantGenerator
         && induction
         && addInvariantsByInduction) {
-      addInvariantsByInduction = false;
       invariantGenerator =
           KInductionInvariantGenerator.create(
               pConfig,
