@@ -114,8 +114,8 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
   @Option(secure=true, description="try using induction to verify programs with loops")
   private boolean induction = false;
 
-  @Option(secure=true, description="Generate additional invariants by induction and add them to the induction hypothesis.")
-  private boolean addInvariantsByInduction = true;
+  @Option(secure=true, description="Strategy for generating auxiliary invariants")
+  private InvariantGeneratorFactory invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
 
   @Option(secure=true, description="Propagates the interrupts of the invariant generator.")
   private boolean propagateInvGenInterrupts = false;
@@ -189,9 +189,11 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
     } else {
       stepCaseCPA = null;
       stepCaseAlgorithm = null;
+      invariantGenerationStrategy = InvariantGeneratorFactory.DO_NOTHING;
     }
 
     ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
+    boolean addInvariantsByInduction = invariantGenerationStrategy == InvariantGeneratorFactory.INDUCTION;
     if (addInvariantsByInduction) {
       if (propagateInvGenInterrupts) {
         invariantGeneratorShutdownManager = pShutdownManager;
@@ -213,48 +215,18 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
       propagateSafetyInterrupt = null;
     }
 
-    if (!pIsInvariantGenerator
-        && induction
-        && addInvariantsByInduction) {
-      invariantGenerator =
-          KInductionInvariantGenerator.create(
-              pConfig,
-              pLogger,
-              invariantGeneratorShutdownManager,
-              pCFA,
-              pSpecification,
-              pReachedSetFactory,
-              targetLocationProvider,
-              pAggregatedReachedSets);
-    } else if (induction) {
-      invariantGenerator =
-          new AbstractInvariantGenerator() {
-
-            @Override
-            protected void startImpl(CFANode pInitialLocation) {
-              // do nothing
-            }
-
-            @Override
-            public boolean isProgramSafe() {
-              // just return false, program will be ended by parallel algorithm if the invariant
-              // generator can prove safety before the current analysis
-              return false;
-            }
-
-            @Override
-            public void cancel() {
-              // do nothing
-            }
-
-            @Override
-            public AggregatedReachedSets get() throws CPAException, InterruptedException {
-              return pAggregatedReachedSets;
-            }
-          };
-    } else {
-      invariantGenerator = new DoNothingInvariantGenerator();
+    if (pIsInvariantGenerator && addInvariantsByInduction) {
+      invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
     }
+    invariantGenerator = invariantGenerationStrategy.createInvariantGenerator(
+            pConfig,
+            pLogger,
+            pReachedSetFactory,
+            invariantGeneratorShutdownManager,
+            pCFA,
+            pSpecification,
+            pAggregatedReachedSets,
+            targetLocationProvider);
 
     PredicateCPA predCpa = CPAs.retrieveCPA(cpa, PredicateCPA.class);
     if (predCpa == null) {
@@ -620,5 +592,99 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
    */
   protected Set<CFANode> getLoopHeads() {
     return BMCHelper.getLoopHeads(cfa, targetLocationProvider);
+  }
+
+  public static enum InvariantGeneratorFactory {
+
+    INDUCTION {
+
+      @Override
+      InvariantGenerator createInvariantGenerator(
+          Configuration pConfig,
+          LogManager pLogger,
+          ReachedSetFactory pReachedSetFactory,
+          ShutdownManager pShutdownManager,
+          CFA pCFA,
+          Specification pSpecification,
+          AggregatedReachedSets pAggregatedReachedSets,
+          TargetLocationProvider pTargetLocationProvider) throws InvalidConfigurationException, CPAException {
+        return
+            KInductionInvariantGenerator.create(
+                pConfig,
+                pLogger,
+                pShutdownManager,
+                pCFA,
+                pSpecification,
+                pReachedSetFactory,
+                pTargetLocationProvider,
+                pAggregatedReachedSets);
+      }
+    },
+
+    REACHED_SET {
+      @Override
+      InvariantGenerator createInvariantGenerator(
+          Configuration pConfig,
+          LogManager pLogger,
+          ReachedSetFactory pReachedSetFactory,
+          ShutdownManager pShutdownManager,
+          CFA pCFA,
+          Specification pSpecification,
+          AggregatedReachedSets pAggregatedReachedSets,
+          TargetLocationProvider pTargetLocationProvider) {
+        return new AbstractInvariantGenerator() {
+
+          @Override
+          protected void startImpl(CFANode pInitialLocation) {
+            // do nothing
+          }
+
+          @Override
+          public boolean isProgramSafe() {
+            // just return false, program will be ended by parallel algorithm if the invariant
+            // generator can prove safety before the current analysis
+            return false;
+          }
+
+          @Override
+          public void cancel() {
+            // do nothing
+          }
+
+          @Override
+          public AggregatedReachedSets get() throws CPAException, InterruptedException {
+            return pAggregatedReachedSets;
+          }
+        };
+      }
+    },
+
+    DO_NOTHING {
+
+      @Override
+      InvariantGenerator createInvariantGenerator(
+          Configuration pConfig,
+          LogManager pLogger,
+          ReachedSetFactory pReachedSetFactory,
+          ShutdownManager pShutdownManager,
+          CFA pCFA,
+          Specification pSpecification,
+          AggregatedReachedSets pAggregatedReachedSets,
+          TargetLocationProvider pTargetLocationProvider) {
+        return new DoNothingInvariantGenerator();
+      }
+
+    };
+
+    abstract InvariantGenerator createInvariantGenerator(
+        Configuration pConfig,
+        LogManager pLogger,
+        ReachedSetFactory pReachedSetFactory,
+        ShutdownManager pShutdownManager,
+        CFA pCFA,
+        Specification pSpecification,
+        AggregatedReachedSets pAggregatedReachedSets,
+        TargetLocationProvider pTargetLocationProvider) throws InvalidConfigurationException, CPAException;
+
   }
 }
