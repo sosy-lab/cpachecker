@@ -120,8 +120,6 @@ class KInductionProver implements AutoCloseable {
 
   private @Nullable ProverEnvironment prover = null;
 
-  private InvariantSupplier invariantsSupplier;
-
   private ExpressionTreeSupplier expressionTreeSupplier;
 
   private BooleanFormula loopHeadInvariants;
@@ -169,7 +167,6 @@ class KInductionProver implements AutoCloseable {
     pfmgr = stepCasePredicateCPA.getPathFormulaManager();
     loopHeadInvariants = bfmgr.makeTrue();
 
-    invariantsSupplier = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
     expressionTreeSupplier = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
 
     loopHeads = ImmutableSet.copyOf(pLoopHeads);
@@ -207,27 +204,25 @@ class KInductionProver implements AutoCloseable {
   }
 
   private InvariantSupplier getCurrentInvariantSupplier() throws InterruptedException {
-    if (!invariantGenerationRunning) {
-      return invariantsSupplier;
-    }
-    try {
-      if (invariantGenerator instanceof KInductionInvariantGenerator) {
-        return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
-      } else {
-        // in the general case we have to retrieve the invariants from a reachedset
-        return new FormulaInvariantsSupplier(invariantGenerator.get());
+    if (invariantGenerationRunning) {
+      try {
+        if (invariantGenerator instanceof KInductionInvariantGenerator) {
+          return ((KInductionInvariantGenerator) invariantGenerator).getSupplier();
+        } else {
+          // in the general case we have to retrieve the invariants from a reachedset
+          return new FormulaInvariantsSupplier(invariantGenerator.get());
+        }
+      } catch (CPAException e) {
+        logger.logUserException(Level.FINE, e, "Invariant generation failed.");
+        invariantGenerationRunning = false;
+      } catch (InterruptedException e) {
+        shutdownNotifier.shutdownIfNecessary();
+        logger.log(Level.FINE, "Invariant generation was cancelled.");
+        logger.logDebugException(e);
+        invariantGenerationRunning = false;
       }
-    } catch (CPAException e) {
-      logger.logUserException(Level.FINE, e, "Invariant generation failed.");
-      invariantGenerationRunning = false;
-      return invariantsSupplier;
-    } catch (InterruptedException e) {
-      shutdownNotifier.shutdownIfNecessary();
-      logger.log(Level.FINE, "Invariant generation was cancelled.");
-      logger.logDebugException(e);
-      invariantGenerationRunning = false;
-      return invariantsSupplier;
     }
+    return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
   }
 
   private ExpressionTreeSupplier getCurrentExpressionTreeInvariantSupplier() throws InterruptedException {
