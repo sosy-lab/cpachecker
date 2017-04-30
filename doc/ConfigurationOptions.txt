@@ -1228,6 +1228,9 @@ cpa.invariants.maximumFormulaDepth = 4
 cpa.invariants.merge = "PRECISIONDEPENDENT"
   allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
 
+# use pointer-alias information in strengthening, if available.
+cpa.invariants.usePointerAliasStrengthening = true
+
 # With this option the handling of global variables during the analysis can
 # be fine-tuned. For example while doing a function-wise analysis it is
 # important to assume that all global variables are live. In contrast to

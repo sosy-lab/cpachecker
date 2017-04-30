@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -106,13 +107,17 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private final boolean allowOverapproximationOfUnsupportedFeatures;
 
+  private final boolean usePointerAliasStrengthening;
+
   public InvariantsTransferRelation(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, MachineModel pMachineModel,
-      boolean pAllowOverapproximationOfUnsupportedFeatures) {
+      boolean pAllowOverapproximationOfUnsupportedFeatures,
+      boolean pUsePointerAliasStrengthening) {
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
     this.machineModel = pMachineModel;
     this.edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, machineModel);
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
     this.allowOverapproximationOfUnsupportedFeatures = pAllowOverapproximationOfUnsupportedFeatures;
+    this.usePointerAliasStrengthening = pUsePointerAliasStrengthening;
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
@@ -545,6 +550,15 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
+    if (usePointerAliasStrengthening) {
+      return pointerAliasStrengthening(pElement, pOtherElements, pCfaEdge, state);
+    }
+    return Collections.singleton(pElement);
+  }
+
+  private Collection<? extends AbstractState> pointerAliasStrengthening(AbstractState pElement,
+      List<AbstractState> pOtherElements, CFAEdge pCfaEdge, InvariantsState state)
+      throws UnrecognizedCCodeException {
     CFAEdge edge = pCfaEdge;
     CLeftHandSide leftHandSide = getLeftHandSide(edge);
     if (leftHandSide instanceof CPointerExpression

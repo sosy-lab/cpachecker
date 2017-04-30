@@ -144,6 +144,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     @Option(secure=true, description="enables the over-approximation of unsupported features instead of failing fast; this is imprecise")
     private boolean allowOverapproximationOfUnsupportedFeatures = true;
+
+    @Option(secure=true, description="use pointer-alias information in strengthening, if available.")
+    private boolean usePointerAliasStrengthening = true;
   }
 
   /**
@@ -263,7 +266,11 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new InvariantsTransferRelation(compoundIntervalManagerFactory, machineModel, options.allowOverapproximationOfUnsupportedFeatures);
+    return new InvariantsTransferRelation(
+        compoundIntervalManagerFactory,
+        machineModel,
+        options.allowOverapproximationOfUnsupportedFeatures,
+        options.usePointerAliasStrengthening);
   }
 
   @Override
