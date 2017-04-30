@@ -396,6 +396,7 @@ class KInductionProver implements AutoCloseable {
         buildArtificialConjunctions(pCandidateInvariants);
     Iterable<CandidateInvariant> candidatesToCheck = Iterables.concat(pCandidateInvariants, artificialConjunctions);
     for (CandidateInvariant candidateInvariant : candidatesToCheck) {
+      shutdownNotifier.shutdownIfNecessary();
 
       if (!canBeAsserted(candidateInvariant, pImmediateLoopHeads)) {
         assertions.put(candidateInvariant, bfmgr.makeTrue());
@@ -437,6 +438,7 @@ class KInductionProver implements AutoCloseable {
                 loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, 1));
     BooleanFormula invariants = loopHeadInv;
     for (CandidateInvariant candidateInvariant : confirmedCandidates) {
+      shutdownNotifier.shutdownIfNecessary();
       invariants = bfmgr.and(invariants, candidateInvariant.getAssertion(reached, fmgr, pfmgr, 1));
     }
 
@@ -451,6 +453,7 @@ class KInductionProver implements AutoCloseable {
     push(invariants); // Assert the known invariants
 
     for (CandidateInvariant candidateInvariant : candidatesToCheck) {
+      shutdownNotifier.shutdownIfNecessary();
       if (artificialConjunctions.contains(candidateInvariant)
           && isSizeLessThanOrEqualTo(((CandidateInvariantConjunction) candidateInvariant).getElements(), 1)) {
         continue;
@@ -489,6 +492,7 @@ class KInductionProver implements AutoCloseable {
               BMCHelper.assertAt(
                   loopHeadStates, getCurrentLoopHeadInvariants(loopHeadStates), fmgr, 1));
       while (!isInvariant && !loopHeadInv.equals(oldLoopHeadInv)) {
+        shutdownNotifier.shutdownIfNecessary();
         invariants = loopHeadInv;
         for (CandidateInvariant ci : confirmedCandidates) {
           invariants = bfmgr.and(invariants, ci.getAssertion(reached, fmgr, pfmgr, 1));

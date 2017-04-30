@@ -289,6 +289,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
             return status;
           }
+          shutdownNotifier.shutdownIfNecessary();
 
           if (invariantGenerator.isProgramSafe()) {
             // The reachedSet might contain target states which would give a wrong
@@ -302,6 +303,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
           // Perform a bounded model check on each candidate invariant
           Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
           while (candidateInvariantIterator.hasNext()) {
+            shutdownNotifier.shutdownIfNecessary();
             CandidateInvariant candidateInvariant = candidateInvariantIterator.next();
             // first check safety in k iterations
 
@@ -337,6 +339,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
                 immediateLoopHeads = getImmediateLoopHeads(reachedSet);
               }
               Set<CandidateInvariant> candidates = from(candidateGenerator).toSet();
+              shutdownNotifier.shutdownIfNecessary();
               sound = sound || kInductionProver.check(k, candidates, immediateLoopHeads);
               candidateGenerator.confirmCandidates(kInductionProver.getConfirmedCandidates());
             }
