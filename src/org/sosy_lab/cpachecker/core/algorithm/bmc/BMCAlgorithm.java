@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -110,6 +111,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure=true, description="Export auxiliary invariants used for induction.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
+  @Nullable
   private Path invariantsExport = null;
 
   private final ConfigurableProgramAnalysis cpa;
