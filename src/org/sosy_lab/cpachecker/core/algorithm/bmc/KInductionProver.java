@@ -272,6 +272,7 @@ class KInductionProver implements AutoCloseable {
       PathFormulaManager pPFMGR,
       PathFormula pContext)
       throws CPATransferException, InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
     InvariantSupplier currentInvariantsSupplier = getCurrentInvariantSupplier();
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
 
