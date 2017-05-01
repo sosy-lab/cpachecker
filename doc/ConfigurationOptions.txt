@@ -401,7 +401,7 @@ bmc.invariantGenerationStrategy = REACHED_SET
   enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
 
 # Export auxiliary invariants used for induction.
-bmc.invariantsExport = "invariants.graphml"
+bmc.invariantsExport = no default value
 
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
