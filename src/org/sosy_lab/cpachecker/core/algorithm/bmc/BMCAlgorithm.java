@@ -38,7 +38,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -111,7 +110,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure=true, description="Export auxiliary invariants used for induction.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path invariantsExport = Paths.get("invariants.graphml");
+  private Path invariantsExport = null;
 
   private final ConfigurableProgramAnalysis cpa;
 
