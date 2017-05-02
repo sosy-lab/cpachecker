@@ -61,12 +61,14 @@ public class Block {
     return callNodes.iterator().next();
   }
 
-  /** returns a collection of variables used in the block */
+  /** returns a collection of variables used in the block.
+   * For soundness this must be a superset of the actually used variables. */
   public Set<ReferencedVariable> getReferencedVariables() {
     return referencedVariables;
   }
 
-  /** returns a collection of variables used in the block */
+  /** returns a collection of variables used in the block.
+   * For soundness this must be a superset of the actually used variables. */
   public Set<String> getVariables() {
     if (variables == null) {
       Builder<String> builder = ImmutableSet.builder();
