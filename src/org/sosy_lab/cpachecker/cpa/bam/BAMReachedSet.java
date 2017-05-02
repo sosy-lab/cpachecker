@@ -393,6 +393,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
       if (isStateFinished) {
         clonedReached.removeOnlyFromWaitlist(clonedState);
+        clonedState.markExpanded(); // for debugging and for nicer dot-graphs: set flag 'expanded'
       } else {
         clonedReached.updatePrecision(
             clonedState, getUpdatedPrecision(pReached.getPrecision(state), pPrecisionsLst));
