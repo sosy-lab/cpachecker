@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.OptionalInt;
 
-import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
