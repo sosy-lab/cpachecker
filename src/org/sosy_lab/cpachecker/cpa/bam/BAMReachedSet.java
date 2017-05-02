@@ -30,6 +30,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -114,6 +115,9 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         : "at least the main-function should be open at the target-state";
     // TODO add element's block, if necessary?
 
+    logger.log(Level.FINEST, "Path across blocks:\n" +
+        dumpPath(path.asStatesList(), blockInitAndExitStates, false));
+
     BackwardARGState tmp = cutState;
     for (BackwardARGState callState : relevantCallStates) {
 
@@ -140,6 +144,51 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     }
 
     super.delegate.removeSubtree((ARGState) super.delegate.asReachedSet().getLastState());
+  }
+
+  private String dumpPath(
+      final ImmutableList<ARGState> path,
+      final Map<BackwardARGState, ARGState> pBlockInitAndExitStates,
+      final boolean onlyEntryOrExitStates) {
+    final StringBuilder str = new StringBuilder();
+    int indent = 0;
+    for (final ARGState bamState : path) {
+      final ARGState state = ((BackwardARGState) bamState).getARGState();
+      StringBuilder line = new StringBuilder();
+      boolean containsEntryOrExit = false;
+      line.append(indent).append(" ").append(dump(bamState)).append(" :: ");
+      StringBuilder expandedStr = new StringBuilder();
+      for (AbstractState exitState : Lists.reverse(data.getExpandedStateList(state))) {
+        indent--;
+        expandedStr.append(dump(exitState)).append(" <- ");
+        containsEntryOrExit = true;
+      }
+      for (int i = 0; i < indent; i++) {
+        line.append("     |       "); // length == 14
+      }
+      line.append(expandedStr);
+      line.append(dump(data.hasExpandedState(state) ? data.getInnermostState(state) : state));
+      if (data.hasInitialState(state)) {
+        line.append(" -> ")
+            .append(
+                dump(
+                    data.getReachedSetForInitialState(state, pBlockInitAndExitStates.get(bamState))
+                        .getFirstState()));
+        indent++;
+        containsEntryOrExit = true;
+      }
+      line.append("\n");
+      if (!onlyEntryOrExitStates || containsEntryOrExit) {
+        str.append(line);
+      }
+    }
+    assert indent == 0;
+    return str.toString();
+  }
+
+  private String dump(AbstractState state) {
+    return String.format("%9.9s",
+        ((ARGState) state).getStateId() + "[" + extractLocation(state) + "]");
   }
 
   private Map<BackwardARGState, ARGState> getBlockInitAndExitStates(ImmutableList<ARGState> path) {
