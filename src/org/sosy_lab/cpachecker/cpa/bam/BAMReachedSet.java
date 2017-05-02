@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
@@ -93,10 +94,13 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   @Override
   public void removeSubtree(
       ARGState cutState,
-      List<Precision> pPrecisions,
-      List<Predicate<? super Precision>> pPrecisionTypes)
+      final List<Precision> pPrecisions,
+      final List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
     Preconditions.checkArgument(pPrecisionTypes.size() == pPrecisionTypes.size());
+    final List<Pair<Precision, Predicate<? super Precision>>> newPrecisionsLst =
+        Pair.zipList(pPrecisions, pPrecisionTypes);
+
     assert path.getFirstState().getSubgraph().contains(cutState);
 
     // get blocks that need to be touched
@@ -120,8 +124,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
           ((BackwardARGState) callState).getARGState(),
           checkNotNull(blockInitAndExitStates.get(callState)),
           data.getInnermostState(((BackwardARGState) tmp).getARGState()),
-          pPrecisions,
-          pPrecisionTypes);
+          newPrecisionsLst);
       tmp = callState;
 
       removeCachedSubtreeTimer.stop();
@@ -171,30 +174,27 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   }
 
   /**
-   * This method clones a reached-set partially and inserts it into the caches.
-   * The cloned reached-set contains all abstract states
-   * except the cutState and the subtree below the cutState.
-   * The predecessor of the cutState (and other states covered by subtree-states)
-   * will be updated with a new precision.
+   * This method clones a reached-set partially and inserts it into the caches. The cloned
+   * reached-set contains all abstract states except the cutState and the subtree below the
+   * cutState. The predecessor of the cutState (and other states covered by subtree-states) will be
+   * updated with a new precision.
    *
    * @param rootState the non-reduced initial state of the reached-set. This state is not part of
    *     the reached-set
    * @param cutState where to abort cloning, no child will be cloned, and states covered by children
    *     will be added to waitlist. This state is part of the reached-set.
-   * @param pPrecisions new precision for the cutState
-   * @param pPrecisionTypes new precision for the cutState
+   * @param pPrecisionsLst new precision for the cutState
    */
   private void handleSubtree(
       final ARGState rootState,
       final ARGState exitState,
       final ARGState cutState,
-      final List<Precision> pPrecisions,
-      final List<Predicate<? super Precision>> pPrecisionTypes) {
+      final List<Pair<Precision, Predicate<? super Precision>>> pPrecisionsLst) {
     ReachedSet reached = data.getReachedSetForInitialState(rootState, exitState);
     assert reached.contains(cutState);
     assert reached.contains(exitState);
 
-    ReachedSet clone = cloneReachedSetPartially(reached, cutState, pPrecisions, pPrecisionTypes);
+    ReachedSet clone = cloneReachedSetPartially(reached, cutState, pPrecisionsLst);
     Block block = partitioning.getBlockForCallNode(AbstractStates.extractLocation(rootState));
 
     data.bamCache.remove(clone.getFirstState(), clone.getPrecision(clone.getFirstState()), block);
@@ -258,21 +258,18 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   private ReachedSet cloneReachedSetPartially(
       final ReachedSet pReached,
       final ARGState cutState,
-      final List<Precision> pPrecisions,
-      final List<Predicate<? super Precision>> pPrecisionTypes) {
+      final List<Pair<Precision, Predicate<? super Precision>>> pPrecisionsLst) {
 
     assert pReached.contains(cutState);
 
-    Set<ARGState> reachedStates = ((ARGState) pReached.getFirstState()).getSubgraph();
-    Set<ARGState> toRemove = cutState.getSubgraph();
+    // get subgraph, iteration order (natural state numbering -> Treeset) is important,
+    // because we have to keep it and create cloned states in the same order
+    Set<ARGState> reachedStates =
+        new TreeSet<>(((ARGState) pReached.getFirstState()).getSubgraph());
 
-    // collect all elements covered by the subtree
-    List<ARGState> newToUnreach = new ArrayList<>();
-    for (ARGState ae : toRemove) {
-      newToUnreach.addAll(ae.getCoveredByThis());
-    }
-    toRemove.addAll(newToUnreach);
-
+    // get all states that should not be part of the cloned reached-set,
+    // because the states are below the cutState (including transitive coverage)
+    Set<ARGState> toRemove = getStatesToRemove(cutState);
     Predicate<AbstractState> keepStates = s -> !toRemove.contains(s); // negated filter
 
     assert reachedStates.size() > toRemove.size() : "removing all states is not possible";
@@ -283,22 +280,53 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
     Map<ARGState, ARGState> cloneMapping = new LinkedHashMap<>();
 
-    // build cloned states
-    reachedStates = new TreeSet<>(reachedStates);
+    // first get a swallow copy of the ARG
+    cloneARG(reachedStates, keepStates, cloneMapping);
+
+    // then update BAM-data for entry- and exit-nodes,
+    // including intermediate nodes that lead to sub-reached-sets
+    updateBAMData(cloneMapping);
+
+    ReachedSet clonedReached =
+        buildClonedReachedSet(pReached, pPrecisionsLst, keepStates, cloneMapping);
+
+    assert clonedReached.size() < pReached.size();
+    return clonedReached;
+  }
+
+  private Set<ARGState> getStatesToRemove(final ARGState cutState) {
+    Set<ARGState> toRemove = cutState.getSubgraph();
+
+    // collect all elements covered by the subtree,
+    // we assume there is no transitive coverage a->b->c, then we need a fixed-point algorithm
+    List<ARGState> newToUnreach = new ArrayList<>();
+    for (ARGState ae : toRemove) {
+      newToUnreach.addAll(ae.getCoveredByThis());
+    }
+    toRemove.addAll(newToUnreach);
+
+    return toRemove;
+  }
+
+  /** Build cloned ARG as a flat copy of existing states. */
+  private void cloneARG(
+      final Set<ARGState> reachedStates,
+      final Predicate<AbstractState> keepStates,
+      final Map<ARGState, ARGState> cloneMapping) {
     for (AbstractState abstractState : Iterables.filter(reachedStates, keepStates)) {
       ARGState state = (ARGState) abstractState;
       ARGState clonedState = new ARGState(state.getWrappedState(), null /* add parents later */);
       cloneMapping.put(state, clonedState);
     }
 
-    // add parents
+    // add parents, to get a graph like the old reached-set
     for (Entry<ARGState, ARGState> e : cloneMapping.entrySet()) {
       for (ARGState parent : Iterables.filter(e.getKey().getParents(), keepStates)) {
         e.getValue().addParent(cloneMapping.get(parent));
       }
     }
 
-    // add coverage
+    // add coverage-edges, to get a graph like the old reached-set
     Set<ARGState> coveredStates = new HashSet<>();
     for (Entry<ARGState, ARGState> e : cloneMapping.entrySet()) {
       for (ARGState covered : Iterables.filter(e.getKey().getCoveredByThis(), keepStates)) {
@@ -306,8 +334,13 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         coveredStates.add(covered);
       }
     }
+  }
 
-    // update all BAM-related mappings
+  /**
+   * Update all BAM-related mappings, caches, data-structures, such that the new reached-set will be
+   * used where needed.
+   */
+  private void updateBAMData(final Map<ARGState, ARGState> cloneMapping) {
     for (Entry<ARGState, ARGState> e : cloneMapping.entrySet()) {
       ARGState state = e.getKey();
       ARGState clonedState = e.getValue();
@@ -327,7 +360,17 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
             data.getInnerBlockForExpandedState(state));
       }
     }
+  }
 
+  /**
+   * Build a new reached-set that contains the cloned states. The waitlist consists only of states
+   * that need to be visited. The states in the waitlist get an updated precision if needed.
+   */
+  private ReachedSet buildClonedReachedSet(
+      final ReachedSet pReached,
+      final List<Pair<Precision, Predicate<? super Precision>>> pPrecisionsLst,
+      final Predicate<AbstractState> keepStates,
+      final Map<ARGState, ARGState> cloneMapping) {
     // build reachedset, iteration order is very important here,
     // because pReached and clonedReached should behave similar, e.g. first state is equal
     ReachedSet clonedReached = data.reachedSetFactory.create();
@@ -351,23 +394,19 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         clonedReached.removeOnlyFromWaitlist(clonedState);
       } else {
         clonedReached.updatePrecision(
-            clonedState,
-            updatePrecision(pReached.getPrecision(state), pPrecisions, pPrecisionTypes));
+            clonedState, getUpdatedPrecision(pReached.getPrecision(state), pPrecisionsLst));
       }
     }
-
-    assert clonedReached.size() < pReached.size();
     return clonedReached;
   }
 
-  private Precision updatePrecision(
+  /** Update any sub-precision with matching type. */
+  private static Precision getUpdatedPrecision(
       Precision statePrec,
-      final List<Precision> pPrecisions,
-      final List<Predicate<? super Precision>> pPrecisionTypes) {
+      final List<Pair<Precision, Predicate<? super Precision>>> pPrecisionsLst) {
     Preconditions.checkNotNull(statePrec);
-    for (int i = 0; i < pPrecisions.size(); i++) {
-      Precision adaptedPrec =
-          Precisions.replaceByType(statePrec, pPrecisions.get(i), pPrecisionTypes.get(i));
+    for (Pair<Precision, Predicate<? super Precision>> p : pPrecisionsLst) {
+      Precision adaptedPrec = Precisions.replaceByType(statePrec, p.getFirst(), p.getSecond());
       // adaptedPrec == null, if the precision component was not changed
       if (adaptedPrec != null) {
         statePrec = adaptedPrec;
