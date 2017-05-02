@@ -27,6 +27,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.math.BigInteger;
 import java.util.Iterator;
+import java.util.List;
+import java.util.OptionalInt;
+
+import javax.annotation.Nullable;
+
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -749,6 +754,63 @@ public enum MachineModel {
     return type.accept(alignofVisitor);
   }
 
+  public OptionalInt getFieldOffsetInBits(CCompositeType ownerType, String fieldName) {
+      final ComplexTypeKind ownerTypeKind = ownerType.getKind();
+      List<CCompositeTypeMemberDeclaration> typeMembers = ownerType.getMembers();
+
+      Integer bitOffset = null;
+      
+      if(ownerTypeKind == ComplexTypeKind.UNION) {
+          // If the field in question is a part of the Union,
+          // return an offset of 0.
+          // Otherwise, to indicate a problem, the return
+          // will be null.
+          if(typeMembers.stream().anyMatch(m -> m.getName().equals(fieldName))) {
+              bitOffset = 0;
+          }
+      } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
+          BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(this);
+          bitOffset = 0;
+          int sizeOfConsecutiveBitFields = 0;
+          
+          for(CCompositeTypeMemberDeclaration typeMember : typeMembers) {
+              if(typeMember.getName().equals(fieldName)) {
+                  // just escape the loop and return the current offset
+                  break;
+              }
+              
+              CType type = typeMember.getType();
+              if(type.isIncomplete()) {
+                  /**
+                   * TODO:
+                   * cf. implementation of {@link #handleSizeOfStruct(CCompositeType)},
+                   * where incomplete array as last member of a struct is accepted.
+                   * 
+                   * I could imagine that the same would hold true for the offset.
+                   */
+                  bitOffset = null;
+                  break;
+              }
+              
+              int fieldSizeInBits = getBitSizeof(type);
+              if(type instanceof CBitFieldType) {
+                  sizeOfConsecutiveBitFields += fieldSizeInBits;
+              } else {
+                  bitOffset += sizeOfConsecutiveBitFields;
+                  sizeOfConsecutiveBitFields = 0;
+                  bitOffset += getPadding(sizeofVisitor.calculateByteSize(bitOffset), type);
+                  bitOffset += fieldSizeInBits;
+              }
+          }
+      }
+      
+      if (bitOffset != null) {
+          return OptionalInt.of(bitOffset);
+      } else {
+          return OptionalInt.empty();
+      }
+  }
+  
   public int getPadding(int pOffset, CType pType) {
     int alignof = getAlignof(pType);
     int padding = alignof - (pOffset % alignof);
