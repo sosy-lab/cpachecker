@@ -188,7 +188,7 @@ public class BAMDataManager {
 
   /**
    * Get a list of states {@code [s1,s2,s3...]}, such that {@code expand(s0)=s1}, {@code
-   * expand(s1)=s2},... The state {@code s0} is the most inner non-expanded state and is not
+   * expand(s1)=s2},... The state {@code s0} is the most inner non-expanded state (and given as parameter) and is not
    * included in the list. This method returns an empty list, if the state is not an exit state.
    */
   List<AbstractState> getExpandedStateList(AbstractState state) {

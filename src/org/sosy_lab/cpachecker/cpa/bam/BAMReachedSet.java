@@ -118,6 +118,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     logger.log(Level.FINEST, "Path across blocks:\n" +
         dumpPath(path.asStatesList(), blockInitAndExitStates, false));
 
+    // handle reached-sets from most inner reached-set to most-outer reached-set
     BackwardARGState tmp = cutState;
     for (BackwardARGState callState : relevantCallStates) {
 
@@ -191,6 +192,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         ((ARGState) state).getStateId() + "[" + extractLocation(state) + "]");
   }
 
+  /** Returns a mapping of wrapped non-reduced init-state towards non-wrapped reduced exit-state. */
   private Map<BackwardARGState, ARGState> getBlockInitAndExitStates(ImmutableList<ARGState> path) {
     final Map<BackwardARGState, ARGState> blockInitAndExitStates = new LinkedHashMap<>();
     final Deque<BackwardARGState> openCallStates = new ArrayDeque<>();
@@ -231,6 +233,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
    *
    * @param rootState the non-reduced initial state of the reached-set. This state is not part of
    *     the reached-set
+   * @param exitState needed to identify the reached-set in the BAM-cache
    * @param cutState where to abort cloning, no child will be cloned, and states covered by children
    *     will be added to waitlist. This state is part of the reached-set.
    * @param pPrecisionsLst new precision for the cutState
