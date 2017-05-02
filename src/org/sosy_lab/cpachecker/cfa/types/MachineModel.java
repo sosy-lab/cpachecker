@@ -757,6 +757,7 @@ public enum MachineModel {
       List<CCompositeTypeMemberDeclaration> typeMembers = ownerType.getMembers();
 
       Integer bitOffset = null;
+      boolean found = false;
       
       if(ownerTypeKind == ComplexTypeKind.UNION) {
           // If the field in question is a part of the Union,
@@ -773,8 +774,9 @@ public enum MachineModel {
           
           for(CCompositeTypeMemberDeclaration typeMember : typeMembers) {
               if(typeMember.getName().equals(fieldName)) {
-                  // just escape the loop and return the current offset
-                  break;
+                // just escape the loop and return the current offset
+                found = true;
+                break;
               }
               
               CType type = typeMember.getType();
@@ -802,7 +804,7 @@ public enum MachineModel {
           }
       }
       
-      if (bitOffset != null) {
+      if (bitOffset != null && found) {
           return OptionalInt.of(bitOffset);
       } else {
           return OptionalInt.empty();
