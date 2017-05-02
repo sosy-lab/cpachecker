@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
+import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -66,8 +67,9 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix="cpa.bounds")
-public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics {
+@Options(prefix = "cpa.bounds")
+public class BoundsCPA extends AbstractCPA
+    implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics, LoopIterationBounding {
 
   private final LogManager logger;
 
@@ -359,6 +361,7 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
     return "Bounds CPA";
   }
 
+  @Override
   public void setMaxLoopIterations(int pMaxLoopIterations) {
     this.maxLoopIterations = pMaxLoopIterations;
     this.transferRelation.setDelegate(new BoundsTransferRelation(
@@ -366,6 +369,7 @@ public class BoundsCPA extends AbstractCPA implements ReachedSetAdjustingCPA, St
         maxLoopIterations, maxRecursionDepth, loopStructure));
   }
 
+  @Override
   public int getMaxLoopIterations() {
     return this.maxLoopIterations;
   }

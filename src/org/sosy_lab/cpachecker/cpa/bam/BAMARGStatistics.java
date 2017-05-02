@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 import com.google.common.collect.Collections2;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,6 +34,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -101,6 +103,27 @@ public class BAMARGStatistics extends ARGStatistics {
     StatTimer dummyTimer = new StatTimer("dummy");
     BAMReachedSet bamReachedSet = new BAMReachedSet(bamCpa, pMainReachedSet, path, dummyTimer);
 
-    super.printStatistics(pOut, pResult, bamReachedSet.asReachedSet());
+    UnmodifiableReachedSet bamReachedSetView = bamReachedSet.asReachedSet();
+
+    readdCounterexampleInfo(pReached, bamReachedSetView);
+
+    super.printStatistics(pOut, pResult, bamReachedSetView);
+  }
+
+  /**
+   * This method takes the CEX-info computed last and inserts it into the current last state.
+   *
+   * <p>We assume that (if the last state is a target state) the last CEX-check computed a correct
+   * CEX-info and wrote it into the last state of the wrapped reached-set.
+   */
+  private void readdCounterexampleInfo(
+      UnmodifiableReachedSet pReached, UnmodifiableReachedSet bamReachedSetView) {
+    ARGState argState = (ARGState) pReached.getLastState();
+    if (argState.isTarget()) {
+      Optional<CounterexampleInfo> cex = argState.getCounterexampleInformation();
+      if (cex.isPresent()) {
+        ((ARGState) bamReachedSetView.getLastState()).addCounterexampleInformation(cex.get());
+      }
+    }
   }
 }

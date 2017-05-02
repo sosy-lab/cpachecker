@@ -158,7 +158,7 @@ public class CoreComponentsFactory {
   private boolean useProofCheckAndExtractCIRequirementsAlgorithm = false;
 
   @Option(secure=true, name="algorithm.proofCheckWithARGCMCStrategy",
-      description="use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to validate a previously generated proofenable")
+      description="use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to validate a previously generated proof")
   private boolean useProofCheckWithARGCMCStrategy = false;
 
   @Option(secure=true, name="algorithm.propertyCheck",

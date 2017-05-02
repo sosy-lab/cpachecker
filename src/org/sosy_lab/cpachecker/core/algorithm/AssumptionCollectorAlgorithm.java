@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
@@ -100,6 +101,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Option(secure=true, description="If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
   private boolean automatonIgnoreAssumptions = false;
 
+  @Option(secure=true, description="If it is enabled, check if a state that should lead to false state indeed has successors.")
+  private boolean removeNonExploredWithoutSuccessors = false;
+
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final FormulaManagerView formulaManager;
@@ -111,6 +115,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   // statistics
   private int automatonStates = 0;
+
+  private final ConfigurableProgramAnalysis cpa;
 
   public AssumptionCollectorAlgorithm(Algorithm algo,
                                       ConfigurableProgramAnalysis pCpa,
@@ -132,6 +138,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.formulaManager = cpa.getFormulaManager();
     this.bfmgr = formulaManager.getBooleanFormulaManager();
     this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+    this.cpa=pCpa;
   }
 
   @Override
@@ -250,7 +257,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
     }
 
-    Set<AbstractState> falseAssumptionStates = Sets.newHashSet(reached.getWaitlist());
+    Set<AbstractState> falseAssumptionStates = getFalseAssumptionStates(reached);
 
     // scan reached set for all relevant states with an assumption
     // Invariant: relevantStates does not contain any covered state.
@@ -290,6 +297,34 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     automatonStates += writeAutomaton(output, (ARGState) firstState, relevantStates, falseAssumptionStates,
             automatonBranchingThreshold, automatonIgnoreAssumptions);
   }
+
+  private Set<AbstractState> getFalseAssumptionStates(UnmodifiableReachedSet pReached) {
+    Set<AbstractState> falseAssumptionStates;
+    if (removeNonExploredWithoutSuccessors) {
+      falseAssumptionStates = Sets.newHashSetWithExpectedSize(pReached.getWaitlist().size());
+      for (AbstractState state : pReached.getWaitlist()) {
+        try {
+          if (cpa.getTransferRelation().getAbstractSuccessors(state, pReached.getPrecision(state))
+              .size() > 0) {
+            falseAssumptionStates.add(state);
+            if(state instanceof ARGState) {
+              ARGState argState = (ARGState) state;
+              while(!argState.getChildren().isEmpty()) {
+                argState.getChildren().iterator().next().removeFromARG();
+              }
+            }
+          }
+        } catch (CPATransferException | UnsupportedOperationException | InterruptedException e) {
+          falseAssumptionStates.add(state);
+        }
+      }
+      return falseAssumptionStates;
+    } else {
+      falseAssumptionStates = Sets.newHashSet(pReached.getWaitlist());
+    }
+    return falseAssumptionStates;
+  }
+
 
   /**
    * Create a String containing the assumption automaton.

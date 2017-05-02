@@ -304,6 +304,17 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       } else if (ownerType instanceof CPointerType) {
         evv.missingPointer = true;
         return null;
+      } else if (ownerType instanceof CPointerType) {
+         /*
+          * At this point CPointerType should not occur
+          * unless the parsing of the automaton for
+          * Counterexample-check failed to determine
+          * the type of an assumptions operand.
+          * 
+          * This is unfortunate but not as critical as
+          * letting CPAchecker crash here. 
+          */
+         return null;
       }
 
       throw new AssertionError();

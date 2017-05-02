@@ -151,7 +151,7 @@ analysis.algorithm.proofCheckAndGetHWRequirements = false
 analysis.algorithm.proofCheckReadConfig = false
 
 # use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to
-# validate a previously generated proofenable
+# validate a previously generated proof
 analysis.algorithm.proofCheckWithARGCMCStrategy = false
 
 # do analysis and then check if reached set fulfills property specified by
@@ -320,6 +320,10 @@ assumptions.automatonIgnoreAssumptions = false
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
+# If it is enabled, check if a state that should lead to false state indeed
+# has successors.
+assumptions.removeNonExploredWithoutSuccessors = false
+
 # comma-separated list of files with specifications that should be used 
 # in a backwards analysis; used if the analysis starts at the target states!
 # (see config/specification/ for examples)
@@ -380,10 +384,6 @@ blockreducer.reducedCfaFile = "ReducedCfa.rsf"
 # Do at most n summarizations on a node.
 blockreducer.reductionThreshold = 100
 
-# Generate additional invariants by induction and add them to the induction
-# hypothesis.
-bmc.addInvariantsByInduction = true
-
 # If BMC did not find a bug, check whether the bounding did actually remove
 # parts of the state space (this is similar to CBMC's unwinding assertions).
 bmc.boundingAssertions = true
@@ -396,8 +396,12 @@ bmc.checkTargetStates = true
 # try using induction to verify programs with loops
 bmc.induction = false
 
+# Strategy for generating auxiliary invariants
+bmc.invariantGenerationStrategy = REACHED_SET
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
+
 # Export auxiliary invariants used for induction.
-bmc.invariantsExport = "invariants.graphml"
+bmc.invariantsExport = no default value
 
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
@@ -1218,6 +1222,9 @@ cpa.invariants.maximumFormulaDepth = 4
 # which merge operator to use for InvariantCPA
 cpa.invariants.merge = "PRECISIONDEPENDENT"
   allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
+
+# use pointer-alias information in strengthening, if available.
+cpa.invariants.usePointerAliasStrengthening = true
 
 # With this option the handling of global variables during the analysis can
 # be fine-tuned. For example while doing a function-wise analysis it is
