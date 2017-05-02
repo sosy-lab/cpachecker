@@ -93,10 +93,11 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   @Override
   public void removeSubtree(
-      ARGState cutState,
+      ARGState pCutState,
       final List<Precision> pPrecisions,
       final List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
+    final BackwardARGState cutState = (BackwardARGState) pCutState;
     Preconditions.checkArgument(pPrecisionTypes.size() == pPrecisionTypes.size());
     final List<Pair<Precision, Predicate<? super Precision>>> newPrecisionsLst =
         Pair.zipList(pPrecisions, pPrecisionTypes);
@@ -106,24 +107,24 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     // get blocks that need to be touched
     Map<BackwardARGState, ARGState> blockInitAndExitStates =
         getBlockInitAndExitStates(path.asStatesList());
-    Deque<ARGState> relevantCallStates = getRelevantCallStates(path.asStatesList(), cutState);
+    Deque<BackwardARGState> relevantCallStates = getRelevantCallStates(path.asStatesList(), cutState);
     assert relevantCallStates.peekLast() == path.getFirstState()
         : "root should be relevant: " + relevantCallStates.peekLast() + " + " + path.getFirstState();
     assert relevantCallStates.size() >= 1
         : "at least the main-function should be open at the target-state";
     // TODO add element's block, if necessary?
 
-    ARGState tmp = cutState;
-    for (ARGState callState : relevantCallStates) {
+    BackwardARGState tmp = cutState;
+    for (BackwardARGState callState : relevantCallStates) {
 
       logger.logf(Level.FINEST, "removing %s from reachedset with root %s", tmp, callState);
 
       removeCachedSubtreeTimer.start();
 
       handleSubtree(
-          ((BackwardARGState) callState).getARGState(),
+          callState.getARGState(),
           checkNotNull(blockInitAndExitStates.get(callState)),
-          data.getInnermostState(((BackwardARGState) tmp).getARGState()),
+          data.getInnermostState(tmp.getARGState()),
           newPrecisionsLst);
       tmp = callState;
 
@@ -207,12 +208,12 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
    * inner block as reference point for the cut-state.
    * Order of result is from most inner block to most outer block (=mainBlock).
    */
-  private Deque<ARGState> getRelevantCallStates(
-      final List<ARGState> path, final ARGState bamCutState) {
-    final Deque<ARGState> openCallStates = new ArrayDeque<>();
-    for (final ARGState bamState : path) {
-
-      final ARGState state = ((BackwardARGState) bamState).getARGState();
+  private Deque<BackwardARGState> getRelevantCallStates(
+      final List<ARGState> path, final BackwardARGState bamCutState) {
+    final Deque<BackwardARGState> openCallStates = new ArrayDeque<>();
+    for (final ARGState pathState : path) {
+      final BackwardARGState bamState = (BackwardARGState)pathState;
+      final ARGState state = bamState.getARGState();
 
       if (bamCutState == bamState) {
         // do not enter or leave a block, when we found the cutState.
