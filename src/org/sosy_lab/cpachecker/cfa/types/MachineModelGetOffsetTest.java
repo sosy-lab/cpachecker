@@ -51,7 +51,7 @@ public class MachineModelGetOffsetTest {
   private final static String THIRD_INT = "thirdInt";
   private final static String LAST_INCOMPLETEARRAY = "lastIncomplete";
 
-  @Parameters(name="{2}: {0}")
+  @Parameters(name = "{2}: {0}")
   public static Object[][] machineModels() {
     // XXX: Note that this only holds as long as
     // the available MachineModels have a Byte-size
@@ -69,11 +69,11 @@ public class MachineModelGetOffsetTest {
     // which expectation to apply.
     Object[][] types = new Object[][] {
         // fieldname          // expected offset in bits
-        {FIRST_BITFIELD_12,            0},
-        {SECOND_BITFIELD_10,          12},
-        {THIRD_INT,                   32},
-        {LAST_INCOMPLETEARRAY,        64}
-        };
+        { FIRST_BITFIELD_12, 0 },
+        { SECOND_BITFIELD_10, 12 },
+        { THIRD_INT, 32 },
+        { LAST_INCOMPLETEARRAY, 64 }
+    };
 
     // Create a copy of types for each MachineModel and append the MachineModel instance in each row
     MachineModel[] machineModels = MachineModel.values();
@@ -96,30 +96,31 @@ public class MachineModelGetOffsetTest {
   //    a) (DO NOT) insert a new Member after LAST_INCOMPLETE
   //    b) (DO NOT) insert a new Member before THIRD_INT
   private static final List<CCompositeTypeMemberDeclaration> FIELDS =
-    ImmutableList.of(
-      new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12), FIRST_BITFIELD_12),
-      new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 10), SECOND_BITFIELD_10),
-      new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
-      new CCompositeTypeMemberDeclaration(
-          new CArrayType(false, false, CNumericTypes.LONG_LONG_INT, null),
-          LAST_INCOMPLETEARRAY
-      )
-    );
+      ImmutableList.of(
+          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12),
+              FIRST_BITFIELD_12),
+          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 10),
+              SECOND_BITFIELD_10),
+          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
+          new CCompositeTypeMemberDeclaration(
+              new CArrayType(false, false, CNumericTypes.LONG_LONG_INT, null),
+              LAST_INCOMPLETEARRAY));
 
-  private static final CCompositeType STRUCT = new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS,
-      TEST_STRUCT, TEST_STRUCT);
+  private static final CCompositeType STRUCT =
+      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS,
+          TEST_STRUCT, TEST_STRUCT);
 
 
   private static final List<CCompositeTypeMemberDeclaration> BOUND_TO_FAIL_FIELDS =
       ImmutableList.of(
-          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12), FIRST_BITFIELD_12),
+          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12),
+              FIRST_BITFIELD_12),
           new CCompositeTypeMemberDeclaration(
               new CArrayType(false, false, CNumericTypes.LONG_LONG_INT, null),
-              LAST_INCOMPLETEARRAY
-              ),
-          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 10), SECOND_BITFIELD_10),
-          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT)
-        );
+              LAST_INCOMPLETEARRAY),
+          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 10),
+              SECOND_BITFIELD_10),
+          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT));
 
   private static final CCompositeType BOUND_TO_FAIL_STRUCT = new CCompositeType(false, false,
       ComplexTypeKind.STRUCT, BOUND_TO_FAIL_FIELDS, TEST_STRUCT, TEST_STRUCT);
@@ -141,7 +142,7 @@ public class MachineModelGetOffsetTest {
   @Test
   public void testFailingGetFieldOffsetInStructDueToIntermediateIncompleteType() {
     assertThat(model.getFieldOffsetInBits(BOUND_TO_FAIL_STRUCT, testField))
-      .isAnyOf(OptionalInt.of(0), OptionalInt.empty());
+        .isAnyOf(OptionalInt.of(0), OptionalInt.empty());
     // Offset-calculation does not fail, if we lookup a field in front of
     // an erroneous intermediately inserted incomplete type.
     //
