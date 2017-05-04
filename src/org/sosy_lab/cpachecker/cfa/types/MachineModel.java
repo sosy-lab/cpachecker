@@ -29,7 +29,6 @@ import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
-
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -50,21 +49,17 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
-/**
- * This enum stores the sizes for all the basic types that exist.
- */
+/** This enum stores the sizes for all the basic types that exist. */
 public enum MachineModel {
-  /**
-   * Machine model representing a 32bit Linux machine with alignment:
-   */
+  /** Machine model representing a 32bit Linux machine with alignment: */
   LINUX32(
       // numeric types
-      2,  // short
-      4,  // int
-      4,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
+      2, // short
+      4, // int
+      4, // long int
+      8, // long long int
+      4, // float
+      8, // double
       12, // long double
 
       // other
@@ -84,20 +79,18 @@ public enum MachineModel {
       // alignof other
       1, // void
       1, //bool
-      4  //pointer
-  ),
+      4 //pointer
+      ),
 
-  /**
-   * Machine model representing a 64bit Linux machine with alignment:
-   */
+  /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
       // numeric types
-      2,  // short
-      4,  // int
-      8,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
+      2, // short
+      4, // int
+      8, // long int
+      8, // long long int
+      4, // float
+      8, // double
       16, // long double
 
       // other
@@ -106,47 +99,46 @@ public enum MachineModel {
       8, // pointer
 
       //  alignof numeric types
-      2,  // short
-      4,  // int
-      8,  // long int
-      8,  // long long int
-      4,  // float
-      8,  // double
+      2, // short
+      4, // int
+      8, // long int
+      8, // long long int
+      4, // float
+      8, // double
       16, // long double
 
       // alignof other
       1, // void
       1, // bool
-      8  // pointer
-  );
+      8 // pointer
+      );
   // numeric types
-  private final int     sizeofShort;
-  private final int     sizeofInt;
-  private final int     sizeofLongInt;
-  private final int     sizeofLongLongInt;
-  private final int     sizeofFloat;
-  private final int     sizeofDouble;
-  private final int     sizeofLongDouble;
+  private final int sizeofShort;
+  private final int sizeofInt;
+  private final int sizeofLongInt;
+  private final int sizeofLongLongInt;
+  private final int sizeofFloat;
+  private final int sizeofDouble;
+  private final int sizeofLongDouble;
 
   // other
-  private final int     sizeofVoid;
-  private final int     sizeofBool;
-  private final int     sizeofPtr;
-
+  private final int sizeofVoid;
+  private final int sizeofBool;
+  private final int sizeofPtr;
 
   // alignof numeric types
-  private final int     alignofShort;
-  private final int     alignofInt;
-  private final int     alignofLongInt;
-  private final int     alignofLongLongInt;
-  private final int     alignofFloat;
-  private final int     alignofDouble;
-  private final int     alignofLongDouble;
+  private final int alignofShort;
+  private final int alignofInt;
+  private final int alignofLongInt;
+  private final int alignofLongLongInt;
+  private final int alignofFloat;
+  private final int alignofDouble;
+  private final int alignofLongDouble;
 
   // alignof other
-  private final int     alignofVoid;
-  private final int     alignofBool;
-  private final int     alignofPtr;
+  private final int alignofVoid;
+  private final int alignofBool;
+  private final int alignofPtr;
 
   // according to ANSI C, sizeof(char) is always 1
   private final int mSizeofChar = 1;
@@ -217,11 +209,12 @@ public enum MachineModel {
   }
 
   /**
-   * This method returns the signed integer type of the result
-   * of subtracting two pointers, also called <code>ptrdiff_t</code>.
+   * This method returns the signed integer type of the result of subtracting two pointers, also
+   * called <code>ptrdiff_t</code>.
    *
-   * <p>From ISO-C99 (6.5.6, #9):<p>
-   * When two pointers are subtracted, [...] The size of the result is implementation-defined,
+   * <p>From ISO-C99 (6.5.6, #9):
+   *
+   * <p>When two pointers are subtracted, [...] The size of the result is implementation-defined,
    * and its type (a signed integer type) is <code>ptrdiff_t</code> defined in the stddef.h-header.
    */
   public CSimpleType getPointerDiffType() {
@@ -233,22 +226,22 @@ public enum MachineModel {
   /**
    * This method decides, if a plain <code>char</code> is signed or unsigned.
    *
-   * <p>From ISO-C99 (6.2.5, #15):<p>
-   * The three types <code>char</code>, <code>signed char</code>, and
-   * <code>unsigned char</code> are collectively called the <i>character types</i>.
-   * The implementation shall define <code>char</code> to have the same range, representation, and behavior
-   * as either <code>signed char</code> or <code>unsigned char</code>.
+   * <p>From ISO-C99 (6.2.5, #15):
+   *
+   * <p>The three types <code>char</code>, <code>signed char</code>, and <code>unsigned char</code>
+   * are collectively called the <i>character types</i>. The implementation shall define <code>char
+   * </code> to have the same range, representation, and behavior as either <code>signed char</code>
+   * or <code>unsigned char</code>.
    */
   public boolean isDefaultCharSigned() {
     return true;
   }
 
   /**
-   * Determine whether a type is signed or unsigned.
-   * Contrary to {@link CSimpleType#isSigned()} and {@link CSimpleType#isUnsigned()}
-   * this method leaves no third option and should thus be preferred.
-   * For floating point types it returns true,
-   * for types where signedness makes no sense (bool, void) it returns false.
+   * Determine whether a type is signed or unsigned. Contrary to {@link CSimpleType#isSigned()} and
+   * {@link CSimpleType#isUnsigned()} this method leaves no third option and should thus be
+   * preferred. For floating point types it returns true, for types where signedness makes no sense
+   * (bool, void) it returns false.
    */
   public boolean isSigned(CSimpleType t) {
     // resolve UNSPECIFIED and INT to SIGNED INT etc.
@@ -261,18 +254,18 @@ public enum MachineModel {
     }
 
     switch (t.getType()) {
-    case CHAR:
-      return isDefaultCharSigned();
-    case FLOAT:
-    case DOUBLE:
-      return true;
-    case INT:
-      throw new AssertionError("Canonical type of INT should always have sign modifier");
-    case UNSPECIFIED:
-      throw new AssertionError("Canonical type should never be UNSPECIFIED");
-    default:
-      // bool, void
-      return false;
+      case CHAR:
+        return isDefaultCharSigned();
+      case FLOAT:
+      case DOUBLE:
+        return true;
+      case INT:
+        throw new AssertionError("Canonical type of INT should always have sign modifier");
+      case UNSPECIFIED:
+        throw new AssertionError("Canonical type should never be UNSPECIFIED");
+      default:
+        // bool, void
+        return false;
     }
   }
 
@@ -326,28 +319,31 @@ public enum MachineModel {
 
   public int getSizeof(CSimpleType type) {
     switch (type.getType()) {
-    case BOOL:        return getSizeofBool();
-    case CHAR:        return getSizeofChar();
-    case FLOAT:       return getSizeofFloat();
-    case UNSPECIFIED: // unspecified is the same as int
-    case INT:
-      if (type.isLongLong()) {
-        return getSizeofLongLongInt();
-      } else if (type.isLong()) {
-        return getSizeofLongInt();
-      } else if (type.isShort()) {
-        return getSizeofShort();
-      } else {
-        return getSizeofInt();
-      }
-    case DOUBLE:
-      if (type.isLong()) {
-        return getSizeofLongDouble();
-      } else {
-        return getSizeofDouble();
-      }
-    default:
-      throw new AssertionError("Unrecognized CBasicType " + type.getType());
+      case BOOL:
+        return getSizeofBool();
+      case CHAR:
+        return getSizeofChar();
+      case FLOAT:
+        return getSizeofFloat();
+      case UNSPECIFIED: // unspecified is the same as int
+      case INT:
+        if (type.isLongLong()) {
+          return getSizeofLongLongInt();
+        } else if (type.isLong()) {
+          return getSizeofLongInt();
+        } else if (type.isShort()) {
+          return getSizeofShort();
+        } else {
+          return getSizeofInt();
+        }
+      case DOUBLE:
+        if (type.isLong()) {
+          return getSizeofLongDouble();
+        } else {
+          return getSizeofDouble();
+        }
+      default:
+        throw new AssertionError("Unrecognized CBasicType " + type.getType());
     }
   }
 
@@ -401,9 +397,12 @@ public enum MachineModel {
 
   public int getAlignof(CSimpleType type) {
     switch (type.getType()) {
-      case BOOL:        return getAlignofBool();
-      case CHAR:        return getAlignofChar();
-      case FLOAT:       return getAlignofFloat();
+      case BOOL:
+        return getAlignofBool();
+      case CHAR:
+        return getAlignofChar();
+      case FLOAT:
+        return getAlignofFloat();
       case UNSPECIFIED: // unspecified is the same as int
       case INT:
         if (type.isLongLong()) {
@@ -445,7 +444,9 @@ public enum MachineModel {
 
   /**
    * Get the minimal representable value for an integer type.
-   * @throws IllegalArgumentException If the type is not an integer type as defined by {@link CBasicType#isIntegerType()}.
+   *
+   * @throws IllegalArgumentException If the type is not an integer type as defined by {@link
+   *     CBasicType#isIntegerType()}.
    */
   public BigInteger getMinimalIntegerValue(CSimpleType pType) {
     checkArgument(pType.getType().isIntegerType());
@@ -458,7 +459,9 @@ public enum MachineModel {
 
   /**
    * Get the maximal representable value for an integer type.
-   * @throws IllegalArgumentException If the type is not an integer type as defined by {@link CBasicType#isIntegerType()}.
+   *
+   * @throws IllegalArgumentException If the type is not an integer type as defined by {@link
+   *     CBasicType#isIntegerType()}.
    */
   public BigInteger getMaximalIntegerValue(CSimpleType pType) {
     checkArgument(pType.getType().isIntegerType());
@@ -496,7 +499,7 @@ public enum MachineModel {
       CExpression arrayLength = pArrayType.getLength();
 
       if (arrayLength instanceof CIntegerLiteralExpression) {
-        int length = ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
+        int length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
 
         int sizeOfType = model.getSizeof(pArrayType.getType());
         return length * sizeOfType;
@@ -510,10 +513,13 @@ public enum MachineModel {
     public Integer visit(CCompositeType pCompositeType) throws IllegalArgumentException {
 
       switch (pCompositeType.getKind()) {
-        case STRUCT: return handleSizeOfStruct(pCompositeType);
-        case UNION:  return handleSizeOfUnion(pCompositeType);
+        case STRUCT:
+          return handleSizeOfStruct(pCompositeType);
+        case UNION:
+          return handleSizeOfUnion(pCompositeType);
         case ENUM: // There is no such kind of Composit Type.
-        default: throw new AssertionError();
+        default:
+          throw new AssertionError();
       }
     }
 
@@ -550,7 +556,7 @@ public enum MachineModel {
           }
         } else {
           if (decl.getType() instanceof CBitFieldType) {
-              bitFieldsSize += ((CBitFieldType) decl.getType()).getBitFieldSize();
+            bitFieldsSize += ((CBitFieldType) decl.getType()).getBitFieldSize();
           } else {
             size += calculateByteSize(bitFieldsSize);
             bitFieldsSize = 0;
@@ -657,7 +663,8 @@ public enum MachineModel {
   private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor =
       new BaseAlignofVisitor(this);
 
-  public static class BaseAlignofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
+  public static class BaseAlignofVisitor
+      implements CTypeVisitor<Integer, IllegalArgumentException> {
     private final MachineModel model;
 
     public BaseAlignofVisitor(MachineModel model) {
@@ -686,7 +693,8 @@ public enum MachineModel {
           return alignof;
 
         case ENUM: // There is no such kind of Composite Type.
-        default: throw new AssertionError();
+        default:
+          throw new AssertionError();
       }
     }
 
@@ -753,64 +761,63 @@ public enum MachineModel {
   }
 
   public OptionalInt getFieldOffsetInBits(CCompositeType ownerType, String fieldName) {
-      final ComplexTypeKind ownerTypeKind = ownerType.getKind();
-      List<CCompositeTypeMemberDeclaration> typeMembers = ownerType.getMembers();
+    final ComplexTypeKind ownerTypeKind = ownerType.getKind();
+    List<CCompositeTypeMemberDeclaration> typeMembers = ownerType.getMembers();
 
-      Integer bitOffset = null;
-      boolean found = false;
-      
-      if(ownerTypeKind == ComplexTypeKind.UNION) {
-          // If the field in question is a part of the Union,
-          // return an offset of 0.
-          // Otherwise, to indicate a problem, the return
-          // will be null.
-          if(typeMembers.stream().anyMatch(m -> m.getName().equals(fieldName))) {
-              bitOffset = 0;
-          }
-      } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
-          BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(this);
-          bitOffset = 0;
-          int sizeOfConsecutiveBitFields = 0;
-          
-          for(CCompositeTypeMemberDeclaration typeMember : typeMembers) {
-              if(typeMember.getName().equals(fieldName)) {
-                // just escape the loop and return the current offset
-                found = true;
-                break;
-              }
-              
-              CType type = typeMember.getType();
-              if(type.isIncomplete()) {
-                  /**
-                   * TODO:
-                   * cf. implementation of {@link #handleSizeOfStruct(CCompositeType)},
-                   * where incomplete array as last member of a struct is accepted.
-                   * 
-                   * I could imagine that the same would hold true for the offset.
-                   */
-                  bitOffset = null;
-                  break;
-              }
-              
-              int fieldSizeInBits = getBitSizeof(type);
-              if(type instanceof CBitFieldType) {
-                  sizeOfConsecutiveBitFields += fieldSizeInBits;
-              } else {
-                  bitOffset += sizeOfConsecutiveBitFields;
-                  sizeOfConsecutiveBitFields = 0;
-                  bitOffset += getPadding(sizeofVisitor.calculateByteSize(bitOffset), type);
-                  bitOffset += fieldSizeInBits;
-              }
-          }
+    Integer bitOffset = null;
+    boolean found = false;
+
+    if (ownerTypeKind == ComplexTypeKind.UNION) {
+      // If the field in question is a part of the Union,
+      // return an offset of 0.
+      // Otherwise, to indicate a problem, the return
+      // will be null.
+      if (typeMembers.stream().anyMatch(m -> m.getName().equals(fieldName))) {
+        bitOffset = 0;
       }
-      
-      if (bitOffset != null && found) {
-          return OptionalInt.of(bitOffset);
-      } else {
-          return OptionalInt.empty();
+    } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
+      BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(this);
+      bitOffset = 0;
+      int sizeOfConsecutiveBitFields = 0;
+
+      for (CCompositeTypeMemberDeclaration typeMember : typeMembers) {
+        if (typeMember.getName().equals(fieldName)) {
+          // just escape the loop and return the current offset
+          found = true;
+          break;
+        }
+
+        CType type = typeMember.getType();
+        if (type.isIncomplete()) {
+          /**
+           * TODO: cf. implementation of {@link #handleSizeOfStruct(CCompositeType)}, where
+           * incomplete array as last member of a struct is accepted.
+           *
+           * <p>I could imagine that the same would hold true for the offset.
+           */
+          bitOffset = null;
+          break;
+        }
+
+        int fieldSizeInBits = getBitSizeof(type);
+        if (type instanceof CBitFieldType) {
+          sizeOfConsecutiveBitFields += fieldSizeInBits;
+        } else {
+          bitOffset += sizeOfConsecutiveBitFields;
+          sizeOfConsecutiveBitFields = 0;
+          bitOffset += getPadding(sizeofVisitor.calculateByteSize(bitOffset), type);
+          bitOffset += fieldSizeInBits;
+        }
       }
+    }
+
+    if (bitOffset != null && found) {
+      return OptionalInt.of(bitOffset);
+    } else {
+      return OptionalInt.empty();
+    }
   }
-  
+
   public int getPadding(int pOffset, CType pType) {
     int alignof = getAlignof(pType);
     int padding = alignof - (pOffset % alignof);
