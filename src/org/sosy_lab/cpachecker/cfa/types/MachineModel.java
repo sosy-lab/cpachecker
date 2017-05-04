@@ -773,6 +773,7 @@ public enum MachineModel {
       // Otherwise, to indicate a problem, the return
       // will be null.
       if (typeMembers.stream().anyMatch(m -> m.getName().equals(fieldName))) {
+        found = true;
         bitOffset = 0;
       }
     } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
