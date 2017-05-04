@@ -482,7 +482,7 @@ public enum MachineModel {
   }
 
   @SuppressWarnings("ImmutableEnumChecker")
-  private final CTypeVisitor<Integer, IllegalArgumentException> sizeofVisitor =
+  private final BaseSizeofVisitor sizeofVisitor =
       new BaseSizeofVisitor(this);
 
   public static class BaseSizeofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
@@ -777,36 +777,55 @@ public enum MachineModel {
         bitOffset = 0;
       }
     } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
-      BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(this);
       bitOffset = 0;
       int sizeOfConsecutiveBitFields = 0;
 
-      for (CCompositeTypeMemberDeclaration typeMember : typeMembers) {
-        if (typeMember.getName().equals(fieldName)) {
-          // just escape the loop and return the current offset
-          found = true;
-          break;
-        }
-
+      for (Iterator<CCompositeTypeMemberDeclaration> iterator = typeMembers.iterator(); iterator.hasNext();) {
+        CCompositeTypeMemberDeclaration typeMember = iterator.next();
         CType type = typeMember.getType();
+
+        int fieldSizeInBits = -1;
+        // If incomplete type at end of struct, just assume 0 for its size
+        // and compute its offset as usual, since it isn't affected.
+        //
+        // If incomplete and not the end of the struct, something is wrong
+        // and we return an empty Optional.
         if (type.isIncomplete()) {
-          /**
-           * TODO: cf. implementation of {@link #handleSizeOfStruct(CCompositeType)}, where
-           * incomplete array as last member of a struct is accepted.
-           *
-           * <p>I could imagine that the same would hold true for the offset.
-           */
-          bitOffset = null;
-          break;
+          if (iterator.hasNext()) {
+            bitOffset = null;
+            break;
+          } else {
+            fieldSizeInBits = 0;
+          }
+        } else {
+          fieldSizeInBits = getBitSizeof(type);
         }
 
-        int fieldSizeInBits = getBitSizeof(type);
         if (type instanceof CBitFieldType) {
+          if (typeMember.getName().equals(fieldName)) {
+            // just escape the loop and return the current offset
+            found = true;
+            bitOffset += sizeOfConsecutiveBitFields;
+            break;
+          }
+
           sizeOfConsecutiveBitFields += fieldSizeInBits;
         } else {
+          int sizeOfByte = getSizeofCharInBits();
+
           bitOffset += sizeOfConsecutiveBitFields;
           sizeOfConsecutiveBitFields = 0;
-          bitOffset += getPadding(sizeofVisitor.calculateByteSize(bitOffset), type);
+          // once pad the bits to full bytes, than pad bytes to the
+          // alignment of the current type
+          bitOffset = sizeofVisitor.calculateByteSize(bitOffset);
+          bitOffset = (bitOffset * sizeOfByte) + (getPadding(bitOffset, type) * sizeOfByte);
+
+          if (typeMember.getName().equals(fieldName)) {
+            // just escape the loop and return the current offset
+            found = true;
+            break;
+          }
+
           bitOffset += fieldSizeInBits;
         }
       }
