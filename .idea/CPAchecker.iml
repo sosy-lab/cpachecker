@@ -195,6 +195,17 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library">
+      <library name="truth-java8-extension.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/test/truth-java8-extension.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/truth-java8-extension-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
       <library name="smt-parser.jar">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/java/runtime/smt-parser.jar!/" />
