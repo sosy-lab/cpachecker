@@ -130,7 +130,7 @@ public class ThreadCreateTransformer {
     logger = log;
   }
 
-  public void transform(CFA cfa) {
+  public void transform(CFA cfa) throws InvalidConfigurationException {
     ThreadFinder threadVisitor = new ThreadFinder(threadCreate, threadCreateN, threadJoin, threadJoinN);
     for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
@@ -147,6 +147,9 @@ public class ThreadCreateTransformer {
       List<CExpression> pParameters = Lists.newArrayList(args.get(2));
       String newThreadName = newThreadNameExpression.getName();
       CFunctionEntryNode entryNode = (CFunctionEntryNode) cfa.getFunctionHead(newThreadName);
+      if (entryNode == null) {
+        throw new InvalidConfigurationException("Can not find the body of function " + newThreadName + "(), full line: " + edge);
+      }
       CFunctionDeclaration pDeclaration = entryNode.getFunctionDefinition();
       CFANode pPredecessor = edge.getPredecessor();
       CFANode pSuccessor = edge.getSuccessor();
