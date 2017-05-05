@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -42,7 +41,7 @@ import org.sosy_lab.cpachecker.util.Pair;
  *  There also can be functions, which can be executed only in one thread.
  */
 
-@Options(prefix="cpa.usagestatistics")
+@Options(prefix="cpa.usage")
 public class CallstackFilter extends GenericFilter<String> {
 
   @Option(name = "notSelfParallelFunctions", description = "The functions, which cannot be executed in parallel with themselves")
