@@ -190,6 +190,8 @@ public class CoreComponentsFactory {
   )
   boolean runCBMCasExternalTool = false;
 
+
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;

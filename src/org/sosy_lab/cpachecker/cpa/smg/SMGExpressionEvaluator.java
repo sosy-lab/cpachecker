@@ -303,46 +303,61 @@ public class SMGExpressionEvaluator {
 
     List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
 
-    int offset = 0;
+    Integer offset = null;
     int bitFieldsSize = 0;
-
-    for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
-      String memberName = typeMember.getName();
-      if (typeMember.getType() instanceof CBitFieldType) {
-        if (memberName.equals(fieldName)) {
-          offset += bitFieldsSize;
-          return new SMGField(SMGKnownExpValue.valueOf(offset),
-              getRealExpressionType(typeMember.getType()));
+    CType resultType = ownerType;
+    
+    if (ownerType.getKind() == ComplexTypeKind.UNION) {
+      // all other calculations are not changing the value of offset if kind of complextype is union,
+      // therefore we can savely reduce it to one check instead of n, n being the size of membersOfType
+      for (CCompositeTypeMemberDeclaration member : membersOfType) {
+        if (member.getName().equals(fieldName)) {
+          offset = 0;
+          resultType = getRealExpressionType(member.getType());
         }
-
-        if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-          bitFieldsSize += ((CBitFieldType) typeMember.getType()).getBitFieldSize();
-        }
-      } else {
-        if (bitFieldsSize > 0) {
-          offset += bitFieldsSize;
-          if (bitFieldsSize % machineModel.getSizeofCharInBits() > 0) {
-            offset += machineModel.getSizeofCharInBits() - (bitFieldsSize % machineModel.getSizeofCharInBits());
+      }
+    } else if (ownerType.getKind() == ComplexTypeKind.STRUCT) {
+      int charSizeInBits = machineModel.getSizeofCharInBits();
+      offset = 0;
+      
+      for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
+        String memberName = typeMember.getName();
+        if (typeMember.getType() instanceof CBitFieldType) {
+          if (memberName.equals(fieldName)) {
+            offset += bitFieldsSize;
+            resultType = typeMember.getType();
+            break;
           }
-          bitFieldsSize = 0;
-        }
-        int padding = machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), typeMember.getType()) *
-            machineModel.getSizeofCharInBits();
-
-        if (memberName.equals(fieldName)) {
+          bitFieldsSize += ((CBitFieldType) typeMember.getType()).getBitFieldSize();
+        } else {
+          if (bitFieldsSize > 0) {
+            offset += bitFieldsSize;
+            if (bitFieldsSize % charSizeInBits > 0) {
+              offset += charSizeInBits - (bitFieldsSize % charSizeInBits);
+            }
+            bitFieldsSize = 0;
+          }
+          int padding = machineModel.getPadding(offset / charSizeInBits, typeMember.getType()) * charSizeInBits;
+  
           offset += padding;
-          return new SMGField(SMGKnownExpValue.valueOf(offset),
-            getRealExpressionType(typeMember.getType()));
-        }
-
-        if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-          offset = offset + padding + getBitSizeof(pEdge, getRealExpressionType(typeMember.getType()),
-              pState, expression);
+          if (memberName.equals(fieldName)) {
+            resultType = typeMember.getType();
+            break;
+          }
+          
+          offset += getBitSizeof(pEdge, getRealExpressionType(typeMember.getType()), pState, expression);
         }
       }
     }
 
-    return new SMGField(SMGUnknownValue.getInstance(), ownerType);
+    SMGExplicitValue smgValue = null;
+    if(offset != null && !resultType.equals(ownerType)) {
+      smgValue = SMGKnownExpValue.valueOf(offset);
+      resultType = getRealExpressionType(resultType);
+    } else {
+      smgValue = SMGUnknownValue.getInstance();
+    }
+    return new SMGField(smgValue, resultType);
   }
 
   boolean isStructOrUnionType(CType rValueType) {

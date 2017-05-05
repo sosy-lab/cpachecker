@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import java.math.BigInteger;
@@ -74,7 +75,6 @@ import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
-import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarationStatement;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -1785,24 +1785,23 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private CFANode handleCompoundStatementExpression(IGNUASTCompoundStatementExpression compoundExp,
       final CFANode rootNode, final CIdExpression tempVar) {
-
-    scope.enterBlock();
-
     IASTStatement[] statements = compoundExp.getCompoundStatement().getStatements();
     if (statements.length == 0) {
       throw parseContext.parseError("Empty compound-statement expression", compoundExp);
     }
 
+    scope.enterBlock();
+    locStack.push(rootNode);
+
     int locDepth = locStack.size();
     int conditionDepth = elseStack.size();
     int loopDepth = loopStartStack.size();
 
-    locStack.push(rootNode);
+    // Handling all but the last statement is easy.
     for (int i = 0; i < statements.length-1; i++) {
       IASTStatement statement = statements[i];
       statement.accept(this);
     }
-    CFANode middleNode = locStack.pop();
 
     assert locDepth == locStack.size();
     assert conditionDepth == elseStack.size();
@@ -1813,21 +1812,14 @@ class CFAFunctionBuilder extends ASTVisitor {
       throw parseContext.parseError((IASTProblemStatement) lastStatement);
     }
 
-    if (lastStatement instanceof CASTDeclarationStatement && tempVar == null) {
-      locStack.push(middleNode);
-      visit(lastStatement);
+    // If we do not need a return value, last statement is also easy.
+    if (tempVar == null) {
+      lastStatement.accept(this);
+      scope.leaveBlock();
       return locStack.pop();
     }
 
-    FileLocation fileLocation = astCreator.getLocation(compoundExp);
-
     if (!(lastStatement instanceof IASTExpressionStatement)) {
-       if (tempVar == null) {
-         CFANode lastNode = handleAllSideEffects(middleNode, fileLocation, lastStatement.getRawSignature(), true);
-         scope.leaveBlock();
-         return lastNode;
-       }
-
       throw parseContext.parseError(
           "Unsupported statement type "
               + lastStatement.getClass().getSimpleName()
@@ -1835,22 +1827,42 @@ class CFAFunctionBuilder extends ASTVisitor {
           lastStatement);
     }
 
-    CAstNode exp = astCreator.convertExpressionWithSideEffects(((IASTExpressionStatement)lastStatement).getExpression());
+    // Now we need to convert the last statement and get a value that we can assign to tempVar.
+    CAstNode exp =
+        astCreator.convertExpressionWithSideEffects(
+            ((IASTExpressionStatement) lastStatement).getExpression());
 
-    middleNode = handleAllSideEffects(middleNode, fileLocation, lastStatement.getRawSignature(), true);
-    CStatement stmt;
-    if (exp instanceof CStatement) {
-      stmt = (CStatement)exp;
+    CFANode middleNode = locStack.pop();
+    CRightHandSide rhs;
+    if (exp instanceof CRightHandSide) {
+      middleNode =
+          handleAllSideEffects(
+              middleNode,
+              astCreator.getLocation(lastStatement),
+              lastStatement.getRawSignature(),
+              true);
+      rhs = (CRightHandSide) exp;
     } else {
-      stmt = createStatement(astCreator.getLocation(compoundExp),
-          tempVar, (CRightHandSide)exp);
+      Verify.verify(
+          exp instanceof CAssignment,
+          "Unexpected expression that is not an assignment nor a RHS, but %s: %s",
+          exp.getClass(),
+          exp);
+      middleNode =
+          createIASTExpressionStatementEdges(
+              lastStatement.getRawSignature(),
+              astCreator.getLocation(lastStatement),
+              middleNode,
+              ((CAssignment) exp));
+      rhs = ((CAssignment) exp).getLeftHandSide();
     }
-    CFANode lastNode = newCFANode();
-    CFAEdge edge = new CStatementEdge(stmt.toASTString(), stmt, fileLocation, middleNode, lastNode);
-    addToCFA(edge);
+
+    CStatement stmt = createStatement(astCreator.getLocation(compoundExp), tempVar, rhs);
+    CFANode lastNode =
+        createIASTExpressionStatementEdges(
+            stmt.toASTString(), stmt.getFileLocation(), middleNode, stmt);
 
     scope.leaveBlock();
-
     return lastNode;
   }
 
