@@ -577,7 +577,7 @@ private boolean classifyNodes = false;
     }
 
     //Transform ldv_thread_create
-    ThreadCreateTransformer TCtransformer = new ThreadCreateTransformer(logger);
+    ThreadCreateTransformer TCtransformer = new ThreadCreateTransformer(logger, config);
     TCtransformer.transform(cfa);
 
     // Transform dummy loops into edges to termination nodes

@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadCreateStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -57,9 +58,6 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
   private final TransferRelation locationTransfer;
   private final TransferRelation callstackTransfer;
   private final ThreadCPAStatistics threadStatistics;
-
-  private static String JOIN = "ldv_thread_join";
-  private static String JOIN_SELF_PARALLEL = "ldv_thread_join_N";
 
   private boolean resetCallstacksFlag;
 
@@ -142,7 +140,7 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
       //Just to statistics
       ThreadState tmpState = builder.build();
       threadStatistics.maxNumberOfThreads.setNextValue(tmpState.getThreadSet().size());
-    } else if (functionName.equals(JOIN) || functionName.equals(JOIN_SELF_PARALLEL)) {
+    } else if (isThreadJoinFunction(fCall)) {
       threadStatistics.threadJoins.inc();
       List<CExpression> args = pCfaEdge.getArguments();
       functionName = ((CUnaryExpression)args.get(1)).getOperand().toASTString();
@@ -153,7 +151,10 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
   private boolean isThreadCreateFunction(CFunctionCall statement) {
     return (statement instanceof CThreadCreateStatement);
-    //return functionName.equals(CREATE) || functionName.equals(CREATE_SELF_PARALLEL);
+  }
+
+  private boolean isThreadJoinFunction(CFunctionCall statement) {
+    return (statement instanceof CThreadJoinStatement);
   }
 
   public Statistics getStatistics() {

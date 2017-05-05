@@ -27,6 +27,10 @@ import com.google.common.collect.Lists;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
@@ -41,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadCreateStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -50,15 +55,40 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-
+@Options
 public class ThreadCreateTransformer {
 
-  private final static String CREATE = "ldv_thread_create";
-  private final static String CREATE_SELF_PARALLEL = "ldv_thread_create_N";
+  @Option(secure=true, name="cfa.threads.threadCreate",
+      description="A name of thread_create function")
+  private String threadCreate = "ldv_thread_create";
+
+  @Option(secure=true, name="cfa.threads.threadSelfCreate",
+      description="A name of thread_join function")
+  private String threadCreateN = "ldv_thread_create_N";
+
+  @Option(secure=true, name="cfa.threads.threadJoin",
+      description="A name of thread_create_N function")
+  private String threadJoin = "ldv_thread_join";
+
+  @Option(secure=true, name="cfa.threads.threadSelfJoin",
+      description="A name of thread_join_N function")
+  private String threadJoinN = "ldv_thread_join_N";
 
   public static class ThreadFinder implements CFATraversal.CFAVisitor {
 
-    Map<CFAEdge, CFunctionCallExpression> threadCreates = new HashMap<>();
+    private final String tCreate;
+    private final String tCreateN;
+    private final String tJoin;
+    private final String tJoinN;
+
+    ThreadFinder(String create, String createN, String join, String joinN) {
+      tCreate = create;
+      tCreateN = createN;
+      tJoin = join;
+      tJoinN = joinN;
+    }
+
+    Map<CFAEdge, CFunctionCallExpression> threadOperations = new HashMap<>();
 
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
@@ -85,28 +115,30 @@ public class ThreadCreateTransformer {
 
     private void checkFunctionExpression(CFAEdge edge, CFunctionCallExpression exp) {
       String fName = exp.getFunctionNameExpression().toString();
-      if (fName.equals(CREATE) || fName.equals(CREATE_SELF_PARALLEL)) {
-        threadCreates.put(edge, exp);
+      if (fName.equals(tCreate) || fName.equals(tCreateN)
+          || fName.equals(tJoin) || fName.equals(tJoinN)) {
+        threadOperations.put(edge, exp);
       }
     }
   }
 
   private final LogManager logger;
 
-  public ThreadCreateTransformer(LogManager log) {
+  public ThreadCreateTransformer(LogManager log, Configuration config) throws InvalidConfigurationException {
+    config.inject(this);
     logger = log;
   }
 
-  public void transform(CFA cfa) {
-    ThreadFinder threadVisitor = new ThreadFinder();
+  public void transform(CFA cfa) throws InvalidConfigurationException {
+    ThreadFinder threadVisitor = new ThreadFinder(threadCreate, threadCreateN, threadJoin, threadJoinN);
     for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
     }
 
     //We need to repeat this loop several times, because we traverse that part cfa, which is reachable from main
-    for (CFAEdge edge : threadVisitor.threadCreates.keySet()) {
+    for (CFAEdge edge : threadVisitor.threadOperations.keySet()) {
 
-      CFunctionCallExpression fCall = threadVisitor.threadCreates.get(edge);
+      CFunctionCallExpression fCall = threadVisitor.threadOperations.get(edge);
       List<CExpression> args = fCall.getParameterExpressions();
       CExpression newThreadFunction = args.get(1);
       List<CExpression> pParameters = Lists.newArrayList(args.get(2));
@@ -124,18 +156,21 @@ public class ThreadCreateTransformer {
       CFunctionCallExpression pFunctionCallExpression = new CFunctionCallExpression(pFileLocation, pDeclaration.getType().getReturnType(), newThreadNameExpression, pParameters, pDeclaration);
       boolean isSelfParallel;
       String fName = fCall.getFunctionNameExpression().toString();
-      if (fName.equals(CREATE)) {
-        isSelfParallel = false;
+      CFunctionCallStatement pFunctionCall;
+      if (fName.equals(threadCreate) || fName.equals(threadCreateN)) {
+        isSelfParallel = !fName.equals(threadCreate);
+        pFunctionCall = new CThreadCreateStatement(pFileLocation, pFunctionCallExpression, isSelfParallel);
+
+      } else if (fName.equals(threadJoin) || fName.equals(threadJoinN)) {
+        isSelfParallel = !fName.equals(threadJoin);
+        pFunctionCall = new CThreadJoinStatement(pFileLocation, pFunctionCallExpression, isSelfParallel);
       } else {
-        assert (fName.equals(CREATE_SELF_PARALLEL)) : "Unsupported thread create function " + fName;
-        isSelfParallel = true;
+        throw new InvalidConfigurationException("Unsupported thread operation " + fName);
       }
-      CFunctionCallStatement pFunctionCall = new CThreadCreateStatement(pFileLocation, pFunctionCallExpression, isSelfParallel);
 
       CStatementEdge callEdge = new CStatementEdge(pRawStatement, pFunctionCall, pFileLocation, pPredecessor, pSuccessor);
 
       CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
-
     }
   }
 
