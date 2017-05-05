@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadCreateStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -88,7 +87,8 @@ public class ThreadCreateTransformer {
       tJoinN = joinN;
     }
 
-    Map<CFAEdge, CFunctionCallExpression> threadOperations = new HashMap<>();
+    Map<CFAEdge, CFunctionCallExpression> threadCreates = new HashMap<>();
+    Map<CFAEdge, CFunctionCallExpression> threadJoins = new HashMap<>();
 
     @Override
     public TraversalProcess visitEdge(CFAEdge pEdge) {
@@ -115,9 +115,10 @@ public class ThreadCreateTransformer {
 
     private void checkFunctionExpression(CFAEdge edge, CFunctionCallExpression exp) {
       String fName = exp.getFunctionNameExpression().toString();
-      if (fName.equals(tCreate) || fName.equals(tCreateN)
-          || fName.equals(tJoin) || fName.equals(tJoinN)) {
-        threadOperations.put(edge, exp);
+      if (fName.equals(tCreate) || fName.equals(tCreateN)) {
+        threadCreates.put(edge, exp);
+      } else if (fName.equals(tJoin) || fName.equals(tJoinN)) {
+        threadJoins.put(edge, exp);
       }
     }
   }
@@ -129,20 +130,21 @@ public class ThreadCreateTransformer {
     logger = log;
   }
 
-  public void transform(CFA cfa) throws InvalidConfigurationException {
+  public void transform(CFA cfa) {
     ThreadFinder threadVisitor = new ThreadFinder(threadCreate, threadCreateN, threadJoin, threadJoinN);
     for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
     }
 
     //We need to repeat this loop several times, because we traverse that part cfa, which is reachable from main
-    for (CFAEdge edge : threadVisitor.threadOperations.keySet()) {
+    for (CFAEdge edge : threadVisitor.threadCreates.keySet()) {
 
-      CFunctionCallExpression fCall = threadVisitor.threadOperations.get(edge);
+      CFunctionCallExpression fCall = threadVisitor.threadCreates.get(edge);
       List<CExpression> args = fCall.getParameterExpressions();
       CExpression newThreadFunction = args.get(1);
-      List<CExpression> pParameters = Lists.newArrayList(args.get(2));
       CIdExpression newThreadNameExpression = getFunctionName(newThreadFunction);
+      String fName = fCall.getFunctionNameExpression().toString();
+      List<CExpression> pParameters = Lists.newArrayList(args.get(2));
       String newThreadName = newThreadNameExpression.getName();
       CFunctionEntryNode entryNode = (CFunctionEntryNode) cfa.getFunctionHead(newThreadName);
       CFunctionDeclaration pDeclaration = entryNode.getFunctionDefinition();
@@ -154,19 +156,26 @@ public class ThreadCreateTransformer {
       CFACreationUtils.removeEdgeFromNodes(edge);
 
       CFunctionCallExpression pFunctionCallExpression = new CFunctionCallExpression(pFileLocation, pDeclaration.getType().getReturnType(), newThreadNameExpression, pParameters, pDeclaration);
-      boolean isSelfParallel;
-      String fName = fCall.getFunctionNameExpression().toString();
-      CFunctionCallStatement pFunctionCall;
-      if (fName.equals(threadCreate) || fName.equals(threadCreateN)) {
-        isSelfParallel = !fName.equals(threadCreate);
-        pFunctionCall = new CThreadCreateStatement(pFileLocation, pFunctionCallExpression, isSelfParallel);
+      boolean isSelfParallel = !fName.equals(threadCreate);
+      CFunctionCallStatement pFunctionCall = new CThreadCreateStatement(pFileLocation, pFunctionCallExpression, isSelfParallel);
 
-      } else if (fName.equals(threadJoin) || fName.equals(threadJoinN)) {
-        isSelfParallel = !fName.equals(threadJoin);
-        pFunctionCall = new CThreadJoinStatement(pFileLocation, pFunctionCallExpression, isSelfParallel);
-      } else {
-        throw new InvalidConfigurationException("Unsupported thread operation " + fName);
-      }
+      CStatementEdge callEdge = new CStatementEdge(pRawStatement, pFunctionCall, pFileLocation, pPredecessor, pSuccessor);
+
+      CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
+    }
+
+    for (CFAEdge edge : threadVisitor.threadJoins.keySet()) {
+      CFunctionCallExpression fCall = threadVisitor.threadJoins.get(edge);
+      CFANode pPredecessor = edge.getPredecessor();
+      CFANode pSuccessor = edge.getSuccessor();
+      FileLocation pFileLocation = edge.getFileLocation();
+      String pRawStatement = edge.getRawStatement();
+
+      CFACreationUtils.removeEdgeFromNodes(edge);
+
+      String fName = fCall.getFunctionNameExpression().toString();
+      boolean isSelfParallel = !fName.equals(threadJoin);
+      CFunctionCallStatement pFunctionCall = new CThreadCreateStatement(pFileLocation, fCall, isSelfParallel);
 
       CStatementEdge callEdge = new CStatementEdge(pRawStatement, pFunctionCall, pFileLocation, pPredecessor, pSuccessor);
 
