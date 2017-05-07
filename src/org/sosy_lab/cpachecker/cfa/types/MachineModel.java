@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.CSizeOfVisitor;
 
 /** This enum stores the sizes for all the basic types that exist. */
 public enum MachineModel {
@@ -536,38 +537,12 @@ public enum MachineModel {
     }
 
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
-      int size = 0;
-      int bitFieldsSize = 0;
-      Iterator<CCompositeTypeMemberDeclaration> declIt = pCompositeType.getMembers().iterator();
-      while (declIt.hasNext()) {
-        CCompositeTypeMemberDeclaration decl = declIt.next();
-        if (decl.getType().isIncomplete() && !declIt.hasNext()) {
-          // Last member of a struct can be an incomplete array.
-          // In this case we need only padding according to the element type of the array and no size.
-          CType type = decl.getType().getCanonicalType();
-          if (type instanceof CArrayType) {
-            CType elementType = ((CArrayType) type).getType();
-            size += calculateByteSize(bitFieldsSize);
-            bitFieldsSize = 0;
-            size += model.getPadding(size, elementType);
-          } else {
-            throw new IllegalArgumentException(
-                "Cannot compute size of incomplete type " + decl.getType());
-          }
-        } else {
-          if (decl.getType() instanceof CBitFieldType) {
-            bitFieldsSize += ((CBitFieldType) decl.getType()).getBitFieldSize();
-          } else {
-            size += calculateByteSize(bitFieldsSize);
-            bitFieldsSize = 0;
-            size += model.getPadding(size, decl.getType());
-            size += decl.getType().accept(this);
-          }
-        }
+      OptionalInt size = model.getFieldOffsetInBits(pCompositeType, null);
+
+      if (!size.isPresent()) {
+        throw new IllegalArgumentException("Could not compute size of type " + pCompositeType);
       }
-      size += calculateByteSize(bitFieldsSize);
-      size += model.getPadding(size, pCompositeType);
-      return size;
+      return size.getAsInt();
     }
 
     private Integer handleSizeOfUnion(CCompositeType pCompositeType) {
@@ -639,12 +614,22 @@ public enum MachineModel {
     }
   }
 
-  public int getSizeof(CType type) {
+  public int getSizeof(CType pType) {
+    return getSizeof(pType, null);
+  }
+
+  public int getSizeof(CType pType, CSizeOfVisitor pSizeofVisitor) {
     checkArgument(
-        type instanceof CVoidType || !type.isIncomplete(),
+        pType instanceof CVoidType || !pType.isIncomplete(),
         "Cannot compute size of incomplete type %s",
-        type);
-    return type.accept(sizeofVisitor);
+        pType);
+    int result;
+    if (pSizeofVisitor == null) {
+      result = pType.accept(sizeofVisitor);
+    } else {
+      result = pType.accept(pSizeofVisitor);
+    }
+    return result;
   }
 
   public int getBitSizeofPtr() {
@@ -652,10 +637,14 @@ public enum MachineModel {
   }
 
   public int getBitSizeof(CType pType) {
+    return getBitSizeof(pType, null);
+  }
+
+  public int getBitSizeof(CType pType, CSizeOfVisitor pSizeofVisitor) {
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
     } else {
-      return getSizeof(pType) * getSizeofCharInBits();
+      return getSizeof(pType, pSizeofVisitor) * getSizeofCharInBits();
     }
   }
 
@@ -760,19 +749,26 @@ public enum MachineModel {
     return type.accept(alignofVisitor);
   }
 
-  public OptionalInt getFieldOffsetInBits(CCompositeType ownerType, String fieldName) {
-    final ComplexTypeKind ownerTypeKind = ownerType.getKind();
-    List<CCompositeTypeMemberDeclaration> typeMembers = ownerType.getMembers();
+  public OptionalInt getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
+    return getFieldOffsetInBits(pOwnerType, pFieldName, null);
+  }
+
+  public OptionalInt getFieldOffsetInBits(
+      CCompositeType pOwnerType, String pFieldName, CSizeOfVisitor pSizeofVisitor) {
+    final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
+    List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
 
     Integer bitOffset = null;
     boolean found = false;
+
+    int sizeOfByte = getSizeofCharInBits();
 
     if (ownerTypeKind == ComplexTypeKind.UNION) {
       // If the field in question is a part of the Union,
       // return an offset of 0.
       // Otherwise, to indicate a problem, the return
       // will be null.
-      if (typeMembers.stream().anyMatch(m -> m.getName().equals(fieldName))) {
+      if (typeMembers.stream().anyMatch(m -> m.getName().equals(pFieldName))) {
         found = true;
         bitOffset = 0;
       }
@@ -795,14 +791,19 @@ public enum MachineModel {
             bitOffset = null;
             break;
           } else {
+            // XXX: Should there be a check for CArrayType here
+            // as there was in handleSizeOfStruct or is it
+            // safe to say, that this case will not occur
+            // and if it does due to an error we already crash
+            // in the getPadding-step below?
             fieldSizeInBits = 0;
           }
         } else {
-          fieldSizeInBits = getBitSizeof(type);
+          fieldSizeInBits = getBitSizeof(type, pSizeofVisitor);
         }
 
         if (type instanceof CBitFieldType) {
-          if (typeMember.getName().equals(fieldName)) {
+          if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
             found = true;
             bitOffset += sizeOfConsecutiveBitFields;
@@ -811,8 +812,6 @@ public enum MachineModel {
 
           sizeOfConsecutiveBitFields += fieldSizeInBits;
         } else {
-          int sizeOfByte = getSizeofCharInBits();
-
           bitOffset += sizeOfConsecutiveBitFields;
           sizeOfConsecutiveBitFields = 0;
           // once pad the bits to full bytes, than pad bytes to the
@@ -820,7 +819,7 @@ public enum MachineModel {
           bitOffset = sizeofVisitor.calculateByteSize(bitOffset);
           bitOffset = (bitOffset * sizeOfByte) + (getPadding(bitOffset, type) * sizeOfByte);
 
-          if (typeMember.getName().equals(fieldName)) {
+          if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
             found = true;
             break;
@@ -832,6 +831,10 @@ public enum MachineModel {
     }
 
     if (bitOffset != null && found) {
+      return OptionalInt.of(bitOffset);
+    } else if (bitOffset != null && pFieldName == null) {
+      bitOffset = sizeofVisitor.calculateByteSize(bitOffset);
+      bitOffset += getPadding(bitOffset, pOwnerType);
       return OptionalInt.of(bitOffset);
     } else {
       return OptionalInt.empty();
