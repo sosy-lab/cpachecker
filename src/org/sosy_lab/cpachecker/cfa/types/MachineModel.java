@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.CSizeOfVisitor;
 
 /** This enum stores the sizes for all the basic types that exist. */
 public enum MachineModel {
@@ -537,7 +536,7 @@ public enum MachineModel {
     }
 
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
-      OptionalInt size = model.getFieldOffsetInBits(pCompositeType, null);
+      OptionalInt size = model.getFieldOffsetInBits(pCompositeType, null, this);
 
       if (!size.isPresent()) {
         throw new IllegalArgumentException("Could not compute size of type " + pCompositeType);
@@ -618,7 +617,7 @@ public enum MachineModel {
     return getSizeof(pType, null);
   }
 
-  public int getSizeof(CType pType, CSizeOfVisitor pSizeofVisitor) {
+  public int getSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
     checkArgument(
         pType instanceof CVoidType || !pType.isIncomplete(),
         "Cannot compute size of incomplete type %s",
@@ -640,7 +639,7 @@ public enum MachineModel {
     return getBitSizeof(pType, null);
   }
 
-  public int getBitSizeof(CType pType, CSizeOfVisitor pSizeofVisitor) {
+  public int getBitSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
     } else {
@@ -754,7 +753,7 @@ public enum MachineModel {
   }
 
   public OptionalInt getFieldOffsetInBits(
-      CCompositeType pOwnerType, String pFieldName, CSizeOfVisitor pSizeofVisitor) {
+      CCompositeType pOwnerType, String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
     final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
     List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
 
