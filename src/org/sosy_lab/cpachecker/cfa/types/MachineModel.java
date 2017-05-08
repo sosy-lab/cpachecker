@@ -760,6 +760,7 @@ public enum MachineModel {
 
     Integer bitOffset = null;
     boolean found = false;
+    int sizeOfConsecutiveBitFields = 0;
 
     int sizeOfByte = getSizeofCharInBits();
 
@@ -774,7 +775,6 @@ public enum MachineModel {
       }
     } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
       bitOffset = 0;
-      int sizeOfConsecutiveBitFields = 0;
 
       for (Iterator<CCompositeTypeMemberDeclaration> iterator = typeMembers.iterator(); iterator.hasNext();) {
         CCompositeTypeMemberDeclaration typeMember = iterator.next();
@@ -833,6 +833,9 @@ public enum MachineModel {
     if (bitOffset != null && found) {
       return OptionalInt.of(bitOffset);
     } else if (bitOffset != null && pFieldName == null) {
+      if (sizeOfConsecutiveBitFields > 0) {
+        bitOffset += sizeOfConsecutiveBitFields;
+      }
       bitOffset = sizeofVisitor.calculateByteSize(bitOffset);
       bitOffset += getPadding(bitOffset, pOwnerType);
       return OptionalInt.of(bitOffset);
