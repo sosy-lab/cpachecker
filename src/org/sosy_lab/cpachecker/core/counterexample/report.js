@@ -1,53 +1,115 @@
-$(function() {
+(function() {
+	// initialize all popovers
+	$(function() {
+		$('[data-toggle="popover"]').popover({
+			html : true
+		})
+	});
 
-	// JSON_INPUT
+	var app = angular.module('report', []);
 
-	// variable declarations
-	var nodes = json.nodes;
-	var edges = json.edges;
-	var functions = json.functionNames; //TODO: display only the graph for selected function
-	var combinedNodes = json.combinedNodes;
-	var inversedCombinedNodes = json.inversedCombinedNodes;
-	var combinedNodesLabels = json.combinedNodesLabels;
-	var mergedNodes = json.mergedNodes;
-	var functionCallEdges = json.functionCallEdges;
-	var errorPath;
-	if (json.hasOwnProperty("errorPath"))
-		erroPath = json.errorPath;
-	var requiredGraphs = 1;
-	var graphSplitThreshold = 700; // TODO: allow user input with max value 900
-	var zoomEnabled = false; // TODO: allow user to witch between zoom possibilities
+	app.controller('ReportController', [ '$rootScope', '$scope',
+			function($rootScope, $scope) {
+				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
+				$scope.help = "<p>I am currently being developed</p>";
+				$scope.tab = 1;
+				$scope.$on("ChangeTab", function(event, tabIndex) {
+					$scope.setTab(tabIndex);
+				});
+				$scope.setTab = function(tabIndex) {
+					$scope.tab = tabIndex;
+				};
+				$scope.tabIsSet = function(tabIndex) {
+					return $scope.tab === tabIndex;
+				};
+			}]);
 
-	// TODO: different edge weights based on type?
-	var constants = {
-		blankEdge : "BlankEdge",
-		assumeEdge : "AssumeEdge",
-		statementEdge : "StatementEdge",
-		declarationEdge : "DeclarationEdge",
-		returnStatementEdge : "ReturnStatementEdge",
-		functionCallEdge : "FunctionCallEdge",
-		functionReturnEdge : "FunctionReturnEdge",
-		callToReturnEdge : "CallToReturnEdge",
-		entryNode : "entry",
-		exitNode : "exit",
-		afterNode : "after",
-		beforeNode : "before",
-		margin : 20,
-	}
+	app.controller('SourceController', [ '$rootScope', '$scope', '$location',
+			'$anchorScroll',
+			function($rootScope, $scope, $location, $anchorScroll) {
+				// available sourcefiles
+				$scope.sourceFiles = sourceFiles;
+				$scope.selectedSourceFile = 0;
+		        $scope.setSourceFile = function(value){
+		            $scope.selectedSourceFile = value;
+		        };
+		        $scope.sourceFileIsSet = function(value){
+		            return value === $scope.selectedSourceFile;
+		        };				
+			}]);
 	
+	app.controller('CFAController', ['$rootScope', '$scope',
+		function($rootScope, $scope) {
+			$scope.nodes = nodes;
+			$scope.edges = edges;
+			$scope.functions = functions;
+			$scope.combinedNodes = combinedNodes;
+			$scope.inversedCombinedNodes = inversedCombinedNodes;
+			$scope.combinedNodesLabels = combinedNodesLabels;
+			$scope.mergedNodes = mergedNodes;
+			$scope.functionCallEdges = functionCallEdges;
+			$scope.errorPath = errorPath;
+			$scope.requiredGraphs = requiredGraphs;
+			$scope.graphSplitThreshold = graphSplitThreshold
+			$scope.zoomEnabled = zoomEnabled;
+			$scope.graphMap = graphMap;
+			$scope.constants = constants;
+		}]);
+	
+})();
+
+var sourceFiles = []; //SOURCE_FILES
+//CFA_JSON_INPUT
+
+// CFA graph variable declarations
+var nodes = json.nodes;
+var edges = json.edges;
+var functions = json.functionNames; //TODO: display only the graph for selected function
+var combinedNodes = json.combinedNodes;
+var inversedCombinedNodes = json.inversedCombinedNodes;
+var combinedNodesLabels = json.combinedNodesLabels;
+var mergedNodes = json.mergedNodes;
+var functionCallEdges = json.functionCallEdges;
+var errorPath;
+if (json.hasOwnProperty("errorPath"))
+	erroPath = json.errorPath;
+var requiredGraphs = 1;
+var graphSplitThreshold = 700; // TODO: allow user input with max value 900
+var zoomEnabled = false; // TODO: allow user to switch between zoom possibilities
+// Map holding last element in a graph and the graph itself used to handle edges between graphs
+var graphMap = {};
+
+// TODO: different edge weights based on type?
+var constants = {
+	blankEdge : "BlankEdge",
+	assumeEdge : "AssumeEdge",
+	statementEdge : "StatementEdge",
+	declarationEdge : "DeclarationEdge",
+	returnStatementEdge : "ReturnStatementEdge",
+	functionCallEdge : "FunctionCallEdge",
+	functionReturnEdge : "FunctionReturnEdge",
+	callToReturnEdge : "CallToReturnEdge",
+	entryNode : "entry",
+	exitNode : "exit",
+	afterNode : "after",
+	beforeNode : "before",
+	margin : 20,
+}
+
+function init() {
 	if (nodes.length > graphSplitThreshold) {
 		buildMultipleGraphs();
 	} else {
 		buildSingleGraph();
 	}
 	
-	//TODO: Test
 	function buildMultipleGraphs() {
 		requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
 		var firstGraphBuild = false;
 		var nodesPerGraph = [];
+		var render = new dagreD3.render();
 		for (var i = 1; i <= requiredGraphs; i++) {
-			d3.select("#body").append("div").attr("id", "graph" + i);
+			d3.select("#svg-holder").append("div").attr("id", "graph" + i);
 			if (!firstGraphBuild) {
 				nodesPerGraph = nodes.slice(0, graphSplitThreshold);
 				firstGraphBuild = true;
@@ -58,6 +120,7 @@ $(function() {
 					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1));
 			}
 			var graph = createGraph();
+			graphMap[nodesPerGraph[nodesPerGraph.length - 1].index] = graph;
 			setGraphNodes(graph, nodesPerGraph);
 			roundNodeCorners(graph);
 			var graphEdges = edges.filter(function(e) {
@@ -67,7 +130,6 @@ $(function() {
 				}
 			});
 			setGraphEdges(graph, graphEdges, true);
-			var render = new dagreD3.render();
 			var svg = d3.select("#graph" + i).append("svg").attr("id", "svg" + i), svgGroup = svg
 					.append("g");
 			render(d3.select("#svg" + i + " g"), graph);
@@ -78,12 +140,41 @@ $(function() {
 		}
 		addEventsToNodes();
 		addEventsToEdges();
-		// TODO: handle between graph edges + addEvents
+		
+		// TODO: reverseArrowHead + addEvents + styles
+		edges.forEach(function(edge){
+			var source = edge.source;
+			var target = edge.target;
+			if (mergedNodes.includes(source) && mergedNodes.includes(target)) return;
+			if (mergedNodes.includes(source)) source = getMergingNode(source);
+			if (mergedNodes.includes(target)) target = getMergingNode(target);
+			var sourceGraph = getGraphForNode(source);
+			var targetGraph = getGraphForNode(target);
+			if (sourceGraph !== targetGraph && sourceGraph < targetGraph) {
+				graphMap[sourceGraph].setNode(source + "" + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
+				graphMap[sourceGraph].setEdge(source, source + "" + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
+				graphMap[targetGraph].setNode(target + "" + targetGraph, {label: "D", class: "dummy", id: "node" + source});
+				graphMap[targetGraph].setEdge(target + "" + targetGraph, target, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
+			}
+		});
+		// Re-render + resize SVG after graph connecting edges have been placed
+		for (var i = 1; i <= requiredGraphs; i++) {
+			var graph = graphMap[Object.keys(graphMap)[i - 1]];
+			render(d3.select("#svg" + i + " g"), graph);
+			var width = graph.graph().width * 2 + constants.margin * 2;
+			d3.select("#svg" + i).attr("height", graph.graph().height + constants.margin * 2).attr("width", width);
+			d3.select("#svg" + i + "> g").attr("transform", "translate(" + width / 2 + ", 20)");
+		}
 	}
-
+	
+	// Return the graph in which the nodeNumber is present
+	function getGraphForNode(nodeNumber) {
+		return Object.keys(graphMap).find(function(key) { return key >= nodeNumber;});
+	}
+	
 	// build single graph for all contained nodes
 	function buildSingleGraph() {
-		d3.select("#body").append("div").attr("id", "graph");
+		d3.select("#svg-holder").append("div").attr("id", "graph");
 		// Create the graph
 		var g = createGraph();
 		setGraphNodes(g, nodes);
@@ -135,20 +226,11 @@ $(function() {
 				graph.setNode(n.index, {
 					label : setNodeLabel(n),
 					class : n.type,
-					id : setNodeId(n),
+					id : "node" + n.index,
 					shape : nodeShapeDecider(n)
 				});
 			} 
-		})
-	}
-	
-	// Node id, either its index or a combined ID of all indexes if its a combined node
-	function setNodeId(node) {
-		if (Object.keys(combinedNodes).includes(node.index)) {
-			var id = "";
-			combinedNodes[node.index].forEach(function(it){id += it;})
-			return  id;
-		} else return "node" + node.index;
+		});
 	}
 	
 	// Node label, the label from combined nodes or a simple label
@@ -202,9 +284,10 @@ $(function() {
 				source = undefined;
 			if ((source !== undefined && target !== undefined) && (source !== target)) {
 				graph.setEdge(source, target, {
-					label: source + "->" + target, 
+					label: e.stmt, 
 					class: e.type, 
-					id: "edge"+ source + target, 
+					id: "edge"+ source + target,
+					lineInterpolate: 'basis',
 					weight: edgeWeightDecider(e)
 				});
 			}
@@ -279,6 +362,5 @@ $(function() {
 	// on mouse out hide info box for edge
 	function hideInfoBoxEdge() {
 		d3.select("#infoBoxEdge").style("visibility", "hidden");
-	}
-
-});
+	}	
+}

@@ -158,14 +158,6 @@ public class ReportGenerator {
     }
   }
 
-  //TODO: insert in HTML
-  /**
-  <!-- SOURCE_CONTENT -->
-  <!-- LOG -->
-  <!-- STATISTICS -->
-  <!-- CONFIGURATION -->
-   */
-
   private void fillOutTemplate(
       @Nullable CounterexampleInfo counterExample,
       Path reportPath,
@@ -217,8 +209,10 @@ public class ReportGenerator {
             .openBufferedStream();) {
       String line;
       while (null != (line = reader.readLine())) {
-        if (line.contains("JSON_INPUT")) {
+        if (line.contains("CFA_JSON_INPUT")) {
           insertJson(writer, cfa, dotBuilder, counterExample);
+        } else if (line.contains("SOURCE_FILES")) {
+          insertSourceFileNames(writer);
         } else {
           writer.write(line + "\n");
         }
@@ -246,7 +240,6 @@ public class ReportGenerator {
       if (counterExample != null) {
         insertErrorPathData(counterExample, writer);
       }
-      insertSourceFileNames(writer);
       dotBuilder.writeCfaInfo(writer);
       writer.write("\n}\n");
     } catch (IOException e) {
@@ -313,11 +306,16 @@ public class ReportGenerator {
 
   private void insertStatistics(Writer writer, String statistics) throws IOException {
     int iterator = 0;
+    writer.write("<ul class=\"list-group\">");
     for (String line : LINE_SPLITTER.split(statistics)) {
-      line = "<pre id=\"statistics-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
-      writer.write(line);
+      if (line.length() > 1) {
+        line = "<li class=\"list-group-item\" id=\"statistics-" + iterator + "\">"
+            + htmlEscape(line) + "</li>\n";
+        writer.write(line);
+      }
       iterator++;
     }
+    writer.write("</ul>\n");
   }
 
   private void insertSources(Writer report) throws IOException {
@@ -330,40 +328,34 @@ public class ReportGenerator {
 
   private void insertSource(Path sourcePath, Writer writer, int sourceFileNumber)
       throws IOException {
-
     if (isReadable(sourcePath)) {
       int lineNumber = 1;
       try (BufferedReader source =
           new BufferedReader(
               new InputStreamReader(
                   new FileInputStream(sourcePath.toFile()), Charset.defaultCharset()))) {
-
         writer.write(
-            "<div class=\"sourceContent content\" ng-show = \"sourceFileIsSet("
+            "<div ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
-                + ")\">\n<table>\n");
-
+                + ")\">\n<table class=\"table table-condensed table-striped\" style=\"margin-left: 10px;\">\n");
         String line;
         while (null != (line = source.readLine())) {
-          line = "<td><pre class=\"prettyprint\">" + htmlEscape(line) + "  </pre></td>";
+          line = "<td>" + htmlEscape(line) + "</td>";
           writer.write(
               "<tr id=\"source-"
                   + lineNumber
-                  + "\"><td><pre>"
+                  + "\"><td class=\"table-data-source\">"
                   + lineNumber
-                  + "</pre></td>"
+                  + "</td>"
                   + line
                   + "</tr>\n");
           lineNumber++;
         }
-
         writer.write("</table></div>\n");
-
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "Could not create report: Inserting source code failed.");
       }
-
     } else {
       writer.write("<p>No Source-File available</p>");
     }
@@ -371,15 +363,18 @@ public class ReportGenerator {
 
 
   private void insertConfiguration(Writer writer) throws IOException {
-
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
-
     int iterator = 0;
+    writer.write("<ul class=\"list-group\">");
     for (String line : lines) {
-      line = "<pre id=\"config-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
-      writer.write(line);
+      if (line.length() > 0) {
+        line = "<li class=\"list-group-item\" id=\"config-" + iterator + "\">" + htmlEscape(line)
+            + "</li>\n";
+        writer.write(line);
+      }
       iterator++;
     }
+    writer.write("</ul>\n");
   }
 
   private void insertLog(Writer writer) {
@@ -388,14 +383,19 @@ public class ReportGenerator {
         try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
           int iterator = 0;
           String line;
+          writer.write("<ul class=\"list-group\">");
           while (null != (line = log.readLine())) {
-            line = "<pre id=\"log-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
-            writer.write(line);
+            if (line.length() > 0) {
+              line = "<li class=\"list-group-item\" id=\"log-" + iterator + "\">" + htmlEscape(line)
+                  + "</li>\n";
+              writer.write(line);
+            }
             iterator++;
           }
+          writer.write("</ul>\n");
         }
       } else {
-          writer.write("<p>No Log-File available</p>");
+        writer.write("<p>No Log-File available</p>");
       }
     } catch (IOException e) {
       logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
@@ -475,9 +475,9 @@ public class ReportGenerator {
 
   private void insertSourceFileNames(Writer writer) {
     try {
-      writer.write("\"sourceFiles\":");
+      writer.write("var sourceFiles = [");
       JSON.writeJSONString(sourceFiles, writer);
-      writer.write(",\n");
+      writer.write("];\n");
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of source file names failed.");

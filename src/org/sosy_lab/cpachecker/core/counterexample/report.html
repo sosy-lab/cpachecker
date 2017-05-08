@@ -5,15 +5,26 @@
 <!-- METATAGS -->
 <title>CPAchecker Report</title>
 <!-- REPORT_CSS -->
+
+<link rel="stylesheet"
+	href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+	integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+	crossorigin="anonymous">
 <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-<script src="https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js"></script>
+<script
+	src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+	integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+	crossorigin="anonymous"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
 <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script
+	src="https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js"></script>
 <script>
 <!-- REPORT_JS -->
 	
 </script>
 </head>
-<body id="body">
+<body ng-controller="ReportController" onload="init()">
 	<header class="header">
 		<a href="https://cpachecker.sosy-lab.org/"><img class="logo"
 			ng-src="{{logo}}" /></a>
@@ -21,11 +32,64 @@
 			Report for
 			<!-- REPORT_NAME -->
 		</h1>
-
 		<span class="generated"> 
 		<!-- GENERATED -->
 		</span>
 	</header>
+	<div class="container-fluid">
+		<div class="row margin-top">
+			<nav>
+				<ul class="nav nav-pills">
+					<li ng-class="{active: tabIsSet(1)}"><a href
+						ng-click="setTab(1)">CFA</a></li>
+					<li ng-class="{active: tabIsSet(2)}"><a href
+						ng-click="setTab(2)">ARG</a></li>
+					<li ng-class="{active: tabIsSet(3)}"><a href
+						ng-click="setTab(3)">Source</a></li>
+					<li ng-class="{active: tabIsSet(4)}"><a href
+						ng-click="setTab(4)">Log</a></li>
+					<li ng-class="{active: tabIsSet(5)}"><a href
+						ng-click="setTab(5)">Statistics</a></li>
+					<li ng-class="{active: tabIsSet(6)}"><a href
+						ng-click="setTab(6)">Configurations</a></li>
+					<li> <a href role="button" data-toggle="popover" data-trigger="focus" data-content="{{help}}"
+						class="btn btn-info">
+						<span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+					</a></li>
+				</ul>
+			</nav>
+		</div>
+		<div class="row" id="svg-holder" ng-show="tabIsSet(1)" ng-class="{active: tabIsSet(1)}"
+         ng-controller="CFAController">
+		</div>
+	</div>
+	<div class="margin-top" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}" ng-controller="SourceController">
+		<div style="width: 100%; background-color: white; padding: 5px;">
+        	<div class="dropdown" style="display: inline-block;">
+          	<button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown"
+                  aria-haspopup="true" aria-expanded="true">
+            Displayed Sourcefile
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu pre-scrollable">
+            <li ng-repeat="file in sourceFiles"><a ng-click="setSourceFile($index)">{{file}}</a>
+            </li>
+          </ul>
+        </div>
+        <label>{{sourceFiles[selectedSourceFile]}}</label>
+      </div>
+		<!--SOURCE_CONTENT-->
+    </div>
+	<div class="margin-top" ng-show="tabIsSet(4)" ng-class="{active: tabIsSet(4)}">
+		<!--LOG-->
+	</div>	
+    <div class="margin-top" ng-show="tabIsSet(5)" ng-class="{active: tabIsSet(5)}">
+    	<!--STATISTICS-->
+    </div>
+    <div class="margin-top" ng-show="tabIsSet(6)" ng-class="{active: tabIsSet(6)}">
+		<!--CONFIGURATION-->
+    </div>
+    
 	<div id="infoBoxNode" style="z-index: 1; visibility: hidden;">
 		<div id="insideBoxNode">
 			<span id="boxContentNode">&nbsp;</span>
@@ -35,6 +99,6 @@
 		<div id="insideBoxEdge">
 			<span id="boxContentEdge">&nbsp;</span>
 		</div>
-	</div>	
+	</div>
 </body>
 </html>
