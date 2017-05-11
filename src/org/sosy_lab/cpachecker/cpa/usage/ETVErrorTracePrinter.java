@@ -62,12 +62,10 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
   @Option(description="use single file for output or dump every error trace to its own file")
   private boolean singleFileOutput = false;
 
-  private final LockTransferRelation lTransfer;
   private Writer globalWriter;
 
   public ETVErrorTracePrinter(Configuration pC, BAMTransferRelation pT, LogManager pL, LockTransferRelation t) {
-    super(pC, pT, pL);
-    lTransfer = t;
+    super(pC, pT, pL, t);
   }
 
   @Override
@@ -217,13 +215,5 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     writer.append(fields + "\n");
     writer.append(fieldPointer + "\n");
     writer.append(global + globalPointer + local + localPointer + fields + fieldPointer + "\n");
-  }
-
-  private String shouldBeHighlighted(CFAEdge pEdge) {
-    if (lTransfer != null) {
-      return lTransfer.doesChangeTheState(pEdge);
-    } else {
-      return null;
-    }
   }
 }

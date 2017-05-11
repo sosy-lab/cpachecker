@@ -106,7 +106,7 @@ public class UsageCPAStatistics implements Statistics {
   public void setBAMTransfer(BAMTransferRelation t) {
     transfer = t;
     if (outputFileType == OutputFileType.KLEVER) {
-      errPrinter = new KleverErrorTracePrinter(config, transfer, logger);
+      errPrinter = new KleverErrorTracePrinter(config, transfer, logger, lockTransfer);
     } else if (outputFileType == OutputFileType.ETV) {
       errPrinter = new ETVErrorTracePrinter(config, transfer, logger, lockTransfer);
     }

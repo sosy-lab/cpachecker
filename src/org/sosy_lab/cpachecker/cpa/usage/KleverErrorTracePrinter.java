@@ -43,10 +43,12 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
+import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
@@ -61,8 +63,8 @@ import org.w3c.dom.Element;
 
 public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
-  public KleverErrorTracePrinter(Configuration c, BAMTransferRelation pT, LogManager pL) {
-    super(c, pT, pL);
+  public KleverErrorTracePrinter(Configuration c, BAMTransferRelation pT, LogManager pL, LockTransferRelation lT) {
+    super(c, pT, pL, lT);
   }
 
   int idCounter = 0;
@@ -100,7 +102,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       Element result = builder.createNodeElement("A0", NodeType.ONPATH);
       builder.addDataElementChild(result, NodeFlag.ISENTRY.key , "true");
       printPath(firstUsage, 0, builder);
-      result = printPath(secondUsage, 1, builder);
+      result = printPath(secondUsage, 2, builder);
 
       builder.addDataElementChild(result, NodeFlag.ISVIOLATION.key, "true");
 
@@ -144,13 +146,46 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     Element result = null;
     Element lastWarningElement = null;
 
+    boolean printEdge = false;
+    boolean globalDeclaration = true;
+
+    if (threadId == 0) {
+      printEdge = true;
+    }
+
     while (iterator.hasNext()) {
+      CFAEdge pEdge = iterator.next();
+
+      if (!printEdge
+          && pEdge.getEdgeType() != CFAEdgeType.DeclarationEdge
+          && pEdge.getEdgeType() != CFAEdgeType.BlankEdge) {
+        assert globalDeclaration;
+        printEdge = true;
+      } else if (!printEdge) {
+        continue;
+      }
+
       currentId = nextId;
       nextId = getId();
-      CFAEdge pEdge = iterator.next();
 
       result = builder.createEdgeElement(currentId, nextId);
       dumpCommonInfoForEdge(builder, result, pEdge);
+
+      String note = shouldBeHighlighted(pEdge);
+      if (note != null) {
+        builder.addDataElementChild(result, KeyDef.NOTE, note);
+      }
+
+      if (globalDeclaration
+          && pEdge.getEdgeType() != CFAEdgeType.DeclarationEdge
+          && pEdge.getEdgeType() != CFAEdgeType.BlankEdge) {
+        globalDeclaration = false;
+        if (threadId == 0) {
+          threadId++;
+        }
+        builder.addDataElementChild(result, KeyDef.FUNCTIONENTRY, "main");
+      }
+
       builder.addDataElementChild(result, KeyDef.THREADID, Integer.toString(threadId));
 
       if (pEdge == warning) {

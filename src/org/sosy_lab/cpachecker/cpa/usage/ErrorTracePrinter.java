@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMMultipleCEXSubgraphComputer;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
+import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.RefinedUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnrefinedUsagePointSet;
@@ -74,6 +75,7 @@ public abstract class ErrorTracePrinter {
   private boolean printFalseUnsafes = false;
 
   private final BAMTransferRelation transfer;
+  protected final LockTransferRelation lockTransfer;
   private UnsafeDetector detector;
 
   private int totalUsages = 0;
@@ -95,10 +97,11 @@ public abstract class ErrorTracePrinter {
       e -> e.getFileLocation()!= null && (Files.exists(Paths.get(e.getFileLocation().getFileName())));
 
 
-  public ErrorTracePrinter(Configuration c, BAMTransferRelation t, LogManager l) {
+  public ErrorTracePrinter(Configuration c, BAMTransferRelation t, LogManager l, LockTransferRelation lT) {
     transfer = t;
     logger = l;
     config = c;
+    lockTransfer = lT;
   }
 
   protected void createPath(UsageInfo usage) {
@@ -112,6 +115,7 @@ public abstract class ErrorTracePrinter {
     try {
       root = subgraphComputer.findPath(newTreeTarget, emptySet);
       ARGPath path = ARGUtils.getRandomPath(root);
+
       //path is transformed internally
       usage.setRefinedPath(path.getInnerEdges());
     } catch (MissingBlockException | InterruptedException e) {
@@ -258,6 +262,14 @@ public abstract class ErrorTracePrinter {
     out.println("Amount of usages with failure:                             " + totalFailureUsages);
     container.printUsagesStatistics(out);
     out.println("Time for reseting unsafes:          " + container.resetTimer);
+  }
+
+  protected String shouldBeHighlighted(CFAEdge pEdge) {
+    if (lockTransfer != null) {
+      return lockTransfer.doesChangeTheState(pEdge);
+    } else {
+      return null;
+    }
   }
 
   protected abstract void printUnsafe(SingleIdentifier id, Pair<UsageInfo, UsageInfo> pair);

@@ -129,7 +129,8 @@ public class AutomatonGraphmlCommon {
     CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
     WITNESS_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string"),
     INPUTWITNESSHASH("inputwitnesshash", ElementType.GRAPH, "inputWitnessHash", "string"),
-    WARNING("warning", ElementType.EDGE, "warning", "string");
+    WARNING("warning", ElementType.EDGE, "warning", "string"),
+    NOTE("note", ElementType.EDGE, "note", "string");
 
     public final String id;
     public final ElementType keyFor;
