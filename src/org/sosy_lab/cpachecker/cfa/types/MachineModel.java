@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalInt;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -536,7 +537,7 @@ public enum MachineModel {
     }
 
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
-      OptionalInt size = model.getFieldOffsetInBits(pCompositeType, null, this);
+      OptionalInt size = model.getFieldOffsetInBits(pCompositeType, null, this, null);
 
       if (!size.isPresent()) {
         throw new IllegalArgumentException("Could not compute size of type " + pCompositeType);
@@ -748,12 +749,25 @@ public enum MachineModel {
     return type.accept(alignofVisitor);
   }
 
+  public OptionalInt getFieldOffsetInBits(
+      CCompositeType pOwnerType, Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
+    return getFieldOffsetInBits(pOwnerType, null, null, outParameterMap);
+  }
+
   public OptionalInt getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
-    return getFieldOffsetInBits(pOwnerType, pFieldName, null);
+    return getFieldOffsetInBits(pOwnerType, pFieldName, null, null);
   }
 
   public OptionalInt getFieldOffsetInBits(
       CCompositeType pOwnerType, String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
+    return getFieldOffsetInBits(pOwnerType, pFieldName, pSizeofVisitor, null);
+  }
+
+  public OptionalInt getFieldOffsetInBits(
+      CCompositeType pOwnerType,
+      String pFieldName,
+      BaseSizeofVisitor pSizeofVisitor,
+      Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
     final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
     List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
 
@@ -764,13 +778,19 @@ public enum MachineModel {
     int sizeOfByte = getSizeofCharInBits();
 
     if (ownerTypeKind == ComplexTypeKind.UNION) {
-      // If the field in question is a part of the Union,
-      // return an offset of 0.
-      // Otherwise, to indicate a problem, the return
-      // will be null.
-      if (typeMembers.stream().anyMatch(m -> m.getName().equals(pFieldName))) {
-        found = true;
-        bitOffset = 0;
+      if (outParameterMap == null) {
+        // If the field in question is a part of the Union,
+        // return an offset of 0.
+        // Otherwise, to indicate a problem, the return
+        // will be null.
+        if (typeMembers.stream().anyMatch(m -> m.getName().equals(pFieldName))) {
+          found = true;
+          bitOffset = 0;
+        }
+      } else {
+        for (CCompositeTypeMemberDeclaration typeMember : typeMembers) {
+          outParameterMap.put(typeMember, BigInteger.ZERO);
+        }
       }
     } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
       bitOffset = 0;
@@ -809,6 +829,10 @@ public enum MachineModel {
             break;
           }
 
+          if (outParameterMap != null) {
+            outParameterMap.put(
+                typeMember, BigInteger.valueOf(bitOffset + sizeOfConsecutiveBitFields));
+          }
           sizeOfConsecutiveBitFields += fieldSizeInBits;
         } else {
           bitOffset += sizeOfConsecutiveBitFields;
@@ -816,7 +840,7 @@ public enum MachineModel {
           // once pad the bits to full bytes, than pad bytes to the
           // alignment of the current type
           bitOffset = sizeofVisitor.calculateByteSize(bitOffset);
-          bitOffset = (bitOffset * sizeOfByte) + (getPadding(bitOffset, type) * sizeOfByte);
+          bitOffset = (bitOffset + getPadding(bitOffset, type)) * sizeOfByte;
 
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
@@ -824,6 +848,9 @@ public enum MachineModel {
             break;
           }
 
+          if (outParameterMap != null) {
+            outParameterMap.put(typeMember, BigInteger.valueOf(bitOffset));
+          }
           bitOffset += fieldSizeInBits;
         }
       }

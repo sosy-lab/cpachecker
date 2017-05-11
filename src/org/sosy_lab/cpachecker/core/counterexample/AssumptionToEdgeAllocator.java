@@ -41,8 +41,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -96,7 +96,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -794,10 +793,15 @@ public class AssumptionToEdgeAllocator {
       return null;
     }
 
-    private BigInteger getFieldOffsetInBits(CFieldReference fieldReference) {
+    private @Nullable BigInteger getFieldOffsetInBits(CFieldReference fieldReference) {
       CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
-      return AssumptionToEdgeAllocator.getFieldOffsetInBits(
-          fieldOwnerType, fieldReference.getFieldName(), machineModel);
+      OptionalInt result =
+          AssumptionToEdgeAllocator.getFieldOffsetInBits(
+              fieldOwnerType, fieldReference.getFieldName(), machineModel);
+      if (result.isPresent()) {
+        return BigInteger.valueOf(result.getAsInt());
+      }
+      return null;
     }
 
     @Override
@@ -1639,7 +1643,7 @@ public class AssumptionToEdgeAllocator {
         }
 
         Map<CCompositeTypeMemberDeclaration, BigInteger> offsets =
-            getFieldOffsetsInBits(pCompType, machineModel, Function.identity());
+            getFieldOffsetsInBits(pCompType, machineModel);
 
         for (Map.Entry<CCompositeTypeMemberDeclaration, BigInteger> memberOffset :
             offsets.entrySet()) {
@@ -2172,57 +2176,56 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private static @Nullable BigInteger getFieldOffsetInBits(
+  private static OptionalInt getFieldOffsetInBits(
       CCompositeType ownerType, String fieldName, MachineModel pMachineModel) {
-    return getFieldOffsetsInBits(ownerType, pMachineModel, CCompositeTypeMemberDeclaration::getName)
-        .get(fieldName);
+    return pMachineModel.getFieldOffsetInBits(ownerType, fieldName);
   }
 
-  private static <K> Map<K, BigInteger> getFieldOffsetsInBits(
-      CCompositeType ownerType,
-      MachineModel pMachineModel,
-      Function<CCompositeTypeMemberDeclaration, K> pKeyFunction) {
+  private static Map<CCompositeTypeMemberDeclaration, BigInteger> getFieldOffsetsInBits(
+      CCompositeType ownerType, MachineModel pMachineModel) {
 
     List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
-    Map<K, BigInteger> result = Maps.newLinkedHashMapWithExpectedSize(membersOfType.size());
+    Map<CCompositeTypeMemberDeclaration, BigInteger> result =
+        Maps.newLinkedHashMapWithExpectedSize(membersOfType.size());
 
-    BigInteger bitOffset = BigInteger.ZERO;
+    // Attention, the following is a call with an ugly return-parameter
+    pMachineModel.getFieldOffsetInBits(ownerType, result);
+    //
+    //    BigInteger bitOffset = BigInteger.ZERO;
+    //
+    //    if (ownerType.getKind() == ComplexTypeKind.STRUCT) {
+    //      BigInteger sizeOfConsecutiveBitFields = BigInteger.ZERO;
+    //      BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
+    //
+    //      for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
+    //        result.put(pKeyFunction.apply(typeMember), bitOffset.add(sizeOfConsecutiveBitFields));
+    //
+    //        CType type = typeMember.getType();
+    //        if (type.isIncomplete()) {
+    //          return result;
+    //        }
+    //
+    //        BigInteger fieldSizeInBits = BigInteger.valueOf(pMachineModel.getBitSizeof(type));
+    //
+    //        if (typeMember.getType() instanceof CBitFieldType) {
+    //          sizeOfConsecutiveBitFields = sizeOfConsecutiveBitFields.add(fieldSizeInBits);
+    //        } else {
+    //          bitOffset = bitOffset.add(sizeOfConsecutiveBitFields);
+    //          sizeOfConsecutiveBitFields = BigInteger.ZERO;
+    //          int byteSize = sizeofVisitor.calculateByteSize(bitOffset.intValue());
+    //          BigInteger padding =
+    //              BigInteger.valueOf(pMachineModel.getPadding(byteSize, typeMember.getType()));
+    //          bitOffset = bitOffset.add(padding);
+    //          bitOffset = bitOffset.add(fieldSizeInBits);
+    //        }
+    //      }
+    //    } else if (ownerType.getKind() == ComplexTypeKind.UNION) {
 
-    if (ownerType.getKind() == ComplexTypeKind.STRUCT) {
-      BigInteger sizeOfConsecutiveBitFields = BigInteger.ZERO;
-      BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
-
-      for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
-        result.put(pKeyFunction.apply(typeMember), bitOffset.add(sizeOfConsecutiveBitFields));
-
-        CType type = typeMember.getType();
-        if (type.isIncomplete()) {
-          return result;
-        }
-
-        BigInteger fieldSizeInBits = BigInteger.valueOf(pMachineModel.getBitSizeof(type));
-
-        if (typeMember.getType() instanceof CBitFieldType) {
-          sizeOfConsecutiveBitFields = sizeOfConsecutiveBitFields.add(fieldSizeInBits);
-        } else {
-          bitOffset = bitOffset.add(sizeOfConsecutiveBitFields);
-          sizeOfConsecutiveBitFields = BigInteger.ZERO;
-          int byteSize = sizeofVisitor.calculateByteSize(bitOffset.intValue());
-          BigInteger padding =
-              BigInteger.valueOf(pMachineModel.getPadding(byteSize, typeMember.getType()));
-          bitOffset = bitOffset.add(padding);
-          bitOffset = bitOffset.add(fieldSizeInBits);
-        }
-      }
-    } else if (ownerType.getKind() == ComplexTypeKind.UNION) {
-      for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
-        result.put(pKeyFunction.apply(typeMember), BigInteger.ZERO);
-      }
-    }
+    //    }
     return result;
   }
 
-  private static @Nullable BigInteger getFieldOffsetInBits(
+  private static OptionalInt getFieldOffsetInBits(
       CType ownerType, String fieldName, MachineModel pMachineModel) {
 
     if (ownerType instanceof CElaboratedType) {
