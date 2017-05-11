@@ -219,9 +219,9 @@ public class UsagePoint implements Comparable<UsagePoint> {
     return false;
   }
 
-  /*@Override
+  @Override
   public String toString() {
-    String result = "(" + locks.toString() + ", " + access;
-    return result + ")";
-  }*/
+    String result = access + ":";
+    return result + compatibleNodes;
+  }
 }
