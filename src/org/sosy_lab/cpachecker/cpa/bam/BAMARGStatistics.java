@@ -94,6 +94,8 @@ public class BAMARGStatistics extends ARGStatistics {
             });
       }
       stats.iterator().next().printStatistics(pOut, pResult, reached);
+
+      return;
     }
 
     if (pReached.size() <= 1) {
