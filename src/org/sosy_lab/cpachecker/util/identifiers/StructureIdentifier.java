@@ -124,14 +124,14 @@ public class StructureIdentifier extends SingleIdentifier{
 
   @Override
   public GeneralIdentifier getGeneralId() {
-    return new GeneralStructureFieldIdentifier(name, /*type.toASTString(""),*/ type, dereference, owner);
+    return new GeneralStructureFieldIdentifier(name, type, dereference, owner);
   }
 
   public StructureFieldIdentifier toStructureFieldIdentifier() {
     if (owner instanceof SingleIdentifier) {
-      return new StructureFieldIdentifier(name, /*type.toASTString(""),*/ ((SingleIdentifier)owner).type, dereference, owner);
+      return new StructureFieldIdentifier(name, ((SingleIdentifier)owner).type, dereference, null);
     } else {
-      return new StructureFieldIdentifier(name, /*type.toASTString(""),*/ type, dereference, owner);
+      return new StructureFieldIdentifier(name, type, dereference, null);
     }
   }
 

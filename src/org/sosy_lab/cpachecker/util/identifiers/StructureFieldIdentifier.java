@@ -25,18 +25,10 @@ package org.sosy_lab.cpachecker.util.identifiers;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-
-
 public class StructureFieldIdentifier extends StructureIdentifier {
-  protected String fieldType;
 
-  public StructureFieldIdentifier(String pNm, /*String fTp,*/ CType pTp, int dereference, AbstractIdentifier own) {
+  public StructureFieldIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
     super(pNm, pTp, dereference, own);
-    if ( type != null ){
-      fieldType = type.toASTString("");
-    } else {
-      fieldType = "";
-    }
   }
 
   @Override
@@ -90,12 +82,12 @@ public class StructureFieldIdentifier extends StructureIdentifier {
 
   @Override
   public StructureFieldIdentifier clone() {
-    return new StructureFieldIdentifier(name, /*fieldType,*/ type, dereference, owner);
+    return new StructureFieldIdentifier(name, type, dereference, owner);
   }
 
   @Override
   public SingleIdentifier clearDereference() {
-    return new StructureFieldIdentifier(name, /*fieldType,*/ type, 0, owner);
+    return new StructureFieldIdentifier(name, type, 0, owner);
   }
 
 
@@ -106,7 +98,7 @@ public class StructureFieldIdentifier extends StructureIdentifier {
 
   @Override
   public GeneralIdentifier getGeneralId() {
-    return new GeneralStructureFieldIdentifier(name, /*fieldType,*/ type, dereference, owner);
+    return new GeneralStructureFieldIdentifier(name, type, dereference, owner);
   }
 
   @Override
@@ -114,12 +106,7 @@ public class StructureFieldIdentifier extends StructureIdentifier {
     if (pO instanceof GlobalVariableIdentifier || pO instanceof LocalVariableIdentifier) {
       return -1;
     } else if (pO instanceof StructureFieldIdentifier){
-      int result = super.compareTo(pO);
-      if (result != 0) {
-        return result;
-      } else {
-        return this.fieldType.compareTo(((StructureFieldIdentifier) pO).fieldType);
-      }
+      return super.compareTo(pO);
     } else {
       return 1;
     }
