@@ -2190,38 +2190,7 @@ public class AssumptionToEdgeAllocator {
 
     // Attention, the following is a call with an ugly return-parameter
     pMachineModel.getFieldOffsetInBits(ownerType, result);
-    //
-    //    BigInteger bitOffset = BigInteger.ZERO;
-    //
-    //    if (ownerType.getKind() == ComplexTypeKind.STRUCT) {
-    //      BigInteger sizeOfConsecutiveBitFields = BigInteger.ZERO;
-    //      BaseSizeofVisitor sizeofVisitor = new BaseSizeofVisitor(pMachineModel);
-    //
-    //      for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
-    //        result.put(pKeyFunction.apply(typeMember), bitOffset.add(sizeOfConsecutiveBitFields));
-    //
-    //        CType type = typeMember.getType();
-    //        if (type.isIncomplete()) {
-    //          return result;
-    //        }
-    //
-    //        BigInteger fieldSizeInBits = BigInteger.valueOf(pMachineModel.getBitSizeof(type));
-    //
-    //        if (typeMember.getType() instanceof CBitFieldType) {
-    //          sizeOfConsecutiveBitFields = sizeOfConsecutiveBitFields.add(fieldSizeInBits);
-    //        } else {
-    //          bitOffset = bitOffset.add(sizeOfConsecutiveBitFields);
-    //          sizeOfConsecutiveBitFields = BigInteger.ZERO;
-    //          int byteSize = sizeofVisitor.calculateByteSize(bitOffset.intValue());
-    //          BigInteger padding =
-    //              BigInteger.valueOf(pMachineModel.getPadding(byteSize, typeMember.getType()));
-    //          bitOffset = bitOffset.add(padding);
-    //          bitOffset = bitOffset.add(fieldSizeInBits);
-    //        }
-    //      }
-    //    } else if (ownerType.getKind() == ComplexTypeKind.UNION) {
 
-    //    }
     return result;
   }
 
