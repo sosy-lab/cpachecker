@@ -36,37 +36,43 @@
 		<!-- GENERATED -->
 		</span>
 	</header>
-	<div class="container-fluid">
-		<div class="row margin-top">
-			<nav>
-				<ul class="nav nav-pills">
-					<li ng-class="{active: tabIsSet(1)}"><a href
-						ng-click="setTab(1)">CFA</a></li>
-					<li ng-class="{active: tabIsSet(2)}"><a href
-						ng-click="setTab(2)">ARG</a></li>
-					<li ng-class="{active: tabIsSet(3)}"><a href
-						ng-click="setTab(3)">Source</a></li>
-					<li ng-class="{active: tabIsSet(4)}"><a href
-						ng-click="setTab(4)">Log</a></li>
-					<li ng-class="{active: tabIsSet(5)}"><a href
-						ng-click="setTab(5)">Statistics</a></li>
-					<li ng-class="{active: tabIsSet(6)}"><a href
-						ng-click="setTab(6)">Configurations</a></li>
-					<li> <a href role="button" data-toggle="popover" data-trigger="focus" data-content="{{help}}"
-						class="btn btn-info">
-						<span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
-					</a></li>
-				</ul>
-			</nav>
-		</div>
-		<div class="row" id="svg-holder" ng-show="tabIsSet(1)" ng-class="{active: tabIsSet(1)}"
+<div class="sections">
+  <section id="externalFiles_section">
+    <nav>
+      <ul class="nav nav-pills">
+        <li ng-class="{active: tabIsSet(1)}">
+          <a href ng-click="setTab(1)">CFA</a>
+        </li>
+        <li ng-class="{active: tabIsSet(2)}">
+          <a href ng-click="setTab(2)">ARG</a>
+        </li>
+        <li ng-class="{active: tabIsSet(3)}">
+          <a href ng-click="setTab(3)">Source</a>
+        </li>
+        <li ng-class="{active: tabIsSet(4)}">
+          <a href ng-click="setTab(4)">Log</a>
+        </li>
+        <li ng-class="{active: tabIsSet(5)}">
+          <a href ng-click="setTab(5)">Statistics</a>
+        </li>
+        <li ng-class="{active: tabIsSet(6)}">
+          <a href ng-click="setTab(6)">Configurations</a>
+        </li>
+        <a tabindex="0" role="button" data-toggle="popover" data-placement="right"
+           data-trigger="focus" data-content="{{help_externalFiles}}"
+           class="btn btn-default btn-lg help_button">
+          <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+        </a>
+      </ul>
+    </nav>
+    <div id="cfa-container" ng-show="tabIsSet(1)" ng-class="{active: tabIsSet(1)}"
          ng-controller="CFAController">
-		</div>
-	</div>
-	<div class="margin-top" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}" ng-controller="SourceController">
-		<div style="width: 100%; background-color: white; padding: 5px;">
-        	<div class="dropdown" style="display: inline-block;">
-          	<button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown"
+    </div>
+    <div class="fileContent" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}"
+         ng-controller="SourceController">
+      <div class="edit-line">
+        <div class="dropdown" id="dropdownMenu2">
+          <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown"
                   aria-haspopup="true" aria-expanded="true">
             Displayed Sourcefile
             <span class="caret"></span>
@@ -78,17 +84,19 @@
         </div>
         <label>{{sourceFiles[selectedSourceFile]}}</label>
       </div>
-		<!--SOURCE_CONTENT-->
+      <!--SOURCE_CONTENT-->
     </div>
-	<div class="margin-top" ng-show="tabIsSet(4)" ng-class="{active: tabIsSet(4)}">
-		<!--LOG-->
-	</div>	
-    <div class="margin-top" ng-show="tabIsSet(5)" ng-class="{active: tabIsSet(5)}">
-    	<!--STATISTICS-->
+    <div class="fileContent content" ng-show="tabIsSet(4)" ng-class="{active: tabIsSet(4)}">
+      <!--LOG-->
     </div>
-    <div class="margin-top" ng-show="tabIsSet(6)" ng-class="{active: tabIsSet(6)}">
-		<!--CONFIGURATION-->
+    <div class="fileContent content" ng-show="tabIsSet(5)" ng-class="{active: tabIsSet(5)}">
+      <!--STATISTICS-->
     </div>
+    <div class="fileContent content" ng-show="tabIsSet(6)" ng-class="{active: tabIsSet(6)}">
+      <!--CONFIGURATION-->
+    </div>
+  </section>
+</div>
     
 	<div id="infoBoxNode" style="z-index: 1; visibility: hidden;">
 		<div id="insideBoxNode">

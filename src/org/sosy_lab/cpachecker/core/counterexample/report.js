@@ -109,7 +109,7 @@ function init() {
 		var nodesPerGraph = [];
 		var render = new dagreD3.render();
 		for (var i = 1; i <= requiredGraphs; i++) {
-			d3.select("#svg-holder").append("div").attr("id", "graph" + i);
+			d3.select("#cfa-container").append("div").attr("id", "graph" + i);
 			if (!firstGraphBuild) {
 				nodesPerGraph = nodes.slice(0, graphSplitThreshold);
 				firstGraphBuild = true;
@@ -174,7 +174,7 @@ function init() {
 	
 	// build single graph for all contained nodes
 	function buildSingleGraph() {
-		d3.select("#svg-holder").append("div").attr("id", "graph");
+		d3.select("#cfa-container").append("div").attr("id", "graph");
 		// Create the graph
 		var g = createGraph();
 		setGraphNodes(g, nodes);
