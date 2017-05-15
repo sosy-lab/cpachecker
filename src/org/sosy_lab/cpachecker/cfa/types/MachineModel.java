@@ -806,7 +806,10 @@ public enum MachineModel {
   public OptionalInt getFieldOffsetOrSizeInBits(
       CCompositeType pOwnerType, @Nullable String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
     assert pSizeofVisitor != null
-        : "GetFieldOffsetOrSizeInBits(pOwnerType, pFieldName, pSizeofVisitor) was called with pSizeVisitor of null value. Make sure to instantiate the corresponding variable or, for clearity's sake, use getFieldOffsetOrSizeInBits(pOwnerType, pFieldName) in places where no particular sizeofVisitor is necessary.";
+        : "GetFieldOffsetOrSizeInBits(pOwnerType, pFieldName, pSizeofVisitor) was called "
+            + "with pSizeVisitor of null value. Make sure to instantiate the corresponding variable "
+            + "or, for clearity's sake, use getFieldOffsetOrSizeInBits(pOwnerType, pFieldName) in "
+            + "places where no particular sizeofVisitor is necessary.";
     return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
         pOwnerType, pFieldName, pSizeofVisitor, null);
   }
@@ -844,7 +847,9 @@ public enum MachineModel {
       @Nullable Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
     checkArgument(
         (pFieldName == null) || (outParameterMap == null),
-        "Call of this method does only make sense if either pFieldName or outParameterMap is of value null, otherwise it either stops the calculation with an incomplete map or wastes ressources by filling a map with values that are not required.");
+        "Call of this method does only make sense if either pFieldName or outParameterMap "
+            + "is of value null, otherwise it either stops the calculation with an incomplete "
+            + "map or wastes ressources by filling a map with values that are not required.");
     final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
     List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
 
