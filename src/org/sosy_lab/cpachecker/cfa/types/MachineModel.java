@@ -842,6 +842,9 @@ public enum MachineModel {
       @Nullable String pFieldName,
       @Nullable BaseSizeofVisitor pSizeofVisitor,
       @Nullable Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
+    checkArgument(
+        (pFieldName == null) || (outParameterMap == null),
+        "Call of this method does only make sense if either pFieldName or outParameterMap is of value null, otherwise it either stops the calculation with an incomplete map or wastes ressources by filling a map with values that are not required.");
     final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
     List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
 
