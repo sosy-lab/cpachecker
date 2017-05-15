@@ -58,4 +58,9 @@ public class ReleaseLockEffect extends LockEffect {
   public ReleaseLockEffect cloneWithTarget(LockIdentifier id) {
     return createEffectForId(id);
   }
+
+  @Override
+  public String getAction() {
+    return "Release";
+  }
 }

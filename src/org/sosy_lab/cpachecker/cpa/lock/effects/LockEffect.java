@@ -37,6 +37,13 @@ public abstract class LockEffect implements AbstractLockEffect {
 
   public abstract LockEffect cloneWithTarget(LockIdentifier id);
 
+  protected abstract String getAction();
+
+  @Override
+  public String toString() {
+    return getAction() + " " + target;
+  }
+
   public LockIdentifier getAffectedLock() {
     return target;
   }

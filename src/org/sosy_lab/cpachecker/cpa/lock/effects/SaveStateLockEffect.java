@@ -40,4 +40,9 @@ public class SaveStateLockEffect implements AbstractLockEffect {
   public static SaveStateLockEffect getInstance() {
     return instance;
   }
+
+  @Override
+  public String toString() {
+    return "Save state";
+  }
 }

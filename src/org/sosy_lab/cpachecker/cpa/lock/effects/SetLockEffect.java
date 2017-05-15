@@ -62,4 +62,9 @@ public class SetLockEffect extends LockEffect {
   public SetLockEffect cloneWithTarget(LockIdentifier id) {
     return createEffectForId(this.p, id);
   }
+
+  @Override
+  public String getAction() {
+    return "Set";
+  }
 }

@@ -58,4 +58,9 @@ public class RestoreLockEffect extends LockEffect {
   public RestoreLockEffect cloneWithTarget(LockIdentifier id) {
     return createEffectForId(id);
   }
+
+  @Override
+  public String getAction() {
+    return "Restore";
+  }
 }

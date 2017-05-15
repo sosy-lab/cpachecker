@@ -85,4 +85,9 @@ public class AcquireLockEffect extends LockEffect {
   public AcquireLockEffect cloneWithTarget(LockIdentifier id) {
     return createEffectForId(id, this.maxRecursiveCounter);
   }
+
+  @Override
+  public String getAction() {
+    return "Acquire";
+  }
 }
