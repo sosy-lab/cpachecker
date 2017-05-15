@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.Maps;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -537,7 +539,8 @@ public enum MachineModel {
     }
 
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
-      OptionalInt size = model.getFieldOffsetInBits(pCompositeType, null, this, null);
+      OptionalInt size =
+          model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, this, null);
 
       if (!size.isPresent()) {
         throw new IllegalArgumentException("Could not compute size of type " + pCompositeType);
@@ -615,21 +618,17 @@ public enum MachineModel {
   }
 
   public int getSizeof(CType pType) {
-    return getSizeof(pType, null);
-  }
-
-  public int getSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
     checkArgument(
         pType instanceof CVoidType || !pType.isIncomplete(),
         "Cannot compute size of incomplete type %s",
         pType);
-    int result;
-    if (pSizeofVisitor == null) {
-      result = pType.accept(sizeofVisitor);
-    } else {
-      result = pType.accept(pSizeofVisitor);
-    }
-    return result;
+    return getSizeof(pType, sizeofVisitor);
+  }
+
+  public int getSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+    assert pSizeofVisitor != null
+        : "getSizeof(pType, pSizeofVisitor) was called with pSizeofVisitor of null value. Check for proper instantiation or use getSizeof(pType) for clearity instead.";
+    return pType.accept(pSizeofVisitor);
   }
 
   public int getBitSizeofPtr() {
@@ -637,10 +636,12 @@ public enum MachineModel {
   }
 
   public int getBitSizeof(CType pType) {
-    return getBitSizeof(pType, null);
+    return getBitSizeof(pType, sizeofVisitor);
   }
 
   public int getBitSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+    assert pSizeofVisitor != null
+        : "getBitSizeof(pType, pSizeofVisitor) was called with pSizeofVisitor of null value. Check for proper instantiation or use getBitSizeof(pType) for clearity instead.";
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
     } else {
@@ -749,25 +750,98 @@ public enum MachineModel {
     return type.accept(alignofVisitor);
   }
 
-  public OptionalInt getFieldOffsetInBits(
-      CCompositeType pOwnerType, Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
-    return getFieldOffsetInBits(pOwnerType, null, null, outParameterMap);
+  /**
+   * This method creates a mapping of all fields contained by pOwnerType to their respective offsets
+   * in bits and returns it to the caller.
+   *
+   * <p>That will work for correct implemented {@link ComplexTypeKind#STRUCT}; so an incomplete type
+   * trailing all other fields will be accepted while incomplete types mixed among the other fields
+   * will result in an error.
+   *
+   * <p>A {@link ComplexTypeKind#UNION} will result in a {@link Map} of fields to zeroes.
+   *
+   * @param pOwnerType - a {@link CCompositeType} to calculate its fields offsets
+   * @return a mapping of typeMemberDeclarations to there corresponding offsets in pOwnerType
+   */
+  public Map<CCompositeTypeMemberDeclaration, BigInteger> getAllFieldOffsetsInBits(
+      CCompositeType pOwnerType) {
+    Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap =
+        Maps.newLinkedHashMapWithExpectedSize(pOwnerType.getMembers().size());
+
+    getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, null, null, outParameterMap);
+
+    return outParameterMap;
   }
 
-  public OptionalInt getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
-    return getFieldOffsetInBits(pOwnerType, pFieldName, null, null);
+  /**
+   * Calculates the offset of pFieldName in pOwnerType in bits.
+   *
+   * <p>Iff pFieldName is <code>null</code>, the overall size of pOwnerType is calculated instead.
+   *
+   * @param pOwnerType - a {@link CCompositeType} to calculate its a field offset or its overall
+   *     size
+   * @param pFieldName - the name of the field to calculate its offset; <code>null</code> for
+   *     composites size
+   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
+   *     not be calculated properly
+   */
+  public OptionalInt getFieldOffsetOrSizeInBits(
+      CCompositeType pOwnerType, @Nullable String pFieldName) {
+    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, pFieldName, null, null);
   }
 
-  public OptionalInt getFieldOffsetInBits(
-      CCompositeType pOwnerType, String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
-    return getFieldOffsetInBits(pOwnerType, pFieldName, pSizeofVisitor, null);
+  /**
+   * Does the same as {@link MachineModel#getFieldOffsetOrSizeInBits(CCompositeType, String)}, but
+   * accepts a {@link BaseSizeofVisitor}
+   *
+   * @param pOwnerType - a {@link CCompositeType} to calculate its a field offset or its overall
+   *     size
+   * @param pFieldName - the name of the field to calculate its offset; <code>null</code> for
+   *     composites size
+   * @param pSizeofVisitor - a {@link BaseSizeofVisitor} used to calculate type sizes according to
+   *     the relevant applications model; may not be <code>null</code>
+   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
+   *     not be calculated properly
+   */
+  public OptionalInt getFieldOffsetOrSizeInBits(
+      CCompositeType pOwnerType, @Nullable String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
+    assert pSizeofVisitor != null
+        : "GetFieldOffsetOrSizeInBits(pOwnerType, pFieldName, pSizeofVisitor) was called with pSizeVisitor of null value. Make sure to instantiate the corresponding variable or, for clearity's sake, use getFieldOffsetOrSizeInBits(pOwnerType, pFieldName) in places where no particular sizeofVisitor is necessary.";
+    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
+        pOwnerType, pFieldName, pSizeofVisitor, null);
   }
 
-  public OptionalInt getFieldOffsetInBits(
+  /**
+   * As the name of this method suggests, it does not very much follow the 'Do one thing only.' or
+   * 'separation of concerns' principles. The reason lies in the very similar code for the
+   * applications of calculating a {@link CCompositeType}s size, an offset for one of its fields, or
+   * (trivially similar to the first use case) a {@link Map} of all its fields to their respective
+   * offsets.
+   *
+   * <p>Since code that does those things is in practice duplicated (ignoring some small variations)
+   * it seems to be reasonable to break the above mentioned principles and interleave those
+   * functionalities in this one method.
+   *
+   * <p>Alas it is mandatory for at least a little bit of separation of concerns, to keep this
+   * method private and not to expose its nastiness to anywhere outside this class.
+   *
+   * @param pOwnerType - a {@link CCompositeType} to calculate its a field offset or its overall
+   *     size
+   * @param pFieldName - the name of the field to calculate its offset; <code>null</code> for
+   *     composites size
+   * @param pSizeofVisitor - a {@link BaseSizeofVisitor} used to calculate type sizes according to
+   *     the relevant applications model; may be <code>null</code> to fall back to {@link
+   *     MachineModel#sizeofVisitor}
+   * @param outParameterMap - a {@link Map} given as both, input and output, to store the mapping of
+   *     fields to offsets in; may be <code>null</code> if not required
+   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
+   *     not be calculated properly
+   */
+  private OptionalInt getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
       CCompositeType pOwnerType,
-      String pFieldName,
-      BaseSizeofVisitor pSizeofVisitor,
-      Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
+      @Nullable String pFieldName,
+      @Nullable BaseSizeofVisitor pSizeofVisitor,
+      @Nullable Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
     final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
     List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
 
@@ -818,7 +892,8 @@ public enum MachineModel {
             fieldSizeInBits = 0;
           }
         } else {
-          fieldSizeInBits = getBitSizeof(type, pSizeofVisitor);
+          fieldSizeInBits =
+              pSizeofVisitor != null ? getBitSizeof(type, pSizeofVisitor) : getBitSizeof(type);
         }
 
         if (type instanceof CBitFieldType) {

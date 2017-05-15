@@ -316,7 +316,7 @@ public class SMGExpressionEvaluator {
     CSizeOfVisitor sizeofVisitor = getSizeOfVisitor(pEdge, pState, Optional.of(pExpression));
 
     try {
-      offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
+      offset = machineModel.getFieldOffsetOrSizeInBits(pOwnerType, pFieldName, sizeofVisitor);
     } catch (IllegalArgumentException e) {
       logger.logDebugException(e);
       throw new UnrecognizedCCodeException("Could not resolve type.", pEdge);

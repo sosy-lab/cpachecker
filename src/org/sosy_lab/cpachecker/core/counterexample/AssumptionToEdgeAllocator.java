@@ -28,7 +28,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -1643,7 +1642,7 @@ public class AssumptionToEdgeAllocator {
         }
 
         Map<CCompositeTypeMemberDeclaration, BigInteger> offsets =
-            getFieldOffsetsInBits(pCompType, machineModel);
+            machineModel.getAllFieldOffsetsInBits(pCompType);
 
         for (Map.Entry<CCompositeTypeMemberDeclaration, BigInteger> memberOffset :
             offsets.entrySet()) {
@@ -2178,20 +2177,7 @@ public class AssumptionToEdgeAllocator {
 
   private static OptionalInt getFieldOffsetInBits(
       CCompositeType ownerType, String fieldName, MachineModel pMachineModel) {
-    return pMachineModel.getFieldOffsetInBits(ownerType, fieldName);
-  }
-
-  private static Map<CCompositeTypeMemberDeclaration, BigInteger> getFieldOffsetsInBits(
-      CCompositeType ownerType, MachineModel pMachineModel) {
-
-    List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
-    Map<CCompositeTypeMemberDeclaration, BigInteger> result =
-        Maps.newLinkedHashMapWithExpectedSize(membersOfType.size());
-
-    // Attention, the following is a call with an ugly return-parameter
-    pMachineModel.getFieldOffsetInBits(ownerType, result);
-
-    return result;
+    return pMachineModel.getFieldOffsetOrSizeInBits(ownerType, fieldName);
   }
 
   private static OptionalInt getFieldOffsetInBits(
