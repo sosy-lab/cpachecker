@@ -210,6 +210,7 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
     Set<CFANode> functionBody = blockNodesMap.get(caller);
     referencedVariablesMap.get(node).addAll(functionVars);
     blockNodesMap.get(node).addAll(functionBody);
+    capturedLocksMap.get(node).addAll(capturedLocksMap.get(caller));
   }
 
   @Override
