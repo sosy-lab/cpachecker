@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.identifiers;
 
+import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
@@ -55,4 +57,8 @@ public abstract class VariableIdentifier extends SingleIdentifier {
   @Override
   public abstract SingleIdentifier clearDereference();
 
+  @Override
+  public Collection<AbstractIdentifier> getComposedIdentifiers() {
+    return Collections.emptySet();
+  }
 }

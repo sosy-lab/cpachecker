@@ -24,11 +24,7 @@
 package org.sosy_lab.cpachecker.util.identifiers;
 
 import java.util.Collection;
-import java.util.Map;
-
-import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
-
-
+import java.util.Collections;
 
 public class ConstantIdentifier implements AbstractIdentifier {
 
@@ -116,15 +112,6 @@ public class ConstantIdentifier implements AbstractIdentifier {
     dereference = pD;
   }
 
-  @Override
-  public AbstractIdentifier containsIn(Collection<? extends AbstractIdentifier> pSet) {
-    if (pSet.contains(this)) {
-      return this;
-    } else {
-      return null;
-    }
-  }
-
   public String getName() {
     return name;
   }
@@ -141,12 +128,17 @@ public class ConstantIdentifier implements AbstractIdentifier {
   }
 
   @Override
+  public Collection<AbstractIdentifier> getComposedIdentifiers() {
+    return Collections.emptySet();
+  }
+
+  /*@Override
   public DataType getType(Map<? extends AbstractIdentifier, DataType> pLocalInfo) {
     if (isPointer() && !(name.equals("0"))) {
       return DataType.GLOBAL;
     } else {
       return DataType.LOCAL;
     }
-  }
+  }*/
 
 }

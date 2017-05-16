@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.local.LocalState;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -58,7 +59,9 @@ public class SharedRefiner extends GenericSinglePathRefiner {
     RefinementResult result = RefinementResult.createUnknown();
     List<CFAEdge> edges  = pPath.getFullPath();
     SingletonPrecision emptyPrecision = SingletonPrecision.getInstance();
-    LocalState initialState = new LocalState(null);
+
+    LocalState lastState = AbstractStates.extractStateByType(pPath.getLastState(), LocalState.class);
+    LocalState initialState = LocalState.createInitialLocalState(lastState);
 
     Collection<LocalState> successors = Collections.singleton(initialState);
     UsageInfo sharedUsage = pPath.getUsageInfo();

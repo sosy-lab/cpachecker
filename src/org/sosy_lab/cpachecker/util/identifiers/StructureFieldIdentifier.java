@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.identifiers;
 
+import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class StructureFieldIdentifier extends StructureIdentifier {
@@ -90,6 +92,10 @@ public class StructureFieldIdentifier extends StructureIdentifier {
     return new StructureFieldIdentifier(name, type, 0, owner);
   }
 
+  @Override
+  public Collection<AbstractIdentifier> getComposedIdentifiers() {
+    return Collections.emptySet();
+  }
 
   @Override
   public String toLog() {

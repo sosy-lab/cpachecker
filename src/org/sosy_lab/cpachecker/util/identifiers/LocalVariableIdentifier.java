@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.identifiers;
 
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 
 public class LocalVariableIdentifier extends VariableIdentifier {
   protected String function;//function, where this variable was declared
@@ -124,19 +121,6 @@ public class LocalVariableIdentifier extends VariableIdentifier {
       return -1;
     } else {
       return 1;
-    }
-  }
-
-  @Override
-  public DataType getType(Map<? extends AbstractIdentifier, DataType> pLocalInfo) {
-    DataType result = super.getType(pLocalInfo);
-    if (result != null) {
-      return result;
-    }
-    if (!isPointer()) {
-      return DataType.LOCAL;
-    } else {
-      return null;
     }
   }
 }

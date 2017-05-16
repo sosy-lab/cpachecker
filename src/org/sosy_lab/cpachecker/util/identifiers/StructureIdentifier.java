@@ -23,13 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.identifiers;
 
+import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
-
-
 
 public class StructureIdentifier extends SingleIdentifier{
   protected AbstractIdentifier owner;
@@ -135,12 +133,19 @@ public class StructureIdentifier extends SingleIdentifier{
     }
   }
 
+  @Override
+  public Collection<AbstractIdentifier> getComposedIdentifiers() {
+    Set<AbstractIdentifier> result = Sets.newHashSet(owner);
+    result.addAll(owner.getComposedIdentifiers());
+    return result;
+  }
+
   /**
    * This method recursively checks owners of this structure, if any is contained in given collection
    * @param set - some collection of identifiers
    * @return first abstract identifier, which is found or null if no owners are found in collection
    */
-  @Override
+  /*@Override
   public AbstractIdentifier containsIn(Collection<? extends AbstractIdentifier> set) {
     if (set.contains(this)) {
       return this;
@@ -165,5 +170,5 @@ public class StructureIdentifier extends SingleIdentifier{
       return result;
     }
     return owner.getType(pLocalInfo);
-  }
+  }*/
 }

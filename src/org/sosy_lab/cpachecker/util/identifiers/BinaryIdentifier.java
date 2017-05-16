@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.identifiers;
 
+import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.Map;
-import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
+import java.util.Set;
 
 
 
@@ -144,29 +144,6 @@ public class BinaryIdentifier implements AbstractIdentifier {
   }
 
   @Override
-  public AbstractIdentifier containsIn(Collection<? extends AbstractIdentifier> pSet) {
-    if (pSet.contains(this)) {
-      return this;
-    } else {
-      int deref = id1.getDereference();
-      AbstractIdentifier tmp1 = id1.clone();
-      AbstractIdentifier tmp2 = id2.clone();
-      tmp1.setDereference(dereference + deref);
-      deref = id2.getDereference();
-      tmp2.setDereference(dereference + deref);
-      AbstractIdentifier id1Container = tmp1.containsIn(pSet);
-      AbstractIdentifier id2Container = tmp2.containsIn(pSet);
-      if (id1Container != null) {
-        return id1Container;
-      } else if (id2Container != null) {
-        return id2Container;
-      } else {
-        return null;
-      }
-    }
-  }
-
-  @Override
   public int compareTo(AbstractIdentifier pO) {
     if (pO instanceof SingleIdentifier) {
       return -1;
@@ -179,18 +156,17 @@ public class BinaryIdentifier implements AbstractIdentifier {
   }
 
   @Override
-  public DataType getType(Map<? extends AbstractIdentifier, DataType> pLocalInfo) {
-    /*AbstractIdentifier tmp = name.containsIn(localInfo.keySet());
-    DataType result1 = (tmp == null ? null : localInfo.get(tmp));*/
+  public Collection<AbstractIdentifier> getComposedIdentifiers() {
+    //Is important to get from *(a + i) -> *a
     int deref = id1.getDereference();
     AbstractIdentifier tmp1 = id1.clone();
-    //AbstractIdentifier tmp2 = ((BinaryIdentifier) name).getIdentifier2().clone();
+    AbstractIdentifier tmp2 = id2.clone();
     tmp1.setDereference(dereference + deref);
-    /*deref = ((BinaryIdentifier) name).getIdentifier2().getDereference();
-    tmp2.setDereference(((BinaryIdentifier) name).getDereference() + deref);*/
-    return tmp1.getType(pLocalInfo);
-    //DataType type2 = getType(localInfo, tmp2);
-    //return DataType.max(type1, type2);
-    //return result2;
+    deref = id2.getDereference();
+    tmp2.setDereference(dereference + deref);
+    Set<AbstractIdentifier> result = Sets.newHashSet(tmp1, tmp2);
+    result.addAll(tmp1.getComposedIdentifiers());
+    result.addAll(tmp2.getComposedIdentifiers());
+    return result;
   }
 }

@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.local;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -43,11 +43,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
+@Options(prefix="cpa.local")
 public class LocalCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
     private Statistics statistics;
     private final Reducer reducer;
 
-    public static Set<String> localVariables;
+    @Option(name="localvariables", description = "variables, which are always local")
+    private Set<String> localVariables = Collections.emptySet();
 
     public static CPAFactory factory() {
       return AutomaticCPAFactory.forType(LocalCPA.class);
@@ -55,20 +57,14 @@ public class LocalCPA extends AbstractCPA implements ConfigurableProgramAnalysis
 
     private LocalCPA(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
       super("join", "sep", DelegateAbstractDomain.<LocalState>getInstance(), new LocalTransferRelation(pConfig));
+      pConfig.inject(this);
       statistics = new LocalStatistics(pConfig, pLogger);
       reducer = new LocalReducer();
-      @SuppressWarnings("deprecation")
-      String localVars = pConfig.getProperty("cpa.local.localvariables");
-      if (localVars != null) {
-        localVariables = new HashSet<>(Arrays.asList(localVars.split(", ")));
-      } else {
-        localVariables = Collections.emptySet();
-      }
     }
 
     @Override
     public AbstractState getInitialState(CFANode pNode, StateSpacePartition p) {
-      return new LocalState(null);
+      return LocalState.createInitialLocalState(localVariables);
     }
 
     @Override

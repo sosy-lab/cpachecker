@@ -1,10 +1,8 @@
 package org.sosy_lab.cpachecker.util.identifiers;
 
 import java.util.Collection;
-import java.util.Map;
-
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 
 public class FunctionIdentifier extends SingleIdentifier {
 
@@ -61,5 +59,10 @@ public class FunctionIdentifier extends SingleIdentifier {
   @Override
   public GeneralIdentifier getGeneralId() {
     return null;
+  }
+
+  @Override
+  public Collection<AbstractIdentifier> getComposedIdentifiers() {
+    return Collections.emptySet();
   }
 }

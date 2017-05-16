@@ -47,13 +47,36 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
   protected int dereference;
   protected String function;
 
-  public void clear(String func) {
-    clearDereference();
+  public void setFunction(String func) {
     function = func;
   }
 
-  public void clearDereference() {
-    dereference = 0;
+  public static AbstractIdentifier createIdentifier(CSimpleDeclaration decl, String function, int dereference) {
+    Preconditions.checkNotNull(decl);
+    String name = decl.getName();
+    CType type = decl.getType();
+
+    if (decl instanceof CDeclaration) {
+      if (((CDeclaration)decl).isGlobal()) {
+        return new GlobalVariableIdentifier(name, type, dereference);
+      } else {
+        return new LocalVariableIdentifier(name, type, function, dereference);
+      }
+    } else if (decl instanceof CParameterDeclaration) {
+      return new LocalVariableIdentifier(name, type, function, dereference);
+    } else if (decl instanceof CEnumerator) {
+      return new ConstantIdentifier(name, dereference);
+    } else {
+      //Composite type
+      return null;
+    }
+  }
+
+  public AbstractIdentifier createIdentifier(CExpression expression, int pDereference) {
+    Preconditions.checkNotNull(expression);
+
+    dereference = pDereference;
+    return expression.accept(this);
   }
 
   @Override
@@ -115,31 +138,6 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
       return getMainPart((BinaryIdentifier)result);
     }
     return result;
-  }
-
-  public void setDereference(int pDereference) {
-    dereference = pDereference;
-  }
-
-  public static AbstractIdentifier createIdentifier(CSimpleDeclaration decl, String function, int dereference) {
-    Preconditions.checkNotNull(decl);
-    String name = decl.getName();
-    CType type = decl.getType();
-
-    if (decl instanceof CDeclaration) {
-      if (((CDeclaration)decl).isGlobal()) {
-        return new GlobalVariableIdentifier(name, type, dereference);
-      } else {
-        return new LocalVariableIdentifier(name, type, function, dereference);
-      }
-    } else if (decl instanceof CParameterDeclaration) {
-      return new LocalVariableIdentifier(name, type, function, dereference);
-    } else if (decl instanceof CEnumerator) {
-      return new ConstantIdentifier(name, dereference);
-    } else {
-      //Composite type
-      return null;
-    }
   }
 
   @Override

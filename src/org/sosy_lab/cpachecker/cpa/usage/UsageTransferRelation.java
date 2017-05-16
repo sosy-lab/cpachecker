@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -162,7 +164,7 @@ public class UsageTransferRelation implements TransferRelation {
     }
 
     boolean needToReset = false;
-    if (checkFunciton(pCfaEdge, skippedfunctions)) {
+    if (checkFunction(pCfaEdge, skippedfunctions)) {
       callstackTransfer.enableRecursiveContext();
       needToReset = true;
       CFANode predecessor = pCfaEdge.getPredecessor();
@@ -200,7 +202,7 @@ public class UsageTransferRelation implements TransferRelation {
     return result;
   }
 
-  private boolean checkFunciton(CFAEdge pCfaEdge, Set<String> functionSet) {
+  private boolean checkFunction(CFAEdge pCfaEdge, Set<String> functionSet) {
     if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
       String FunctionName = ((FunctionCallEdge)pCfaEdge).getSuccessor().getFunctionName();
       if (functionSet != null && functionSet.contains(FunctionName)) {
@@ -320,11 +322,10 @@ public class UsageTransferRelation implements TransferRelation {
       AbstractIdentifier id;
       IdentifierCreator creator = new IdentifierCreator();
       String functionName = AbstractStates.extractStateByType(newState, CallstackState.class).getCurrentFunction();
-      creator.clear(functionName);
+      creator.setFunction(functionName);
 
       for (int i = 0; i < params.size(); i++) {
-        creator.setDereference(currentInfo.pInfo.get(i).dereference);
-        id = params.get(i).accept(creator);
+        id = creator.createIdentifier(params.get(i), currentInfo.pInfo.get(i).dereference);
         id = newState.getLinksIfNecessary(id);
         UsageInfo usage = UsageInfo.createUsageInfo(currentInfo.pInfo.get(i).access,
             fcExpression.getFileLocation().getStartingLineNumber(), newState, id);
@@ -376,7 +377,7 @@ public class UsageTransferRelation implements TransferRelation {
     String function = AbstractStates.extractStateByType(state, CallstackState.class).getCurrentFunction();
     AbstractIdentifier leftId, rightId;
     IdentifierCreator creator = new IdentifierCreator();
-    creator.clear(function);
+    creator.setFunction(function);
 
     if (linkInfo != null) {
       //Sometimes these functions are used not only for linkings.
@@ -386,22 +387,16 @@ public class UsageTransferRelation implements TransferRelation {
       info1 = linkInfo.getFirst();
       info2 = linkInfo.getSecond();
       if (info1.num == 0 && left != null) {
-        creator.setDereference(info1.dereference);
-        leftId = left.accept(creator);
-        creator.setDereference(info2.dereference);
-        rightId = params.get(info2.num - 1).accept(creator);
+        leftId = creator.createIdentifier(left, info1.dereference);
+        rightId = creator.createIdentifier(params.get(info2.num - 1), info2.dereference);
 
       } else if (info2.num == 0 && left != null) {
-        creator.setDereference(info2.dereference);
-        rightId = left.accept(creator);
-        creator.setDereference(info1.dereference);
-        leftId = params.get(info1.num - 1).accept(creator);
+        rightId = creator.createIdentifier(left, info2.dereference);
+        leftId = creator.createIdentifier(params.get(info1.num - 1), info1.dereference);
 
       } else if (info1.num > 0 && info2.num > 0) {
-        creator.setDereference(info1.dereference);
-        leftId = params.get(info1.num - 1).accept(creator);
-        creator.setDereference(info2.dereference);
-        rightId = params.get(info2.num - 1).accept(creator);
+        leftId = creator.createIdentifier(params.get(info1.num - 1), info1.dereference);
+        rightId = creator.createIdentifier(params.get(info2.num - 1), info2.dereference);
       } else {
         /* f.e. sdlGetFirst(), which is used for deleting element
          * we don't link, but it isn't an error
@@ -430,10 +425,9 @@ public class UsageTransferRelation implements TransferRelation {
     expression.accept(handler);
 
     IdentifierCreator creator = new IdentifierCreator();
-    creator.clear(functionName);
+    creator.setFunction(functionName);
     for (Pair<CExpression, Access> pair : handler.getProcessedExpressions()) {
-      creator.clearDereference();
-      AbstractIdentifier id = pair.getFirst().accept(creator);
+      AbstractIdentifier id = creator.createIdentifier(pair.getFirst(), 0);
       id = newState.getLinksIfNecessary(id);
       UsageInfo usage = UsageInfo.createUsageInfo(pair.getSecond(), expression.getFileLocation().getStartingLineNumber(), newState, id);
       addUsageIfNeccessary(usage);
@@ -453,9 +447,22 @@ public class UsageTransferRelation implements TransferRelation {
     CFANode node = AbstractStates.extractLocation(newState);
     Map<GeneralIdentifier, DataType> localInfo = precision.get(node);
 
-    if (localInfo != null && singleId.getType(localInfo) == DataType.LOCAL) {
-      logger.log(Level.FINER, singleId + " is considered to be local, so it wasn't add to statistics");
-      return;
+    if (localInfo != null) {
+      GeneralIdentifier gId = singleId.getGeneralId();
+      if (localInfo.get(gId) == DataType.LOCAL) {
+        logger.log(Level.FINER, singleId + " is considered to be local, so it wasn't add to statistics");
+        return;
+      } else {
+        FluentIterable<SingleIdentifier> composedIds =
+            from(singleId.getComposedIdentifiers())
+            .filter(SingleIdentifier.class);
+        boolean isLocal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.LOCAL);
+        boolean isGlobal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.GLOBAL);
+        if (isLocal && !isGlobal) {
+          logger.log(Level.FINER, singleId + " is supposed to be local, so it wasn't add to statistics");
+          return;
+        }
+      }
     }
 
     if (varSkipper.shouldBeSkipped(singleId, usage)) {
