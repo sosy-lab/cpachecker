@@ -759,7 +759,7 @@ public enum MachineModel {
    *
    * <p>A {@link ComplexTypeKind#UNION} will result in a {@link Map} of fields to zeroes.
    *
-   * @param pOwnerType - a {@link CCompositeType} to calculate its fields offsets
+   * @param pOwnerType a {@link CCompositeType} to calculate its fields offsets
    * @return a mapping of typeMemberDeclarations to there corresponding offsets in pOwnerType
    */
   public Map<CCompositeTypeMemberDeclaration, BigInteger> getAllFieldOffsetsInBits(
@@ -777,9 +777,8 @@ public enum MachineModel {
    *
    * <p>Iff pFieldName is <code>null</code>, the overall size of pOwnerType is calculated instead.
    *
-   * @param pOwnerType - a {@link CCompositeType} to calculate its a field offset or its overall
-   *     size
-   * @param pFieldName - the name of the field to calculate its offset; <code>null</code> for
+   * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
+   * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
    *     composites size
    * @return an {@link OptionalInt} containing either the result value or nothing if some size could
    *     not be calculated properly
@@ -793,12 +792,11 @@ public enum MachineModel {
    * Does the same as {@link MachineModel#getFieldOffsetOrSizeInBits(CCompositeType, String)}, but
    * accepts a {@link BaseSizeofVisitor}
    *
-   * @param pOwnerType - a {@link CCompositeType} to calculate its a field offset or its overall
-   *     size
-   * @param pFieldName - the name of the field to calculate its offset; <code>null</code> for
+   * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
+   * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
    *     composites size
-   * @param pSizeofVisitor - a {@link BaseSizeofVisitor} used to calculate type sizes according to
-   *     the relevant applications model; may not be <code>null</code>
+   * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
+   *     relevant applications model; may not be <code>null</code>
    * @return an {@link OptionalInt} containing either the result value or nothing if some size could
    *     not be calculated properly
    */
@@ -827,14 +825,13 @@ public enum MachineModel {
    * <p>Alas it is mandatory for at least a little bit of separation of concerns, to keep this
    * method private and not to expose its nastiness to anywhere outside this class.
    *
-   * @param pOwnerType - a {@link CCompositeType} to calculate its a field offset or its overall
-   *     size
-   * @param pFieldName - the name of the field to calculate its offset; <code>null</code> for
+   * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
+   * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
    *     composites size
-   * @param pSizeofVisitor - a {@link BaseSizeofVisitor} used to calculate type sizes according to
-   *     the relevant applications model; may be <code>null</code> to fall back to {@link
+   * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
+   *     relevant applications model; may be <code>null</code> to fall back to {@link
    *     MachineModel#sizeofVisitor}
-   * @param outParameterMap - a {@link Map} given as both, input and output, to store the mapping of
+   * @param outParameterMap a {@link Map} given as both, input and output, to store the mapping of
    *     fields to offsets in; may be <code>null</code> if not required
    * @return an {@link OptionalInt} containing either the result value or nothing if some size could
    *     not be calculated properly
