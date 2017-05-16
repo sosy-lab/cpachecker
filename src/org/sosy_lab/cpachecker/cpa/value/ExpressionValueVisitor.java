@@ -296,8 +296,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (ownerType instanceof CElaboratedType) {
         return getFieldOffsetInBits(((CElaboratedType) ownerType).getRealType(), fieldName);
       } else if (ownerType instanceof CCompositeType) {
-        return evv.getMachineModel()
-            .getFieldOffsetOrSizeInBits((CCompositeType) ownerType, fieldName);
+        return evv.getMachineModel().getFieldOffsetInBits((CCompositeType) ownerType, fieldName);
       } else if (ownerType instanceof CPointerType) {
         evv.missingPointer = true;
         return OptionalInt.empty();
@@ -307,9 +306,9 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
           * unless the parsing of the automaton for
           * Counterexample-check failed to determine
           * the type of an assumptions operand.
-          * 
+          *
           * This is unfortunate but not as critical as
-          * letting CPAchecker crash here. 
+          * letting CPAchecker crash here.
           */
          return OptionalInt.empty();
       }

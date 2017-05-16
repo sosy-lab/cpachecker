@@ -136,12 +136,12 @@ public class MachineModelGetOffsetTest {
 
   @Test
   public void testGetFieldOffsetInStruct() {
-    assertThat(model.getFieldOffsetOrSizeInBits(STRUCT, testField)).hasValue(expectedOffset);
+    assertThat(model.getFieldOffsetInBits(STRUCT, testField)).hasValue(expectedOffset);
   }
 
   @Test
   public void testFailingGetFieldOffsetInStructDueToIntermediateIncompleteType() {
-    assertThat(model.getFieldOffsetOrSizeInBits(BOUND_TO_FAIL_STRUCT, testField))
+    assertThat(model.getFieldOffsetInBits(BOUND_TO_FAIL_STRUCT, testField))
         .isAnyOf(OptionalInt.of(0), OptionalInt.empty());
     // Offset-calculation does not fail, if we lookup a field in front of
     // an erroneous intermediately inserted incomplete type.

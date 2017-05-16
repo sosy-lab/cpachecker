@@ -2176,11 +2176,6 @@ public class AssumptionToEdgeAllocator {
   }
 
   private static OptionalInt getFieldOffsetInBits(
-      CCompositeType ownerType, String fieldName, MachineModel pMachineModel) {
-    return pMachineModel.getFieldOffsetOrSizeInBits(ownerType, fieldName);
-  }
-
-  private static OptionalInt getFieldOffsetInBits(
       CType ownerType, String fieldName, MachineModel pMachineModel) {
 
     if (ownerType instanceof CElaboratedType) {
@@ -2193,7 +2188,7 @@ public class AssumptionToEdgeAllocator {
 
       return getFieldOffsetInBits(realType.getCanonicalType(), fieldName, pMachineModel);
     } else if (ownerType instanceof CCompositeType) {
-      return getFieldOffsetInBits((CCompositeType) ownerType, fieldName, pMachineModel);
+      return pMachineModel.getFieldOffsetInBits((CCompositeType) ownerType, fieldName);
     } else if (ownerType instanceof CPointerType) {
 
       /* We do not explicitly transform x->b,

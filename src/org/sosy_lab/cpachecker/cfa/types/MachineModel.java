@@ -772,33 +772,29 @@ public enum MachineModel {
   /**
    * Calculates the offset of pFieldName in pOwnerType in bits.
    *
-   * <p>Iff pFieldName is <code>null</code>, the overall size of pOwnerType is calculated instead.
-   *
-   * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
-   * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
-   *     composites size
+   * @param pOwnerType a {@link CCompositeType} to calculate its field offset
+   * @param pFieldName the name of the field to calculate its offset
    * @return an {@link OptionalInt} containing either the result value or nothing if some size could
    *     not be calculated properly
    */
-  public OptionalInt getFieldOffsetOrSizeInBits(
-      CCompositeType pOwnerType, @Nullable String pFieldName) {
-    return getFieldOffsetOrSizeInBits(pOwnerType, pFieldName, sizeofVisitor);
+  public OptionalInt getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
+    return getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
   }
 
   /**
-   * Does the same as {@link MachineModel#getFieldOffsetOrSizeInBits(CCompositeType, String)}, but
-   * accepts a {@link BaseSizeofVisitor}
+   * Does the same as {@link MachineModel#getFieldOffsetInBits(CCompositeType, String)}, but accepts
+   * a {@link BaseSizeofVisitor}
    *
-   * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
-   * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
-   *     composites size
+   * @param pOwnerType a {@link CCompositeType} to calculate its field offset
+   * @param pFieldName the name of the field to calculate its offset
    * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
    *     relevant applications model
    * @return an {@link OptionalInt} containing either the result value or nothing if some size could
    *     not be calculated properly
    */
-  public OptionalInt getFieldOffsetOrSizeInBits(
-      CCompositeType pOwnerType, @Nullable String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
+  public OptionalInt getFieldOffsetInBits(
+      CCompositeType pOwnerType, String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
+    checkNotNull(pFieldName);
     return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
         pOwnerType, pFieldName, pSizeofVisitor, null);
   }
