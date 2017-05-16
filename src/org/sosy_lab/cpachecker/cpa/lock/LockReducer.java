@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import java.util.HashSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -59,7 +60,7 @@ public class LockReducer implements Reducer {
     if (reduceUselessLocks) {
       builder.reduceLocks(pContext.getCapturedLocks());
     } else if (aggressiveReduction) {
-      builder.reduceLockCounters(pContext.getCapturedLocks());
+      builder.reduceLockCounters(new HashSet<>());
     }
     return builder.build();
   }
@@ -75,7 +76,7 @@ public class LockReducer implements Reducer {
     if (reduceUselessLocks) {
       builder.expandLocks(rootState, pReducedContext.getCapturedLocks());
     } else if (aggressiveReduction) {
-      builder.expandLockCounters(rootState, pReducedContext.getCapturedLocks());
+      builder.expandLockCounters(rootState, new HashSet<>());
     }
     return builder.build();
   }
