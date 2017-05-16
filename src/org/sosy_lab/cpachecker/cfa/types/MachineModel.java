@@ -753,10 +753,6 @@ public enum MachineModel {
    * This method creates a mapping of all fields contained by pOwnerType to their respective offsets
    * in bits and returns it to the caller.
    *
-   * <p>That will work for correct implemented {@link ComplexTypeKind#STRUCT}; so an incomplete type
-   * trailing all other fields will be accepted while incomplete types mixed among the other fields
-   * will result in an error.
-   *
    * <p>A {@link ComplexTypeKind#UNION} will result in a {@link Map} of fields to zeroes.
    *
    * @param pOwnerType a {@link CCompositeType} to calculate its fields offsets
@@ -796,7 +792,7 @@ public enum MachineModel {
    * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
    *     composites size
    * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
-   *     relevant applications model; may not be <code>null</code>
+   *     relevant applications model
    * @return an {@link OptionalInt} containing either the result value or nothing if some size could
    *     not be calculated properly
    */
@@ -812,18 +808,9 @@ public enum MachineModel {
   }
 
   /**
-   * As the name of this method suggests, it does not very much follow the 'Do one thing only.' or
-   * 'separation of concerns' principles. The reason lies in the very similar code for the
-   * applications of calculating a {@link CCompositeType}s size, an offset for one of its fields, or
-   * (trivially similar to the first use case) a {@link Map} of all its fields to their respective
-   * offsets.
-   *
-   * <p>Since code that does those things is in practice duplicated (ignoring some small variations)
-   * it seems to be reasonable to break the above mentioned principles and interleave those
-   * functionalities in this one method.
-   *
-   * <p>Alas it is mandatory for at least a little bit of separation of concerns, to keep this
-   * method private and not to expose its nastiness to anywhere outside this class.
+   * Compute size of composite types or offsets of fields in composite types, taking alignment and
+   * padding into account. Both tasks share the same complex logic, so we implement them in the same
+   * private method that is exposed via various public methods for individual tasks.
    *
    * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
    * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
