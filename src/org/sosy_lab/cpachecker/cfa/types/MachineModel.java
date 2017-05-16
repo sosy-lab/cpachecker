@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Maps;
 import java.math.BigInteger;
@@ -626,8 +627,7 @@ public enum MachineModel {
   }
 
   public int getSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
-    assert pSizeofVisitor != null
-        : "getSizeof(pType, pSizeofVisitor) was called with pSizeofVisitor of null value. Check for proper instantiation or use getSizeof(pType) for clearity instead.";
+    checkNotNull(pSizeofVisitor);
     return pType.accept(pSizeofVisitor);
   }
 
@@ -640,8 +640,7 @@ public enum MachineModel {
   }
 
   public int getBitSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
-    assert pSizeofVisitor != null
-        : "getBitSizeof(pType, pSizeofVisitor) was called with pSizeofVisitor of null value. Check for proper instantiation or use getBitSizeof(pType) for clearity instead.";
+    checkNotNull(pSizeofVisitor);
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
     } else {
