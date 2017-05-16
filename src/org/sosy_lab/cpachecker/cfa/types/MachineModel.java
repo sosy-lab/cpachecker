@@ -763,7 +763,8 @@ public enum MachineModel {
     Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap =
         Maps.newLinkedHashMapWithExpectedSize(pOwnerType.getMembers().size());
 
-    getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, null, null, outParameterMap);
+    getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
+        pOwnerType, null, sizeofVisitor, outParameterMap);
 
     return outParameterMap;
   }
@@ -781,7 +782,7 @@ public enum MachineModel {
    */
   public OptionalInt getFieldOffsetOrSizeInBits(
       CCompositeType pOwnerType, @Nullable String pFieldName) {
-    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, pFieldName, null, null);
+    return getFieldOffsetOrSizeInBits(pOwnerType, pFieldName, sizeofVisitor);
   }
 
   /**
@@ -798,11 +799,6 @@ public enum MachineModel {
    */
   public OptionalInt getFieldOffsetOrSizeInBits(
       CCompositeType pOwnerType, @Nullable String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
-    assert pSizeofVisitor != null
-        : "GetFieldOffsetOrSizeInBits(pOwnerType, pFieldName, pSizeofVisitor) was called "
-            + "with pSizeVisitor of null value. Make sure to instantiate the corresponding variable "
-            + "or, for clearity's sake, use getFieldOffsetOrSizeInBits(pOwnerType, pFieldName) in "
-            + "places where no particular sizeofVisitor is necessary.";
     return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
         pOwnerType, pFieldName, pSizeofVisitor, null);
   }
@@ -816,8 +812,7 @@ public enum MachineModel {
    * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
    *     composites size
    * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
-   *     relevant applications model; may be <code>null</code> to fall back to {@link
-   *     MachineModel#sizeofVisitor}
+   *     relevant applications model
    * @param outParameterMap a {@link Map} given as both, input and output, to store the mapping of
    *     fields to offsets in; may be <code>null</code> if not required
    * @return an {@link OptionalInt} containing either the result value or nothing if some size could
@@ -826,8 +821,9 @@ public enum MachineModel {
   private OptionalInt getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
       CCompositeType pOwnerType,
       @Nullable String pFieldName,
-      @Nullable BaseSizeofVisitor pSizeofVisitor,
+      BaseSizeofVisitor pSizeofVisitor,
       @Nullable Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
+    checkNotNull(pSizeofVisitor);
     checkArgument(
         (pFieldName == null) || (outParameterMap == null),
         "Call of this method does only make sense if either pFieldName or outParameterMap "
@@ -883,8 +879,7 @@ public enum MachineModel {
             fieldSizeInBits = 0;
           }
         } else {
-          fieldSizeInBits =
-              pSizeofVisitor != null ? getBitSizeof(type, pSizeofVisitor) : getBitSizeof(type);
+          fieldSizeInBits = getBitSizeof(type, pSizeofVisitor);
         }
 
         if (type instanceof CBitFieldType) {
