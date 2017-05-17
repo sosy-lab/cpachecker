@@ -55,8 +55,7 @@ public class ThreadReducer implements Reducer {
     ThreadStateBuilder builder = expState.getBuilder();
     LocationState redLocation = (LocationState)lReducer.getVariableReducedState(expLocation, pContext, pCallNode);
     CallstackState redCallstack = (CallstackState)cReducer.getVariableReducedState(expCallstackState, pContext, pCallNode);
-    builder.setWrappedStates(redLocation, redCallstack);
-    return builder.build();
+    return builder.build(redLocation, redCallstack);
   }
 
   @Override
@@ -71,8 +70,7 @@ public class ThreadReducer implements Reducer {
     ThreadStateBuilder builder = redState.getBuilder();
     LocationState expLocation = (LocationState)lReducer.getVariableExpandedState(rootLocation, pReducedContext, redLocation);
     CallstackState expCallstack = (CallstackState)cReducer.getVariableExpandedState(rootCallstack, pReducedContext, redCallstack);
-    builder.setWrappedStates(expLocation, expCallstack);
-    return builder.build();
+    return builder.build(expLocation, expCallstack);
   }
 
   @Override

@@ -26,5 +26,5 @@ package org.sosy_lab.cpachecker.cpa.usage;
 public interface UsageTreeNode extends CompatibleState {
 
   public boolean cover(UsageTreeNode node);
-  public boolean isEmpty();
+  public boolean hasEmptyLockSet();
 }

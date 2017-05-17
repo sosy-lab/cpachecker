@@ -27,6 +27,8 @@ import com.google.common.collect.Lists;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -44,13 +46,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CThreadCreateStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
@@ -130,60 +134,71 @@ public class ThreadCreateTransformer {
     logger = log;
   }
 
-  public void transform(CFA cfa) throws InvalidConfigurationException {
+  public void transform(CFA cfa) throws InvalidConfigurationException, CParserException {
     ThreadFinder threadVisitor = new ThreadFinder(threadCreate, threadCreateN, threadJoin, threadJoinN);
     for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
     }
 
     //We need to repeat this loop several times, because we traverse that part cfa, which is reachable from main
-    for (CFAEdge edge : threadVisitor.threadCreates.keySet()) {
+    for (Entry<CFAEdge, CFunctionCallExpression> entry : threadVisitor.threadCreates.entrySet()) {
+      CFAEdge edge = entry.getKey();
+      CFunctionCallExpression fCall = entry.getValue();
 
-      CFunctionCallExpression fCall = threadVisitor.threadCreates.get(edge);
-      List<CExpression> args = fCall.getParameterExpressions();
-      CExpression newThreadFunction = args.get(1);
-      CIdExpression newThreadNameExpression = getFunctionName(newThreadFunction);
       String fName = fCall.getFunctionNameExpression().toString();
-      List<CExpression> pParameters = Lists.newArrayList(args.get(2));
+      List<CExpression> args = fCall.getParameterExpressions();
+      if (args.size() < 3) {
+        throw new InvalidConfigurationException("More arguments expected: " + fCall);
+      }
+
+      int magicNum = fName.startsWith("ldv_") ? 0 : 1;
+      CIdExpression varName = getThreadVariableName(fCall);
+      CExpression newThreadFunction = args.get(1 + magicNum);
+      CIdExpression newThreadNameExpression = getFunctionName(newThreadFunction);
+      List<CExpression> pParameters = Lists.newArrayList(args.get(2 + magicNum));
       String newThreadName = newThreadNameExpression.getName();
       CFunctionEntryNode entryNode = (CFunctionEntryNode) cfa.getFunctionHead(newThreadName);
       if (entryNode == null) {
         throw new InvalidConfigurationException("Can not find the body of function " + newThreadName + "(), full line: " + edge);
       }
-      CFunctionDeclaration pDeclaration = entryNode.getFunctionDefinition();
-      CFANode pPredecessor = edge.getPredecessor();
-      CFANode pSuccessor = edge.getSuccessor();
-      FileLocation pFileLocation = edge.getFileLocation();
-      String pRawStatement = edge.getRawStatement();
 
-      CFACreationUtils.removeEdgeFromNodes(edge);
+      CFunctionDeclaration pDeclaration = entryNode.getFunctionDefinition();
+      FileLocation pFileLocation = edge.getFileLocation();
 
       CFunctionCallExpression pFunctionCallExpression = new CFunctionCallExpression(pFileLocation, pDeclaration.getType().getReturnType(), newThreadNameExpression, pParameters, pDeclaration);
       boolean isSelfParallel = !fName.equals(threadCreate);
-      CFunctionCallStatement pFunctionCall = new CThreadCreateStatement(pFileLocation, pFunctionCallExpression, isSelfParallel);
+      CFunctionCallStatement pFunctionCall = new CThreadCreateStatement(pFileLocation, pFunctionCallExpression, isSelfParallel, varName.getName());
 
-      CStatementEdge callEdge = new CStatementEdge(pRawStatement, pFunctionCall, pFileLocation, pPredecessor, pSuccessor);
-
-      CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
+      replaceEdgeWith(edge, pFunctionCall);
     }
 
-    for (CFAEdge edge : threadVisitor.threadJoins.keySet()) {
-      CFunctionCallExpression fCall = threadVisitor.threadJoins.get(edge);
-      CFANode pPredecessor = edge.getPredecessor();
-      CFANode pSuccessor = edge.getSuccessor();
+    for (Entry<CFAEdge, CFunctionCallExpression> entry : threadVisitor.threadJoins.entrySet()) {
+      CFAEdge edge = entry.getKey();
+      CFunctionCallExpression fCall = entry.getValue();
+      CIdExpression varName = getThreadVariableName(fCall);
       FileLocation pFileLocation = edge.getFileLocation();
-      String pRawStatement = edge.getRawStatement();
-
-      CFACreationUtils.removeEdgeFromNodes(edge);
 
       String fName = fCall.getFunctionNameExpression().toString();
       boolean isSelfParallel = !fName.equals(threadJoin);
-      CFunctionCallStatement pFunctionCall = new CThreadCreateStatement(pFileLocation, fCall, isSelfParallel);
+      CFunctionCallStatement pFunctionCall = new CThreadJoinStatement(pFileLocation, fCall, isSelfParallel, varName.getName());
 
-      CStatementEdge callEdge = new CStatementEdge(pRawStatement, pFunctionCall, pFileLocation, pPredecessor, pSuccessor);
-
-      CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
+      replaceEdgeWith(edge, pFunctionCall);
     }
+  }
+
+  private void replaceEdgeWith(CFAEdge edge, CFunctionCallStatement fCall) {
+    CFANode pPredecessor = edge.getPredecessor();
+    CFANode pSuccessor = edge.getSuccessor();
+    FileLocation pFileLocation = edge.getFileLocation();
+    String pRawStatement = edge.getRawStatement();
+
+    CFACreationUtils.removeEdgeFromNodes(edge);
+
+    CStatementEdge callEdge = new CStatementEdge(pRawStatement, fCall, pFileLocation, pPredecessor, pSuccessor);
+
+    logger.log(Level.FINE, "Replace " + edge + " with " + callEdge);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
+
   }
 
 
@@ -198,5 +213,19 @@ public class ThreadCreateTransformer {
       assert false : "Unsupported expression in ldv_thread_create: " + fName;
       return null;
     }
+  }
+
+  private CIdExpression getThreadVariableName(CFunctionCallExpression fCall) throws CParserException {
+    CExpression var = fCall.getParameterExpressions().get(0);
+
+    while (!(var instanceof CIdExpression)) {
+      if (var instanceof CUnaryExpression) {
+        //&t
+        var = ((CUnaryExpression)var).getOperand();
+      } else {
+        throw new CParserException("Unsupported parameter expression " + var);
+      }
+    }
+    return (CIdExpression) var;
   }
 }

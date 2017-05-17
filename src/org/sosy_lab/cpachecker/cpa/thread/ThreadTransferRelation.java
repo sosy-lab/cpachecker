@@ -26,14 +26,11 @@ package org.sosy_lab.cpachecker.cpa.thread;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CThreadCreateStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CThreadJoinStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -48,7 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.thread.ThreadLabel.LabelStatus;
 import org.sosy_lab.cpachecker.cpa.thread.ThreadState.ThreadStateBuilder;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
@@ -56,15 +52,13 @@ import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 
 public class ThreadTransferRelation extends SingleEdgeTransferRelation {
   private final TransferRelation locationTransfer;
-  private final TransferRelation callstackTransfer;
+  private final CallstackTransferRelation callstackTransfer;
   private final ThreadCPAStatistics threadStatistics;
-
-  private boolean resetCallstacksFlag;
 
   public ThreadTransferRelation(TransferRelation l,
       TransferRelation c, Configuration pConfiguration) {
     locationTransfer = l;
-    callstackTransfer = c;
+    callstackTransfer = (CallstackTransferRelation) c;
     threadStatistics = new ThreadCPAStatistics();
   }
 
@@ -77,74 +71,65 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     LocationState oldLocationState = tState.getLocationState();
     CallstackState oldCallstackState = tState.getCallstackState();
 
+    boolean resetCallstacksFlag = false;
+
     ThreadStateBuilder builder = tState.getBuilder();
     try {
       if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
           if (!handleFunctionCall((CFunctionCallEdge)pCfaEdge, builder)) {
             //Try to join non-created thread
-            threadStatistics.transfer.stop();
             return Collections.emptySet();
           }
       } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
         CFunctionCall functionCall = ((CFunctionSummaryStatementEdge)pCfaEdge).getFunctionCall();
         if (isThreadCreateFunction(functionCall)) {
-          String functionName = ((CFunctionSummaryStatementEdge)pCfaEdge).getFunctionName();
-          builder.addToThreadSet(new ThreadLabel(functionName, LabelStatus.PARENT_THREAD));
+          builder.handleParentThread((CThreadCreateStatement)functionCall);
           resetCallstacksFlag = true;
-          ((CallstackTransferRelation)callstackTransfer).enableRecursiveContext();
+          callstackTransfer.enableRecursiveContext();
         }
       } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         CFunctionCall functionCall = ((CFunctionReturnEdge)pCfaEdge).getSummaryEdge().getExpression();
         if (isThreadCreateFunction(functionCall)) {
-          threadStatistics.transfer.stop();
           return Collections.emptySet();
         }
       }
-    } catch (HandleCodeException e) {
-      //throw new CPATransferException(e.getMessage());
-      threadStatistics.transfer.stop();
-      return Collections.emptySet();
-    }
 
-    Collection<? extends AbstractState> newLocationStates = locationTransfer.getAbstractSuccessorsForEdge(oldLocationState,
-        SingletonPrecision.getInstance(), pCfaEdge);
-    Collection<? extends AbstractState> newCallstackStates = callstackTransfer.getAbstractSuccessorsForEdge(oldCallstackState,
-        SingletonPrecision.getInstance(), pCfaEdge);
+      Collection<? extends AbstractState> newLocationStates = locationTransfer.getAbstractSuccessorsForEdge(oldLocationState,
+          SingletonPrecision.getInstance(), pCfaEdge);
+      Collection<? extends AbstractState> newCallstackStates = callstackTransfer.getAbstractSuccessorsForEdge(oldCallstackState,
+          SingletonPrecision.getInstance(), pCfaEdge);
 
 
-    Set<ThreadState> resultStates = new HashSet<>();
-    for (AbstractState lState : newLocationStates) {
-      for (AbstractState cState : newCallstackStates) {
-        builder.setWrappedStates((LocationState)lState, (CallstackState)cState);
-        resultStates.add(builder.build());
+      Set<ThreadState> resultStates = new HashSet<>();
+      for (AbstractState lState : newLocationStates) {
+        for (AbstractState cState : newCallstackStates) {
+          resultStates.add(builder.build((LocationState)lState, (CallstackState)cState));
+        }
       }
+      if (resetCallstacksFlag) {
+        callstackTransfer.disableRecursiveContext();
+      }
+      return resultStates;
+    } catch (HandleCodeException e) {
+      return Collections.emptySet();
+    } finally {
+      threadStatistics.transfer.stop();
     }
-    if (resetCallstacksFlag) {
-      ((CallstackTransferRelation)callstackTransfer).disableRecursiveContext();
-      resetCallstacksFlag = false;
-    }
-    threadStatistics.transfer.stop();
-    return resultStates;
   }
 
   private boolean handleFunctionCall(CFunctionCallEdge pCfaEdge,
       ThreadStateBuilder builder) throws HandleCodeException {
-    String functionName = pCfaEdge.getSuccessor().getFunctionName();
 
     boolean success = true;
     CFunctionCall fCall = pCfaEdge.getSummaryEdge().getExpression();
     if (isThreadCreateFunction(fCall)) {
       threadStatistics.threadCreates.inc();
-      LabelStatus status =  ((CThreadCreateStatement)fCall).isSelfParallel() ? LabelStatus.SELF_PARALLEL_THREAD : LabelStatus.CREATED_THREAD;
-      builder.addToThreadSet(new ThreadLabel(functionName, status));
+      builder.handleChildThread((CThreadCreateStatement)fCall);
       //Just to statistics
-      ThreadState tmpState = builder.build();
-      threadStatistics.maxNumberOfThreads.setNextValue(tmpState.getThreadSet().size());
+      threadStatistics.maxNumberOfThreads.setNextValue(builder.getThreadSize());
     } else if (isThreadJoinFunction(fCall)) {
       threadStatistics.threadJoins.inc();
-      List<CExpression> args = pCfaEdge.getArguments();
-      functionName = ((CUnaryExpression)args.get(1)).getOperand().toASTString();
-      success = builder.removeFromThreadSet(new ThreadLabel(functionName, LabelStatus.PARENT_THREAD));
+      success = builder.joinThread((CThreadJoinStatement)fCall);
     }
     return success;
   }

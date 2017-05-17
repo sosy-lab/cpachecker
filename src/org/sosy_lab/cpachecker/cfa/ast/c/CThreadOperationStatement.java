@@ -26,16 +26,39 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
-public class CThreadCreateStatement extends CFunctionCallStatement {
+public class CThreadOperationStatement extends CFunctionCallStatement {
+
+  public static class CThreadCreateStatement extends CThreadOperationStatement {
+
+    public CThreadCreateStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall,
+        boolean pSelfParallel, String pVarName) {
+      super(pFileLocation, pFunctionCall, pSelfParallel, pVarName);
+    }
+  }
+
+  public static class CThreadJoinStatement extends CThreadOperationStatement {
+
+    public CThreadJoinStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall,
+        boolean pSelfParallel, String pVarName) {
+      super(pFileLocation, pFunctionCall, pSelfParallel, pVarName);
+    }
+  }
 
   private final boolean isSelfParallel;
+  private final String assosiatedVariable;
 
-  public CThreadCreateStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall, boolean selfParallel) {
+  public CThreadOperationStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall
+      , boolean selfParallel, String varName) {
     super(pFileLocation, pFunctionCall);
     isSelfParallel = selfParallel;
+    assosiatedVariable = varName;
   }
 
   public boolean isSelfParallel() {
     return isSelfParallel;
+  }
+
+  public String getVariableName() {
+    return assosiatedVariable;
   }
 }

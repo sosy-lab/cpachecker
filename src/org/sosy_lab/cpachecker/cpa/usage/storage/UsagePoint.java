@@ -104,7 +104,7 @@ public class UsagePoint implements Comparable<UsagePoint> {
     boolean isEmpty = true;
     for (CompatibleState state : states) {
       UsageTreeNode constructedNode = state.getTreeNode();
-      isEmpty &= constructedNode.isEmpty();
+      isEmpty &= constructedNode.hasEmptyLockSet();
       nodes.add(constructedNode);
     }
     if (!isEmpty) {

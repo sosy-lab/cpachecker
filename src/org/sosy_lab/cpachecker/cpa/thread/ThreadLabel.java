@@ -33,10 +33,12 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
   }
 
   private final String threadName;
+  private final String varName;
   private final LabelStatus status;
 
-  public ThreadLabel(String name, LabelStatus flag) {
+  public ThreadLabel(String name, String vName, LabelStatus flag) {
     threadName = name;
+    varName = vName;
     status = flag;
   }
 
@@ -45,6 +47,7 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
     final int prime = 31;
     int result = 1;
     result = prime * result + status.hashCode();
+    result = prime * result + ((varName == null) ? 0 : varName.hashCode());
     result = prime * result + ((threadName == null) ? 0 : threadName.hashCode());
     return result;
   }
@@ -71,6 +74,13 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
     } else if (!threadName.equals(other.threadName)) {
       return false;
     }
+    if (varName == null) {
+      if (other.varName != null) {
+        return false;
+      }
+    } else if (!varName.equals(other.varName)) {
+      return false;
+    }
     return true;
   }
 
@@ -79,9 +89,12 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
     int result = this.threadName.compareTo(pO.threadName);
     if (result != 0) {
       return result;
-    } else {
-      return status.compareTo(pO.status);
     }
+    result = this.varName.compareTo(pO.varName);
+    if (result != 0) {
+      return result;
+    }
+    return status.compareTo(pO.status);
   }
 
   public boolean isCompatibleWith(ThreadLabel other) {
@@ -95,6 +108,13 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
     } else if (!threadName.equals(other.threadName)) {
       return false;
     }
+    if (varName == null) {
+      if (other.varName != null) {
+        return false;
+      }
+    } else if (!varName.equals(other.varName)) {
+      return false;
+    }
     return true;
   }
 
@@ -102,16 +122,24 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
     return threadName;
   }
 
+  public String getVarName() {
+    return varName;
+  }
+
   public boolean isSelfParallel() {
     return status == LabelStatus.SELF_PARALLEL_THREAD;
   }
 
+  public boolean isParentThread() {
+    return status == LabelStatus.PARENT_THREAD;
+  }
+
   public ThreadLabel toSelfParallelLabel() {
-    return new ThreadLabel(threadName, LabelStatus.SELF_PARALLEL_THREAD);
+    return new ThreadLabel(threadName, varName, LabelStatus.SELF_PARALLEL_THREAD);
   }
 
   @Override
   public String toString() {
-    return threadName + ":" + status;
+    return "(" + threadName + ", " + varName + ") :" + status;
   }
 }

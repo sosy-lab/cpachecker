@@ -97,6 +97,11 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
       return false;
     }
 
+    @Override
+    public boolean hasEmptyLockSet() {
+      return isEmpty();
+    }
+
   }
 
   public class LockStateBuilder {
