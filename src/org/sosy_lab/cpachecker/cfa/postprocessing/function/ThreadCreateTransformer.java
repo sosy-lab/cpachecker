@@ -36,25 +36,38 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
@@ -136,6 +149,8 @@ public class ThreadCreateTransformer {
 
   public void transform(CFA cfa) throws InvalidConfigurationException, CParserException {
     ThreadFinder threadVisitor = new ThreadFinder(threadCreate, threadCreateN, threadJoin, threadJoinN);
+
+    int tmpVarCounter = 0;
     for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
     }
@@ -169,7 +184,47 @@ public class ThreadCreateTransformer {
       boolean isSelfParallel = !fName.equals(threadCreate);
       CFunctionCallStatement pFunctionCall = new CThreadCreateStatement(pFileLocation, pFunctionCallExpression, isSelfParallel, varName.getName());
 
-      replaceEdgeWith(edge, pFunctionCall);
+      if (edge instanceof CStatementEdge) {
+        CStatement stmnt = ((CStatementEdge)edge).getStatement();
+        if (stmnt instanceof CFunctionCallAssignmentStatement) {
+          /* We should replace r = pthread_create(f) into
+           *   - r = TMP;
+           *   - [r == 0]
+           *   - f()
+           */
+          String pRawStatement = edge.getRawStatement();
+
+          CFANode pPredecessor = edge.getPredecessor();
+          CFANode pSuccessor = edge.getSuccessor();
+          CFANode firstNode = new CFANode(pPredecessor.getFunctionName());
+          CFANode secondNode = new CFANode(pPredecessor.getFunctionName());
+          ((MutableCFA)cfa).addNode(firstNode);
+          ((MutableCFA)cfa).addNode(secondNode);
+
+          CFACreationUtils.removeEdgeFromNodes(edge);
+
+          CStatement assign = prepareRandomAssignment((CFunctionCallAssignmentStatement)stmnt);
+          CStatementEdge randAssign = new CStatementEdge(pRawStatement, assign, pFileLocation, pPredecessor, firstNode);
+
+          CExpression assumption = prepareAssumption((CFunctionCallAssignmentStatement)stmnt, cfa);
+          CAssumeEdge trueEdge = new CAssumeEdge(pRawStatement, pFileLocation, firstNode, secondNode, assumption, true);
+          CAssumeEdge falseEdge = new CAssumeEdge(pRawStatement, pFileLocation, firstNode, pSuccessor, assumption, false);
+
+          CStatementEdge callEdge = new CStatementEdge(pRawStatement, pFunctionCall, pFileLocation, secondNode, pSuccessor);
+
+          CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
+          CFACreationUtils.addEdgeUnconditionallyToCFA(randAssign);
+          CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
+          CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
+
+          logger.log(Level.FINE, "Replace " + edge + " with " + callEdge);
+        } else {
+          replaceEdgeWith(edge, pFunctionCall);
+        }
+
+      } else {
+        replaceEdgeWith(edge, pFunctionCall);
+      }
     }
 
     for (Entry<CFAEdge, CFunctionCallExpression> entry : threadVisitor.threadJoins.entrySet()) {
@@ -199,6 +254,34 @@ public class ThreadCreateTransformer {
     logger.log(Level.FINE, "Replace " + edge + " with " + callEdge);
     CFACreationUtils.addEdgeUnconditionallyToCFA(callEdge);
 
+  }
+
+  private int tmpVarCounter = 0;
+
+  private CStatement prepareRandomAssignment(CFunctionCallAssignmentStatement stmnt) {
+    FileLocation pFileLocation = stmnt.getFileLocation();
+    CFunctionCallExpression fCall = stmnt.getFunctionCallExpression();
+    CLeftHandSide left = stmnt.getLeftHandSide();
+
+    String tmpName = "CPA_TMP_" + tmpVarCounter++;
+    CType retType = fCall.getDeclaration().getType().getReturnType();
+    CSimpleDeclaration decl = new CVariableDeclaration(pFileLocation, false, CStorageClass.AUTO,
+        retType, tmpName, tmpName, tmpName, null);
+    CIdExpression tmp = new CIdExpression(pFileLocation, decl);
+
+    return new CExpressionAssignmentStatement(pFileLocation, left, tmp);
+  }
+
+  private CExpression prepareAssumption(CFunctionCallAssignmentStatement stmnt, CFA cfa) throws InvalidConfigurationException {
+    CLeftHandSide left = stmnt.getLeftHandSide();
+
+    CBinaryExpressionBuilder bBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+
+    try {
+      return bBuilder.buildBinaryExpression(left, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
+    } catch (UnrecognizedCCodeException e) {
+      throw new InvalidConfigurationException("Cannot proceed: ", e);
+    }
   }
 
 
