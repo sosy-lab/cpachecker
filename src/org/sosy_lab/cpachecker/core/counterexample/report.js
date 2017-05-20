@@ -58,21 +58,23 @@
 	
 })();
 
+//ARG_JSON_INPUT
+
 var sourceFiles = []; //SOURCE_FILES
 //CFA_JSON_INPUT
 
 // CFA graph variable declarations
-var nodes = json.nodes;
-var edges = json.edges;
-var functions = json.functionNames; //TODO: display only the graph for selected function
-var combinedNodes = json.combinedNodes;
-var inversedCombinedNodes = json.inversedCombinedNodes;
-var combinedNodesLabels = json.combinedNodesLabels;
-var mergedNodes = json.mergedNodes;
-var functionCallEdges = json.functionCallEdges;
+var nodes = cfaJson.nodes;
+var edges = cfaJson.edges;
+var functions = cfaJson.functionNames; //TODO: display only the graph for selected function
+var combinedNodes = cfaJson.combinedNodes;
+var inversedCombinedNodes = cfaJson.inversedCombinedNodes;
+var combinedNodesLabels = cfaJson.combinedNodesLabels;
+var mergedNodes = cfaJson.mergedNodes;
+var functionCallEdges = cfaJson.functionCallEdges;
 var errorPath;
-if (json.hasOwnProperty("errorPath"))
-	erroPath = json.errorPath;
+if (cfaJson.hasOwnProperty("errorPath"))
+	erroPath = cfaJson.errorPath;
 var requiredGraphs = 1;
 var graphSplitThreshold = 700; // TODO: allow user input with max value 900
 var zoomEnabled = false; // TODO: allow user to switch between zoom possibilities

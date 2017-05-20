@@ -372,8 +372,8 @@ public final class DOTBuilder2 {
    * output information about CFA nodes and edges as JSON
    */
   private static class CFAJSONBuilder extends DefaultCFAVisitor {
-    private final Map<Object, Object> nodes = new HashMap<>();
-    private final Map<Object, Object> edges = new HashMap<>();
+    private final Map<Integer, Object> nodes = new HashMap<>();
+    private final Map<String, Object> edges = new HashMap<>();
 
     @Override
     public TraversalProcess visitNode(CFANode node) {

@@ -45,6 +45,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -62,9 +63,12 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options
 public class ReportGenerator {
@@ -109,6 +113,8 @@ public class ReportGenerator {
 
   private final @Nullable Path logFile;
   private final List<String> sourceFiles;
+  private final Map<Integer, Object> argNodes;
+  private final Map<String, Object> argEdges;
 
   public ReportGenerator(Configuration pConfig, LogManager pLogger, @Nullable Path pLogFile)
       throws InvalidConfigurationException {
@@ -117,6 +123,8 @@ public class ReportGenerator {
     logFile = pLogFile;
     config.inject(this);
     sourceFiles = COMMA_SPLITTER.splitToList(programs);
+    argNodes = new HashMap<>();
+    argEdges = new HashMap<>();
   }
 
   public boolean generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
@@ -125,6 +133,8 @@ public class ReportGenerator {
     checkNotNull(pStatistics);
 
     if (!generateReport) { return false; }
+
+    buildArgGraphData(pReached);
 
     Iterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
@@ -176,7 +186,7 @@ public class ReportGenerator {
           insertConfiguration(writer);
         } else if (line.contains("REPORT_CSS")) {
           insertCss(writer);
-        } else if (line.contains("REPORT_JS")) { // inserts the JSON info
+        } else if (line.contains("REPORT_JS")) {
           insertJs(writer, cfa, dotBuilder, counterExample);
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
@@ -210,7 +220,9 @@ public class ReportGenerator {
       String line;
       while (null != (line = reader.readLine())) {
         if (line.contains("CFA_JSON_INPUT")) {
-          insertJson(writer, cfa, dotBuilder, counterExample);
+          insertCfaJson(writer, cfa, dotBuilder, counterExample);
+        } else if (line.contains("ARG_JSON_INPUT")) {
+          insertArgJson(writer);
         } else if (line.contains("SOURCE_FILES")) {
           insertSourceFileNames(writer);
         } else {
@@ -221,10 +233,10 @@ public class ReportGenerator {
     }
   }
 
-  private void insertJson(Writer writer, CFA cfa, DOTBuilder2 dotBuilder,
+  private void insertCfaJson(Writer writer, CFA cfa, DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample) {
     try {
-      writer.write("var json = {\n");
+      writer.write("var cfaJson = {\n");
       insertFunctionNames(writer, cfa);
       writer.write(",\n");
       insertFCallEdges(writer, dotBuilder);
@@ -244,9 +256,21 @@ public class ReportGenerator {
       writer.write("\n}\n");
     } catch (IOException e) {
       logger.logUserException(
-          WARNING, e, "Could not create report: generall IO Exception occured.");
+          WARNING, e, "Could not create report: Inserting CFA Json failed.");
     }
+  }
 
+  private void insertArgJson(Writer writer) {
+    try {
+      writer.write("var argJson = {\n");
+      writer.write("\"nodes\":");
+      JSON.writeJSONString(argNodes, writer);
+      writer.write(",\n\"edges\":");
+      JSON.writeJSONString(argEdges, writer);
+      writer.write("\n}\n");
+    } catch (IOException e) {
+      logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
+    }
   }
 
   private void insertCss(Writer writer) throws IOException {
@@ -355,7 +379,6 @@ public class ReportGenerator {
       writer.write("<p>No Source-File available</p>");
     }
   }
-
 
   private void insertConfiguration(Writer writer) throws IOException {
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
@@ -487,5 +510,47 @@ public class ReportGenerator {
 
     m.appendTail(sb);
     return sb.toString();
+  }
+
+  private void buildArgGraphData(UnmodifiableReachedSet reached) {
+    reached.asCollection().forEach(entry -> {
+      int parentStateId = ((ARGState) entry).getStateId();
+      for (CFANode node : AbstractStates.extractLocations(entry)) {
+        if (!argNodes.containsKey(parentStateId)) {
+          Map<String, Object> argNode = new HashMap<>();
+          argNode.put("index", parentStateId);
+          argNode.put("label", parentStateId + " @ " +
+              node.toString() + "\n" + node.getFunctionName() + ((ARGState) entry).toDOTLabel());
+          argNode.put("type", node.describeFileLocation().split(" ")[0]);
+          argNodes.put(parentStateId, argNode);
+        }
+        if (!((ARGState) entry).getChildren().isEmpty()) {
+          for (ARGState child : ((ARGState) entry).getChildren()) {
+            CFAEdge edge = ((ARGState) entry).getEdgeToChild(child);
+            if (edge != null) {
+              int childStateId = child.getStateId();
+              Map<String, Object> argEdge = new HashMap<>();
+              argEdge.clear();
+              argEdge.put("line", edge.getFileLocation().getStartingLineInOrigin());
+              argEdge.put("file", edge.getFileLocation().getFileName());
+              argEdge.put("source", parentStateId);
+              argEdge.put("target", childStateId);
+              argEdge.put("stmt", getEdgeText(edge));
+              argEdge.put("type", edge.getEdgeType().toString());
+              argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Similar to the getEdgeText method in DOTBuilder2
+  private static String getEdgeText(CFAEdge edge) {
+    return edge.getDescription()
+      .replaceAll("\\\"", "\\\\\\\"")
+      .replaceAll("\n", " ")
+      .replaceAll("\\s+", " ")
+      .replaceAll(" ;", ";");
   }
 }
