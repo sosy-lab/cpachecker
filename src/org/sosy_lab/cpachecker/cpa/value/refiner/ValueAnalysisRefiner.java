@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy.findAllPredicatesFromSubgraph;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -196,7 +197,7 @@ public class ValueAnalysisRefiner
 
       // merge the predicate precisions of the subtree, if available
       if (predicatePrecisionIsAvailable) {
-        precisions.add(mergePredicatePrecisionsForSubgraph(root, pReached));
+        precisions.add(findAllPredicatesFromSubgraph(root, pReached.asReachedSet()));
       }
 
       refinementInformation.put(root, precisions);
@@ -226,7 +227,8 @@ public class ValueAnalysisRefiner
   ) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
+    for (ARGState descendant :
+        from(pRefinementRoot.getSubgraph()).filter(not(ARGState::isCovered))) {
       uniquePrecisions.add(extractValuePrecision(pReached, descendant));
     }
 
@@ -239,45 +241,12 @@ public class ValueAnalysisRefiner
     return mergedPrecision;
   }
 
-  /**
-   * Merge all predicate precisions in the subgraph below the refinement root
-   * into a new predicate precision
-   *
-   * @return a new predicate precision containing all predicate precision from
-   * the subgraph below the refinement root.
-   */
-  private PredicatePrecision mergePredicatePrecisionsForSubgraph(
-      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
-    UnmodifiableReachedSet reached = pReached.asReachedSet();
-    return PredicatePrecision.unionOf(
-        from(pRefinementRoot.getSubgraph())
-            .filter(not(ARGState::isCovered))
-            .transform(reached::getPrecision));
-    }
-
   private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,
       ARGState state) {
     return (VariableTrackingPrecision) Precisions
         .asIterable(pReached.asReachedSet().getPrecision(state))
         .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
         .get(0);
-  }
-
-  protected final PredicatePrecision extractPredicatePrecision(final ARGReachedSet pReached,
-      ARGState state) {
-    return (PredicatePrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
-        .filter(Predicates.instanceOf(PredicatePrecision.class))
-        .get(0);
-  }
-
-  private Collection<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    Collection<ARGState> subgraph = new HashSet<>();
-    for (ARGState state : pRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        subgraph.add(state);
-      }
-    }
-    return subgraph;
   }
 
   /**

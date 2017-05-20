@@ -563,7 +563,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * their predicates.
    * @return a new precision with all these predicates.
    */
-  private PredicatePrecision findAllPredicatesFromSubgraph(
+  public static PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
     return PredicatePrecision.unionOf(
         from(refinementRoot.getSubgraph())
