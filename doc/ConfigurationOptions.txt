@@ -1795,9 +1795,10 @@ cpa.predicate.refinement.maxRefinementSize = 0
 cpa.predicate.refinement.performInitialStaticRefinement = false
 
 # Which predicates should be used as basis for a new precision.ALL: During
-# refinement, keep predicates from all removed parts of the ARG.CUTPOINT:
-# Only predicates from the cut-point's precision are kept.TARGET: Only
-# predicates from the target state's precision are kept.
+# refinement, collect predicates from the complete ARG.SUBGRAPH: During
+# refinement, keep predicates from all removed parts (subgraph) of the
+# ARG.CUTPOINT: Only predicates from the cut-point's precision are
+# kept.TARGET: Only predicates from the target state's precision are kept.
 cpa.predicate.refinement.predicateBasisStrategy = TARGET
   enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
 
@@ -2292,6 +2293,14 @@ cpa.value.refinement.addAssumptionsToCex = true
 
 # whether or not to use heuristic to avoid similar, repeated refinements
 cpa.value.refinement.avoidSimilarRepeatedRefinement = false
+
+# Which base precision should be used for a new precision? ALL: During
+# refinement, collect precisions from the complete ARG. SUBGRAPH: During
+# refinement, keep precision from all removed parts (subgraph) of the ARG.
+# CUTPOINT: Only the cut-point's precision is kept. TARGET: Only the target
+# state's precision is kept.
+cpa.value.refinement.basisStrategy = SUBGRAPH
+  enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
 
 # whether or not to do lazy-abstraction
 cpa.value.refinement.doLazyAbstraction = true
