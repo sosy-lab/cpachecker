@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -67,7 +68,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -270,79 +270,72 @@ public class SMGExpressionEvaluator {
     return SMGValueAndState.of(pSmgState, value);
   }
 
-  private SMGField getField(CFAEdge edge, CType ownerType, String fieldName, SMGState pState, CExpression exp) throws UnrecognizedCCodeException {
+  private SMGField getField(
+      CFAEdge pEdge, CType pOwnerType, String pFieldName, SMGState pState, CExpression pExp)
+      throws UnrecognizedCCodeException {
 
-    if (ownerType instanceof CElaboratedType) {
+    if (pOwnerType instanceof CElaboratedType) {
 
-      CType realType = ((CElaboratedType) ownerType).getRealType();
+      CType realType = ((CElaboratedType) pOwnerType).getRealType();
 
       if (realType == null) {
         return SMGField.getUnknownInstance();
       }
 
-      return getField(edge, realType, fieldName, pState, exp);
-    } else if (ownerType instanceof CCompositeType) {
-      return getField(edge, (CCompositeType) ownerType, fieldName, pState, exp);
-    } else if (ownerType instanceof CPointerType) {
+      return getField(pEdge, realType, pFieldName, pState, pExp);
+    } else if (pOwnerType instanceof CCompositeType) {
+      return getField(pEdge, (CCompositeType) pOwnerType, pFieldName, pState, pExp);
+    } else if (pOwnerType instanceof CPointerType) {
 
       /* We do not explicitly transform x->b,
       so when we try to get the field b the ownerType of x
       is a pointer type.*/
 
-      CType type = ((CPointerType) ownerType).getType();
+      CType type = ((CPointerType) pOwnerType).getType();
 
       type = getRealExpressionType(type);
 
-      return getField(edge, type, fieldName, pState, exp);
+      return getField(pEdge, type, pFieldName, pState, pExp);
     }
 
     throw new AssertionError();
   }
 
-  private SMGField getField(CFAEdge pEdge, CCompositeType ownerType, String fieldName, SMGState pState, CExpression expression) throws UnrecognizedCCodeException {
+  private SMGField getField(
+      CFAEdge pEdge,
+      CCompositeType pOwnerType,
+      String pFieldName,
+      SMGState pState,
+      CExpression pExpression)
+      throws UnrecognizedCCodeException {
 
-    List<CCompositeTypeMemberDeclaration> membersOfType = ownerType.getMembers();
+    List<CCompositeTypeMemberDeclaration> membersOfType = pOwnerType.getMembers();
+    OptionalInt offset = OptionalInt.empty();
+    CType resultType = pOwnerType;
 
-    int offset = 0;
-    int bitFieldsSize = 0;
+    CSizeOfVisitor sizeofVisitor = getSizeOfVisitor(pEdge, pState, Optional.of(pExpression));
+
+    try {
+      offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
+    } catch (IllegalArgumentException e) {
+      logger.logDebugException(e);
+      throw new UnrecognizedCCodeException("Could not resolve type.", pEdge);
+    }
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
-      String memberName = typeMember.getName();
-      if (typeMember.getType() instanceof CBitFieldType) {
-        if (memberName.equals(fieldName)) {
-          offset += bitFieldsSize;
-          return new SMGField(SMGKnownExpValue.valueOf(offset),
-              getRealExpressionType(typeMember.getType()));
-        }
-
-        if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-          bitFieldsSize += ((CBitFieldType) typeMember.getType()).getBitFieldSize();
-        }
-      } else {
-        if (bitFieldsSize > 0) {
-          offset += bitFieldsSize;
-          if (bitFieldsSize % machineModel.getSizeofCharInBits() > 0) {
-            offset += machineModel.getSizeofCharInBits() - (bitFieldsSize % machineModel.getSizeofCharInBits());
-          }
-          bitFieldsSize = 0;
-        }
-        int padding = machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), typeMember.getType()) *
-            machineModel.getSizeofCharInBits();
-
-        if (memberName.equals(fieldName)) {
-          offset += padding;
-          return new SMGField(SMGKnownExpValue.valueOf(offset),
-            getRealExpressionType(typeMember.getType()));
-        }
-
-        if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
-          offset = offset + padding + getBitSizeof(pEdge, getRealExpressionType(typeMember.getType()),
-              pState, expression);
-        }
+      if (typeMember.getName().equals(pFieldName)) {
+        resultType = typeMember.getType();
       }
     }
 
-    return new SMGField(SMGUnknownValue.getInstance(), ownerType);
+    SMGExplicitValue smgValue = null;
+    if (offset.isPresent() && !resultType.equals(pOwnerType)) {
+      smgValue = SMGKnownExpValue.valueOf(offset.getAsInt());
+      resultType = getRealExpressionType(resultType);
+    } else {
+      smgValue = SMGUnknownValue.getInstance();
+    }
+    return new SMGField(smgValue, resultType);
   }
 
   boolean isStructOrUnionType(CType rValueType) {

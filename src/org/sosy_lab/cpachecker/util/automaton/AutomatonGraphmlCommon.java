@@ -107,6 +107,8 @@ public class AutomatonGraphmlCommon {
     ENTERLOOPHEAD("enterLoopHead", ElementType.EDGE, "enterLoopHead", "boolean", false),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
     THREADID("threadId", ElementType.EDGE, "threadId", "string"),
+    THREAD("thread", ElementType.EDGE, "thread", "int"),
+    CREATETHREAD("createThread", ElementType.EDGE, "thread", "int"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
