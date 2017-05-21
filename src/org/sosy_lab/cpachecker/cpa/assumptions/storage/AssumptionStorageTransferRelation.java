@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.assumptions.storage;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -41,10 +41,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 /**
  * Transfer relation and strengthening for the DumpInvariant CPA
@@ -82,9 +78,6 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     assert bfmgr.isTrue(asmptStorageElem.getAssumption());
     assert bfmgr.isTrue(asmptStorageElem.getStopFormula());
-    final CFANode currentLocation =
-        Iterables.getOnlyElement(AbstractStates.extractLocations(others));
-    String function = currentLocation.getFunctionName();
 
     BooleanFormula assumption =  bfmgr.makeTrue();
     BooleanFormula stopFormula = bfmgr.makeFalse(); // initialize with false because we create a
@@ -97,6 +90,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
       if (element instanceof AssumptionReportingState) {
         List<CExpression> assumptions = ((AssumptionReportingState)element).getAssumptions();
         for (CExpression inv : assumptions) {
+          String function = edge.getSuccessor().getFunctionName();
           BooleanFormula invFormula = converter.makePredicate(inv, edge, function, SSAMap.emptySSAMap().builder());
           assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
         }
