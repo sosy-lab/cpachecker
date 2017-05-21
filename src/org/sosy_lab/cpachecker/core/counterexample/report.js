@@ -58,10 +58,10 @@
 	
 })();
 
-//ARG_JSON_INPUT
+var argJson={};//ARG_JSON_INPUT
 
 var sourceFiles = []; //SOURCE_FILES
-//CFA_JSON_INPUT
+var cfaJson={};//CFA_JSON_INPUT
 
 // CFA graph variable declarations
 var nodes = cfaJson.nodes;
@@ -99,11 +99,230 @@ var constants = {
 }
 
 function init() {
-	if (nodes.length > graphSplitThreshold) {
-		buildMultipleGraphs();
-	} else {
-		buildSingleGraph();
+	// ======================= Define CFA and ARG Workers logic =======================
+	/**
+	 * The CFA Worker. Contains the logic for building a single or a multi CFA graph.
+	 * The graph(s) is/are returned to the main script once created
+	 */
+	function cfaWorker_function() {
+		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
+		var json, nodes, edges, functions, combinedNodes, inversedCombinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
+		var requiredGraphs = 1;
+		var graphSplitThreshold = 700; // default value
+		// TODO: different edge weights based on type?
+		var constants = {
+			blankEdge : "BlankEdge",
+			assumeEdge : "AssumeEdge",
+			statementEdge : "StatementEdge",
+			declarationEdge : "DeclarationEdge",
+			returnStatementEdge : "ReturnStatementEdge",
+			functionCallEdge : "FunctionCallEdge",
+			functionReturnEdge : "FunctionReturnEdge",
+			callToReturnEdge : "CallToReturnEdge",
+			entryNode : "entry",
+			exitNode : "exit",
+			afterNode : "after",
+			beforeNode : "before",
+			margin : 20,
+		}
+		// The first posted message will include the cfaJson
+		self.addEventListener('message', function(m) {
+    		if (m.data.json !== undefined) {
+    			json = JSON.parse(m.data.json);
+    			extractVariables();
+    			if (nodes.length > graphSplitThreshold) {
+    				buildMultipleGraphs();
+    			} else {
+    				buildSingleGraph();
+    			}
+    		}
+		}, false);
+    	
+		// Extract information from the cfaJson
+    	function extractVariables() {
+			nodes = json.nodes;
+			edges = json.edges;
+			functions = json.functionNames;
+			combinedNodes = json.combinedNodes;
+			inversedCombinedNodes = json.inversedCombinedNodes;
+			combinedNodesLabels = json.combinedNodesLabels;
+			mergedNodes = json.mergedNodes;
+			functionCallEdges = json.functionCallEdges;
+			if (json.hasOwnProperty("errorPath"))
+				erroPath = json.errorPath;
+    	}
+    	
+    	function buildSingleGraph() {
+    		var g = createGraph();
+    		setGraphNodes(g, nodes);
+    		roundNodeCorners(g);
+    		setGraphEdges(g, edges, false);
+    		self.postMessage({"graph" : JSON.stringify(g)});
+    	}
+    	
+    	// create and return a graph element with a set transition
+    	function createGraph() {
+    		var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
+    				function() {
+    					return {};
+    				});
+    		g.graph().transition = function(selection) {
+    			return selection.transition().duration(500);
+    		};
+    		return g;
+    	}
+    	
+    	// Set nodes for the graph contained in the json nodes
+    	function setGraphNodes(graph, nodesToSet) {
+    		nodesToSet.forEach(function(n) {
+    			if (!mergedNodes.includes(n.index)) {
+    				graph.setNode(n.index, {
+    					label : setNodeLabel(n),
+    					class : n.type,
+    					id : "node" + n.index,
+    					shape : nodeShapeDecider(n)
+    				});
+    			} 
+    		});
+    	}
+    	
+    	// Node label, the label from combined nodes or a simple label
+    	function setNodeLabel(node) {
+    		var nodeIndex = "" + node.index;
+    		if (Object.keys(combinedNodesLabels).includes(nodeIndex))
+    			return combinedNodesLabels[nodeIndex];
+    		else return "N" + nodeIndex;
+    	}
+    	
+    	// Decide the shape of the nodes based on type
+    	function nodeShapeDecider(n) {
+    		if (n.type === constants.entryNode)
+    			return "diamond";
+    		else
+    			return "rect";
+    	}
+    	
+    	// Round the corners of rectangle shaped nodes
+    	function roundNodeCorners(graph) {
+    		graph.nodes().forEach(function(it) {
+    			var item = graph.node(it);
+    			item.rx = item.ry = 5;
+    		});
+    	}
+    	
+    	// Set the edges for a single graph while considering merged nodes and edges between them
+    	// TODO: different arrowhead for different type + class function AND errorPath
+    	function setGraphEdges(graph, edgesToSet, multigraph) {
+    		edgesToSet.forEach(function(e) {
+    			var source, target;
+    			if (!mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
+    				source = e.source;
+    				target = e.target;
+    			} else if (!mergedNodes.includes(e.source) && mergedNodes.includes(e.target)) {
+    				source = e.source;
+    				target = getMergingNode(e.target);
+    			} else if (mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
+    				source = getMergingNode(e.source);
+    				target = e.target;
+    			}
+    			if (multigraph && (!graph.nodes().includes("" + source) || !graph.nodes().includes("" + target))) 
+    				source = undefined;
+    			if ((source !== undefined && target !== undefined) && (source !== target)) {
+    				graph.setEdge(source, target, {
+    					label: e.stmt, 
+    					class: e.type, 
+    					id: "edge"+ source + target,
+    					lineInterpolate: 'basis',
+    					weight: edgeWeightDecider(e)
+    				});
+    			}
+    		});
+    	}
+    	
+    	// Retrieve the node in which this node was merged
+    	function getMergingNode(index) {
+    		var result = "";
+    		Object.keys(inversedCombinedNodes).some(function(key){
+    			if (key.includes(index)) {
+    				result = inversedCombinedNodes[key];
+    				return result;
+    			}
+    		})
+    		return result;
+    	}
+    	
+    	// Decide the weight for the edges based on type
+    	function edgeWeightDecider(edge) {
+    		if (edge.type === constants.functionCallEdge)
+    			return 1;
+    		else
+    			return 10;
+    	}
+    	
 	}
+
+	/**
+	 * The ARG Worker. Contains the logic for creating a single or multi ARG graph.
+	 * Once the graph(s) is/are created they are returned to the main script. 
+	 */
+	function argWorker_function() {
+		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
+		self.addEventListener("message", function(m) {
+			console.log("from inside arg worker");
+			self.postMessage(m.data);
+		}, false);
+	}
+
+	// ======================= Create CFA and ARG Workers =======================
+	/**
+	 * Create workers using blobs due to Chrome's default security policy and 
+	 * the need of having a single file at the end that can be send i.e. via e-mail
+	 */
+	var cfaWorker = new Worker(URL.createObjectURL(new Blob(["("+cfaWorker_function.toString()+")()"], {type: 'text/javascript'})));
+	var argWorker = new Worker(URL.createObjectURL(new Blob(["("+argWorker_function.toString()+")()"], {type: "text/javascript"})));
+
+	cfaWorker.addEventListener("message", function(m) {
+		if (m.data.graph !== undefined) {
+			d3.select("#cfa-container").append("div").attr("id", "graph");
+			var g = createGraph();
+			// Create the renderer
+			var render = new dagreD3.render();
+			// Set up an SVG group so that we can translate the final graph.
+			var svg = d3.select("#graph").append("svg").attr("id", "svg"), svgGroup = svg
+					.append("g");
+			render(d3.select("#svg g"), Object.assign(g, JSON.parse(m.data.graph)));
+			// Center the graph - calculate svg.attributes
+			// TODO: own function for svg size -> compare with parent size after bootstrap is used. i.e. col-lg-12 etc.
+			svg.attr("height", g.graph().height + constants.margin * 2);
+			svg.attr("width", g.graph().width * 2 + constants.margin * 2);
+			var xCenterOffset = (svg.attr("width") / 2);
+			svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
+			addEventsToNodes();
+			addEventsToEdges();
+		}
+  		console.log('CFA Worker said: ', m.data);
+	}, false);
+	cfaWorker.addEventListener("error", function(e) {
+		alert("CFA Worker failed in line " + e.lineno + " with message " + e.message)
+	}, false);
+
+	// Initial postMessage to the CFA worker to trigger CFA graph(s) creation
+	cfaWorker.postMessage({"json" : JSON.stringify(cfaJson)});
+
+	argWorker.addEventListener('message', function(m) {
+		console.log("ARG Worker said: ", m.data);
+	}, false);
+	argWorker.addEventListener("error", function(e) {
+		alert("ARG Worker failed in line " + e.lineno + " with message " + e.message)
+	}, false);
+
+	argWorker.postMessage("Hello ARG Worker");
+	
+//	if (nodes.length > graphSplitThreshold) {
+//		buildMultipleGraphs();
+//	} else {
+//		buildSingleGraph();
+//	}
 	
 	function buildMultipleGraphs() {
 		requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
@@ -254,7 +473,6 @@ function init() {
 	function roundNodeCorners(graph) {
 		graph.nodes().forEach(function(it) {
 			var item = graph.node(it);
-			// TODO: check if shapes/labels etc. can be updated here
 			item.rx = item.ry = 5;
 		});
 	}
