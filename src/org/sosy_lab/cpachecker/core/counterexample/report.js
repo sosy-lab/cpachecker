@@ -11,7 +11,7 @@
 	app.controller('ReportController', [ '$rootScope', '$scope',
 			function($rootScope, $scope) {
 				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
-				$scope.help = "<p>I am currently being developed</p>";
+				$scope.help_content = "<p>I am currently being developed</p>";
 				$scope.tab = 1;
 				$scope.$on("ChangeTab", function(event, tabIndex) {
 					$scope.setTab(tabIndex);
