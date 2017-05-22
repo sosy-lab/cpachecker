@@ -81,6 +81,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
+import org.sosy_lab.cpachecker.cpa.guardededgeautomaton.productautomaton.ProductAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -271,7 +272,7 @@ public class TigerAlgorithm implements Algorithm {
 
     LinkedList<ConfigurableProgramAnalysis> lComponentAnalyses = new LinkedList<>();
     int lProductAutomatonIndex = lComponentAnalyses.size();
-    //lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false, config));
+    lComponentAnalyses.add(ProductAutomatonCPA.create(lAutomatonCPAs, false, config));
 
     if (cpa instanceof CompositeCPA) {
       CompositeCPA compositeCPA = (CompositeCPA) cpa;
