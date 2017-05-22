@@ -55,12 +55,12 @@ public class StatHistTest {
 
   @Test
   public void testAvg0() {
-    assert_().that(sh.getAvg());
+    assert_().that(sh.getAvg()).isEqualTo(Double.NaN);
   }
 
   @Test
   public void testDev0() {
-    assert_().that(sh.getStdDeviation());
+    assert_().that(sh.getStdDeviation()).isEqualTo(Double.NaN);
   }
 
   @Test
