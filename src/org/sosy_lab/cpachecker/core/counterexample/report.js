@@ -80,6 +80,10 @@ var graphSplitThreshold = 700; // TODO: allow user input with max value 900
 var zoomEnabled = false; // TODO: allow user to switch between zoom possibilities
 // Map holding last element in a graph and the graph itself used to handle edges between graphs
 var graphMap = {};
+// Graphs already rendered in the master script
+var renderedGraphs = {};
+// A Dagre D3 Renderer
+var render = new dagreD3.render();
 
 // TODO: different edge weights based on type?
 var constants = {
@@ -157,7 +161,7 @@ function init() {
     		setGraphNodes(g, nodes);
     		roundNodeCorners(g);
     		setGraphEdges(g, edges, false);
-    		self.postMessage({"graph" : JSON.stringify(g)});
+    		self.postMessage({"graph" : JSON.stringify(g), "id" : 1});
     	}
     	
     	// create and return a graph element with a set transition
@@ -232,7 +236,6 @@ function init() {
     					label: e.stmt, 
     					class: e.type, 
     					id: "edge"+ source + target,
-    					lineInterpolate: 'basis',
     					weight: edgeWeightDecider(e)
     				});
     			}
@@ -283,25 +286,42 @@ function init() {
 
 	cfaWorker.addEventListener("message", function(m) {
 		if (m.data.graph !== undefined) {
-			d3.select("#cfa-container").append("div").attr("id", "graph");
-			var g = createGraph();
-			// Create the renderer
-			var render = new dagreD3.render();
-			// Set up an SVG group so that we can translate the final graph.
-			var svg = d3.select("#graph").append("svg").attr("id", "svg"), svgGroup = svg
-					.append("g");
-			render(d3.select("#svg g"), Object.assign(g, JSON.parse(m.data.graph)));
-			// Center the graph - calculate svg.attributes
-			// TODO: own function for svg size -> compare with parent size after bootstrap is used. i.e. col-lg-12 etc.
-			svg.attr("height", g.graph().height + constants.margin * 2);
-			svg.attr("width", g.graph().width * 2 + constants.margin * 2);
-			var xCenterOffset = (svg.attr("width") / 2);
-			svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
-			addEventsToNodes();
-			addEventsToEdges();
+			if (renderedGraphs[m.data.id] === undefined) {
+				var id = m.data.id;
+				d3.select("#cfa-container").append("div").attr("id", "cfa-graph" + id).attr("class", "cfa-graph");
+				var g = createGraph();
+				g = Object.assign(g, JSON.parse(m.data.graph));
+				renderedGraphs[m.data.id] = g;
+				var svg = d3.select("#cfa-graph" + id).append("svg").attr("id", "cfa-svg" + id), svgGroup = svg.append("g");
+				render(d3.select("#cfa-svg" + id + " g"), g);
+				//TODO: own function pass the id and use d3.select() to select svg and svgGroup -> zoom can be set later (after svg is rendered)
+				var zoom = d3.behavior.zoom().on(
+						"zoom",
+						function() {
+							svgGroup.attr("transform", "translate("
+									+ d3.event.translate + ")" + "scale("
+									+ d3.event.scale + ")");
+						});
+				svg.call(zoom);					
+				// Center the graph - calculate svg.attributes
+				// TODO: own function for svg size -> compare with parent size after bootstrap is used. i.e. col-lg-12 etc.
+				svg.attr("height", g.graph().height + constants.margin * 2);
+				svg.attr("width", g.graph().width * 2 + constants.margin * 2);
+				var xCenterOffset = (svg.attr("width") / 2);
+				svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
+				addEventsToNodes();
+				addEventsToEdges();
+			} else {
+				renderedGraphs[m.data.id] = Object.assign(renderedGraphs[m.data.id], JSON.parse(m.data.graph));
+				render(d3.select("#cfa-svg" + id + " g"), renderedGraphs[m.data.id]);
+				var width = renderedGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
+				d3.select("#cfa-svg" + id).attr("height", renderedGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
+				d3.select("#cfa-svg" + id + "> g").attr("transform", "translate(" + width / 2 + ", 20)");
+			}
+
 		}
-  		console.log('CFA Worker said: ', m.data);
 	}, false);
+	
 	cfaWorker.addEventListener("error", function(e) {
 		alert("CFA Worker failed in line " + e.lineno + " with message " + e.message)
 	}, false);
@@ -317,12 +337,6 @@ function init() {
 	}, false);
 
 	argWorker.postMessage("Hello ARG Worker");
-	
-//	if (nodes.length > graphSplitThreshold) {
-//		buildMultipleGraphs();
-//	} else {
-//		buildSingleGraph();
-//	}
 	
 	function buildMultipleGraphs() {
 		requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
@@ -391,41 +405,6 @@ function init() {
 	// Return the graph in which the nodeNumber is present
 	function getGraphForNode(nodeNumber) {
 		return Object.keys(graphMap).find(function(key) { return key >= nodeNumber;});
-	}
-	
-	// build single graph for all contained nodes
-	function buildSingleGraph() {
-		d3.select("#cfa-container").append("div").attr("id", "graph");
-		// Create the graph
-		var g = createGraph();
-		setGraphNodes(g, nodes);
-		roundNodeCorners(g);
-		setGraphEdges(g, edges, false);
-		// Create the renderer
-		var render = new dagreD3.render();
-		// Set up an SVG group so that we can translate the final graph.
-		var svg = d3.select("#graph").append("svg").attr("id", "svg"), svgGroup = svg
-				.append("g");
-		// Set up zoom support 
-		//TODO: own function pass the svgGroup -> zoom can be set later (after svg is rendered)
-		var zoom = d3.behavior.zoom().on(
-				"zoom",
-				function() {
-					svgGroup.attr("transform", "translate("
-							+ d3.event.translate + ")" + "scale("
-							+ d3.event.scale + ")");
-				});
-		svg.call(zoom);
-		// Run the renderer. This is what draws the final graph.
-		render(d3.select("#svg g"), g);
-		// Center the graph - calculate svg.attributes
-		// TODO: own function for svg size -> compare with parent size after bootstrap is used. i.e. col-lg-12 etc.
-		svg.attr("height", g.graph().height + constants.margin * 2);
-		svg.attr("width", g.graph().width * 2 + constants.margin * 2);
-		var xCenterOffset = (svg.attr("width") / 2);
-		svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
-		addEventsToNodes();
-		addEventsToEdges();
 	}
 	
 	// create and return a graph element with a set transition
