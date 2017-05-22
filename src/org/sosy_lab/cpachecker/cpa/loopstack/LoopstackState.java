@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopstack;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -36,9 +40,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-import com.google.common.base.Objects;
-
-public class LoopstackState implements AbstractState, Partitionable, AvoidanceReportingState {
+public class LoopstackState
+    implements AbstractState, Partitionable, AvoidanceReportingState, LoopIterationReportingState {
 
   /**
    * Parent loop.
@@ -105,6 +108,43 @@ public class LoopstackState implements AbstractState, Partitionable, AvoidanceRe
 
   public int getIteration() {
     return iteration;
+  }
+
+  @Override
+  public int getIteration(Loop pLoop) {
+    LoopstackState currentState = this;
+    while (currentState != null) {
+      if (currentState.loop != null && currentState.loop.equals(pLoop)) {
+        return currentState.iteration;
+      }
+      currentState = currentState.previousState;
+    }
+    return 0;
+  }
+
+  @Override
+  public int getDeepestIteration() {
+    int deepestIteration = iteration;
+    LoopstackState currentState = this.previousState;
+    while (currentState != null) {
+      deepestIteration = Math.max(deepestIteration, currentState.iteration);
+      currentState = currentState.previousState;
+    }
+    return deepestIteration;
+  }
+
+  @Override
+  public Set<Loop> getDeepestIterationLoops() {
+    ImmutableSet.Builder<Loop> loopSetBuilder = ImmutableSet.builder();
+    int deepestIteration = getDeepestIteration();
+    LoopstackState currentState = this;
+    while (currentState != null) {
+      if (currentState.loop != null && currentState.iteration == deepestIteration) {
+        loopSetBuilder.add(currentState.loop);
+      }
+      currentState = currentState.previousState;
+    }
+    return loopSetBuilder.build();
   }
 
   @Override

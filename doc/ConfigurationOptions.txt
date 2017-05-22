@@ -147,8 +147,16 @@ analysis.algorithm.pdr = false
 analysis.algorithm.proofCheck = false
 
 # use a proof check algorithm to validate a previously generated proofand
+# extract requirements on a (reconfigurable) HW from the proof
+analysis.algorithm.proofCheckAndGetHWRequirements = false
+
+# use a proof check algorithm to validate a previously generated proofand
 # read the configuration for checking from the proof
 analysis.algorithm.proofCheckReadConfig = false
+
+# use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to
+# validate a previously generated proof
+analysis.algorithm.proofCheckWithARGCMCStrategy = false
 
 # do analysis and then check if reached set fulfills property specified by
 # ConfigurableProgramAnalysisWithPropertyChecker
@@ -319,6 +327,10 @@ assumptions.automatonIgnoreAssumptions = false
 assumptions.export = true
 assumptions.file = "assumptions.txt"
 
+# If it is enabled, check if a state that should lead to false state indeed
+# has successors.
+assumptions.removeNonExploredWithoutSuccessors = false
+
 # comma-separated list of files with specifications that should be used 
 # in a backwards analysis; used if the analysis starts at the target states!
 # (see config/specification/ for examples)
@@ -379,10 +391,6 @@ blockreducer.reducedCfaFile = "ReducedCfa.rsf"
 # Do at most n summarizations on a node.
 blockreducer.reductionThreshold = 100
 
-# Generate additional invariants by induction and add them to the induction
-# hypothesis.
-bmc.addInvariantsByInduction = true
-
 # If BMC did not find a bug, check whether the bounding did actually remove
 # parts of the state space (this is similar to CBMC's unwinding assertions).
 bmc.boundingAssertions = true
@@ -395,8 +403,12 @@ bmc.checkTargetStates = true
 # try using induction to verify programs with loops
 bmc.induction = false
 
+# Strategy for generating auxiliary invariants
+bmc.invariantGenerationStrategy = REACHED_SET
+  enum:     [INDUCTION, REACHED_SET, DO_NOTHING]
+
 # Export auxiliary invariants used for induction.
-bmc.invariantsExport = "invariants.graphml"
+bmc.invariantsExport = no default value
 
 # Propagates the interrupts of the invariant generator.
 bmc.propagateInvGenInterrupts = false
@@ -1223,6 +1235,9 @@ cpa.invariants.maximumFormulaDepth = 4
 cpa.invariants.merge = "PRECISIONDEPENDENT"
   allowed values: [JOIN, SEP, PRECISIONDEPENDENT]
 
+# use pointer-alias information in strengthening, if available.
+cpa.invariants.usePointerAliasStrengthening = true
+
 # With this option the handling of global variables during the analysis can
 # be fine-tuned. For example while doing a function-wise analysis it is
 # important to assume that all global variables are live. In contrast to
@@ -1787,11 +1802,12 @@ cpa.predicate.refinement.maxRefinementSize = 0
 cpa.predicate.refinement.performInitialStaticRefinement = false
 
 # Which predicates should be used as basis for a new precision.ALL: During
-# refinement, keep predicates from all removed parts of the ARG.CUTPOINT:
-# Only predicates from the cut-point's precision are kept.TARGET: Only
-# predicates from the target state's precision are kept.
+# refinement, collect predicates from the complete ARG.SUBGRAPH: During
+# refinement, keep predicates from all removed parts (subgraph) of the
+# ARG.CUTPOINT: Only predicates from the cut-point's precision are
+# kept.TARGET: Only predicates from the target state's precision are kept.
 cpa.predicate.refinement.predicateBasisStrategy = TARGET
-  enum:     [ALL, TARGET, CUTPOINT]
+  enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
 
 # which sliced prefix should be used for interpolation
 cpa.predicate.refinement.prefixPreference = PrefixSelector.NO_SELECTION
@@ -2285,6 +2301,14 @@ cpa.value.refinement.addAssumptionsToCex = true
 # whether or not to use heuristic to avoid similar, repeated refinements
 cpa.value.refinement.avoidSimilarRepeatedRefinement = false
 
+# Which base precision should be used for a new precision? ALL: During
+# refinement, collect precisions from the complete ARG. SUBGRAPH: During
+# refinement, keep precision from all removed parts (subgraph) of the ARG.
+# CUTPOINT: Only the cut-point's precision is kept. TARGET: Only the target
+# state's precision is kept.
+cpa.value.refinement.basisStrategy = SUBGRAPH
+  enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
+
 # whether or not to do lazy-abstraction
 cpa.value.refinement.doLazyAbstraction = true
 
@@ -2375,15 +2399,18 @@ cpa.value.trackJavaArrayValues = true
 # Specify simple custom instruction by specifying the binary operator op. All
 # simple cis are of the form r = x op y. Leave empty (default) if you specify
 # a more complex custom instruction within code.
-custominstructions.binaryOperatorForSimpleCustomInstruction = ""
-  allowed values: [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN, GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR, EQUALS, NOT_EQUALS, ]
+custominstructions.binaryOperatorForSimpleCustomInstruction = PLUS
+  enum:     [MULTIPLY, DIVIDE, MODULO, PLUS, MINUS, SHIFT_LEFT, SHIFT_RIGHT, LESS_THAN,
+             GREATER_THAN, LESS_EQUAL, GREATER_EQUAL, BINARY_AND, BINARY_XOR, BINARY_OR,
+             EQUALS, NOT_EQUALS]
 
 # Signature for custom instruction, describes names and order of input and
 # output variables of a custom instruction
 custominstructions.ciSignature = "ci_spec.txt"
 
-# File to be parsed
-custominstructions.definitionFile = no default value
+# File specifying start locations of custom instruction applications
+# File to dump start location of identified custom instruction applications
+custominstructions.definitionFile = "ci_def.txt"
 
 # Where to dump the requirements on custom instruction extracted from
 # analysis
@@ -2392,6 +2419,11 @@ custominstructions.dumpCIRequirements = "ci%d.smt"
 # Try to remove informations from requirements which is irrelevant for custom
 # instruction behavior
 custominstructions.enableRequirementSlicing = false
+
+# Specifies the mode how custom instruction applications in program are
+# identified.
+custominstructions.mode = OPERATOR
+  enum:     [MANUAL, OPERATOR]
 
 # Qualified name of class for abstract state which provides custom
 # instruction requirements.
@@ -2564,6 +2596,10 @@ parser.transformTokensToLines = false
 # file numbers printed by CPAchecker will refer to the pre-processed file,
 # not the original input file.
 parser.usePreprocessor = false
+
+# Specifies the mode how HW requirements are detected in the proof.
+pcc.HWrequirements.extraction.mode = OPERATOR
+  enum:     [MANUAL, OPERATOR]
 
 # Enable if used property checker implements satisfiesProperty(AbstractState)
 # and checked property is violated for a set iff an element in this set

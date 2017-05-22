@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy.findAllPredicatesFromSubgraph;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -95,6 +96,34 @@ public class ValueAnalysisRefiner
       secure = true,
       description = "whether or not to use heuristic to avoid similar, repeated refinements")
   private boolean avoidSimilarRepeatedRefinement = false;
+
+  @Option(
+    secure = true, // name="refinement.basisStrategy",
+    description =
+        "Which base precision should be used for a new precision? "
+            + "ALL: During refinement, collect precisions from the complete ARG. "
+            + "SUBGRAPH: During refinement, keep precision from all removed parts (subgraph) of the ARG. "
+            + "CUTPOINT: Only the cut-point's precision is kept. "
+            + "TARGET: Only the target state's precision is kept."
+  )
+  /* see also: {@link PredicateAbstractionRefinementStrategy} */
+  /* There are usually more tracked variables at the target location that at the cut-point.
+   * 05/2017: An evaluation on sv-benchmark files for ALL, SUBGRAPH, TARGET, and CUTPOINT showed:
+   * - overall: SUBGRAPH >= ALL >> CUTPOINT > TARGET
+   * - SUBGRAPH and ALL are nearly identical
+   * - CUTPOINT has smallest number of solved files,
+   *   especially there are many timeouts (900s) on the source files product-lines/email_spec*,
+   *   and many solved tasks in ldv-linux-3.14/linux-3.14__complex_emg*
+   * - TARGET is slowest and has less score
+   */
+  private BasisStrategy basisStrategy = BasisStrategy.SUBGRAPH;
+
+  private static enum BasisStrategy {
+    ALL,
+    SUBGRAPH,
+    TARGET,
+    CUTPOINT
+  }
 
   /**
    * keep log of previous refinements to identify repeated one
@@ -175,7 +204,8 @@ public class ValueAnalysisRefiner
       final ARGReachedSet pReached,
       final InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree
       ) throws InterruptedException {
-    final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(pReached);
+    final UnmodifiableReachedSet reached = pReached.asReachedSet();
+    final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(reached);
 
     Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
     Collection<ARGState> refinementRoots = pInterpolationTree.obtainRefinementRoots(restartStrategy);
@@ -190,13 +220,32 @@ public class ValueAnalysisRefiner
       }
 
       List<Precision> precisions = new ArrayList<>(2);
+      VariableTrackingPrecision basePrecision;
+      switch (basisStrategy) {
+        case ALL:
+          basePrecision =
+              mergeValuePrecisionsForSubgraph((ARGState) reached.getFirstState(), reached);
+          break;
+        case SUBGRAPH:
+          basePrecision = mergeValuePrecisionsForSubgraph(root, reached);
+          break;
+        case TARGET:
+          basePrecision = extractValuePrecision(reached.getPrecision(reached.getLastState()));
+          break;
+        case CUTPOINT:
+          basePrecision = extractValuePrecision(reached.getPrecision(root));
+          break;
+        default:
+          throw new AssertionError("unknown strategy for predicate basis.");
+      }
+
       // merge the value precisions of the subtree, and refine it
-      precisions.add(mergeValuePrecisionsForSubgraph(root, pReached)
-          .withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
+      precisions.add(
+          basePrecision.withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
 
       // merge the predicate precisions of the subtree, if available
       if (predicatePrecisionIsAvailable) {
-        precisions.add(mergePredicatePrecisionsForSubgraph(root, pReached));
+        precisions.add(findAllPredicatesFromSubgraph(root, reached));
       }
 
       refinementInformation.put(root, precisions);
@@ -215,19 +264,19 @@ public class ValueAnalysisRefiner
     }
   }
 
-  private boolean isPredicatePrecisionAvailable(final ARGReachedSet pReached) {
-    return Precisions.extractPrecisionByType(pReached.asReachedSet()
-        .getPrecision(pReached.asReachedSet().getFirstState()), PredicatePrecision.class) != null;
+  private boolean isPredicatePrecisionAvailable(final UnmodifiableReachedSet pReached) {
+    return Precisions.extractPrecisionByType(
+            pReached.getPrecision(pReached.getFirstState()), PredicatePrecision.class)
+        != null;
   }
 
   private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
-      final ARGState pRefinementRoot,
-      final ARGReachedSet pReached
-  ) {
+      final ARGState pRefinementRoot, final UnmodifiableReachedSet pReached) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
-    for (ARGState descendant : getNonCoveredStatesInSubgraph(pRefinementRoot)) {
-      uniquePrecisions.add(extractValuePrecision(pReached, descendant));
+    for (ARGState descendant :
+        from(pRefinementRoot.getSubgraph()).filter(not(ARGState::isCovered))) {
+      uniquePrecisions.add(extractValuePrecision(pReached.getPrecision(descendant)));
     }
 
     // join all unique precisions into a single precision
@@ -239,45 +288,11 @@ public class ValueAnalysisRefiner
     return mergedPrecision;
   }
 
-  /**
-   * Merge all predicate precisions in the subgraph below the refinement root
-   * into a new predicate precision
-   *
-   * @return a new predicate precision containing all predicate precision from
-   * the subgraph below the refinement root.
-   */
-  private PredicatePrecision mergePredicatePrecisionsForSubgraph(
-      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
-    UnmodifiableReachedSet reached = pReached.asReachedSet();
-    return PredicatePrecision.unionOf(
-        from(pRefinementRoot.getSubgraph())
-            .filter(not(ARGState::isCovered))
-            .transform(reached::getPrecision));
-    }
-
-  private VariableTrackingPrecision extractValuePrecision(final ARGReachedSet pReached,
-      ARGState state) {
-    return (VariableTrackingPrecision) Precisions
-        .asIterable(pReached.asReachedSet().getPrecision(state))
-        .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
-        .get(0);
-  }
-
-  protected final PredicatePrecision extractPredicatePrecision(final ARGReachedSet pReached,
-      ARGState state) {
-    return (PredicatePrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
-        .filter(Predicates.instanceOf(PredicatePrecision.class))
-        .get(0);
-  }
-
-  private Collection<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    Collection<ARGState> subgraph = new HashSet<>();
-    for (ARGState state : pRoot.getSubgraph()) {
-      if (!state.isCovered()) {
-        subgraph.add(state);
-      }
-    }
-    return subgraph;
+  private VariableTrackingPrecision extractValuePrecision(Precision precision) {
+    return (VariableTrackingPrecision)
+        Precisions.asIterable(precision)
+            .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+            .get(0);
   }
 
   /**

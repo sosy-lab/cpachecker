@@ -58,7 +58,6 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   final StatTimer removeCachedSubtreeTimer = new StatTimer("Removing cached subtrees");
 
   private final BAMCPA bamCpa;
-  private ARGState rootOfSubgraph = null;
 
   private BAMBasedRefiner(
       ARGBasedRefiner pRefiner, ARGCPA pArgCpa, BAMCPA pBamCpa, LogManager pLogger) {
@@ -107,7 +106,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     } else {
 
       // wrap the original reached-set to have a valid "view" on all reached states.
-      pReached = new BAMReachedSet(bamCpa, pReached, pPath, rootOfSubgraph, removeCachedSubtreeTimer);
+      pReached = new BAMReachedSet(bamCpa, pReached, pPath, removeCachedSubtreeTimer);
       return super.performRefinementForPath(pReached, pPath);
     }
   }
@@ -121,6 +120,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     computePathTimer.start();
     try {
       computeSubtreeTimer.start();
+      ARGState rootOfSubgraph;
       try {
         try {
           rootOfSubgraph = computeCounterexampleSubgraph(pLastElement, pMainReachedSet);

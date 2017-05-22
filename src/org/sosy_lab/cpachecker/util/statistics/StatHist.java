@@ -66,7 +66,7 @@ public class StatHist extends AbstractStatValue {
     }
   }
 
-  private double getAvg() {
+  protected double getAvg() {
     synchronized (hist) {
       return getSum() / hist.size();
     }

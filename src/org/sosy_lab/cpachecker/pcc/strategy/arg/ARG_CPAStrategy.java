@@ -115,7 +115,7 @@ public class ARG_CPAStrategy extends AbstractARGStrategy {
     if (!singleCheck) {
       visitedStates.add(pState);
     } else {
-      super.checkForStatePropertyAndOtherStateActions(pState);
+      return super.checkForStatePropertyAndOtherStateActions(pState);
     }
     return true;
   }

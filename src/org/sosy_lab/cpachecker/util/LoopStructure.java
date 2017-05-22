@@ -137,6 +137,7 @@ public final class LoopStructure {
       if (innerLoopEdges != null) {
         assert incomingEdges != null;
         assert outgoingEdges != null;
+        return;
       }
 
       Set<CFAEdge> incomingEdges = new HashSet<>();

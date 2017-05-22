@@ -49,6 +49,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -68,6 +69,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.ApronManager;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -286,5 +288,30 @@ public final class ApronCPA
     return idToNodeMap;
   }
 
-
+  @Override
+  public boolean areAbstractSuccessors(
+      AbstractState pState, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
+    try {
+      Collection<? extends AbstractState> computedSuccessors =
+          getTransferRelation()
+              .getAbstractSuccessorsForEdge(pState, precision, pCfaEdge);
+      boolean found;
+      for (AbstractState comp : computedSuccessors) {
+        found = false;
+        for (AbstractState e : pSuccessors) {
+          if (isCoveredBy(comp, e)) {
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          return false;
+        }
+      }
+    } catch (CPAException e) {
+      throw new CPATransferException("Cannot compare abstract successors", e);
+    }
+    return true;
+  }
 }

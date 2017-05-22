@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
 import com.google.common.base.Function;
@@ -72,8 +74,10 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -99,6 +103,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -116,6 +121,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.graphexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.graphexport.TransitionCondition;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -499,6 +505,7 @@ public class ARGPathExporter {
       }
 
       Optional<FileLocation> minFileLocation = getMinFileLocation(pEdge);
+      Optional<FileLocation> maxFileLocation = getMaxFileLocation(pEdge);
       if (exportLineNumbers && minFileLocation.isPresent()) {
         FileLocation min = minFileLocation.get();
         if (!min.getFileName().equals(defaultSourcefileName)) {
@@ -514,6 +521,10 @@ public class ARGPathExporter {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
         result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
+        if(maxFileLocation.isPresent()) {
+          FileLocation max = maxFileLocation.get();
+          result = result.putAndCopy(KeyDef.ENDOFFSET, Integer.toString(max.getNodeOffset()+max.getNodeLength()));
+        }
       }
 
       if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
@@ -535,6 +546,22 @@ public class ARGPathExporter {
           }
         }
         return Optional.of(min);
+      }
+      return Optional.empty();
+    }
+
+    private Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge) {
+      Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+      if (locations.size() > 0) {
+        Iterator<FileLocation> locationIterator = locations.iterator();
+        FileLocation max = locationIterator.next();
+        while (locationIterator.hasNext()) {
+          FileLocation l = locationIterator.next();
+          if (l.getNodeOffset()+l.getNodeLength() > max.getNodeOffset()+max.getNodeLength()) {
+            max = l;
+          }
+        }
+        return Optional.of(max);
       }
       return Optional.empty();
     }
@@ -742,16 +769,55 @@ public class ARGPathExporter {
      * We assume that the edge can be assigned to exactly one thread. */
     private TransitionCondition exportThreadId(TransitionCondition result, final CFAEdge pEdge,
         ARGState state) {
-      ThreadingState threadingState = AbstractStates.extractStateByType(state, ThreadingState.class);
+      ThreadingState threadingState = extractStateByType(state, ThreadingState.class);
       if (threadingState != null) {
         for (String threadId : threadingState.getThreadIds()) {
           if (threadingState.getThreadLocation(threadId).getLocationNode().equals(pEdge.getPredecessor())) {
             result = result.putAndCopy(KeyDef.THREADID, threadId);
+            result = result.putAndCopy(KeyDef.THREAD, getUniqueThreadNum(threadId));
+            result = exportThreadCreation(result, pEdge, state, threadingState);
             break;
           }
         }
       }
       return result;
+    }
+
+    private TransitionCondition exportThreadCreation(
+        TransitionCondition result,
+        final CFAEdge pEdge,
+        ARGState state,
+        ThreadingState threadingState) {
+      if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+        AStatement statement = ((AStatementEdge) pEdge).getStatement();
+        if (statement instanceof AFunctionCall) {
+          AExpression functionNameExp =
+              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression) {
+            final String functionName = ((AIdExpression) functionNameExp).getName();
+            if (ThreadingTransferRelation.THREAD_START.equals(functionName)) {
+              // extract new thread-id from succeeding state. we assume there is only 'one' match
+              ARGState child =
+                  from(state.getChildren()).firstMatch(c -> pEdge == state.getEdgeToChild(c)).get();
+              // search the new created thread-id
+              ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
+              for (String threadId : succThreadingState.getThreadIds()) {
+                if (!threadingState.getThreadIds().contains(threadId)) {
+                  // we found the new created thread-id. we assume there is only 'one' match
+                  result = result.putAndCopy(KeyDef.CREATETHREAD, getUniqueThreadNum(threadId));
+                }
+              }
+            }
+          }
+        }
+      }
+      return result;
+    }
+
+    private String getUniqueThreadNum(String threadId) {
+      // TODO threadNum should be unique, hashCode might have collisions, but works for most cases.
+      //      and as long as we do not support multiple LHS for thread-creation, it works.
+      return threadId.hashCode() + "";
     }
 
     /**

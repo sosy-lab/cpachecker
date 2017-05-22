@@ -229,7 +229,7 @@ public class ValidationConfigurationBuilder {
       Path valConfig = Files.createTempFile("pcc-check-config", "properties");
 
       try (ObjectInputStream in = new ObjectInputStream(zis);
-          PrintStream out = new PrintStream(new FileOutputStream(valConfig.toFile()))) {
+          PrintStream out = new PrintStream(new FileOutputStream(valConfig.toFile()), false, "UTF-8")) {
         out.print(in.readObject());
       } catch (ClassNotFoundException e) {
         throw new IOException("Failed to read configuration");

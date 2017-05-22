@@ -285,13 +285,13 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       CExpression actualParam = param.getSecond();
       CParameterDeclaration formalParam = param.getFirst();
       MemoryLocation location = toLocation(formalParam);
-      newState = handleAssignment(pState, location, asLocations(actualParam, pState, 1));
+      newState = handleAssignment(newState, location, asLocations(actualParam, pState, 1));
     }
 
     // Handle remaining formal parameters where no actual argument was provided
     for (CParameterDeclaration formalParam : FluentIterable.from(formalParams).skip(limit)) {
       MemoryLocation location = toLocation(formalParam);
-      newState = handleAssignment(pState, location, LocationSetBot.INSTANCE);
+      newState = handleAssignment(newState, location, LocationSetBot.INSTANCE);
     }
 
     return newState;

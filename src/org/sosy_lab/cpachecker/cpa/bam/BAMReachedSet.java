@@ -38,30 +38,25 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
   private final AbstractBAMCPA bamCpa;
   private final ARGPath path;
-  private final ARGState rootOfSubgraph;
   private final StatTimer removeCachedSubtreeTimer;
 
   public BAMReachedSet(AbstractBAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
-      ARGState pRootOfSubgraph,
       StatTimer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.bamCpa = cpa;
     this.path = pPath;
-    this.rootOfSubgraph = pRootOfSubgraph;
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
 
-    assert rootOfSubgraph.getSubgraph().containsAll(path.asStatesList()) : "path should traverse reachable states";
-    assert pRootOfSubgraph == path.getFirstState() : "path should start with root-state";
+    assert path.getFirstState().getSubgraph().containsAll(path.asStatesList()) : "path should traverse reachable states";
   }
 
   @Override
   public UnmodifiableReachedSet asReachedSet() {
-    return new BAMReachedSetView(rootOfSubgraph, path.getLastState(),
+    return new BAMReachedSetView(path.getFirstState(), path.getLastState(),
         s -> super.asReachedSet().getPrecision(super.asReachedSet().getLastState()));
     // TODO do we really need the target-precision for refinements and not the actual one?
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public void removeSubtree(
       ARGState element, Precision newPrecision, Predicate<? super Precision> pPrecisionType)
@@ -76,7 +71,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
     Preconditions.checkArgument(newPrecisions.size()==pPrecisionTypes.size());
-    assert rootOfSubgraph.getSubgraph().contains(element);
+    assert path.getFirstState().getSubgraph().contains(element);
     final ARGSubtreeRemover argSubtreeRemover = new ARGSubtreeRemover(bamCpa, removeCachedSubtreeTimer);
     argSubtreeRemover.removeSubtree(delegate, path, element, newPrecisions, pPrecisionTypes);
 
