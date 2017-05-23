@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import com.google.common.collect.Lists;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -60,6 +61,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuarde
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -137,6 +139,7 @@ public class TigerAlgorithm implements Algorithm {
   private StartupConfig startupConfig;
   private String programDenotation;
   private Specification stats;
+  private TestSuite testsuite;
 
   enum ReachabilityAnalysisResult {
     SOUND,
@@ -168,6 +171,7 @@ public class TigerAlgorithm implements Algorithm {
     logger.logf(Level.INFO, "FQL query: %s", fqlSpecification.toString());
     this.programDenotation = programDenotation;
     this.stats = stats;
+    testsuite = new TestSuite(null);
   }
 
   @Override
@@ -255,6 +259,7 @@ public class TigerAlgorithm implements Algorithm {
   private ReachabilityAnalysisResult runReachabilityAnalysis(Goal pGoal, int goalIndex)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     Automaton goalAutomaton = pGoal.createControlAutomaton();
+    Specification goalAutomatonSpecification = Specification.fromAutomata(Lists.newArrayList(goalAutomaton));
 
     CPAFactory automataFactory = ControlAutomatonCPA.factory();
     automataFactory
@@ -300,6 +305,7 @@ public class TigerAlgorithm implements Algorithm {
       lARTCPAFactory.setChild(lCPA);
       lARTCPAFactory.setConfiguration(startupConfig.getConfig());
       lARTCPAFactory.setLogger(logger);
+      lARTCPAFactory.set(goalAutomatonSpecification, Specification.class);
 
       lARTCPA = (ARGCPA) lARTCPAFactory.createInstance();
     } catch (InvalidConfigurationException | CPAException e) {
@@ -363,6 +369,7 @@ public class TigerAlgorithm implements Algorithm {
     }
 
     boolean analysisWasSound = false;
+    boolean hasTimedOut = false;
 
     if (cpuTimelimitPerGoal < 0) {
       // run algorithm without time limit
@@ -386,17 +393,167 @@ public class TigerAlgorithm implements Algorithm {
 
         if (workerRunnable.hasTimeout()) {
           logger.logf(Level.INFO, "Test goal timed out!");
-        }
-
-        Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
-
-        try (FileWriter w = new FileWriter(argFile.toString())) {
-          ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
-        } catch (IOException e) {
-          logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+          hasTimedOut = true;
         }
       }
     }
+    Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
+
+    try (FileWriter w = new FileWriter(argFile.toString())) {
+      ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
+    } catch (IOException e) {
+      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+    }
+
+    if (hasTimedOut) {
+      return ReachabilityAnalysisResult.TIMEDOUT;
+    } /*else {
+
+      AbstractState lastState = reachedSet.getLastState();
+
+      if (lastState != null) {
+
+        if (AbstractStates.isTargetState(lastState)) {
+
+          logger.logf(Level.INFO, "Test goal is feasible.");
+
+          CFAEdge criticalEdge = pGoal.getCriticalEdge();
+
+          Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
+
+          if (counterexamples.isEmpty()) {
+
+            logger.logf(Level.INFO, "Counterexample is not available.");
+
+            LinkedList<CFAEdge> trace = new LinkedList<>();
+
+            // Try to reconstruct a trace in the ARG and shrink it
+            ARGState argState = AbstractStates.extractStateByType(lastState, ARGState.class);
+            ARGPath path = ARGUtils.getOnePathTo(argState);
+            List<CFAEdge> shrinkedErrorPath = null;
+            if (path != null) {
+              shrinkedErrorPath = new ErrorPathShrinker().shrinkErrorPath(path);
+            }
+
+            Collection<ARGState> parents;
+            parents = argState.getParents();
+
+            while (!parents.isEmpty()) {
+
+              ARGState parent = null;
+
+              for (ARGState tmp_parent : parents) {
+                parent = tmp_parent;
+                break; // we just choose some parent
+              }
+
+              CFAEdge edge = parent.getEdgeToChild(argState);
+              trace.addFirst(edge);
+
+              argState = parent;
+              parents = argState.getParents();
+            }
+
+            List<BigInteger> inputValues = new ArrayList<>();
+
+            TestCase testcase =
+                new TestCase(inputValues, trace, shrinkedErrorPath, null, null);
+            testsuite.addTestCase(testcase, pGoal);
+
+          } else {
+
+            logger.logf(Level.INFO, "Counterexample is available.");
+
+            assert counterexamples.size() == 1;
+
+            for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
+
+              CounterexampleInfo cex = lEntry.getValue();
+
+              if (cex.isSpurious()) {
+                logger.logf(Level.WARNING, "Counterexample is spurious!");
+              } else {
+
+                RichModel model = cex.getTargetPathModel();
+
+                Comparator<Map.Entry<AssignableTerm, Object>> comp =
+                    new Comparator<Map.Entry<AssignableTerm, Object>>() {
+
+                      @Override
+                      public int compare(Entry<AssignableTerm, Object> pArg0,
+                          Entry<AssignableTerm, Object> pArg1) {
+                        assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
+                        assert pArg0.getKey() instanceof Model.Variable;
+                        assert pArg1.getKey() instanceof Model.Variable;
+
+                        Model.Variable v0 = (Model.Variable) pArg0.getKey();
+                        Model.Variable v1 = (Model.Variable) pArg1.getKey();
+
+                        return (v0.getSSAIndex() - v1.getSSAIndex());
+                      }
+
+                    };
+
+                TreeSet<Map.Entry<AssignableTerm, Object>> inputs = new TreeSet<>(comp);
+
+                for (Entry<AssignableTerm, Object> e : model.entrySet()) {
+                  if (e.getKey() instanceof Model.Variable) {
+                    Model.Variable v = (Model.Variable) e.getKey();
+
+                    if (v.getName().equals(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
+                      inputs.add(e);
+                    }
+                  }
+                }
+
+                List<BigInteger> inputValues = new ArrayList<>(inputs.size());
+
+                for (Entry<AssignableTerm, Object> e : inputs) {
+                  //assert e.getValue() instanceof BigInteger;
+                  //inputValues.add((BigInteger)e.getValue());
+                  inputValues.add(new BigInteger(e.getValue().toString()));
+                }
+
+                List<CFAEdge> shrinkedErrorPath =
+                    new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
+
+                TestCase testcase =
+                    new TestCase(inputValues, cex.getTargetPath().asEdgesList(), shrinkedErrorPath,
+                        null, null);
+                testsuite.addTestCase(testcase, pGoal);
+
+                //for (Pair<ARGState, CFAEdge> stateEdgePair : cex.getTargetPath()) {
+                for (CFAEdge lCFAEdge : cex.getTargetPath().asEdgesList()) {
+                  //if (stateEdgePair.getSecond().equals(criticalEdge)) {
+                  if (lCFAEdge.equals(criticalEdge)) {
+                    logger.logf(Level.INFO,
+                        "*********************** extract abstract state ***********************");
+                  }
+                }
+              }
+            }
+          }
+        } else {
+
+          // we consider the test goals is infeasible
+          logger.logf(Level.INFO, "Test goal infeasible.");
+
+          testsuite.addInfeasibleGoal(pGoal, null);
+        }
+      } else {
+        throw new RuntimeException(
+            "We need a last state to determine the feasibility of the test goal!");
+      }
+      if (analysisWasSound) {
+        return ReachabilityAnalysisResult.SOUND;
+      } else {
+        return ReachabilityAnalysisResult.UNSOUND;
+      }
+
+
+    }*/
+
+
     return ReachabilityAnalysisResult.SOUND;
   }
 

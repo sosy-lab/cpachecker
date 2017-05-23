@@ -2992,6 +2992,9 @@ tiger.limitsPerGoal.time.cpu = -1
 # Optimize the test goal automata
 tiger.optimizeGoalAutomata = true
 
+# Reuse ARG across test goals
+tiger.reuseARG = true
+
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
 

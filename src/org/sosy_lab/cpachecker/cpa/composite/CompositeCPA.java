@@ -106,6 +106,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       Preconditions.checkState(cfa != null, "CompositeCPA needs CFA information!");
 
       CompositeOptions options = new CompositeOptions();
+
       getConfiguration().inject(options);
 
       ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
