@@ -43,16 +43,10 @@
 			$scope.nodes = nodes;
 			$scope.edges = edges;
 			$scope.functions = functions;
-			$scope.combinedNodes = combinedNodes;
-			$scope.inversedCombinedNodes = inversedCombinedNodes;
-			$scope.combinedNodesLabels = combinedNodesLabels;
-			$scope.mergedNodes = mergedNodes;
 			$scope.functionCallEdges = functionCallEdges;
 			$scope.errorPath = errorPath;
-			$scope.requiredGraphs = requiredGraphs;
 			$scope.graphSplitThreshold = graphSplitThreshold
 			$scope.zoomEnabled = zoomEnabled;
-			$scope.graphMap = graphMap;
 			$scope.constants = constants;
 		}]);
 	
@@ -67,24 +61,16 @@ var cfaJson={};//CFA_JSON_INPUT
 var nodes = cfaJson.nodes;
 var edges = cfaJson.edges;
 var functions = cfaJson.functionNames; //TODO: display only the graph for selected function
-var combinedNodes = cfaJson.combinedNodes;
-var inversedCombinedNodes = cfaJson.inversedCombinedNodes;
-var combinedNodesLabels = cfaJson.combinedNodesLabels;
-var mergedNodes = cfaJson.mergedNodes;
 var functionCallEdges = cfaJson.functionCallEdges;
 var errorPath;
 if (cfaJson.hasOwnProperty("errorPath"))
 	erroPath = cfaJson.errorPath;
-var requiredGraphs = 1;
 var graphSplitThreshold = 700; // TODO: allow user input with max value 900
 var zoomEnabled = false; // TODO: allow user to switch between zoom possibilities
-// Map holding last element in a graph and the graph itself used to handle edges between graphs
-var graphMap = {};
 // Graphs already rendered in the master script
 var renderedGraphs = {};
 // A Dagre D3 Renderer
 var render = new dagreD3.render();
-
 // TODO: different edge weights based on type?
 var constants = {
 	blankEdge : "BlankEdge",
@@ -406,28 +392,6 @@ function init() {
 		return g;
 	}
 
-	// Set nodes for the graph contained in the json nodes
-	function setGraphNodes(graph, nodesToSet) {
-		nodesToSet.forEach(function(n) {
-			if (!mergedNodes.includes(n.index)) {
-				graph.setNode(n.index, {
-					label : setNodeLabel(n),
-					class : n.type,
-					id : "node" + n.index,
-					shape : nodeShapeDecider(n)
-				});
-			} 
-		});
-	}
-	
-	// Node label, the label from combined nodes or a simple label
-	function setNodeLabel(node) {
-		var nodeIndex = "" + node.index;
-		if (Object.keys(combinedNodesLabels).includes(nodeIndex))
-			return combinedNodesLabels[nodeIndex];
-		else return "N" + nodeIndex;
-	}
-
 	// Add desired events to the nodes
 	function addEventsToNodes() {
 		d3.selectAll("svg g.node").on("mouseover", function(d){showInfoBoxNode(d3.event, d);})
@@ -435,76 +399,11 @@ function init() {
 		// TODO: node.on("click") needed?
 	}
 
-	// Round the corners of rectangle shaped nodes
-	function roundNodeCorners(graph) {
-		graph.nodes().forEach(function(it) {
-			var item = graph.node(it);
-			item.rx = item.ry = 5;
-		});
-	}
-
-	// Decide the shape of the nodes based on type
-	function nodeShapeDecider(n) {
-		if (n.type === constants.entryNode)
-			return "diamond";
-		else
-			return "rect";
-	}
-	
-	// Set the edges for a single graph while considering merged nodes and edges between them
-	// TODO: different arrowhead for different type + class function AND errorPath
-	function setGraphEdges(graph, edgesToSet, multigraph) {
-		edgesToSet.forEach(function(e) {
-			var source, target;
-			if (!mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
-				source = e.source;
-				target = e.target;
-			} else if (!mergedNodes.includes(e.source) && mergedNodes.includes(e.target)) {
-				source = e.source;
-				target = getMergingNode(e.target);
-			} else if (mergedNodes.includes(e.source) && !mergedNodes.includes(e.target)) {
-				source = getMergingNode(e.source);
-				target = e.target;
-			}
-			if (multigraph && (!graph.nodes().includes("" + source) || !graph.nodes().includes("" + target))) 
-				source = undefined;
-			if ((source !== undefined && target !== undefined) && (source !== target)) {
-				graph.setEdge(source, target, {
-					label: e.stmt, 
-					class: e.type, 
-					id: "edge"+ source + target,
-					lineInterpolate: 'basis',
-					weight: edgeWeightDecider(e)
-				});
-			}
-		});
-	}
-	
-	// Retrieve the node in which this node was merged
-	function getMergingNode(index) {
-		var result = "";
-		Object.keys(inversedCombinedNodes).some(function(key){
-			if (key.includes(index)) {
-				result = inversedCombinedNodes[key];
-				return result;
-			}
-		})
-		return result;
-	}
-
 	// Add desired events to edge
 	function addEventsToEdges() {
 		d3.selectAll("svg g.edgePath").on("mouseover", function(d){showInfoBoxEdge(d3.event, d);})
 			.on("mouseout", function(){hideInfoBoxEdge();})
 		// TODO: edge.on("click")
-	}
-
-	// Decide the weight for the edges based on type
-	function edgeWeightDecider(edge) {
-		if (edge.type === constants.functionCallEdge)
-			return 1;
-		else
-			return 10;
 	}
 
 	// on mouse over display info box for node
