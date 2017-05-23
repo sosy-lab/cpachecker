@@ -50,6 +50,12 @@
 			$scope.constants = constants;
 		}]);
 	
+	app.controller('ARGController', ['$rootScope', '$scope',
+		function($rootScope, $scope) {
+			$scope.nodes = nodes;
+			$scope.edges = edges;
+	}]);
+	
 })();
 
 var argJson={};//ARG_JSON_INPUT
