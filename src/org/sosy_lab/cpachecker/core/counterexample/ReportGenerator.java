@@ -520,7 +520,7 @@ public class ReportGenerator {
           Map<String, Object> argNode = new HashMap<>();
           argNode.put("index", parentStateId);
           argNode.put("label", parentStateId + " @ " +
-              node.toString() + "\n" + node.getFunctionName() + ((ARGState) entry).toDOTLabel());
+              node.toString() + "\n" + node.getFunctionName() + nodeTypeInNodeLabel(node)  + ((ARGState) entry).toDOTLabel());
           argNode.put("type", node.describeFileLocation().split(" ")[0]);
           argNodes.put(parentStateId, argNode);
         }
@@ -543,6 +543,15 @@ public class ReportGenerator {
         }
       }
     });
+  }
+
+  // Add the node type (if it is entry or exit) to the node label
+  private String nodeTypeInNodeLabel(CFANode node) {
+    String result = node.describeFileLocation().split(" ")[0];
+    if (result.equalsIgnoreCase("entry") || result.equalsIgnoreCase("exit")) {
+      return " " + result + "\n";
+    }
+    return "\n";
   }
 
   // Similar to the getEdgeText method in DOTBuilder2
