@@ -95,7 +95,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
   @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
   private int determinismThreshold = 85;
 
-  private final ValueAnalysisTransferRelation transfer;
+  private final ValueAnalysisCPAStatistics stats;
 
   private final ImmutableSet<CFANode> loopHeads;
 
@@ -117,12 +117,13 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
     pStatsCollection.add(statistics);
   }
 
-  public ValueAnalysisPrecisionAdjustment(Configuration pConfig, final ValueAnalysisTransferRelation pTransfer, final CFA pCfa)
+  public ValueAnalysisPrecisionAdjustment(
+      Configuration pConfig, final ValueAnalysisCPAStatistics pStats, final CFA pCfa)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
-    transfer = pTransfer;
+    stats = pStats;
 
     if (alwaysAtLoop && pCfa.getAllLoopHeads().isPresent()) {
       loopHeads = pCfa.getAllLoopHeads().get();
@@ -211,7 +212,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
     }
 
     // else, delay abstraction computation as long as iteration threshold is not reached
-    if (transfer.getCurrentNumberOfIterations() < iterationThreshold) {
+    if (stats.getCurrentNumberOfIterations() < iterationThreshold) {
       return false;
     }
 
@@ -221,9 +222,8 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
     }
 
     // else, determine current setting and return that
-    performPrecisionBasedAbstraction = (transfer.getCurrentLevelOfDeterminism() < determinismThreshold)
-        ? true
-        : false;
+    performPrecisionBasedAbstraction =
+        (stats.getCurrentLevelOfDeterminism() < determinismThreshold) ? true : false;
 
     return performPrecisionBasedAbstraction;
   }
