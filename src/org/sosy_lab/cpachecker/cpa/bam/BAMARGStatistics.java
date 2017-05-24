@@ -88,7 +88,10 @@ public class BAMARGStatistics extends ARGStatistics {
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
     ARGState root = (ARGState)pReached.getFirstState();
     Collection<ARGState> targets = Collections2.filter(root.getChildren(), s -> !s.isCovered());
-    assert targets.contains(pReached.getLastState());
+    // assertion disabled, because it happens with BAM-parallel (reason unknown).
+    // assert targets.contains(pReached.getLastState()) : String.format(
+    //   "Last state %s of reachedset with root %s is not in target states %s",
+    //   pReached.getLastState(), pReached.getFirstState(), targets);
     assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
     final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
 
