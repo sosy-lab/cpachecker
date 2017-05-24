@@ -35,10 +35,10 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
  */
 class BAMCPAStatistics extends AbstractStatistics {
 
-  private final BAMCPA cpa;
+  private final AbstractBAMCPA cpa;
   private List<BAMBasedRefiner> refiners = new ArrayList<>();
 
-  public BAMCPAStatistics(BAMCPA cpa) {
+  public BAMCPAStatistics(AbstractBAMCPA cpa) {
     this.cpa = cpa;
   }
 
@@ -54,12 +54,8 @@ class BAMCPAStatistics extends AbstractStatistics {
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-    BAMTransferRelation transferRelation = cpa.getTransferRelation();
     TimedReducer reducer = cpa.getReducer();
-
     put(out, "Number of blocks", cpa.getBlockPartitioning().getBlocks().size());
-    put(out, "Maximum block depth", transferRelation.maxRecursiveDepth);
-
     put(out, "Time for building block partitioning", cpa.blockPartitioningTimer);
     put(out, 0, reducer.reduceTime);
     put(out, 0, reducer.expandTime);

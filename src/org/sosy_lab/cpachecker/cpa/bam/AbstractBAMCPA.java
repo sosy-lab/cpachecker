@@ -87,6 +87,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   protected final ShutdownNotifier shutdownNotifier;
   protected final BlockPartitioning blockPartitioning;
   private final TimedReducer reducer;
+  private final BAMCPAStatistics stats;
   private final BAMARGStatistics argStats;
   private final BAMReachedSetExporter exporter;
 
@@ -115,6 +116,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     reducer = new TimedReducer(getWrappedCpa().getReducer());
     argStats = new BAMARGStatistics(pConfig, pLogger, this, pCpa, pSpecification, pCfa);
     exporter = new BAMReachedSetExporter(pConfig, pLogger, this);
+    stats = new BAMCPAStatistics(this);
   }
 
   private BlockPartitioning buildBlockPartitioning(CFA pCfa, Configuration pConfig)
@@ -158,10 +160,15 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     assert !Iterables.any(pStatsCollection, Predicates.instanceOf(ARGStatistics.class))
         : "exporting ARGs should only be done at this place, when using BAM.";
+    pStatsCollection.add(stats);
     pStatsCollection.add(argStats);
     pStatsCollection.add(exporter);
     pStatsCollection.add(getData().getCache());
     super.collectStatistics(pStatsCollection);
+  }
+
+  BAMCPAStatistics getStatistics() {
+    return stats;
   }
 
   abstract BAMDataManager getData();

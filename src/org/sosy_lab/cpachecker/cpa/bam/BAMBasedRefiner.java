@@ -57,10 +57,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   final StatTimer computeCounterexampleTimer = new StatTimer("Searching path to error location");
   final StatTimer removeCachedSubtreeTimer = new StatTimer("Removing cached subtrees");
 
-  private final BAMCPA bamCpa;
+  private final AbstractBAMCPA bamCpa;
 
   private BAMBasedRefiner(
-      ARGBasedRefiner pRefiner, ARGCPA pArgCpa, BAMCPA pBamCpa, LogManager pLogger) {
+      ARGBasedRefiner pRefiner, ARGCPA pArgCpa, AbstractBAMCPA pBamCpa, LogManager pLogger) {
     super(pRefiner, pArgCpa, pLogger);
 
     bamCpa = pBamCpa;
@@ -77,10 +77,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
         !(pRefiner instanceof Refiner),
         "ARGBasedRefiners may not implement Refiner, choose between these two!");
 
-    if (!(pCpa instanceof BAMCPA)) {
+    if (!(pCpa instanceof AbstractBAMCPA)) {
       throw new InvalidConfigurationException("BAM CPA needed for BAM-based refinement");
     }
-    BAMCPA bamCpa = (BAMCPA) pCpa;
+    AbstractBAMCPA bamCpa = (AbstractBAMCPA) pCpa;
     ARGCPA argCpa = bamCpa.retrieveWrappedCpa(ARGCPA.class);
     if (argCpa == null) {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");

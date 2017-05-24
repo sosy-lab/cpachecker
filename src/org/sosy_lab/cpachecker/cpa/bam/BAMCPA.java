@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -56,7 +55,6 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   }
 
   private final BAMTransferRelation transfer;
-  private final BAMCPAStatistics stats;
   private final ProofChecker wrappedProofChecker;
   private final BAMDataManager data;
   private final BAMPCCManager bamPccManager;
@@ -123,7 +121,6 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
               wrappedProofChecker,
               pShutdownNotifier);
     }
-    stats = new BAMCPAStatistics(this);
   }
 
   @Override
@@ -158,16 +155,6 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
 
   public BAMPCCManager getBamPccManager() {
     return bamPccManager;
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
-    super.collectStatistics(pStatsCollection);
-  }
-
-  BAMCPAStatistics getStatistics() {
-    return stats;
   }
 
   @Override
