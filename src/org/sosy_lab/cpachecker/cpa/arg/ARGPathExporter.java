@@ -521,7 +521,7 @@ public class ARGPathExporter {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
         result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
-        if(maxFileLocation.isPresent()) {
+        if (maxFileLocation.isPresent()) {
           FileLocation max = maxFileLocation.get();
           result = result.putAndCopy(KeyDef.ENDOFFSET, Integer.toString(max.getNodeOffset()+max.getNodeLength()));
         }
@@ -535,7 +535,7 @@ public class ARGPathExporter {
     }
 
     private Optional<FileLocation> getMinFileLocation(CFAEdge pEdge) {
-      Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+      Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge);
       if (locations.size() > 0) {
         Iterator<FileLocation> locationIterator = locations.iterator();
         FileLocation min = locationIterator.next();
@@ -551,7 +551,7 @@ public class ARGPathExporter {
     }
 
     private Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge) {
-      Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+      Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge);
       if (locations.size() > 0) {
         Iterator<FileLocation> locationIterator = locations.iterator();
         FileLocation max = locationIterator.next();
@@ -564,6 +564,17 @@ public class ARGPathExporter {
         return Optional.of(max);
       }
       return Optional.empty();
+    }
+
+    private Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
+      if (pEdge instanceof AStatementEdge) {
+        AStatementEdge statementEdge = (AStatementEdge) pEdge;
+        FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
+        if (!FileLocation.DUMMY.equals(statementLocation)) {
+          return Collections.singleton(statementLocation);
+        }
+      }
+      return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
     }
 
     private TransitionCondition extractTransitionForStates(
