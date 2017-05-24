@@ -27,10 +27,10 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,8 +59,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 @Options(prefix="cpa.value.abstraction")
 public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
@@ -107,10 +108,10 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
   private final Statistics statistics;
 
   final StatCounter abstractions    = new StatCounter("Number of abstraction computations");
-  final StatTimer totalLiveness     = new StatTimer("Total time for liveness abstraction");
-  final StatTimer totalAbstraction  = new StatTimer("Total time for abstraction computation");
-  final StatTimer totalEnforcePath  = new StatTimer("Total time for path thresholds");
-  private Set<MemoryLocation> trackedMemoryLocation = new HashSet<>();
+  private final ThreadSafeTimerContainer totalLivenessTimer    = new ThreadSafeTimerContainer("Total time for liveness abstraction");
+  private final ThreadSafeTimerContainer totalAbstractionTimer = new ThreadSafeTimerContainer("Total time for abstraction computation");
+  private final ThreadSafeTimerContainer totalEnforcePathTimer = new ThreadSafeTimerContainer("Total time for path thresholds");
+  private final Set<MemoryLocation> trackedMemoryLocation = Sets.newConcurrentHashSet();
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
@@ -137,9 +138,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
         StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
         writer.put(abstractions);
-        writer.put(totalLiveness);
-        writer.put(totalAbstraction);
-        writer.put(totalEnforcePath);
+        writer.put(totalLivenessTimer);
+        writer.put(totalAbstractionTimer);
+        writer.put(totalEnforcePathTimer);
         writer.put("Number of tracked memory locations", trackedMemoryLocation.size());
       }
 
@@ -171,12 +172,14 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
     ValueAnalysisState resultState = ValueAnalysisState.copyOf(pState);
 
     if(doLivenessAbstraction && liveVariables.isPresent()) {
+      TimerWrapper totalLiveness = totalLivenessTimer.getNewTimer();
       totalLiveness.start();
       enforceLiveness(pState, location, resultState);
       totalLiveness.stop();
     }
 
     // compute the abstraction based on the value-analysis precision
+    TimerWrapper totalAbstraction = totalAbstractionTimer.getNewTimer();
     totalAbstraction.start();
     if (performPrecisionBasedAbstraction()) {
       enforcePrecision(resultState, location, pPrecision);
@@ -185,6 +188,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
     // compute the abstraction for assignment thresholds
     if (assignments != null) {
+      TimerWrapper totalEnforcePath = totalEnforcePathTimer.getNewTimer();
       totalEnforcePath.start();
       enforcePathThreshold(resultState, pPrecision, assignments);
       totalEnforcePath.stop();
