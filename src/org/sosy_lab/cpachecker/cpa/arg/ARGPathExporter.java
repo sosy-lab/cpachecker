@@ -461,7 +461,7 @@ public class ARGPathExporter {
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
-      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
+      if (!isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
         return result;
       }
 
