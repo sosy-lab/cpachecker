@@ -1,8 +1,8 @@
 /*
- * CPAchecker is a tool for configurable software verification.
+ *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,37 +39,18 @@ import java.util.OptionalLong;
 
 import javax.annotation.Nullable;
 
-/**
-* This class describes a location in the memory.
-*/
-public class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
+public class PointerToMemoryLocation extends MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
-  private static final long serialVersionUID = -8910967707373729034L;
-  protected final String functionName;
-  protected final String identifier;
-  protected final @Nullable Long offset;
+  private static final long serialVersionUID = -8910967707373729035L;
 
-  protected MemoryLocation(String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
-    checkNotNull(pFunctionName);
-    checkNotNull(pIdentifier);
+  private PointerToMemoryLocation(String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
 
-    functionName = pFunctionName;
-    identifier = pIdentifier;
-    offset = pOffset;
+    super(pFunctionName, pIdentifier, pOffset);
   }
 
-  protected MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
-    checkNotNull(pIdentifier);
+  private PointerToMemoryLocation(String pIdentifier, @Nullable Long pOffset) {
+    super(pIdentifier, pOffset);
 
-    int separatorIndex = pIdentifier.indexOf("::");
-    if (separatorIndex >= 0) {
-      functionName = pIdentifier.substring(0, separatorIndex);
-      identifier = pIdentifier.substring(separatorIndex + 2);
-    } else {
-      functionName = null;
-      identifier = pIdentifier;
-    }
-    offset = pOffset;
   }
 
   @Override
@@ -79,11 +60,11 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
       return true;
     }
 
-    if (!(other instanceof MemoryLocation)) {
+    if (!(other instanceof PointerToMemoryLocation)) {
       return false;
     }
 
-    MemoryLocation otherLocation = (MemoryLocation) other;
+    PointerToMemoryLocation otherLocation = (PointerToMemoryLocation) other;
 
     return Objects.equals(functionName, otherLocation.functionName)
         && Objects.equals(identifier, otherLocation.identifier)
@@ -103,23 +84,30 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     return hc;
   }
 
-  public static MemoryLocation valueOf(String pFunctionName, String pIdentifier) {
-    return new MemoryLocation(pFunctionName, pIdentifier, null);
+  public static PointerToMemoryLocation valueOf(String pFunctionName, String pIdentifier) {
+    if (pFunctionName == null)
+    {
+      return new PointerToMemoryLocation(pIdentifier, null);
+    }
+    else
+    {
+      return new PointerToMemoryLocation(pFunctionName, pIdentifier, null);
+    }
   }
 
-  public static MemoryLocation valueOf(String pFunctionName, String pIdentifier, long pOffset) {
-    return new MemoryLocation(pFunctionName, pIdentifier, pOffset);
+  public static PointerToMemoryLocation valueOf(String pFunctionName, String pIdentifier, long pOffset) {
+    return new PointerToMemoryLocation(pFunctionName, pIdentifier, pOffset);
   }
 
-  public static MemoryLocation valueOf(String pIdentifier, long pOffset) {
-    return new MemoryLocation(pIdentifier, pOffset);
+  public static PointerToMemoryLocation valueOf(String pIdentifier, long pOffset) {
+    return new PointerToMemoryLocation(pIdentifier, pOffset);
   }
 
-  public static MemoryLocation valueOf(String pIdentifier, OptionalLong pOffset) {
-    return new MemoryLocation(pIdentifier, pOffset.isPresent() ? pOffset.getAsLong() : null);
+  public static PointerToMemoryLocation valueOf(String pIdentifier, OptionalLong pOffset) {
+    return new PointerToMemoryLocation(pIdentifier, pOffset.isPresent() ? pOffset.getAsLong() : null);
   }
 
-  public static MemoryLocation valueOf(String pVariableName) {
+  public static PointerToMemoryLocation valueOf(String pVariableName) {
 
     String[] nameParts    = pVariableName.split("::");
     String[] offsetParts  = pVariableName.split("/");
@@ -134,16 +122,18 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
       if (hasOffset) {
         nameParts[1] = nameParts[1].replace("/" + offset, "");
       }
-      return new MemoryLocation(nameParts[0], nameParts[1], offset);
+      nameParts[1] = "(*" + nameParts[1] + ")";
+      return new PointerToMemoryLocation(nameParts[0], nameParts[1], offset);
 
     } else {
       if (hasOffset) {
         nameParts[0] = nameParts[0].replace("/" + offset, "");
       }
-      return new MemoryLocation(nameParts[0].replace("/" + offset, ""), offset);
+      return new PointerToMemoryLocation(nameParts[0].replace("/" + offset, ""), offset);
     }
   }
 
+  @Override
   public String getAsSimpleString() {
     String variableName = isOnFunctionStack() ? (functionName + "::" + identifier) : (identifier);
     if (offset == null) {
@@ -152,26 +142,32 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     return variableName + "/" + offset;
   }
 
+  @Override
   public String serialize() {
     return getAsSimpleString();
   }
 
+  @Override
   public boolean isOnFunctionStack() {
     return functionName != null;
   }
 
+  @Override
   public boolean isOnFunctionStack(String pFunctionName) {
     return functionName != null && pFunctionName.equals(functionName);
   }
 
+  @Override
   public String getFunctionName() {
     return checkNotNull(functionName);
   }
 
+  @Override
   public String getIdentifier() {
     return identifier;
   }
 
+  @Override
   public boolean isReference() {
     return offset != null;
   }
@@ -182,6 +178,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
    *
    * @return the offset of a reference.
    */
+  @Override
   public long getOffset() {
     checkState(offset != null);
     return offset;
@@ -204,8 +201,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     return result;
   }
 
-  @Override
-  public int compareTo(MemoryLocation other) {
+  public int compareTo(PointerToMemoryLocation other) {
 
     int result = 0;
 

@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
@@ -94,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -122,6 +124,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -256,7 +259,17 @@ public class ValueAnalysisTransferRelation
   private int currentNumberOfIterations = 0;
 
   private StatCounter totalAssumptions = new StatCounter("Number of Assumptions");
+  private StatCounter functionPointerAssumptions = new StatCounter("Number of func pointer Assumptions");
   private StatCounter deterministicAssumptions = new StatCounter("Number of deterministic Assumptions");
+  final StatCounter functionsAdd = new StatCounter("Number of assignment functions");
+  final StatCounter functionsPointerAdd = new StatCounter("Number of assignment pointer functions");
+  final StatCounter structAdd = new StatCounter("Number of assignment structures (st1 = st2)");
+  final StatCounter functionsCall = new StatCounter("Number of all functions call");
+  final StatCounter functionsPointerCall = new StatCounter("Number of function pointers call (s.f(), s->f())");
+  final StatCounter functionsPointerDotCall = new StatCounter("Number of function pointers call (s.f())");
+  final StatCounter functionsPointerArrowCall = new StatCounter("Number of function pointers call (s->f())");
+  final StatCounter valuesAdd = new StatCounter("Number of assignment values");
+  final StatCounter memLocNullAdd = new StatCounter("Number of memLoc == null");
 
   private Statistics transferStatistics = new Statistics() {
 
@@ -265,8 +278,18 @@ public class ValueAnalysisTransferRelation
       StatisticsWriter writer = writingStatisticsTo(out);
 
       writer.put(totalAssumptions)
+            .put(functionPointerAssumptions)
             .put(deterministicAssumptions)
-            .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
+            .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%")
+            .put(functionsAdd)
+            .put(functionsPointerAdd)
+            .put(functionsCall)
+            .put(functionsPointerCall)
+            .put(functionsPointerDotCall)
+            .put(functionsPointerArrowCall)
+            .put(structAdd)
+            .put(valuesAdd)
+            .put(memLocNullAdd);
     }
 
     @Override
@@ -373,6 +396,51 @@ public class ValueAnalysisTransferRelation
 
       visitor.reset();
 
+    }
+    functionsCall.inc();
+
+    if (callEdge.getRawStatement().startsWith("pointer call("))
+    {
+      int cnt1 = 0;
+      int cnt2 = 0;
+      for (AExpression arg : arguments)
+      {
+        int n1 = arg.toString().split("\\.").length - 1;
+        cnt1 += (n1 >= 0) ? n1 : 0;
+        int n2 = arg.toString().split("->").length - 1;
+        cnt2 += (n2 >= 0) ? n2 : 0;
+      }
+
+      int n10 = callEdge.getRawStatement().split("\\.").length - 1;
+      int cnt10 = (n10 >= 0) ? n10 : 0;
+      int n20 = callEdge.getRawStatement().split("->").length - 1;
+      int cnt20 = (n20 >= 0) ? n20 : 0;
+
+      if (cnt20 > cnt2 && cnt10 == cnt1)
+      {
+        functionsPointerCall.inc();
+        functionsPointerArrowCall.inc();
+      }
+      else if (cnt10 > cnt1 && cnt20 == cnt2)
+      {
+        functionsPointerCall.inc();
+        functionsPointerDotCall.inc();
+      }
+      else if (cnt10 > cnt1 && cnt20 > cnt2)
+      {
+        int len1 = callEdge.getRawStatement().split("\\.")[0].length();
+        int len2 = callEdge.getRawStatement().split("->")[0].length();
+        if (len2 > len1)
+        {
+          functionsPointerCall.inc();
+          functionsPointerArrowCall.inc();
+        }
+        else if (len2 < len1)
+        {
+          functionsPointerCall.inc();
+          functionsPointerDotCall.inc();
+        }
+      }
     }
 
     return newElement;
@@ -604,6 +672,15 @@ public class ValueAnalysisTransferRelation
       throws UnrecognizedCCodeException {
 
     totalAssumptions.inc();
+
+    if (expression instanceof CBinaryExpression)
+    {
+      if (((CBinaryExpression) expression).getOperand1().getExpressionType() instanceof CPointerType
+          && ((CBinaryExpression) expression).getOperand2().getExpressionType() instanceof CFunctionType)
+      {
+        functionPointerAssumptions.inc();
+      }
+    }
 
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
     expression = simplifiedExpression.getFirst();
@@ -940,6 +1017,10 @@ public class ValueAnalysisTransferRelation
       if (memLoc != null) {
         return handleAssignmentToVariable(memLoc, op1.getExpressionType(), op2, v);
       }
+      else
+      {
+        memLocNullAdd.inc();
+      }
 
     } else if (op1 instanceof AArraySubscriptExpression) {
       // array cell
@@ -1031,6 +1112,7 @@ public class ValueAnalysisTransferRelation
           && ((CCompositeType) canonicaltype).getKind() == ComplexTypeKind.STRUCT
           && exp instanceof CLeftHandSide) {
         handleAssignmentToStruct(newElement, assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
+        structAdd.inc();
         return;
       }
     }
@@ -1040,6 +1122,18 @@ public class ValueAnalysisTransferRelation
        value = visitor.evaluate((JRightHandSide) exp, (JType) lType);
     } else if (exp instanceof CRightHandSide) {
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
+       if (value instanceof FunctionValue)
+       {
+         functionsAdd.inc();
+         if (lType instanceof CPointerType)
+         {
+           functionsPointerAdd.inc();
+         }
+       }
+       else
+       {
+         valuesAdd.inc();
+       }
     } else {
       throw new AssertionError("unknown righthandside-expression: " + exp);
     }

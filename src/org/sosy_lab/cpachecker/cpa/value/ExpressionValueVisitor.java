@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.util.List;
-
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -42,12 +41,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.util.states.PointerToMemoryLocation;
+
+import java.util.List;
 
 
 /**
@@ -246,8 +249,39 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     public MemoryLocation visit(CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
 
       if (pIastFieldReference.isPointerDereference()) {
-        evv.missingPointer = true;
-        return null;
+        if (pIastFieldReference.getExpressionType() instanceof CPointerType)
+        {
+          if (pIastFieldReference.getFieldOwner() instanceof CBinaryExpression)
+          {
+            evv.missingPointer = true;
+            return null;
+          }
+          else
+          {
+            if (((CPointerType) pIastFieldReference.getExpressionType()).getType() instanceof CFunctionType)
+            {
+              return PointerToMemoryLocation.valueOf(null, pIastFieldReference.getFieldName());
+            }
+            else
+            {
+              evv.missingPointer = true;
+              return null;
+            }
+          }
+        }
+        else
+        {
+          evv.missingPointer = true;
+          return null;
+        }
+      }
+
+      if (pIastFieldReference.getExpressionType() instanceof CPointerType)
+      {
+        if (((CPointerType) pIastFieldReference.getExpressionType()).getType() instanceof CFunctionType)
+        {
+          return PointerToMemoryLocation.valueOf(null, pIastFieldReference.getFieldName());
+        }
       }
 
       CLeftHandSide fieldOwner = (CLeftHandSide) pIastFieldReference.getFieldOwner();
@@ -277,8 +311,16 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       if (pStartLocation.isOnFunctionStack()) {
 
-        return MemoryLocation.valueOf(
-            pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset);
+        if(pOwnerType instanceof CPointerType)
+        {
+          return PointerToMemoryLocation.valueOf(
+              pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset);
+        }
+        else
+        {
+          return MemoryLocation.valueOf(
+              pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset);
+        }
       } else {
 
         return MemoryLocation.valueOf(pStartLocation.getIdentifier(), baseOffset + offset);
@@ -292,8 +334,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       } else if (ownerType instanceof CCompositeType) {
         return getFieldOffset((CCompositeType) ownerType, fieldName);
       } else if (ownerType instanceof CPointerType) {
-        evv.missingPointer = true;
-        return null;
+        return getFieldReferenseOffset((CPointerType) ownerType, fieldName);
       }
 
       throw new AssertionError();
@@ -313,6 +354,31 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         }
 
         if (!(ownerType.getKind() == ComplexTypeKind.UNION)) {
+
+          CType fieldType = typeMember.getType().getCanonicalType();
+
+          offset = (int) (offset + evv.getSizeof(fieldType));
+        }
+      }
+
+      return null;
+    }
+
+    private Integer getFieldReferenseOffset(CPointerType ownerType, String fieldName) {
+
+      CCompositeType compositOwnerType = (CCompositeType) ownerType.getType();
+      List<CCompositeTypeMemberDeclaration> membersOfType = compositOwnerType.getMembers();
+
+      int offset = 0;
+
+      for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
+        String memberName = typeMember.getName();
+
+        if (memberName.equals(fieldName)) {
+          return offset;
+        }
+
+        if (!(compositOwnerType.getKind() == ComplexTypeKind.UNION)) {
 
           CType fieldType = typeMember.getType().getCanonicalType();
 
@@ -347,6 +413,12 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     public MemoryLocation visit(CIdExpression idExp) throws UnrecognizedCCodeException {
 
       if (idExp.getDeclaration() != null) {
+        CType expType = idExp.getExpressionType();
+        if (expType instanceof CPointerType) {
+          if (((CPointerType)expType).getType() instanceof CFunctionType) {
+            return PointerToMemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName());
+          }
+        }
         return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName());
       }
 

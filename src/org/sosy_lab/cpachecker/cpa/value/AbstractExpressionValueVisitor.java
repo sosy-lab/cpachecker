@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -98,6 +99,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
+import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -229,6 +231,48 @@ public abstract class AbstractExpressionValueVisitor
        */
       rVal =
           castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
+    }
+
+    if (lVal instanceof FunctionValue && rVal instanceof FunctionValue)
+    {
+      switch (binaryOperator) {
+      case EQUALS:
+        return new NumericValue(((FunctionValue) lVal).equals(((FunctionValue) rVal)) ? 1 : 0);
+
+      case NOT_EQUALS:
+        return new NumericValue(((FunctionValue) lVal).equals(((FunctionValue) rVal)) ? 0 : 1);
+
+      default:
+        throw new AssertionError("unhandled binary operator");
+      }
+    }
+
+    if (lVal instanceof FunctionValue && rVal instanceof NumericValue)
+    {
+      switch (binaryOperator) {
+      case EQUALS:
+        return new NumericValue(((FunctionValue) lVal).equals((rVal)) ? 1 : 0);
+
+      case NOT_EQUALS:
+        return new NumericValue(((FunctionValue) lVal).equals((rVal)) ? 0 : 1);
+
+      default:
+        throw new AssertionError("unhandled binary operator");
+      }
+    }
+
+    if (lVal instanceof NumericValue && rVal instanceof FunctionValue)
+    {
+      switch (binaryOperator) {
+      case EQUALS:
+        return new NumericValue(((FunctionValue) rVal).equals((lVal)) ? 1 : 0);
+
+      case NOT_EQUALS:
+        return new NumericValue(((FunctionValue) rVal).equals((lVal)) ? 0 : 1);
+
+      default:
+        throw new AssertionError("unhandled binary operator");
+      }
     }
 
     if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
@@ -901,6 +945,10 @@ public abstract class AbstractExpressionValueVisitor
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
     }
     if (unaryOperator == UnaryOperator.AMPER) {
+      if (unaryOperand.getExpressionType() instanceof CFunctionType)
+      {
+        return new FunctionValue(unaryOperand.toString());
+      }
       return Value.UnknownValue.getInstance();
     }
 
