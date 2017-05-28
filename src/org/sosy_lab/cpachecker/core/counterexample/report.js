@@ -74,7 +74,8 @@ if (cfaJson.hasOwnProperty("errorPath"))
 var graphSplitThreshold = 700; // TODO: allow user input with max value 900
 var zoomEnabled = false; // TODO: allow user to switch between zoom possibilities
 // Graphs already rendered in the master script
-var renderedGraphs = {};
+var renderedCfaGraphs = {};
+var renderedArgGraphs = {};
 // A Dagre D3 Renderer
 var render = new dagreD3.render();
 // TODO: different edge weights based on type?
@@ -229,7 +230,7 @@ function init() {
     				graph.setNode(n.index, {
     					label : setNodeLabel(n),
     					class : n.type,
-    					id : "node" + n.index,
+    					id : "cfa-node" + n.index,
     					shape : nodeShapeDecider(n)
     				});
     			} 
@@ -281,7 +282,7 @@ function init() {
     				graph.setEdge(source, target, {
     					label: e.stmt, 
     					class: e.type, 
-    					id: "edge"+ source + target,
+    					id: "cfa-edge"+ source + target,
     					weight: edgeWeightDecider(e)
     				});
     			}
@@ -316,10 +317,70 @@ function init() {
 	 */
 	function argWorker_function() {
 		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
+		var json, nodes, edges;
+		var graphSplitThreshold = 700; // default TODO: enable change by user
+		var grapNodes = {};
 		self.addEventListener("message", function(m) {
-			console.log("from inside arg worker");
-			self.postMessage(m.data);
+			if (m.data.json !== undefined) {
+				json = JSON.parse(m.data.json);
+				nodes = json.nodes;
+				edges = json.edges;
+    			if (nodes.length > graphSplitThreshold) {
+    				buildMultipleGraphs();
+    			} else {
+    				buildSingleGraph();
+    			}
+			}
 		}, false);
+		
+		function buildSingleGraph() {
+			var g = createGraph();
+			setGraphNodes(g, nodes);
+			setGraphEdges(g, edges);
+			self.postMessage({"graph" : JSON.stringify(g), "id" : 1});
+		}
+		
+    	// create and return a graph element with a set transition
+    	function createGraph() {
+    		var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
+    				function() {
+    					return {};
+    				});
+    		g.graph().transition = function(selection) {
+    			return selection.transition().duration(500);
+    		};
+    		return g;
+    	}
+    	
+    	// Set nodes for the graph contained in the json nodes
+    	function setGraphNodes(graph, nodesToSet) {
+    		nodesToSet.forEach(function(n) {
+    			graph.setNode(n.index, {
+    				label : n.label,
+    				class : n.type,
+    				id : "arg-node" + n.index
+    			});
+    		});
+    	}
+    	
+    	function setGraphEdges(graph, edgesToSet, multigraph) {
+    		edgesToSet.forEach(function(e) {
+    			graph.setEdge(e.source, e.target, {
+    				label: e.label, 
+    				class: e.type, 
+    				id: "arg-edge"+ e.source + e.target,
+    				weight: edgeWeightDecider(e)
+    			});
+    		});
+    	}
+    	
+    	// Decide the weight for the edges based on type
+    	function edgeWeightDecider(edge) {
+    		if (edge.type === "covered") return 0;
+    		return 1;
+    	}
+    	
+		
 	}
 
 	// ======================= Create CFA and ARG Workers =======================
@@ -332,12 +393,12 @@ function init() {
 
 	cfaWorker.addEventListener("message", function(m) {
 		if (m.data.graph !== undefined) {
-			if (renderedGraphs[m.data.id] === undefined) {
+			if (renderedCfaGraphs[m.data.id] === undefined) {
 				var id = m.data.id;
 				d3.select("#cfa-container").append("div").attr("id", "cfa-graph" + id).attr("class", "cfa-graph");
 				var g = createGraph();
 				g = Object.assign(g, JSON.parse(m.data.graph));
-				renderedGraphs[m.data.id] = g;
+				renderedCfaGraphs[m.data.id] = g;
 				var svg = d3.select("#cfa-graph" + id).append("svg").attr("id", "cfa-svg" + id), svgGroup = svg.append("g");
 				render(d3.select("#cfa-svg" + id + " g"), g);
 				//TODO: own function pass the id and use d3.select() to select svg and svgGroup -> zoom can be set later (after svg is rendered)
@@ -355,14 +416,14 @@ function init() {
 				svg.attr("width", g.graph().width * 2 + constants.margin * 2);
 				var xCenterOffset = (svg.attr("width") / 2);
 				svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
-				addEventsToNodes();
+				addEventsToNodes(); // TODO: CFA specific!
 				addEventsToEdges();
 			} else {
-				// This might be needed for re-rendering after user interaction
-				renderedGraphs[m.data.id] = Object.assign(renderedGraphs[m.data.id], JSON.parse(m.data.graph));
-				render(d3.select("#cfa-svg" + id + " g"), renderedGraphs[m.data.id]);
-				var width = renderedGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
-				d3.select("#cfa-svg" + id).attr("height", renderedGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
+				// This is needed for re-rendering after user interaction
+				renderedCfaGraphs[m.data.id] = Object.assign(renderedCfaGraphs[m.data.id], JSON.parse(m.data.graph));
+				render(d3.select("#cfa-svg" + id + " g"), renderedCfaGraphs[m.data.id]);
+				var width = renderedCfaGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
+				d3.select("#cfa-svg" + id).attr("height", renderedCfaGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
 				d3.select("#cfa-svg" + id + "> g").attr("transform", "translate(" + width / 2 + ", 20)");
 				addEventsToNodes();
 				addEventsToEdges();
@@ -378,13 +439,51 @@ function init() {
 	cfaWorker.postMessage({"json" : JSON.stringify(cfaJson)});
 
 	argWorker.addEventListener('message', function(m) {
-		console.log("ARG Worker said: ", m.data);
+		if (m.data.graph !== undefined) {
+			if (renderedArgGraphs[m.data.id] === undefined) {
+				var id = m.data.id;
+				d3.select("#arg-container").append("div").attr("id", "arg-graph" + id).attr("class", "arg-graph");
+				var g = createGraph();
+				g = Object.assign(g, JSON.parse(m.data.graph));
+				renderedArgGraphs[m.data.id] = g;
+				var svg = d3.select("#arg-graph" + id).append("svg").attr("id", "arg-svg" + id), svgGroup = svg.append("g");
+				render(d3.select("#arg-svg" + id + " g"), g);
+				//TODO: own function pass the id and use d3.select() to select svg and svgGroup -> zoom can be set later (after svg is rendered)
+				var zoom = d3.behavior.zoom().on(
+						"zoom",
+						function() {
+							svgGroup.attr("transform", "translate("
+									+ d3.event.translate + ")" + "scale("
+									+ d3.event.scale + ")");
+						});
+				svg.call(zoom);			
+				// Center the graph - calculate svg.attributes
+				// TODO: own function for svg size -> compare with parent size after bootstrap is used. i.e. col-lg-12 etc.
+				svg.attr("height", g.graph().height + constants.margin * 2);
+				svg.attr("width", g.graph().width * 2 + constants.margin * 2);
+				var xCenterOffset = (svg.attr("width") / 2);
+				svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
+				addEventsToNodes(); // TODO: ARG specific!
+				addEventsToEdges();
+			} else {
+				// This is needed for re-rendering after user interaction
+				renderedArgGraphs[m.data.id] = Object.assign(renderedArgGraphs[m.data.id], JSON.parse(m.data.graph));
+				render(d3.select("#arg-svg" + id + " g"), renderedArgGraphs[m.data.id]);
+				var width = renderedArgGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
+				d3.select("#arg-svg" + id).attr("height", renderedArgGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
+				d3.select("#arg-svg" + id + "> g").attr("transform", "translate(" + width / 2 + ", 20)");
+				addEventsToNodes();
+				addEventsToEdges();
+			}
+		}
 	}, false);
+	
 	argWorker.addEventListener("error", function(e) {
 		alert("ARG Worker failed in line " + e.lineno + " with message " + e.message)
 	}, false);
-
-	argWorker.postMessage("Hello ARG Worker");
+	
+	// Initial postMessage to the ARG worker to trigger ARG graph(s) creation
+	argWorker.postMessage({"json" : JSON.stringify(argJson)});
 	
 	// create and return a graph element with a set transition
 	function createGraph() {

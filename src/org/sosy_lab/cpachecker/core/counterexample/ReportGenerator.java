@@ -264,9 +264,9 @@ public class ReportGenerator {
     try {
       writer.write("var argJson = {\n");
       writer.write("\"nodes\":");
-      JSON.writeJSONString(argNodes, writer);
+      JSON.writeJSONString(argNodes.values(), writer);
       writer.write(",\n\"edges\":");
-      JSON.writeJSONString(argEdges, writer);
+      JSON.writeJSONString(argEdges.values(), writer);
       writer.write("\n}\n");
     } catch (IOException e) {
       logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
@@ -481,9 +481,9 @@ public class ReportGenerator {
 
   private void insertSourceFileNames(Writer writer) {
     try {
-      writer.write("var sourceFiles = [");
+      writer.write("var sourceFiles = ");
       JSON.writeJSONString(sourceFiles, writer);
-      writer.write("];\n");
+      writer.write(";\n");
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of source file names failed.");
@@ -517,32 +517,77 @@ public class ReportGenerator {
       int parentStateId = ((ARGState) entry).getStateId();
       for (CFANode node : AbstractStates.extractLocations(entry)) {
         if (!argNodes.containsKey(parentStateId)) {
-          Map<String, Object> argNode = new HashMap<>();
-          argNode.put("index", parentStateId);
-          argNode.put("label", parentStateId + " @ " +
-              node.toString() + "\n" + node.getFunctionName() + nodeTypeInNodeLabel(node)  + ((ARGState) entry).toDOTLabel());
-          argNode.put("type", node.describeFileLocation().split(" ")[0]);
-          argNodes.put(parentStateId, argNode);
+          createArgNode(parentStateId, node, ((ARGState) entry).toDOTLabel());
         }
         if (!((ARGState) entry).getChildren().isEmpty()) {
           for (ARGState child : ((ARGState) entry).getChildren()) {
-            CFAEdge edge = ((ARGState) entry).getEdgeToChild(child);
-            if (edge != null) {
-              int childStateId = child.getStateId();
-              Map<String, Object> argEdge = new HashMap<>();
-              argEdge.clear();
-              argEdge.put("line", edge.getFileLocation().getStartingLineInOrigin());
-              argEdge.put("file", edge.getFileLocation().getFileName());
-              argEdge.put("source", parentStateId);
-              argEdge.put("target", childStateId);
-              argEdge.put("stmt", getEdgeText(edge));
-              argEdge.put("type", edge.getEdgeType().toString());
-              argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
+            int childStateId = child.getStateId();
+            // Covered state is not contained in the reached set
+            if (child.isCovered()) {
+              createCoveredArgNode(childStateId, child, ((ARGState) entry).toDOTLabel());
+              createCoveredArgEdge(parentStateId, childStateId);
             }
+            createArgEdge(parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
           }
         }
       }
     });
+  }
+
+  private void createArgNode(int parentStateId, CFANode node, String dotLabel) {
+    Map<String, Object> argNode = new HashMap<>();
+    argNode.put("index", parentStateId);
+    argNode.put("label", parentStateId + " @ " +
+        node.toString() + "\n" + node.getFunctionName() + nodeTypeInNodeLabel(node)  + dotLabel);
+    argNode.put("type", node.describeFileLocation().split(" ")[0]);
+    argNodes.put(parentStateId, argNode);
+  }
+
+  private void createCoveredArgNode(int childStateId, ARGState child, String dotLabel) {
+    Map<String, Object> nodeData = new HashMap<>();
+    for (CFANode coveredNode : AbstractStates.extractLocations(child)) {
+      if (!argNodes.containsKey(childStateId)) {
+        nodeData.put("index", childStateId);
+        nodeData.put("label", childStateId + " @ " +
+            coveredNode.toString() + "\n" + coveredNode.getFunctionName() + nodeTypeInNodeLabel(coveredNode)  + dotLabel);
+        nodeData.put("type", "covered");
+        argNodes.put(childStateId, nodeData);
+      }
+    }
+  }
+
+  private void createCoveredArgEdge(int parentStateId, int childStateId) {
+    Map<String, Object> coveredEdge = new HashMap<>();
+    coveredEdge.put("source", childStateId);
+    coveredEdge.put("target", parentStateId);
+    coveredEdge.put("stmt", "covered by");
+    coveredEdge.put("type", "covered");
+    argEdges.put("" + childStateId + "->" + parentStateId, coveredEdge);
+  }
+
+  private void createArgEdge(int parentStateId, int childStateId, List<CFAEdge> edges) {
+    Map<String, Object> argEdge = new HashMap<>();
+    argEdge.put("source", parentStateId);
+    argEdge.put("target", childStateId);
+    String edgeLabel = "";
+    if (edges.isEmpty()) {
+      edgeLabel += "dummy edge";
+    } else {
+      if (edges.size() > 1) {
+        edgeLabel += "Lines " + edges.get(0).getFileLocation().getStartingLineInOrigin() + " - " +
+            edges.get(edges.size() - 1).getFileLocation().getStartingLineInOrigin() + ":";
+        argEdge.put("lines", edgeLabel.substring(6));
+      } else {
+        edgeLabel += "Line " + edges.get(0).getFileLocation().getStartingLineInOrigin() + "";
+        argEdge.put("line", edgeLabel.substring(5));
+      }
+      for (CFAEdge edge : edges) {
+        edgeLabel += "\n" + getEdgeText(edge);
+      }
+      argEdge.put("file", edges.get(0).getFileLocation().getFileName());
+    }
+    argEdge.put("label", edgeLabel);
+    argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
   }
 
   // Add the node type (if it is entry or exit) to the node label
