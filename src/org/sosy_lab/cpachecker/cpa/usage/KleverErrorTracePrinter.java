@@ -172,7 +172,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       dumpCommonInfoForEdge(builder, result, pEdge);
 
       String note = shouldBeHighlighted(pEdge);
-      if (note != null) {
+      if (!note.isEmpty()) {
         builder.addDataElementChild(result, KeyDef.NOTE, note);
       }
 

@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cpa.lock;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.collect.FluentIterable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -119,13 +121,18 @@ public class LockTransferRelation extends SingleEdgeTransferRelation
   }
 
   public Set<LockIdentifier> getAffectedLocks(CFAEdge cfaEdge) {
+      return getLockEffects(cfaEdge)
+      .transform(e -> e.getAffectedLock()).toSet();
+  }
+
+  private FluentIterable<LockEffect> getLockEffects(CFAEdge cfaEdge) {
     try {
       return from(determineOperations(cfaEdge))
       .filter(e -> e instanceof LockEffect)
-      .transform(e -> ((LockEffect)e).getAffectedLock()).toSet();
+      .transform(e -> (LockEffect)e);
     } catch (UnrecognizedCCodeException e) {
       logger.log(Level.WARNING, "The code " + cfaEdge + " is not recognized");
-      return Collections.emptySet();
+      return FluentIterable.of();
     }
   }
 
@@ -372,20 +379,8 @@ public class LockTransferRelation extends SingleEdgeTransferRelation
    * @return the verdict
    */
   public String doesChangeTheState(CFAEdge pEdge) {
-    return formatCaption(getAffectedLocks(pEdge));
-  }
-
-  private String formatCaption(Set<LockIdentifier> set) {
-
-    if (set.isEmpty()) {
-      return null;
-    }
-    StringBuilder sb = new StringBuilder();
-    sb.append("Change states for locks ");
-    for (LockIdentifier lInfo : set) {
-      sb.append(lInfo + ", ");
-    }
-    sb.delete(sb.length() - 2, sb.length());
-    return sb.toString();
+    return getLockEffects(pEdge)
+        .transform(e -> e.toString())
+        .join(Joiner.on(","));
   }
 }

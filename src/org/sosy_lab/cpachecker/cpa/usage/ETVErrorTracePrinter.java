@@ -164,7 +164,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
         callstackDepth--;
       }
       String caption = shouldBeHighlighted(edge);
-      if (caption != null && !(edge instanceof CFunctionReturnEdge)) {
+      if (!caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
         writer.write("Line 0:     N0 -{/*" + caption + "*/}-> N0\n");
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
       } else if (edge.getLineNumber() == usage.getLine().getLine() && edge.toString().contains(id.getName())) {
