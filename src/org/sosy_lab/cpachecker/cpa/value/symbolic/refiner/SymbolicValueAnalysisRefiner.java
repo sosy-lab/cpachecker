@@ -105,7 +105,8 @@ public class SymbolicValueAnalysisRefiner
             logger,
             cfa,
             config,
-            ValueAnalysisCPA.class);
+            ValueAnalysisCPA.class,
+            shutdownNotifier);
 
     final ElementTestingSymbolicEdgeInterpolator edgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,

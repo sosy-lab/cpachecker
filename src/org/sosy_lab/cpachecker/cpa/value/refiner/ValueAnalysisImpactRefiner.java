@@ -97,7 +97,8 @@ public class ValueAnalysisImpactRefiner
         new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
 
     final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
-        new ValueAnalysisPrefixProvider(logger, cfa, config);
+        new ValueAnalysisPrefixProvider(
+            logger, cfa, config, valueAnalysisCpa.getShutdownNotifier());
 
     return new ValueAnalysisImpactRefiner(argCpa,
                                     checker,
