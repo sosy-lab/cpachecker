@@ -474,7 +474,7 @@ public class UsageTransferRelation implements TransferRelation {
       //we don't save in statistics ordinary local variables
       return;
     }
-    if (singleId instanceof StructureIdentifier && !singleId.isGlobal() && !singleId.isPointer()) {
+    if (singleId instanceof StructureIdentifier && !singleId.isGlobal() && !singleId.isDereferenced()) {
       //skips such cases, as 'a.b'
       return;
     }

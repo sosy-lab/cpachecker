@@ -105,13 +105,11 @@ public class StructureIdentifier extends SingleIdentifier{
   }
 
   @Override
-  public boolean isPointer() {
-    if (LocalTransferRelation.findDereference(type) > 0) {
-      return true;
-    } else if (dereference > 0) {
+  public boolean isDereferenced() {
+    if (super.isDereferenced()) {
       return true;
     } else {
-      return owner.isPointer();
+      return owner.isDereferenced();
     }
   }
 

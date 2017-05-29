@@ -46,5 +46,7 @@ public interface AbstractIdentifier extends Comparable<AbstractIdentifier> {
 
   public boolean isPointer();
 
+  public boolean isDereferenced();
+
   public Collection<AbstractIdentifier> getComposedIdentifiers();
 }

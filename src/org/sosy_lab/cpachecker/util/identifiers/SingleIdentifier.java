@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.identifiers;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 
 
 public abstract class SingleIdentifier implements AbstractIdentifier{
@@ -53,13 +54,12 @@ public abstract class SingleIdentifier implements AbstractIdentifier{
 
   @Override
   public boolean isPointer() {
-    if (dereference > 0) {
-      return true;
-    }/* else if (LocalTransferRelation.findDereference(type) > 0) {
-      return true;
-    } */else {
-      return false;
-    }
+    return (LocalTransferRelation.findDereference(type) > 0);
+  }
+
+  @Override
+  public boolean isDereferenced() {
+    return dereference > 0;
   }
 
   @Override

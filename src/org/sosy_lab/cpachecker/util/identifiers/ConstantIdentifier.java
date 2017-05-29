@@ -104,6 +104,11 @@ public class ConstantIdentifier implements AbstractIdentifier {
 
   @Override
   public boolean isPointer() {
+    return isDereferenced();
+  }
+
+  @Override
+  public boolean isDereferenced() {
     return (dereference > 0);
   }
 

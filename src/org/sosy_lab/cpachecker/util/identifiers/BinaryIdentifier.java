@@ -125,17 +125,22 @@ public class BinaryIdentifier implements AbstractIdentifier {
 
   @Override
   public boolean isPointer() {
-    if (dereference != 0) {
+    if (dereference != 0 ||
+        id1.isPointer() || id2.isPointer()) {
       return true;
-    } else
-      if ( id1.isPointer() && id2.isPointer()) {
-        return true;
-      } else if (!id1.isPointer() && !id2.isPointer()) {
-        return false;
-      } else {
-        //strange
-        return true;
-      }
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public boolean isDereferenced() {
+    if (dereference != 0 ||
+        id1.isDereferenced() || id2.isDereferenced()) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   @Override
