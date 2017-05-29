@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -39,6 +42,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
@@ -229,6 +234,12 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     pOut.println("Number of repeated paths:         " + numberOfrepeatedPaths);
     pOut.println("Number of BAM updates:            " + numberOfBAMupdates);
     pOut.println("Size of false cache:              " + falseCache.size());
+
+    if (refiner instanceof StatisticsProvider) {
+      Collection<Statistics> stats = new HashSet<>();
+      ((StatisticsProvider)refiner).collectStatistics(stats);
+      from(stats).forEach(s -> s.printStatistics(pOut, null, null));
+    }
   }
 
   private List<ARGState> getLastAffectedStates() {

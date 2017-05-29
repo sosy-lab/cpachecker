@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -108,7 +109,8 @@ public abstract class ErrorTracePrinter {
     assert usage.getKeyState() != null;
 
     Set<List<Integer>> emptySet = Collections.emptySet();
-    BAMMultipleCEXSubgraphComputer subgraphComputer = transfer.createBAMMultipleSubgraphComputer();
+    Function<ARGState, Integer> dummyFunc = s -> s.getStateId();
+    BAMMultipleCEXSubgraphComputer subgraphComputer = transfer.createBAMMultipleSubgraphComputer(dummyFunc);
     ARGState target = (ARGState)usage.getKeyState();
     BackwardARGState newTreeTarget = new BackwardARGState(target);
     ARGState root;
@@ -162,6 +164,11 @@ public abstract class ErrorTracePrinter {
         continue;
       }
 
+      if (!detector.isUnsafe(uinfo)) {
+        //In case of interruption during refinement,
+        //We may get a situation, when a path is removed, but the verdict is not updated
+        continue;
+      }
       Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(uinfo);
       if ((tmpPair.getFirst().isLooped() || tmpPair.getSecond().isLooped()) && printOnlyTrueUnsafes) {
         continue;

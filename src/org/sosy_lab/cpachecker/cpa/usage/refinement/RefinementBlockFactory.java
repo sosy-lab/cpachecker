@@ -80,6 +80,14 @@ public class RefinementBlockFactory {
   @Option(name = "refinementChain", description = "The order of refinement blocks")
   List<RefinementBlockTypes> RefinementChain;
 
+  public static enum PathEquation {
+    ARGStateId,
+    CFANodeId;
+  }
+
+  @Option(name = "pathEquality", description = "The way how to identify two paths as equal")
+  PathEquation pathEquation = PathEquation.CFANodeId;
+
   public RefinementBlockFactory(ConfigurableProgramAnalysis pCpa, Configuration pConfig) throws InvalidConfigurationException {
     cpa = pCpa;
     config = pConfig;
@@ -122,7 +130,7 @@ public class RefinementBlockFactory {
 
           case PathIterator:
             currentBlock = new PathPairIterator((ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                bamTransfer);
+                bamTransfer, pathEquation);
             currentBlockType = currentInnerBlockType.UsageInfo;
             break;
 

@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -49,6 +50,8 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
+import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementBlockFactory.PathEquation;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
 
@@ -62,9 +65,10 @@ public class PathPairIterator extends
 
   //Statistics
   private Timer computingPath = new Timer();
-  private Timer additionTimer = new Timer();
+  private Timer additionTimerCheck = new Timer();
   private int numberOfPathCalculated = 0;
-  private int successfulAdditionChecks = 0;
+  private int numberOfPathFinished = 0;
+  private int numberOfRepeatedConstructedPaths = 0;
   //private int numberOfrepeatedPaths = 0;
 
   private Map<AbstractState, Iterator<ARGState>> toCallerStatesIterator = new HashMap<>();
@@ -73,19 +77,30 @@ public class PathPairIterator extends
   private Map<UsageInfo, List<ExtendedARGPath>> computedPathsForUsage = new IdentityHashMap<>();
   private Map<UsageInfo, Iterator<ExtendedARGPath>> currentIterators = new IdentityHashMap<>();
 
-  private final Function<ARGState, Integer> GET_ORIGIN_STATE_NUMBERS = s -> ((BackwardARGState)s).getARGState().getStateId();
-
-  private final static Iterator<ExtendedARGPath> DUMMY_INTERATOR = new HashSet<ExtendedARGPath>().iterator();
+  private final Function<ARGState, Integer> idExtractor;
 
   //internal state
   private ExtendedARGPath firstPath = null;
 
   public PathPairIterator(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
-      BAMTransferRelation bamTransfer) {
+      BAMTransferRelation bamTransfer, PathEquation type) throws InvalidConfigurationException {
     super(pWrapper);
     transfer = bamTransfer;
     fromReducedToExpand = transfer.getMapFromReducedToExpand();
 
+    switch (type) {
+      case ARGStateId:
+        idExtractor = s -> s.getStateId();
+        break;
+
+      case CFANodeId:
+        idExtractor = s -> AbstractStates.extractLocation(s).getNodeNumber();
+        break;
+
+      default:
+        throw new InvalidConfigurationException("Unexpexted type " + type);
+
+    }
   }
 
   @Override
@@ -93,7 +108,7 @@ public class PathPairIterator extends
     firstPath = null;
     //subgraph computer need partitioning, which is not built at creation.
     //Thus, we move the creation of subgraphcomputer here
-    subgraphComputer = transfer.createBAMMultipleSubgraphComputer();
+    subgraphComputer = transfer.createBAMMultipleSubgraphComputer(idExtractor);
   }
 
   @Override
@@ -185,9 +200,10 @@ public class PathPairIterator extends
   public void printDetailedStatistics(PrintStream pOut) {
     pOut.println("--PathPairIterator--");
     pOut.println("--Timer for path computing:          " + computingPath);
-    pOut.println("--Timer for addition checks:         " + additionTimer);
+    pOut.println("--Timer for addition checks:         " + additionTimerCheck);
     pOut.println("Number of path calculated:           " + numberOfPathCalculated);
-    pOut.println("Number of successful Addition Checks:" + successfulAdditionChecks);
+    pOut.println("Number of new path calculated:       " + numberOfPathFinished);
+    pOut.println("Number of repeated path computed:    " + numberOfRepeatedConstructedPaths);
   }
 
   @Override
@@ -213,6 +229,7 @@ public class PathPairIterator extends
       List<ExtendedARGPath> alreadyComputedPaths;
       if (!alreadyComputed) {
         alreadyComputedPaths = new LinkedList<>();
+        computedPathsForUsage.put(usage, alreadyComputedPaths);
       } else {
         alreadyComputedPaths = computedPathsForUsage.get(usage);
       }
@@ -238,11 +255,9 @@ public class PathPairIterator extends
       iterator = computedPathsForUsage.get(info).iterator();
       currentIterators.put(info, iterator);
     }
-    if (iterator != null && iterator != DUMMY_INTERATOR && iterator.hasNext()) {
+
+    if (iterator != null && iterator.hasNext()) {
       return iterator.next();
-    } else if (iterator != DUMMY_INTERATOR) {
-      //We handle all previously found paths, disable the iterator
-      currentIterators.put(info, DUMMY_INTERATOR);
     }
 
     computingPath.start();
@@ -250,7 +265,7 @@ public class PathPairIterator extends
     if (!previousForkForUsage.containsKey(info)) {
       //The first time, we have no path to iterate
       BackwardARGState newTarget = new BackwardARGState((ARGState)info.getKeyState());
-      currentPath = computePath(newTarget);
+      currentPath = restorePathFrom(newTarget);
       //currentPath may become null if it goes through repeated (refined) states
     } else {
       currentPath = computeNextPath(previousForkForUsage.get(info));
@@ -268,7 +283,7 @@ public class PathPairIterator extends
   private void handleAffectedStates(List<ARGState> affectedStates, ExtendedARGPath path) {
     ARGState nextStart;
     if (affectedStates != null) {
-      List<Integer>changedStateNumbers = from(affectedStates).transform(GET_ORIGIN_STATE_NUMBERS).toList();
+      List<Integer>changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
       refinedStates.add(changedStateNumbers);
 
       nextStart = affectedStates.get(affectedStates.size() - 1);
@@ -283,75 +298,98 @@ public class PathPairIterator extends
     assert lastAffectedState != null;
 
     ARGState nextParent = null;
-    BackwardARGState previousCaller, childOfForkState = lastAffectedState;
-    do {
-      //This is a backward state, which displays the following state after real reduced state, which we want to found
-      childOfForkState = findPreviousFork(childOfForkState);
+    BackwardARGState childOfForkState = null;
+    ARGPath newPath = null;
 
-      if (childOfForkState == null) {
+    List<BackwardARGState> potentialForkStates = findNextForksInTail(lastAffectedState);
+    if (potentialForkStates.isEmpty()) {
+      return null;
+    }
+    Iterator<BackwardARGState> forkIterator = potentialForkStates.iterator();
+
+    do {
+      //Determine next branching point
+      nextParent = null;
+      while (nextParent == null && forkIterator.hasNext()) {
+        //This is a backward state, which displays the following state after real reduced state, which we want to found
+        childOfForkState = forkIterator.next();
+
+        nextParent = findNextBranchingParent(childOfForkState);
+      }
+
+      if (nextParent == null) {
         return null;
       }
 
-      //parent = forkState.getParents().iterator().next();
-     // assert parent != null;
-      ARGState realChildOfForkState = childOfForkState.getARGState();
-      assert realChildOfForkState.getParents().size() == 1;
-      ARGState forkState = realChildOfForkState.getParents().iterator().next();
-      //Clone is necessary, make tree set for determinism
-      Set<ARGState> callerStates = Sets.newTreeSet();
-      for (AbstractState state : fromReducedToExpand.get(forkState)) {
-        callerStates.add((ARGState)state);
-      }
-      previousCaller = (BackwardARGState) childOfForkState.getParents().iterator().next();
+      BackwardARGState clonedNextParent = new BackwardARGState(nextParent);
+      //Because of cached paths, we cannot change the part of it
+      ARGState rootOfTheClonedPart = cloneTheRestOfPath(childOfForkState);
+      rootOfTheClonedPart.addParent(clonedNextParent);
+      //Restore the new path from branching point
+      newPath = restorePathFrom(clonedNextParent);
 
-      assert callerStates != null;
+    } while (newPath != null);
 
-      Iterator<ARGState> iterator;
-      //It is important to put a backward state in map, because we can find the same real state during exploration
-      //but for it a new backward state will be created
-      //Disagree, try to put a real state
-      if (toCallerStatesIterator.containsKey(realChildOfForkState)) {
-        //Means we have already handled this state, just get the next one
-        iterator = toCallerStatesIterator.get(realChildOfForkState);
-      } else {
-        //We get this fork the second time (the first one was from path computer)
-        //Found the caller, we have explored the first time
-        ARGState realPreviousCaller = previousCaller.getARGState();
-        assert callerStates.remove(realPreviousCaller);
-        iterator = callerStates.iterator();
-        toCallerStatesIterator.put(realChildOfForkState, iterator);
-      }
-
-      if (iterator.hasNext()) {
-        nextParent = iterator.next();
-      } else {
-        //We need to find the next fork
-        //Do not change the fork state and start exploration from this one
-      }
-    } while (nextParent == null);
-
-    BackwardARGState newNextParent = new BackwardARGState(nextParent);
-    //Because of cached paths, we cannot change the part of it
-    ARGState clonedChildOfForkState = cloneTheRestOfPath(childOfForkState);
-    clonedChildOfForkState.addParent(newNextParent);
-    return computePath(newNextParent);
+    return newPath;
   }
 
   private ARGState cloneTheRestOfPath(BackwardARGState pChildOfForkState) {
     BackwardARGState currentState = pChildOfForkState;
     ARGState originState = currentState.getARGState();
     BackwardARGState previousState = new BackwardARGState(originState), clonedState;
-    ARGState result = previousState;
+    ARGState root = previousState;
 
     while (!currentState.getChildren().isEmpty()) {
       assert currentState.getChildren().size() == 1;
-      currentState = (BackwardARGState) currentState.getChildren().iterator().next();
+      currentState = getNextStateOnPath(currentState);
       originState = currentState.getARGState();
       clonedState = new BackwardARGState(originState);
       clonedState.addParent(previousState);
       previousState = clonedState;
     }
-    return result;
+    return root;
+  }
+
+  /** Finds the parentState (in ARG), which corresponds to the child (in the path)
+   *
+   * @param forkChildInPath child, which has more than one parents, which are not yet explored
+   * @return found parent state
+   */
+
+  private ARGState findNextBranchingParent(BackwardARGState forkChildInPath) {
+
+    ARGState forkChildInARG = forkChildInPath.getARGState();
+    assert forkChildInARG.getParents().size() == 1;
+    ARGState forkState = forkChildInARG.getParents().iterator().next();
+    //Clone is necessary, make tree set for determinism
+    Set<ARGState> callerStates = Sets.newTreeSet();
+    for (AbstractState state : fromReducedToExpand.get(forkState)) {
+      callerStates.add((ARGState)state);
+    }
+
+    Iterator<ARGState> iterator;
+    //It is important to put a backward state in map, because we can find the same real state during exploration
+    //but for it a new backward state will be created
+    //Disagree, try to put a real state
+    if (toCallerStatesIterator.containsKey(forkChildInARG)) {
+      //Means we have already handled this state, just get the next one
+      iterator = toCallerStatesIterator.get(forkChildInARG);
+    } else {
+      //We get this fork the second time (the first one was from path computer)
+      //Found the caller, we have explored the first time
+      ARGState previousCallerInARG = getPreviousStateOnPath(forkChildInPath).getARGState();
+      assert callerStates.remove(previousCallerInARG);
+      iterator = callerStates.iterator();
+      toCallerStatesIterator.put(forkChildInARG, iterator);
+    }
+
+    if (iterator.hasNext()) {
+      return iterator.next();
+    } else {
+      //We need to find the next fork
+      //Do not change the fork state and start exploration from this one
+      return null;
+    }
   }
 
   /**
@@ -359,37 +397,36 @@ public class PathPairIterator extends
    * the real fork state (reduced entry) is not included into it.
    * We need to get it.
    *
-   * @param parent
-   * @return
+   * @param parent a state after that we need to found a fork
+   * @return a state of the nearest fork
    */
-  private BackwardARGState findPreviousFork(BackwardARGState parent) {
+  private List<BackwardARGState> findNextForksInTail(BackwardARGState parent) {
+
     List<BackwardARGState> potentialForkStates = new LinkedList<>();
     Map<ARGState, ARGState> exitStateToEntryState = new TreeMap<>();
-    BackwardARGState currentState = parent;
-    ARGState realState = currentState.getARGState();
-    assert parent.getParents().size() == 1;
-    BackwardARGState currentParent = (BackwardARGState)parent.getParents().iterator().next();
-    ARGState realParent = currentParent.getARGState();
-    while (currentState.getChildren().size() > 0) {
+    BackwardARGState currentStateOnPath = parent;
+    ARGState currentStateInARG, realParent;
 
-      assert currentState.getChildren().size() == 1;
-      currentState = (BackwardARGState) currentState.getChildren().iterator().next();
-      realState = currentState.getARGState();
+    while (currentStateOnPath.getChildren().size() > 0) {
+
+      assert currentStateOnPath.getChildren().size() == 1;
+      currentStateOnPath = getNextStateOnPath(currentStateOnPath);
+      currentStateInARG = currentStateOnPath.getARGState();
 
       //No matter which parent to take - interesting one is single anyway
-      realParent = realState.getParents().iterator().next();
+      realParent = currentStateInARG.getParents().iterator().next();
 
       //Check if it is an exit state, we are waiting
       //Attention! Recursion is not supported here!
       if (exitStateToEntryState.containsKey(realParent)) {
         //Due to complicated structure of path we saved an expanded exit state and it isn't contained in the path,
         //so, we look for its parent
-        ARGState entryState = exitStateToEntryState.get(realParent);
+        ARGState expandedEntryState = exitStateToEntryState.get(realParent);
         //remove all child in cache
-        for (ARGState displayedChild : entryState.getChildren()) {
-          exitStateToEntryState.remove(displayedChild);
+        for (ARGState expandedExitState : expandedEntryState.getChildren()) {
+          exitStateToEntryState.remove(expandedExitState);
         }
-        potentialForkStates.remove(entryState);
+        potentialForkStates.remove(expandedEntryState);
       }
 
       if (fromReducedToExpand.containsKey(realParent) &&
@@ -398,27 +435,26 @@ public class PathPairIterator extends
         assert realParent.getParents().size() == 0;
         assert fromReducedToExpand.get(realParent).size() > 1;
 
-        //Now we should check, that there is no corresponding exit state in the path only in this case this is a real fork
-        parent = (BackwardARGState) currentState.getParents().iterator().next();
-        ARGState displayedParent = parent.getARGState();
+        //Now we should check, that there is no corresponding exit state in the path
+        //only in this case this is a real fork
+
+        //This is expanded state on the path at function call
+        ARGState expandedEntryState = getPreviousStateOnPath(currentStateOnPath).getARGState();
         //We may have several children, so add all of them
-        for (ARGState displayedChild : displayedParent.getChildren()) {
-          exitStateToEntryState.put(displayedChild, currentState);
+        for (ARGState expandedExitState : expandedEntryState.getChildren()) {
+          exitStateToEntryState.put(expandedExitState, currentStateOnPath);
         }
         //Save child and if we meet it, we remove the parent as not a fork
 
-        potentialForkStates.add(currentState);
+        potentialForkStates.add(currentStateOnPath);
       }
     }
 
-    if (potentialForkStates.isEmpty()) {
-      return null;
-    } else {
-      return potentialForkStates.get(0);
-    }
+    return potentialForkStates;
   }
 
-  ARGPath computePath(BackwardARGState pLastElement) {
+
+  ARGPath restorePathFrom(BackwardARGState pLastElement) {
     assert (pLastElement != null && !pLastElement.isDestroyed());
       //we delete this state from other unsafe
 
@@ -429,21 +465,47 @@ public class PathPairIterator extends
         return null;
       }
       ARGPath result = ARGUtils.getRandomPath(rootOfSubgraph);
-      additionTimer.start();
-      List<Integer> stateNumbers = from(result.asStatesList()).transform(GET_ORIGIN_STATE_NUMBERS).toList();
-      for (List<Integer> previousStates : refinedStates) {
-        if (stateNumbers.containsAll(previousStates)) {
-          successfulAdditionChecks++;
-        }
-      }
-      additionTimer.stop();
       numberOfPathCalculated++;
+      if (result != null) {
+        numberOfPathFinished++;
+      }
+      if (checkThePathHasRepeatedStates(result)) {
+        return null;
+      }
       return result;
     } catch (MissingBlockException e) {
       return null;
     } catch (InterruptedException e) {
       return null;
     }
-
   }
+
+
+  /* Functions only to simplify the understanding:
+   */
+
+  private BackwardARGState getNextStateOnPath(BackwardARGState state) {
+    return (BackwardARGState) state.getChildren().iterator().next();
+  }
+
+  private BackwardARGState getPreviousStateOnPath(BackwardARGState state) {
+    return (BackwardARGState) state.getParents().iterator().next();
+  }
+
+  private boolean checkThePathHasRepeatedStates(ARGPath path) {
+    additionTimerCheck.start();
+    List<Integer> ids = from(path.asStatesList())
+    .transform(idExtractor).toList();
+
+    for (List<Integer> states : refinedStates) {
+      if (ids.containsAll(states)) {
+        numberOfRepeatedConstructedPaths++;
+        additionTimerCheck.stop();
+        return true;
+      }
+    }
+    additionTimerCheck.stop();
+    return false;
+  }
+
 }

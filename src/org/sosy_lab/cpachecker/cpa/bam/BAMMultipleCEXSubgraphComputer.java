@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.base.Function;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,11 +43,14 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
 
   private final Map<AbstractState, AbstractState> reducedToExpanded;
   private Set<LinkedList<Integer>> remainingStates = new HashSet<>();
+  private final Function<ARGState, Integer> getStateId;
 
   BAMMultipleCEXSubgraphComputer(BAMCPA bamCPA,
-      Map<AbstractState, AbstractState> pReduced) {
+      Map<AbstractState, AbstractState> pReduced,
+      Function<ARGState, Integer> idExtractor) {
     super(bamCPA);
     this.reducedToExpanded = pReduced;
+    getStateId = idExtractor;
   }
 
 
@@ -151,7 +155,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   }
 
   private boolean checkRepeatitionOfState(ARGState currentElement) {
-    int currentId = currentElement.getStateId();
+    int currentId = getStateId.apply(currentElement);
     for (LinkedList<Integer> rest : remainingStates) {
       if (rest.getLast() == currentId) {
         rest.removeLast();

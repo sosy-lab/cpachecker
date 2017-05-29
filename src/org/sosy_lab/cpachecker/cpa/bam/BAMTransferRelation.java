@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -592,9 +593,9 @@ public class BAMTransferRelation implements TransferRelation {
     return returnStates;
   }
 
-  public BAMMultipleCEXSubgraphComputer createBAMMultipleSubgraphComputer() {
+  public BAMMultipleCEXSubgraphComputer createBAMMultipleSubgraphComputer(Function<ARGState, Integer> idExtractor) {
     final BAMMultipleCEXSubgraphComputer cexSubgraphComputer = new BAMMultipleCEXSubgraphComputer(bamCPA,
-        reducedToExpand);
+        reducedToExpand, idExtractor);
 
         return cexSubgraphComputer;
   }

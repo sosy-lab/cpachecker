@@ -453,9 +453,10 @@ public class UsageTransferRelation implements TransferRelation {
         logger.log(Level.FINER, singleId + " is considered to be local, so it wasn't add to statistics");
         return;
       } else {
-        FluentIterable<SingleIdentifier> composedIds =
+        FluentIterable<GeneralIdentifier> composedIds =
             from(singleId.getComposedIdentifiers())
-            .filter(SingleIdentifier.class);
+            .filter(SingleIdentifier.class)
+            .transform(i -> i.getGeneralId());
         boolean isLocal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.LOCAL);
         boolean isGlobal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.GLOBAL);
         if (isLocal && !isGlobal) {

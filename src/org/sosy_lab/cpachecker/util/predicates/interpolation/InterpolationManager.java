@@ -22,7 +22,6 @@
  *    http://cpachecker.sosy-lab.org
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
-import static com.google.common.base.Preconditions.*;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
@@ -97,6 +96,8 @@ public final class InterpolationManager {
   private final Timer getInterpolantTimer = new Timer();
   private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   private final Timer interpolantVerificationTimer = new Timer();
+  private final Timer preparingFormulasTimer = new Timer();
+  private final Timer errorInfoTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
 
   public void printStatistics(StatisticsWriter w0) {
@@ -109,6 +110,8 @@ public final class InterpolationManager {
     if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
       w1.put("Reused formulas on solver stack", reusedFormulasOnSolverStack + " (Avg: " + div(reusedFormulasOnSolverStack, satCheckTimer.getNumberOfIntervals()) + ")");
     }
+    w1.put("Preparing formulas", preparingFormulasTimer);
+    w1.put("Formula post-processing", errorInfoTimer);
     w1.put("Interpolant computation", getInterpolantTimer);
     if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
       w1.put("Interpolant verification", interpolantVerificationTimer);
@@ -282,7 +285,9 @@ public final class InterpolationManager {
 
     cexAnalysisTimer.start();
     try {
+      preparingFormulasTimer.start();
       final List<BooleanFormula> f = prepareCounterexampleFormulas(pFormulas);
+      preparingFormulasTimer.stop();
 
       final Interpolator<?> currentInterpolator;
       if (reuseInterpolationEnvironment) {
@@ -336,7 +341,9 @@ public final class InterpolationManager {
 
     cexAnalysisTimer.start();
     try {
+      preparingFormulasTimer.start();
       final List<BooleanFormula> f = prepareCounterexampleFormulas(pFormulas);
+      preparingFormulasTimer.stop();
 
       try {
         return solveCounterexample(f, statesOnPath);
@@ -809,7 +816,7 @@ public final class InterpolationManager {
 
       logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
 
-
+      errorInfoTimer.start();
       // Get either interpolants or error path information
       CounterexampleTraceInfo info;
       if (spurious) {
@@ -830,6 +837,7 @@ public final class InterpolationManager {
         info = getErrorPath(f, itpProver, elementsOnPath);
       }
 
+      errorInfoTimer.stop();
       logger.log(Level.ALL, "Counterexample information:", info);
 
       return info;

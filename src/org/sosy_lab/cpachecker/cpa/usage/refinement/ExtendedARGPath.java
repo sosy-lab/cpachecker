@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -38,7 +37,7 @@ public class ExtendedARGPath extends ARGPath {
   private boolean isUnreachable = false;
 
   public ExtendedARGPath(ARGPath origin, UsageInfo target) {
-    super(origin.asStatesList(), origin.getFullPath());
+    super(origin.asStatesList(), origin.getInnerEdges());
     usage = target;
   }
 
