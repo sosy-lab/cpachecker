@@ -164,6 +164,11 @@ div pre {
 	fill: #00ffd0;
 }
 
+.arg-graph {
+	position: absolute;
+	opacity: 0;
+}
+
 g.node-start>polygon {
 	fill: #00ffd0;
 }

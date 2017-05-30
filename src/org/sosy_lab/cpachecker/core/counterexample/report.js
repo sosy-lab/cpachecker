@@ -17,6 +17,9 @@
 					$scope.setTab(tabIndex);
 				});
 				$scope.setTab = function(tabIndex) {
+					if (tabIndex === 2) {
+						d3.selectAll(".arg-graph").style("opacity", 1);
+					}
 					$scope.tab = tabIndex;
 				};
 				$scope.tabIsSet = function(tabIndex) {
@@ -75,7 +78,7 @@ var graphSplitThreshold = 700; // TODO: allow user input with max value 900
 var zoomEnabled = false; // TODO: allow user to switch between zoom possibilities
 // Graphs already rendered in the master script
 var renderedCfaGraphs = {};
-var renderedArgGraphs = {};
+var createdArgGraphs = {};
 // A Dagre D3 Renderer
 var render = new dagreD3.render();
 // TODO: different edge weights based on type?
@@ -319,7 +322,6 @@ function init() {
 		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
 		var json, nodes, edges;
 		var graphSplitThreshold = 700; // default TODO: enable change by user
-		var grapNodes = {};
 		self.addEventListener("message", function(m) {
 			if (m.data.json !== undefined) {
 				json = JSON.parse(m.data.json);
@@ -336,7 +338,7 @@ function init() {
 		function buildSingleGraph() {
 			var g = createGraph();
 			setGraphNodes(g, nodes);
-			setGraphEdges(g, edges);
+			setGraphEdges(g, edges, false);
 			self.postMessage({"graph" : JSON.stringify(g), "id" : 1});
 		}
 		
@@ -364,14 +366,16 @@ function init() {
     	}
     	
     	function setGraphEdges(graph, edgesToSet, multigraph) {
-    		edgesToSet.forEach(function(e) {
-    			graph.setEdge(e.source, e.target, {
-    				label: e.label, 
-    				class: e.type, 
-    				id: "arg-edge"+ e.source + e.target,
-    				weight: edgeWeightDecider(e)
-    			});
-    		});
+    		if (!multigraph) {
+        		edgesToSet.forEach(function(e) {
+        			graph.setEdge(e.source, e.target, {
+        				label: e.label, 
+        				class: e.type, 
+        				id: "arg-edge"+ e.source + e.target,
+        				weight: edgeWeightDecider(e)
+        			});
+        		});
+    		}
     	}
     	
     	// Decide the weight for the edges based on type
@@ -440,12 +444,12 @@ function init() {
 
 	argWorker.addEventListener('message', function(m) {
 		if (m.data.graph !== undefined) {
-			if (renderedArgGraphs[m.data.id] === undefined) {
+			if (createdArgGraphs[m.data.id] === undefined) {
 				var id = m.data.id;
-				d3.select("#arg-container").append("div").attr("id", "arg-graph" + id).attr("class", "arg-graph");
 				var g = createGraph();
 				g = Object.assign(g, JSON.parse(m.data.graph));
-				renderedArgGraphs[m.data.id] = g;
+				createdArgGraphs[m.data.id] = g;
+				d3.select("#arg-container").append("div").attr("id", "arg-graph" + id).attr("class", "arg-graph");
 				var svg = d3.select("#arg-graph" + id).append("svg").attr("id", "arg-svg" + id), svgGroup = svg.append("g");
 				render(d3.select("#arg-svg" + id + " g"), g);
 				//TODO: own function pass the id and use d3.select() to select svg and svgGroup -> zoom can be set later (after svg is rendered)
@@ -467,10 +471,10 @@ function init() {
 				addEventsToEdges();
 			} else {
 				// This is needed for re-rendering after user interaction
-				renderedArgGraphs[m.data.id] = Object.assign(renderedArgGraphs[m.data.id], JSON.parse(m.data.graph));
-				render(d3.select("#arg-svg" + id + " g"), renderedArgGraphs[m.data.id]);
-				var width = renderedArgGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
-				d3.select("#arg-svg" + id).attr("height", renderedArgGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
+				createdArgGraphs[m.data.id] = Object.assign(createdArgGraphs[m.data.id], JSON.parse(m.data.graph));
+				render(d3.select("#arg-svg" + id + " g"), createdArgGraphs[m.data.id]);
+				var width = createdArgGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
+				d3.select("#arg-svg" + id).attr("height", createdArgGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
 				d3.select("#arg-svg" + id + "> g").attr("transform", "translate(" + width / 2 + ", 20)");
 				addEventsToNodes();
 				addEventsToEdges();

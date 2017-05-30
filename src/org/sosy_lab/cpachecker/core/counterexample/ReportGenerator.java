@@ -524,8 +524,8 @@ public class ReportGenerator {
             int childStateId = child.getStateId();
             // Covered state is not contained in the reached set
             if (child.isCovered()) {
-              createCoveredArgNode(childStateId, child, ((ARGState) entry).toDOTLabel());
-              createCoveredArgEdge(parentStateId, childStateId);
+              createCoveredArgNode(childStateId, child, child.toDOTLabel());
+              createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
             }
             createArgEdge(parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
           }
@@ -537,6 +537,7 @@ public class ReportGenerator {
   private void createArgNode(int parentStateId, CFANode node, String dotLabel) {
     Map<String, Object> argNode = new HashMap<>();
     argNode.put("index", parentStateId);
+    argNode.put("func", node.getFunctionName());
     argNode.put("label", parentStateId + " @ " +
         node.toString() + "\n" + node.getFunctionName() + nodeTypeInNodeLabel(node)  + dotLabel);
     argNode.put("type", node.describeFileLocation().split(" ")[0]);
@@ -548,6 +549,7 @@ public class ReportGenerator {
     for (CFANode coveredNode : AbstractStates.extractLocations(child)) {
       if (!argNodes.containsKey(childStateId)) {
         nodeData.put("index", childStateId);
+        nodeData.put("func", coveredNode.getFunctionName());
         nodeData.put("label", childStateId + " @ " +
             coveredNode.toString() + "\n" + coveredNode.getFunctionName() + nodeTypeInNodeLabel(coveredNode)  + dotLabel);
         nodeData.put("type", "covered");
@@ -556,13 +558,13 @@ public class ReportGenerator {
     }
   }
 
-  private void createCoveredArgEdge(int parentStateId, int childStateId) {
+  private void createCoveredArgEdge(int parentStateId, int coveringStateId) {
     Map<String, Object> coveredEdge = new HashMap<>();
-    coveredEdge.put("source", childStateId);
-    coveredEdge.put("target", parentStateId);
-    coveredEdge.put("stmt", "covered by");
+    coveredEdge.put("source", parentStateId);
+    coveredEdge.put("target", coveringStateId);
+    coveredEdge.put("label", "covered by");
     coveredEdge.put("type", "covered");
-    argEdges.put("" + childStateId + "->" + parentStateId, coveredEdge);
+    argEdges.put("" + coveringStateId + "->" + parentStateId, coveredEdge);
   }
 
   private void createArgEdge(int parentStateId, int childStateId, List<CFAEdge> edges) {
@@ -587,6 +589,7 @@ public class ReportGenerator {
       argEdge.put("file", edges.get(0).getFileLocation().getFileName());
     }
     argEdge.put("label", edgeLabel);
+    argEdge.put("type", edges.get(0).getEdgeType().toString());
     argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
   }
 
