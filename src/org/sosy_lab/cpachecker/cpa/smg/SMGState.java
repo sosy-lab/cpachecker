@@ -1731,7 +1731,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   /** memory externally allocated could be freed by the user */
   // TODO: refactore
-  public SMGAddressValue addExternalAllocation(String pLabel) throws SMGInconsistentException {
+    public SMGAddressValue addExternalAllocation(String pLabel) {
     SMGRegion new_object = new SMGRegion(externalAllocationSize, pLabel);
     int new_value = SMGValueFactory.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, BigInteger
@@ -1742,7 +1742,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     heap.setExternallyAllocatedFlag(new_object, true);
 
-    performConsistencyCheck(SMGRuntimeCheck.HALF);
     return SMGKnownAddVal.valueOf(new_value, new_object, BigInteger.valueOf
         (externalAllocationSize/2));
   }

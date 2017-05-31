@@ -143,7 +143,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, toUppercase=true, name="GCCZeroLengthArray", description = "Enable GCC extension 'Arrays of Length Zero'.")
   private boolean GCCZeroLengthArray = false;
 
-  private static enum UnknownFunctionHandling {STRICT, ASSUME_SAFE}
+  private static enum UnknownFunctionHandling {STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED}
 
   @Option(secure=true, name="guessSizeOfUnknownMemorySize", description = "Size of memory that cannot be calculated will be guessed.")
   private boolean guessSizeOfUnknownMemorySize = false;
@@ -1416,10 +1416,12 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
       } else {
         switch (handleUnknownFunctions) {
-        case STRICT:
-          throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
-        case ASSUME_SAFE:
-          return ImmutableList.of(pState);
+          case STRICT:
+            throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
+          case ASSUME_SAFE:
+            return ImmutableList.of(pState);
+          case ASSUME_EXTERNAL_ALLOCATED:
+            return handleSafeExternFuction(cFCExpression, pState, pCfaEdge).asSMGStateList();
         default:
           throw new AssertionError("Unhandled enum value in switch: " + handleUnknownFunctions);
         }
@@ -1600,6 +1602,36 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return pNewState;
+  }
+  public SMGAddressValueAndStateList handleSafeExternFuction(CFunctionCallExpression pFunctionCallExpression,
+      SMGState pSmgState, CFAEdge pCfaEdge) throws CPATransferException {
+    String functionName = pFunctionCallExpression.getFunctionNameExpression().toString();
+    List<CExpression> parameters = pFunctionCallExpression.getParameterExpressions();
+    for (int i = 0; i < parameters.size(); i++) {
+      CExpression param = parameters.get(i);
+      CType paramType = expressionEvaluator.getRealExpressionType(param);
+      if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
+        //assign external value to param
+        SMGAddressValueAndStateList addressOfFieldAndStates = expressionEvaluator.evaluateAddress(pSmgState, pCfaEdge, param);
+        for (SMGAddressAndState addressOfFieldAndState : addressOfFieldAndStates.asAddressAndStateList()) {
+          SMGAddress smgAddress = addressOfFieldAndState.getObject();
+          if (!smgAddress.isUnknown() && smgAddress.getObject().notNull() &&
+              smgAddress.getObject().getSize() >= machineModel.getBitSizeofPtr()) {
+            SMGAddressValue newParamValue = pSmgState.addExternalAllocation(
+                functionName + "_Param_No_" + i + "_ID" + SMGValueFactory.getNewValue());
+            pSmgState = assignFieldToState(pSmgState, pCfaEdge, smgAddress.getObject(), smgAddress
+                .getOffset().getValue(), newParamValue, paramType);
+          }
+        }
+      }
+    }
+
+    CType returnValueType = expressionEvaluator.getRealExpressionType(pFunctionCallExpression.getExpressionType());
+    if (returnValueType instanceof CPointerType || returnValueType instanceof CArrayType) {
+      SMGAddressValue returnValue = pSmgState.addExternalAllocation(functionName + SMGValueFactory.getNewValue());
+      return SMGAddressValueAndStateList.of(SMGAddressValueAndState.of(pSmgState, returnValue));
+    }
+    return SMGAddressValueAndStateList.of(pSmgState);
   }
 
   private SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, BigInteger pFieldOffset, int pSizeType,
@@ -2416,12 +2448,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           }
         } else {
           switch (handleUnknownFunctions) {
-          case STRICT:
-            throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
-          case ASSUME_SAFE:
-            return SMGValueAndStateList.of(getInitialSmgState());
-          default:
-            throw new AssertionError("Unhandled enum value in switch: " + handleUnknownFunctions);
+            case STRICT:
+              throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
+            case ASSUME_SAFE:
+              return SMGValueAndStateList.of(getInitialSmgState());
+            case ASSUME_EXTERNAL_ALLOCATED:
+              return handleSafeExternFuction(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            default:
+              throw new AssertionError("Unhandled enum value in switch: " + handleUnknownFunctions);
           }
         }
 
@@ -2550,43 +2584,46 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           throws CPATransferException {
         CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
         String functionName = fileNameExpression.toASTString();
+        SMGState smgState = getInitialSmgState();
 
         if (builtins.isABuiltIn(functionName)) {
           if (builtins.isConfigurableAllocationFunction(functionName)) {
             possibleMallocFail = true;
-            SMGAddressValueAndStateList configAllocEdge = builtins.evaluateConfigurableAllocationFunction(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            SMGAddressValueAndStateList configAllocEdge = builtins.evaluateConfigurableAllocationFunction(pIastFunctionCallExpression, smgState, getCfaEdge());
             return configAllocEdge;
           }
           if (builtins.isExternalAllocationFunction(functionName)) {
-            SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation(pIastFunctionCallExpression, getInitialSmgState());
+            SMGAddressValueAndStateList extAllocEdge = builtins.evaluateExternalAllocation(pIastFunctionCallExpression, smgState);
             return extAllocEdge;
           }
           switch (functionName) {
           case "__builtin_alloca":
-            SMGAddressValueAndStateList allocEdge = builtins.evaluateAlloca(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            SMGAddressValueAndStateList allocEdge = builtins.evaluateAlloca(pIastFunctionCallExpression, smgState, getCfaEdge());
             return allocEdge;
           case "memset":
-            SMGAddressValueAndStateList memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            SMGAddressValueAndStateList memsetTargetEdge = builtins.evaluateMemset(pIastFunctionCallExpression, smgState, getCfaEdge());
             return memsetTargetEdge;
           case "memcpy":
-            SMGAddressValueAndStateList memcpyTargetEdge = builtins.evaluateMemcpy(pIastFunctionCallExpression, getInitialSmgState(), getCfaEdge());
+            SMGAddressValueAndStateList memcpyTargetEdge = builtins.evaluateMemcpy(pIastFunctionCallExpression, smgState, getCfaEdge());
             return memcpyTargetEdge;
           case "printf":
-            return SMGAddressValueAndStateList.of(getInitialSmgState());
+            return SMGAddressValueAndStateList.of(smgState);
           default:
             if (builtins.isNondetBuiltin(functionName)) {
-              return SMGAddressValueAndStateList.of(getInitialSmgState());
+              return SMGAddressValueAndStateList.of(smgState);
             } else {
               throw new AssertionError("Unexpected function handled as a builtin: " + functionName);
             }
           }
         } else {
           switch (handleUnknownFunctions) {
-          case STRICT:
-            throw new CPATransferException(
-                "Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
-          case ASSUME_SAFE:
-            return SMGAddressValueAndStateList.of(getInitialSmgState());
+            case STRICT:
+              throw new CPATransferException(
+                  "Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
+            case ASSUME_SAFE:
+              return SMGAddressValueAndStateList.of(smgState);
+            case ASSUME_EXTERNAL_ALLOCATED:
+              return handleSafeExternFuction(pIastFunctionCallExpression, smgState, getCfaEdge());
           default:
             throw new AssertionError("Unhandled enum value in switch: " + handleUnknownFunctions);
           }
