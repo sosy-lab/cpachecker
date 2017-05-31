@@ -144,8 +144,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   }
 
   public BlockPartitioning getBlockPartitioning() {
-    Preconditions.checkNotNull(blockPartitioning);
-    return blockPartitioning;
+    return Preconditions.checkNotNull(blockPartitioning);
   }
 
   LogManager getLogger() {
@@ -153,7 +152,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   }
 
   TimedReducer getReducer() {
-    return reducer;
+    return Preconditions.checkNotNull(reducer);
   }
 
   @Override
