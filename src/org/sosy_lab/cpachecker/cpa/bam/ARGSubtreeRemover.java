@@ -79,6 +79,7 @@ public class ARGSubtreeRemover {
                      List<Predicate<? super Precision>> pNewPrecisionTypes)
       throws InterruptedException {
 
+    final BackwardARGState cutPoint = (BackwardARGState) element;
     final ARGState firstState = (ARGState)mainReachedSet.asReachedSet().getFirstState();
     final ARGState lastState = (ARGState)mainReachedSet.asReachedSet().getLastState();
 
@@ -86,7 +87,7 @@ public class ARGSubtreeRemover {
     assert Iterables.getLast(pPath.asStatesList()).getWrappedState() == lastState : "path should end with target state";
     assert lastState.isTarget();
 
-    final List<ARGState> relevantCallStates = getRelevantCallStates(pPath.asStatesList(), element);
+    final List<BackwardARGState> relevantCallStates = getRelevantCallStates(pPath.asStatesList(), cutPoint);
     assert relevantCallStates.get(0).getWrappedState() == firstState : "root should be relevant";
     assert relevantCallStates.size() >= 1 : "at least the main-function should be open at the target-state";
 
@@ -102,7 +103,7 @@ public class ARGSubtreeRemover {
     }
 
     if (bamCache instanceof BAMCacheAggressiveImpl) {
-      ensureExactCacheHitsOnPath(pPath, element, pNewPrecisions, neededRemoveCachedSubtreeCalls);
+      ensureExactCacheHitsOnPath(pPath, cutPoint, pNewPrecisions, neededRemoveCachedSubtreeCalls);
     }
 
     for (final Entry<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls.entries()) {
@@ -111,11 +112,11 @@ public class ARGSubtreeRemover {
 
     // first remove the cut-state directly
     removeCachedSubtree(getReachedState(Iterables.getLast(relevantCallStates)),
-        getReachedState(element), pNewPrecisions, pNewPrecisionTypes);
+        getReachedState(cutPoint), pNewPrecisions, pNewPrecisionTypes);
 
     // then remove some important states along the path, sufficient for re-exploration
     final ARGState lastRelevantNode = getReachedState(Iterables.getLast(relevantCallStates));
-    final ARGState target = getReachedState(element);
+    final ARGState target = getReachedState(cutPoint);
     for (final Entry<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls.entries()) {
       ARGState stateToRemove = removeCachedSubtreeArguments.getValue();
       final List<Precision> newPrecisions;
@@ -237,12 +238,14 @@ public class ARGSubtreeRemover {
         reducedPrecision, Predicates.instanceOf(reducedPrecision.getClass()));
   }
 
-  /** returns only those states, where a block starts that is 'open' at the cutState. */
-  private List<ARGState> getRelevantCallStates(List<ARGState> path, ARGState bamCutState) {
-    final Deque<ARGState> openCallStates = new ArrayDeque<>();
-    for (final ARGState bamState : path) {
+  /** returns only those states, where a block starts that is 'open' at the cutState.
+   * main-RS-root is only included, if it was reduced in TransferRelation. */
+  private List<BackwardARGState> getRelevantCallStates(List<ARGState> path, ARGState bamCutState) {
+    final Deque<BackwardARGState> openCallStates = new ArrayDeque<>();
+    for (final ARGState pathState : path) {
 
-      final ARGState state = ((BackwardARGState) bamState).getARGState();
+      final BackwardARGState bamState = (BackwardARGState) pathState;
+      final ARGState state = bamState.getARGState();
 
       // ASSUMPTION: there can be several block-exits at once per location, but only one block-entry per location.
 
