@@ -126,7 +126,11 @@ public class CFunctionPointerResolver {
   )
   private Set<FunctionSet> functionSets =
       ImmutableSet.of(
-          FunctionSet.USED_IN_CODE, FunctionSet.RETURN_VALUE, FunctionSet.EQ_PARAM_TYPES);
+          FunctionSet.USED_IN_CODE,
+          FunctionSet.RETURN_VALUE,
+          FunctionSet.EQ_PARAM_TYPES,
+          FunctionSet.EQ_PARAM_SIZES,
+          FunctionSet.EQ_PARAM_COUNT);
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
