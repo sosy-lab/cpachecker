@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="org.eclipse.wst.jsdt.core">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.wst.jsdt.core.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/lib/org.eclipse.wst.jsdt.core.source.jar!/" />
+    </SOURCES>
+  </library>
+</component>
