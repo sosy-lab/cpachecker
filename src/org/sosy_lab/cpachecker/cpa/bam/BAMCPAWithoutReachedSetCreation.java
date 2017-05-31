@@ -63,12 +63,7 @@ public class BAMCPAWithoutReachedSetCreation extends AbstractBAMCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new BAMTransferRelationWithoutReachedSetCreation(
-        blockPartitioning,
-        shutdownNotifier,
-        getWrappedCpa().getTransferRelation(),
-        getReducer(),
-        data);
+    return new BAMTransferRelationWithoutReachedSetCreation(this, shutdownNotifier);
   }
 
   public BAMCache getCache() {

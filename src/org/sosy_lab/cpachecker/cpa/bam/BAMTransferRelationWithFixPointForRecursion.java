@@ -65,6 +65,8 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       + "The value '-1' disables this option.")
   private int maximalDepthForExplicitRecursion = -1;
 
+  private final BAMCPA bamCPA;
+
   // flags of the fixpoint-algorithm for recursion
   private boolean recursionSeen = false;
   private boolean resultStatesChanged = false;
@@ -79,6 +81,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       throws InvalidConfigurationException {
     super(pConfig, bamCpa, wrappedChecker, pShutdownNotifier);
     pConfig.inject(this);
+    bamCPA = bamCpa;
   }
 
   @Override
