@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.Collections2;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -44,7 +46,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMARGStatistics extends ARGStatistics {
@@ -87,7 +91,8 @@ public class BAMARGStatistics extends ARGStatistics {
     ARGReachedSet pMainReachedSet =
         new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
     ARGState root = (ARGState)pReached.getFirstState();
-    Collection<ARGState> targets = Collections2.filter(root.getChildren(), s -> !s.isCovered());
+    Collection<ARGState> targets = Collections2.filter(root.getSubgraph(),
+        s -> s.getChildren().isEmpty() && !s.isCovered());
     // assertion disabled, because it happens with BAM-parallel (reason unknown).
     // assert targets.contains(pReached.getLastState()) : String.format(
     //   "Last state %s of reachedset with root %s is not in target states %s",
@@ -95,9 +100,9 @@ public class BAMARGStatistics extends ARGStatistics {
     assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
     final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
 
-    ARGState rootOfSubgraph = null;
+    Pair<BackwardARGState, Collection<BackwardARGState>> rootAndTargetsOfSubgraph = null;
     try {
-      rootOfSubgraph = cexSubgraphComputer.computeCounterexampleSubgraph(targets, pMainReachedSet);
+      rootAndTargetsOfSubgraph = cexSubgraphComputer.computeCounterexampleSubgraph(targets, pMainReachedSet);
     } catch (MissingBlockException e) {
       logger.log(
           Level.INFO,
@@ -110,13 +115,13 @@ public class BAMARGStatistics extends ARGStatistics {
       return; // invalid ARG, ignore output
     }
 
-    ARGPath path = ARGUtils.getRandomPath(rootOfSubgraph);
+    ARGPath path = ARGUtils.getRandomPath(rootAndTargetsOfSubgraph.getFirst());
     StatTimer dummyTimer = new StatTimer("dummy");
     BAMReachedSet bamReachedSet = new BAMReachedSet(bamCpa, pMainReachedSet, path, dummyTimer);
 
     UnmodifiableReachedSet bamReachedSetView = bamReachedSet.asReachedSet();
 
-    readdCounterexampleInfo(pReached, bamReachedSetView);
+    readdCounterexampleInfo(pReached, rootAndTargetsOfSubgraph.getSecond());
 
     super.printStatistics(pOut, pResult, bamReachedSetView);
   }
@@ -128,12 +133,13 @@ public class BAMARGStatistics extends ARGStatistics {
    * CEX-info and wrote it into the last state of the wrapped reached-set.
    */
   private void readdCounterexampleInfo(
-      UnmodifiableReachedSet pReached, UnmodifiableReachedSet bamReachedSetView) {
+      UnmodifiableReachedSet pReached, Collection<BackwardARGState> targets) {
     ARGState argState = (ARGState) pReached.getLastState();
+    BackwardARGState matchingState = from(targets).firstMatch(t -> t.getARGState() == argState).get();
     if (argState.isTarget()) {
       Optional<CounterexampleInfo> cex = argState.getCounterexampleInformation();
       if (cex.isPresent()) {
-        ((ARGState) bamReachedSetView.getLastState()).addCounterexampleInformation(cex.get());
+        matchingState.addCounterexampleInformation(cex.get());
       }
     }
   }
