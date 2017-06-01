@@ -229,17 +229,10 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     recentUsages.add(id, usage);
   }
 
-  public UsageState expand(final UsageState root, final AbstractState wrappedState) {
-    stats.expandTimer.start();
-    UsageState result = root.clone(wrappedState);
-    if (this instanceof Exitable) {
-      result = result.asExitable();
-    }
-    stats.expandTimer.stop();
+  public void joinContainerFrom(final UsageState reducedState) {
     stats.joinTimer.start();
-    result.functionContainer.join(functionContainer);
+    functionContainer.join(reducedState.functionContainer);
     stats.joinTimer.stop();
-    return result;
   }
 
   public UsageState reduce(final AbstractState wrappedState) {

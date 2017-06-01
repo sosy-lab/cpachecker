@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.LinkedList;
+import java.util.List;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
@@ -32,19 +32,20 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 public class TemporaryUsageStorage extends AbstractUsageStorage {
   private static final long serialVersionUID = -8932709343923545136L;
 
-  private final Set<UsageInfo> withoutARGState;
+  //Not set! There was a bug, when two similar usages of different ids are overlapped.
+  private final List<UsageInfo> withoutARGState;
 
-  private final TemporaryUsageStorage previousStorage;
+  private TemporaryUsageStorage previousStorage;
 
   private TemporaryUsageStorage(TemporaryUsageStorage previous) {
     super(previous);
     //Copy states without ARG to set it later
-    withoutARGState = new HashSet<>(previous.withoutARGState);
+    withoutARGState = new LinkedList<>(previous.withoutARGState);
     previousStorage = previous;
   }
 
   public TemporaryUsageStorage() {
-    withoutARGState = new HashSet<>();
+    withoutARGState = new LinkedList<>();
     previousStorage = null;
   }
 
@@ -70,6 +71,7 @@ public class TemporaryUsageStorage extends AbstractUsageStorage {
       previous.clearSets();
       previous = previous.previousStorage;
     }
+    previousStorage = null;
   }
 
   @Override

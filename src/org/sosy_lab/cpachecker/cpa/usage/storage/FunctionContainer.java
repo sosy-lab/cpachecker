@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 public class FunctionContainer extends AbstractUsageStorage {
@@ -48,6 +46,8 @@ public class FunctionContainer extends AbstractUsageStorage {
   private final List<LockEffect> effects;
   private final StorageStatistics stats;
 
+  private final Set<FunctionContainer> joinedWith;
+
   public static FunctionContainer createInitialContainer() {
     return new FunctionContainer(new StorageStatistics(), new LinkedList<>() );
   }
@@ -55,8 +55,8 @@ public class FunctionContainer extends AbstractUsageStorage {
   private FunctionContainer(StorageStatistics pStats, List<LockEffect> pEffects) {
     super();
     stats = pStats;
-    //internalFunctionContainers = new HashSet<>();
     effects = pEffects;
+    joinedWith = new HashSet<>();
   }
 
   public FunctionContainer clone(List<LockEffect> effects) {
@@ -64,9 +64,15 @@ public class FunctionContainer extends AbstractUsageStorage {
   }
 
   public void join(FunctionContainer funcContainer) {
+    /*if (joinedWith.contains(funcContainer)) {
+      //We may join two different exit states to the same parent container
+      return;
+    }
+    joinedWith.add(funcContainer);*/
+
     if (funcContainer.effects.isEmpty()) {
       stats.copyTimer.start();
-      funcContainer.forEach((id, set) -> addUsages(id, set));
+      funcContainer.forEach((id, set) -> this.addUsages(id, set));
       stats.copyTimer.stop();
     } else {
       Map<LockState, LockState> reduceToExpand = new HashMap<>();
@@ -101,43 +107,12 @@ public class FunctionContainer extends AbstractUsageStorage {
 
   public void join(TemporaryUsageStorage pRecentUsages) {
     stats.copyTimer.start();
-    pRecentUsages.forEach((id, set) -> addUsages(id, set));
+    pRecentUsages.forEach((id, set) -> this.addUsages(id, set));
     stats.copyTimer.stop();
   }
 
   public StorageStatistics getStatistics() {
     return stats;
-  }
-
-  @Override
-  public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result
-        + ((effects == null) ? 0 : effects.hashCode());
-    return result;
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (!super.equals(obj)) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    FunctionContainer other = (FunctionContainer) obj;
-    if (effects == null) {
-      if (other.effects != null) {
-        return false;
-      }
-    } else if (!effects.equals(other.effects)) {
-      return false;
-    }
-    return true;
   }
 
   public static class StorageStatistics {
@@ -165,30 +140,6 @@ public class FunctionContainer extends AbstractUsageStorage {
       out.println("Number of expanding querries:       " + totalUsages);
       out.println("Number of executed querries:        " + expandedUsages);
       out.println("Total number of function containers:" + numberOfFunctionContainers);
-    }
-  }
-
-  public static class ExtendedWaitlist extends LinkedList<Pair<FunctionContainer, List<LockEffect>>> {
-    private static final long serialVersionUID = 1L;
-    Map<FunctionContainer, Set<List<LockEffect>>> handledContainers = new IdentityHashMap<>();
-
-    @Override
-    public boolean add(Pair<FunctionContainer, List<LockEffect>> currentPair) {
-      FunctionContainer currentContainer = currentPair.getFirst();
-      List<LockEffect> currentEffects = currentPair.getSecond();
-      Set<List<LockEffect>> storage;
-
-      if (handledContainers.containsKey(currentContainer)) {
-        storage = handledContainers.get(currentContainer);
-        if (storage.contains(currentEffects)) {
-          return false;
-        }
-      } else {
-        storage = new HashSet<>();
-      }
-      storage.add(currentEffects);
-
-      return super.add(currentPair);
     }
   }
 }

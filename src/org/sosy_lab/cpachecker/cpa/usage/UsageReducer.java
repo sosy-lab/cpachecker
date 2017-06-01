@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Exitable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState.UsageExitableState;
@@ -61,7 +62,12 @@ public class UsageReducer implements Reducer {
       // and Exitable one can occur at any moment
       exp = funReducedState.getWrappedState();
     }
-    return funReducedState.expand(funRootState, exp);
+    UsageState result = funRootState.clone(exp);
+    if (funReducedState instanceof Exitable) {
+      return result.asExitable();
+    }
+    result.joinContainerFrom(funReducedState);
+    return result;
   }
 
   @Override
@@ -79,7 +85,13 @@ public class UsageReducer implements Reducer {
     UsageState funRootState = (UsageState)pRootElement;
     UsageState funReducedState = (UsageState)pReducedElement;
     AbstractState exp = wrappedReducer.getVariableExpandedState(funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState());
-    return funReducedState.expand(funRootState, exp);
+
+    UsageState result = funRootState.clone(exp);
+    if (funReducedState instanceof Exitable) {
+      return result.asExitable();
+    }
+    result.joinContainerFrom(funReducedState);
+    return result;
   }
 
   @Override
