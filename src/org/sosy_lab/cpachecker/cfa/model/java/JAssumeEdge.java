@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.java;
 
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
-import java.util.Optional;
 
 public class JAssumeEdge extends AssumeEdge {
 

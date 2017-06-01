@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -31,8 +31,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-
-import java.util.Optional;
 
 public class CReturnStatementEdge extends AReturnStatementEdge {
 

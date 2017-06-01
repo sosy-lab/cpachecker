@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.java;
 
+import com.google.common.base.Optional;
 import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-
-import java.util.Optional;
 
 public class JMethodCallEdge extends FunctionCallEdge {
 

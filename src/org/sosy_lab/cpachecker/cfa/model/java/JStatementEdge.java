@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.java;
 
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
-import java.util.Optional;
 
 public class JStatementEdge extends AStatementEdge {
 

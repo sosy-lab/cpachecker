@@ -781,7 +781,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @throws InterruptedException If the execution was interrupted.
    */
   @Override
-  protected BooleanFormula makeReturn(final Optional<CAssignment> assignment,
+  protected BooleanFormula makeReturn(final com.google.common.base.Optional<CAssignment> assignment,
                                       final CReturnStatementEdge returnEdge,
                                       final String function,
                                       final SSAMapBuilder ssa,

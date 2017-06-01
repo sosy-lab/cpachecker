@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints;
 
+import com.google.common.base.Optional;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -49,7 +50,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Creator for {@link Formula}s using a given {@link CtoFormulaConverter} for creating
@@ -250,7 +250,7 @@ public class FormulaCreatorUsingCConverter implements FormulaCreator {
 
     @Override
     public Optional<? extends AAstNode> getRawAST() {
-      return Optional.empty();
+      return Optional.absent();
     }
 
     @Override

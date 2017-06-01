@@ -39,7 +39,6 @@ import com.google.common.collect.Queues;
 import com.google.common.collect.TreeTraverser;
 import com.google.common.collect.UnmodifiableIterator;
 
-import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
@@ -493,11 +492,11 @@ public class CFAUtils {
       case FunctionCallEdge:
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
         return Iterables.concat(
-            Optionals.asSet(edge.getRawAST()),
+            edge.getRawAST().asSet(),
             getAstNodesFromCfaEdge(functionCallEdge.getSummaryEdge()));
 
       default:
-        return Optionals.asSet(edge.getRawAST());
+        return edge.getRawAST().asSet();
     }
   }
 
@@ -706,7 +705,7 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(AReturnStatement pNode) {
-      return Optionals.asSet(pNode.getReturnValue());
+      return pNode.getReturnValue().asSet();
     }
 
     @Override

@@ -23,11 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
-import java.util.Optional;
-
 
 public class AssumeEdge extends AbstractCFAEdge {
 
