@@ -2287,6 +2287,10 @@ cpa.usage.output = "unsafe_rawdata"
 cpa.usage.outputType = KLEVER
   enum:     [ETV, KLEVER]
 
+# The way how to identify two paths as equal
+cpa.usage.pathEquality = CFANodeId
+  enum:     [ARGStateId, CFANodeId]
+
 # The value of marked unsafes, after which the precision should be cleaned
 cpa.usage.precisionReset = Integer.MAX_VALUE
 
@@ -2311,26 +2315,26 @@ cpa.usage.singleThreadFunctions = new HashSet<>()
 # functions, which we don't analize
 cpa.usage.skippedfunctions = no default value
 
+# variables, which will be filtered by function location
+cpa.usage.skippedvariables.byFunction = no default value
+
+# variables, which will be filtered by function prefix
+cpa.usage.skippedvariables.byFunctionPrefix = no default value
+
+# variables, which will be filtered by its name
+cpa.usage.skippedvariables.byName = no default value
+
+# variables, which will be filtered by its name prefix
+cpa.usage.skippedvariables.byNamePrefix = no default value
+
+# variables, which will be filtered by its type
+cpa.usage.skippedvariables.byType = no default value
+
 # clean all ARG or try to reuse some parts of it (memory consuming)
 cpa.usage.totalARGCleaning = false
 
 # ignore unsafes only with empty callstacks
 cpa.usage.unsafedetector.ignoreEmptyLockset = false
-
-# variables, which will be filtered by function location
-cpa.usagestatistics.skippedvariables.byFunction = no default value
-
-# variables, which will be filtered by function prefix
-cpa.usagestatistics.skippedvariables.byFunctionPrefix = no default value
-
-# variables, which will be filtered by its name
-cpa.usagestatistics.skippedvariables.byName = no default value
-
-# variables, which will be filtered by its name prefix
-cpa.usagestatistics.skippedvariables.byNamePrefix = no default value
-
-# variables, which will be filtered by its type
-cpa.usagestatistics.skippedvariables.byType = no default value
 
 # which merge operator to use for ValidVarsCPA
 cpa.validVars.merge = "JOIN"
