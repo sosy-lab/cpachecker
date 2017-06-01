@@ -25,8 +25,10 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.*;
 
+import com.google.common.base.Optional;
 import java.util.Map;
 
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -34,7 +36,6 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -83,9 +84,9 @@ class ImmutableCFA implements CFA {
     functions = ImmutableSortedMap.of();
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
-    loopStructure = Optional.empty();
-    varClassification = Optional.empty();
-    liveVariables = Optional.empty();
+    loopStructure = Optional.absent();
+    varClassification = Optional.absent();
+    liveVariables = Optional.absent();
     language = pLanguage;
   }
 
@@ -139,26 +140,26 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public Optional<LoopStructure> getLoopStructure() {
-    return loopStructure;
+  public java.util.Optional<LoopStructure> getLoopStructure() {
+    return Optionals.fromGuavaOptional(loopStructure);
   }
 
   @Override
-  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
+  public java.util.Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
     if (loopStructure.isPresent()) {
-      return Optional.of(loopStructure.get().getAllLoopHeads());
+      return java.util.Optional.of(loopStructure.get().getAllLoopHeads());
     }
-    return Optional.empty();
+    return java.util.Optional.empty();
   }
 
   @Override
-  public Optional<VariableClassification> getVarClassification() {
-    return varClassification;
+  public java.util.Optional<VariableClassification> getVarClassification() {
+    return Optionals.fromGuavaOptional(varClassification);
   }
 
   @Override
-  public Optional<LiveVariables> getLiveVariables() {
-    return liveVariables;
+  public java.util.Optional<LiveVariables> getLiveVariables() {
+    return Optionals.fromGuavaOptional(liveVariables);
   }
 
   @Override

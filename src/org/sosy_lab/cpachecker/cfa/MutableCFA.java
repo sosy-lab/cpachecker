@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import org.sosy_lab.common.Optionals;
 
 public class MutableCFA implements CFA {
 
@@ -156,7 +157,10 @@ public class MutableCFA implements CFA {
 
   public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
     return new ImmutableCFA(machineModel, functions, allNodes, mainFunction,
-        loopStructure, pVarClassification, liveVariables, language);
+        Optionals.toGuavaOptional(loopStructure),
+        Optionals.toGuavaOptional(pVarClassification),
+        Optionals.toGuavaOptional(liveVariables),
+        language);
   }
 
   @Override
