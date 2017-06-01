@@ -81,7 +81,8 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
     return AutomaticCPAFactory.forType(UsageCPA.class);
   }
 
-  @Option(description="A path to precision", name="precision.path")
+  @Option(description="A path to precision", name="precision.path",
+      secure = true)
   @FileOption(Type.OUTPUT_FILE)
   private Path outputFileName = Paths.get("localsave");
 

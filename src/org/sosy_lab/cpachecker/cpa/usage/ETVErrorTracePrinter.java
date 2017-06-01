@@ -55,11 +55,13 @@ import org.sosy_lab.cpachecker.util.identifiers.StructureFieldIdentifier;
 @Options(prefix="cpa.usage")
 public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
-  @Option(name="output", description="path to write results")
+  @Option(name="output", description="path to write results",
+      secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputStatFileName = Paths.get("unsafe_rawdata");
 
-  @Option(description="use single file for output or dump every error trace to its own file")
+  @Option(description="use single file for output or dump every error trace to its own file",
+      secure = true)
   private boolean singleFileOutput = false;
 
   private Writer globalWriter;

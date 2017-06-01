@@ -48,7 +48,8 @@ public class LocalCPA extends AbstractCPA implements ConfigurableProgramAnalysis
     private Statistics statistics;
     private final Reducer reducer;
 
-    @Option(name="localvariables", description = "variables, which are always local")
+    @Option(name="localvariables", description = "variables, which are always local",
+        secure = true)
     private Set<String> localVariables = Collections.emptySet();
 
     public static CPAFactory factory() {

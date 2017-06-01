@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import java.util.Set;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -35,21 +34,26 @@ import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.StructureIdentifier;
 
-@Options(prefix="cpa.usagestatistics.skippedvariables")
+@Options(prefix="cpa.usage.skippedvariables")
 public class VariableSkipper {
-  @Option(description = "variables, which will be filtered by its name")
+  @Option(description = "variables, which will be filtered by its name",
+      secure = true)
   private Set<String> byName = null;
 
-  @Option(description = "variables, which will be filtered by its name prefix")
+  @Option(description = "variables, which will be filtered by its name prefix",
+      secure = true)
   private Set<String> byNamePrefix = null;
 
-  @Option(description = "variables, which will be filtered by its type")
+  @Option(description = "variables, which will be filtered by its type",
+      secure = true)
   private Set<String> byType = null;
 
-  @Option(description = "variables, which will be filtered by function location")
+  @Option(description = "variables, which will be filtered by function location",
+      secure = true)
   private Set<String> byFunction = null;
 
-  @Option(description = "variables, which will be filtered by function prefix")
+  @Option(description = "variables, which will be filtered by function prefix",
+      secure = true)
   private Set<String> byFunctionPrefix = null;
 
   public VariableSkipper(Configuration pConfig) throws InvalidConfigurationException {

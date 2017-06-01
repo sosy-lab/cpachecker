@@ -40,11 +40,13 @@ public class ConfigurationParser {
   private Configuration config;
 
   @Option(name="lockinfo",
-      description="contains all lock names")
+      description="contains all lock names",
+      secure = true)
   private Set<String> lockinfo;
 
   @Option(name="annotate",
-      description=" annotated functions, which are known to works right")
+      description=" annotated functions, which are known to works right",
+      secure = true)
   private Set<String> annotated;
 
   ConfigurationParser(Configuration pConfig) throws InvalidConfigurationException {

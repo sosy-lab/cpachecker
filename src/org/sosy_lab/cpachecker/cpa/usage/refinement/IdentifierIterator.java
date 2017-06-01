@@ -65,14 +65,17 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
 
-  @Option(name="precisionReset", description="The value of marked unsafes, after which the precision should be cleaned")
+  @Option(name="precisionReset", description="The value of marked unsafes, after which the precision should be cleaned",
+      secure = true)
   private int precisionReset = Integer.MAX_VALUE;
 
-  @Option(name="refinablePathLimitation", description="a limit for paths for one usage, which could be refined")
+  @Option(name="refinablePathLimitation", description="a limit for paths for one usage, which could be refined",
+      secure = true)
   private int refinablePathLimitation = Integer.MAX_VALUE;
 
   //TODO Option is broken!!
-  @Option(name="totalARGCleaning", description="clean all ARG or try to reuse some parts of it (memory consuming)")
+  @Option(name="totalARGCleaning", description="clean all ARG or try to reuse some parts of it (memory consuming)",
+      secure = true)
   private boolean totalARGCleaning = false;
 
   private final BAMTransferRelation transfer;

@@ -68,11 +68,13 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 @Options(prefix="cpa.usage")
 public abstract class ErrorTracePrinter {
 
-  @Option(name="falseUnsafesOutput", description="path to write results")
+  @Option(name="falseUnsafesOutput", description="path to write results",
+      secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputFalseUnsafes = Paths.get("FalseUnsafes");
 
-  @Option(description="print all unsafe cases in report")
+  @Option(description="print all unsafe cases in report",
+      secure = true)
   private boolean printFalseUnsafes = false;
 
   private final BAMTransferRelation transfer;

@@ -28,7 +28,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.Pair;
 
-@Options(prefix="cpa.usagestatistics")
+@Options(prefix="cpa.usage")
 public class ProbeFilter extends CallstackFilter {
 
   public ProbeFilter(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,

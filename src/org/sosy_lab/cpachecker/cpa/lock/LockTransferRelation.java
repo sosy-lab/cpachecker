@@ -78,7 +78,8 @@ public class LockTransferRelation extends SingleEdgeTransferRelation
 {
 
   @Option(name="lockreset",
-      description="function to reset state")
+      description="function to reset state",
+      secure = true)
   private String lockreset;
 
   final Map<String, AnnotationInfo> annotatedfunctions;

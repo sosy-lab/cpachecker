@@ -77,7 +77,8 @@ public class RefinementBlockFactory {
   final ConfigurableProgramAnalysis cpa;
   Configuration config;
 
-  @Option(name = "refinementChain", description = "The order of refinement blocks")
+  @Option(name = "refinementChain", description = "The order of refinement blocks",
+      secure = true)
   List<RefinementBlockTypes> RefinementChain;
 
   public static enum PathEquation {

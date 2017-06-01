@@ -66,12 +66,15 @@ public class FunctionContainer extends AbstractUsageStorage {
   public void join(FunctionContainer funcContainer) {
     if (joinedWith.contains(funcContainer)) {
       //We may join two different exit states to the same parent container
+      stats.hitTimes++;
       return;
     }
+    stats.missTimes++;
     joinedWith.add(funcContainer);
 
     if (funcContainer.effects.isEmpty()) {
       stats.copyTimer.start();
+      stats.effectJoin++;
       funcContainer.forEach((id, set) -> this.addUsages(id, set));
       stats.copyTimer.stop();
     } else {

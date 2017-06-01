@@ -89,13 +89,16 @@ public class UsageTransferRelation implements TransferRelation {
   private final UsageCPAStatistics statistics;
   private final ExpressionHandler handler;
 
-  @Option(description = "functions, which we don't analize")
+  @Option(description = "functions, which we don't analize",
+      secure = true)
   private Set<String> skippedfunctions = null;
 
-  @Option(description = "functions, which are used to bind variables (like list elements are binded to list variable)")
+  @Option(description = "functions, which are used to bind variables (like list elements are binded to list variable)",
+      secure = true)
   private Set<String> binderFunctions = null;
 
-  @Option(name="abortfunctions", description="functions, which stops analysis")
+  @Option(name="abortfunctions", description="functions, which stops analysis",
+      secure = true)
   private Set<String> abortfunctions;
 
   private final CallstackTransferRelation callstackTransfer;

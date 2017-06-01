@@ -49,7 +49,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options(prefix="precision")
 public class LocalStatistics implements Statistics {
-  @Option(description = "A path to a precision output", name="path")
+  @Option(description = "A path to a precision output", name="path",
+      secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputFileName = Paths.get("localsave");
 

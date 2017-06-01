@@ -77,14 +77,17 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 @Options(prefix="cpa.local")
 public class LocalTransferRelation extends ForwardingTransferRelation<LocalState, LocalState, Precision> {
 
-  @Option(name="allocatefunctions", description = "functions, which allocate new free memory")
+  @Option(name="allocatefunctions", description = "functions, which allocate new free memory",
+      secure = true)
   private Set<String> allocate;
 
   //Use it carefully: just alloc is not enough, because EMG generates ldv_random_allocationless_scenario_callback_*
-  @Option(name="allocateFunctionPattern", description = "functions, which allocate new free memory")
+  @Option(name="allocateFunctionPattern", description = "functions, which allocate new free memory",
+      secure = true)
   private Set<String> allocatePattern = Sets.newHashSet();
 
-  @Option(name="conservativefunctions", description = "functions, which do not change sharedness of parameters")
+  @Option(name="conservativefunctions", description = "functions, which do not change sharedness of parameters",
+      secure = true)
   private Set<String> conservationOfSharedness;
 
   private Map<String, Integer> allocateInfo;

@@ -47,7 +47,8 @@ public class UsageCPAStatistics implements Statistics {
     KLEVER
   }
 
-  @Option(name="outputType", description="all variables should be printed to the one file or to the different")
+  @Option(name="outputType", description="all variables should be printed to the one file or to the different",
+      secure = true)
   private OutputFileType outputFileType = OutputFileType.KLEVER;
 
   /* Previous container is used when internal time limit occurs

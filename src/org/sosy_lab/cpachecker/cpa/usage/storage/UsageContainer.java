@@ -72,7 +72,8 @@ public class UsageContainer {
   int unsafeUsages = -1;
   int totalIds = 0;
 
-  @Option(description="output only true unsafes")
+  @Option(description="output only true unsafes",
+      secure = true)
   private boolean printOnlyTrueUnsafes = false;
 
   public UsageContainer(Configuration config, LogManager l) throws InvalidConfigurationException {

@@ -44,10 +44,13 @@ import org.sosy_lab.cpachecker.util.Pair;
 @Options(prefix="cpa.usage")
 public class CallstackFilter extends GenericFilter<String> {
 
-  @Option(name = "notSelfParallelFunctions", description = "The functions, which cannot be executed in parallel with themselves")
+  @Option(name = "notSelfParallelFunctions",
+      description = "The functions, which cannot be executed in parallel with themselves",
+      secure = true)
   protected Set<String> notSelfParallelFunctions = new HashSet<>();
 
-  @Option(name = "singleThreadFunctions", description = "The functions, which are executed in one thread")
+  @Option(name = "singleThreadFunctions", description = "The functions, which are executed in one thread",
+      secure = true)
   protected Set<String> singleThreadFunctions = new HashSet<>();
 
   public CallstackFilter(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,

@@ -37,7 +37,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix="cpa.usage.unsafedetector")
 public class UnsafeDetector {
-  @Option(name="ignoreEmptyLockset", description="ignore unsafes only with empty callstacks")
+  @Option(name="ignoreEmptyLockset", description="ignore unsafes only with empty callstacks",
+      secure = true)
   private boolean ignoreEmptyLockset = false;
 
   public UnsafeDetector(Configuration config) throws InvalidConfigurationException {

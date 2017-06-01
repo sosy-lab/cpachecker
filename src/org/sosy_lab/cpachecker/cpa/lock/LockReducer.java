@@ -39,13 +39,15 @@ import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 @Options(prefix="cpa.lock")
 public class LockReducer implements Reducer {
 
-  @Option(description="reduce recursive locks to a single access")
+  @Option(description="reduce recursive locks to a single access",
+      secure = true)
   private boolean aggressiveReduction = false;
 
   //Attention! Error trace may be restored incorrectly.
   //If two states with different locks are reduced to the one state,
   //the path will be always restored through the first one
-  @Option(description="reduce unused locks")
+  @Option(description="reduce unused locks",
+      secure = true)
   private boolean reduceUselessLocks = false;
 
   public LockReducer(Configuration config) throws InvalidConfigurationException {
