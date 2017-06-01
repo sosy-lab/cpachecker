@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
-
-import com.google.common.collect.ImmutableList;
 
 
 public abstract class AFunctionDeclaration extends AbstractDeclaration {

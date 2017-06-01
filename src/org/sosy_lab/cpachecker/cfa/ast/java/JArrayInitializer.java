@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  *  This class represents a Array initializer AST node type.

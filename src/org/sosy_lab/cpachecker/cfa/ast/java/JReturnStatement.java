@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
-import java.util.Optional;
 
 /**
  *  This class represents the return statement AST node type.

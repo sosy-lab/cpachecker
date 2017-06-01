@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  * This class represents the unqualified method invocation expression AST node type.

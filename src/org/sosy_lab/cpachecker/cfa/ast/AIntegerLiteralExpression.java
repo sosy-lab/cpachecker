@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.math.BigInteger;
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 

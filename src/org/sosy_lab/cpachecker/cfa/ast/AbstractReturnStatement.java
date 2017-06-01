@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
-
 import java.util.Optional;
 
 public abstract class AbstractReturnStatement extends AbstractAstNode implements AReturnStatement {

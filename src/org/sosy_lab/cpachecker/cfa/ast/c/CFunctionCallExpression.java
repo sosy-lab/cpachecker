@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;

@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
-import java.util.Optional;
 
 public class CReturnStatement extends AbstractReturnStatement implements CAstNode {
 

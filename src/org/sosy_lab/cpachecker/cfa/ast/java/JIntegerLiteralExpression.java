@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-
-import java.math.BigInteger;
 
 /**
  * This class represents the integer number literal AST node type.

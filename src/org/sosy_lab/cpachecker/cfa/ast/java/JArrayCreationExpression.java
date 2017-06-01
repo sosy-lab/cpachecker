@@ -24,13 +24,11 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import com.google.common.collect.ImmutableList;
-
+import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  *  Array creation expression AST node type.

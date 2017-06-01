@@ -27,11 +27,9 @@ import static com.google.common.collect.Iterables.transform;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.cpachecker.cfa.types.Type;
-
 import java.util.List;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
 public abstract class AFunctionCallExpression extends AbstractRightHandSide {
