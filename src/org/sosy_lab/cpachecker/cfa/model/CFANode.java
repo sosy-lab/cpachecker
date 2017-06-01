@@ -29,10 +29,13 @@ import static com.google.common.base.Preconditions.checkState;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CFANode implements Comparable<CFANode> {
+public class CFANode implements Comparable<CFANode>, Serializable {
+
+  private static final long serialVersionUID = 5168350921309486536L;
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 

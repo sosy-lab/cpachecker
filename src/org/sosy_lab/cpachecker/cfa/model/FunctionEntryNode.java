@@ -39,6 +39,7 @@ import java.util.Optional;
 
 public abstract class FunctionEntryNode extends CFANode {
 
+  private static final long serialVersionUID = 1837494813423960670L;
   private final FileLocation location;
   private final AFunctionDeclaration functionDefinition;
   private final Optional<? extends AVariableDeclaration> returnVariable;

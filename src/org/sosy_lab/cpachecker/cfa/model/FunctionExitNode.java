@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.*;
 
 public class FunctionExitNode extends CFANode {
 
+  private static final long serialVersionUID = -7883542777389959334L;
   private FunctionEntryNode entryNode;
 
   public FunctionExitNode(String pFunctionName) {

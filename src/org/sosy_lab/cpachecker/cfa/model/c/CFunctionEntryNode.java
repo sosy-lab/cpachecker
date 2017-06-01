@@ -35,6 +35,8 @@ import java.util.Optional;
 
 public class CFunctionEntryNode extends FunctionEntryNode {
 
+  private static final long serialVersionUID = -730687961628864953L;
+
   public CFunctionEntryNode(final FileLocation pFileLocation,
       final CFunctionDeclaration pFunctionDefinition,
       final FunctionExitNode pExitNode,

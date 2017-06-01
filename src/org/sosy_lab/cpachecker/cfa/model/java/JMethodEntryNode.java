@@ -35,6 +35,8 @@ import java.util.Optional;
 
 public class JMethodEntryNode extends FunctionEntryNode {
 
+  private static final long serialVersionUID = 169431882600055272L;
+
   public JMethodEntryNode(final FileLocation pFileLocation,
       final JMethodDeclaration pMethodDefinition,
       final FunctionExitNode pExitNode,
