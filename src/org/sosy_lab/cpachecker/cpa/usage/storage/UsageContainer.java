@@ -41,11 +41,10 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cpa.usage.FunctionContainer;
-import org.sosy_lab.cpachecker.cpa.usage.FunctionContainer.StorageStatistics;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementResult;
+import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer.StorageStatistics;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 @Options(prefix="cpa.usage")
@@ -113,10 +112,6 @@ public class UsageContainer {
     if (internalStatistics == null) {
       internalStatistics = storage.getStatistics();
     }
-
-    //The following method is very expensive, try not to use it any time
-    logger.log(Level.FINE, "Start exporting usages");
-    storage.exportUsages();
 
     for (SingleIdentifier id : storage.keySet()) {
       SortedSet<UsageInfo> list = storage.get(id);

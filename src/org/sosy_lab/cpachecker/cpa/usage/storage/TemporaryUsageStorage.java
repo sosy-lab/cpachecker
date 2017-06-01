@@ -21,20 +21,16 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.usage;
+package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
-public class TemporaryUsageStorage extends TreeMap<SingleIdentifier, SortedSet<UsageInfo>> {
+public class TemporaryUsageStorage extends AbstractUsageStorage {
   private static final long serialVersionUID = -8932709343923545136L;
-
-  private final Set<SingleIdentifier> deeplyCloned = new TreeSet<>();
 
   private final Set<UsageInfo> withoutARGState;
 
@@ -52,31 +48,12 @@ public class TemporaryUsageStorage extends TreeMap<SingleIdentifier, SortedSet<U
     previousStorage = null;
   }
 
+  @Override
   public boolean add(SingleIdentifier id, UsageInfo info) {
-    SortedSet<UsageInfo> storage = getStorageForId(id);
     if (info.getKeyState() == null) {
       withoutARGState.add(info);
     }
-    return storage.add(info);
-  }
-
-  private SortedSet<UsageInfo> getStorageForId(SingleIdentifier id) {
-    if (deeplyCloned.contains(id)) {
-      //List is already cloned
-      assert this.containsKey(id);
-      return this.get(id);
-    } else {
-      deeplyCloned.add(id);
-      SortedSet<UsageInfo> storage;
-      if (this.containsKey(id)) {
-        //clone
-        storage = new TreeSet<>(this.get(id));
-      } else {
-        storage = new TreeSet<>();
-      }
-      super.put(id, storage);
-      return storage;
-    }
+    return super.add(id, info);
   }
 
   public void setKeyState(ARGState state) {
@@ -102,7 +79,6 @@ public class TemporaryUsageStorage extends TreeMap<SingleIdentifier, SortedSet<U
 
   private void clearSets() {
     super.clear();
-    deeplyCloned.clear();
     withoutARGState.clear();
   }
 }
