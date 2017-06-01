@@ -31,6 +31,7 @@ import java.util.Objects;
 
 public final class CTypeIdExpression extends AbstractExpression implements CExpression {
 
+  private static final long serialVersionUID = -665995216646475799L;
   private final TypeIdOperator operator;
   private final CType type;
 

@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AIdExpression extends AbstractLeftHandSide {
 
+  private static final long serialVersionUID = -2534849615394054260L;
   private final String name;
   private final ASimpleDeclaration declaration;
 

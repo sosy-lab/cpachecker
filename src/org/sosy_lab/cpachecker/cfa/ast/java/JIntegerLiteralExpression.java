@@ -36,6 +36,8 @@ import java.math.BigInteger;
 public final class JIntegerLiteralExpression extends AIntegerLiteralExpression
     implements JLiteralExpression {
 
+  private static final long serialVersionUID = 1867514989284112879L;
+
   public JIntegerLiteralExpression(FileLocation pFileLocation,  BigInteger pValue) {
     super(pFileLocation, JSimpleType.getInt(), pValue);
   }

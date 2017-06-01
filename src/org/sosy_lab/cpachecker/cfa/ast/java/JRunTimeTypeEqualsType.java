@@ -39,6 +39,7 @@ import java.util.Objects;
  */
 public final class JRunTimeTypeEqualsType extends AbstractExpression implements JExpression {
 
+  private static final long serialVersionUID = -2513620435920744071L;
   private final JRunTimeTypeExpression runTimeTypeExpression;
   private final JClassOrInterfaceType typeDef;
 

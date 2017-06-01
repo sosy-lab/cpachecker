@@ -34,6 +34,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 */
 public abstract class AbstractLeftHandSide extends AbstractExpression implements ALeftHandSide {
 
+  private static final long serialVersionUID = -4471147853223357166L;
+
   public AbstractLeftHandSide(FileLocation pFileLocation, Type pType) {
     super(pFileLocation, pType);
   }

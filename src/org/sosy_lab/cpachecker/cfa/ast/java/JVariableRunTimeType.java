@@ -35,6 +35,7 @@ import java.util.Objects;
 public final class JVariableRunTimeType extends AbstractExpression
     implements JRunTimeTypeExpression {
 
+  private static final long serialVersionUID = 1949325105551973491L;
   private final JIdExpression referencedVariable;
 
   public JVariableRunTimeType(FileLocation pFileLocation, JIdExpression pReferencedVariable) {

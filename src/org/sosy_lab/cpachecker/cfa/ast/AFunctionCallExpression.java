@@ -36,6 +36,7 @@ import java.util.Objects;
 
 public abstract class AFunctionCallExpression extends AbstractRightHandSide {
 
+  private static final long serialVersionUID = -6120400526327639887L;
   private final AExpression functionName;
   private final List<? extends AExpression> parameters;
   private final AFunctionDeclaration declaration;

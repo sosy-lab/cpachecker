@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CComplexCastExpression extends AbstractExpression implements CLeftHandSide {
 
+  private static final long serialVersionUID = -3131719369492162894L;
   private final CExpression operand;
   private final CType     type;
   /**

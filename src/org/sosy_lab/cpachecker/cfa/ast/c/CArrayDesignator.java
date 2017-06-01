@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 public class CArrayDesignator extends CDesignator {
 
+  private static final long serialVersionUID = 6803448218616765608L;
   private final AExpression subscriptExpression;
 
   public CArrayDesignator(final FileLocation pFileLocation,

@@ -54,6 +54,7 @@ import java.util.Objects;
  */
 public final class JArrayCreationExpression extends AbstractExpression implements JExpression {
 
+  private static final long serialVersionUID = 8794036217601570272L;
   private final List<JExpression> length;
   private final JArrayInitializer initializer;
   //TODO Type Variables < Type { , Type } >

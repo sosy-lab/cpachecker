@@ -40,6 +40,8 @@ public class JIdExpression extends AIdExpression implements JLeftHandSide {
 
   // TODO refactor to be either abstract or final
 
+  private static final long serialVersionUID = -8692379352848856024L;
+
   public JIdExpression(
       FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);

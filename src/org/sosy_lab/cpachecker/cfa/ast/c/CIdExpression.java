@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CIdExpression extends AIdExpression implements CLeftHandSide {
 
 
+  private static final long serialVersionUID = -608459029930942264L;
+
   public CIdExpression(final FileLocation pFileLocation,
                           final CType pType, final String pName,
                           final CSimpleDeclaration pDeclaration) {

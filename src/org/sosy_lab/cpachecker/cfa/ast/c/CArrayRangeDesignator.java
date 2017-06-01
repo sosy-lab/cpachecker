@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 public class CArrayRangeDesignator extends CDesignator {
 
+  private static final long serialVersionUID = -2956484289176841585L;
   private final AExpression rangeFloor;
   private final AExpression rangeCeiling;
 

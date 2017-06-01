@@ -37,6 +37,7 @@ import java.util.Objects;
 
 public final class CFieldReference extends AbstractExpression implements CLeftHandSide {
 
+  private static final long serialVersionUID = 3207784831993480113L;
   private final String         name;
   private final CExpression owner;
   private final boolean        isPointerDereference;

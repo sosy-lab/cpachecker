@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public final class CParameterDeclaration extends AParameterDeclaration implements CSimpleDeclaration {
 
+  private static final long serialVersionUID = -6856088248264928629L;
   private String qualifiedName;
 
   public CParameterDeclaration(FileLocation pFileLocation,

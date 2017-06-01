@@ -39,6 +39,7 @@ import com.google.common.base.Strings;
  */
 public abstract class AbstractSimpleDeclaration extends AbstractAstNode implements ASimpleDeclaration {
 
+  private static final long serialVersionUID = 1078153969461542233L;
   private  Type type;
   private final String name;
   private final String origName;

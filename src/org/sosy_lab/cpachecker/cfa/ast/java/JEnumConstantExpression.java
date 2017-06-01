@@ -38,6 +38,7 @@ public final class JEnumConstantExpression extends AbstractExpression implements
 
   // TODO Change the representation of the constantName from String to JIdExpression
 
+  private static final long serialVersionUID = 253114542568695975L;
   private final String constantName;
 
   public JEnumConstantExpression(FileLocation pFileLocation, JClassType pType, String pConstantName) {

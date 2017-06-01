@@ -38,6 +38,7 @@ import java.util.Objects;
 public class CDesignatedInitializer extends AbstractInitializer implements CInitializer {
 
 
+  private static final long serialVersionUID = -2567254248669651550L;
   private final List<CDesignator> designators;
   private final CInitializer right;
 

@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AIntegerLiteralExpression extends ALiteralExpression {
 
+  private static final long serialVersionUID = -4414816900579078042L;
   private final BigInteger value;
 
   public AIntegerLiteralExpression(FileLocation pFileLocation, Type pType, BigInteger pValue) {

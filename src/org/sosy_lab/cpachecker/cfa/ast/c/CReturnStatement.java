@@ -30,6 +30,8 @@ import java.util.Optional;
 
 public class CReturnStatement extends AbstractReturnStatement implements CAstNode {
 
+  private static final long serialVersionUID = -7428161836121584760L;
+
   public CReturnStatement(final FileLocation pFileLocation,
       final Optional<CExpression> pExpression,
       final Optional<CAssignment> pAssignment) {

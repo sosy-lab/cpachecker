@@ -54,6 +54,8 @@ public class JClassInstanceCreation extends JMethodInvocationExpression implemen
 
   //TODO Type Variables , AnonymousClassDeclaration
 
+  private static final long serialVersionUID = -8480398251628288918L;
+
   public JClassInstanceCreation(
       FileLocation pFileLocation,
       JClassOrInterfaceType pType,

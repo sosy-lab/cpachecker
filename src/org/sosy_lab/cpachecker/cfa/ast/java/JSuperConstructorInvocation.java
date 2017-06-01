@@ -39,6 +39,8 @@ import java.util.List;
  */
 public final class JSuperConstructorInvocation extends JClassInstanceCreation {
 
+  private static final long serialVersionUID = 1241406733020430434L;
+
   public JSuperConstructorInvocation(FileLocation pFileLocation, JClassType pType, JExpression pFunctionName,
       List<? extends JExpression> pParameters, JConstructorDeclaration pDeclaration) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);

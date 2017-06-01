@@ -60,6 +60,7 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
 
   // TODO Type Variables, Exceptions, Annotations
 
+  private static final long serialVersionUID = 2250464052511901845L;
   private final boolean isFinal;
   private final boolean isAbstract;
   private final boolean isStatic;

@@ -42,6 +42,7 @@ import java.util.Objects;
 public final class JBooleanLiteralExpression extends ALiteralExpression
     implements JLiteralExpression {
 
+  private static final long serialVersionUID = 1623276041882984116L;
   private final Boolean value;
 
   public JBooleanLiteralExpression(FileLocation pFileLocation,  boolean pValue) {

@@ -34,6 +34,8 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
 
 
 
+  private static final long serialVersionUID = -3958452761163446674L;
+
   public CFunctionCallExpression(final FileLocation pFileLocation,
                                     final CType pType,
                                     final CExpression pFunctionName,

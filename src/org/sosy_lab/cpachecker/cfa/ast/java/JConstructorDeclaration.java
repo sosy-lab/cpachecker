@@ -53,6 +53,7 @@ import java.util.List;
  */
 public final class JConstructorDeclaration extends JMethodDeclaration {
 
+  private static final long serialVersionUID = -581061338706783666L;
   private static final JConstructorDeclaration UNRESOLVED_CONSTRUCTOR =
       new JConstructorDeclaration(
           FileLocation.DUMMY,

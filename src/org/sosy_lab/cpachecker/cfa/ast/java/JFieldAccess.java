@@ -40,6 +40,7 @@ public final class JFieldAccess extends JIdExpression {
 
   //TODO Investigate if this should be refactored.
 
+  private static final long serialVersionUID = 2729676155903102814L;
   private final JIdExpression qualifier;
 
   public JFieldAccess(FileLocation pFileLocation, JType pType, String pName, JFieldDeclaration pDeclaration, JIdExpression pQualifier) {

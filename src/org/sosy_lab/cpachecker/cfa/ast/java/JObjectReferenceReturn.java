@@ -42,6 +42,7 @@ import java.util.Optional;
  */
 public final class JObjectReferenceReturn extends JReturnStatement {
 
+  private static final long serialVersionUID = 8482771117891447280L;
   private final JClassType classReference;
 
   public JObjectReferenceReturn(FileLocation pFileLocation, JClassType pClassReference) {

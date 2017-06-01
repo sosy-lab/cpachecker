@@ -47,6 +47,7 @@ public final class JFieldDeclaration extends JVariableDeclaration {
 
   //TODO Annotation,
 
+  private static final long serialVersionUID = -4482849212846810730L;
   private static final boolean IS_FIELD = true;
   private static final JDeclaration UNRESOLVED_DECLARATION = new JFieldDeclaration(
       FileLocation.DUMMY,

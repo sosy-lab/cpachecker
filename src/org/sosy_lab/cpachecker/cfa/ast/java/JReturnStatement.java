@@ -39,6 +39,8 @@ public class JReturnStatement extends AbstractReturnStatement implements JAstNod
 
   // TODO refactor to be either abstract or final
 
+  private static final long serialVersionUID = -7073556363348785665L;
+
   public JReturnStatement(FileLocation pFileLocation, Optional<JExpression> pExpression) {
     // TODO We absolutely need a correct assignment here that assigns pExpression to a special variable with the return type of the function.
     super(pFileLocation, pExpression, Optional.empty());

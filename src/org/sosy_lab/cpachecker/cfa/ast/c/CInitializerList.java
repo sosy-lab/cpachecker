@@ -37,6 +37,7 @@ import java.util.Objects;
 
 public class CInitializerList extends AbstractInitializer implements CInitializer, CAstNode {
 
+  private static final long serialVersionUID = 6601820489208683306L;
   private final List<CInitializer> initializerList;
 
   public CInitializerList(final FileLocation pFileLocation,
