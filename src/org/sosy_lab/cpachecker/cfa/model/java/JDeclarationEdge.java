@@ -33,6 +33,8 @@ public class JDeclarationEdge extends ADeclarationEdge {
 
 
 
+  private static final long serialVersionUID = -3744160417799490039L;
+
   public JDeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,
       final CFANode pPredecessor, final CFANode pSuccessor, final JDeclaration pDeclaration) {
 

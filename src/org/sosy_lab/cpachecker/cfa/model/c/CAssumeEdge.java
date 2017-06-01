@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class CAssumeEdge extends AssumeEdge {
 
+  private static final long serialVersionUID = -3330760789129113642L;
+
   public CAssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
       CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption) {
 

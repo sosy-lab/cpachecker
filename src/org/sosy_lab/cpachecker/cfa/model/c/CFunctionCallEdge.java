@@ -36,6 +36,8 @@ public class CFunctionCallEdge extends FunctionCallEdge {
 
 
 
+  private static final long serialVersionUID = -3203684033841624723L;
+
   public CFunctionCallEdge(String pRawStatement,
       FileLocation pFileLocation, CFANode pPredecessor, CFunctionEntryNode pSuccessor,
       CFunctionCall pFunctionCall, CFunctionSummaryEdge pSummaryEdge) {

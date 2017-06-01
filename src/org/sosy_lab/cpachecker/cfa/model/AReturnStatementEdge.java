@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 
 public class AReturnStatementEdge extends AbstractCFAEdge {
 
+  private static final long serialVersionUID = -6181479727890105919L;
   protected final AReturnStatement rawAST;
 
   protected AReturnStatementEdge(String pRawStatement, AReturnStatement pRawAST,

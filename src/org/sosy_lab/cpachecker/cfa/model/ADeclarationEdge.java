@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 
 public class ADeclarationEdge extends AbstractCFAEdge {
 
+  private static final long serialVersionUID = 3691647301334179318L;
   protected final ADeclaration declaration;
 
   protected ADeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,

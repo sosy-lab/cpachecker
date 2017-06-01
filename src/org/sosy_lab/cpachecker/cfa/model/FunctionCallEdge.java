@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
 public class FunctionCallEdge extends AbstractCFAEdge {
 
+  private static final long serialVersionUID = -7848426105619928428L;
   protected final AFunctionCall functionCall;
   protected final FunctionSummaryEdge summaryEdge;
 

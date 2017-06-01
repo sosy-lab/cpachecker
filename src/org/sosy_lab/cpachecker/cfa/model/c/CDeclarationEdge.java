@@ -33,6 +33,8 @@ public class CDeclarationEdge extends ADeclarationEdge {
 
 
 
+  private static final long serialVersionUID = 1085083084922071042L;
+
   public CDeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,
       final CFANode pPredecessor, final CFANode pSuccessor, final CDeclaration pDeclaration) {
 
