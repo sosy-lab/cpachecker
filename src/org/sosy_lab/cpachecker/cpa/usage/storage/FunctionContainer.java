@@ -64,11 +64,11 @@ public class FunctionContainer extends AbstractUsageStorage {
   }
 
   public void join(FunctionContainer funcContainer) {
-    /*if (joinedWith.contains(funcContainer)) {
+    if (joinedWith.contains(funcContainer)) {
       //We may join two different exit states to the same parent container
       return;
     }
-    joinedWith.add(funcContainer);*/
+    joinedWith.add(funcContainer);
 
     if (funcContainer.effects.isEmpty()) {
       stats.copyTimer.start();

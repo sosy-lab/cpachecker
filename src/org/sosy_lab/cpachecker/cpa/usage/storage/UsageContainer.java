@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -31,7 +33,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -113,16 +114,11 @@ public class UsageContainer {
       internalStatistics = ((FunctionContainer)storage).getStatistics();
     }
 
-    for (SingleIdentifier id : storage.keySet()) {
-      SortedSet<UsageInfo> list = storage.get(id);
-      for (UsageInfo info : list) {
-        if (info.getKeyState() == null) {
-          //Means that it is stored near the abort function
-        } else {
-          add(id, info);
-        }
-      }
-    }
+    storage.forEach((id, list) ->
+      from(list)
+        .filter(info -> info.getKeyState() != null)
+        .forEach(info -> this.add(id, info))
+        );
   }
 
   public void add(final SingleIdentifier id, final UsageInfo usage) {
@@ -147,6 +143,7 @@ public class UsageContainer {
       processedUnsafes.clear();
       unsafeUsages = 0;
       Set<SingleIdentifier> toDelete = new HashSet<>();
+
       for (SingleIdentifier id : unrefinedIds.keySet()) {
         UnrefinedUsagePointSet tmpList = unrefinedIds.get(id);
         if (detector.isUnsafe(tmpList)) {
@@ -157,10 +154,9 @@ public class UsageContainer {
         }
       }
       toDelete.forEach(id -> removeIdFromCaches(id));
-      for (SingleIdentifier id : refinedIds.keySet()) {
-        RefinedUsagePointSet tmpList = refinedIds.get(id);
-        unsafeUsages += tmpList.size();
-      }
+
+      refinedIds.forEach((id, list) -> unsafeUsages += list.size());
+
       if (initialSet == null) {
         assert refinedIds.isEmpty();
         initialSet = Sets.newHashSet(unrefinedIds.keySet());
@@ -237,15 +233,13 @@ public class UsageContainer {
   public void resetUnrefinedUnsafes() {
     resetTimer.start();
     unsafeUsages = -1;
-    unrefinedIds.values().forEach(s -> s.reset());
+    unrefinedIds.forEach((id, s) -> s.reset());
     logger.log(Level.FINE, "Unsafes are reseted");
     resetTimer.stop();
   }
 
   public void removeState(final UsageState pUstate) {
-    for (UnrefinedUsagePointSet uset : unrefinedIds.values()) {
-      uset.remove(pUstate);
-    }
+    unrefinedIds.forEach((id, uset) -> uset.remove(pUstate));
     logger.log(Level.ALL, "All unsafes related to key state " + pUstate + " were removed from reached set");
   }
 

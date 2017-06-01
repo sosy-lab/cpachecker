@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.Set;
 import java.util.SortedSet;
 import org.sosy_lab.common.configuration.Configuration;
@@ -55,9 +57,7 @@ public class UnsafeDetector {
 
   private UnrefinedUsagePointSet preparePointSet(Set<UsageInfo> set) {
     UnrefinedUsagePointSet tmpSet = new UnrefinedUsagePointSet();
-    for (UsageInfo uinfo : set) {
-      tmpSet.add(uinfo);
-    }
+    set.forEach(s -> tmpSet.add(s));
     return tmpSet;
   }
 
@@ -86,59 +86,10 @@ public class UnsafeDetector {
   }
 
   private boolean isUnsafe(SortedSet<UsagePoint> points) {
-    /*if (points.size() >= 1) {
-      Iterator<UsagePoint> iterator = points.iterator();
-      UsagePoint point = iterator.next();
-
-      if(ignoreEmptyLockset && point.locks.isEmpty()) {
-        //special case when we ignore intersection of empty sets
-        //at least one lockSet should be nonempty
-
-        //we go with while locks is empty until first nonempty
-        //search for non empty lockset
-        while(point.locks.isEmpty() && iterator.hasNext()) {
-          //skip accesses without locks
-          point = iterator.next();
-        }
-        if(!point.locks.isEmpty()) {
-          //we already have an empty intersection
-          //since we had an access without locks
-          //and now have an access with some locks
-          return true;
-        } else {
-          //only empty locksets
-          return false;
-        }
-      }
-      if (point.access == Access.WRITE) {
-        Set<LockIdentifier> lockSet = new HashSet<>(point.locks);
-        if (lockSet.isEmpty()) {
-          return true;
-        }
-        while (iterator.hasNext()) {
-          point = iterator.next();
-          if (point.access == Access.WRITE) {
-            lockSet.retainAll(point.locks);
-            if (lockSet.isEmpty()) {
-              return true;
-            }
-          } else {
-            // There can be a situation
-            // (l1, l2, write), (l1, read), (l2, read)
-            // Thus, we should process writes and reads differently
-            //
-            if (Sets.intersection(lockSet, point.locks).isEmpty()) {
-              return true;
-            }
-          }
-        }
-      }
-    }*/
     for (UsagePoint point1 : points) {
-      for (UsagePoint point2 : points.tailSet(point1)) {
-        if (isUnsafePair(point1, point2)) {
-          return true;
-        }
+      if (from(points.tailSet(point1))
+          .anyMatch(p -> isUnsafePair(point1, p))) {
+        return true;
       }
     }
     return false;
