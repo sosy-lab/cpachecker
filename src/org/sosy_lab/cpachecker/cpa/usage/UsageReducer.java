@@ -29,16 +29,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.cpa.lock.LockReducer;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState.UsageExitableState;
 
 public class UsageReducer implements Reducer {
   private final Reducer wrappedReducer;
-  private final LockReducer lockReducer;
 
-  public UsageReducer(Reducer pWrappedReducer, LockReducer lReducer) {
+  public UsageReducer(Reducer pWrappedReducer) {
     wrappedReducer = pWrappedReducer;
-    lockReducer = lReducer;
   }
 
   @Override
@@ -64,7 +61,7 @@ public class UsageReducer implements Reducer {
       // and Exitable one can occur at any moment
       exp = funReducedState.getWrappedState();
     }
-    return funReducedState.expand(funRootState, exp, pReducedContext, lockReducer);
+    return funReducedState.expand(funRootState, exp);
   }
 
   @Override
@@ -82,7 +79,7 @@ public class UsageReducer implements Reducer {
     UsageState funRootState = (UsageState)pRootElement;
     UsageState funReducedState = (UsageState)pReducedElement;
     AbstractState exp = wrappedReducer.getVariableExpandedState(funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState());
-    return funReducedState.expand(funRootState, exp, pReducedContext, lockReducer);
+    return funReducedState.expand(funRootState, exp);
   }
 
   @Override

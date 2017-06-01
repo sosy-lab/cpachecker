@@ -102,7 +102,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
     if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM)pCpa).getReducer();
       if (wrappedReducer != null) {
-        reducer = new UsageReducer(wrappedReducer, LockCPA.getReducer());
+        reducer = new UsageReducer(wrappedReducer);
       } else {
         reducer = null;
       }

@@ -102,15 +102,15 @@ public class UsageContainer {
     }
   }
 
-  /*public void forceAddNewUsages(TemporaryUsageStorage storage) {
+  public void forceAddNewUsages(TemporaryUsageStorage storage) {
     //This is a case of 'abort'-functions
     assert (unsafeUsages == -1);
     copyUsages(storage);
-  }*/
+  }
 
-  private void copyUsages(FunctionContainer storage) {
-    if (internalStatistics == null) {
-      internalStatistics = storage.getStatistics();
+  private void copyUsages(AbstractUsageStorage storage) {
+    if (internalStatistics == null && storage instanceof FunctionContainer) {
+      internalStatistics = ((FunctionContainer)storage).getStatistics();
     }
 
     for (SingleIdentifier id : storage.keySet()) {
@@ -148,7 +148,6 @@ public class UsageContainer {
       unsafeUsages = 0;
       Set<SingleIdentifier> toDelete = new HashSet<>();
       for (SingleIdentifier id : unrefinedIds.keySet()) {
-
         UnrefinedUsagePointSet tmpList = unrefinedIds.get(id);
         if (detector.isUnsafe(tmpList)) {
           unsafeUsages += tmpList.size();

@@ -28,13 +28,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Exitable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.lock.LockReducer;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -231,8 +229,7 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     recentUsages.add(id, usage);
   }
 
-  public UsageState expand(final UsageState root, final AbstractState wrappedState,
-      Block pReducedContext, LockReducer reducer) {
+  public UsageState expand(final UsageState root, final AbstractState wrappedState) {
     stats.expandTimer.start();
     UsageState result = root.clone(wrappedState);
     if (this instanceof Exitable) {

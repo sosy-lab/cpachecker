@@ -67,8 +67,12 @@ public abstract class AbstractUsageStorage extends TreeMap<SingleIdentifier, Sor
   }
 
   public void addUsages(SingleIdentifier id, SortedSet<UsageInfo> usages) {
-    SortedSet<UsageInfo> currentStorage = getStorageForId(id);
-    currentStorage.addAll(usages);
+    if (containsKey(id)) {
+      SortedSet<UsageInfo> currentStorage = getStorageForId(id);
+      currentStorage.addAll(usages);      
+    } else {
+      super.put(id, usages);
+    }
   }
 
   public boolean add(SingleIdentifier id, UsageInfo info) {
