@@ -110,10 +110,10 @@ public class UsagePairIterator extends GenericIterator<Pair<UsageInfoSet, UsageI
     UsageInfo first = usagePair.getFirst();
     UsageInfo second = usagePair.getSecond();
 
-    if (first.equals(second)) {
+    /*if (first.equals(second)) {
       //they were cloned
       assert first.isReachable() == second.isReachable();
-    }
+    }*/
     if (!second.isReachable()) {
       logger.log(Level.FINE, "Usage " + secondUsageIterator + " is not reachable, remove it from container");
       secondUsageIterator.remove();

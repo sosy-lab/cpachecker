@@ -41,8 +41,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cpa.usage.TemporaryUsageStorage;
-import org.sosy_lab.cpachecker.cpa.usage.TemporaryUsageStorage.StorageStatistics;
+import org.sosy_lab.cpachecker.cpa.usage.FunctionContainer;
+import org.sosy_lab.cpachecker.cpa.usage.FunctionContainer.StorageStatistics;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementResult;
@@ -96,23 +96,27 @@ public class UsageContainer {
     detector = pDetector;
   }
 
-  public void addNewUsagesIfNecessary(TemporaryUsageStorage storage) {
+  public void addNewUsagesIfNecessary(FunctionContainer storage) {
     if (unsafeUsages == -1) {
       copyUsages(storage);
       getUnsafesIfNecessary();
     }
   }
 
-  public void forceAddNewUsages(TemporaryUsageStorage storage) {
+  /*public void forceAddNewUsages(TemporaryUsageStorage storage) {
     //This is a case of 'abort'-functions
     assert (unsafeUsages == -1);
     copyUsages(storage);
-  }
+  }*/
 
-  private void copyUsages(TemporaryUsageStorage storage) {
+  private void copyUsages(FunctionContainer storage) {
     if (internalStatistics == null) {
       internalStatistics = storage.getStatistics();
     }
+
+    //The following method is very expensive, try not to use it any time
+    logger.log(Level.FINE, "Start exporting usages");
+    storage.exportUsages();
 
     for (SingleIdentifier id : storage.keySet()) {
       SortedSet<UsageInfo> list = storage.get(id);
@@ -239,9 +243,7 @@ public class UsageContainer {
   public void resetUnrefinedUnsafes() {
     resetTimer.start();
     unsafeUsages = -1;
-    for (UnrefinedUsagePointSet uset : unrefinedIds.values()) {
-      uset.reset();
-    }
+    unrefinedIds.values().forEach(s -> s.reset());
     logger.log(Level.FINE, "Unsafes are reseted");
     resetTimer.stop();
   }
