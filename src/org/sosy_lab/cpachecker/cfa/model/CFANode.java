@@ -41,8 +41,10 @@ public class CFANode implements Comparable<CFANode>, Serializable {
 
   private final int nodeNumber;
 
-  private final List<CFAEdge> leavingEdges = new ArrayList<>(1);
-  private final List<CFAEdge> enteringEdges = new ArrayList<>(1);
+  // do not serialize edges, recursive traversal of the CFA causes a stack-overflow.
+  // edge-list is final, except for serialization
+  private transient List<CFAEdge> leavingEdges = new ArrayList<>(1);
+  private transient List<CFAEdge> enteringEdges = new ArrayList<>(1);
 
   // is start node of a loop?
   private boolean isLoopStart = false;
@@ -245,5 +247,15 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     }
 
     return "";
+  }
+
+  @SuppressWarnings("unchecked")
+  private void readObject(java.io.ObjectInputStream s)
+      throws java.io.IOException, ClassNotFoundException {
+    s.defaultReadObject();
+
+    // leaving and entering edges have to be updated explicitly after reading a node
+    leavingEdges = new ArrayList<>(1);
+    enteringEdges = new ArrayList<>(1);
   }
 }
