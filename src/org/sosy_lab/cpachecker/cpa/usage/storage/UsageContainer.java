@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cpa.usage.TemporaryUsageStorage;
+import org.sosy_lab.cpachecker.cpa.usage.TemporaryUsageStorage.StorageStatistics;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementResult;
@@ -63,6 +64,8 @@ public class UsageContainer {
   private int initialUsages;
 
   private final LogManager logger;
+
+  private StorageStatistics internalStatistics = null;
 
   public Timer resetTimer = new Timer();
 
@@ -107,6 +110,10 @@ public class UsageContainer {
   }
 
   private void copyUsages(TemporaryUsageStorage storage) {
+    if (internalStatistics == null) {
+      internalStatistics = storage.getStatistics();
+    }
+
     for (SingleIdentifier id : storage.keySet()) {
       SortedSet<UsageInfo> list = storage.get(id);
       for (UsageInfo info : list) {
@@ -122,10 +129,8 @@ public class UsageContainer {
   public void add(final SingleIdentifier id, final UsageInfo usage) {
     UnrefinedUsagePointSet uset;
 
-    if (falseUnsafes.contains(id)) {
-      return;
-    }
-    if (refinedIds.containsKey(id)) {
+    if (falseUnsafes.contains(id)
+        || refinedIds.containsKey(id)) {
       return;
     }
     if (!unrefinedIds.containsKey(id)) {
@@ -153,9 +158,7 @@ public class UsageContainer {
           falseUnsafes.add(id);
         }
       }
-      for (SingleIdentifier id : toDelete) {
-        removeIdFromCaches(id);
-      }
+      toDelete.forEach(id -> removeIdFromCaches(id));
       for (SingleIdentifier id : refinedIds.keySet()) {
         RefinedUsagePointSet tmpList = refinedIds.get(id);
         unsafeUsages += tmpList.size();
@@ -195,13 +198,16 @@ public class UsageContainer {
 
   public Iterator<SingleIdentifier> getUnrefinedUnsafeIterator() {
     //New set to avoid concurrent modification exception
-    Set<SingleIdentifier> result = new TreeSet<>(unrefinedIds.keySet());
-    return result.iterator();
+    return getKeySetIterator(unrefinedIds);
   }
 
   public Iterator<SingleIdentifier> getTrueUnsafeIterator() {
     //New set to avoid concurrent modification exception
-    Set<SingleIdentifier> result = new TreeSet<>(refinedIds.keySet());
+    return getKeySetIterator(refinedIds);
+  }
+
+  private Iterator<SingleIdentifier> getKeySetIterator(SortedMap<SingleIdentifier, ? extends AbstractUsagePointSet> map) {
+    Set<SingleIdentifier> result = new TreeSet<>(map.keySet());
     return result.iterator();
   }
 
@@ -210,7 +216,7 @@ public class UsageContainer {
     if (printOnlyTrueUnsafes) {
       return refinedIds.size();
     } else {
-      return unrefinedIds.size() + refinedIds.size() + failedIds.size();
+      return getTotalUnsafeSize();
     }
   }
 
@@ -302,6 +308,10 @@ public class UsageContainer {
     out.println("Initial amount of unsafes (before refinement):    " + initialSet.size());
     out.println("Initial amount of usages (before refinement):     " + initialUsages);
     out.println("Initial amount of refined false unsafes:          " + falseUnsafes.size());
+
+    if (internalStatistics != null) {
+      internalStatistics.printStatistics(out);
+    }
   }
 
   @Override

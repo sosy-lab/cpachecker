@@ -169,7 +169,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA implements ConfigurablePr
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
-    return new UsageState(getWrappedCpa().getInitialState(pNode, pPartition), container);
+    return UsageState.createInitialState(getWrappedCpa().getInitialState(pNode, pPartition), container);
   }
 
   @Override

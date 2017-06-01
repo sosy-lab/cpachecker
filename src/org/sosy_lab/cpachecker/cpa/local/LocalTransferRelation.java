@@ -180,7 +180,6 @@ public class LocalTransferRelation extends ForwardingTransferRelation<LocalState
       List<CExpression> arguments, List<CParameterDeclaration> parameterTypes,
       String calledFunctionName) {
     LocalState newState = LocalState.createNextLocalState(state);
-
     CFunctionEntryNode functionEntryNode = cfaEdge.getSuccessor();
     List<String> paramNames = functionEntryNode.getFunctionParameterNames();
 
@@ -226,7 +225,9 @@ public class LocalTransferRelation extends ForwardingTransferRelation<LocalState
         if (findDereference(decl.getType()) > 0 && !decl.isGlobal()
             && (declEdge.getSuccessor().getFunctionName().equals("ldv_main") || decl.getType() instanceof CArrayType)) {
           //we don't save global variables
-          newState.set(new GeneralLocalVariableIdentifier(decl.getName(), findDereference(decl.getType())), DataType.LOCAL);
+          newState.set(
+              new GeneralLocalVariableIdentifier(decl.getName(), findDereference(decl.getType())),
+              DataType.LOCAL);
         }
       }
     }

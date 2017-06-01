@@ -75,9 +75,11 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
 
     ThreadStateBuilder builder = tState.getBuilder();
     try {
+      threadStatistics.tSetTimer.start();
       if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
           if (!handleFunctionCall((CFunctionCallEdge)pCfaEdge, builder)) {
             //Try to join non-created thread
+            threadStatistics.tSetTimer.stop();
             return Collections.emptySet();
           }
       } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
@@ -90,14 +92,22 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
       } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         CFunctionCall functionCall = ((CFunctionReturnEdge)pCfaEdge).getSummaryEdge().getExpression();
         if (isThreadCreateFunction(functionCall)) {
+          threadStatistics.tSetTimer.stop();
           return Collections.emptySet();
         }
       }
+      threadStatistics.tSetTimer.stop();
 
+      threadStatistics.internalCPAtimer.start();
+      threadStatistics.internalLocationTimer.start();
       Collection<? extends AbstractState> newLocationStates = locationTransfer.getAbstractSuccessorsForEdge(oldLocationState,
           SingletonPrecision.getInstance(), pCfaEdge);
+      threadStatistics.internalLocationTimer.stop();
+      threadStatistics.internalCallstackTimer.start();
       Collection<? extends AbstractState> newCallstackStates = callstackTransfer.getAbstractSuccessorsForEdge(oldCallstackState,
           SingletonPrecision.getInstance(), pCfaEdge);
+      threadStatistics.internalCallstackTimer.stop();
+      threadStatistics.internalCPAtimer.stop();
 
 
       Set<ThreadState> resultStates = new HashSet<>();

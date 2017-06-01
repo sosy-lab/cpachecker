@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -85,21 +86,12 @@ public class UsageCPAStatistics implements Statistics {
     errPrinter.printErrorTraces(reached);
     errPrinter.printStatistics(out);
     printStatisticsTimer.stop();
+    AbstractStates.extractStateByType(reached.getFirstState(), UsageState.class)
+      .getStatistics().printStatistics(out);
     //out.
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put(transferRelationTimer);
     writer.put(printStatisticsTimer);
-    out.println("Time for expanding:                 " + UsageState.tmpTimer1);
-    out.println("Time for joining:                   " + UsageState.tmpTimer2);
-    out.println("Time for joining2:                  " + UsageState.tmpTimer3);
-    out.println("Time for effect:                    " + TemporaryUsageStorage.effectTimer);
-    out.println("Time for copy:                      " + TemporaryUsageStorage.copyTimer);
-    out.println("Number of empty joins:              " + TemporaryUsageStorage.emptyJoin);
-    out.println("Number of effect joins:             " + TemporaryUsageStorage.effectJoin);
-    out.println("Number of hit joins:                " + TemporaryUsageStorage.hitTimes);
-    out.println("Number of miss joins:               " + TemporaryUsageStorage.missTimes);
-    out.println("Number of expanding querries:       " + TemporaryUsageStorage.totalUsages);
-    out.println("Number of executed querries:        " + TemporaryUsageStorage.expandedUsages);
 
   }
 
