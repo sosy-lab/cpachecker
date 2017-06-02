@@ -441,7 +441,7 @@ public class UsageTransferRelation implements TransferRelation {
   private void addUsageIfNeccessary(UsageInfo usage) {
 
     //Precise information, using results of shared analysis
-    if (!usage.isSupported()) {
+    if (!usage.isRelevant()) {
       return;
     }
 
@@ -459,7 +459,7 @@ public class UsageTransferRelation implements TransferRelation {
         FluentIterable<GeneralIdentifier> composedIds =
             from(singleId.getComposedIdentifiers())
             .filter(SingleIdentifier.class)
-            .transform(i -> i.getGeneralId());
+            .transform(SingleIdentifier::getGeneralId);
         boolean isLocal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.LOCAL);
         boolean isGlobal = composedIds.anyMatch(i -> localInfo.get(i) == DataType.GLOBAL);
         if (isLocal && !isGlobal) {

@@ -28,4 +28,5 @@ public interface CompatibleState extends Comparable<CompatibleState>{
   public boolean isCompatibleWith(CompatibleState state);
   public CompatibleState prepareToStore();
   public UsageTreeNode getTreeNode();
+  default public boolean isRelevant() { return true; }
 }

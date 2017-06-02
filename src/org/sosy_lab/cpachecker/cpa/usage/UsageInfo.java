@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,7 +46,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
     READ;
   }
 
-  private final static UsageInfo UNSUPPORTED_USAGE = new UsageInfo();
+  private final static UsageInfo IRRELEVANT_USAGE = new UsageInfo();
 
   private final LineInfo line;
   private final Access accessType;
@@ -80,13 +81,14 @@ public class UsageInfo implements Comparable<UsageInfo> {
       @Nonnull UsageState state, AbstractIdentifier ident) {
     if (ident instanceof SingleIdentifier) {
       UsageInfo result = new UsageInfo(atype, new LineInfo(l, AbstractStates.extractLocation(state)), (SingleIdentifier)ident);
-      AbstractStates.asIterable(state)
-        .filter(CompatibleState.class)
-        .forEach(s -> result.compatibleStates.put(s.getClass(), s.prepareToStore()));
-      return result;
-    } else {
-      return UNSUPPORTED_USAGE;
+      FluentIterable<CompatibleState> states = AbstractStates.asIterable(state)
+        .filter(CompatibleState.class);
+      if (states.allMatch(CompatibleState::isRelevant)) {
+        states.forEach(s -> result.compatibleStates.put(s.getClass(), s.prepareToStore()));
+        return result;
+      }
     }
+    return IRRELEVANT_USAGE;
   }
 
   public CompatibleState getState(Class<? extends CompatibleState> pClass) {
@@ -118,8 +120,8 @@ public class UsageInfo implements Comparable<UsageInfo> {
     return isLooped;
   }
 
-  public boolean isSupported() {
-    return this != UNSUPPORTED_USAGE;
+  public boolean isRelevant() {
+    return this != IRRELEVANT_USAGE;
   }
 
   public @Nonnull void setId(SingleIdentifier pId) {
