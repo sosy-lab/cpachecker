@@ -83,7 +83,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
       UsageInfo result = new UsageInfo(atype, new LineInfo(l, AbstractStates.extractLocation(state)), (SingleIdentifier)ident);
       FluentIterable<CompatibleState> states = AbstractStates.asIterable(state)
         .filter(CompatibleState.class);
-      if (states.allMatch(CompatibleState::isRelevant)) {
+      if (states.allMatch(s -> s.isRelevantFor(result.id))) {
         states.forEach(s -> result.compatibleStates.put(s.getClass(), s.prepareToStore()));
         return result;
       }
