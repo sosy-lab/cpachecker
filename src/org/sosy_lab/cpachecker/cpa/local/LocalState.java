@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.local;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.ImmutableSet;
-import java.util.Collection;
+import com.google.common.collect.Sets;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
@@ -45,15 +47,16 @@ public class LocalState implements LatticeAbstractState<LocalState> {
       return name().toLowerCase();
     }
 
-    public static DataType max(DataType op1, DataType op2) {
-      if (op1 == GLOBAL || op2 == GLOBAL) {
-        return GLOBAL;
-      } else if (op1 == null || op2 == null) {
-        return null;
-      } else {
-        return LOCAL;
-      }
-    }
+    public final static BiFunction<DataType, DataType, DataType> max = (d1, d2) ->
+      {
+        if (d1 == GLOBAL || d2 == GLOBAL) {
+          return GLOBAL;
+        } else if (d1 == null || d2 == null) {
+          return null;
+        } else {
+          return LOCAL;
+        }
+      };
   }
   //map from variable id to its type
   private final LocalState previousState;
@@ -129,14 +132,21 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     return DataInfo.get(name);
   }
 
+  private boolean isLocal(AbstractIdentifier name) {
+    return getDataInfo(name) == DataType.LOCAL;
+  }
+
+  private boolean isGlobal(AbstractIdentifier name) {
+    return getDataInfo(name) == DataType.GLOBAL;
+  }
+
   private boolean checkSharednessOfComposedIds(AbstractIdentifier name) {
-    Collection<AbstractIdentifier> innerIds = name.getComposedIdentifiers();
-    for (AbstractIdentifier id : innerIds) {
-      if (getDataInfo(id) == DataType.GLOBAL) {
-        return true;
-      }
+    if (from(name.getComposedIdentifiers())
+        .anyMatch(id -> isGlobal(id))) {
+      return true;
+    } else {
+      return false;
     }
-    return false;
   }
 
   public void set(AbstractIdentifier name, DataType type) {
@@ -187,25 +197,9 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     }
 
     LocalState joinState = this.clone(joinedPreviousState);
-    Set<AbstractIdentifier> toDelete = new HashSet<>();
 
-    for (AbstractIdentifier name : joinState.DataInfo.keySet()) {
-      if (!pState2.DataInfo.containsKey(name) && joinState.DataInfo.get(name) != DataType.GLOBAL) {
-        toDelete.add(name);
-      }
-    }
-
-    for (AbstractIdentifier del : toDelete) {
-      joinState.DataInfo.remove(del);
-    }
-
-    for (AbstractIdentifier name : pState2.DataInfo.keySet()) {
-      if (!joinState.DataInfo.containsKey(name) && pState2.DataInfo.get(name) == DataType.GLOBAL) {
-        joinState.DataInfo.put(name, DataType.GLOBAL);
-      } else if (joinState.DataInfo.containsKey(name)) {
-        joinState.DataInfo.put(name, DataType.max(this.DataInfo.get(name), pState2.DataInfo.get(name)));
-      }
-    }
+    Sets.union(this.DataInfo.keySet(), pState2.DataInfo.keySet())
+      .forEach(id -> joinState.putIntoDataInfo(id, DataType.max.apply(DataInfo.get(id), pState2.DataInfo.get(id))));
 
     return joinState;
   }
@@ -214,18 +208,22 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   public boolean isLessOrEqual(LocalState pState2) {
     //LOCAL < NULL < GLOBAL
     for (AbstractIdentifier name : this.DataInfo.keySet()) {
-      if (this.getDataInfo(name) == DataType.LOCAL) {
+      if (this.isLocal(name)) {
         continue;
       }
       //Here thisType can be only Global, so pState2 also should contains Global
-      if (!pState2.DataInfo.containsKey(name) || pState2.getDataInfo(name) == DataType.LOCAL) {
+      if (!pState2.DataInfo.containsKey(name) || pState2.isLocal(name)) {
         return false;
       }
     }
     for (AbstractIdentifier name : pState2.DataInfo.keySet()) {
-      if (!this.DataInfo.containsKey(name) && pState2.getDataInfo(name) == DataType.LOCAL) {
+      if (!this.DataInfo.containsKey(name) && pState2.isLocal(name)) {
         return false;
       }
+    }
+    if (from(pState2.DataInfo.keySet())
+        .anyMatch(i -> !this.DataInfo.containsKey(i) && pState2.isLocal(i))) {
+      return false;
     }
     /*for (AbstractIdentifier name : this.DataInfo.keySet()) {
       if (this.getType(name) != pState2.getType(name)) {

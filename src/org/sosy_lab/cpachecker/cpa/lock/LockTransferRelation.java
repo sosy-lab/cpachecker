@@ -108,9 +108,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation
 
     final LockStateBuilder builder = lockStatisticsElement.builder();
 
-    for (AbstractLockEffect e : toProcess) {
-      e.effect(builder);
-    }
+    toProcess.forEach(e -> e.effect(builder));
 
     LockState successor = builder.build();
 
@@ -123,14 +121,13 @@ public class LockTransferRelation extends SingleEdgeTransferRelation
 
   public Set<LockIdentifier> getAffectedLocks(CFAEdge cfaEdge) {
       return getLockEffects(cfaEdge)
-      .transform(e -> e.getAffectedLock()).toSet();
+      .transform(LockEffect::getAffectedLock).toSet();
   }
 
   private FluentIterable<LockEffect> getLockEffects(CFAEdge cfaEdge) {
     try {
       return from(determineOperations(cfaEdge))
-      .filter(e -> e instanceof LockEffect)
-      .transform(e -> (LockEffect)e);
+      .filter(LockEffect.class);
     } catch (UnrecognizedCCodeException e) {
       logger.log(Level.WARNING, "The code " + cfaEdge + " is not recognized");
       return FluentIterable.of();
@@ -149,12 +146,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation
 
       case StatementEdge:
         CStatement statement = ((CStatementEdge)cfaEdge).getStatement();
-        /*if (statement instanceof CFunctionCallStatement && lockreset != null &&
-          ((CFunctionCallStatement)statement).getFunctionCallExpression().getFunctionNameExpression().toASTString().equals(lockreset)) {
-          builder.resetAll();
-        } else {*/
-          return handleStatement(statement);
-        //}
+        return handleStatement(statement);
       case AssumeEdge:
         return handleAssumption((CAssumeEdge)cfaEdge);
 

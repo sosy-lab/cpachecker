@@ -105,7 +105,7 @@ public class IdentifierIterator extends WrappedConfigurableRefinementBlock<Reach
   public RefinementResult performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     ARGState firstState = AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
     ARGState lastState = firstState.getChildren().iterator().next();
-    UsageState USlastState = AbstractStates.extractStateByType(lastState, UsageState.class);
+    UsageState USlastState = UsageState.get(lastState);
     USlastState.updateContainerIfNecessary();
     UsageContainer container = USlastState.getContainer();
     BAMPredicateCPA bamcpa = CPAs.retrieveCPA(cpa, BAMPredicateCPA.class);

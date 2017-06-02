@@ -124,12 +124,6 @@ public class UsageInfo implements Comparable<UsageInfo> {
     return this != IRRELEVANT_USAGE;
   }
 
-  public @Nonnull void setId(SingleIdentifier pId) {
-    //Now it is set while creation
-    assert id == null || id.getName().equals(pId.getName()) : "Old id " + id + ", new one - " + pId;
-    //id = pId;
-  }
-
   @Override
   public int hashCode() {
     final int prime = 31;

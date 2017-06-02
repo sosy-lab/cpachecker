@@ -306,4 +306,8 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
       out.println("Time for adding recent usages:       " + addRecentUsagesTimer);
     }
   }
+
+  public static UsageState get(AbstractState state) {
+    return AbstractStates.extractStateByType(state, UsageState.class);
+  }
 }

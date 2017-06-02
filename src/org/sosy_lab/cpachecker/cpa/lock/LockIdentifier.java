@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Optional;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -64,11 +67,14 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
       createdIds = new HashSet<>();
     }
     String varName = getCleanName(var);
-    for (LockIdentifier id : createdIds) {
-      if ( id.name.equals(name) && id.type == type && id.variable.equals(varName)) {
-        return id;
-      }
+
+    Optional<LockIdentifier> oId = from(createdIds)
+      .firstMatch(id -> id.name.equals(name) && id.type == type && id.variable.equals(varName));
+
+    if (oId.isPresent()) {
+      return oId.get();
     }
+
     LockIdentifier newId = new LockIdentifier(name, varName, type);
     createdIds.add(newId);
     return newId;

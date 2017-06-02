@@ -144,9 +144,9 @@ public abstract class ErrorTracePrinter {
   }
 
   protected String createUniqueName(SingleIdentifier id) {
-    String name = id.getType().toASTString(id.getName());
-    name = name.replace(" ", "_");
-    return name;
+    return id.getType()
+        .toASTString(id.getName())
+        .replace(" ", "_");
   }
 
   public void printErrorTraces(UnmodifiableReachedSet reached) {
@@ -157,11 +157,11 @@ public abstract class ErrorTracePrinter {
     if (!children.isEmpty()) {
       //Analysis finished normally
       ARGState lastState = firstState.getChildren().iterator().next();
-      UsageState USlastState = AbstractStates.extractStateByType(lastState, UsageState.class);
+      UsageState USlastState = UsageState.get(lastState);
       USlastState.updateContainerIfNecessary();
       container = USlastState.getContainer();
     } else {
-      container = AbstractStates.extractStateByType(firstState, UsageState.class).getContainer();
+      container = UsageState.get(firstState).getContainer();
     }
     detector = container.getUnsafeDetector();
 
@@ -221,6 +221,7 @@ public abstract class ErrorTracePrinter {
       if (falseUnsafes.size() > 0) {
         try (Writer writer = Files.newBufferedWriter(Paths.get(outputFalseUnsafes.toString()), Charset.defaultCharset())) {
           logger.log(Level.FINE, "Print statistics about false unsafes");
+
           for (SingleIdentifier id : falseUnsafes) {
             writer.append(createUniqueName(id) + "\n");
           }

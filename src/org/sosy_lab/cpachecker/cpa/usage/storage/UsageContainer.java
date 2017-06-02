@@ -135,7 +135,6 @@ public class UsageContainer {
     } else {
       uset = unrefinedIds.get(id);
     }
-    usage.setId(id);
     uset.add(usage);
   }
 

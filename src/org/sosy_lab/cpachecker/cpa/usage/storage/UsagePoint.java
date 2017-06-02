@@ -1,7 +1,9 @@
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
-import java.util.LinkedList;
+import com.google.common.collect.FluentIterable;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -90,27 +92,23 @@ public class UsagePoint implements Comparable<UsagePoint> {
   private final Set<UsagePoint> coveredUsages;
 
   private UsagePoint(List<UsageTreeNode> nodes, Access pAccess) {
-    //locks = ImmutableSortedSet.copyOf(states);
     access = pAccess;
     coveredUsages = new TreeSet<>();
     compatibleNodes = nodes;
   }
 
   public static UsagePoint createUsagePoint(UsageInfo info) {
-    List<CompatibleState> states = info.getAllCompatibleStates();
-    List<UsageTreeNode> nodes = new LinkedList<>();
 
     Access accessType = info.getAccess();
-    boolean isEmpty = true;
-    for (CompatibleState state : states) {
-      UsageTreeNode constructedNode = state.getTreeNode();
-      isEmpty &= constructedNode.hasEmptyLockSet();
-      nodes.add(constructedNode);
-    }
-    if (!isEmpty) {
-      return new UsagePoint(nodes, accessType);
+
+    FluentIterable<UsageTreeNode> nodes =
+        from(info.getAllCompatibleStates())
+        .transform(CompatibleState::getTreeNode);
+
+    if (!nodes.allMatch(UsageTreeNode::hasEmptyLockSet)) {
+      return new UsagePoint(nodes.toList(), accessType);
     } else {
-      return new UsagePointWithEmptyLockSet(nodes, accessType, info);
+      return new UsagePointWithEmptyLockSet(nodes.toList(), accessType, info);
     }
 
   }
