@@ -135,6 +135,10 @@ public class CFANode implements Comparable<CFANode> {
     return hasEdge;
   }
 
+  public boolean hasLeavingEdge(CFAEdge edge) {
+    return leavingEdges.contains(edge);
+  }
+
   public void setLoopStart() {
     isLoopStart = true;
   }
