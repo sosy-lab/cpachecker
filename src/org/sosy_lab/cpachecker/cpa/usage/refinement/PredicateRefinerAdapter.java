@@ -214,13 +214,10 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   @Override
   protected Object handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
-      for (Set<CFAEdge> edges : falseCacheForCurrentIteration.keySet()) {
-        PredicatePrecision precision = falseCacheForCurrentIteration.get(edges);
-        //false cache may contain other precision
-        //It happens if we clean it for other Id and rerefine it now
-        //Just replace old precision
-        falseCache.put(edges, precision);
-      }
+      //false cache may contain other precision
+      //It happens if we clean it for other Id and rerefine it now
+      //Just replace old precision
+      falseCacheForCurrentIteration.forEach((edges, prec) -> falseCache.put(edges, prec));
       falseCacheForCurrentIteration.clear();
     }
     return  null;
@@ -281,9 +278,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       lastAddedPrecision = newPrecisionFromPredicates;
 
       lastAffectedStates.clear();
-      for (ARGState backwardState : pAffectedStates) {
-        lastAffectedStates.add(backwardState);
-      }
+      pAffectedStates.forEach(s -> lastAffectedStates.add(s));
     }
   }
 

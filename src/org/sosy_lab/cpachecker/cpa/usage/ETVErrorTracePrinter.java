@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -66,7 +67,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
 
   private Writer globalWriter;
 
-  public ETVErrorTracePrinter(Configuration pC, BAMTransferRelation pT, LogManager pL, LockTransferRelation t) {
+  public ETVErrorTracePrinter(Configuration pC, BAMTransferRelation pT, LogManager pL, LockTransferRelation t) throws InvalidConfigurationException {
     super(pC, pT, pL, t);
   }
 

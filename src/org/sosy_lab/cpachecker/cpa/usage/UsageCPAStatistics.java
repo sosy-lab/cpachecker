@@ -71,6 +71,7 @@ public class UsageCPAStatistics implements Statistics {
 
   public final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
   public final StatTimer printStatisticsTimer = new StatTimer("Time for printing statistics");
+  public final StatTimer printUnsafesTimer = new StatTimer("Time for unsafes printing");
 
   public UsageCPAStatistics(Configuration pConfig, LogManager pLogger,
       LockTransferRelation lTransfer) throws InvalidConfigurationException{
@@ -82,21 +83,24 @@ public class UsageCPAStatistics implements Statistics {
 
   @Override
   public void printStatistics(final PrintStream out, final Result result, final UnmodifiableReachedSet reached) {
-    printStatisticsTimer.start();
+    printUnsafesTimer.start();
     assert errPrinter != null;
     errPrinter.printErrorTraces(reached);
+    printUnsafesTimer.stop();
+
+    printStatisticsTimer.start();
     errPrinter.printStatistics(out);
-    printStatisticsTimer.stop();
     AbstractStates.extractStateByType(reached.getFirstState(), UsageState.class)
       .getStatistics().printStatistics(out);
     //out.
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put(transferRelationTimer);
     writer.put(printStatisticsTimer);
+    printStatisticsTimer.stop();
 
   }
 
-  public void setBAMTransfer(BAMTransferRelation t) {
+  public void setBAMTransfer(BAMTransferRelation t) throws InvalidConfigurationException {
     transfer = t;
     if (outputFileType == OutputFileType.KLEVER) {
       errPrinter = new KleverErrorTracePrinter(config, transfer, logger, lockTransfer);

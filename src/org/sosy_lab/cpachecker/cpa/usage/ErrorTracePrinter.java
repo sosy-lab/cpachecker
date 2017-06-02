@@ -41,9 +41,11 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -73,6 +75,10 @@ public abstract class ErrorTracePrinter {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path outputFalseUnsafes = Paths.get("FalseUnsafes");
 
+  @Option(name="filterMissedFiles", description="if a file do not exist, do not include the corresponding edge",
+      secure = true)
+  private boolean filterMissedFiles = true;
+
   @Option(description="print all unsafe cases in report",
       secure = true)
   private boolean printFalseUnsafes = false;
@@ -92,19 +98,29 @@ public abstract class ErrorTracePrinter {
   private int totalUnsafesWithFailureUsageInPair = 0;
   private int trueUnsafes = 0;
 
+  private final Timer preparationTimer = new Timer();
+  private final Timer unsafeDetectionTimer = new Timer();
+  private final Timer writingUnsafeTimer = new Timer();
+
   protected final Configuration config;
   protected UsageContainer container;
   protected final LogManager logger;
 
-  protected final static Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS =
-      e -> e.getFileLocation()!= null && (Files.exists(Paths.get(e.getFileLocation().getFileName())));
+  protected final Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS;
 
 
-  public ErrorTracePrinter(Configuration c, BAMTransferRelation t, LogManager l, LockTransferRelation lT) {
+  public ErrorTracePrinter(Configuration c, BAMTransferRelation t, LogManager l, LockTransferRelation lT) throws InvalidConfigurationException {
     transfer = t;
     logger = l;
     config = c;
     lockTransfer = lT;
+    config.inject(this, ErrorTracePrinter.class);
+    if (filterMissedFiles) {
+      FILTER_EMPTY_FILE_LOCATIONS =
+        e -> e.getFileLocation() != null && (Files.exists(Paths.get(e.getFileLocation().getFileName())));
+    } else {
+      FILTER_EMPTY_FILE_LOCATIONS = e -> e.getFileLocation() != null;
+    }
   }
 
   protected void createPath(UsageInfo usage) {
@@ -134,6 +150,7 @@ public abstract class ErrorTracePrinter {
   }
 
   public void printErrorTraces(UnmodifiableReachedSet reached) {
+    preparationTimer.start();
     ARGState firstState = AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
     //getLastState() returns not the correct last state
     Collection<ARGState> children = firstState.getChildren();
@@ -154,6 +171,7 @@ public abstract class ErrorTracePrinter {
     boolean printOnlyTrueUnsafes = container.printOnlyTrueUnsafes();
 
     init();
+    preparationTimer.stop();
     while (unsafeIterator.hasNext()) {
       SingleIdentifier id = unsafeIterator.next();
       final AbstractUsagePointSet uinfo = container.getUsages(id);
@@ -166,12 +184,15 @@ public abstract class ErrorTracePrinter {
         continue;
       }
 
+      unsafeDetectionTimer.start();
       if (!detector.isUnsafe(uinfo)) {
         //In case of interruption during refinement,
         //We may get a situation, when a path is removed, but the verdict is not updated
+        unsafeDetectionTimer.stop();
         continue;
       }
       Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(uinfo);
+      unsafeDetectionTimer.stop();
       if ((tmpPair.getFirst().isLooped() || tmpPair.getSecond().isLooped()) && printOnlyTrueUnsafes) {
         continue;
       }
@@ -188,7 +209,9 @@ public abstract class ErrorTracePrinter {
       } else if (tmpPair.getFirst().isLooped() || tmpPair.getSecond().isLooped()) {
         totalUnsafesWithFailureUsageInPair++;
       }
+      writingUnsafeTimer.start();
       printUnsafe(id, tmpPair);
+      writingUnsafeTimer.stop();
     }
     if (printFalseUnsafes) {
       Set<SingleIdentifier> currentUnsafes = container.getAllUnsafes();
@@ -269,6 +292,11 @@ public abstract class ErrorTracePrinter {
     out.println("Amount of unsafes with one failure in pair:                " + totalUnsafesWithFailureUsageInPair);
     out.println("Amount of unsafes with at least once failure in usage list:" + totalUnsafesWithFailureUsages);
     out.println("Amount of usages with failure:                             " + totalFailureUsages);
+
+    out.println("Time for preparation:          " + preparationTimer);
+    out.println("Time for unsafe detection:     " + unsafeDetectionTimer);
+    out.println("Time for dumping the unsafes:  " + writingUnsafeTimer);
+
     container.printUsagesStatistics(out);
     out.println("Time for reseting unsafes:          " + container.resetTimer);
   }

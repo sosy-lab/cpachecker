@@ -63,7 +63,7 @@ import org.w3c.dom.Element;
 
 public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
-  public KleverErrorTracePrinter(Configuration c, BAMTransferRelation pT, LogManager pL, LockTransferRelation lT) {
+  public KleverErrorTracePrinter(Configuration c, BAMTransferRelation pT, LogManager pL, LockTransferRelation lT) throws InvalidConfigurationException {
     super(c, pT, pL, lT);
   }
 
