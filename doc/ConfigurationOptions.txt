@@ -2484,7 +2484,7 @@ java.version = JavaCore.VERSION_1_7
 
 # C or Java?
 language = C
-  enum:     [C, JAVA]
+  enum:     [C, JAVA, JAVASCRIPT]
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
