@@ -110,11 +110,15 @@ public class EclipseParsers {
 
   private static final String C_PARSER_CLASS    = "org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCParser";
   private static final String JAVA_PARSER_CLASS = "org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser";
+  private static final String JAVASCRIPT_PARSER_CLASS =
+      "org.sosy_lab.cpachecker.cfa.parser" + ".eclipse.js.EclipseJavaScriptParser";
 
   private static WeakReference<ClassLoader> loadedClassLoader = new WeakReference<>(null);
 
   private static WeakReference<Constructor<? extends CParser>> loadedCParser    = new WeakReference<>(null);
   private static WeakReference<Constructor<? extends Parser>>  loadedJavaParser = new WeakReference<>(null);
+  private static WeakReference<Constructor<? extends Parser>> loadedJavaScriptParser =
+      new WeakReference<>(null);
 
   private static final AtomicInteger loadingCount = new AtomicInteger(0);
 
@@ -191,6 +195,35 @@ public class EclipseParsers {
       }
     } catch (ReflectiveOperationException e) {
       throw new Classes.UnexpectedCheckedException("Failed to create Eclipse Java parser", e);
+    }
+  }
+
+  public static Parser getJavaScriptParser(LogManager logger) throws InvalidConfigurationException {
+
+    try {
+      Constructor<? extends Parser> parserConstructor = loadedJavaScriptParser.get();
+
+      if (parserConstructor == null) {
+        ClassLoader classLoader = getClassLoader(logger);
+
+        @SuppressWarnings("unchecked")
+        Class<? extends Parser> parserClass =
+            (Class<? extends CParser>) classLoader.loadClass(JAVASCRIPT_PARSER_CLASS);
+        parserConstructor = parserClass.getConstructor(new Class<?>[] {LogManager.class});
+        parserConstructor.setAccessible(true);
+        loadedJavaScriptParser = new WeakReference<>(parserConstructor);
+      }
+
+      try {
+        return parserConstructor.newInstance(logger);
+      } catch (InvocationTargetException e) {
+        if (e.getCause() instanceof InvalidConfigurationException) {
+          throw (InvalidConfigurationException) e.getCause();
+        }
+        throw e;
+      }
+    } catch (ReflectiveOperationException e) {
+      throw new Classes.UnexpectedCheckedException("Failed to create Eclipse JavaScript parser", e);
     }
   }
 }
