@@ -98,6 +98,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
+import org.sosy_lab.cpachecker.exceptions.JSParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -278,6 +279,9 @@ private boolean classifyNodes = false;
     case JAVA:
       parser = EclipseParsers.getJavaParser(logger, config);
       break;
+    case JAVASCRIPT:
+      parser = EclipseParsers.getJavaScriptParser(logger);
+      break;
     case C:
       CParser outerParser =
           CParser.Factory.getParser(logger, CParser.Factory.getOptions(config), machineModel);
@@ -355,6 +359,9 @@ private boolean classifyNodes = false;
       FunctionEntryNode mainFunction;
 
       switch (language) {
+      case JAVASCRIPT:
+        mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+        break;
       case JAVA:
         mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
         break;
@@ -523,6 +530,8 @@ private boolean classifyNodes = false;
 
     if (parseResult.isEmpty()) {
       switch (language) {
+        case JAVASCRIPT:
+          throw new JSParserException("No statements found in program");
         case JAVA:
           throw new JParserException("No methods found in program");
         case C:
