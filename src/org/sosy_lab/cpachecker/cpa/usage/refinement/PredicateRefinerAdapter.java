@@ -220,7 +220,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       falseCacheForCurrentIteration.forEach((edges, prec) -> falseCache.put(edges, prec));
       falseCacheForCurrentIteration.clear();
     }
-    return  null;
+    return null;
   }
 
   @Override
