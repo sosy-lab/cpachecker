@@ -214,15 +214,15 @@ function init() {
     			var sourceGraph = getGraphForNode(source);
     			var targetGraph = getGraphForNode(target);
     			if (sourceGraph < targetGraph) { 
-        			graphMap[sourceGraph].setNode(source + "" + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
-        			graphMap[sourceGraph].setEdge(source, source + "" + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
-        			graphMap[targetGraph].setNode(target + "" + targetGraph, {label: "D", class: "dummy", id: "node" + source});
-        			graphMap[targetGraph].setEdge(target + "" + targetGraph, target, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
+        			graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
+        			graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
+        			graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "D", class: "dummy", id: "node" + source});
+        			graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
     			} else if(targetGraph > sourceGraph){ 
-    				graphMap[sourceGraph].setNode(source + "" + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
-    				graphMap[sourceGraph].setEdge(source + "" + sourceGraph, source, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
-    				graphMap[targetGraph].setNode(target + "" + targetGraph, {label: "D", class: "dummy", id: "node" + source});
-    				graphMap[targetGraph].setEdge(target, target + "" + targetGraph, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
+    				graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
+    				graphMap[sourceGraph].setEdge("" + source + target + sourceGraph, source, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
+    				graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "D", class: "dummy", id: "node" + source});
+    				graphMap[targetGraph].setEdge(target, "" + target + source + targetGraph, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
     			}
     		});
     	}
@@ -395,15 +395,15 @@ function init() {
     			var sourceGraph = getGraphForNode(edge.source);
     			var targetGraph = getGraphForNode(edge.target);
     			if (sourceGraph < targetGraph) { 
-        			graphMap[sourceGraph].setNode(edge.source + "" + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
-        			graphMap[sourceGraph].setEdge(edge.source, edge.source + "" + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;"});
-        			graphMap[targetGraph].setNode(edge.target + "" + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
-        			graphMap[targetGraph].setEdge(edge.target + "" + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;"});
-    			} else if(targetGraph > sourceGraph){ 
-    				graphMap[sourceGraph].setNode(edge.source + "" + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
-    				graphMap[sourceGraph].setEdge(edge.source + "" + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
-    				graphMap[targetGraph].setNode(edge.target + "" + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
-    				graphMap[targetGraph].setEdge(edge.target, edge.target + "" + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
+        			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+        			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;"});
+        			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+        			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;"});
+    			} else if(targetGraph > sourceGraph) {
+    				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+    				graphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
+    				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+    				graphMap[targetGraph].setEdge(edge.target, "" + edge.target + edge.source + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
     			}
     		});
     	}
