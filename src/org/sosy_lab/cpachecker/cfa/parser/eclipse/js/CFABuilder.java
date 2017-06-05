@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
@@ -52,6 +53,7 @@ class CFABuilder extends ASTVisitor {
   private final LogManager logger;
   private SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
+  private final List<Pair<ADeclaration, String>> globalDeclarations = Lists.newArrayList();
 
   CFABuilder(LogManager pLogger) {
     logger = pLogger;
@@ -81,7 +83,7 @@ class CFABuilder extends ASTVisitor {
     return new ParseResult(
         cfas,
         cfaNodes,
-        new ArrayList<>(),
+        globalDeclarations,
         Language.JAVASCRIPT);
   }
 }
