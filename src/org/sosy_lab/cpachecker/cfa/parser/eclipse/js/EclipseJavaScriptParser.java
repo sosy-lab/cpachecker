@@ -96,11 +96,7 @@ class EclipseJavaScriptParser implements Parser {
     CFABuilder builder = new CFABuilder(logger);
     try {
       ast.accept(builder);
-      return new ParseResult(
-          builder.getCFAs(),
-          builder.getCFANodes(),
-          builder.getGlobalDeclarations(),
-          Language.JAVASCRIPT);
+      return builder.createCFA();
     } finally {
       cfaTimer.stop();
     }

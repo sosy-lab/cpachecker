@@ -34,6 +34,8 @@ import java.util.TreeMap;
 import org.eclipse.wst.jsdt.core.dom.ASTVisitor;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
@@ -55,7 +57,7 @@ class CFABuilder extends ASTVisitor {
     logger = pLogger;
   }
 
-  public SortedMap<String, FunctionEntryNode> getCFAs() {
+  public ParseResult createCFA() {
     final String functionName = "main";
     final JSFunctionDeclaration functionDeclaration =
         new JSFunctionDeclaration(
@@ -76,14 +78,10 @@ class CFABuilder extends ASTVisitor {
     cfas.put(functionName, entryNode);
     cfaNodes.put(functionName, entryNode);
     cfaNodes.put(functionName, exitNode);
-    return cfas;
-  }
-
-  public SortedSetMultimap<String, CFANode> getCFANodes() {
-    return cfaNodes;
-  }
-
-  public List<Pair<ADeclaration, String>> getGlobalDeclarations() {
-    return new ArrayList<>();
+    return new ParseResult(
+        cfas,
+        cfaNodes,
+        new ArrayList<>(),
+        Language.JAVASCRIPT);
   }
 }
