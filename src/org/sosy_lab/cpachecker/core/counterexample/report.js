@@ -15,6 +15,7 @@
 				$scope.tab = 1;
 				$scope.nodes = nodes;
 				$scope.argWorker = argWorker;
+				$scope.argLoaderDone = argLoaderDone;
 				$scope.$on("ChangeTab", function(event, tabIndex) {
 					$scope.setTab(tabIndex);
 				});
@@ -23,9 +24,11 @@
 					console.log($scope.nodes);
 					if (tabIndex === 2) {
 						d3.select("#arg-container").classed("content", true);
+						if (!argLoaderDone) d3.select("#argLoader").style("display", "inline-block");
 						d3.selectAll(".arg-graph").style("visibility", "visible");
 					} else {
 						d3.select("#arg-container").classed("content", false);
+						if (!argLoaderDone) d3.select("#argLoader").style("display", "none");
 						d3.selectAll(".arg-graph").style("visibility", "hidden");
 					}
 					$scope.tab = tabIndex;
@@ -99,7 +102,9 @@ var constants = {
 	beforeNode : "before",
 	margin : 20,
 }
-var cfaWorker, argWorker;
+var cfaWorker, argWorker, cfaRefreshInterval, argRefreshInterval;
+var cfaLoaderDone = false;
+var argLoaderDone = false;
 
 function init() {
 	// ======================= Define CFA and ARG Workers logic =======================
@@ -162,6 +167,7 @@ function init() {
     		roundNodeCorners(g);
     		setGraphEdges(g, edges, false);
     		self.postMessage({"graph" : JSON.stringify(g), "id" : 1});
+    		self.postMessage({"status": "done"});
     	}
     	
     	function buildMultipleGraphs() {
@@ -195,6 +201,7 @@ function init() {
     		for (var i = 1; i <= requiredGraphs; i++) {
     			self.postMessage({"graph" : JSON.stringify(graphMap[Object.keys(graphMap)[i - 1]]), "id" : i});
     		}
+    		self.postMessage({"status": "done"});
     	}
     	
     	// Return the graph in which the nodeNumber is present
@@ -354,6 +361,7 @@ function init() {
 			setGraphNodes(g, nodes);
 			setGraphEdges(g, edges, false);
 			self.postMessage({"graph" : JSON.stringify(g), "id" : 1});
+			self.postMessage({"status": "done"});
 		}
 		
 		function buildMultipleGraphs() {
@@ -386,6 +394,7 @@ function init() {
     		for (var i = 1; i <= requiredGraphs; i++) {
     			self.postMessage({"graph" : JSON.stringify(graphMap[Object.keys(graphMap)[i - 1]]), "id" : i});
     		}
+    		self.postMessage({"status": "done"});
 		} 
 		
 		// TODO: reverseArrowHead + styles
@@ -502,6 +511,10 @@ function init() {
 				addEventsToNodes();
 				addEventsToEdges();
 			}
+		} else if (m.data.status !== undefined) {
+			clearInterval(cfaRefreshInterval);
+			cfaLoaderDone = true;
+			d3.select("#cfaLoader").style("display", "none");
 		}
 	}, false);
 	
@@ -549,6 +562,10 @@ function init() {
 				addEventsToNodes();
 				addEventsToEdges();
 			}
+		} else if (m.data.status !== undefined) {
+			clearInterval(argRefreshInterval);
+			argLoaderDone = true;
+			d3.select("#argLoader").attr("display", "none");
 		}
 	}, false);
 	
@@ -570,6 +587,24 @@ function init() {
 		};
 		return g;
 	}
+	
+	cfaRefreshInterval = setInterval(function() {
+		var loader = $("#cfaLoader");
+		if (loader.html().length > 23) {
+			loader.html("Rendering CFA Graphs ");
+		} else {
+			loader.html(loader.html() + ".");
+		}
+	},150);
+	
+	argRefreshInterval = setInterval(function() {
+		var loader = $("#argLoader");
+		if (loader.html().length > 23) {
+			loader.html("Rendering ARG Graphs ");
+		} else {
+			loader.html(loader.html() + ".");
+		}
+	},150);
 
 	// Add desired events to the nodes
 	function addEventsToNodes() {

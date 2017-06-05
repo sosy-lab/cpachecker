@@ -160,12 +160,30 @@ div pre {
 	float: left;
 }
 
-.entry-node {
-	fill: #00ffd0;
-}
-
 .arg-graph {
 	visibility: hidden;
+}
+
+#cfaLoader {
+	margin-top: 20px;
+	margin-left: 100px;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-size: 20px;
+	font-style: italic;
+	color: #663399;
+}
+
+#argLoader {
+	margin-left: 100px;
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-size: 20px;
+	font-style: italic;
+	color: #663399;
+	display: none;
+}
+
+.entry-node {
+	fill: #00ffd0;
 }
 
 g.node-start>polygon {

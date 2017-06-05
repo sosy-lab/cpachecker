@@ -75,9 +75,11 @@
     </nav>
     <div id="cfa-container" class="content" ng-show="tabIsSet(1)" ng-class="{active: tabIsSet(1)}"
          ng-controller="CFAController">
+         <span id="cfaLoader" class="loader">Rendering CFA Graphs </span>
     </div>
     <div id="arg-container" ng-class="{active: tabIsSet(2)}"
     	 ng-controller="ARGController">
+    	 <span id="argLoader" class="loader">Rendering ARG Graphs </span>
     </div>
     <div class="fileContent content" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}"
          ng-controller="SourceController">
