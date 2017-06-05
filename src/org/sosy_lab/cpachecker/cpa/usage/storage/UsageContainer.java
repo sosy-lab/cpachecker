@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementResult;
 import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer.StorageStatistics;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 @Options(prefix="cpa.usage")
@@ -276,28 +277,60 @@ public class UsageContainer {
   }
 
   public void printUsagesStatistics(final PrintStream out) {
-    int allUsages = 0, maxUsage = 0;
+    int unsafeSize = getTotalUnsafeSize();
+    int topUsagePoints = 0, maxTopUsagePoints = 0;
+
     final int generalUnrefinedSize = unrefinedIds.keySet().size();
+    int unrefinedUsages = 0, maxUnrefinedUsages = 0;
     for (UnrefinedUsagePointSet uset : unrefinedIds.values()) {
-      allUsages += uset.size();
-      if (maxUsage < uset.size()) {
-        maxUsage = uset.size();
+      unrefinedUsages += uset.size();
+      if (maxUnrefinedUsages < uset.size()) {
+        maxUnrefinedUsages = uset.size();
+      }
+      topUsagePoints += uset.getNumberOfTopUsagePoints();
+      if (maxTopUsagePoints < uset.getNumberOfTopUsagePoints()) {
+        maxTopUsagePoints = uset.getNumberOfTopUsagePoints();
       }
     }
-    out.println("Total amount of unrefined variables:              " + generalUnrefinedSize);
-    out.println("Total amount of unrefined usages:                 " + allUsages + "(avg. " +
-        (generalUnrefinedSize == 0 ? "0" : (allUsages/generalUnrefinedSize)) + ", max " + maxUsage + ")");
+
     final int generalRefinedSize = refinedIds.keySet().size();
-    allUsages = 0;
+    int refinedUsages = 0;
     for (RefinedUsagePointSet uset : refinedIds.values()) {
-      allUsages += uset.size();
+      refinedUsages += uset.size();
     }
-    out.println("Total amount of refined variables:                " + generalRefinedSize);
-    out.println("Total amount of refined usages:                   " + allUsages + "(avg. " +
-        (generalRefinedSize == 0 ? "0" : (allUsages/generalRefinedSize)) + ")");
+
+    final int generalFailedSize = failedIds.keySet().size();
+    int failedUsages = 0;
+    for (RefinedUsagePointSet uset : failedIds.values()) {
+      Pair<UsageInfo, UsageInfo> pair = uset.getUnsafePair();
+      if (pair.getFirst().isLooped()) {
+        failedUsages++;
+      }
+      if (pair.getSecond().isLooped() && !pair.getFirst().equals(pair.getSecond())) {
+        failedUsages++;
+      }
+    }
+
+    out.println("Total amount of unsafes:                          " + unsafeSize);
+
     out.println("Initial amount of unsafes (before refinement):    " + initialSet.size());
     out.println("Initial amount of usages (before refinement):     " + initialUsages);
     out.println("Initial amount of refined false unsafes:          " + falseUnsafes.size());
+
+    out.println("Total amount of unrefined unsafes:                " + generalUnrefinedSize);
+    out.println("Total amount of unrefined usage points:           " + topUsagePoints + "(avg. " +
+        (generalUnrefinedSize == 0 ? "0" : (topUsagePoints/generalUnrefinedSize))
+        + ", max. " + maxTopUsagePoints + ")");
+    out.println("Total amount of unrefined usages:                 " + unrefinedUsages + "(avg. " +
+        (generalUnrefinedSize == 0 ? "0" : (unrefinedUsages/generalUnrefinedSize)) + ", max " + maxUnrefinedUsages + ")");
+
+    out.println("Total amount of refined unsafes:                " + generalRefinedSize);
+    out.println("Total amount of refined usages:                   " + refinedUsages + "(avg. " +
+        (generalRefinedSize == 0 ? "0" : (refinedUsages/generalRefinedSize)) + ")");
+
+    out.println("Total amount of failed unsafes:                " + generalFailedSize);
+    out.println("Total amount of failed usages:                   " + failedUsages + "(avg. " +
+        (generalFailedSize == 0 ? "0" : (failedUsages/generalFailedSize)) + ")");
 
     if (internalStatistics != null) {
       internalStatistics.printStatistics(out);

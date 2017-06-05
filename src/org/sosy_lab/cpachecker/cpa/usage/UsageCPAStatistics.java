@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -90,8 +89,7 @@ public class UsageCPAStatistics implements Statistics {
 
     printStatisticsTimer.start();
     errPrinter.printStatistics(out);
-    AbstractStates.extractStateByType(reached.getFirstState(), UsageState.class)
-      .getStatistics().printStatistics(out);
+    UsageState.get(reached.getFirstState()).getStatistics().printStatistics(out);
     //out.
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put(transferRelationTimer);

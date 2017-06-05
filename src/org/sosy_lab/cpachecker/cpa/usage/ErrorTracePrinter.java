@@ -36,7 +36,6 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -58,11 +57,8 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.RefinedUsagePointSet;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UnrefinedUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UsageInfoSet;
-import org.sosy_lab.cpachecker.cpa.usage.storage.UsagePoint;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
@@ -86,17 +82,6 @@ public abstract class ErrorTracePrinter {
   private final BAMTransferRelation transfer;
   protected final LockTransferRelation lockTransfer;
   private UnsafeDetector detector;
-
-  private int totalUsages = 0;
-  private int totalNumberOfUsagePoints = 0;
-  private int maxNumberOfUsagePoints = 0;
-  private int maxNumberOfUsages = 0;
-
-  private int totalFailureUsages = 0;
-  private int totalFailureUnsafes = 0;
-  private int totalUnsafesWithFailureUsages = 0;
-  private int totalUnsafesWithFailureUsageInPair = 0;
-  private int trueUnsafes = 0;
 
   private final Timer preparationTimer = new Timer();
   private final Timer unsafeDetectionTimer = new Timer();
@@ -126,14 +111,12 @@ public abstract class ErrorTracePrinter {
   protected void createPath(UsageInfo usage) {
     assert usage.getKeyState() != null;
 
-    Set<List<Integer>> emptySet = Collections.emptySet();
     Function<ARGState, Integer> dummyFunc = s -> s.getStateId();
     BAMMultipleCEXSubgraphComputer subgraphComputer = transfer.createBAMMultipleSubgraphComputer(dummyFunc);
     ARGState target = (ARGState)usage.getKeyState();
     BackwardARGState newTreeTarget = new BackwardARGState(target);
-    ARGState root;
     try {
-      root = subgraphComputer.findPath(newTreeTarget, emptySet);
+      ARGState root = subgraphComputer.findPath(newTreeTarget, Collections.emptySet());
       ARGPath path = ARGUtils.getRandomPath(root);
 
       //path is transformed internally
@@ -196,19 +179,6 @@ public abstract class ErrorTracePrinter {
       if ((tmpPair.getFirst().isLooped() || tmpPair.getSecond().isLooped()) && printOnlyTrueUnsafes) {
         continue;
       }
-      countStatistics(uinfo);
-      totalUsages += uinfo.size();
-      if (uinfo.size() > maxNumberOfUsages) {
-        maxNumberOfUsages = uinfo.size();
-      }
-      if (isTrueUnsafe) {
-        trueUnsafes++;
-      }
-      if (tmpPair.getFirst().isLooped() && tmpPair.getSecond().isLooped()) {
-        totalFailureUnsafes++;
-      } else if (tmpPair.getFirst().isLooped() || tmpPair.getSecond().isLooped()) {
-        totalUnsafesWithFailureUsageInPair++;
-      }
       writingUnsafeTimer.start();
       printUnsafe(id, tmpPair);
       writingUnsafeTimer.stop();
@@ -233,73 +203,15 @@ public abstract class ErrorTracePrinter {
     finish();
   }
 
-  private void countUsageStatistics(UnrefinedUsagePointSet l) {
-    Iterator<UsagePoint> pointIterator = l.getPointIterator();
-    while (pointIterator.hasNext()) {
-      UsagePoint point = pointIterator.next();
-      totalNumberOfUsagePoints++;
-      UsageInfoSet uset = l.getUsageInfo(point);
-      for (UsageInfo uinfo : uset.getUsages()) {
-        if (uinfo.isLooped()) {
-          totalFailureUsages++;
-        }
-        continue;
-      }
-    }
-  }
-
-  private void countUsageStatistics(RefinedUsagePointSet l) {
-    Pair<UsageInfo, UsageInfo> unsafe = detector.getUnsafePair(l);
-    UsageInfo first = unsafe.getFirst();
-    UsageInfo second = unsafe.getSecond();
-    if (first.isLooped()) {
-      totalFailureUsages++;
-    }
-    if (second.isLooped() && first != second) {
-      totalFailureUsages++;
-    }
-    totalNumberOfUsagePoints += l.size();
-  }
-
-  private void countStatistics(AbstractUsagePointSet l) {
-    int startFailureNum = totalFailureUsages;
-
-    if (l instanceof UnrefinedUsagePointSet) {
-      countUsageStatistics((UnrefinedUsagePointSet)l);
-    } else if (l instanceof RefinedUsagePointSet) {
-      countUsageStatistics((RefinedUsagePointSet)l);
-    }
-
-    if (maxNumberOfUsagePoints < l.getNumberOfTopUsagePoints()) {
-      maxNumberOfUsagePoints = l.getNumberOfTopUsagePoints();
-    }
-    if (totalFailureUsages > startFailureNum) {
-      totalUnsafesWithFailureUsages++;
-    }
-  }
-
   public void printStatistics(final PrintStream out) {
 
-    int unsafeSize = container.getUnsafeSize();
-    out.println("Amount of unsafes:                                         " + unsafeSize);
-    out.println("Amount of unsafe usages:                                   " + totalUsages + "(avg. " +
-        (unsafeSize == 0 ? "0" : (totalUsages/unsafeSize))
-        + ", max. " + maxNumberOfUsages + ")");
-    out.println("Amount of unsafe usage points:                             " + totalNumberOfUsagePoints + "(avg. " +
-        (unsafeSize == 0 ? "0" : (totalNumberOfUsagePoints/unsafeSize))
-        + ", max. " + maxNumberOfUsagePoints + ")");
-    out.println("Amount of true unsafes:                                    " + trueUnsafes);
-    out.println("Amount of unsafes with both failures in pair:              " + totalFailureUnsafes);
-    out.println("Amount of unsafes with one failure in pair:                " + totalUnsafesWithFailureUsageInPair);
-    out.println("Amount of unsafes with at least once failure in usage list:" + totalUnsafesWithFailureUsages);
-    out.println("Amount of usages with failure:                             " + totalFailureUsages);
+    container.printUsagesStatistics(out);
 
+    out.println("");
     out.println("Time for preparation:          " + preparationTimer);
     out.println("Time for unsafe detection:     " + unsafeDetectionTimer);
     out.println("Time for dumping the unsafes:  " + writingUnsafeTimer);
-
-    container.printUsagesStatistics(out);
-    out.println("Time for reseting unsafes:          " + container.resetTimer);
+    out.println("Time for reseting unsafes:     " + container.resetTimer);
   }
 
   protected String shouldBeHighlighted(CFAEdge pEdge) {
