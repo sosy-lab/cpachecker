@@ -208,7 +208,7 @@ public class EclipseParsers {
 
         @SuppressWarnings("unchecked")
         Class<? extends Parser> parserClass =
-            (Class<? extends CParser>) classLoader.loadClass(JAVASCRIPT_PARSER_CLASS);
+            (Class<? extends Parser>) classLoader.loadClass(JAVASCRIPT_PARSER_CLASS);
         parserConstructor = parserClass.getConstructor(new Class<?>[] {LogManager.class});
         parserConstructor.setAccessible(true);
         loadedJavaScriptParser = new WeakReference<>(parserConstructor);
