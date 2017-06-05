@@ -13,12 +13,20 @@
 				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
 				$scope.help_content = "<p>I am currently being developed</p>";
 				$scope.tab = 1;
+				$scope.nodes = nodes;
+				$scope.argWorker = argWorker;
 				$scope.$on("ChangeTab", function(event, tabIndex) {
 					$scope.setTab(tabIndex);
 				});
 				$scope.setTab = function(tabIndex) {
+					console.log($scope.argWorker);
+					console.log($scope.nodes);
 					if (tabIndex === 2) {
-						d3.selectAll(".arg-graph").style("opacity", 1);
+						d3.select("#arg-container").classed("content", true);
+						d3.selectAll(".arg-graph").style("visibility", "visible");
+					} else {
+						d3.select("#arg-container").classed("content", false);
+						d3.selectAll(".arg-graph").style("visibility", "hidden");
 					}
 					$scope.tab = tabIndex;
 				};
@@ -33,32 +41,26 @@
 				// available sourcefiles
 				$scope.sourceFiles = sourceFiles;
 				$scope.selectedSourceFile = 0;
-		        $scope.setSourceFile = function(value){
+		        $scope.setSourceFile = function(value) {
 		            $scope.selectedSourceFile = value;
 		        };
-		        $scope.sourceFileIsSet = function(value){
+		        $scope.sourceFileIsSet = function(value) {
 		            return value === $scope.selectedSourceFile;
 		        };				
 			}]);
 	
 	app.controller('CFAController', ['$rootScope', '$scope',
 		function($rootScope, $scope) {
-			$scope.nodes = nodes;
-			$scope.edges = edges;
-			$scope.functions = functions;
-			$scope.functionCallEdges = functionCallEdges;
-			$scope.errorPath = errorPath;
-			$scope.graphSplitThreshold = graphSplitThreshold
-			$scope.zoomEnabled = zoomEnabled;
-			$scope.constants = constants;
+		
 		}]);
 	
 	app.controller('ARGController', ['$rootScope', '$scope',
 		function($rootScope, $scope) {
-			$scope.nodes = nodes;
-			$scope.edges = edges;
-	}]);
-	
+			$scope.printIt = function(value) {
+				console.log(value);
+			}
+		}]);
+
 })();
 
 var argJson={};//ARG_JSON_INPUT
@@ -97,6 +99,7 @@ var constants = {
 	beforeNode : "before",
 	margin : 20,
 }
+var cfaWorker, argWorker;
 
 function init() {
 	// ======================= Define CFA and ARG Workers logic =======================
@@ -187,22 +190,7 @@ function init() {
     			});
     			setGraphEdges(graph, graphEdges, true);
     		}
-    		// TODO: reverseArrowHead + styles
-    		edges.forEach(function(edge){
-    			var source = edge.source;
-    			var target = edge.target;
-    			if (mergedNodes.includes(source) && mergedNodes.includes(target)) return;
-    			if (mergedNodes.includes(source)) source = getMergingNode(source);
-    			if (mergedNodes.includes(target)) target = getMergingNode(target);
-    			var sourceGraph = getGraphForNode(source);
-    			var targetGraph = getGraphForNode(target);
-    			if (sourceGraph !== targetGraph && sourceGraph < targetGraph) {
-    				graphMap[sourceGraph].setNode(source + "" + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
-    				graphMap[sourceGraph].setEdge(source, source + "" + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
-    				graphMap[targetGraph].setNode(target + "" + targetGraph, {label: "D", class: "dummy", id: "node" + source});
-    				graphMap[targetGraph].setEdge(target + "" + targetGraph, target, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
-    			}
-    		});
+    		buildCrossgraphEdges();
     		// Send each graph to the main script
     		for (var i = 1; i <= requiredGraphs; i++) {
     			self.postMessage({"graph" : JSON.stringify(graphMap[Object.keys(graphMap)[i - 1]]), "id" : i});
@@ -212,6 +200,31 @@ function init() {
     	// Return the graph in which the nodeNumber is present
     	function getGraphForNode(nodeNumber) {
     		return Object.keys(graphMap).find(function(key) { return key >= nodeNumber;});
+    	}
+    	
+		// TODO: reverseArrowHead + styles
+    	// Handle Edges that connect Graphs
+    	function buildCrossgraphEdges() {
+    		edges.forEach(function(edge){
+    			var source = edge.source;
+    			var target = edge.target;
+    			if (mergedNodes.includes(source) && mergedNodes.includes(target)) return;
+    			if (mergedNodes.includes(source)) source = getMergingNode(source);
+    			if (mergedNodes.includes(target)) target = getMergingNode(target);
+    			var sourceGraph = getGraphForNode(source);
+    			var targetGraph = getGraphForNode(target);
+    			if (sourceGraph < targetGraph) { 
+        			graphMap[sourceGraph].setNode(source + "" + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
+        			graphMap[sourceGraph].setEdge(source, source + "" + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
+        			graphMap[targetGraph].setNode(target + "" + targetGraph, {label: "D", class: "dummy", id: "node" + source});
+        			graphMap[targetGraph].setEdge(target + "" + targetGraph, target, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
+    			} else if(targetGraph > sourceGraph){ 
+    				graphMap[sourceGraph].setNode(source + "" + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
+    				graphMap[sourceGraph].setEdge(source + "" + sourceGraph, source, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
+    				graphMap[targetGraph].setNode(target + "" + targetGraph, {label: "D", class: "dummy", id: "node" + source});
+    				graphMap[targetGraph].setEdge(target, target + "" + targetGraph, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
+    			}
+    		});
     	}
     	
     	// create and return a graph element with a set transition
@@ -322,6 +335,7 @@ function init() {
 		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
 		var json, nodes, edges;
 		var graphSplitThreshold = 700; // default TODO: enable change by user
+		var graphMap = {};
 		self.addEventListener("message", function(m) {
 			if (m.data.json !== undefined) {
 				json = JSON.parse(m.data.json);
@@ -341,6 +355,63 @@ function init() {
 			setGraphEdges(g, edges, false);
 			self.postMessage({"graph" : JSON.stringify(g), "id" : 1});
 		}
+		
+		function buildMultipleGraphs() {
+    		var requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
+    		var firstGraphBuild = false;
+    		var nodesPerGraph = [];
+    		for (var i = 1; i <= requiredGraphs; i++) {
+    			if (!firstGraphBuild) {
+    				nodesPerGraph = nodes.slice(0, graphSplitThreshold);
+    				firstGraphBuild = true;
+    			} else {
+    				if (nodes[graphSplitThreshold * i - 1] !== undefined)
+    					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
+    				else
+    					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1));
+    			}
+    			var graph = createGraph();
+    			graphMap[nodesPerGraph[nodesPerGraph.length - 1].index] = graph;
+    			setGraphNodes(graph, nodesPerGraph);
+    			var graphEdges = edges.filter(function(e) {
+    				if ( (nodesPerGraph[0].index <= e.source && e.source <= nodesPerGraph[nodesPerGraph.length - 1].index ) &&
+    						(nodesPerGraph[0].index <= e.target && e.target <= nodesPerGraph[nodesPerGraph.length - 1].index) ) {
+    					return e;
+    				}
+    			});
+    			setGraphEdges(graph, graphEdges, true);
+    		}
+    		buildCrossgraphEdges();
+    		// Send each graph to the main script
+    		for (var i = 1; i <= requiredGraphs; i++) {
+    			self.postMessage({"graph" : JSON.stringify(graphMap[Object.keys(graphMap)[i - 1]]), "id" : i});
+    		}
+		} 
+		
+		// TODO: reverseArrowHead + styles
+		// Handle graph connecting edges
+    	function buildCrossgraphEdges() {
+    		edges.forEach(function(edge){
+    			var sourceGraph = getGraphForNode(edge.source);
+    			var targetGraph = getGraphForNode(edge.target);
+    			if (sourceGraph < targetGraph) { 
+        			graphMap[sourceGraph].setNode(edge.source + "" + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+        			graphMap[sourceGraph].setEdge(edge.source, edge.source + "" + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;"});
+        			graphMap[targetGraph].setNode(edge.target + "" + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+        			graphMap[targetGraph].setEdge(edge.target + "" + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;"});
+    			} else if(targetGraph > sourceGraph){ 
+    				graphMap[sourceGraph].setNode(edge.source + "" + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+    				graphMap[sourceGraph].setEdge(edge.source + "" + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
+    				graphMap[targetGraph].setNode(edge.target + "" + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+    				graphMap[targetGraph].setEdge(edge.target, edge.target + "" + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
+    			}
+    		});
+    	}
+    	
+    	// Return the graph in which the nodeNumber is present
+    	function getGraphForNode(nodeNumber) {
+    		return Object.keys(graphMap).find(function(key) { return key >= nodeNumber;});
+    	}
 		
     	// create and return a graph element with a set transition
     	function createGraph() {
@@ -365,17 +436,18 @@ function init() {
     		});
     	}
     	
+    	// Set the graph edges 
     	function setGraphEdges(graph, edgesToSet, multigraph) {
-    		if (!multigraph) {
-        		edgesToSet.forEach(function(e) {
-        			graph.setEdge(e.source, e.target, {
-        				label: e.label, 
-        				class: e.type, 
-        				id: "arg-edge"+ e.source + e.target,
-        				weight: edgeWeightDecider(e)
-        			});
-        		});
-    		}
+        	edgesToSet.forEach(function(e) {
+        		if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
+            		graph.setEdge(e.source, e.target, {
+            			label: e.label,
+            			class: e.type,
+            			id: "arg-edge"+ e.source + e.target,
+            			weight: edgeWeightDecider(e)
+            		});
+        		}
+        	});
     	}
     	
     	// Decide the weight for the edges based on type
@@ -383,17 +455,15 @@ function init() {
     		if (edge.type === "covered") return 0;
     		return 1;
     	}
-    	
 		
-	}
-
+	}	
 	// ======================= Create CFA and ARG Workers =======================
 	/**
 	 * Create workers using blobs due to Chrome's default security policy and 
 	 * the need of having a single file at the end that can be send i.e. via e-mail
 	 */
-	var cfaWorker = new Worker(URL.createObjectURL(new Blob(["("+cfaWorker_function.toString()+")()"], {type: 'text/javascript'})));
-	var argWorker = new Worker(URL.createObjectURL(new Blob(["("+argWorker_function.toString()+")()"], {type: "text/javascript"})));
+	cfaWorker = new Worker(URL.createObjectURL(new Blob(["("+cfaWorker_function.toString()+")()"], {type: 'text/javascript'})));
+	argWorker = new Worker(URL.createObjectURL(new Blob(["("+argWorker_function.toString()+")()"], {type: "text/javascript"})));
 
 	cfaWorker.addEventListener("message", function(m) {
 		if (m.data.graph !== undefined) {
@@ -505,6 +575,10 @@ function init() {
 	function addEventsToNodes() {
 		d3.selectAll("svg g.node").on("mouseover", function(d){showInfoBoxNode(d3.event, d);})
 			.on("mouseout", function(){hideInfoBoxNode();})
+			.on("click", function(d) {
+				var scope = angular.element($("#arg-container")).scope();
+				scope.$apply(function(){scope.printIt(d)})
+			})
 		// TODO: node.on("click") needed?
 	}
 
@@ -514,7 +588,7 @@ function init() {
 			.on("mouseout", function(){hideInfoBoxEdge();})
 		// TODO: edge.on("click")
 	}
-
+	
 	// on mouse over display info box for node
 	function showInfoBoxNode(e, nodeIndex) {
 		var offsetX = 20;
@@ -556,5 +630,5 @@ function init() {
 	// on mouse out hide info box for edge
 	function hideInfoBoxEdge() {
 		d3.select("#infoBoxEdge").style("visibility", "hidden");
-	}	
+	}		
 }

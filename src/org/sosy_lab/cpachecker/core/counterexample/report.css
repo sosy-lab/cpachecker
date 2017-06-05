@@ -93,7 +93,7 @@ body {
 }
 
 #externalFiles_section div.content {
-	overflow: auto;
+	overflow: scroll;
 	position: absolute;
 	top: 50px;
 	bottom: 5px;
@@ -165,8 +165,7 @@ div pre {
 }
 
 .arg-graph {
-	position: absolute;
-	opacity: 0;
+	visibility: hidden;
 }
 
 g.node-start>polygon {
