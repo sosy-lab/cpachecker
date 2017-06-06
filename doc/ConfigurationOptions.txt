@@ -2277,6 +2277,9 @@ cpa.usage.binderFunctions = no default value
 # path to write results
 cpa.usage.falseUnsafesOutput = "FalseUnsafes"
 
+# if a file do not exist, do not include the corresponding edge
+cpa.usage.filterMissedFiles = true
+
 # The functions, which cannot be executed in parallel with themselves
 cpa.usage.notSelfParallelFunctions = new HashSet<>()
 
