@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.local;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashMap;
@@ -179,14 +180,11 @@ public class LocalState implements LatticeAbstractState<LocalState> {
       return pState2;
     }
     LocalState joinedPreviousState = null;
-    if ((this.previousState != null && pState2.previousState == null)
-        || (this.previousState == null && pState2.previousState != null) ) {
+    if (this.previousState != null && pState2.previousState == null) {
       //One of them was already reduced and one not yet
-      if (this.previousState == null) {
-        return this;
-      } else {
-        return pState2;
-      }
+      return pState2;
+    } else if (this.previousState == null && pState2.previousState != null) {
+      return this;
     } else if (this.previousState != null && pState2.previousState != null
         && !this.previousState.equals(pState2.previousState)) {
       //it can be, when we join states, called from different functions
@@ -264,30 +262,16 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   }
 
   public String toLog() {
-    StringBuilder sb = new StringBuilder();
-    for (AbstractIdentifier id : DataInfo.keySet()) {
-      if (id instanceof SingleIdentifier) {
-        sb.append(((SingleIdentifier)id).toLog() + ";" + getDataInfo(id) + "\n");
-      }
-    }
-
-    if (sb.length() > 2) {
-      sb.delete(sb.length() - 1, sb.length());
-    }
-    return sb.toString();
+    return from(DataInfo.keySet())
+      .filter(SingleIdentifier.class)
+      .transform(id -> id.toLog() + ";" + getDataInfo(id))
+      .join(Joiner.on("\n"));
   }
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-
-    for (AbstractIdentifier id : DataInfo.keySet()) {
-      sb.append(id.toString() + " - " + getDataInfo(id) + "\n");
-    }
-
-    if (sb.length() > 2) {
-      sb.delete(sb.length() - 1, sb.length());
-    }
-    return sb.toString();
+    return from(DataInfo.keySet())
+        .transform(id -> id.toString() + " - " + getDataInfo(id) + "\n")
+        .join(Joiner.on("\n"));
   }
 }

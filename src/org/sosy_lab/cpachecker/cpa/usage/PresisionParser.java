@@ -47,17 +47,20 @@ public class PresisionParser {
   private String file;
   private CFA cfa;
   private final LogManager logger;
-  private Map<Integer, CFANode> idToNodeMap = new HashMap<>();
+  private Map<Integer, CFANode> idToNodeMap;
 
   PresisionParser(String filename, CFA pCfa, LogManager l) {
     file = filename;
     cfa = pCfa;
     logger = l;
+    for (CFANode n : cfa.getAllNodes()) {
+      idToNodeMap.put(n.getNodeNumber(), n);
+    }
   }
 
   public UsagePrecision parse(UsagePrecision precision) {
     try (BufferedReader reader = Files.newBufferedReader(Paths.get(file), Charset.defaultCharset())){
-      String line, local;
+      String line;
       CFANode node = null;
       String[] localSet;
       DataType type;
@@ -75,8 +78,7 @@ public class PresisionParser {
           info = new HashMap<>();
         } else if (line.length() > 0) {
           // it's information about local statistics
-          local = line;
-          localSet = local.split(";");
+          localSet = line.split(";");
           if (localSet[0].equalsIgnoreCase("g")) {
             //Global variable
             id = new GeneralGlobalVariableIdentifier(localSet[1], Integer.parseInt(localSet[2]));
@@ -120,11 +122,6 @@ public class PresisionParser {
   }
 
   private CFANode getNode(int id) {
-    if (idToNodeMap.isEmpty()) {
-      for (CFANode n : cfa.getAllNodes()) {
-        idToNodeMap.put(n.getNodeNumber(), n);
-      }
-    }
     return idToNodeMap.get(id);
   }
 }

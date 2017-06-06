@@ -132,6 +132,10 @@ public class LocalTransferRelation extends ForwardingTransferRelation<LocalState
       if (dereference > 0) {
         AbstractIdentifier returnId = createId(returnExpression.get(), dereference);
         DataType type = newState.getType(returnId);
+        if (type == null && returnId instanceof ConstantIdentifier) {
+          // return (struct myStruct *) 0; - consider the value as local
+          type = DataType.LOCAL;
+        }
         newState.set(ReturnIdentifier.getInstance(), type);
       }
     }
@@ -144,7 +148,6 @@ public class LocalTransferRelation extends ForwardingTransferRelation<LocalState
     CFunctionCall exprOnSummary     = cfaEdge.getSummaryEdge().getExpression();
     DataType returnType             = state.getType(ReturnIdentifier.getInstance());
     LocalState newElement           = state.getClonedPreviousState();
-
     if (exprOnSummary instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement assignExp = ((CFunctionCallAssignmentStatement)exprOnSummary);
 

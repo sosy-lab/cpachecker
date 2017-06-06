@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.lock;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -209,20 +212,19 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     }
 
     public void reduceLocks(Set<LockIdentifier> usedLocks) {
-      for (LockIdentifier lock : new HashSet<>(mutableLocks.keySet())) {
-        if (usedLocks != null && !usedLocks.contains(lock)) {
-          mutableLocks.remove(lock);
-        }
+      if (usedLocks != null) {
+        Set<LockIdentifier> reducableLocks = Sets.difference(new HashSet<>(mutableLocks.keySet()), usedLocks);
+        reducableLocks.forEach(l -> mutableLocks.remove(l));
       }
     }
 
     public void reduceLockCounters(Set<LockIdentifier> exceptLocks) {
-      for (LockIdentifier lock : new HashSet<>(mutableLocks.keySet())) {
-        if (!exceptLocks.contains(lock)) {
-          mutableLocks.remove(lock);
-          add(lock);
-        }
-      }
+      Set<LockIdentifier> expandableLocks = Sets.difference(new HashSet<>(mutableLocks.keySet()), exceptLocks);
+      expandableLocks.forEach(l ->
+        {
+          mutableLocks.remove(l);
+          add(l);
+        });
     }
 
     public void expand(LockState rootState) {
@@ -232,7 +234,7 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     public void expandLocks(LockState pRootState,  Set<LockIdentifier> usedLocks) {
       for (LockIdentifier lock : pRootState.locks.keySet()) {
         if (usedLocks != null && !usedLocks.contains(lock)) {
-          mutableLocks.put(lock, pRootState.locks.get(lock));
+          mutableLocks.put(lock, pRootState.getCounter(lock));
         }
       }
     }
@@ -295,17 +297,13 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-
-    for (LockIdentifier lock : Sets.newTreeSet(locks.keySet())) {
-      sb.append(lock.toString() + "[" + locks.get(lock) + "]" + ", ");
-    }
     if (locks.size() > 0) {
-      sb.delete(sb.length() - 2, sb.length());
+      return from(locks.keySet())
+        .transform(l -> l.toString() + "[" + locks.get(l) + "]")
+        .join(Joiner.on(", "));
     } else {
-      sb.append("Without locks");
+      return "Without locks";
     }
-    return sb.toString();
   }
 
   public int getCounter(String lockName, String varName) {
@@ -314,8 +312,7 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
   }
 
   public int getCounter(LockIdentifier lock) {
-    Integer size = locks.get(lock);
-    return (size == null ? 0 : size);
+    return locks.getOrDefault(lock, 0);
   }
 
   @Override
@@ -365,12 +362,8 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
   public boolean isLessOrEqual(LockState other) {
     //State is less, if it has the same locks as the other and may be some more
 
-    for (LockIdentifier lock : other.locks.keySet()) {
-      if (!(this.locks.containsKey(lock))) {
-        return false;
-      }
-    }
-    return true;
+    return from(other.locks.keySet())
+            .allMatch(lock -> this.locks.containsKey(lock));
   }
 
   /**

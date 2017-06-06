@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2012  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,27 +21,27 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.identifiers;
+package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import java.util.Collection;
-import java.util.Collections;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import java.util.List;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
-public abstract class VariableIdentifier extends SingleIdentifier {
+public class SingleFunctionRefiner extends GenericSinglePathRefiner {
 
-  public VariableIdentifier(String nm, CType tp, int dereference) {
-    super(nm, tp, dereference);
+  public SingleFunctionRefiner(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper) {
+    super(pWrapper);
   }
 
   @Override
-  public abstract SingleIdentifier clone();
+  protected RefinementResult call(ExtendedARGPath pPath) throws CPAException, InterruptedException {
+    return null;
+  }
 
-  @Override
-  public abstract SingleIdentifier clearDereference();
-
-  @Override
-  public Collection<AbstractIdentifier> getComposedIdentifiers() {
-    return Collections.emptySet();
+  private List<CFAEdge> extractSubPath(ExtendedARGPath path) {
+    return path.getFullPath();
   }
 }

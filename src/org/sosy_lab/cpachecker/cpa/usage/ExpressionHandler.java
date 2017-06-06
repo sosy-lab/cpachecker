@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import com.google.common.base.Preconditions;
 import java.util.LinkedList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -35,11 +36,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.Visitor.NoException;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
-import org.sosy_lab.cpachecker.exceptions.HandleCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class ExpressionHandler extends DefaultCExpressionVisitor<Void, HandleCodeException> {
+public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoException> {
 
   private List<Pair<CExpression, Access>> result;
   protected Access accessMode;
@@ -50,7 +51,7 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, HandleCod
   }
 
   @Override
-  public Void visit(CArraySubscriptExpression expression) throws HandleCodeException {
+  public Void visit(CArraySubscriptExpression expression) {
     addExpression(expression);
     accessMode = Access.READ;
     expression.getArrayExpression().accept(this);
@@ -58,25 +59,21 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, HandleCod
   }
 
   @Override
-  public Void visit(CBinaryExpression expression) throws HandleCodeException {
-    if (accessMode == Access.READ) {
-      expression.getOperand1().accept(this);
-      expression.getOperand2().accept(this);
-    } else {
-      //We can't be here. This is error: a + b = ...
-      throw new HandleCodeException("Writing to BinaryExpression: " + expression.toASTString());
-    }
+  public Void visit(CBinaryExpression expression) {
+    Preconditions.checkArgument(accessMode == Access.READ, "Writing to BinaryExpression: " + expression.toASTString());
+    expression.getOperand1().accept(this);
+    expression.getOperand2().accept(this);
     return null;
   }
 
   @Override
-  public Void visit(CCastExpression expression) throws HandleCodeException {
+  public Void visit(CCastExpression expression) {
     expression.getOperand().accept(this);
     return null;
   }
 
   @Override
-  public Void visit(CFieldReference expression) throws HandleCodeException {
+  public Void visit(CFieldReference expression) {
     addExpression(expression);
     if (expression.isPointerDereference()) {
       accessMode = Access.READ;
@@ -86,13 +83,13 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, HandleCod
   }
 
   @Override
-  public Void visit(CIdExpression expression) throws HandleCodeException {
+  public Void visit(CIdExpression expression) {
     addExpression(expression);
     return null;
   }
 
   @Override
-  public Void visit(CUnaryExpression expression) throws HandleCodeException {
+  public Void visit(CUnaryExpression expression) {
     if (expression.getOperator() == CUnaryExpression.UnaryOperator.AMPER) {
       addExpression(expression);
       return null;
@@ -104,7 +101,7 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, HandleCod
   }
 
   @Override
-  public Void visit(CPointerExpression pPointerExpression) throws HandleCodeException {
+  public Void visit(CPointerExpression pPointerExpression) {
     //write: *s =
     addExpression(pPointerExpression);
     accessMode = Access.READ;
@@ -113,15 +110,12 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, HandleCod
   }
 
   @Override
-  public Void visit(CComplexCastExpression pComplexCastExpression) throws HandleCodeException {
+  public Void visit(CComplexCastExpression pComplexCastExpression) {
     pComplexCastExpression.getOperand().accept(this);
     return null;
   }
 
   private void addExpression(CExpression e) {
-    /*creator.clearDereference();
-    AbstractIdentifier id = e.accept(creator);
-    id = currentState.getLinksIfNecessary(id);*/
     result.add(Pair.of(e, accessMode));
   }
 
@@ -130,7 +124,7 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, HandleCod
   }
 
   @Override
-  protected Void visitDefault(CExpression pExp) throws HandleCodeException {
+  protected Void visitDefault(CExpression pExp) {
     return null;
   }
 }

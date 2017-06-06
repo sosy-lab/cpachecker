@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Joiner;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
@@ -183,13 +186,13 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
   @Override
   public String toString() {
     StringBuilder str = new StringBuilder();
+
     str.append("[");
-    for (AbstractIdentifier id : variableBindingRelation.keySet()) {
-      str.append(id.toString());
-      str.append("->");
-      str.append(variableBindingRelation.get(id).toString());
-      str.append(", ");
-    }
+    str.append(
+      from(variableBindingRelation.keySet())
+        .transform(id -> id.toString() + "->" + variableBindingRelation.get(id).toString())
+        .join(Joiner.on(", "))
+    );
     str.append("]\n");
     str.append(getWrappedState());
     return str.toString();

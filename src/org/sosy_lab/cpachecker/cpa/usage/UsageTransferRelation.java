@@ -281,7 +281,7 @@ public class UsageTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleDeclaration(CDeclarationEdge declEdge) throws CPATransferException {
+  private void handleDeclaration(CDeclarationEdge declEdge) {
 
     if (declEdge.getDeclaration().getClass() != CVariableDeclaration.class) {
       // not a variable declaration
@@ -310,7 +310,7 @@ public class UsageTransferRelation implements TransferRelation {
     }
   }
 
-  private void handleFunctionCallExpression(final CExpression left, final CFunctionCallExpression fcExpression) throws HandleCodeException {
+  private void handleFunctionCallExpression(final CExpression left, final CFunctionCallExpression fcExpression) {
 
     String functionCallName = fcExpression.getFunctionNameExpression().toASTString();
     if (binderFunctions != null && binderFunctions.contains(functionCallName))
@@ -422,7 +422,7 @@ public class UsageTransferRelation implements TransferRelation {
     state.put(idIn, idFrom);
   }
 
-  private void visitStatement(final CExpression expression, final Access access) throws HandleCodeException {
+  private void visitStatement(final CExpression expression, final Access access) {
     String functionName = AbstractStates.extractStateByType(newState, CallstackState.class).getCurrentFunction();
     handler.setMode(access);
     expression.accept(handler);

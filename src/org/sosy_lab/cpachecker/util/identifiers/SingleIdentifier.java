@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 
 
-public abstract class SingleIdentifier implements AbstractIdentifier{
+public abstract class SingleIdentifier implements AbstractIdentifier {
 
   protected String name;
   protected CType type;
@@ -108,7 +108,21 @@ public abstract class SingleIdentifier implements AbstractIdentifier{
   public abstract SingleIdentifier clone();
 
   @Override
-  public abstract String toString();
+  public String toString() {
+    String info = "";
+    if (dereference > 0) {
+      for (int i = 0; i < dereference; i++) {
+        info += "*";
+      }
+    } else if (dereference == -1) {
+      info += "&";
+    } else if (dereference < -1){
+      info = "Error in string representation, dereference < -1";
+      return info;
+    }
+    info += name;
+    return info;
+  }
 
   public abstract SingleIdentifier clearDereference();
 
@@ -120,16 +134,6 @@ public abstract class SingleIdentifier implements AbstractIdentifier{
   public void setDereference(int pD) {
     dereference = pD;
   }
-
-  /*@Override
-  public AbstractIdentifier containsIn(Collection<? extends AbstractIdentifier> set) {
-    GeneralIdentifier generalId = this.getGeneralId();
-    if (generalId != null && set.contains(generalId)) {
-      return this;
-    } else {
-      return null;
-    }
-  }*/
 
   @Override
   public int compareTo(AbstractIdentifier pO) {

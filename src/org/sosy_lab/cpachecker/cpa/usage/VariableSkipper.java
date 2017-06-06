@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -83,12 +85,10 @@ public class VariableSkipper {
       return true;
     }
 
-    if (byFunctionPrefix != null) {
-      for (String prefix : byFunctionPrefix) {
-        if (functionName.startsWith(prefix)) {
-          return true;
-        }
-      }
+    if (byFunctionPrefix != null &&
+        from(byFunctionPrefix)
+          .anyMatch(prefix -> functionName.startsWith(prefix))) {
+      return true;
     }
 
     return false;
@@ -97,17 +97,13 @@ public class VariableSkipper {
   private boolean checkId(SingleIdentifier singleId) {
     String varName = singleId.getName();
 
-    if (byName != null) {
-      if (byName.contains(varName)) {
-        return true;
-      }
+    if (byName != null && byName.contains(varName)) {
+      return true;
     }
-    if (byNamePrefix != null) {
-      for (String prefix : byNamePrefix) {
-        if (varName.startsWith(prefix)) {
-          return true;
-        }
-      }
+    if (byNamePrefix != null &&
+        from(byNamePrefix)
+          .anyMatch(prefix -> varName.startsWith(prefix))) {
+      return true;
     }
     if (byType != null) {
       CType idType = singleId.getType();

@@ -62,61 +62,25 @@ public class ConfigurationParser {
     Map<String, Integer> resetFunctions;
     Set<String> variables;
     LockInfo tmpLockInfo;
-    Set<String> tmpStringSet;
     String tmpString;
     int num;
 
     for (String lockName : lockinfo) {
-      tmpString = config.getProperty(lockName + ".lock");
-      lockFunctions = new HashMap<>();
-      if (tmpString != null) {
-        tmpStringSet = new HashSet<>(Arrays.asList(tmpString.split(", *")));
-        for (String funcName : tmpStringSet) {
-          try {
-            num = Integer.parseInt(config.getProperty(lockName + "." + funcName + ".parameters"));
-          } catch (NumberFormatException e) {
-            num = 0;
-          }
-          lockFunctions.put(funcName, num);
-        }
-      }
-      unlockFunctions = new HashMap<>();
-      tmpString = config.getProperty(lockName + ".unlock");
-      if (tmpString != null) {
-        tmpStringSet = new HashSet<>(Arrays.asList(tmpString.split(", *")));
-        for (String funcName : tmpStringSet) {
-          try {
-            num = Integer.parseInt(config.getProperty(lockName + "." + funcName + ".parameters"));
-          } catch (NumberFormatException e) {
-            num = 0;
-          }
-          unlockFunctions.put(funcName, num);
-        }
-      }
-      variables = new HashSet<>();
+      lockFunctions = createMap(lockName, "lock");
+
+      unlockFunctions = createMap(lockName, "unlock");
+
       tmpString = config.getProperty(lockName + ".variable");
       if (tmpString != null) {
         variables = new HashSet<>(Arrays.asList(tmpString.split(", *")));
+      } else {
+        variables = new HashSet<>();
       }
-      resetFunctions = new HashMap<>();
-      tmpString = config.getProperty(lockName + ".reset");
-      if (tmpString != null) {
-        tmpStringSet = new HashSet<>(Arrays.asList(tmpString.split(", *")));
-        for (String funcName : tmpStringSet) {
-          try {
-            num = Integer.parseInt(config.getProperty(lockName + "." + funcName + ".parameters"));
-          } catch (NumberFormatException e) {
-            num = 0;
-          }
-          resetFunctions.put(funcName, num);
-        }
-      }
+
+      resetFunctions = createMap(lockName, "reset");
+
       tmpString = config.getProperty(lockName + ".setlevel");
-      try {
-        num = Integer.parseInt(config.getProperty(lockName + ".maxDepth"));
-      } catch (NumberFormatException e) {
-        num = 100;
-      }
+      num = getValue(lockName + ".maxDepth", 10);
       tmpLockInfo = new LockInfo(lockName, lockFunctions, unlockFunctions, resetFunctions, variables, tmpString, num);
       tmpInfo.add(tmpLockInfo);
     }
@@ -124,78 +88,45 @@ public class ConfigurationParser {
   }
 
   @SuppressWarnings("deprecation")
+  private Map<String, Integer> createMap(String lockName, String target) {
+    Map<String, Integer> map = new HashMap<>();
+    String tmpString = config.getProperty(lockName + "." + target);
+    if (tmpString != null) {
+      int num;
+      Set<String> tmpStringSet = new HashSet<>(Arrays.asList(tmpString.split(", *")));
+      for (String funcName : tmpStringSet) {
+        num = getValue(lockName + "." + funcName + ".parameters", 0);
+        map.put(funcName, num);
+      }
+    }
+    return map;
+  }
+
+  @SuppressWarnings("deprecation")
+  private int getValue(String property, int defaultValue) {
+    int num;
+    try {
+      num = Integer.parseInt(config.getProperty(property));
+    } catch (NumberFormatException e) {
+      num = defaultValue;
+    }
+    return num;
+  }
+
   public ImmutableMap<String, AnnotationInfo> parseAnnotatedFunctions() {
     Map<String, String> freeLocks;
     Map<String, String> restoreLocks;
     Map<String, String> resetLocks;
     Map<String, String> captureLocks;
-    Set<String> tmpStringSet;
-    String tmpString;
     AnnotationInfo tmpAnnotationInfo;
     Map<String, AnnotationInfo> annotatedfunctions = new HashMap<>();
 
     if (annotated != null) {
       for (String fName : annotated) {
-        tmpString = config.getProperty("annotate." + fName + ".free");
-        freeLocks = null;
-        if (tmpString != null) {
-          tmpStringSet = new HashSet<>(Arrays.asList(tmpString.split(", *")));
-          freeLocks = new HashMap<>();
-          for (String fullName : tmpStringSet) {
-            if (fullName.matches(".*\\(.*")) {
-              String[] stringArray = fullName.split("\\(");
-              assert stringArray.length == 2;
-              freeLocks.put(stringArray[0], stringArray[1]);
-            } else {
-              freeLocks.put(fullName, "");
-            }
-          }
-        }
-        tmpString = config.getProperty("annotate." + fName + ".restore");
-        restoreLocks = null;
-        if (tmpString != null) {
-          tmpStringSet = new HashSet<>(Arrays.asList(tmpString.split(", *")));
-          restoreLocks = new HashMap<>();
-          for (String fullName : tmpStringSet) {
-            if (fullName.matches(".*\\(.*")) {
-              String[] stringArray = fullName.split("\\(");
-              assert stringArray.length == 2;
-              restoreLocks.put(stringArray[0], stringArray[1]);
-            } else {
-              restoreLocks.put(fullName, "");
-            }
-          }
-        }
-        tmpString = config.getProperty("annotate." + fName + ".reset");
-        resetLocks = null;
-        if (tmpString != null) {
-          tmpStringSet = new HashSet<>(Arrays.asList(tmpString.split(", *")));
-          resetLocks = new HashMap<>();
-          for (String fullName : tmpStringSet) {
-            if (fullName.matches(".*\\(.*")) {
-              String[] stringArray = fullName.split("\\(");
-              assert stringArray.length == 2;
-              resetLocks.put(stringArray[0], stringArray[1]);
-            } else {
-              resetLocks.put(fullName, "");
-            }
-          }
-        }
-        tmpString = config.getProperty("annotate." + fName + ".lock");
-        captureLocks = null;
-        if (tmpString != null) {
-          tmpStringSet = new HashSet<>(Arrays.asList(tmpString.split(", *")));
-          captureLocks = new HashMap<>();
-          for (String fullName : tmpStringSet) {
-            if (fullName.matches(".*\\(.*")) {
-              String[] stringArray = fullName.split("\\(");
-              assert stringArray.length == 2;
-              captureLocks.put(stringArray[0], stringArray[1]);
-            } else {
-              captureLocks.put(fullName, "");
-            }
-          }
-        }
+        freeLocks = createAnnotationMap(fName, "free");
+        restoreLocks = createAnnotationMap(fName, "restore");
+        resetLocks = createAnnotationMap(fName, "reset");
+        captureLocks = createAnnotationMap(fName, "lock");
         if (restoreLocks == null && freeLocks == null && resetLocks == null && captureLocks == null) {
           //we don't specify the annotation. Restore all locks.
           tmpAnnotationInfo = new AnnotationInfo(fName, null, new HashMap<String, String>(), null, null);
@@ -206,5 +137,26 @@ public class ConfigurationParser {
       }
     }
     return ImmutableMap.copyOf(annotatedfunctions);
+  }
+
+  @SuppressWarnings("deprecation")
+  private Map<String, String> createAnnotationMap(String function, String target) {
+    Map<String, String> result = null;
+
+    String property = config.getProperty("annotate." + function + "." + target);
+    if (property != null) {
+      Set<String> lockNames = new HashSet<>(Arrays.asList(property.split(", *")));
+      result = new HashMap<>();
+      for (String fullName : lockNames) {
+        if (fullName.matches(".*\\(.*")) {
+          String[] stringArray = fullName.split("\\(");
+          assert stringArray.length == 2;
+          result.put(stringArray[0], stringArray[1]);
+        } else {
+          result.put(fullName, "");
+        }
+      }
+    }
+    return result;
   }
 }

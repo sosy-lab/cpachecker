@@ -27,7 +27,6 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.local.LocalTransferRelation;
 
 public class StructureIdentifier extends SingleIdentifier{
   protected AbstractIdentifier owner;
@@ -137,36 +136,4 @@ public class StructureIdentifier extends SingleIdentifier{
     result.addAll(owner.getComposedIdentifiers());
     return result;
   }
-
-  /**
-   * This method recursively checks owners of this structure, if any is contained in given collection
-   * @param set - some collection of identifiers
-   * @return first abstract identifier, which is found or null if no owners are found in collection
-   */
-  /*@Override
-  public AbstractIdentifier containsIn(Collection<? extends AbstractIdentifier> set) {
-    if (set.contains(this)) {
-      return this;
-    } else {
-      AbstractIdentifier ownerContainer = owner.containsIn(set);
-      if (ownerContainer == null) {
-        return null;
-      } else {
-        if (ownerContainer instanceof GlobalVariableIdentifier || ownerContainer instanceof LocalVariableIdentifier) {
-          return ((SingleIdentifier)ownerContainer).getGeneralId();
-        } else {
-          return ownerContainer;
-        }
-      }
-    }
-  }
-
-  @Override
-  public DataType getType(Map<? extends AbstractIdentifier, DataType> pLocalInfo) {
-    DataType result = super.getType(pLocalInfo);
-    if (result != null) {
-      return result;
-    }
-    return owner.getType(pLocalInfo);
-  }*/
 }
