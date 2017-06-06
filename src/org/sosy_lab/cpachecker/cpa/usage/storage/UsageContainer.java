@@ -324,12 +324,12 @@ public class UsageContainer {
     out.println("Total amount of unrefined usages:                 " + unrefinedUsages + "(avg. " +
         (generalUnrefinedSize == 0 ? "0" : (unrefinedUsages/generalUnrefinedSize)) + ", max " + maxUnrefinedUsages + ")");
 
-    out.println("Total amount of refined unsafes:                " + generalRefinedSize);
+    out.println("Total amount of refined unsafes:                  " + generalRefinedSize);
     out.println("Total amount of refined usages:                   " + refinedUsages + "(avg. " +
         (generalRefinedSize == 0 ? "0" : (refinedUsages/generalRefinedSize)) + ")");
 
-    out.println("Total amount of failed unsafes:                " + generalFailedSize);
-    out.println("Total amount of failed usages:                   " + failedUsages + "(avg. " +
+    out.println("Total amount of failed unsafes:                   " + generalFailedSize);
+    out.println("Total amount of failed usages:                    " + failedUsages + "(avg. " +
         (generalFailedSize == 0 ? "0" : (failedUsages/generalFailedSize)) + ")");
 
     if (internalStatistics != null) {

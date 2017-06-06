@@ -44,12 +44,12 @@ public abstract class AbstractUsageStorage extends TreeMap<SingleIdentifier, Sor
   protected SortedSet<UsageInfo> getStorageForId(SingleIdentifier id) {
     if (deeplyCloned.contains(id)) {
       //List is already cloned
-      assert this.containsKey(id);
-      return this.get(id);
+      assert containsKey(id);
+      return get(id);
     } else {
       deeplyCloned.add(id);
       SortedSet<UsageInfo> storage;
-      if (this.containsKey(id)) {
+      if (containsKey(id)) {
         //clone
         storage = new TreeSet<>(this.get(id));
       } else {
@@ -69,7 +69,7 @@ public abstract class AbstractUsageStorage extends TreeMap<SingleIdentifier, Sor
   public void addUsages(SingleIdentifier id, SortedSet<UsageInfo> usages) {
     if (containsKey(id)) {
       SortedSet<UsageInfo> currentStorage = getStorageForId(id);
-      currentStorage.addAll(usages);      
+      currentStorage.addAll(usages);
     } else {
       super.put(id, usages);
     }

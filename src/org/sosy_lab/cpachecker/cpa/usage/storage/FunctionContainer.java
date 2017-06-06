@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
+
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,6 +57,7 @@ public class FunctionContainer extends AbstractUsageStorage {
   private FunctionContainer(StorageStatistics pStats, List<LockEffect> pEffects) {
     super();
     stats = pStats;
+    stats.numberOfFunctionContainers++;
     effects = pEffects;
     joinedWith = new HashSet<>();
   }
@@ -64,17 +67,17 @@ public class FunctionContainer extends AbstractUsageStorage {
   }
 
   public void join(FunctionContainer funcContainer) {
+    stats.totalJoins++;
     if (joinedWith.contains(funcContainer)) {
       //We may join two different exit states to the same parent container
       stats.hitTimes++;
       return;
     }
-    stats.missTimes++;
     joinedWith.add(funcContainer);
 
     if (funcContainer.effects.isEmpty()) {
       stats.copyTimer.start();
-      stats.effectJoin++;
+      stats.emptyJoin++;
       funcContainer.forEach((id, set) -> this.addUsages(id, set));
       stats.copyTimer.stop();
     } else {
@@ -124,22 +127,21 @@ public class FunctionContainer extends AbstractUsageStorage {
     private int emptyJoin = 0;
     private int effectJoin = 0;
     private int hitTimes = 0;
-    private int missTimes = 0;
+    private int totalJoins = 0;
     private int numberOfFunctionContainers = 0;
 
     Timer effectTimer = new Timer();
     Timer copyTimer = new Timer();
-    Timer exportTimer = new Timer();
 
     public void printStatistics(PrintStream out) {
 
       out.println("Time for effect:                    " + effectTimer);
       out.println("Time for copy:                      " + copyTimer);
-      out.println("Time for exporting unsafes:         " + exportTimer);
-      out.println("Number of empty joins:              " + emptyJoin);
-      out.println("Number of effect joins:             " + effectJoin);
-      out.println("Number of hit joins:                " + hitTimes);
-      out.println("Number of miss joins:               " + missTimes);
+      out.println("Total number of joins:              " + totalJoins);
+      out.println("Number of hits into cache:          " + valueWithPercentage(hitTimes, totalJoins));
+      int missTimes = totalJoins - hitTimes;
+      out.println("Number of empty joins:              " + valueWithPercentage(emptyJoin, missTimes));
+      out.println("Number of effect joins:             " + valueWithPercentage(effectJoin, missTimes));
       out.println("Number of expanding querries:       " + totalUsages);
       out.println("Number of executed querries:        " + expandedUsages);
       out.println("Total number of function containers:" + numberOfFunctionContainers);
