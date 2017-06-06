@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
@@ -55,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
