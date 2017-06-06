@@ -264,7 +264,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     }
 
-    return status.withProgramNeverTerminates(isProgramNeverTerminating(reachedSet));
+    return status; // .withProgramNeverTerminates(isProgramNeverTerminating(reachedSet));
   }
 
   /**
@@ -434,6 +434,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     return false;
   }
 
+  @SuppressWarnings("unused")
+  @Deprecated // this termination analysis too imprecise and unsound
   private boolean isProgramNeverTerminating(final ReachedSet reachedSet) {
     LocationState locationState =
         extractStateByType(reachedSet.getFirstState(), LocationState.class);
