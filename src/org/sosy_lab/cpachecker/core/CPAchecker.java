@@ -284,7 +284,6 @@ public class CPAchecker {
     CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
     String violatedPropertyDescription = "";
-    boolean programNeverTerminates = false;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
     shutdownNotifier.register(interruptThreadOnShutdown);
@@ -346,14 +345,13 @@ public class CPAchecker {
 
         if (disableAnalysis) {
           return new CPAcheckerResult(
-              Result.NOT_YET_STARTED, violatedPropertyDescription, null, cfa, stats, programNeverTerminates);
+              Result.NOT_YET_STARTED, violatedPropertyDescription, null, cfa, stats);
         }
 
         // run analysis
         result = Result.UNKNOWN; // set to unknown so that the result is correct in case of exception
 
         AlgorithmStatus status = runAlgorithm(algorithm, reached, stats);
-        programNeverTerminates = status.isProramNeverTerminating();
 
         stats.resultAnalysisTime.start();
         Set<Property> violatedProperties = findViolatedProperties(reached);
@@ -414,7 +412,7 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats, programNeverTerminates);
+    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
   }
 
   private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
