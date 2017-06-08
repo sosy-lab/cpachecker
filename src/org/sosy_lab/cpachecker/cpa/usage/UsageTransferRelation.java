@@ -190,6 +190,7 @@ public class UsageTransferRelation implements TransferRelation {
     newState = oldState.clone();
     precision = (UsagePrecision)pPrecision;
     handleEdge(pCfaEdge);
+
     Collection<? extends AbstractState> newWrappedStates = wrappedTransfer.getAbstractSuccessorsForEdge(oldWrappedState,
         precision.getWrappedPrecision(), currentEdge);
     for (AbstractState newWrappedState : newWrappedStates) {
@@ -198,6 +199,7 @@ public class UsageTransferRelation implements TransferRelation {
         result.add(resultState);
       }
     }
+
     if (needToReset) {
       callstackTransfer.disableRecursiveContext();
     }
@@ -338,9 +340,7 @@ public class UsageTransferRelation implements TransferRelation {
     } else if (abortfunctions.contains(functionCallName)) {
       newState = newState.asExitable();
     } else {
-      for (CExpression p : fcExpression.getParameterExpressions()) {
-        visitStatement(p, Access.READ);
-      }
+      fcExpression.getParameterExpressions().forEach(p -> visitStatement(p, Access.READ));
     }
   }
 

@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
   private final TreeSet<UsagePoint> topUsages;
   private final Map<UsagePoint, UsageInfoSet> usageInfoSets;
-  //private final Map<UsagePoint, RefinedUsageInfoSet> refinedInformation;
 
   public UnrefinedUsagePointSet() {
     topUsages = new TreeSet<>();
@@ -62,7 +61,9 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
         UsagePoint point = iterator.next();
         if (newPoint.covers(point)) {
           iterator.remove();
+          newPoint.addCoveredUsage(point);
         } else if (point.covers(newPoint)) {
+          point.addCoveredUsage(newPoint);
           return;
         }
       }
