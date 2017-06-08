@@ -63,7 +63,7 @@ public class CoverageStatistics extends AbstractStatistics {
   @Option(secure=true, name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
+  private Path outputCoverageFile = Paths.get("coverage2.info");
 
   private final LogManager logger;
   private final CoverageData cov;
