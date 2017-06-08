@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2013  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,29 +24,31 @@
 package org.sosy_lab.cpachecker.util.identifiers;
 
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
+public class Identifiers {
 
-public interface AbstractIdentifier extends Comparable<AbstractIdentifier> {
-  @Override
-  public boolean equals(Object other);
+  public static Collection<AbstractIdentifier> getDereferencedIdentifiers(AbstractIdentifier id) {
+    Set<AbstractIdentifier> result = new HashSet<>();
+    //Add itself
+    for (int d = id.getDereference(); d >= 0; d--) {
+      result.add(id.cloneWithDereference(d));
+    }
+    return result;
+  }
 
-  @Override
-  public int hashCode();
-
-  @Override
-  public String toString();
-
-  public boolean isGlobal();
-
-  public AbstractIdentifier clone();
-
-  public AbstractIdentifier cloneWithDereference(int dereference);
-
-  public int getDereference();
-
-  public boolean isPointer();
-
-  public boolean isDereferenced();
-
-  public Collection<AbstractIdentifier> getComposedIdentifiers();
+  static String getCharsOf(int dereference) {
+    String info = "";
+    if (dereference > 0) {
+      for (int i = 0; i < dereference; i++) {
+        info += "*";
+      }
+    } else if (dereference == -1) {
+      info += "&";
+    } else if (dereference < -1){
+      info = "Error in string representation, dereference < -1";
+    }
+    return info;
+  }
 }

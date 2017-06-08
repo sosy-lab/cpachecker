@@ -56,7 +56,12 @@ public class StructureIdentifier extends SingleIdentifier{
 
   @Override
   public StructureIdentifier clone() {
-    return new StructureIdentifier(name, type, dereference, owner.clone());
+    return cloneWithDereference(dereference);
+  }
+
+  @Override
+  public StructureIdentifier cloneWithDereference(int pDereference) {
+    return new StructureIdentifier(name, type, pDereference, owner.clone());
   }
 
   public AbstractIdentifier getOwner() {

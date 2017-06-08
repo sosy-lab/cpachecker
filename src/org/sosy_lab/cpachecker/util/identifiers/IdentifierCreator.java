@@ -175,8 +175,7 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
       }
     }
     if (main != null) {
-      main.setDereference(main.getDereference() + id.getDereference());
-      return main;
+      return main.cloneWithDereference(main.getDereference() + id.getDereference());
     } else {
       return id;
     }

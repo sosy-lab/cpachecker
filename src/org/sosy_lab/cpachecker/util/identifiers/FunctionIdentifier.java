@@ -26,7 +26,12 @@ public class FunctionIdentifier extends SingleIdentifier {
 
   @Override
   public SingleIdentifier clone() {
-    return new FunctionIdentifier(name, type, dereference);
+    return cloneWithDereference(dereference);
+  }
+
+  @Override
+  public SingleIdentifier cloneWithDereference(int pDereference) {
+    return new FunctionIdentifier(name, type, pDereference);
   }
 
   @Override

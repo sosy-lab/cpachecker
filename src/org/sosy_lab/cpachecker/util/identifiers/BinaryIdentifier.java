@@ -30,9 +30,9 @@ import java.util.Set;
 
 
 public class BinaryIdentifier implements AbstractIdentifier {
-  protected AbstractIdentifier id1;
-  protected AbstractIdentifier id2;
-  protected int dereference;
+  protected final AbstractIdentifier id1;
+  protected final AbstractIdentifier id2;
+  protected final int dereference;
 
   public BinaryIdentifier(AbstractIdentifier i1, AbstractIdentifier i2, int deref) {
     id1 = i1;
@@ -81,21 +81,9 @@ public class BinaryIdentifier implements AbstractIdentifier {
     return true;
   }
 
-
-
   @Override
   public String toString() {
-    String info = "";
-    if (dereference > 0) {
-      for (int i = 0; i < dereference; i++) {
-        info += "*";
-      }
-    } else if (dereference == -1) {
-      info += "&";
-    } else if (dereference < -1){
-      info = "Error in string representation, dereference < -1";
-      return info;
-    }
+    String info = Identifiers.getCharsOf(dereference);
     info += "(" + id1.toString() + " # " + id2.toString() + ")";
     return info;
   }
@@ -106,8 +94,13 @@ public class BinaryIdentifier implements AbstractIdentifier {
   }
 
   @Override
+  public BinaryIdentifier cloneWithDereference(int pDereference) {
+    return new BinaryIdentifier(id1.clone(), id2.clone(), pDereference);
+  }
+
+  @Override
   public BinaryIdentifier clone() {
-    return new BinaryIdentifier(id1.clone(), id2.clone(), dereference);
+    return cloneWithDereference(dereference);
   }
 
   public AbstractIdentifier getIdentifier1() {
@@ -144,11 +137,6 @@ public class BinaryIdentifier implements AbstractIdentifier {
   }
 
   @Override
-  public void setDereference(int pD) {
-    dereference = pD;
-  }
-
-  @Override
   public int compareTo(AbstractIdentifier pO) {
     if (pO instanceof SingleIdentifier) {
       return -1;
@@ -166,9 +154,9 @@ public class BinaryIdentifier implements AbstractIdentifier {
     int deref = id1.getDereference();
     AbstractIdentifier tmp1 = id1.clone();
     AbstractIdentifier tmp2 = id2.clone();
-    tmp1.setDereference(dereference + deref);
+    tmp1 = tmp1.cloneWithDereference(dereference + deref);
     deref = id2.getDereference();
-    tmp2.setDereference(dereference + deref);
+    tmp2 = tmp2.cloneWithDereference(dereference + deref);
     Set<AbstractIdentifier> result = Sets.newHashSet(tmp1, tmp2);
     result.addAll(tmp1.getComposedIdentifiers());
     result.addAll(tmp2.getComposedIdentifiers());

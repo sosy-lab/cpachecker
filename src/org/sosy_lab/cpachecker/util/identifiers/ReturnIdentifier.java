@@ -74,4 +74,9 @@ public class ReturnIdentifier extends VariableIdentifier implements GeneralIdent
       return -1;
     }
   }
+
+  @Override
+  public AbstractIdentifier cloneWithDereference(int pDereference) {
+    return instance;
+  }
 }

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.usage.storage.TemporaryUsageStorage;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 /**
@@ -99,12 +101,9 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     *  if we have *b, map also contains **b, ***b and so on.
     *  So, if we get **b, having (*b, c), we give *c
     */
-    final AbstractIdentifier tmpId = id.clone();
-    for (int d = id.getDereference(); d >= 0; d--) {
-      tmpId.setDereference(d);
-      if (variableBindingRelation.containsKey(tmpId)) {
-        return true;
-      }
+    if (from(Identifiers.getDereferencedIdentifiers(id))
+        .anyMatch(i -> variableBindingRelation.containsKey(i))) {
+      return true;
     }
     return false;
   }
@@ -127,19 +126,21 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     /* Special get!
      * If we get **b, having (*b, c), we give *c
      */
-    AbstractIdentifier tmpId = id.clone();
-    for (int d = id.getDereference(); d >= 0; d--) {
-      tmpId.setDereference(d);
-      if (variableBindingRelation.containsKey(tmpId)) {
-        tmpId = variableBindingRelation.get(tmpId).clone();
-        int currentD = tmpId.getDereference();
-        tmpId.setDereference(currentD + id.getDereference() - d);
-        if (this.containsLinks(tmpId)) {
-          tmpId = getLinksIfNecessary(tmpId);
-        }
-        return tmpId;
+    Optional<AbstractIdentifier> linkedId =
+        from(Identifiers.getDereferencedIdentifiers(id))
+          .firstMatch(i -> variableBindingRelation.containsKey(i));
+    if (linkedId.isPresent()) {
+      AbstractIdentifier pointsFrom = linkedId.get();
+      int delta = id.getDereference() - pointsFrom.getDereference();
+      AbstractIdentifier initialId = variableBindingRelation.get(id);
+      AbstractIdentifier pointsTo =
+          initialId.cloneWithDereference(initialId.getDereference() + delta);
+      if (this.containsLinks(pointsTo)) {
+        pointsTo = getLinksIfNecessary(pointsTo);
       }
+      return pointsTo;
     }
+
     return null;
   }
 

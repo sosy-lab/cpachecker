@@ -38,22 +38,17 @@ public class ConstantIdentifier implements AbstractIdentifier {
 
   @Override
   public ConstantIdentifier clone() {
-    return new ConstantIdentifier(name, dereference);
+    return cloneWithDereference(dereference);
+  }
+
+  @Override
+  public ConstantIdentifier cloneWithDereference(int pDereference) {
+    return new ConstantIdentifier(name, pDereference);
   }
 
   @Override
   public String toString() {
-    String info = "";
-    if (dereference > 0) {
-      for (int i = 0; i < dereference; i++) {
-        info += "*";
-      }
-    } else if (dereference == -1) {
-      info += "&";
-    } else if (dereference < -1){
-      info = "Error in string representation, dereference < -1";
-      return info;
-    }
+    String info = Identifiers.getCharsOf(dereference);
     info += name;
     return info;
   }
@@ -112,11 +107,6 @@ public class ConstantIdentifier implements AbstractIdentifier {
     return (dereference > 0);
   }
 
-  @Override
-  public void setDereference(int pD) {
-    dereference = pD;
-  }
-
   public String getName() {
     return name;
   }
@@ -136,14 +126,4 @@ public class ConstantIdentifier implements AbstractIdentifier {
   public Collection<AbstractIdentifier> getComposedIdentifiers() {
     return Collections.emptySet();
   }
-
-  /*@Override
-  public DataType getType(Map<? extends AbstractIdentifier, DataType> pLocalInfo) {
-    if (isPointer() && !(name.equals("0"))) {
-      return DataType.GLOBAL;
-    } else {
-      return DataType.LOCAL;
-    }
-  }*/
-
 }

@@ -48,32 +48,38 @@ public class GeneralGlobalVariableIdentifier extends GlobalVariableIdentifier im
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     SingleIdentifier other = (SingleIdentifier) obj;
-    if (dereference != other.dereference)
+    if (dereference != other.dereference) {
       return false;
+    }
     if (name == null) {
-      if (other.name != null)
+      if (other.name != null) {
         return false;
-    } else if (!name.equals(other.name))
+      }
+    } else if (!name.equals(other.name)) {
       return false;
+    }
     return true;
   }
 
 
   @Override
   public GeneralGlobalVariableIdentifier clone() {
-    return new GeneralGlobalVariableIdentifier(name, type, dereference);
+    return cloneWithDereference(dereference);
   }
 
-  @Override
-  public void setDereference(int pNewD) {
-    dereference = pNewD;
 
+  @Override
+  public GeneralGlobalVariableIdentifier cloneWithDereference(int deref) {
+    return new GeneralGlobalVariableIdentifier(name, type, deref);
   }
 }

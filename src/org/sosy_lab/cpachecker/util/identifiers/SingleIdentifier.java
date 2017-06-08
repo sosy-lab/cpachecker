@@ -109,17 +109,7 @@ public abstract class SingleIdentifier implements AbstractIdentifier {
 
   @Override
   public String toString() {
-    String info = "";
-    if (dereference > 0) {
-      for (int i = 0; i < dereference; i++) {
-        info += "*";
-      }
-    } else if (dereference == -1) {
-      info += "&";
-    } else if (dereference < -1){
-      info = "Error in string representation, dereference < -1";
-      return info;
-    }
+    String info = Identifiers.getCharsOf(dereference);
     info += name;
     return info;
   }
@@ -129,11 +119,6 @@ public abstract class SingleIdentifier implements AbstractIdentifier {
   public abstract String toLog();
 
   public abstract GeneralIdentifier getGeneralId();
-
-  @Override
-  public void setDereference(int pD) {
-    dereference = pD;
-  }
 
   @Override
   public int compareTo(AbstractIdentifier pO) {
