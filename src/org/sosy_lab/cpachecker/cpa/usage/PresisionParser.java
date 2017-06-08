@@ -53,6 +53,7 @@ public class PresisionParser {
     file = filename;
     cfa = pCfa;
     logger = l;
+    idToNodeMap = new HashMap<>();
     for (CFANode n : cfa.getAllNodes()) {
       idToNodeMap.put(n.getNodeNumber(), n);
     }

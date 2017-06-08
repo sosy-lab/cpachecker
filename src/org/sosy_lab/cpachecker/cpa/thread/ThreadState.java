@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.thread;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -261,10 +263,9 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
     Preconditions.checkArgument(state instanceof ThreadState);
     ThreadState other = (ThreadState) state;
     for (ThreadLabel label : threadSet) {
-      for (ThreadLabel oLabel : other.threadSet) {
-        if (label.isCompatibleWith(oLabel)) {
-          return true;
-        }
+      if (from(other.threadSet)
+            .anyMatch(l -> label.isCompatibleWith(l))) {
+        return true;
       }
     }
     return false;

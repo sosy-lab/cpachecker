@@ -105,10 +105,10 @@ public class UsagePoint implements Comparable<UsagePoint> {
         from(info.getAllCompatibleStates())
         .transform(CompatibleState::getTreeNode);
 
-    if (!nodes.allMatch(UsageTreeNode::hasEmptyLockSet)) {
-      return new UsagePoint(nodes.toList(), accessType);
-    } else {
+    if (nodes.allMatch(UsageTreeNode::hasEmptyLockSet)) {
       return new UsagePointWithEmptyLockSet(nodes.toList(), accessType, info);
+    } else {
+      return new UsagePoint(nodes.toList(), accessType);
     }
 
   }
@@ -219,7 +219,6 @@ public class UsagePoint implements Comparable<UsagePoint> {
 
   @Override
   public String toString() {
-    String result = access + ":";
-    return result + compatibleNodes;
+    return access + ":" + compatibleNodes;
   }
 }

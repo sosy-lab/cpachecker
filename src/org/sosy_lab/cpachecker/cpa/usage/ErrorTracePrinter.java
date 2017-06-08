@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.usage.storage.AbstractUsagePointSet;
-import org.sosy_lab.cpachecker.cpa.usage.storage.RefinedUsagePointSet;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UnsafeDetector;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -151,19 +150,14 @@ public abstract class ErrorTracePrinter {
     logger.log(Level.FINEST, "Processing unsafe identifiers");
     Iterator<SingleIdentifier> unsafeIterator;
     unsafeIterator = container.getUnsafeIterator();
-    boolean printOnlyTrueUnsafes = container.printOnlyTrueUnsafes();
 
     init();
     preparationTimer.stop();
     while (unsafeIterator.hasNext()) {
       SingleIdentifier id = unsafeIterator.next();
       final AbstractUsagePointSet uinfo = container.getUsages(id);
-      final boolean isTrueUnsafe = (uinfo instanceof RefinedUsagePointSet);
 
       if (uinfo == null || uinfo.size() == 0) {
-        continue;
-      }
-      if (printOnlyTrueUnsafes && !isTrueUnsafe) {
         continue;
       }
 
@@ -176,9 +170,6 @@ public abstract class ErrorTracePrinter {
       }
       Pair<UsageInfo, UsageInfo> tmpPair = detector.getUnsafePair(uinfo);
       unsafeDetectionTimer.stop();
-      if ((tmpPair.getFirst().isLooped() || tmpPair.getSecond().isLooped()) && printOnlyTrueUnsafes) {
-        continue;
-      }
       writingUnsafeTimer.start();
       printUnsafe(id, tmpPair);
       writingUnsafeTimer.stop();

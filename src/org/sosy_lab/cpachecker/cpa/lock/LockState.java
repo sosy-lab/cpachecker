@@ -219,8 +219,8 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     }
 
     public void reduceLockCounters(Set<LockIdentifier> exceptLocks) {
-      Set<LockIdentifier> expandableLocks = Sets.difference(new HashSet<>(mutableLocks.keySet()), exceptLocks);
-      expandableLocks.forEach(l ->
+      Set<LockIdentifier> reducableLocks = Sets.difference(new HashSet<>(mutableLocks.keySet()), exceptLocks);
+      reducableLocks.forEach(l ->
         {
           mutableLocks.remove(l);
           add(l);
@@ -232,10 +232,9 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     }
 
     public void expandLocks(LockState pRootState,  Set<LockIdentifier> usedLocks) {
-      for (LockIdentifier lock : pRootState.locks.keySet()) {
-        if (usedLocks != null && !usedLocks.contains(lock)) {
-          mutableLocks.put(lock, pRootState.getCounter(lock));
-        }
+      if (usedLocks != null) {
+        Set<LockIdentifier> expandableLocks = Sets.difference(pRootState.locks.keySet(), usedLocks);
+        expandableLocks.forEach(l -> mutableLocks.put(l, pRootState.getCounter(l)));
       }
     }
 

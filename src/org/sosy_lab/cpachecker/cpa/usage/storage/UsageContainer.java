@@ -219,10 +219,6 @@ public class UsageContainer {
     return unrefinedIds.size() + refinedIds.size() + failedIds.size();
   }
 
-  public boolean printOnlyTrueUnsafes() {
-    return printOnlyTrueUnsafes;
-  }
-
   public int getProcessedUnsafeSize() {
     return refinedIds.size() + failedIds.size();
   }

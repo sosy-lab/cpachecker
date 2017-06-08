@@ -205,22 +205,15 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   @Override
   public boolean isLessOrEqual(LocalState pState2) {
     //LOCAL < NULL < GLOBAL
-    for (AbstractIdentifier name : this.DataInfo.keySet()) {
-      if (this.isLocal(name)) {
-        continue;
-      }
-      //Here thisType can be only Global, so pState2 also should contains Global
-      if (!pState2.DataInfo.containsKey(name) || pState2.isLocal(name)) {
-        return false;
-      }
+    if (from(this.DataInfo.keySet())
+      .filter(i -> !this.isLocal(i))
+      .anyMatch(i -> !pState2.DataInfo.containsKey(i) || pState2.isLocal(i))) {
+      return false;
     }
-    for (AbstractIdentifier name : pState2.DataInfo.keySet()) {
-      if (!this.DataInfo.containsKey(name) && pState2.isLocal(name)) {
-        return false;
-      }
-    }
+
     if (from(pState2.DataInfo.keySet())
-        .anyMatch(i -> !this.DataInfo.containsKey(i) && pState2.isLocal(i))) {
+        .filter(i ->pState2.isLocal(i))
+        .anyMatch(i -> !this.DataInfo.containsKey(i))) {
       return false;
     }
     /*for (AbstractIdentifier name : this.DataInfo.keySet()) {
