@@ -183,6 +183,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final ARGPath pErrorPath,
       final I pInterpolant
   ) throws CPAException, InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
 
     prefixExtractionTime.start();
     List<InfeasiblePrefix> prefixes =

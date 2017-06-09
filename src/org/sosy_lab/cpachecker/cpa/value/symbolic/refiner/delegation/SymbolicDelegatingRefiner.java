@@ -134,7 +134,8 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             logger,
             cfa,
             config,
-            ValueAnalysisCPA.class);
+            ValueAnalysisCPA.class,
+            shutdownNotifier);
 
     final ElementTestingSymbolicEdgeInterpolator symbolicEdgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
@@ -184,7 +185,8 @@ public class SymbolicDelegatingRefiner implements Refiner, StatisticsProvider {
             logger,
             cfa,
             config,
-            ValueAnalysisCPA.class);
+            ValueAnalysisCPA.class,
+            shutdownNotifier);
 
     final PathInterpolator<SymbolicInterpolant> explicitPathInterpolator =
         new GenericPathInterpolator<>(

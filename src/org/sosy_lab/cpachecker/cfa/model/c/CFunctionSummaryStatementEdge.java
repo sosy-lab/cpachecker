@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class CFunctionSummaryStatementEdge extends CStatementEdge {
+  private static final long serialVersionUID = -5161504275097530533L;
   private final String functionName;
   private final CFunctionCall fcall;
 

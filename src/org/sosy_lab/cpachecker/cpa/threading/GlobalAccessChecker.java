@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
+import com.google.common.base.Optional;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -71,8 +71,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
-
-import java.util.Optional;
 
 /** This static analyzer for edges checks whether there exists
  * read- or write-access to global variables or shared memory along edges. */

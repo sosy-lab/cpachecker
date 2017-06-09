@@ -159,7 +159,8 @@ public class ValueAnalysisRefiner
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
     final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
-        new ValueAnalysisPrefixProvider(logger, cfa, config);
+        new ValueAnalysisPrefixProvider(
+            logger, cfa, config, valueAnalysisCpa.getShutdownNotifier());
 
     return new ValueAnalysisRefiner(argCpa,
         checker,

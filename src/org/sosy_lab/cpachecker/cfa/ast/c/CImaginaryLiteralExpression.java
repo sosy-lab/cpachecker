@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CImaginaryLiteralExpression extends ALiteralExpression implements CLiteralExpression {
 
+  private static final long serialVersionUID = -3248391757986816857L;
   private final CLiteralExpression value;
 
   public CImaginaryLiteralExpression(FileLocation pFileLocation,

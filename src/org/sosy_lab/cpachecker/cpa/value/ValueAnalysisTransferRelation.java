@@ -378,15 +378,15 @@ public class ValueAnalysisTransferRelation
     state = ValueAnalysisState.copyOf(state);
     state.dropFrame(functionName);
 
-    AExpression expression = returnEdge.getExpression().orElse(null);
+    AExpression expression = returnEdge.getExpression().orNull();
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
       expression = CIntegerLiteralExpression.ZERO; // this is the default in C
     }
 
     final FunctionEntryNode functionEntryNode = returnEdge.getSuccessor().getEntryNode();
 
-    final Optional<? extends AVariableDeclaration> optionalReturnVarDeclaration
-        = functionEntryNode.getReturnVariable();
+    final com.google.common.base.Optional<? extends AVariableDeclaration>
+        optionalReturnVarDeclaration = functionEntryNode.getReturnVariable();
     MemoryLocation functionReturnVar = null;
 
     if (optionalReturnVarDeclaration.isPresent()) {
@@ -417,7 +417,8 @@ public class ValueAnalysisTransferRelation
 
     ValueAnalysisState newElement  = ValueAnalysisState.copyOf(state);
 
-    Optional<? extends AVariableDeclaration> returnVarName = functionReturnEdge.getFunctionEntry().getReturnVariable();
+    com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
+        functionReturnEdge.getFunctionEntry().getReturnVariable();
     MemoryLocation functionReturnVar = null;
     if (returnVarName.isPresent()) {
       functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());

@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
 
+  private static final long serialVersionUID = 7623251138394648617L;
+
   public AParameterDeclaration(FileLocation pFileLocation, Type pType, String pName) {
     super(pFileLocation, pType, checkNotNull(pName));
 

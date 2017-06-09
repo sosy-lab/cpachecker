@@ -929,7 +929,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private List<SMGState> handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws CPATransferException {
 
-    CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO); // 0 is the default in C
+    CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
     logger.log(Level.ALL, "Handling return Statement: ", returnExp);
 
@@ -940,7 +940,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
-    Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
+    com.google.common.base.Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
     if (returnAssignment.isPresent()) {
       expType = returnAssignment.get().getLeftHandSide().getExpressionType();
     }

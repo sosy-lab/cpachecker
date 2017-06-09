@@ -24,13 +24,11 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import com.google.common.collect.ImmutableList;
-
+import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  *  Array creation expression AST node type.
@@ -54,6 +52,7 @@ import java.util.Objects;
  */
 public final class JArrayCreationExpression extends AbstractExpression implements JExpression {
 
+  private static final long serialVersionUID = 8794036217601570272L;
   private final List<JExpression> length;
   private final JArrayInitializer initializer;
   //TODO Type Variables < Type { , Type } >

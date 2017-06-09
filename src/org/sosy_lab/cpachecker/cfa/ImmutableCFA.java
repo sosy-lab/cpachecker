@@ -25,16 +25,22 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.*;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-
+import org.sosy_lab.common.Optionals;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
@@ -45,8 +51,9 @@ import com.google.common.collect.SetMultimap;
  * This class represents a CFA after it has been fully created (parsing, linking
  * of functions, etc.).
  */
-class ImmutableCFA implements CFA {
+class ImmutableCFA implements CFA, Serializable {
 
+  private static final long serialVersionUID = 5399965350156780812L;
   private final MachineModel machineModel;
   private final ImmutableSortedMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
@@ -83,9 +90,9 @@ class ImmutableCFA implements CFA {
     functions = ImmutableSortedMap.of();
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
-    loopStructure = Optional.empty();
-    varClassification = Optional.empty();
-    liveVariables = Optional.empty();
+    loopStructure = Optional.absent();
+    varClassification = Optional.absent();
+    liveVariables = Optional.absent();
     language = pLanguage;
   }
 
@@ -139,26 +146,26 @@ class ImmutableCFA implements CFA {
   }
 
   @Override
-  public Optional<LoopStructure> getLoopStructure() {
-    return loopStructure;
+  public java.util.Optional<LoopStructure> getLoopStructure() {
+    return Optionals.fromGuavaOptional(loopStructure);
   }
 
   @Override
-  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
+  public java.util.Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
     if (loopStructure.isPresent()) {
-      return Optional.of(loopStructure.get().getAllLoopHeads());
+      return java.util.Optional.of(loopStructure.get().getAllLoopHeads());
     }
-    return Optional.empty();
+    return java.util.Optional.empty();
   }
 
   @Override
-  public Optional<VariableClassification> getVarClassification() {
-    return varClassification;
+  public java.util.Optional<VariableClassification> getVarClassification() {
+    return Optionals.fromGuavaOptional(varClassification);
   }
 
   @Override
-  public Optional<LiveVariables> getLiveVariables() {
-    return liveVariables;
+  public java.util.Optional<LiveVariables> getLiveVariables() {
+    return Optionals.fromGuavaOptional(liveVariables);
   }
 
   @Override
@@ -166,4 +173,42 @@ class ImmutableCFA implements CFA {
     return language;
   }
 
+
+  private void writeObject(java.io.ObjectOutputStream s) throws java.io.IOException {
+
+    // write default stuff
+    s.defaultWriteObject();
+
+    // we have to keep the order of edges 'AS IS'
+    final List<CFAEdge> enteringEdges = new ArrayList<>();
+    for (CFANode node : allNodes) {
+      Iterables.addAll(enteringEdges, CFAUtils.enteringEdges(node));
+    }
+    s.writeObject(enteringEdges);
+
+    // we have to keep the order of edges 'AS IS'
+    final List<CFAEdge> leavingEdges = new ArrayList<>();
+    for (CFANode node : allNodes) {
+      Iterables.addAll(leavingEdges, CFAUtils.leavingEdges(node));
+    }
+    s.writeObject(leavingEdges);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void readObject(java.io.ObjectInputStream s)
+      throws java.io.IOException, ClassNotFoundException {
+
+    // read default stuff
+    s.defaultReadObject();
+
+    // read entering edges, we have to keep the order of edges 'AS IS'
+    for (CFAEdge edge : (List<CFAEdge>) s.readObject()) {
+      edge.getSuccessor().addEnteringEdge(edge);
+    }
+
+    // read leaving edges, we have to keep the order of edges 'AS IS'
+    for (CFAEdge edge : (List<CFAEdge>) s.readObject()) {
+      edge.getPredecessor().addLeavingEdge(edge);
+    }
+  }
 }

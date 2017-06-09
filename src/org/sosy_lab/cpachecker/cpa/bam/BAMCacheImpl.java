@@ -276,19 +276,19 @@ public class BAMCacheImpl implements BAMCache {
 
     int sumCalls = cacheMisses + partialCacheHits + fullCacheHits;
 
-    StatHist argSizes = new StatHist("Sizes of ARGs");
+    StatHist argStats = new StatHist("") {
+          @Override
+          public String toString() {
+            // overriding, because printing all sizes is not that interesting
+            return String.format("%.0f (#=%d, avg=%.2f, dev=%.2f, min=%d, max=%d)",
+                getSum(), getUpdateCount(), getAvg(), getStdDeviation(), getMin(), getMax());
+          }
+        };
     for (UnmodifiableReachedSet subreached : getAllCachedReachedStates()) {
-      argSizes.insertValue(subreached.size());
+      argStats.insertValue(subreached.size());
     }
 
-    StatHist resultSizes = new StatHist("Number of block-exit states");
-    for (Collection<AbstractState> result : returnCache.values()) {
-      resultSizes.insertValue(result.size());
-    }
-
-    out.println("Total size of all ARGs:                              " + argSizes.getSum());
-    out.println("Sizes of ARGs:                                       " + argSizes);
-    out.println("Number of block-exit states:                         " + resultSizes);
+    out.println("Total size of all ARGs:                              " + argStats);
     out.println("Total number of recursive CPA calls:                 " + sumCalls);
     out.println("  Number of cache misses:                            " + cacheMisses + " (" + toPercent(cacheMisses, sumCalls) + " of all calls)");
     out.println("  Number of partial cache hits:                      " + partialCacheHits + " (" + toPercent(partialCacheHits, sumCalls) + " of all calls)");

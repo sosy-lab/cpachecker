@@ -35,13 +35,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
@@ -51,8 +45,16 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-public class VariableClassification {
+public class VariableClassification implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   private final boolean hasRelevantNonIntAddVars;
 
@@ -86,7 +88,7 @@ public class VariableClassification {
 
   private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartitions;
 
-  private final LogManagerWithoutDuplicates logger;
+  private final transient LogManagerWithoutDuplicates logger;
 
   VariableClassification(boolean pHasRelevantNonIntAddVars,
       Set<String> pIntBoolVars,
@@ -365,7 +367,9 @@ public class VariableClassification {
 
   /** A Partition is a Wrapper for a Collection of vars, values and edges.
   * The Partitions are disjunct, so no variable and no edge is in 2 Partitions. */
-  public static class Partition {
+  public static class Partition implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
    private final Set<String> vars = new HashSet<>();
    private final Set<BigInteger> values = Sets.newTreeSet();
@@ -446,4 +450,24 @@ public class VariableClassification {
      return vars.toString() + " --> " + Arrays.toString(values.toArray());
    }
  }
+
+  private Object readResolve() {
+    return new VariableClassification(
+        hasRelevantNonIntAddVars,
+        intBoolVars,
+        intEqualVars,
+        intAddVars,
+        relevantVariables,
+        addressedVariables,
+        relevantFields,
+        addressedFields,
+        partitions,
+        intBoolPartitions,
+        intEqualPartitions,
+        intAddPartitions,
+        edgeToPartitions,
+        assumedVariables,
+        assignedVariables,
+        GlobalInfo.getInstance().getLogManager());
+  }
 }
