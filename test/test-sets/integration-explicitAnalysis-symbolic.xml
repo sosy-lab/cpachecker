@@ -4,7 +4,7 @@
 
   <option name="-noout"/>
   <option name="-heap">2000M</option>
-  <option name="-valueAnalysis-symbolic-Cegar"/>
+  <option name="-symbolicExecution-Cegar"/>
 
   <rundefinition>
     <tasks>
