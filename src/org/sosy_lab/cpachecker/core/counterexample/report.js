@@ -321,7 +321,7 @@ function init() {
     		var nodeIndex = "" + node.index;
     		if (Object.keys(combinedNodesLabels).includes(nodeIndex))
     			return combinedNodesLabels[nodeIndex];
-    		else return "N" + nodeIndex;
+    		else return "N" + nodeIndex + "\n" + node.rpid;
     	}
     	
     	// Decide the shape of the nodes based on type

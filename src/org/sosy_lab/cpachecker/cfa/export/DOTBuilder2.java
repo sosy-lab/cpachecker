@@ -379,6 +379,7 @@ public final class DOTBuilder2 {
     public TraversalProcess visitNode(CFANode node) {
       Map<String, Object> jnode = new HashMap<>();
       jnode.put("index", node.getNodeNumber());
+      jnode.put("rpid", node.getReversePostorderId());
       jnode.put("func", node.getFunctionName());
       jnode.put("type", determineNodeType(node.describeFileLocation()));
 
