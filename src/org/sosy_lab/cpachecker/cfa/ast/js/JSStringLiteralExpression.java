@@ -59,11 +59,6 @@ public final class JSStringLiteralExpression extends AStringLiteralExpression
     return getValue();
   }
 
-  public String getContentString() {
-    String literal = getValue();
-    return literal.substring(1, literal.length() - 1);
-  }
-
   @Override
   public int hashCode() {
     int prime = 31;
