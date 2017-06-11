@@ -25,9 +25,16 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import java.util.logging.Level;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
+import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
+import org.eclipse.wst.jsdt.core.dom.StringLiteral;
+import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 class ASTConverter {
 
@@ -63,5 +70,25 @@ class ASTConverter {
         pNode.getLength(),
         javaScriptUnit.getLineNumber(pNode.getStartPosition()),
         javaScriptUnit.getLineNumber(pNode.getLength() + pNode.getStartPosition()));
+  }
+
+  public JSVariableDeclaration convert(
+      final VariableDeclarationFragment pVariableDeclarationFragment) {
+    final String variableIdentifier = pVariableDeclarationFragment.getName().getIdentifier();
+    final Expression initializer = pVariableDeclarationFragment.getInitializer();
+    final StringLiteral stringLiteral = (StringLiteral) initializer;
+    final JSStringLiteralExpression stringLiteralExpression =
+        new JSStringLiteralExpression(
+            getFileLocation(stringLiteral), JSAnyType.ANY, stringLiteral.getEscapedValue());
+    final JSInitializerExpression initializerExpression =
+        new JSInitializerExpression(getFileLocation(initializer), stringLiteralExpression);
+    return new JSVariableDeclaration(
+        getFileLocation(pVariableDeclarationFragment),
+        false,
+        JSAnyType.ANY,
+        variableIdentifier,
+        variableIdentifier,
+        variableIdentifier,
+        initializerExpression);
   }
 }

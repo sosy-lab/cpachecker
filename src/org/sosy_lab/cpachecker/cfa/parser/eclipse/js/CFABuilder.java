@@ -32,8 +32,6 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import org.eclipse.wst.jsdt.core.dom.ASTVisitor;
-import org.eclipse.wst.jsdt.core.dom.Expression;
-import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.common.log.LogManager;
@@ -43,8 +41,6 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -88,26 +84,8 @@ class CFABuilder extends ASTVisitor {
     final List<VariableDeclarationFragment> variableDeclarationFragments = node.fragments();
     final VariableDeclarationFragment variableDeclarationFragment =
         variableDeclarationFragments.get(0);
-    final String variableIdentifier = variableDeclarationFragment.getName().getIdentifier();
-    final Expression initializer = variableDeclarationFragment.getInitializer();
-    final StringLiteral stringLiteral = (StringLiteral) initializer;
-    final JSStringLiteralExpression stringLiteralExpression =
-        new JSStringLiteralExpression(
-            astConverter.getFileLocation(stringLiteral),
-            JSAnyType.ANY,
-            stringLiteral.getEscapedValue());
-    final JSInitializerExpression initializerExpression =
-        new JSInitializerExpression(
-            astConverter.getFileLocation(initializer), stringLiteralExpression);
     final JSVariableDeclaration variableDeclaration =
-        new JSVariableDeclaration(
-            astConverter.getFileLocation(variableDeclarationFragment),
-            false,
-            JSAnyType.ANY,
-            variableIdentifier,
-            variableIdentifier,
-            variableIdentifier,
-            initializerExpression);
+        astConverter.convert(variableDeclarationFragment);
     edge =
         new JSDeclarationEdge(
             variableDeclaration.toASTString(),
