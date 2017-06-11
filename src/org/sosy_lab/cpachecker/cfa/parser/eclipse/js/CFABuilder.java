@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -40,10 +39,13 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
@@ -73,9 +75,23 @@ class CFABuilder extends ASTVisitor {
             FileLocation.DUMMY, functionDeclaration, exitNode, Optional.empty());
     exitNode.setEntryNode(entryNode);
 
-    final BlankEdge dummyEdge =
-        new BlankEdge("", FileLocation.DUMMY, entryNode, exitNode, "Function start dummy edge");
-    CFACreationUtils.addEdgeToCFA(dummyEdge, logger);
+    final JSDeclarationEdge edge =
+        new JSDeclarationEdge(
+            "var x = 'foo'",
+            FileLocation.DUMMY,
+            entryNode,
+            exitNode,
+            new JSVariableDeclaration(
+                FileLocation.DUMMY,
+                false,
+                JSAnyType.ANY,
+                "x",
+                "x",
+                "x",
+                new JSInitializerExpression(
+                    FileLocation.DUMMY,
+                    new JSStringLiteralExpression(FileLocation.DUMMY, JSAnyType.ANY, "foo"))));
+    CFACreationUtils.addEdgeToCFA(edge, logger);
 
     cfas.put(functionName, entryNode);
     cfaNodes.put(functionName, entryNode);
