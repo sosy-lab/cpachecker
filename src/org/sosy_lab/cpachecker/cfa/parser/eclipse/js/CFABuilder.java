@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -81,12 +82,19 @@ class CFABuilder extends ASTVisitor {
   public boolean visit(VariableDeclarationStatement node) {
     @SuppressWarnings("unchecked")
     final List<VariableDeclarationFragment> variableDeclarationFragments = node.fragments();
+    CFANode prevNode = this.entryNode;
+    for (VariableDeclarationFragment variableDeclarationFragment : variableDeclarationFragments) {
+      final CFANode nextNode = new CFANode(functionName);
+      cfaNodes.put(functionName, nextNode);
 
-    final CFANode declarationNode = new CFANode(functionName);
-    cfaNodes.put(functionName, declarationNode);
+      addEdge(prevNode, nextNode, variableDeclarationFragment);
 
-    addEdge(entryNode, declarationNode, variableDeclarationFragments.get(0));
-    addEdge(declarationNode, exitNode, variableDeclarationFragments.get(1));
+      prevNode = nextNode;
+    }
+
+    // add dummy edge from previous node to exit node
+    CFACreationUtils.addEdgeToCFA(
+        new BlankEdge("", FileLocation.DUMMY, prevNode, exitNode, "end of file"), logger);
 
     return super.visit(node);
   }
