@@ -93,14 +93,12 @@ class CFABuilder extends ASTVisitor {
             entryNode,
             exitNode,
             variableDeclaration);
+    CFACreationUtils.addEdgeToCFA(edge, logger);
     return super.visit(node);
   }
 
   public ParseResult createCFA() {
     exitNode.setEntryNode(entryNode);
-
-    CFACreationUtils.addEdgeToCFA(edge, logger);
-
     cfas.put(functionName, entryNode);
     cfaNodes.put(functionName, entryNode);
     cfaNodes.put(functionName, exitNode);
