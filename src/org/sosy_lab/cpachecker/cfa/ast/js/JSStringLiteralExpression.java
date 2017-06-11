@@ -55,11 +55,6 @@ public final class JSStringLiteralExpression extends AStringLiteralExpression
   }
 
   @Override
-  public String toASTString() {
-    return getValue();
-  }
-
-  @Override
   public int hashCode() {
     int prime = 31;
     int result = 7;
