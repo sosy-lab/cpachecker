@@ -13,7 +13,6 @@
 				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
 				$scope.help_content = "<p>I am currently being developed</p>";
 				$scope.tab = 1;
-				$scope.nodes = nodes;
 				$scope.argWorker = argWorker;
 				$scope.argLoaderDone = argLoaderDone;
 				$scope.$on("ChangeTab", function(event, tabIndex) {
@@ -21,14 +20,13 @@
 				});
 				$scope.setTab = function(tabIndex) {
 					console.log($scope.argWorker);
-					console.log($scope.nodes);
 					if (tabIndex === 2) {
 						d3.select("#arg-container").classed("content", true);
-						if (!argLoaderDone) d3.select("#argLoader").style("display", "inline-block");
+						if (!argLoaderDone) d3.select("#arg-loader").style("display", "inline-block");
 						d3.selectAll(".arg-graph").style("visibility", "visible");
 					} else {
 						d3.select("#arg-container").classed("content", false);
-						if (!argLoaderDone) d3.select("#argLoader").style("display", "none");
+						if (!argLoaderDone) d3.select("#arg-loader").style("display", "none");
 						d3.selectAll(".arg-graph").style("visibility", "hidden");
 					}
 					$scope.tab = tabIndex;
@@ -54,7 +52,32 @@
 	
 	app.controller('CFAController', ['$rootScope', '$scope',
 		function($rootScope, $scope) {
-		
+        	$rootScope.functions = ["all"].concat(functions);
+        	$rootScope.selectedCFAFunction = 0;
+        	
+            $scope.setCFAFunction = function(value) {
+            	$("#cfa-container").scrollTop(0).scrollLeft(0);
+                //TODO: clear zoom if it is enabled
+                $rootScope.selectedCFAFunction = value;
+                if (value === 0) {
+                	functions.forEach(function(func) {
+                		d3.selectAll("#cfa-svg-" + func).attr("display", "inline-block");
+                	});
+                } else {
+                    var funcToHide = $rootScope.functions.filter(function(it){
+                    	return it !== $rootScope.functions[value] && it !== "all";
+                    });
+                    funcToHide.forEach(function(func){
+                    	d3.selectAll("#cfa-svg-" + func).attr("display", "none");
+                    });
+                    d3.selectAll("#cfa-svg-" + $rootScope.functions[value]).attr("display", "inline-block");
+                }
+            };
+            
+            $scope.cfaFunctionIsSet = function(value){
+                return value === $rootScope.selectedCFAFunction;
+            };
+            
 		}]);
 	
 	app.controller('ARGController', ['$rootScope', '$scope',
@@ -72,13 +95,12 @@ var sourceFiles = []; //SOURCE_FILES
 var cfaJson={};//CFA_JSON_INPUT
 
 // CFA graph variable declarations
-var nodes = cfaJson.nodes;
-var edges = cfaJson.edges;
-var functions = cfaJson.functionNames; //TODO: display only the graph for selected function
+var functions = cfaJson.functionNames;
 var functionCallEdges = cfaJson.functionCallEdges;
 var errorPath;
-if (cfaJson.hasOwnProperty("errorPath"))
-	erroPath = cfaJson.errorPath;
+if (cfaJson.hasOwnProperty("errorPath")) {
+	errorPath = cfaJson.errorPath;
+}
 var graphSplitThreshold = 700; // TODO: allow user input with max value 900
 var zoomEnabled = false; // TODO: allow user to switch between zoom possibilities
 // Graphs already rendered in the master script
@@ -114,9 +136,8 @@ function init() {
 	 */
 	function cfaWorker_function() {
 		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
-		var json, nodes, edges, functions, combinedNodes, inversedCombinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
+		var json, nodes, mainNodes, edges, functions, combinedNodes, inversedCombinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath, graphMap;
 		var requiredGraphs = 1;
-		var graphMap = {};
 		var graphSplitThreshold = 700; // default value
 		// TODO: different edge weights based on type?
 		var constants = {
@@ -139,10 +160,30 @@ function init() {
     		if (m.data.json !== undefined) {
     			json = JSON.parse(m.data.json);
     			extractVariables();
-    			if (nodes.length > graphSplitThreshold) {
-    				buildMultipleGraphs();
+    			if (mainNodes.length > graphSplitThreshold) {
+    				graphMap = {};
+    				buildMultipleGraphs(mainNodes, "main");
     			} else {
-    				buildSingleGraph();
+    				buildSingleGraph(mainNodes, "main");
+    			}
+    			if (functions.length > 1) {
+    				var functionsToProcess = functions.filter(function(f){
+    					return f !== "main";
+    				});
+    				functionsToProcess.forEach(function(func) {
+    					var funcNodes = nodes.filter(function(n){
+    						return n.func === func;
+    					});
+    					if (funcNodes.length > graphSplitThreshold) {
+    						graphMap = {};
+    						buildMultipleGraphs(funcNodes, func);
+    					} else {
+    						buildSingleGraph(funcNodes, func);
+    					}
+    				});
+    				self.postMessage({"status": "done"});
+    			} else {
+    				self.postMessage({"status": "done"});
     			}
     		}
 		}, false);
@@ -150,6 +191,9 @@ function init() {
 		// Extract information from the cfaJson
     	function extractVariables() {
 			nodes = json.nodes;
+			mainNodes = nodes.filter(function(n) {
+				return n.func === "main";
+			});
 			edges = json.edges;
 			functions = json.functionNames;
 			combinedNodes = json.combinedNodes;
@@ -161,17 +205,23 @@ function init() {
 				erroPath = json.errorPath;
     	}
     	
-    	function buildSingleGraph() {
+    	function buildSingleGraph(nodesToSet, funcName) {
     		var g = createGraph();
-    		setGraphNodes(g, nodes);
+    		setGraphNodes(g, nodesToSet);
     		roundNodeCorners(g);
-    		setGraphEdges(g, edges, false);
-    		self.postMessage({"graph" : JSON.stringify(g), "id" : 1});
-    		self.postMessage({"status": "done"});
+    		var nodesIndexes = [];
+    		nodesToSet.forEach(function(n){
+    			nodesIndexes.push(n.index);
+    		});
+    		var edgesToSet = edges.filter(function(e){
+    			return nodesIndexes.includes(e.source) && nodesIndexes.includes(e.target);
+    		});
+    		setGraphEdges(g, edgesToSet, false);
+    		self.postMessage({"graph" : JSON.stringify(g), "id" : funcName});
     	}
     	
-    	function buildMultipleGraphs() {
-    		requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
+    	function buildMultipleGraphs(nodesToSet, funcName) {
+    		requiredGraphs = Math.ceil(nodesToSet.length/graphSplitThreshold);
     		var firstGraphBuild = false;
     		var nodesPerGraph = [];
     		for (var i = 1; i <= requiredGraphs; i++) {
@@ -196,23 +246,24 @@ function init() {
     			});
     			setGraphEdges(graph, graphEdges, true);
     		}
-    		buildCrossgraphEdges();
+    		buildCrossgraphEdges(nodesToSet);
     		// Send each graph to the main script
     		for (var i = 1; i <= requiredGraphs; i++) {
-    			self.postMessage({"graph" : JSON.stringify(graphMap[Object.keys(graphMap)[i - 1]]), "id" : i});
+    			self.postMessage({"graph" : JSON.stringify(graphMap[Object.keys(graphMap)[i - 1]]), "id" : funcName});
     		}
-    		self.postMessage({"status": "done"});
-    	}
-    	
-    	// Return the graph in which the nodeNumber is present
-    	function getGraphForNode(nodeNumber) {
-    		return Object.keys(graphMap).find(function(key) { return key >= nodeNumber;});
     	}
     	
 		// TODO: reverseArrowHead + styles
     	// Handle Edges that connect Graphs
-    	function buildCrossgraphEdges() {
-    		edges.forEach(function(edge){
+    	function buildCrossgraphEdges(crossGraphNodes) {
+    		var nodesIndexes = [];
+    		crossGraphNodes.forEach(function(n) {
+    			nodesIndexes.push(n.index);
+    		});
+    		var edgesToConsider = edges.filter(function(e) {
+    			return nodesIndexes.includes("" + e.source) && nodesIndexes.includes("" + e.target);
+    		});
+    		edgesToConsider.forEach(function(edge){
     			var source = edge.source;
     			var target = edge.target;
     			if (mergedNodes.includes(source) && mergedNodes.includes(target)) return;
@@ -232,6 +283,11 @@ function init() {
     				graphMap[targetGraph].setEdge(target, "" + target + source + targetGraph, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
     			}
     		});
+    	}
+
+    	// Return the graph in which the nodeNumber is present
+    	function getGraphForNode(nodeNumber) {
+    		return Object.keys(graphMap).find(function(key) { return key >= nodeNumber;});
     	}
     	
     	// create and return a graph element with a set transition
@@ -301,7 +357,7 @@ function init() {
     			}
     			if (multigraph && (!graph.nodes().includes("" + source) || !graph.nodes().includes("" + target))) 
     				source = undefined;
-    			if ((source !== undefined && target !== undefined) && (source !== target)) {
+    			if (source !== undefined && target !== undefined && checkEligibleEdge(source, target)) {
     				graph.setEdge(source, target, {
     					label: e.stmt, 
     					class: e.type, 
@@ -310,6 +366,21 @@ function init() {
     				});
     			}
     		});
+    	}
+    	
+    	// Check if edge is eligible to place in graph. Same node edge only if it is not combined node
+    	function checkEligibleEdge(source, target) {
+    		if (mergedNodes.includes(source) && mergedNodes.includes(target)) return false;
+    		if (mergedNodes.includes(source) && Object.keys(combinedNodes).includes("" + target)) {
+    			if (combinedNodes["" + target].includes(source)) return false;
+    			else return true;
+    		}
+    		if (Object.keys(combinedNodes).includes("" + source) && mergedNodes.includes(target)){
+    			if (combinedNodes["" + source].includes(target)) return false;
+    			else return true;    			
+    		}
+    		if ((Object.keys(combinedNodes).includes("" + source) && Object.keys(combinedNodes).includes("" + target)) && source == target) return false; 
+    		return true;
     	}
     	
     	// Retrieve the node in which this node was merged
@@ -326,10 +397,12 @@ function init() {
     	
     	// Decide the weight for the edges based on type
     	function edgeWeightDecider(edge) {
+    		if (edge.source === edge.target)
+    			return 2;
     		if (edge.type === constants.functionCallEdge)
-    			return 1;
+    			return 0;
     		else
-    			return 10;
+    			return 1;
     	}
     	
 	}
@@ -478,12 +551,12 @@ function init() {
 		if (m.data.graph !== undefined) {
 			if (renderedCfaGraphs[m.data.id] === undefined) {
 				var id = m.data.id;
-				d3.select("#cfa-container").append("div").attr("id", "cfa-graph" + id).attr("class", "cfa-graph");
+				d3.select("#cfa-container").append("div").attr("id", "cfa-graph-" + id).attr("class", "cfa-graph");
 				var g = createGraph();
 				g = Object.assign(g, JSON.parse(m.data.graph));
 				renderedCfaGraphs[m.data.id] = g;
-				var svg = d3.select("#cfa-graph" + id).append("svg").attr("id", "cfa-svg" + id), svgGroup = svg.append("g");
-				render(d3.select("#cfa-svg" + id + " g"), g);
+				var svg = d3.select("#cfa-graph-" + id).append("svg").attr("id", "cfa-svg-" + id), svgGroup = svg.append("g");
+				render(d3.select("#cfa-svg-" + id + " g"), g);
 				//TODO: own function pass the id and use d3.select() to select svg and svgGroup -> zoom can be set later (after svg is rendered)
 				var zoom = d3.behavior.zoom().on(
 						"zoom",
@@ -504,17 +577,18 @@ function init() {
 			} else {
 				// This is needed for re-rendering after user interaction
 				renderedCfaGraphs[m.data.id] = Object.assign(renderedCfaGraphs[m.data.id], JSON.parse(m.data.graph));
-				render(d3.select("#cfa-svg" + id + " g"), renderedCfaGraphs[m.data.id]);
+				render(d3.select("#cfa-svg-" + id + " g"), renderedCfaGraphs[m.data.id]);
 				var width = renderedCfaGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
-				d3.select("#cfa-svg" + id).attr("height", renderedCfaGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
-				d3.select("#cfa-svg" + id + "> g").attr("transform", "translate(" + width / 2 + ", 20)");
+				d3.select("#cfa-svg-" + id).attr("height", renderedCfaGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
+				d3.select("#cfa-svg-" + id + "> g").attr("transform", "translate(" + width / 2 + ", 20)");
 				addEventsToNodes();
 				addEventsToEdges();
 			}
 		} else if (m.data.status !== undefined) {
 			clearInterval(cfaRefreshInterval);
 			cfaLoaderDone = true;
-			d3.select("#cfaLoader").style("display", "none");
+			d3.select("#cfa-loader").style("display", "none");
+			d3.select("#cfa-toolbar").style("visibility", "visible");
 		}
 	}, false);
 	
@@ -523,7 +597,9 @@ function init() {
 	}, false);
 
 	// Initial postMessage to the CFA worker to trigger CFA graph(s) creation
-	cfaWorker.postMessage({"json" : JSON.stringify(cfaJson)});
+	setTimeout(function() {
+		cfaWorker.postMessage({"json" : JSON.stringify(cfaJson)});
+	}, 2000);
 
 	argWorker.addEventListener('message', function(m) {
 		if (m.data.graph !== undefined) {
@@ -565,7 +641,7 @@ function init() {
 		} else if (m.data.status !== undefined) {
 			clearInterval(argRefreshInterval);
 			argLoaderDone = true;
-			d3.select("#argLoader").attr("display", "none");
+			d3.select("#arg-loader").attr("display", "none");
 		}
 	}, false);
 	
@@ -574,7 +650,9 @@ function init() {
 	}, false);
 	
 	// Initial postMessage to the ARG worker to trigger ARG graph(s) creation
-	argWorker.postMessage({"json" : JSON.stringify(argJson)});
+	setTimeout(function() {
+		argWorker.postMessage({"json" : JSON.stringify(argJson)});
+	}, 2000);
 	
 	// create and return a graph element with a set transition
 	function createGraph() {
@@ -589,7 +667,7 @@ function init() {
 	}
 	
 	cfaRefreshInterval = setInterval(function() {
-		var loader = $("#cfaLoader");
+		var loader = $("#cfa-loader");
 		if (loader.html().length > 23) {
 			loader.html("Rendering CFA Graphs ");
 		} else {
@@ -598,7 +676,7 @@ function init() {
 	},150);
 	
 	argRefreshInterval = setInterval(function() {
-		var loader = $("#argLoader");
+		var loader = $("#arg-loader");
 		if (loader.html().length > 23) {
 			loader.html("Rendering ARG Graphs ");
 		} else {

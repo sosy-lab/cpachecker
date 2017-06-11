@@ -75,11 +75,26 @@
     </nav>
     <div id="cfa-container" class="content" ng-show="tabIsSet(1)" ng-class="{active: tabIsSet(1)}"
          ng-controller="CFAController">
-         <span id="cfaLoader" class="loader">Rendering CFA Graphs </span>
+         <span id="cfa-loader" class="loader">Rendering CFA Graphs </span>
+      <div id="cfa-toolbar">
+        <div class="dropdown" id="cfa-dropdown">
+          <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown"
+                  aria-haspopup="true" aria-expanded="true">
+            Displayed CFA
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu pre-scrollable">
+            <li ng-repeat="func in functions"
+                ng-class="{'active, disabled': cfaFunctionIsSet($index)}"><a
+                ng-click="setCFAFunction($index)">{{func}}</a></li>
+          </ul>
+        </div>
+        <label id="cfa-dropdown-label">{{functions[selectedCFAFunction]}}</label>
+      </div>          
     </div>
     <div id="arg-container" ng-class="{active: tabIsSet(2)}"
     	 ng-controller="ARGController">
-    	 <span id="argLoader" class="loader">Rendering ARG Graphs </span>
+    	 <span id="arg-loader" class="loader">Rendering ARG Graphs </span>
     </div>
     <div class="fileContent content" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}"
          ng-controller="SourceController">

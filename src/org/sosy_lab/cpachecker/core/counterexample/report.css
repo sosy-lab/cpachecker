@@ -120,25 +120,6 @@ td:first-child {
 	background-color: #f3f3f3;
 }
 
-.edit-line {
-	width: 100%;
-	background-color: white;
-	padding: 5px;
-}
-
-.edit-line div {
-	display: inline-block;
-}
-
-.edit-line label {
-	margin-right: 100px;
-	display: inline-block;
-}
-
-.edit-line p {
-	display: inline-block;
-}
-
 div pre {
 	background-color: transparent;
 	border: 0;
@@ -160,11 +141,15 @@ div pre {
 	float: left;
 }
 
+.cfa-graph {
+	margin-top: 35px;
+}
+
 .arg-graph {
 	visibility: hidden;
 }
 
-#cfaLoader {
+#cfa-loader {
 	margin-top: 20px;
 	margin-left: 100px;
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
@@ -173,13 +158,33 @@ div pre {
 	color: #663399;
 }
 
-#argLoader {
+#arg-loader {
 	margin-left: 100px;
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
 	font-size: 20px;
 	font-style: italic;
 	color: #663399;
 	display: none;
+}
+
+#cfa-toolbar {
+    width: 95%;
+    background-color: white;
+    margin-top: 5px;
+	margin-left: 10px;
+    padding: 5px;
+    position: fixed;
+    visibility: hidden;
+}
+
+#cfa-toolbar div {
+    display: inline-block;
+}
+
+#cfa-toolbar #cfa-dropdown-label {
+	margin-left: 10px;
+    margin-right: 50px;
+    display: inline-block;
 }
 
 .entry-node {
