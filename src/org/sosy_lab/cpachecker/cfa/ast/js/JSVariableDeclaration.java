@@ -79,7 +79,8 @@ public final class JSVariableDeclaration extends AVariableDeclaration implements
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(getType().toASTString(getName()));
+    lASTString.append("var ");
+    lASTString.append(getName());
 
     if (getInitializer() != null) {
       lASTString.append(" = ");
