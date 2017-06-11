@@ -89,7 +89,7 @@ class CFABuilder extends ASTVisitor {
     edge =
         new JSDeclarationEdge(
             variableDeclaration.toASTString(),
-            astConverter.getFileLocation(node),
+            astConverter.getFileLocation(variableDeclarationFragment),
             entryNode,
             exitNode,
             variableDeclaration);
