@@ -82,6 +82,9 @@ class CFABuilder extends ASTVisitor {
   public boolean visit(VariableDeclarationStatement node) {
     @SuppressWarnings("unchecked")
     final List<VariableDeclarationFragment> variableDeclarationFragments = node.fragments();
+    final CFANode declarationNode = new CFANode(functionName);
+    cfaNodes.put(functionName, declarationNode);
+
     final VariableDeclarationFragment variableDeclarationFragment =
         variableDeclarationFragments.get(0);
     final JSVariableDeclaration variableDeclaration =
@@ -91,9 +94,22 @@ class CFABuilder extends ASTVisitor {
             variableDeclaration.toASTString(),
             astConverter.getFileLocation(variableDeclarationFragment),
             entryNode,
-            exitNode,
+            declarationNode,
             variableDeclaration);
     CFACreationUtils.addEdgeToCFA(edge, logger);
+
+    final VariableDeclarationFragment variableDeclarationFragment2 =
+        variableDeclarationFragments.get(1);
+    final JSVariableDeclaration variableDeclaration2 =
+        astConverter.convert(variableDeclarationFragment2);
+    final JSDeclarationEdge edge2 =
+        new JSDeclarationEdge(
+            variableDeclaration2.toASTString(),
+            astConverter.getFileLocation(variableDeclarationFragment2),
+            declarationNode,
+            exitNode,
+            variableDeclaration2);
+    CFACreationUtils.addEdgeToCFA(edge2, logger);
     return super.visit(node);
   }
 
