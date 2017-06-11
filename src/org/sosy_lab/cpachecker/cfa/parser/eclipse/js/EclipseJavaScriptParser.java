@@ -35,7 +35,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JSParserException;
@@ -67,7 +66,7 @@ class EclipseJavaScriptParser implements Parser {
       final String source = MoreFiles.toString(file, encoding);
       parser.setUnitName(file.normalize().toString());
       parser.setSource(source.toCharArray());
-      return buildCFA(parser.createAST(null));
+      return buildCFA(parser.createAST(null), new Scope(filename));
     } catch (IOException e) {
       throw new JSParserException(e);
     } finally {
@@ -90,10 +89,10 @@ class EclipseJavaScriptParser implements Parser {
     return cfaTimer;
   }
 
-  private ParseResult buildCFA(ASTNode ast) throws JSParserException {
+  private ParseResult buildCFA(ASTNode ast, Scope pScope) throws JSParserException {
     cfaTimer.start();
 
-    CFABuilder builder = new CFABuilder(logger);
+    CFABuilder builder = new CFABuilder(pScope, logger);
     try {
       ast.accept(builder);
       return builder.createCFA();

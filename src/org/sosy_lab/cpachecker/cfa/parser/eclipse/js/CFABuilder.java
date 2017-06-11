@@ -32,6 +32,10 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import org.eclipse.wst.jsdt.core.dom.ASTVisitor;
+import org.eclipse.wst.jsdt.core.dom.Expression;
+import org.eclipse.wst.jsdt.core.dom.StringLiteral;
+import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -52,45 +56,71 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 import org.sosy_lab.cpachecker.util.Pair;
 
 class CFABuilder extends ASTVisitor {
+  private final Scope scope;
   private final LogManager logger;
+  private final ASTConverter astConverter;
+
   private SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<Pair<ADeclaration, String>> globalDeclarations = Lists.newArrayList();
 
-  CFABuilder(LogManager pLogger) {
+  final String functionName = "main";
+  final JSFunctionDeclaration functionDeclaration =
+      new JSFunctionDeclaration(
+          FileLocation.DUMMY,
+          new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
+          functionName,
+          Collections.emptyList());
+  final FunctionExitNode exitNode = new FunctionExitNode(functionName);
+  final JSFunctionEntryNode entryNode =
+      new JSFunctionEntryNode(FileLocation.DUMMY, functionDeclaration, exitNode, Optional.empty());
+  private JSDeclarationEdge edge;
+
+  CFABuilder(Scope pScope, LogManager pLogger) {
+    scope = pScope;
     logger = pLogger;
+    astConverter = new ASTConverter(scope, logger);
+  }
+
+  @Override
+  public boolean visit(VariableDeclarationStatement node) {
+    @SuppressWarnings("unchecked")
+    final List<VariableDeclarationFragment> variableDeclarationFragments = node.fragments();
+    final VariableDeclarationFragment variableDeclarationFragment =
+        variableDeclarationFragments.get(0);
+    final String variableIdentifier = variableDeclarationFragment.getName().getIdentifier();
+    final Expression initializer = variableDeclarationFragment.getInitializer();
+    final StringLiteral stringLiteral = (StringLiteral) initializer;
+    final JSStringLiteralExpression stringLiteralExpression =
+        new JSStringLiteralExpression(
+            astConverter.getFileLocation(stringLiteral),
+            JSAnyType.ANY,
+            stringLiteral.getEscapedValue());
+    final JSInitializerExpression initializerExpression =
+        new JSInitializerExpression(
+            astConverter.getFileLocation(initializer), stringLiteralExpression);
+    final JSVariableDeclaration variableDeclaration =
+        new JSVariableDeclaration(
+            astConverter.getFileLocation(variableDeclarationFragment),
+            false,
+            JSAnyType.ANY,
+            variableIdentifier,
+            variableIdentifier,
+            variableIdentifier,
+            initializerExpression);
+    edge =
+        new JSDeclarationEdge(
+            variableDeclaration.toASTString(),
+            astConverter.getFileLocation(node),
+            entryNode,
+            exitNode,
+            variableDeclaration);
+    return super.visit(node);
   }
 
   public ParseResult createCFA() {
-    final String functionName = "main";
-    final JSFunctionDeclaration functionDeclaration =
-        new JSFunctionDeclaration(
-            FileLocation.DUMMY,
-            new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
-            functionName,
-            Collections.emptyList());
-    final FunctionExitNode exitNode = new FunctionExitNode(functionName);
-    final JSFunctionEntryNode entryNode =
-        new JSFunctionEntryNode(
-            FileLocation.DUMMY, functionDeclaration, exitNode, Optional.empty());
     exitNode.setEntryNode(entryNode);
 
-    final JSDeclarationEdge edge =
-        new JSDeclarationEdge(
-            "var x = 'foo'",
-            FileLocation.DUMMY,
-            entryNode,
-            exitNode,
-            new JSVariableDeclaration(
-                FileLocation.DUMMY,
-                false,
-                JSAnyType.ANY,
-                "x",
-                "x",
-                "x",
-                new JSInitializerExpression(
-                    FileLocation.DUMMY,
-                    new JSStringLiteralExpression(FileLocation.DUMMY, JSAnyType.ANY, "'foo'"))));
     CFACreationUtils.addEdgeToCFA(edge, logger);
 
     cfas.put(functionName, entryNode);
