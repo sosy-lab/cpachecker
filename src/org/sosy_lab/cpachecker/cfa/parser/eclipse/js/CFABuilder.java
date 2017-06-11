@@ -90,7 +90,7 @@ class CFABuilder extends ASTVisitor {
                 "x",
                 new JSInitializerExpression(
                     FileLocation.DUMMY,
-                    new JSStringLiteralExpression(FileLocation.DUMMY, JSAnyType.ANY, "foo"))));
+                    new JSStringLiteralExpression(FileLocation.DUMMY, JSAnyType.ANY, "'foo'"))));
     CFACreationUtils.addEdgeToCFA(edge, logger);
 
     cfas.put(functionName, entryNode);
