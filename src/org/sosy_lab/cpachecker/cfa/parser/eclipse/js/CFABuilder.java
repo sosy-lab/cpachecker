@@ -70,7 +70,6 @@ class CFABuilder extends ASTVisitor {
   final FunctionExitNode exitNode = new FunctionExitNode(functionName);
   final JSFunctionEntryNode entryNode =
       new JSFunctionEntryNode(FileLocation.DUMMY, functionDeclaration, exitNode, Optional.empty());
-  private JSDeclarationEdge edge;
 
   CFABuilder(Scope pScope, LogManager pLogger) {
     scope = pScope;
@@ -82,35 +81,30 @@ class CFABuilder extends ASTVisitor {
   public boolean visit(VariableDeclarationStatement node) {
     @SuppressWarnings("unchecked")
     final List<VariableDeclarationFragment> variableDeclarationFragments = node.fragments();
+
     final CFANode declarationNode = new CFANode(functionName);
     cfaNodes.put(functionName, declarationNode);
 
-    final VariableDeclarationFragment variableDeclarationFragment =
-        variableDeclarationFragments.get(0);
+    addEdge(entryNode, declarationNode, variableDeclarationFragments.get(0));
+    addEdge(declarationNode, exitNode, variableDeclarationFragments.get(1));
+
+    return super.visit(node);
+  }
+
+  private void addEdge(
+      final CFANode pPredecessor,
+      final CFANode pSuccessor,
+      final VariableDeclarationFragment pVariableDeclarationFragment) {
     final JSVariableDeclaration variableDeclaration =
-        astConverter.convert(variableDeclarationFragment);
-    edge =
+        astConverter.convert(pVariableDeclarationFragment);
+    CFACreationUtils.addEdgeToCFA(
         new JSDeclarationEdge(
             variableDeclaration.toASTString(),
-            astConverter.getFileLocation(variableDeclarationFragment),
-            entryNode,
-            declarationNode,
-            variableDeclaration);
-    CFACreationUtils.addEdgeToCFA(edge, logger);
-
-    final VariableDeclarationFragment variableDeclarationFragment2 =
-        variableDeclarationFragments.get(1);
-    final JSVariableDeclaration variableDeclaration2 =
-        astConverter.convert(variableDeclarationFragment2);
-    final JSDeclarationEdge edge2 =
-        new JSDeclarationEdge(
-            variableDeclaration2.toASTString(),
-            astConverter.getFileLocation(variableDeclarationFragment2),
-            declarationNode,
-            exitNode,
-            variableDeclaration2);
-    CFACreationUtils.addEdgeToCFA(edge2, logger);
-    return super.visit(node);
+            astConverter.getFileLocation(pVariableDeclarationFragment),
+            pPredecessor,
+            pSuccessor,
+            variableDeclaration),
+        logger);
   }
 
   public ParseResult createCFA() {
