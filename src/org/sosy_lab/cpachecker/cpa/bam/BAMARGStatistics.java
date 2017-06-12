@@ -135,11 +135,12 @@ public class BAMARGStatistics extends ARGStatistics {
   private void readdCounterexampleInfo(
       UnmodifiableReachedSet pReached, Collection<BackwardARGState> targets) {
     ARGState argState = (ARGState) pReached.getLastState();
-    BackwardARGState matchingState = from(targets).firstMatch(t -> t.getARGState() == argState).get();
-    if (argState.isTarget()) {
+    if (argState != null && argState.isTarget()) {
       Optional<CounterexampleInfo> cex = argState.getCounterexampleInformation();
-      if (cex.isPresent()) {
-        matchingState.addCounterexampleInformation(cex.get());
+      com.google.common.base.Optional<BackwardARGState> matchingState =
+          from(targets).firstMatch(t -> t.getARGState() == argState);
+      if (cex.isPresent() && matchingState.isPresent()) {
+        matchingState.get().addCounterexampleInformation(cex.get());
       }
     }
   }

@@ -106,7 +106,7 @@ public class ARGSubtreeRemover {
     }
 
     if (bamCache instanceof BAMCacheAggressiveImpl) {
-      ensureExactCacheHitsOnPath(pPath, cutPoint, pNewPrecisions, neededRemoveCachedSubtreeCalls);
+      ensureExactCacheHitsOnPath(pPath, cutPoint, pNewPrecisions, neededRemoveCachedSubtreeCalls, mainReachedSet.asReachedSet());
     }
 
     for (final Entry<ARGState, ARGState> removeCachedSubtreeArguments : neededRemoveCachedSubtreeCalls.entries()) {
@@ -314,19 +314,21 @@ public class ARGSubtreeRemover {
    * We remove all of them and create the "precise" entry for re-exploration.
    * We only update those blocks, where a nested block is imprecise. */
   private void ensureExactCacheHitsOnPath(ARGPath pPath, final ARGState pElement,
-      List<Precision> pNewPrecisions, Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls)
+      List<Precision> pNewPrecisions, Multimap<ARGState, ARGState> neededRemoveCachedSubtreeCalls,
+      UnmodifiableReachedSet pMainReachedSet)
       throws InterruptedException {
     boolean cutStateFound = false;
     final Deque<Boolean> needsNewPrecisionEntries = new ArrayDeque<>();
     final Deque<Boolean> foundInnerUnpreciseEntries = new ArrayDeque<>();
-    final Deque<ARGState> rootStates = new ArrayDeque<>();
+    final Deque<BackwardARGState> rootStates = new ArrayDeque<>();
 
     // add root from main-reached-set
     needsNewPrecisionEntries.add(false);
     foundInnerUnpreciseEntries.add(false);
-    rootStates.add(pPath.getFirstState());
+    rootStates.add((BackwardARGState)pPath.getFirstState());
 
-    for (ARGState bamState : pPath.asStatesList()) {
+    for (final ARGState pathState : pPath.asStatesList()) {
+      final BackwardARGState bamState = (BackwardARGState) pathState;
       assert needsNewPrecisionEntries.size() == foundInnerUnpreciseEntries.size();
       assert needsNewPrecisionEntries.size() == rootStates.size();
 
@@ -334,26 +336,24 @@ public class ARGSubtreeRemover {
         cutStateFound = true;
       }
 
-      ARGState state = ((BackwardARGState)bamState).getARGState();
-
-      for (AbstractState tmp : data.getExpandedStatesList(state)) {
+      for (AbstractState tmp : data.getExpandedStatesList(bamState.getARGState())) {
         boolean isNewPrecisionEntry = needsNewPrecisionEntries.removeLast();
         boolean isNewPrecisionEntryForOuterBlock = needsNewPrecisionEntries.getLast();
         boolean removedUnpreciseInnerBlock = foundInnerUnpreciseEntries.removeLast();
         boolean foundInnerUnpreciseEntry = foundInnerUnpreciseEntries.getLast();
 
-        ARGState rootState = rootStates.removeLast();
+        BackwardARGState rootState = rootStates.removeLast();
         if ((removedUnpreciseInnerBlock || isNewPrecisionEntry) && !isNewPrecisionEntryForOuterBlock && !foundInnerUnpreciseEntry) {
 
           if (cutStateFound) {
             // we indeed found an inner block that was imprecise,
             // if we are in a reached set that already uses the new precision and this is the first such entry
             // we have to remove the subtree starting from currentElement in the rootReachedSet
-            neededRemoveCachedSubtreeCalls.put(getReachedState(rootState), (ARGState) tmp);
+            neededRemoveCachedSubtreeCalls.put(rootState.getARGState(), (ARGState) tmp);
           }
 
-          assert data.getReachedSetForInitialState(getReachedState(rootState)).contains(tmp)
-          : "reachedset for initial state " + getReachedState(rootState) + " does not contain state " + tmp;
+          assert data.getReachedSetForInitialState(rootState.getARGState()).contains(tmp)
+            : "reachedset for initial state " + rootState.getARGState() + " does not contain state " + tmp;
 
           // replace last
           foundInnerUnpreciseEntries.removeLast();
@@ -361,10 +361,14 @@ public class ARGSubtreeRemover {
         }
       }
 
-      if (data.hasInitialState(state)) {
+      if (data.hasInitialState(bamState.getARGState())) {
         // before reaching the cutstate, we assume that all cache-entries are sufficient
-        ReachedSet openReachedSet =
-            data.getReachedSetForInitialState(rootStates.getLast().getWrappedState());
+        final UnmodifiableReachedSet openReachedSet;
+        if (rootStates.getLast().getWrappedState() == pMainReachedSet.getFirstState()) {
+          openReachedSet = pMainReachedSet;
+        } else {
+          openReachedSet = data.getReachedSetForInitialState(rootStates.getLast().getARGState());
+        }
         boolean preciseEntry = !cutStateFound || createNewPreciseEntry(bamState, pNewPrecisions, openReachedSet);
         needsNewPrecisionEntries.addLast(preciseEntry);
         foundInnerUnpreciseEntries.addLast(false);
