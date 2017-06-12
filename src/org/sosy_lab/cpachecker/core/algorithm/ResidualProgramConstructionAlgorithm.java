@@ -84,7 +84,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   private Path residualProgram = Paths.get("residualProgram.c");
 
   @Option(secure = true, name = "assumptionGuider",
-      description = "set specification file to automaton which guide analysis along assumption produced by incomplete analysis,e.g., config/specification/AssumptionGuidingAutomaton.spc, to enable residual program from combination of program and assumption condition")
+      description = "set specification file to automaton which guides analysis along assumption produced by incomplete analysis,e.g., config/specification/AssumptionGuidingAutomaton.spc, to enable residual program from combination of program and assumption condition")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path conditionSpec = null;
 

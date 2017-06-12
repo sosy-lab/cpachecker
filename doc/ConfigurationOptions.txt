@@ -2827,7 +2827,7 @@ report.export = true
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
 
-# set specification file to automaton which guide analysis along assumption
+# set specification file to automaton which guides analysis along assumption
 # produced by incomplete analysis,e.g.,
 # config/specification/AssumptionGuidingAutomaton.spc, to enable residual
 # program from combination of program and assumption condition
