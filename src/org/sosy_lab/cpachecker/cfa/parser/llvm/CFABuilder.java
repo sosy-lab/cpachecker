@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -52,8 +53,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -72,6 +75,8 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private final LogManager logger;
   private final MachineModel machineModel;
+  private final LlvmTypeConverter typeConverter;
+
   private SortedMap<String, FunctionEntryNode> functions;
   private SortedSetMultimap<String, CFANode> cfaNodes;
   private List<Pair<ADeclaration, String>> globalDeclarations;
@@ -79,6 +84,8 @@ public class CFABuilder extends LlvmAstVisitor {
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
     logger = pLogger;
     machineModel = pMachineModel;
+
+    typeConverter = new LlvmTypeConverter(pMachineModel);
 
     functions = new TreeMap<>();
     cfaNodes = TreeMultimap.create();
@@ -121,91 +128,22 @@ public class CFABuilder extends LlvmAstVisitor {
   private void handleFunctionDefinition(final Value pFuncDef) {
     assert pFuncDef.isFunction();
     TypeRef functionType = pFuncDef.typeOf();
-    TypeRef returnType = functionType.getReturnType();
+    CFunctionType cFuncType = (CFunctionType) typeConverter.getCType(functionType);
 
-
-    CType cReturnType = getCType(returnType);
-    CFunctionDeclaration functionDeclaration = null;
+    List<CParameterDeclaration> parameters = null; // FIXME
+    CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(
+        getLocation(pFuncDef),
+        cFuncType,
+        pFuncDef.getValueName(),
+        parameters);
     FunctionExitNode functionExit = null;
     Optional<CVariableDeclaration> returnVar = null;
-
-
 
     new CFunctionEntryNode(getLocation(pFuncDef), functionDeclaration, functionExit, returnVar);
   }
 
   private CType getCType(final TypeRef pReturnType) {
-    CType cType = null; // FIXME
-    final boolean isConst = false;
-    final boolean isVolatile = false;
-
-    IntValuedEnum<LLVMTypeKind> typeKind = pReturnType.getTypeKind();
-    long tk = typeKind.value();
-
-    if (tk == LLVMTypeKind.LLVMVoidTypeKind.value()) {
-      return CVoidType.VOID;
-    } else if (tk == LLVMTypeKind.LLVMIntegerTypeKind.value()) {
-      int integerWidth = pReturnType.getIntTypeWidth();
-      return getIntegerType(integerWidth, isConst, isVolatile);
-
-    } else if (tk == LLVMTypeKind.LLVMFloatTypeKind.value()
-        || tk == LLVMTypeKind.LLVMDoubleTypeKind.value()) {
-      // TODO
-    } else if (tk == LLVMTypeKind.LLVMArrayTypeKind.value()) {
-
-    }
-    return cType;
-  }
-
-  private CType getIntegerType(
-      final int pIntegerWidth,
-      final boolean pIsConst,
-      final boolean pIsVolatile
-  ) {
-    final boolean isSigned = false;
-    final boolean isComplex = false;
-    final boolean isImaginary = false;
-    final boolean isUnsigned = true;
-
-    final boolean isLong = false;
-    boolean isShort = false;
-    boolean isLonglong = false;
-
-    CBasicType basicType;
-
-    switch (pIntegerWidth) {
-      case 1:
-        basicType = CBasicType.BOOL;
-        break;
-      case 2:
-        basicType = CBasicType.INT;
-        isShort = true;
-        break;
-      case 4:
-        basicType = CBasicType.INT;
-        // keep everything set to 'false' for default int
-        break;
-      case 8:
-        basicType = CBasicType.INT;
-        // We use long long since it is 8 bytes for both 32 and 64 bit machines
-        isLonglong = true;
-        break;
-      default:
-        throw new AssertionError("Unhandled integer bitwidth " + pIntegerWidth);
-    }
-
-    return new CSimpleType(
-        pIsConst,
-        pIsVolatile,
-        basicType,
-        isLong,
-        isShort,
-        isSigned,
-        isUnsigned,
-        isComplex,
-        isImaginary,
-        isLonglong
-        );
+    return typeConverter.getCType(pReturnType);
   }
 
   @Override
