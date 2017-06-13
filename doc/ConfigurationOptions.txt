@@ -458,6 +458,7 @@ cegar.useRefinementSelection = false
 # Allow then/else branches to be swapped in order to obtain simpler
 # conditions.
 cfa.allowBranchSwapping = true
+cfa.allowBranchSwapping = no default value
 
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
@@ -506,6 +507,7 @@ cfa.functionCalls.recursionDepth = 5
 # Also initialize local variables with default values, or leave them
 # uninitialized.
 cfa.initializeAllVariables = false
+cfa.initializeAllVariables = no default value
 
 # With this option, all declarations in each function will be movedto the
 # beginning of each function. Do only use this option if you arenot able to
@@ -516,17 +518,20 @@ cfa.moveDeclarationsToFunctionStart = false
 
 # Show messages when dead code is encountered during parsing.
 cfa.showDeadCode = true
+cfa.showDeadCode = no default value
 
 # Remove all edges which don't have any effect on the program
 cfa.simplifyCfa = true
 
 # simplify simple const expressions like 1+2
 cfa.simplifyConstExpressions = true
+cfa.simplifyConstExpressions = no default value
 
 # simplify pointer expressions like s->f to (*s).f with this option the cfa
 # is simplified until at maximum one pointer is allowed for left- and
 # rightHandSide
 cfa.simplifyPointerExpressions = false
+cfa.simplifyPointerExpressions = no default value
 
 # This option causes the control flow automaton to be transformed into the
 # automaton of an equivalent program with one single loop and an artificial
@@ -2488,7 +2493,7 @@ java.version = JavaCore.VERSION_1_7
 
 # C or Java?
 language = C
-  enum:     [C, JAVA]
+  enum:     [C, JAVA, LLVM]
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
