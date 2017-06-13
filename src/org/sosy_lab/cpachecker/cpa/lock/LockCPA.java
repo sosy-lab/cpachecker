@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
-public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM{
+public class LockCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LockCPA.class);

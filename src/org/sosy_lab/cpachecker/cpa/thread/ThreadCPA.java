@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.thread;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -58,10 +58,8 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 
-import com.google.common.base.Preconditions;
 
-
-public class ThreadCPA implements ConfigurableProgramAnalysis, WrapperCPA, ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+public class ThreadCPA implements WrapperCPA, ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ThreadCPA.class);

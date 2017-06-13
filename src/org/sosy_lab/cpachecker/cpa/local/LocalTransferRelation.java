@@ -229,7 +229,7 @@ public class LocalTransferRelation extends ForwardingTransferRelation<LocalState
             ((CInitializerExpression)init).getExpression());
       } else {
         if (findDereference(decl.getType()) > 0 && !decl.isGlobal()
-            && (declEdge.getSuccessor().getFunctionName().equals("ldv_main") || decl.getType() instanceof CArrayType)) {
+            && decl.getType() instanceof CArrayType) {
           //we don't save global variables
           newState.set(
               new GeneralLocalVariableIdentifier(decl.getName(), findDereference(decl.getType())),

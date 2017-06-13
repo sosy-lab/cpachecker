@@ -76,27 +76,30 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
     ThreadStateBuilder builder = tState.getBuilder();
     try {
       threadStatistics.tSetTimer.start();
-      if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
+      try {
+        if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
           if (!handleFunctionCall((CFunctionCallEdge)pCfaEdge, builder)) {
             //Try to join non-created thread
-            threadStatistics.tSetTimer.stop();
             return Collections.emptySet();
           }
-      } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
-        CFunctionCall functionCall = ((CFunctionSummaryStatementEdge)pCfaEdge).getFunctionCall();
-        if (isThreadCreateFunction(functionCall)) {
-          builder.handleParentThread((CThreadCreateStatement)functionCall);
-          resetCallstacksFlag = true;
-          callstackTransfer.enableRecursiveContext();
+        } else if (pCfaEdge instanceof CFunctionSummaryStatementEdge) {
+          CFunctionCall functionCall = ((CFunctionSummaryStatementEdge)pCfaEdge).getFunctionCall();
+          if (isThreadCreateFunction(functionCall)) {
+            builder.handleParentThread((CThreadCreateStatement)functionCall);
+            resetCallstacksFlag = true;
+            callstackTransfer.enableRecursiveContext();
+          }
+        } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+          CFunctionCall functionCall = ((CFunctionReturnEdge)pCfaEdge).getSummaryEdge().getExpression();
+          if (isThreadCreateFunction(functionCall)) {
+            return Collections.emptySet();
+          }
         }
-      } else if (pCfaEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-        CFunctionCall functionCall = ((CFunctionReturnEdge)pCfaEdge).getSummaryEdge().getExpression();
-        if (isThreadCreateFunction(functionCall)) {
-          threadStatistics.tSetTimer.stop();
-          return Collections.emptySet();
-        }
+      } catch (HandleCodeException e) {
+        return Collections.emptySet();
+      } finally {
+        threadStatistics.tSetTimer.stop();
       }
-      threadStatistics.tSetTimer.stop();
 
       threadStatistics.internalCPAtimer.start();
       threadStatistics.internalLocationTimer.start();
@@ -120,8 +123,6 @@ public class ThreadTransferRelation extends SingleEdgeTransferRelation {
         callstackTransfer.disableRecursiveContext();
       }
       return resultStates;
-    } catch (HandleCodeException e) {
-      return Collections.emptySet();
     } finally {
       threadStatistics.transfer.stop();
     }
