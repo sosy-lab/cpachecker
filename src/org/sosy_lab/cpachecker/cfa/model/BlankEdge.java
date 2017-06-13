@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class BlankEdge extends AbstractCFAEdge {
 
+  private static final long serialVersionUID = 6394933292868202442L;
+
   private final String description;
 
   public static final String REPLACEMENT_LABEL = "REPLACEMENT-NOOP";

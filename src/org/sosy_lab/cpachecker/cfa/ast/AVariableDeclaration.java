@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AVariableDeclaration extends AbstractDeclaration {
 
+  private static final long serialVersionUID = -8792173769663524307L;
   private final String qualifiedName;
   private AInitializer initializer;
 

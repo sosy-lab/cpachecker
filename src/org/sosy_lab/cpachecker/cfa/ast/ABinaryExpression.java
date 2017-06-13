@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 
@@ -36,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 public abstract class ABinaryExpression extends AbstractExpression {
 
 
+  private static final long serialVersionUID = 516716556428189182L;
   private final AExpression operand1;
   private final AExpression operand2;
   private final ABinaryOperator operator;

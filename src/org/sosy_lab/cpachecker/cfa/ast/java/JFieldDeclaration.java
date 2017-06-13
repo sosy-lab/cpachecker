@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-
-import java.util.Objects;
 
 /**
  *
@@ -47,6 +46,7 @@ public final class JFieldDeclaration extends JVariableDeclaration {
 
   //TODO Annotation,
 
+  private static final long serialVersionUID = -4482849212846810730L;
   private static final boolean IS_FIELD = true;
   private static final JDeclaration UNRESOLVED_DECLARATION = new JFieldDeclaration(
       FileLocation.DUMMY,

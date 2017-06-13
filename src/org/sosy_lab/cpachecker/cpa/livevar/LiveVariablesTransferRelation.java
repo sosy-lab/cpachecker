@@ -178,7 +178,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   public LiveVariablesState getInitialState(CFANode pNode) {
     if (pNode instanceof FunctionExitNode) {
       FunctionExitNode eNode = (FunctionExitNode) pNode;
-      Optional<? extends AVariableDeclaration> returnVarName =
+      com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
           eNode.getEntryNode().getReturnVariable();
 
       // e.g. a function void foo();
@@ -211,11 +211,12 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
       if (node instanceof FunctionEntryNode) {
         FunctionEntryNode entryNode = (FunctionEntryNode) node;
-        entryNode.getReturnVariable().ifPresent(
-            t -> allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(t))
-        );
-        allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(entryNode
-            .getFunctionDefinition()));
+        com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
+            entryNode.getReturnVariable();
+        if (returnVarName.isPresent()) {
+          allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(returnVarName.get()));
+        }
+        allDecls.add(LIVE_DECL_EQUIVALENCE.wrap(entryNode.getFunctionDefinition()));
         for (AParameterDeclaration param : entryNode.getFunctionParameters()) {
 
           // Adding function parameters separately from function declarations

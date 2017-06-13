@@ -1143,7 +1143,8 @@ public class CtoFormulaConverter {
       CFunctionCallExpression funcCallExp = exp.getRightHandSide();
 
       String callerFunction = ce.getSuccessor().getFunctionName();
-      final Optional<CVariableDeclaration> returnVariableDeclaration = ce.getFunctionEntry().getReturnVariable();
+      final com.google.common.base.Optional<CVariableDeclaration> returnVariableDeclaration =
+          ce.getFunctionEntry().getReturnVariable();
       if (!returnVariableDeclaration.isPresent()) {
         throw new UnrecognizedCCodeException("Void function used in assignment", ce, retExp);
       }
@@ -1246,7 +1247,7 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  protected BooleanFormula makeReturn(final Optional<CAssignment> assignment,
+  protected BooleanFormula makeReturn(final com.google.common.base.Optional<CAssignment> assignment,
       final CReturnStatementEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)

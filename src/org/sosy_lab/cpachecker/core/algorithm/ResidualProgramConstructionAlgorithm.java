@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Writer;
@@ -51,6 +52,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -68,6 +70,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -84,7 +87,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   private Path residualProgram = Paths.get("residualProgram.c");
 
   @Option(secure = true, name = "assumptionGuider",
-      description = "set specification file to automaton which guide analysis along assumption produced by incomplete analysis,e.g., config/specification/AssumptionGuidingAutomaton.spc, to enable residual program from combination of program and assumption condition")
+      description = "set specification file to automaton which guides analysis along assumption produced by incomplete analysis,e.g., config/specification/AssumptionGuidingAutomaton.spc, to enable residual program from combination of program and assumption condition")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path conditionSpec = null;
 
@@ -267,13 +270,17 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     return pEdge.getRawStatement().startsWith("__assert_fail");
   }
 
-  private void writeResidualProgram(final ARGState pArgRoot, final Set<CFANode> pAddPragma) {
+  private void writeResidualProgram(final ARGState pArgRoot, final Set<CFANode> pAddPragma)
+      throws InterruptedException {
     logger.log(Level.INFO, "Generate residual program");
     try (Writer writer = MoreFiles.openOutputFile(residualProgram, Charset.defaultCharset())) {
       writer.write(translator.translateARG(pArgRoot, pAddPragma));
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write residual program to file");
+      return;
     }
+    String mainFunction = AbstractStates.extractLocation(pArgRoot).getFunctionName();
+    assert(isValidResidualProgram(mainFunction));
   }
 
   private @Nullable ARGState prepareARGToConstructResidualProgram(final CFANode mainFunction,
@@ -316,6 +323,26 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       logger.logException(Level.SEVERE, e1, "Analysis to build structure of residual program failed");
       return null;
     }
+  }
+
+  private boolean isValidResidualProgram(String mainFunction) throws InterruptedException {
+    try {
+      CFACreator cfaCreator = new CFACreator(
+          Configuration.builder()
+              .setOption("analysis.entryFunction", mainFunction)
+              .setOption("parser.usePreprocessor", "true")
+              .build(),
+          logger, shutdown);
+      cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(residualProgram.toString()));
+    } catch (InvalidConfigurationException e) {
+      logger.logException(Level.SEVERE, e,
+          "Default configuration unsuitable for parsing residual program.");
+      return false;
+    } catch (IOException | ParserException e) {
+      logger.log(Level.SEVERE, "No valid residual program generated. ", e);
+      return false;
+    }
+    return true;
   }
 
   @Override

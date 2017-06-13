@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public final class JParameterDeclaration extends AParameterDeclaration
     implements JSimpleDeclaration {
 
+  private static final long serialVersionUID = -5728272567926253312L;
   private final String qualifiedName;
   private final boolean isFinal;
 

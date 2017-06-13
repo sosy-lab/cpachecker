@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 public class CPAMain {
@@ -115,6 +116,7 @@ public class CPAMain {
     }
     final LogManager logManager = BasicLogManager.create(logOptions);
     cpaConfig.enableLogging(logManager);
+    GlobalInfo.getInstance().storeLogManager(logManager);
 
     // create everything
     final ShutdownManager shutdownManager = ShutdownManager.create();

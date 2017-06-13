@@ -31,6 +31,8 @@ public class CUnaryExpression extends AUnaryExpression implements CExpression {
 
 
 
+  private static final long serialVersionUID = -7701970127701577207L;
+
   public CUnaryExpression(final FileLocation pFileLocation,
                              final CType pType, final CExpression pOperand,
                              final UnaryOperator pOperator) {
