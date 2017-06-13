@@ -63,10 +63,10 @@ public class UsageReducer implements Reducer {
       exp = funReducedState.getWrappedState();
     }
     UsageState result = funRootState.clone(exp);
+    result.joinContainerFrom(funReducedState);
     if (funReducedState instanceof Exitable) {
       return result.asExitable();
     }
-    result.joinContainerFrom(funReducedState);
     return result;
   }
 
@@ -87,10 +87,10 @@ public class UsageReducer implements Reducer {
     AbstractState exp = wrappedReducer.getVariableExpandedState(funRootState.getWrappedState(), pReducedContext, funReducedState.getWrappedState());
 
     UsageState result = funRootState.clone(exp);
+    result.joinContainerFrom(funReducedState);
     if (funReducedState instanceof Exitable) {
       return result.asExitable();
     }
-    result.joinContainerFrom(funReducedState);
     return result;
   }
 
