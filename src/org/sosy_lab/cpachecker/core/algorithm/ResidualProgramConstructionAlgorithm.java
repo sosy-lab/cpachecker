@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -36,8 +35,8 @@ import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -93,6 +92,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
   private final CFA cfa;
   private final Algorithm innerAlgorithm;
+  private final Specification origSpec;
   private final LogManager logger;
   private final ShutdownNotifier shutdown;
 
@@ -100,18 +100,19 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   private final Collection<Statistics> stats = new ArrayList<>();
 
   public ResidualProgramConstructionAlgorithm(final CFA pCfa, final Algorithm pAlgorithm,
-      final Configuration pConfig, final LogManager pLogger, final ShutdownNotifier pShutdown)
-      throws InvalidConfigurationException {
+      final Configuration pConfig, final LogManager pLogger, final ShutdownNotifier pShutdown,
+      final Specification pSpec) throws InvalidConfigurationException {
     pConfig.inject(this);
 
     cfa = pCfa;
     innerAlgorithm = pAlgorithm;
     logger = pLogger;
     shutdown = pShutdown;
+    origSpec = pSpec;
     translator = new ARGToCTranslator(logger, pConfig);
 
-    if(innerAlgorithm instanceof StatisticsProvider){
-      ((StatisticsProvider)innerAlgorithm).collectStatistics(stats);
+    if (innerAlgorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) innerAlgorithm).collectStatistics(stats);
     }
   }
 
@@ -291,17 +292,20 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
       configBuilder.setOption("CompositeCPA.cpas",
           "cpa.location.LocationCPA,cpa.callstack.CallstackCPA");
+      configBuilder.setOption("cpa.automaton.breakOnTargetState", "-1");
       Configuration config = configBuilder.build();
 
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
-      Specification spec = Specification.alwaysSatisfied();
+      Specification spec = origSpec;
       if (conditionSpec != null) {
         assert (assumptionAutomaton != null);
-        spec = Specification.fromFiles(Collections.emptySet(),
-            ImmutableList.of(conditionSpec, assumptionAutomaton), cfa,
-            config, logger);
+        List<Path> specList = Lists.newArrayList(spec.getSpecFiles());
+        specList.add(conditionSpec);
+        specList.add(assumptionAutomaton);
+        spec = Specification.fromFiles(origSpec.getProperties(),
+            specList, cfa, config, logger);
       }
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
 

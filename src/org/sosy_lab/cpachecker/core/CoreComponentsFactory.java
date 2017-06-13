@@ -407,7 +407,7 @@ public class CoreComponentsFactory {
       }
 
       if (constructResidualProgram) {
-        algorithm = new ResidualProgramConstructionAlgorithm(cfa, algorithm, config, logger, shutdownNotifier);
+        algorithm = new ResidualProgramConstructionAlgorithm(cfa, algorithm, config, logger, shutdownNotifier, specification);
       }
 
       if (unknownIfUnrestrictedProgram) {
