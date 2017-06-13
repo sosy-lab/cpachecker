@@ -30,6 +30,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -41,12 +42,18 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public class LlvmParser implements Parser {
 
   private final LogManager logger;
+  private final CFABuilder cfaBuilder;
 
   private final Timer parseTimer = new Timer();
   private final Timer cfaCreationTimer = new Timer();
 
-  public LlvmParser(final LogManager pLogger, final Configuration config) {
+  public LlvmParser(
+      final LogManager pLogger,
+      final Configuration pConfig,
+      final MachineModel pMachineModel
+  ) {
     logger = pLogger;
+    cfaBuilder = new CFABuilder(logger, pMachineModel);
   }
 
   @Override
@@ -66,11 +73,11 @@ public class LlvmParser implements Parser {
   }
 
   private ParseResult buildCfa(final Module pModule) {
-    pModule.getModuleContext();
+    return cfaBuilder.build(pModule);
   }
 
   private Module parse0(final String pFilename) {
-
+    return null;
   }
 
   @Override
@@ -88,4 +95,5 @@ public class LlvmParser implements Parser {
   public Timer getCFAConstructionTime() {
     return cfaCreationTimer;
   }
+
 }

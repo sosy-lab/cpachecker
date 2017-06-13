@@ -68,7 +68,7 @@ public abstract class LlvmAstVisitor {
       } else {
         behavior = visitInFunction(localItem);
         if (behavior == Behavior.CONTINUE) {
-          localItem = localItem.getNextGlobal();
+          localItem = localItem.getNextFunction();
 
         } else {
           assert behavior == Behavior.STOP : "Unhandled behavior type " + behavior;
@@ -110,7 +110,7 @@ public abstract class LlvmAstVisitor {
         behavior = pVisitMethod.apply(nextInstr);
 
         if (behavior == Behavior.CONTINUE) {
-          nextInstr = nextInstr.getNextInstruction(/* FIXME */ null);
+          nextInstr = nextInstr.getNextInstruction();
 
         } else {
           assert behavior == Behavior.STOP : "Unhandled behavior type " + behavior;

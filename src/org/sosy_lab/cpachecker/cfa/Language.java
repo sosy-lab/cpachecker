@@ -29,6 +29,7 @@ package org.sosy_lab.cpachecker.cfa;
 public enum Language {
   C,
   JAVA,
+  LLVM
   ;
 
   @Override
@@ -38,6 +39,8 @@ public enum Language {
       return "C";
     case JAVA:
       return "Java";
+    case LLVM:
+      return "LLVM IR";
     default:
       throw new AssertionError();
     }
