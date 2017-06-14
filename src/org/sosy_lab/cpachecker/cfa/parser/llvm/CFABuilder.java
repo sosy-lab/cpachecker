@@ -24,10 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import com.google.common.base.Optional;
-<<<<<<< HEAD
 import java.math.BigInteger;
-=======
->>>>>>> 4332fb6eb6f46922a81fa614948c2212038b6390
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
