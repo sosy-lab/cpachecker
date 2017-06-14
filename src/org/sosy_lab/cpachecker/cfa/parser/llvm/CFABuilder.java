@@ -178,7 +178,12 @@ public class CFABuilder extends LlvmAstVisitor {
       returnVar = Optional.of(returnVarDecl);
     }
 
-    return new CFunctionEntryNode(getLocation(pFuncDef), functionDeclaration, functionExit, returnVar);
+    FunctionEntryNode entry = new CFunctionEntryNode(
+      getLocation(pFuncDef), functionDeclaration,
+      functionExit, returnVar);
+    functionExit.setEntryNode(entry);
+
+    return entry;
   }
 
   @Override
