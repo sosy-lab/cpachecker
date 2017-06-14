@@ -140,15 +140,12 @@ public class LlvmTypeConverter {
     String structName = getStructName(pStructType);
     String origName = structName;
 
-    int memberCount = pStructType.countStructElementTypes();
-    List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(memberCount);
+    List<TypeRef> memberTypes = pStructType.getStructElementTypes();
+    List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(memberTypes.size());
 
-    Pointer<LLVMTypeRef> memberTypes = Pointer.allocateArray(LLVMTypeRef.class, memberCount);
-    pStructType.getStructElementTypes(memberTypes);
-
-    for (int i = 0; i < memberCount; i++) {
+    for (int i = 0; i < memberTypes.size(); i++) {
       String memberName = getMemberName(structName, i);
-      TypeRef memType = new TypeRef(memberTypes.get(i));
+      TypeRef memType = memberTypes.get(i);
       CType cMemType = getCType(memType);
       CCompositeTypeMemberDeclaration memDecl =
           new CCompositeTypeMemberDeclaration(cMemType, memberName);
@@ -185,11 +182,8 @@ public class LlvmTypeConverter {
     int paramNumber = pFuncType.countParamTypes();
     List<CType> parameterTypes = new ArrayList<>(paramNumber);
 
-    Pointer<LLVMTypeRef> paramTypes = Pointer.allocateArray(LLVMTypeRef.class, paramNumber);
-    pFuncType.getParamTypes(paramTypes);
-    for (int i = 0; i < paramNumber; i++) {
-      LLVMTypeRef internalType = paramTypes.get(i);
-      TypeRef type = new TypeRef(internalType);
+    List<TypeRef> paramTypes = pFuncType.getParamTypes();
+    for (TypeRef type : paramTypes) {
       CType cParamType = getCType(type);
       parameterTypes.add(cParamType);
     }
