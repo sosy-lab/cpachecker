@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
@@ -36,11 +37,19 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
@@ -97,23 +106,47 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef) {
-    TypeRef functionType = pFuncDef.typeOf();
+    String functionName = pFuncDef.getValueName();
 
+    // Function type
+    TypeRef functionType = pFuncDef.typeOf();
     CFunctionType cFuncType = (CFunctionType) typeConverter.getCType(functionType);
 
-    /* FIXME
-    List<CParameterDeclaration> parameters = null; // FIXME
+    // Parameters
+    List<Value> paramVs = pFuncDef.getParams();
+    List<CParameterDeclaration> parameters = new ArrayList<>(paramVs.size());
+    for (Value v : paramVs) {
+      String paramName = v.getValueName();
+      CType paramType = typeConverter.getCType(v.typeOf());
+      CParameterDeclaration parameter = new CParameterDeclaration(FileLocation.DUMMY, paramType, paramName);
+      parameters.add(parameter);
+    }
+
+    // Function declaration, exit
     CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(
         getLocation(pFuncDef),
         cFuncType,
-        pFuncDef.getValueName(),
+        functionName,
         parameters);
-    FunctionExitNode functionExit = null;
-    Optional<CVariableDeclaration> returnVar = null;
+    FunctionExitNode functionExit = new FunctionExitNode(functionName);
+
+    // Return variable : The return value is written to this
+    Optional<CVariableDeclaration> returnVar;
+    CType returnType = cFuncType.getReturnType();
+    if (returnType.equals(CVoidType.VOID)) {
+      returnVar = Optional.absent();
+
+    } else {
+      String returnVarName = "__retval__";
+      String scopedName = functionName + "::" + "__retval__"; // TODO: Is this needed?
+      CVariableDeclaration returnVarDecl = new CVariableDeclaration(
+          getLocation(pFuncDef), false, CStorageClass.AUTO, returnType, returnVarName,
+          returnVarName, returnVarName, null /* no initializer */);
+
+      returnVar = Optional.of(returnVarDecl);
+    }
 
     return new CFunctionEntryNode(getLocation(pFuncDef), functionDeclaration, functionExit, returnVar);
-    */
-    return null;
   }
 
   @Override
