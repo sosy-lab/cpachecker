@@ -28,6 +28,7 @@ import org.llvm.Module;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -69,10 +70,10 @@ public class LlvmParser implements Parser {
 
     // TODO: Handle/show errors in parser
 
-    return buildCfa(llvmModule);
+    return buildCfa(llvmModule, pFilename);
   }
 
-  private ParseResult buildCfa(final Module pModule) {
+  private ParseResult buildCfa(final Module pModule, final String pFilename) {
     return cfaBuilder.build(pModule);
   }
 

@@ -322,7 +322,7 @@ public abstract class LlvmAstVisitor {
 
     while (true) {
       // process this basic block
-      CAstNode expr = visitInstruction(I);
+      CAstNode expr = visitInstruction(I, funcName);
 
       // build an edge with this expression over it
       // TODO -- FIXME
@@ -362,6 +362,7 @@ public abstract class LlvmAstVisitor {
   }
 
   protected abstract FunctionEntryNode visitFunction(final Value pItem);
-  protected abstract CAstNode visitInstruction(final Value pItem);
+  protected abstract CAstNode visitInstruction(Value pItem, String pFunctionName);
+
   protected abstract Behavior visitGlobalItem(final Value pItem);
 }
