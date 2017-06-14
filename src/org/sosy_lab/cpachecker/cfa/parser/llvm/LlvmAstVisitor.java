@@ -37,12 +37,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
@@ -156,7 +160,6 @@ public abstract class LlvmAstVisitor {
       // lead every termination node to the one unified termination node of the CFA
       CFANode exitNode = en.getExitNode();
       for (CFANode n : termnodes) {
-        logger.log(Level.INFO, "Got termnode in func " + funcName);
         addEdge(new BlankEdge("to_exit", FileLocation.DUMMY,
                               n, exitNode, "Unified exit edge"));
       }
@@ -265,16 +268,19 @@ public abstract class LlvmAstVisitor {
         CLabelNode label = (CLabelNode)basicBlocks.get(succ.getAddress()).getEntryNode();
 
         // FIXME
-        /*
-        CExpression expr = null;
+        CExpression expr = new CCharLiteralExpression(
+          FileLocation.DUMMY,
+          new CSimpleType(
+              false, false,
+              CBasicType.CHAR,
+              false, false, false,
+              true,
+              false, false, false),
+          (char) i
+        );
 
-        addEdge(new CAssumeEdge("T", FileLocation.DUMMY,
-                        brNode, (CFANode)label, expr, true));
-        */
-
-        // FIXME
-        addEdge(new BlankEdge("?", FileLocation.DUMMY,
-                               brNode, (CFANode)label, Integer.toString(i)));
+        addEdge(new CAssumeEdge("?", FileLocation.DUMMY,
+                        brNode, (CFANode)label, expr, false));
       }
 
       // did we processed all basic blocks?
