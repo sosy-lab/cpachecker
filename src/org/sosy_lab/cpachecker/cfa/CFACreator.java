@@ -365,6 +365,9 @@ private boolean classifyNodes = false;
       case C:
         mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
         break;
+      case LLVM:
+        mainFunction = c.getFunctions().get(mainFunctionName);
+        break;
       default:
         throw new AssertionError();
       }
