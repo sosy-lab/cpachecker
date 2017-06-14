@@ -24,7 +24,10 @@
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import com.google.common.base.Optional;
+<<<<<<< HEAD
 import java.math.BigInteger;
+=======
+>>>>>>> 4332fb6eb6f46922a81fa614948c2212038b6390
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -58,6 +61,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+
 /**
  * CFA builder for LLVM IR.
  * Metadata stored in the LLVM IR file is ignored.
@@ -76,6 +82,7 @@ public class CFABuilder extends LlvmAstVisitor {
   private final LlvmTypeConverter typeConverter;
 
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
+    super(pLogger);
     logger = pLogger;
     machineModel = pMachineModel;
 
