@@ -142,10 +142,6 @@ public class CFABuilder extends LlvmAstVisitor {
     new CFunctionEntryNode(getLocation(pFuncDef), functionDeclaration, functionExit, returnVar);
   }
 
-  private CType getCType(final TypeRef pReturnType) {
-    return typeConverter.getCType(pReturnType);
-  }
-
   @Override
   protected Behavior visitGlobalItem(final Value pItem) {
     return null;
