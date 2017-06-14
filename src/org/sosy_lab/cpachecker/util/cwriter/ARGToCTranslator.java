@@ -191,9 +191,10 @@ public class ARGToCTranslator {
   private FunctionBody mainFunctionBody;
   private String mainReturnVar;
   private boolean isVoidMain;
+  private boolean deleteAssertFail;
   // private static Collection<AbstractState> reached;
 
-  private @Nullable Set<CFANode> addPragmaAfter;
+  private @Nullable Set<ARGState> addPragmaAfter;
 
 
   @Option(secure=true, name="header", description="write include directives")
@@ -206,6 +207,7 @@ public class ARGToCTranslator {
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
+    deleteAssertFail = targetStrategy == TargetTreatment.FRAMACPRAGMA;
   }
 
   public String translateARG(ARGState argRoot) {
@@ -213,13 +215,13 @@ public class ARGToCTranslator {
     return translateARG(argRoot, null);
   }
 
-  public String translateARG(ARGState argRoot, @Nullable Set<CFANode> pAddPragma) {
+  public String translateARG(ARGState argRoot, @Nullable Set<ARGState> pAddPragma) {
 
     addPragmaAfter = pAddPragma == null ? Collections.emptySet() : pAddPragma;
 
     translate(argRoot);
 
-    return generateCCode(includeHeader);
+    return generateCCode(includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE);
   }
 
 
@@ -532,17 +534,10 @@ public class ARGToCTranslator {
 
     case StatementEdge: {
       CStatementEdge lStatementEdge = (CStatementEdge)pCFAEdge;
-      String statementText = lStatementEdge.getStatement().toASTString();
-        if (statementText.startsWith(ASSERTFAIL)) {
-          if (addPragmaAfter.contains(
-              pCFAEdge.getSuccessor())) {
-            return "assert(0);\n/*@ slice pragma ctrl; */";
-          }
-          return "assert(0);";
-
-        }
+        String statementText = lStatementEdge.getStatement().toASTString();
+        if (deleteAssertFail && statementText.startsWith(ASSERTFAIL)) { return ""; }
         return statementText + (statementText.endsWith(";") ? "" : ";");
-    }
+      }
 
     case DeclarationEdge: {
       CDeclarationEdge lDeclarationEdge = (CDeclarationEdge)pCFAEdge;
@@ -647,7 +642,11 @@ public class ARGToCTranslator {
       case ASSERTFALSE:
         return new SimpleStatement("assert(0);");
       case FRAMACPRAGMA:
-        return new SimpleStatement("/*@ slice pragma ctrl; */");
+        if (addPragmaAfter.contains(pTargetState)) {
+          return new SimpleStatement("/*@ slice pragma ctrl; */");
+        } else {
+          return null;
+        }
       default:
         // case NONE
         return null;
