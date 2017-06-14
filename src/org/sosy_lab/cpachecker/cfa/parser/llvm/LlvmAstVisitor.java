@@ -33,9 +33,12 @@ import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import java.util.function.Function;
 import org.llvm.*;
 
@@ -111,9 +114,9 @@ public abstract class LlvmAstVisitor {
       // handle the function definition
       FunctionEntryNode en = visitFunction(func);
 
-      // create the basic blocks and instructions of the function
-      // XXX: use HashMap?
-      SortedMap<Long, CLabelNode> basicBlocks = new TreeMap<>();
+      // create the basic blocks and instructions of the function.
+      // A basic block is mapped to a pair <entry node, exit node>
+      SortedMap<Long, BasicBlockInfo> basicBlocks = new TreeMap<>();
       CLabelNode entryBB = iterateOverBasicBlocks(func, func.getValueName(), basicBlocks);
 
       // add branching between instructions
@@ -142,7 +145,7 @@ public abstract class LlvmAstVisitor {
    */
   private CLabelNode iterateOverBasicBlocks(final Value pItem,
                                             String funcName,
-                                            SortedMap<Long, CLabelNode> basicBlocks) {
+                                            SortedMap<Long, BasicBlockInfo> basicBlocks) {
     assert pItem.isFunction();
 
     BasicBlock BB = pItem.getFirstBasicBlock();
@@ -159,13 +162,12 @@ public abstract class LlvmAstVisitor {
       if (entryBB == null)
         entryBB = label;
 
-      basicBlocks.put(BB.getAddress(), label);
-
-      CFANode nd = handleInstructions(funcName, BB);
+      BasicBlockInfo bbi = handleInstructions(funcName, BB);
+      basicBlocks.put(BB.getAddress(), new BasicBlockInfo(label, bbi.getExitNode()));
 
       // add an edge from label to the first node
       // of this basic block
-      BlankEdge.buildNoopEdge(label, nd);
+      BlankEdge.buildNoopEdge(label, bbi.getEntryNode());
 
       // did we process all basic blocks?
       if (BB.equals(lastBB))
@@ -179,7 +181,7 @@ public abstract class LlvmAstVisitor {
   }
 
   private void addJumpsBetweenBasicBlocks(final Value pItem,
-                                          SortedMap<Long, CLabelNode> basicBlocks) {
+                                          SortedMap<Long, BasicBlockInfo> basicBlocks) {
     assert pItem.isFunction();
 
     BasicBlock BB = pItem.getFirstBasicBlock();
@@ -193,18 +195,40 @@ public abstract class LlvmAstVisitor {
     // add edges from it to labels where it jumps
     while (true) {
       Value terminatorInst = BB.getLastInstruction();
-      if (terminatorInst == null)
+      if (terminatorInst == null) {
+        if (BB.equals(lastBB))
+          break;
+
+        BB = BB.getNextBasicBlock();
         continue;
+      }
 
-      // process this basic block
-      CLabelNode label = basicBlocks.get(BB.getAddress());
+      assert terminatorInst.isTerminatorInst();
 
-/*
- * get the operands and jump according to them
-      // add an edge from label to the node
-      // after the first instruction
-      BlankEdge.buildNoopEdge(label, nd);
-      */
+      int succNum = terminatorInst.getNumSuccessors();
+      if (succNum == 0) {
+        if (BB.equals(lastBB))
+          break;
+
+        BB = BB.getNextBasicBlock();
+        continue;
+      }
+
+      CFANode brNode = basicBlocks.get(BB.getAddress()).getExitNode();
+
+      // get the operands and add branching edges
+      for (int i = 0; i < succNum; ++i) {
+        BasicBlock succ = terminatorInst.getSuccessor(i);
+        CLabelNode label = (CLabelNode)basicBlocks.get(succ.getAddress()).getEntryNode();
+
+        // FIXME
+        CExpression expr = null;
+
+        new CAssumeEdge("T", FileLocation.DUMMY,
+                        brNode, (CFANode)label, expr, true);
+        new CAssumeEdge("F", FileLocation.DUMMY,
+                        brNode, (CFANode)label, expr, false);
+      }
 
       // did we processed all basic blocks?
       if (BB.equals(lastBB))
@@ -227,7 +251,7 @@ public abstract class LlvmAstVisitor {
   /**
    * Create a chain of nodes and edges corresponding to one basic block.
    */
-  private CFANode handleInstructions(String funcName, final BasicBlock pItem) {
+  private BasicBlockInfo handleInstructions(String funcName, final BasicBlock pItem) {
     Value I = pItem.getFirstInstruction();
     if (I == null)
       return null;
@@ -256,7 +280,25 @@ public abstract class LlvmAstVisitor {
       curNode = new CFANode(funcName);
     }
 
-    return firstNode;
+    return new BasicBlockInfo(firstNode, curNode);
+  }
+
+  private static class BasicBlockInfo {
+      private CFANode entryNode;
+      private CFANode exitNode;
+
+      public BasicBlockInfo(CFANode entry, CFANode exit) {
+          entryNode = entry;
+          exitNode = exit;
+      }
+
+      public CFANode getEntryNode() {
+          return entryNode;
+      }
+
+      public CFANode getExitNode() {
+          return exitNode;
+      }
   }
 
   protected abstract FunctionEntryNode visitFunction(final Value pItem);
