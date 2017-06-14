@@ -213,15 +213,18 @@ public class LlvmTypeConverter {
       case 1:
         basicType = CBasicType.BOOL;
         break;
-      case 2:
+      case 8:
+        basicType = CBasicType.CHAR;
+        break;
+      case 16:
         basicType = CBasicType.INT;
         isShort = true;
         break;
-      case 4:
+      case 32:
         basicType = CBasicType.INT;
         // keep everything set to 'false' for default int
         break;
-      case 8:
+      case 64:
         basicType = CBasicType.INT;
         // We use long long since it is 8 bytes for both 32 and 64 bit machines
         isLonglong = true;

@@ -52,6 +52,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 /**
  * CFA builder for LLVM IR.
@@ -148,13 +150,19 @@ public class CFABuilder extends LlvmAstVisitor {
 
     // Function type
     TypeRef functionType = pFuncDef.typeOf();
-    CFunctionType cFuncType = (CFunctionType) typeConverter.getCType(functionType);
+    TypeRef elemType = functionType.getElementType();
+    CFunctionType cFuncType = (CFunctionType) typeConverter.getCType(elemType);
 
     // Parameters
     List<Value> paramVs = pFuncDef.getParams();
     List<CParameterDeclaration> parameters = new ArrayList<>(paramVs.size());
+    int unnamed_value = 1;
     for (Value v : paramVs) {
       String paramName = v.getValueName();
+      if (paramName.isEmpty()) {
+        paramName = Integer.toString(++unnamed_value);
+      }
+
       CType paramType = typeConverter.getCType(v.typeOf());
       CParameterDeclaration parameter = new CParameterDeclaration(FileLocation.DUMMY, paramType, paramName);
       parameters.add(parameter);
