@@ -104,6 +104,7 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   private CAstNode handleAlloca(final Value pItem) {
+    // We ignore the specifics and handle alloca statements like C declarations
     String assigned_var = pItem.getValueName();
     if (assigned_var.isEmpty()) {
       assigned_var = getTempVar();
