@@ -289,7 +289,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     HashMultimap<CFANode, CallstackStateEqualsWrapper> seen =
         HashMultimap.create(cfa.getAllNodes().size(), cfa.getNumberOfFunctions());
     Deque<Pair<CFANode, CallstackState>> toProcess = new ArrayDeque<>();
-    Pair<CFANode, CallstackState> current;
+    Pair<CFANode, CallstackState> current, explored;
 
     for (AbstractState state : pUnexploredStates) {
       current = Pair.of(AbstractStates.extractLocation(state),
@@ -319,9 +319,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
         csSucc = csTr.getAbstractSuccessorsForEdge(current.getSecond(),
             SingletonPrecision.getInstance(), leaving);
         if (!csSucc.isEmpty()) {
-          current = Pair.of(leaving.getSuccessor(), (CallstackState) csSucc.iterator().next());
-          if (seen.put(current.getFirst(), new CallstackStateEqualsWrapper(current.getSecond()))) {
-            toProcess.add(current);
+          explored = Pair.of(leaving.getSuccessor(), (CallstackState) csSucc.iterator().next());
+          if (seen.put(explored.getFirst(), new CallstackStateEqualsWrapper(explored.getSecond()))) {
+            toProcess.add(explored);
           }
         }
       }
