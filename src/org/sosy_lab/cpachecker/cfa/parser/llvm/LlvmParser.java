@@ -62,7 +62,7 @@ public class LlvmParser implements Parser {
     Module llvmModule;
     parseTimer.start();
     try {
-      llvmModule = parse0(pFilename);
+      llvmModule = Module.parseIR(pFilename);
     } finally {
       parseTimer.stop();
     }
@@ -74,10 +74,6 @@ public class LlvmParser implements Parser {
 
   private ParseResult buildCfa(final Module pModule) {
     return cfaBuilder.build(pModule);
-  }
-
-  private Module parse0(final String pFilename) {
-    return null;
   }
 
   @Override

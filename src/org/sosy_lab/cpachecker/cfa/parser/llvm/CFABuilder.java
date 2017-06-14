@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.logging.Level;
 import org.llvm.BasicBlock;
 import org.llvm.Module;
 import org.llvm.TypeRef;
@@ -40,11 +40,8 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -94,32 +91,34 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   @Override
-  protected Behavior visitGlobalItem(final BasicBlock pItem) {
-    return Behavior.CONTINUE; // Parent will iterate through the statements of the block that way
-  }
-
-  @Override
-  protected Behavior visitInFunction(final BasicBlock pItem) {
-    return Behavior.CONTINUE; // Parent will iterate through the statements of the block that way
-  }
-
-  @Override
   protected Behavior visitInFunction(final Value pItem) {
-    if (pItem.isFunction()) { // Function definition
-      handleFunctionDefinition(pItem);
+    assert pItem.isFunction();
 
-    } else {
-      throw new AssertionError();
-    }
+    logger.log(Level.INFO, "Creating function: " + pItem.getValueName());
+
+    FunctionEntryNode en = handleFunctionDefinition(pItem);
+    functions.put(pItem.getValueName(), en);
 
     return Behavior.CONTINUE;
   }
 
-  private void handleFunctionDefinition(final Value pFuncDef) {
-    assert pFuncDef.isFunction();
+  @Override
+  protected Behavior visitBasicBlock(final BasicBlock pItem) {
+    return Behavior.CONTINUE;
+  }
+
+  @Override
+  protected Behavior visitInstruction(final Value pItem) {
+    pItem.dumpValue();
+    return Behavior.CONTINUE;
+  }
+
+  private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef) {
     TypeRef functionType = pFuncDef.typeOf();
+
     CFunctionType cFuncType = (CFunctionType) typeConverter.getCType(functionType);
 
+    /* FIXME
     List<CParameterDeclaration> parameters = null; // FIXME
     CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(
         getLocation(pFuncDef),
@@ -129,12 +128,14 @@ public class CFABuilder extends LlvmAstVisitor {
     FunctionExitNode functionExit = null;
     Optional<CVariableDeclaration> returnVar = null;
 
-    new CFunctionEntryNode(getLocation(pFuncDef), functionDeclaration, functionExit, returnVar);
+    return new CFunctionEntryNode(getLocation(pFuncDef), functionDeclaration, functionExit, returnVar);
+    */
+    return null;
   }
 
   @Override
   protected Behavior visitGlobalItem(final Value pItem) {
-    return null;
+    return Behavior.CONTINUE; // Parent will iterate through the statements of the block that way
   }
 
   public static class FunctionDefinition {
