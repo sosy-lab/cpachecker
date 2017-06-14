@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -35,7 +33,6 @@ import org.llvm.Value;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -51,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
@@ -60,12 +56,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
  * Metadata stored in the LLVM IR file is ignored.
  */
 public class CFABuilder extends LlvmAstVisitor {
-  // TODO: Linkage types
-  // TODO: Visibility styles, i.e., default, hidden, protected
-  // TODO: DLL Storage classes (do we actually need this?)
   // TODO: Thread Local Storage Model: May be important for concurrency
-
-  // TODO: Alignment of global variables
   // TODO: Aliases (@a = %b) and IFuncs (@a = ifunc @..)
 
   private static final String TMP_VAR_PREFIX = "__tmp_";
@@ -76,17 +67,11 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private final LlvmTypeConverter typeConverter;
 
-  private SortedSetMultimap<String, CFANode> cfaNodes;
-  private List<Pair<ADeclaration, String>> globalDeclarations;
-
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
     logger = pLogger;
     machineModel = pMachineModel;
 
     typeConverter = new LlvmTypeConverter(pMachineModel, pLogger);
-
-    cfaNodes = TreeMultimap.create();
-    globalDeclarations = new ArrayList<>();
   }
 
   public ParseResult build(final Module pModule) {
