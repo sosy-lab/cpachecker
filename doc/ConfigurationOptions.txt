@@ -2350,6 +2350,9 @@ cpa.value.refinement.searchForFurtherErrorPaths = false
 # store all refined paths
 cpa.value.refinement.storeAllRefinedPaths = false
 
+# if this option is set to true, constraints are never kept
+cpa.value.refinement.trackConstraints = true
+
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
