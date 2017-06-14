@@ -85,7 +85,7 @@ public class CFABuilder extends LlvmAstVisitor {
     logger = pLogger;
     machineModel = pMachineModel;
 
-    typeConverter = new LlvmTypeConverter(pMachineModel);
+    typeConverter = new LlvmTypeConverter(pMachineModel, pLogger);
 
     functions = new TreeMap<>();
     cfaNodes = TreeMultimap.create();

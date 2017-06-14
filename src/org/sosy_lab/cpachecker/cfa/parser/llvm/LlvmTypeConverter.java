@@ -23,16 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import org.bridj.IntValuedEnum;
 import org.bridj.Pointer;
 import org.llvm.TypeRef;
 import org.llvm.binding.LLVMLibrary.LLVMTypeKind;
 import org.llvm.binding.LLVMLibrary.LLVMTypeRef;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -42,10 +52,28 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
  */
 public class LlvmTypeConverter {
 
-  private final MachineModel machineModel;
+  private final static String PREFIX_LITERAL_STRUCT = "lit_struc_";
+  private final static String PREFIX_STRUCT_MEMBER = "mem_";
+  private final static CSimpleType ARRAY_LENGTH_TYPE = new CSimpleType(
+      false,
+      false,
+      CBasicType.INT,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true);
 
-  public LlvmTypeConverter(final MachineModel pMachineModel) {
+  private static int structCount = 0;
+
+  private final MachineModel machineModel;
+  private final LogManager logger;
+
+  public LlvmTypeConverter(final MachineModel pMachineModel, final LogManager pLogger) {
     machineModel = pMachineModel;
+    logger = pLogger;
   }
 
   public CType getCType(final TypeRef pLlvmType) {
@@ -75,13 +103,77 @@ public class LlvmTypeConverter {
 
       return getFloatType(typeKind);
 
-    } else if (tk == LLVMTypeKind.LLVMArrayTypeKind.value()) {
+    } else if (tk == LLVMTypeKind.LLVMPointerTypeKind.value()) {
+      if (pLlvmType.getPointerAddressSpace() != 0) {
+        logger.log(Level.WARNING, "Pointer address space not considered.");
+      }
+      return new CPointerType(isConst, isVolatile, getCType(pLlvmType.getElementType()));
+
+    } else if (tk == LLVMTypeKind.LLVMVectorTypeKind.value()) {
       // TODO
+    } else if (tk == LLVMTypeKind.LLVMArrayTypeKind.value()) {
+      CIntegerLiteralExpression arrayLength = new CIntegerLiteralExpression(
+          FileLocation.DUMMY,
+          ARRAY_LENGTH_TYPE,
+          BigInteger.valueOf(pLlvmType.getArrayLength()));
+
+      return new CArrayType(isConst, isVolatile, getCType(pLlvmType.getElementType()), arrayLength);
+
+    } else if (tk == LLVMTypeKind.LLVMStructTypeKind.value()) {
+      return createStructType(pLlvmType);
+
     } else {
-        throw new AssertionError("LLVM type of id " + tk + " can't be handled");
+        logger.log(Level.FINE, "Ignoring type kind of id " + tk);
     }
 
     return null;
+  }
+
+  private CType createStructType(final TypeRef pStructType) {
+    final boolean isConst = false;
+    final boolean isVolatile = false;
+
+    if (pStructType.isOpaqueStruct()) {
+      logger.log(Level.INFO, "Ignoring opaque struct");
+    }
+
+    String structName = getStructName(pStructType);
+    String origName = structName;
+
+    int memberCount = pStructType.countStructElementTypes();
+    List<CCompositeTypeMemberDeclaration> members = new ArrayList<>(memberCount);
+
+    Pointer<LLVMTypeRef> memberTypes = Pointer.allocateArray(LLVMTypeRef.class, memberCount);
+    pStructType.getStructElementTypes(memberTypes);
+
+    for (int i = 0; i < memberCount; i++) {
+      String memberName = getMemberName(structName, i);
+      TypeRef memType = new TypeRef(memberTypes.get(i));
+      CType cMemType = getCType(memType);
+      CCompositeTypeMemberDeclaration memDecl =
+          new CCompositeTypeMemberDeclaration(cMemType, memberName);
+      members.add(memDecl);
+    }
+
+    return new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, members, structName, origName);
+  }
+
+  private String getStructName(TypeRef pStructType) {
+    if (pStructType.isStructNamed()) {
+      return pStructType.getStructName();
+
+    } else {
+      return getLiteralStructName(pStructType);
+    }
+  }
+
+  private String getLiteralStructName(final TypeRef pStructType) {
+    structCount++;
+    return PREFIX_LITERAL_STRUCT + structCount;
+  }
+
+  private String getMemberName(String pStructName, int pI) {
+    return pStructName + PREFIX_STRUCT_MEMBER + pI;
   }
 
   private CType getFunctionType(TypeRef pFuncType) {
