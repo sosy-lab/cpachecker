@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -85,12 +86,12 @@ public class CFABuilder extends LlvmAstVisitor {
     return new ParseResult(functions, cfaNodes, globalDeclarations, Language.LLVM);
   }
 
-  @Override
+  @Override // TODO: This can probably be removed?
   protected Behavior visitModule(final Module pItem) {
     return Behavior.CONTINUE; // Parent will go inside the global variables and blocks that way
   }
 
-  @Override
+  @Override // TODO: This can probably be removed?
   protected Behavior visitInFunction(final Value pItem) {
     assert pItem.isFunction();
 
@@ -102,15 +103,14 @@ public class CFABuilder extends LlvmAstVisitor {
     return Behavior.CONTINUE;
   }
 
-  @Override
+  @Override // TODO: This can probably be removed?
   protected Behavior visitBasicBlock(final BasicBlock pItem) {
     return Behavior.CONTINUE;
   }
 
   @Override
-  protected Behavior visitInstruction(final Value pItem) {
-    pItem.dumpValue();
-    return Behavior.CONTINUE;
+  protected CStatement visitInstruction(final Value pItem) {
+    return null;
   }
 
   private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef) {
@@ -136,29 +136,6 @@ public class CFABuilder extends LlvmAstVisitor {
   @Override
   protected Behavior visitGlobalItem(final Value pItem) {
     return Behavior.CONTINUE; // Parent will iterate through the statements of the block that way
-  }
-
-  public static class FunctionDefinition {
-
-    private CFunctionDeclaration funcDecl;
-    private CFunctionEntryNode entryNode;
-
-    public FunctionDefinition(
-        final CFunctionDeclaration pFuncDecl,
-        final CFunctionEntryNode pEntryNode
-    ) {
-      funcDecl = pFuncDecl;
-      entryNode = pEntryNode;
-    }
-
-    public CFunctionEntryNode getEntryNode() {
-      return entryNode;
-    }
-
-    public void setEntryNode(final CFunctionEntryNode pEntryNode) {
-      entryNode = pEntryNode;
-    }
-
   }
 
   private FileLocation getLocation(final Value pItem) {
