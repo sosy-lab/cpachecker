@@ -75,10 +75,6 @@ public abstract class LlvmAstVisitor {
         assert behavior == Behavior.STOP : "Unhandled behavior type " + behavior;
         return;
       }
-
-      /* we processed the last global variable? */
-      if (globalItem == globalItemLast)
-        break;
     }
   }
 
