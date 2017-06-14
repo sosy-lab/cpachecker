@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -64,6 +65,9 @@ public class CFABuilder extends LlvmAstVisitor {
 
   // TODO: Alignment of global variables
   // TODO: Aliases (@a = %b) and IFuncs (@a = ifunc @..)
+
+  private static final String TMP_VAR_PREFIX = "__tmp_";
+  private static long tmpVarCount = 0;
 
   private final LogManager logger;
   private final MachineModel machineModel;
@@ -99,10 +103,44 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   @Override
-  protected CStatement visitInstruction(final Value pItem) {
+  protected CAstNode visitInstruction(final Value pItem) {
+    assert pItem.isInstruction();
     pItem.dumpValue();
-    // TODO
+
+    int operandCount = pItem.getNumOperands();
+
+    if (pItem.isAllocaInst()) {
+      return handleAlloca(pItem);
+    }
+
     return null;
+  }
+
+  private CAstNode handleAlloca(final Value pItem) {
+    String assigned_var = pItem.getValueName();
+    if (assigned_var.isEmpty()) {
+      assigned_var = getTempVar();
+    }
+
+    final boolean isGlobal = pItem.isGlobalValue();
+    // TODO: Support static and other storage classes
+    final CStorageClass storageClass = CStorageClass.AUTO;
+    final CType varType = typeConverter.getCType(pItem.getAllocatedType());
+
+    return new CVariableDeclaration(
+        getLocation(pItem),
+        isGlobal,
+        storageClass,
+        varType,
+        assigned_var,
+        assigned_var,
+        assigned_var,
+        null);
+  }
+
+  private String getTempVar() {
+    tmpVarCount++;
+    return TMP_VAR_PREFIX + tmpVarCount;
   }
 
   private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef) {

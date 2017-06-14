@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 import org.llvm.BasicBlock;
 import org.llvm.Module;
 import org.llvm.Value;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -239,7 +240,7 @@ public abstract class LlvmAstVisitor {
     CFANode curNode = new CFANode(funcName);
     while (true) {
       // process this basic block
-      CStatement expr = visitInstruction(I);
+      CAstNode expr = visitInstruction(I);
 
       // build an edge with this expression over it
       // TODO -- FIXME
@@ -259,6 +260,6 @@ public abstract class LlvmAstVisitor {
   }
 
   protected abstract FunctionEntryNode visitFunction(final Value pItem);
-  protected abstract CStatement visitInstruction(final Value pItem);
+  protected abstract CAstNode visitInstruction(final Value pItem);
   protected abstract Behavior visitGlobalItem(final Value pItem);
 }
