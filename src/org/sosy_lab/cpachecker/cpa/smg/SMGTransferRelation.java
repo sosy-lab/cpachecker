@@ -1615,12 +1615,19 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         SMGAddressValueAndStateList addressOfFieldAndStates = expressionEvaluator.evaluateAddress(pSmgState, pCfaEdge, param);
         for (SMGAddressAndState addressOfFieldAndState : addressOfFieldAndStates.asAddressAndStateList()) {
           SMGAddress smgAddress = addressOfFieldAndState.getObject();
-          if (!smgAddress.isUnknown() && smgAddress.getObject().notNull() &&
-              smgAddress.getObject().getSize() >= machineModel.getBitSizeofPtr()) {
-            SMGAddressValue newParamValue = pSmgState.addExternalAllocation(
-                functionName + "_Param_No_" + i + "_ID" + SMGValueFactory.getNewValue());
-            pSmgState = assignFieldToState(pSmgState, pCfaEdge, smgAddress.getObject(), smgAddress
-                .getOffset().getValue(), newParamValue, paramType);
+
+          //Check that write will be correct
+          if (!smgAddress.isUnknown()) {
+            SMGObject object = smgAddress.getObject();
+            SMGExplicitValue offset = smgAddress.getOffset();
+            SMGState smgState = addressOfFieldAndState.getSmgState();
+            if (object.notNull() && object.getSize() - offset.getAsLong() >= machineModel.getBitSizeofPtr()
+              && (smgState.isObjectValid(object) || smgState.isObjectExternallyAllocated(object))) {
+
+              SMGAddressValue newParamValue = pSmgState.addExternalAllocation(
+                  functionName + "_Param_No_" + i + "_ID" + SMGValueFactory.getNewValue());
+              pSmgState = assignFieldToState(pSmgState, pCfaEdge, object, offset.getValue(), newParamValue, paramType);
+            }
           }
         }
       }
