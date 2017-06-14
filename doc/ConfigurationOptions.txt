@@ -785,6 +785,10 @@ cpa.arg.dumpAfterIteration = false
 # export final ARG as .dot file
 cpa.arg.export = true
 
+# How to deal with target states during code generation
+cpa.arg.export.code.handleTargetStates = NONE
+  enum:     [NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA]
+
 # write include directives
 cpa.arg.export.code.header = true
 

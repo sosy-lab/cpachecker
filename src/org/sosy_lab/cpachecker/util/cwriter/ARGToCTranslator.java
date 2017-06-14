@@ -180,6 +180,10 @@ public class ARGToCTranslator {
     }
   }
 
+  public static enum TargetTreatment {
+    NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA;
+  }
+
   private final LogManager logger;
   private final List<String> globalDefinitionsList = new ArrayList<>();
   private final Set<ARGState> discoveredElements = new HashSet<>();
@@ -194,6 +198,9 @@ public class ARGToCTranslator {
 
   @Option(secure=true, name="header", description="write include directives")
   private boolean includeHeader = true;
+
+  @Option(secure=true, name="handleTargetStates", description="How to deal with target states during code generation")
+  private TargetTreatment targetStrategy = TargetTreatment.NONE;
 
   public ARGToCTranslator(LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
@@ -273,14 +280,16 @@ public class ARGToCTranslator {
       } else {
         // check whether we have a return statement for the main method before
         CFANode loc = AbstractStates.extractLocation(currentElement);
-        if(loc.getNumLeavingEdges()==0 &&  loc.getEnteringEdge(0).getEdgeType()==CFAEdgeType.ReturnStatementEdge) {
-          currentBlock.addStatement(new SimpleStatement("return " + "__return_"+currentElement.getStateId() +";"));
+        if (currentElement.getWrappedState() != null && loc.getNumLeavingEdges() == 0
+            && loc.getEnteringEdge(0).getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
+          currentBlock.addStatement(
+              new SimpleStatement("return " + "__return_" + currentElement.getStateId() + ";"));
         } else {
-        if (isVoidMain) {
-          currentBlock.addStatement(new SimpleStatement("return;"));
-        } else {
-          currentBlock.addStatement(new SimpleStatement("return " + mainReturnVar +";"));
-        }
+          if (isVoidMain) {
+            currentBlock.addStatement(new SimpleStatement("return;"));
+          } else {
+            currentBlock.addStatement(new SimpleStatement("return " + mainReturnVar + ";"));
+          }
         }
       }
     } else if (childrenOfElement.size() == 1) {
@@ -299,7 +308,7 @@ public class ARGToCTranslator {
 
         // else part
         newBlock = addIfStatement(currentBlock, "else ");
-        pushToWaitlist(waitlist, currentElement, new ARGState(child.getWrappedState(), null),
+        pushToWaitlist(waitlist, currentElement, new ARGState(null, null),
             edgeToChild.getPredecessor().getLeavingEdge(0) == edgeToChild
                 ? edgeToChild.getPredecessor().getLeavingEdge(1)
                 : edgeToChild.getPredecessor().getLeavingEdge(0),
@@ -462,8 +471,10 @@ public class ARGToCTranslator {
     }
 
     if (childElement.isTarget()) {
-      logger.log(Level.ALL, "HALT for line no ", edge.getLineNumber());
-      currentBlock.addStatement(new SimpleStatement("HALT" + childElement.getStateId() + ": goto HALT" + childElement.getStateId() + ";"));
+      Statement afterTarget = processTargetState(childElement, edge);
+      if (afterTarget != null) {
+        currentBlock.addStatement(afterTarget);
+      }
     }
 
     return currentBlock;
@@ -624,6 +635,24 @@ public class ARGToCTranslator {
     }
 
     return null;
+  }
+
+  private @Nullable Statement processTargetState(final ARGState pTargetState,
+      final CFAEdge pEdgeToTarget) {
+    switch (targetStrategy) {
+      case RUNTIMEVERIFICATION:
+        logger.log(Level.ALL, "HALT for line no ", pEdgeToTarget.getLineNumber());
+        return new SimpleStatement("HALT" + pTargetState.getStateId() +
+                                     ": goto HALT" + pTargetState.getStateId() + ";");
+      case ASSERTFALSE:
+        return new SimpleStatement("assert(0);");
+      case FRAMACPRAGMA:
+        return new SimpleStatement("/*@ slice pragma ctrl; */");
+      default:
+        // case NONE
+        return null;
+    }
+
   }
 
   private int freshIndex = 0;
