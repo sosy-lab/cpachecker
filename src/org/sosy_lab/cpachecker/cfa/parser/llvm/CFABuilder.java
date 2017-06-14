@@ -23,22 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
-import ap.interpolants.StructuredPrograms.Assertion;
 import com.google.common.base.Optional;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import org.bridj.IntValuedEnum;
 import org.llvm.BasicBlock;
 import org.llvm.Module;
 import org.llvm.TypeRef;
 import org.llvm.Value;
-import org.llvm.binding.LLVMLibrary.LLVMTypeKind;
-import org.matheclipse.core.reflection.system.Mod;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -52,12 +47,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
