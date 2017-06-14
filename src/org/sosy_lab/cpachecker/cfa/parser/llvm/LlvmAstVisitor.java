@@ -320,7 +320,8 @@ public abstract class LlvmAstVisitor {
 
       // build an edge with this expression over it
       // TODO -- FIXME
-      addEdge(BlankEdge.buildNoopEdge(prevNode, curNode));
+      addEdge(new BlankEdge("op", FileLocation.DUMMY,
+                            prevNode, curNode, I.toString()));
 
       // did we processed all instructions in this basic block?
       if (I.equals(lastI))
