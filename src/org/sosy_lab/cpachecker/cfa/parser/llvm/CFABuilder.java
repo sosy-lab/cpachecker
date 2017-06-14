@@ -27,10 +27,7 @@ import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.logging.Level;
-import org.llvm.BasicBlock;
 import org.llvm.Module;
 import org.llvm.TypeRef;
 import org.llvm.Value;
@@ -39,11 +36,9 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -63,9 +58,9 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private final LogManager logger;
   private final MachineModel machineModel;
+
   private final LlvmTypeConverter typeConverter;
 
-  private SortedMap<String, FunctionEntryNode> functions;
   private SortedSetMultimap<String, CFANode> cfaNodes;
   private List<Pair<ADeclaration, String>> globalDeclarations;
 
@@ -75,7 +70,6 @@ public class CFABuilder extends LlvmAstVisitor {
 
     typeConverter = new LlvmTypeConverter(pMachineModel, pLogger);
 
-    functions = new TreeMap<>();
     cfaNodes = TreeMultimap.create();
     globalDeclarations = new ArrayList<>();
   }
@@ -86,30 +80,19 @@ public class CFABuilder extends LlvmAstVisitor {
     return new ParseResult(functions, cfaNodes, globalDeclarations, Language.LLVM);
   }
 
-  @Override // TODO: This can probably be removed?
-  protected Behavior visitModule(final Module pItem) {
-    return Behavior.CONTINUE; // Parent will go inside the global variables and blocks that way
-  }
-
-  @Override // TODO: This can probably be removed?
-  protected Behavior visitInFunction(final Value pItem) {
+  @Override
+  protected FunctionEntryNode visitFunction(final Value pItem) {
     assert pItem.isFunction();
 
     logger.log(Level.INFO, "Creating function: " + pItem.getValueName());
 
-    FunctionEntryNode en = handleFunctionDefinition(pItem);
-    functions.put(pItem.getValueName(), en);
-
-    return Behavior.CONTINUE;
-  }
-
-  @Override // TODO: This can probably be removed?
-  protected Behavior visitBasicBlock(final BasicBlock pItem) {
-    return Behavior.CONTINUE;
+    return handleFunctionDefinition(pItem);
   }
 
   @Override
   protected CStatement visitInstruction(final Value pItem) {
+    pItem.dumpValue();
+    // TODO
     return null;
   }
 
