@@ -144,10 +144,7 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private CAstNode handleAlloca(final Value pItem, String pFunctionName) {
     // We ignore the specifics and handle alloca statements like C declarations
-    String assignedVar = pItem.getValueName();
-    if (assignedVar.isEmpty()) {
-      assignedVar = getTempVar();
-    }
+    String assignedVar = getAssignedVarName(pItem, pFunctionName);
 
     final boolean isGlobal = pItem.isGlobalValue();
     // TODO: Support static and other storage classes
@@ -163,6 +160,14 @@ public class CFABuilder extends LlvmAstVisitor {
         getQualifiedName(assignedVar, pFunctionName),
         assignedVar,
         null);
+  }
+
+  private String getAssignedVarName(final Value pItem, final String pFunctionName) {
+    String assignedVar = pItem.getValueName();
+    if (assignedVar.isEmpty()) {
+      assignedVar = getTempVar(pFunctionName);
+    }
+    return assignedVar;
   }
 
   private CAstNode handleReturn(final Value pItem, final String pFuncName) {
@@ -312,9 +317,9 @@ public class CFABuilder extends LlvmAstVisitor {
     return new CExpressionStatement(getLocation(pItem), dummy_exp);
   }
 
-  private String getTempVar() {
+  private String getTempVar(final String pFunctionName) {
     tmpVarCount++;
-    return TMP_VAR_PREFIX + tmpVarCount;
+    return getQualifiedName(TMP_VAR_PREFIX + tmpVarCount, pFunctionName);
   }
 
   private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef) {
