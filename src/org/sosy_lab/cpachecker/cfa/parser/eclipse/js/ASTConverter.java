@@ -48,7 +48,7 @@ class ASTConverter {
   ASTConverter(final Scope pScope, final LogManager pLogger) {
     scope = pScope;
     logger = pLogger;
-    }
+  }
 
   /**
    * Takes a ASTNode, and tries to get Information of its Placement in the Source Code. If it
@@ -105,4 +105,5 @@ class ASTConverter {
     throw new CFAGenerationRuntimeException(
         "Unknown kind of expression (not handled yet).", pExpression);
   }
-  }
+
+}
