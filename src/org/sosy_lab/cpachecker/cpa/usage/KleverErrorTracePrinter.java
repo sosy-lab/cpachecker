@@ -72,9 +72,16 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   int idCounter = 0;
   int currentThread = 0;
 
-  private String getId() {
-    return "A" + idCounter++;
+  private String getCurrentId() {
+    return "A" + idCounter;
   }
+
+  private String getNextId() {
+    idCounter++;
+    return getCurrentId();
+  }
+
+  private Element currentNode;
 
   @Override
   protected void printUnsafe(SingleIdentifier pId, Pair<UsageInfo, UsageInfo> pTmpPair) {
@@ -104,8 +111,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
       idCounter = 0;
       currentThread = 0;
-      String currentId = getId(), nextId = currentId, forkId;
-      Element result = builder.createNodeElement(currentId, NodeType.ONPATH);
+      String nextId = getCurrentId(), forkId;
+      Element result = builder.createNodeElement(nextId, NodeType.ONPATH);
       builder.addDataElementChild(result, NodeFlag.ISENTRY.key , "true");
 
       Iterator<CFAEdge> firstIterator = getIterator(firstPath);
@@ -128,39 +135,31 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       int forkThread = 0;
 
       while (firstEdge.equals(secondEdge)) {
-        currentId = nextId;
-        nextId = getId();
-        result = builder.createEdgeElement(currentId, nextId);
-        dumpCommonInfoForEdge(builder, result, firstEdge);
-
-        String note = shouldBeHighlighted(firstEdge);
-        if (!note.isEmpty()) {
-          builder.addDataElementChild(result, KeyDef.NOTE, note);
-        }
-        result = builder.createNodeElement(nextId, NodeType.ONPATH);
+        printEdge(builder, firstEdge);
 
         if (!firstIterator.hasNext()) {
           logger.log(Level.WARNING, "Path to " + firstUsage + "is ended before deviding");
           return;
-        }
-
-        if (!secondIterator.hasNext()) {
+        } else if (!secondIterator.hasNext()) {
           logger.log(Level.WARNING, "Path to " + secondUsage + "is ended before deviding");
           return;
         }
+
         firstEdge = firstIterator.next();
         secondEdge = secondIterator.next();
       }
 
-      forkId = nextId;
+      forkId = getCurrentId();
       forkThread = currentThread;
 
-      printPath(firstUsage, firstIterator, builder, forkId);
+      printEdge(builder, firstEdge);
+      printPath(firstUsage, firstIterator, builder);
+
       currentThread = forkThread;
-      result = printPath(secondUsage, secondIterator, builder, forkId);
+      printEdge(builder, secondEdge, forkId, getNextId());
+      printPath(secondUsage, secondIterator, builder);
 
-      builder.addDataElementChild(result, NodeFlag.ISVIOLATION.key, "true");
-
+      builder.addDataElementChild(currentNode, NodeFlag.ISVIOLATION.key, "true");
       //builder.appendTo(w);
       MoreFiles.writeFile(Paths.get(name.getAbsolutePath()), Charset.defaultCharset(), (Appender) a -> builder.appendTo(a));
       //w.close();
@@ -177,8 +176,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
 
-  private Element printPath(UsageInfo usage, Iterator<CFAEdge> iterator, GraphMlBuilder builder, String startId) {
-    String currentId = startId, nextId = startId;
+  private void printPath(UsageInfo usage, Iterator<CFAEdge> iterator, GraphMlBuilder builder) {
     SingleIdentifier pId = usage.getId();
     List<CFAEdge> path = usage.getPath();
 
@@ -194,32 +192,31 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       logger.log(Level.WARNING, "Can not determine an unsafe edge");
       warning = null;
     }
-    Element result = null;
-    Element lastWarningElement = null;
 
     while (iterator.hasNext()) {
       CFAEdge pEdge = iterator.next();
 
-      currentId = nextId;
-      nextId = getId();
-
-      result = builder.createEdgeElement(currentId, nextId);
-      dumpCommonInfoForEdge(builder, result, pEdge);
-
-      String note = shouldBeHighlighted(pEdge);
-      if (!note.isEmpty()) {
-        builder.addDataElementChild(result, KeyDef.NOTE, note);
-      }
+      Element edge = printEdge(builder, pEdge);
 
       if (pEdge == warning) {
-        lastWarningElement = result;
+        builder.addDataElementChild(edge, KeyDef.WARNING, usage.getWarningMessage());
       }
-      result = builder.createNodeElement(nextId, NodeType.ONPATH);
     }
-    if (lastWarningElement != null) {
-      builder.addDataElementChild(lastWarningElement, KeyDef.WARNING, usage.getWarningMessage());
-    }
+  }
 
+  private Element printEdge(GraphMlBuilder builder, CFAEdge edge) {
+    return printEdge(builder, edge, getCurrentId(), getNextId());
+  }
+
+  private Element printEdge(GraphMlBuilder builder, CFAEdge edge, String currentId, String nextId) {
+    Element result = builder.createEdgeElement(currentId, nextId);
+    dumpCommonInfoForEdge(builder, result, edge);
+
+    String note = shouldBeHighlighted(edge);
+    if (!note.isEmpty()) {
+      builder.addDataElementChild(result, KeyDef.NOTE, note);
+    }
+    currentNode = builder.createNodeElement(nextId, NodeType.ONPATH);
     return result;
   }
 
