@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -100,6 +101,7 @@ public class CFABuilder extends LlvmAstVisitor {
   private final LlvmTypeConverter typeConverter;
 
   private final Map<Long, CSimpleDeclaration> variableDeclarations;
+  private Map<String, CFunctionDeclaration> functionDeclarations;
 
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
     super(pLogger);
@@ -109,6 +111,7 @@ public class CFABuilder extends LlvmAstVisitor {
     typeConverter = new LlvmTypeConverter(pMachineModel, pLogger);
 
     variableDeclarations = new HashMap<>();
+    functionDeclarations = new HashMap<>();
   }
 
   public ParseResult build(final Module pModule) {
@@ -146,8 +149,9 @@ public class CFABuilder extends LlvmAstVisitor {
     } else if (pItem.isStoreInst()) {
       return handleStore(pItem, pFunctionName);
     } else if (pItem.isCallInst()) {
-      // TODO
+      return handleCall(pItem, pFunctionName);
     } else if (pItem.isSwitchInst()) {
+
       throw new UnsupportedOperationException();
     } else if (pItem.isIndirectBranchInst()) {
       throw new UnsupportedOperationException();
@@ -156,13 +160,38 @@ public class CFABuilder extends LlvmAstVisitor {
     } else {
       throw new UnsupportedOperationException();
     }
+  }
 
-    CExpression dummy_exp = new CIntegerLiteralExpression(
-        getLocation(pItem),
-        CNumericTypes.INT,
-        BigInteger.ONE
-    );
-    return new CExpressionStatement(getLocation(pItem), dummy_exp);
+  private CAstNode handleCall(final Value pItem, final String pFunctionName) {
+    assert pItem.isCallInst();
+    FileLocation loc = getLocation(pItem);
+    CType returnType = typeConverter.getCType(pItem.typeOf());
+    Value calledFunction = pItem.getOperand(0);
+    String functionName = calledFunction.getValueName();
+    // May be null and that's ok - CPAchecker will handle the call as a call to a builtin function,
+    // then
+    CFunctionDeclaration functionDeclaration = functionDeclarations.get(functionName);
+
+    CIdExpression functionNameExp =
+        new CIdExpression(loc, functionDeclaration.getType(), functionName, functionDeclaration);
+
+    List<Value> functionArguments = pItem.getParams();
+    List<CExpression> parameters = new ArrayList<>(functionArguments.size());
+    for (Value param : functionArguments) {
+      parameters.add(getAssignedIdExpression(param, pFunctionName));
+    }
+
+    CFunctionCallExpression callExpression = new CFunctionCallExpression(loc, returnType,
+        functionNameExp, parameters, functionDeclaration);
+
+    if (returnType.equals(CVoidType.VOID)) {
+      return new CFunctionCallStatement(loc, callExpression);
+    } else {
+      CIdExpression assignee = getAssignedIdExpression(pItem, pFunctionName);
+      return new CFunctionCallAssignmentStatement(loc, assignee, callExpression);
+    }
+  }
+
   private CAstNode handleUnreachable(final Value pItem, final String pFunctionName) {
     CFunctionCallExpression callExpression =
         new CFunctionCallExpression(getLocation(pItem), CVoidType.VOID, ABORT_FUNC_NAME,
@@ -513,6 +542,7 @@ public class CFABuilder extends LlvmAstVisitor {
         cFuncType,
         functionName,
         parameters);
+    functionDeclarations.put(functionName, functionDeclaration);
     FunctionExitNode functionExit = new FunctionExitNode(functionName);
 
     // Return variable : The return value is written to this
