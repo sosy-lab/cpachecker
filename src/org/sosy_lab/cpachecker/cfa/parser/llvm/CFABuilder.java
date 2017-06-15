@@ -165,7 +165,7 @@ public class CFABuilder extends LlvmAstVisitor {
   private String getAssignedVarName(final Value pItem, final String pFunctionName) {
     String assignedVar = pItem.getValueName();
     if (assignedVar.isEmpty()) {
-      assignedVar = getTempVar(pFunctionName);
+      assignedVar = getTempVar();
     }
     return assignedVar;
   }
@@ -318,8 +318,9 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   private String getTempVar(final String pFunctionName) {
+  private String getTempVar() {
     tmpVarCount++;
-    return getQualifiedName(TMP_VAR_PREFIX + tmpVarCount, pFunctionName);
+    return TMP_VAR_PREFIX + tmpVarCount;
   }
 
   private FunctionEntryNode handleFunctionDefinition(final Value pFuncDef) {
