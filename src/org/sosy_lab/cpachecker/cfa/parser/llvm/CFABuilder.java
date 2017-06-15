@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
+import net.jcip.annotations.Immutable;
 import org.llvm.Module;
 import org.llvm.TypeRef;
 import org.llvm.Value;
@@ -51,10 +53,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -130,7 +136,7 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   @Override
-  protected CAstNode visitInstruction(final Value pItem, final String pFunctionName) {
+  protected List<CAstNode> visitInstruction(final Value pItem, final String pFunctionName) {
     assert pItem.isInstruction();
     pItem.dumpValue();
 
@@ -162,7 +168,7 @@ public class CFABuilder extends LlvmAstVisitor {
     }
   }
 
-  private CAstNode handleCall(final Value pItem, final String pFunctionName) {
+  private List<CAstNode> handleCall(final Value pItem, final String pFunctionName) {
     assert pItem.isCallInst();
     FileLocation loc = getLocation(pItem);
     CType returnType = typeConverter.getCType(pItem.typeOf());
@@ -186,6 +192,7 @@ public class CFABuilder extends LlvmAstVisitor {
     // i = 1 to skip the function name, we only want to look at arguments
     for (int i = 1; i < argumentCount; i++) {
       Value functionArg = pItem.getOperand(i);
+      assert functionArg.isConstant() || variableDeclarations.containsKey(functionArg.getAddress());
       parameters.add(getAssignedIdExpression(functionArg, pFunctionName));
     }
 
@@ -193,21 +200,21 @@ public class CFABuilder extends LlvmAstVisitor {
         functionNameExp, parameters, functionDeclaration);
 
     if (returnType.equals(CVoidType.VOID)) {
-      return new CFunctionCallStatement(loc, callExpression);
+      return ImmutableList.of(new CFunctionCallStatement(loc, callExpression));
     } else {
-      CIdExpression assignee = getAssignedIdExpression(pItem, pFunctionName);
-      return new CFunctionCallAssignmentStatement(loc, assignee, callExpression);
+      return getAssignStatement(pItem, callExpression, functionName);
     }
   }
 
-  private CAstNode handleUnreachable(final Value pItem, final String pFunctionName) {
+  private List<CAstNode> handleUnreachable(final Value pItem, final String pFunctionName) {
     CFunctionCallExpression callExpression =
         new CFunctionCallExpression(getLocation(pItem), CVoidType.VOID, ABORT_FUNC_NAME,
             Collections.emptyList(), ABORT_FUNC_DECL);
-    return new CFunctionCallStatement(getLocation(pItem), callExpression);
+
+    return ImmutableList.of(new CFunctionCallStatement(getLocation(pItem), callExpression));
   }
 
-  private CAstNode handleUnaryOp(final Value pItem, final String pFunctionName) {
+  private List<CAstNode> handleUnaryOp(final Value pItem, final String pFunctionName) {
      if (pItem.isLoadInst()) {
        return handleLoad(pItem, pFunctionName);
      } else {
@@ -216,65 +223,27 @@ public class CFABuilder extends LlvmAstVisitor {
      }
   }
 
-  private CAstNode handleLoad(final Value pItem, final String pFunctionName) {
+  private List<CAstNode> handleLoad(final Value pItem, final String pFunctionName) {
     CIdExpression assignee = getAssignedIdExpression(pItem, pFunctionName);
     CExpression expression = getAssignedIdExpression(pItem.getOperand(0), pFunctionName);
-    return new CExpressionAssignmentStatement(getLocation(pItem), assignee, expression);
+    return ImmutableList.of(
+        new CExpressionAssignmentStatement(getLocation(pItem), assignee, expression));
   }
 
-  private CAstNode handleStore(final Value pItem, final String pFunctionName) {
+  private List<CAstNode> handleStore(final Value pItem, final String pFunctionName) {
     CIdExpression assignee = getAssignedIdExpression(pItem.getOperand(1), pFunctionName);
     CExpression expression = getExpression(pItem.getOperand(0), pFunctionName);
-    return new CExpressionAssignmentStatement(getLocation(pItem), assignee, expression);
+    return ImmutableList.of(
+        new CExpressionAssignmentStatement(getLocation(pItem), assignee, expression));
   }
 
-  private CAstNode handleAlloca(final Value pItem, String pFunctionName) {
+  private List<CAstNode> handleAlloca(final Value pItem, String pFunctionName) {
     // We ignore the specifics and handle alloca statements like C declarations of variables
-    CSimpleDeclaration assignedVar = getAssignedVarDeclaration(pItem, pFunctionName);
-    return assignedVar;
+    CSimpleDeclaration assignedVar = getAssignedVarDeclaration(pItem, pFunctionName, null);
+    return ImmutableList.of(assignedVar);
   }
 
-  private CSimpleDeclaration getAssignedVarDeclaration(
-      final Value pItem,
-      final String pFunctionName
-  ) {
-    final long itemId = pItem.getAddress();
-    if (!variableDeclarations.containsKey(itemId)) {
-      String assignedVar = pItem.getValueName();
-
-      if (assignedVar.isEmpty()) {
-        assignedVar = getTempVar();
-      }
-
-      final boolean isGlobal = pItem.isGlobalValue();
-      // TODO: Support static and other storage classes
-      final CStorageClass storageClass = CStorageClass.AUTO;
-      CType varType;
-      // We handle alloca not like malloc, which returns a pointer, but as a general
-      // variable declaration. Consider that here by using the allocated type, not the
-      // pointer of that type alloca returns.
-      if (pItem.isAllocaInst()) {
-        varType = typeConverter.getCType(pItem.getAllocatedType());
-      } else {
-        varType = typeConverter.getCType(pItem.typeOf());
-      }
-
-      CSimpleDeclaration newDecl = new CVariableDeclaration(
-          getLocation(pItem),
-          isGlobal,
-          storageClass,
-          varType,
-          assignedVar,
-          getQualifiedName(assignedVar, pFunctionName),
-          assignedVar,
-          null);
-      variableDeclarations.put(itemId, newDecl);
-    }
-
-    return variableDeclarations.get(itemId);
-  }
-
-  private CAstNode handleReturn(final Value pItem, final String pFuncName) {
+  private List<CAstNode> handleReturn(final Value pItem, final String pFuncName) {
     Value returnVal = pItem.getReturnValue();
     Optional<CExpression> maybeExpression;
     Optional<CAssignment> maybeAssignment;
@@ -295,14 +264,15 @@ public class CFABuilder extends LlvmAstVisitor {
       maybeAssignment = Optional.of(returnVarAssignment);
     }
 
-    return new CReturnStatement(getLocation(pItem), maybeExpression, maybeAssignment);
+    return ImmutableList.of(
+        new CReturnStatement(getLocation(pItem), maybeExpression, maybeAssignment));
   }
 
   private String getQualifiedName(String pReturnVarName, String pFuncName) {
     return pFuncName + "::" + pReturnVarName;
   }
 
-  private CAstNode handleBinaryOp(final Value pItem, String pFunctionName) {
+  private List<CAstNode> handleBinaryOp(final Value pItem, String pFunctionName) {
     LLVMOpcode opCode =  pItem.getOpCode();
 
     switch (opCode) {
@@ -402,10 +372,10 @@ public class CFABuilder extends LlvmAstVisitor {
             false, false, false),
         BigInteger.ONE
     );
-    return new CExpressionStatement(getLocation(pItem), dummy_exp);
+    return ImmutableList.of(new CExpressionStatement(getLocation(pItem), dummy_exp));
   }
 
-  private CAstNode handleArithmeticOp(
+  private List<CAstNode> handleArithmeticOp(
       final Value pItem,
       final LLVMOpcode pOpCode,
       final String pFunctionName
@@ -477,11 +447,7 @@ public class CFABuilder extends LlvmAstVisitor {
         operation
         );
 
-    CIdExpression assignedVar = getAssignedIdExpression(pItem, pFunctionName);
-
-    assert expressionType.equals(assignedVar.getExpressionType())
-        : "Expression returns type different from assigned variable";
-    return new CExpressionAssignmentStatement(getLocation(pItem), assignedVar, expression);
+    return getAssignStatement(pItem, expression, pFunctionName);
   }
 
   private CExpression getExpression(final Value pItem, final String pFunctionName) {
@@ -505,10 +471,102 @@ public class CFABuilder extends LlvmAstVisitor {
     }
   }
 
+  private List<CAstNode> getAssignStatement(
+      final Value pAssignee,
+      final CRightHandSide pAssignment,
+      final String pFunctionName
+  ) {
+    long assigneeId = pAssignee.getAddress();
+    // Variable is already declared, so it must only be assigned the new value
+    if (variableDeclarations.containsKey(assigneeId)) {
+      CIdExpression assigneeIdExp = getAssignedIdExpression(pAssignee, pFunctionName);
+      if (pAssignment instanceof CFunctionCallExpression) {
+        return ImmutableList.of(new CFunctionCallAssignmentStatement(
+            getLocation(pAssignee),
+            assigneeIdExp,
+            (CFunctionCallExpression) pAssignment
+        ));
+
+      } else {
+        return ImmutableList.of(new CExpressionAssignmentStatement(
+            getLocation(pAssignee),
+            assigneeIdExp,
+            (CExpression) pAssignment));
+      }
+
+    } else {  // Variable must be newly declared
+      if (pAssignment instanceof CFunctionCallExpression) {
+        CSimpleDeclaration assigneeDecl =
+            getAssignedVarDeclaration(pAssignee, pFunctionName, null);
+        CIdExpression assigneeIdExp = getAssignedIdExpression(pAssignee, pFunctionName);
+
+        return ImmutableList.of(
+            assigneeDecl,
+            new CFunctionCallAssignmentStatement(
+              getLocation(pAssignee),
+              assigneeIdExp,
+              (CFunctionCallExpression) pAssignment)
+        );
+
+      } else {
+        CInitializer initializer =
+            new CInitializerExpression(getLocation(pAssignee), (CExpression) pAssignment);
+        CSimpleDeclaration assigneeDecl =
+            getAssignedVarDeclaration(pAssignee, pFunctionName, initializer);
+        return ImmutableList.of(assigneeDecl);
+      }
+    }
+  }
+
+  private CSimpleDeclaration getAssignedVarDeclaration(
+      final Value pItem,
+      final String pFunctionName,
+      final CInitializer pInitializer
+  ) {
+    final long itemId = pItem.getAddress();
+    if (!variableDeclarations.containsKey(itemId)) {
+      String assignedVar = pItem.getValueName();
+
+      if (assignedVar.isEmpty()) {
+        assignedVar = getTempVar();
+      }
+
+      final boolean isGlobal = pItem.isGlobalValue();
+      // TODO: Support static and other storage classes
+      final CStorageClass storageClass = CStorageClass.AUTO;
+      CType varType;
+      // We handle alloca not like malloc, which returns a pointer, but as a general
+      // variable declaration. Consider that here by using the allocated type, not the
+      // pointer of that type alloca returns.
+      if (pItem.isAllocaInst()) {
+        varType = typeConverter.getCType(pItem.getAllocatedType());
+      } else {
+        varType = typeConverter.getCType(pItem.typeOf());
+      }
+
+      CSimpleDeclaration newDecl = new CVariableDeclaration(
+          getLocation(pItem),
+          isGlobal,
+          storageClass,
+          varType,
+          assignedVar,
+          getQualifiedName(assignedVar, pFunctionName),
+          assignedVar,
+          pInitializer);
+      variableDeclarations.put(itemId, newDecl);
+    }
+
+    return variableDeclarations.get(itemId);
+  }
+
+
   private CIdExpression getAssignedIdExpression(final Value pItem, final String pFunctionName) {
     logger.log(Level.INFO, "Getting var declaration for item");
     pItem.dumpValue();
-    CSimpleDeclaration assignedVarDeclaration = getAssignedVarDeclaration(pItem, pFunctionName);
+    assert variableDeclarations.containsKey(pItem.getAddress())
+        : "ID expression has no declaration!";
+    CSimpleDeclaration assignedVarDeclaration =
+        variableDeclarations.get(pItem.getAddress());
     String assignedVarName = assignedVarDeclaration.getName();
     CType expressionType = assignedVarDeclaration.getType();
 

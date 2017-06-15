@@ -318,7 +318,7 @@ public abstract class LlvmAstVisitor {
   }
 
   protected abstract FunctionEntryNode visitFunction(final Value pItem);
-  protected abstract CAstNode visitInstruction(Value pItem, String pFunctionName);
+  protected abstract List<CAstNode> visitInstruction(Value pItem, String pFunctionName);
 
   protected abstract Behavior visitGlobalItem(final Value pItem);
 }
