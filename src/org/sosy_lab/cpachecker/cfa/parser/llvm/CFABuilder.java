@@ -172,8 +172,13 @@ public class CFABuilder extends LlvmAstVisitor {
     // then
     CFunctionDeclaration functionDeclaration = functionDeclarations.get(functionName);
 
-    CIdExpression functionNameExp =
-        new CIdExpression(loc, functionDeclaration.getType(), functionName, functionDeclaration);
+    CIdExpression functionNameExp;
+    if (functionDeclaration == null) {
+      functionNameExp = new CIdExpression(loc, returnType, functionName, null);
+    } else {
+      functionNameExp =
+          new CIdExpression(loc, functionDeclaration.getType(), functionName, functionDeclaration);
+    }
 
 
     int argumentCount = pItem.getNumOperands();
