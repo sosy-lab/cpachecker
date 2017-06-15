@@ -26,11 +26,15 @@ package org.sosy_lab.cpachecker.cfa.ast.js;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 /** Interface for side-effect free expressions. */
 public interface JSExpression extends JSRightHandSide, AExpression {
 
   public <R, X extends Exception> R accept(JSExpressionVisitor<R, X> v) throws X;
+
+  @Override
+  JSType getExpressionType();
 
   @Override
   default <R, X extends Exception> R accept(JSRightHandSideVisitor<R, X> pV) throws X {

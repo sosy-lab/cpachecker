@@ -36,6 +36,4 @@ public interface JSRightHandSide extends JSAstNode, ARightHandSide {
     return accept((JSRightHandSideVisitor<R, X>) pV);
   }
 
-  @Override
-  public JSType getExpressionType();
 }
