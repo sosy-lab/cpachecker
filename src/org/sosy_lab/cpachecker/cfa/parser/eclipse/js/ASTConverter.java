@@ -99,12 +99,16 @@ class ASTConverter {
           JSAnyType.ANY,
           ((StringLiteral) pExpression).getEscapedValue());
     } else if (pExpression instanceof NumberLiteral) {
-      final String numberToken = ((NumberLiteral) pExpression).getToken();
-      return new JSFloatLiteralExpression(
-          getFileLocation(pExpression), new BigDecimal(numberToken));
+      return convert((NumberLiteral) pExpression);
     }
     throw new CFAGenerationRuntimeException(
         "Unknown kind of expression (not handled yet).", pExpression);
+  }
+
+  public JSExpression convert(final NumberLiteral pNumberLiteral) {
+    final String numberToken = pNumberLiteral.getToken();
+    return new JSFloatLiteralExpression(
+        getFileLocation(pNumberLiteral), new BigDecimal(numberToken));
   }
 
 }
