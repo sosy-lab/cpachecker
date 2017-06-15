@@ -326,7 +326,6 @@ public class CFABuilder extends LlvmAstVisitor {
     return new CExpressionStatement(getLocation(pItem), dummy_exp);
   }
 
-  private String getTempVar(final String pFunctionName) {
   private String getTempVar() {
     tmpVarCount++;
     return TMP_VAR_PREFIX + tmpVarCount;
