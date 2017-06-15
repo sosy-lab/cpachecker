@@ -31,6 +31,7 @@ import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
@@ -44,7 +45,7 @@ class ASTConverter {
   ASTConverter(final Scope pScope, final LogManager pLogger) {
     scope = pScope;
     logger = pLogger;
-  }
+    }
 
   /**
    * Takes a ASTNode, and tries to get Information of its Placement in the Source Code. If it
@@ -76,12 +77,8 @@ class ASTConverter {
       final VariableDeclarationFragment pVariableDeclarationFragment) {
     final String variableIdentifier = pVariableDeclarationFragment.getName().getIdentifier();
     final Expression initializer = pVariableDeclarationFragment.getInitializer();
-    final StringLiteral stringLiteral = (StringLiteral) initializer;
-    final JSStringLiteralExpression stringLiteralExpression =
-        new JSStringLiteralExpression(
-            getFileLocation(stringLiteral), JSAnyType.ANY, stringLiteral.getEscapedValue());
     final JSInitializerExpression initializerExpression =
-        new JSInitializerExpression(getFileLocation(initializer), stringLiteralExpression);
+        new JSInitializerExpression(getFileLocation(initializer), convert(initializer));
     return new JSVariableDeclaration(
         getFileLocation(pVariableDeclarationFragment),
         false,
@@ -91,4 +88,15 @@ class ASTConverter {
         variableIdentifier,
         initializerExpression);
   }
-}
+
+  public JSExpression convert(final Expression pExpression) {
+    if (pExpression instanceof StringLiteral) {
+      return new JSStringLiteralExpression(
+          getFileLocation(pExpression),
+          JSAnyType.ANY,
+          ((StringLiteral) pExpression).getEscapedValue());
+    }
+    throw new CFAGenerationRuntimeException(
+        "Unknown kind of expression (not handled yet).", pExpression);
+  }
+  }
