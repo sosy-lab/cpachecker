@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAccumulator;
@@ -134,7 +135,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    collectExceptions(reachedSetMapping, error);
+    collectExceptions(reachedSetMapping, error, mainReachedSet);
 
     //    assert targetStateFound
     //        || (dependencyGraph.dependsOn.isEmpty()
@@ -160,25 +161,54 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
    */
   private void collectExceptions(
       Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> pReachedSetMapping,
-      AtomicReference<Throwable> error)
+      AtomicReference<Throwable> error,
+      final ReachedSet mainReachedSet)
       throws CPAException {
-    pReachedSetMapping.values().parallelStream().forEach(entry -> {
-      try{
-        entry.getSecond().get(5, TimeUnit.SECONDS);
-        stats.executionCounter.insertValue(entry.getFirst().execCounter);
-        stats.unfinishedRSEcounter.inc();
-      } catch (RejectedExecutionException e) {
-        // ignore
-      } catch (InterruptedException | ExecutionException  | TimeoutException e) {
-        error.compareAndSet(null, e);
-      }
-      logger.log(Level.ALL, "finishing", entry.getFirst(),
-          entry.getSecond().isCompletedExceptionally());
-    });
+
+    final AtomicBoolean mainRScontainsTarget = new AtomicBoolean(false);
+    final AtomicBoolean otherRScontainsTarget = new AtomicBoolean(false);
+
+    pReachedSetMapping
+        .entrySet()
+        .parallelStream()
+        .forEach(
+            entry -> {
+              ReachedSetExecutor rse = entry.getValue().getFirst();
+              CompletableFuture<Void> job = entry.getValue().getSecond();
+              try {
+                job.get(5, TimeUnit.SECONDS);
+                stats.executionCounter.insertValue(entry.getValue().getFirst().execCounter);
+                stats.unfinishedRSEcounter.inc();
+
+                if (rse.isTargetStateFound()) {
+                  if (entry.getKey() == mainReachedSet) {
+                    mainRScontainsTarget.set(true);
+                  } else {
+                    otherRScontainsTarget.set(true);
+                  }
+                }
+
+              } catch (RejectedExecutionException e) {
+                logger.log(Level.SEVERE, e);
+              } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                logger.log(Level.SEVERE, e);
+                error.compareAndSet(null, e);
+              }
+              logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
+            });
+
     Throwable toThrow = error.get();
     if (toThrow != null) {
       throw new CPAException(toThrow.getMessage());
     }
+
+    Preconditions.checkState(
+        mainRScontainsTarget.get() == otherRScontainsTarget.get(),
+        "when a target is found in a sub-analysis ("
+            + otherRScontainsTarget.get()
+            + "), we exspect a target in the main-reached-set ("
+            + mainRScontainsTarget.get()
+            + ")");
   }
 
   @Override

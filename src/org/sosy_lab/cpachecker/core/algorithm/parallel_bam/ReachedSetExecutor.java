@@ -232,6 +232,10 @@ class ReachedSetExecutor {
     return rs.getLastState() != null && AbstractStates.isTargetState(rs.getLastState());
   }
 
+  boolean isTargetStateFound() {
+    return targetStateFound;
+  }
+
   private void handleTermination() {
     logger.logf(level, "%s :: RSE.handleTermination starting", this);
 
