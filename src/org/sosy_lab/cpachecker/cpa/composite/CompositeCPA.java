@@ -106,22 +106,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
       ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
-      ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
-      ImmutableList.Builder<SimplePrecisionAdjustment> simplePrecisionAdjustments = ImmutableList.builder();
 
       boolean mergeSep = true;
-      boolean simplePrec = true;
 
       for (ConfigurableProgramAnalysis sp : cpas) {
         stopOperators.add(sp.getStopOperator());
-
-        PrecisionAdjustment prec = sp.getPrecisionAdjustment();
-        if (prec instanceof SimplePrecisionAdjustment) {
-          simplePrecisionAdjustments.add((SimplePrecisionAdjustment) prec);
-        } else {
-          simplePrec = false;
-        }
-        precisionAdjustments.add(prec);
 
         MergeOperator merge = sp.getMergeOperator();
         if (merge != MergeSepOperator.getInstance()) {
@@ -158,16 +147,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
       CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
 
-      PrecisionAdjustment compositePrecisionAdjustment;
-      if (simplePrec) {
-        compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
-      } else {
-        compositePrecisionAdjustment =
-            new CompositePrecisionAdjustment(precisionAdjustments.build());
-      }
-
-      return new CompositeCPA(
-          cfa, compositeMerge, compositeStop, compositePrecisionAdjustment, cpas, options);
+      return new CompositeCPA(cfa, compositeMerge, compositeStop, cpas, options);
     }
 
     @Override
@@ -201,7 +181,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   private final MergeOperator mergeOperator;
   private final CompositeStopOperator stopOperator;
-  private final PrecisionAdjustment precisionAdjustment;
 
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
   private final CFA cfa;
@@ -211,13 +190,11 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CFA pCfa,
       MergeOperator mergeOperator,
       CompositeStopOperator stopOperator,
-      PrecisionAdjustment precisionAdjustment,
       ImmutableList<ConfigurableProgramAnalysis> cpas,
       CompositeOptions pOptions) {
     this.cfa = pCfa;
     this.mergeOperator = mergeOperator;
     this.stopOperator = stopOperator;
-    this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
     this.options = pOptions;
   }
@@ -253,7 +230,24 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
+    ImmutableList.Builder<SimplePrecisionAdjustment> simplePrecisionAdjustments =
+        ImmutableList.builder();
+    boolean simplePrec = true;
+    for (ConfigurableProgramAnalysis sp : cpas) {
+      PrecisionAdjustment prec = sp.getPrecisionAdjustment();
+      if (prec instanceof SimplePrecisionAdjustment) {
+        simplePrecisionAdjustments.add((SimplePrecisionAdjustment) prec);
+      } else {
+        simplePrec = false;
+      }
+      precisionAdjustments.add(prec);
+    }
+    if (simplePrec) {
+      return new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
+    } else {
+      return new CompositePrecisionAdjustment(precisionAdjustments.build());
+    }
   }
 
   @Override
@@ -297,10 +291,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       if (cpa instanceof StatisticsProvider) {
         ((StatisticsProvider)cpa).collectStatistics(pStatsCollection);
       }
-    }
-
-    if (precisionAdjustment instanceof StatisticsProvider) {
-      ((StatisticsProvider)precisionAdjustment).collectStatistics(pStatsCollection);
     }
   }
 
