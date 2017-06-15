@@ -32,6 +32,11 @@ public interface JSExpression extends JSRightHandSide, AExpression {
 
   public <R, X extends Exception> R accept(JSExpressionVisitor<R, X> v) throws X;
 
+  @Override
+  default <R, X extends Exception> R accept(JSRightHandSideVisitor<R, X> pV) throws X {
+    return accept((JSExpressionVisitor<R, X>) pV);
+  }
+
   @Deprecated // Call accept() directly
   @SuppressWarnings("unchecked") // should not be necessary, but javac complains otherwise
   @Override
