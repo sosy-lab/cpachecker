@@ -175,10 +175,13 @@ public class CFABuilder extends LlvmAstVisitor {
     CIdExpression functionNameExp =
         new CIdExpression(loc, functionDeclaration.getType(), functionName, functionDeclaration);
 
-    List<Value> functionArguments = pItem.getParams();
-    List<CExpression> parameters = new ArrayList<>(functionArguments.size());
-    for (Value param : functionArguments) {
-      parameters.add(getAssignedIdExpression(param, pFunctionName));
+
+    int argumentCount = pItem.getNumOperands();
+    List<CExpression> parameters = new ArrayList<>(argumentCount);
+    // i = 1 to skip the function name, we only want to look at arguments
+    for (int i = 1; i < argumentCount; i++) {
+      Value functionArg = pItem.getOperand(i);
+      parameters.add(getAssignedIdExpression(functionArg, pFunctionName));
     }
 
     CFunctionCallExpression callExpression = new CFunctionCallExpression(loc, returnType,
