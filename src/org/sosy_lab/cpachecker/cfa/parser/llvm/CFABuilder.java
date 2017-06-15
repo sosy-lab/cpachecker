@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -50,8 +51,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -59,12 +58,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 /**
  * CFA builder for LLVM IR.
@@ -126,11 +124,9 @@ public class CFABuilder extends LlvmAstVisitor {
     } else if (pItem.isBinaryOperator()) {
       return handleBinaryOp(pItem, pFunctionName);
     } else if (pItem.isUnaryInstruction()) {
-      // TODO
-    } else if (pItem.isLoadInst()) {
-      //TODO
+      return handleUnaryOp(pItem, pFunctionName);
     } else if (pItem.isStoreInst()) {
-      //TODO
+      return handleStore(pItem, pFunctionName);
     } else if (pItem.isCallInst()) {
       // TODO
     } else if (pItem.isSwitchInst()) {
@@ -145,14 +141,35 @@ public class CFABuilder extends LlvmAstVisitor {
 
     CExpression dummy_exp = new CIntegerLiteralExpression(
         getLocation(pItem),
-        new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false),
+        CNumericTypes.UNSIGNED_INT,
         BigInteger.ONE
     );
     return new CExpressionStatement(getLocation(pItem), dummy_exp);
   }
 
+  private CAstNode handleUnaryOp(final Value pItem, final String pFunctionName) {
+     if (pItem.isLoadInst()) {
+       return handleLoad(pItem, pFunctionName);
+     } else {
+       throw new UnsupportedOperationException(
+           "LLVM does not yet support operator with opcode " + pItem.getOpCode());
+     }
+  }
+
+  private CAstNode handleLoad(final Value pItem, final String pFunctionName) {
+    CIdExpression assignee = getAssignedIdExpression(pItem, pFunctionName);
+    CExpression expression = getAssignedIdExpression(pItem.getOperand(0), pFunctionName);
+    return new CExpressionAssignmentStatement(getLocation(pItem), assignee, expression);
+  }
+
+  private CAstNode handleStore(final Value pItem, final String pFunctionName) {
+    CIdExpression assignee = getAssignedIdExpression(pItem.getOperand(1), pFunctionName);
+    CExpression expression = getExpression(pItem.getOperand(0), pFunctionName);
+    return new CExpressionAssignmentStatement(getLocation(pItem), assignee, expression);
+  }
+
   private CAstNode handleAlloca(final Value pItem, String pFunctionName) {
-    // We ignore the specifics and handle alloca statements like C declarations
+    // We ignore the specifics and handle alloca statements like C declarations of variables
     CSimpleDeclaration assignedVar = getAssignedVarDeclaration(pItem, pFunctionName);
     return assignedVar;
   }
@@ -172,7 +189,15 @@ public class CFABuilder extends LlvmAstVisitor {
       final boolean isGlobal = pItem.isGlobalValue();
       // TODO: Support static and other storage classes
       final CStorageClass storageClass = CStorageClass.AUTO;
-      final CType varType = typeConverter.getCType(pItem.getAllocatedType());
+      CType varType;
+      // We handle alloca not like malloc, which returns a pointer, but as a general
+      // variable declaration. Consider that here by using the allocated type, not the
+      // pointer of that type alloca returns.
+      if (pItem.isAllocaInst()) {
+        varType = typeConverter.getCType(pItem.getAllocatedType());
+      } else {
+        varType = typeConverter.getCType(pItem.typeOf());
+      }
 
       CSimpleDeclaration newDecl = new CVariableDeclaration(
           getLocation(pItem),
@@ -186,7 +211,7 @@ public class CFABuilder extends LlvmAstVisitor {
       variableDeclarations.put(itemId, newDecl);
     }
 
-    return variableDeclarations.get(pItem);
+    return variableDeclarations.get(itemId);
   }
 
   private CAstNode handleReturn(final Value pItem, final String pFuncName) {
@@ -198,10 +223,11 @@ public class CFABuilder extends LlvmAstVisitor {
       maybeAssignment = Optional.absent();
 
     } else {
-      CExpression returnExp = (CExpression) visitInstruction(returnVal, pFuncName);
+      CExpression returnExp = getExpression(returnVal, pFuncName);
       maybeExpression = Optional.of(returnExp);
 
       CSimpleDeclaration returnVarDecl = getReturnVar(pFuncName, returnExp.getExpressionType());
+
       CIdExpression returnVar = new CIdExpression(getLocation(returnVal), returnVarDecl);
 
       CAssignment returnVarAssignment =
@@ -222,35 +248,21 @@ public class CFABuilder extends LlvmAstVisitor {
     switch (opCode) {
       // Arithmetic operations
       case LLVMAdd:
-        break;
       case LLVMFAdd:
-        break;
       case LLVMSub:
-        break;
       case LLVMFSub:
-        break;
       case LLVMMul:
-        break;
       case LLVMFMul:
-        break;
       case LLVMUDiv:
-        break;
       case LLVMSDiv:
-        break;
       case LLVMFDiv:
-        break;
       case LLVMURem:
-        break;
       case LLVMSRem:
-        break;
       case LLVMFRem:
-        break;
       case LLVMShl:
-        break;
       case LLVMLShr:
-        break;
       case LLVMAShr:
-        break;
+        return handleArithmeticOp(pItem, opCode, pFunctionName);
 
       // Boolean operations
       case LLVMAnd:
@@ -330,10 +342,114 @@ public class CFABuilder extends LlvmAstVisitor {
     }
     CExpression dummy_exp = new CIntegerLiteralExpression(
         getLocation(pItem),
-        new CSimpleType(false, false, CBasicType.INT, false, false, false, false, false, false, false),
+        new CSimpleType(false, false, CBasicType.INT,
+            false, false, false, false,
+            false, false, false),
         BigInteger.ONE
     );
     return new CExpressionStatement(getLocation(pItem), dummy_exp);
+  }
+
+  private CAstNode handleArithmeticOp(
+      final Value pItem,
+      final LLVMOpcode pOpCode,
+      final String pFunctionName
+  ) {
+    final CType expressionType = typeConverter.getCType(pItem.typeOf());
+
+    // TODO: Currently we only support flat expressions, no nested ones. Makes this work
+    // in the future.
+    Value operand1 = pItem.getOperand(0); // First operand
+    logger.log(Level.INFO, "Getting id expression for operand 1");
+    CExpression operand1Exp = getExpression(operand1, pFunctionName);
+    Value operand2 = pItem.getOperand(1); // Second operand
+    logger.log(Level.INFO, "Getting id expression for operand 2");
+    CExpression operand2Exp = getExpression(operand2, pFunctionName);
+
+    CBinaryExpression.BinaryOperator operation;
+    switch (pOpCode) {
+      case LLVMAdd:
+      case LLVMFAdd:
+        operation = BinaryOperator.PLUS;
+        break;
+      case LLVMSub:
+      case LLVMFSub:
+        operation = BinaryOperator.MINUS;
+        break;
+      case LLVMMul:
+      case LLVMFMul:
+        operation = BinaryOperator.MULTIPLY;
+        break;
+      case LLVMUDiv:
+      case LLVMSDiv:
+      case LLVMFDiv:
+        // TODO: Respect unsigned and signed divide
+        operation = BinaryOperator.DIVIDE;
+        break;
+      case LLVMURem:
+      case LLVMSRem:
+      case LLVMFRem:
+        // TODO: Respect unsigned and signed modulo
+        operation = BinaryOperator.MODULO;
+        break;
+      case LLVMShl: // Shift left
+        operation = BinaryOperator.SHIFT_LEFT;
+        break;
+      case LLVMLShr: // Logical shift right
+      case LLVMAShr: // arithmetic shift right
+        // TODO Differentiate between logical and arithmetic shift somehow
+        operation = BinaryOperator.SHIFT_RIGHT;
+        break;
+      default:
+        throw new UnsupportedOperationException(String.valueOf(pOpCode.value()));
+    }
+
+    CExpression expression = new CBinaryExpression(
+        getLocation(pItem),
+        expressionType,
+        expressionType, // calculation type is expression type in LLVM
+        operand1Exp,
+        operand2Exp,
+        operation
+        );
+
+    CIdExpression assignedVar = getAssignedIdExpression(pItem, pFunctionName);
+
+    assert expressionType.equals(assignedVar.getExpressionType())
+        : "Expression returns type different from assigned variable";
+    return new CExpressionAssignmentStatement(getLocation(pItem), assignedVar, expression);
+  }
+
+  private CExpression getExpression(final Value pItem, final String pFunctionName) {
+    if (pItem.isConstantInt() || pItem.isConstantFP()) {
+      return getConstant(pItem);
+    } else {
+      return getAssignedIdExpression(pItem, pFunctionName);
+    }
+  }
+
+  private CExpression getConstant(final Value pItem) {
+    if (pItem.isConstantInt()) {
+      long constantValue = pItem.constIntGetZExtValue();
+      return new CIntegerLiteralExpression(
+          getLocation(pItem),
+          CNumericTypes.UNSIGNED_LONG_LONG_INT,
+          BigInteger.valueOf(constantValue));
+    } else {
+      assert pItem.isConstantFP();
+      throw new UnsupportedOperationException("LLVM parsing does not support float constants yet");
+    }
+  }
+
+  private CIdExpression getAssignedIdExpression(final Value pItem, final String pFunctionName) {
+    logger.log(Level.INFO, "Getting var declaration for item");
+    pItem.dumpValue();
+    CSimpleDeclaration assignedVarDeclaration = getAssignedVarDeclaration(pItem, pFunctionName);
+    String assignedVarName = assignedVarDeclaration.getName();
+    CType expressionType = assignedVarDeclaration.getType();
+
+    return new CIdExpression(
+        getLocation(pItem), expressionType, assignedVarName, assignedVarDeclaration);
   }
 
   private String getTempVar() {
