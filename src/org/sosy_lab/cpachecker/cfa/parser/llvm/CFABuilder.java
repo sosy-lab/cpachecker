@@ -141,7 +141,7 @@ public class CFABuilder extends LlvmAstVisitor {
 
     CExpression dummy_exp = new CIntegerLiteralExpression(
         getLocation(pItem),
-        CNumericTypes.UNSIGNED_INT,
+        CNumericTypes.INT,
         BigInteger.ONE
     );
     return new CExpressionStatement(getLocation(pItem), dummy_exp);
@@ -433,7 +433,7 @@ public class CFABuilder extends LlvmAstVisitor {
       long constantValue = pItem.constIntGetZExtValue();
       return new CIntegerLiteralExpression(
           getLocation(pItem),
-          CNumericTypes.UNSIGNED_LONG_LONG_INT,
+          CNumericTypes.LONG_LONG_INT,
           BigInteger.valueOf(constantValue));
     } else {
       assert pItem.isConstantFP();
