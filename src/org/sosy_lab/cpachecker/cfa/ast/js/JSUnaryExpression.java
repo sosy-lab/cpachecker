@@ -67,11 +67,6 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
   }
 
   @Override
-  public <R, X extends Exception> R accept(JSRightHandSideVisitor<R, X> v) throws X {
-    return v.visit(this);
-  }
-
-  @Override
   public <R, X extends Exception> R accept(JSAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
