@@ -83,7 +83,7 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private final LlvmTypeConverter typeConverter;
 
-  private final Map<Value, CSimpleDeclaration> variableDeclarations;
+  private final Map<Long, CSimpleDeclaration> variableDeclarations;
 
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
     super(pLogger);
@@ -157,8 +157,12 @@ public class CFABuilder extends LlvmAstVisitor {
     return assignedVar;
   }
 
-  private CSimpleDeclaration getAssignedVarDeclaration(final Value pItem, final String pFunctionName) {
-    if (!variableDeclarations.containsKey(pItem)) {
+  private CSimpleDeclaration getAssignedVarDeclaration(
+      final Value pItem,
+      final String pFunctionName
+  ) {
+    final long itemId = pItem.getAddress();
+    if (!variableDeclarations.containsKey(itemId)) {
       String assignedVar = pItem.getValueName();
 
       if (assignedVar.isEmpty()) {
@@ -179,7 +183,7 @@ public class CFABuilder extends LlvmAstVisitor {
           getQualifiedName(assignedVar, pFunctionName),
           assignedVar,
           null);
-      variableDeclarations.put(pItem, newDecl);
+      variableDeclarations.put(itemId, newDecl);
     }
 
     return variableDeclarations.get(pItem);
