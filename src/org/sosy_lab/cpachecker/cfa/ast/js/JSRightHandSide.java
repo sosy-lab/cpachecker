@@ -32,5 +32,10 @@ public interface JSRightHandSide extends JSAstNode, ARightHandSide {
   public <R, X extends Exception> R accept(JSRightHandSideVisitor<R, X> pV) throws X;
 
   @Override
+  default <R, X extends Exception> R accept(JSAstNodeVisitor<R, X> pV) throws X {
+    return accept((JSRightHandSideVisitor<R, X>) pV);
+  }
+
+  @Override
   public JSType getExpressionType();
 }
