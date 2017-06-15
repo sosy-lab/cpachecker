@@ -72,6 +72,8 @@ class CFABuilder extends ASTVisitor {
   final JSFunctionEntryNode entryNode =
       new JSFunctionEntryNode(FileLocation.DUMMY, functionDeclaration, exitNode, Optional.empty());
 
+  private CFANode prevNode = entryNode;
+
   CFABuilder(Scope pScope, LogManager pLogger) {
     scope = pScope;
     logger = pLogger;
@@ -82,7 +84,6 @@ class CFABuilder extends ASTVisitor {
   public boolean visit(VariableDeclarationStatement node) {
     @SuppressWarnings("unchecked")
     final List<VariableDeclarationFragment> variableDeclarationFragments = node.fragments();
-    CFANode prevNode = this.entryNode;
     for (VariableDeclarationFragment variableDeclarationFragment : variableDeclarationFragments) {
       final CFANode nextNode = new CFANode(functionName);
       cfaNodes.put(functionName, nextNode);
