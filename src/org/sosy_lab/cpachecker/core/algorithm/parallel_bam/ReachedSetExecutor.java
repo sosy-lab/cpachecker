@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.parallel_bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
@@ -101,14 +102,17 @@ class ReachedSetExecutor {
   int execCounter = 0; // statistics
 
   /**
-   * Sub-reached-sets have to be finished before the current one. The state is unique. Synchronized
-   * access needed!
+   * This set contains all sub-reached-sets that have to be finished before the current one. The
+   * state is unique. Synchronized access guaranteed by only instance-local access in the current
+   * {@link ReachedSetExecutor}!
    */
   private final Set<AbstractState> dependsOn = new LinkedHashSet<>();
 
   /**
-   * The current reached-set has to be finished before parent reached-set. The state is unique, RSE
-   * is not. Synchronized access needed!
+   * This mapping contains all {@link ReachedSetExecutor}s (known as parents) that wait for the
+   * current one. The abstract state is the non-reduced initial state of the parent reached-set, and
+   * it must be re-added when the child terminates. The current reached-set has to be finished
+   * before parent reached-set. The state is unique, RSE is not. Synchronized access needed!
    */
   private final Multimap<ReachedSetExecutor, AbstractState> dependingFrom =
       LinkedHashMultimap.create();
@@ -168,6 +172,7 @@ class ReachedSetExecutor {
         apply0(pStatesToBeAdded);
 
       } catch (CPAException | InterruptedException e) {
+        // maybe timeout of analysis, log and continue
         logger.logException(level, e, e.getClass().getName());
       }
 
@@ -182,12 +187,21 @@ class ReachedSetExecutor {
    */
   private void apply0(Collection<AbstractState> pStatesToBeAdded)
       throws CPAException, InterruptedException {
-    logger.logf(level, "%s :: RSE.run starting", this);
+    logger.logf(
+        level,
+        "%s :: starting, target=%s, statesToBeAdded=%s",
+        this,
+        targetStateFound,
+        id(pStatesToBeAdded));
 
     updateStates(pStatesToBeAdded);
     analyzeReachedSet();
 
     logger.logf(level, "%s :: RSE.run exiting", this);
+  }
+
+  private static String id(final Collection<AbstractState> states) {
+    return Collections2.transform(states, s -> id(s)).toString();
   }
 
   private static String id(final AbstractState state) {
@@ -236,10 +250,9 @@ class ReachedSetExecutor {
     return targetStateFound;
   }
 
+  /** check whether we have to update any depending reached-set. */
   private void handleTermination() {
-    logger.logf(level, "%s :: RSE.handleTermination starting", this);
-
-    boolean isFinished = isFinished();
+    boolean isFinished = dependsOn.isEmpty();
     boolean endsWithTargetState = endsWithTargetState();
 
     if (endsWithTargetState) {
@@ -265,13 +278,15 @@ class ReachedSetExecutor {
       // we never need to execute this RSE again,
       // thus we can clean up and avoid a (small) memory-leak
       synchronized (reachedSetMapping) {
+        @SuppressWarnings("unused")
         Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.remove(rs);
         stats.executionCounter.insertValue(execCounter);
         // no need to wait for p.getSecond(), we assume a error-free exit after this point.
       }
     }
 
-    logger.logf(level, "%s :: RSE.handleTermination exiting", this);
+    logger.logf(
+        level, "%s :: finished=%s, endsWithTargetState=%s", this, isFinished, endsWithTargetState);
   }
 
   private void updateCache(boolean pEndsWithTargetState) {
@@ -314,6 +329,7 @@ class ReachedSetExecutor {
 
   private void reAddStatesToDependingReachedSets() {
     synchronized (dependingFrom) {
+      logger.logf(level, "%s :: %s -> %s", this, this, dependingFrom.keys());
       for (Entry<ReachedSetExecutor, Collection<AbstractState>> parent :
           dependingFrom.asMap().entrySet()) {
         registerJob(parent.getKey(), parent.getKey().asRunnable(parent.getValue()));
@@ -324,14 +340,23 @@ class ReachedSetExecutor {
 
   private void addDependencies(
       BlockSummaryMissingException pBsme, final ReachedSetExecutor subRse) {
+    logger.logf(level, "%s :: %s -> %s", this, this, subRse);
     dependsOn.add(pBsme.getState());
     synchronized (subRse.dependingFrom) {
       subRse.dependingFrom.put(this, pBsme.getState());
     }
   }
 
+  /**
+   * When a block summary is missing, the BAM-CPA throws a {@link BlockSummaryMissingException} and
+   * the CPA-algorithm terminates. Then we use the info from the exception to handle the missing
+   * block summary here, such that we
+   * <li>remove the initial state from the reached-set,
+   * <li>create a new {@link ReachedSetExecutor} for the missing block,
+   * <li>add a dependency between the sub-analysis and the current one.
+   */
   private void handleMissingBlock(BlockSummaryMissingException pBsme) {
-    logger.logf(level, "%s :: RSE.handleMissingBlock starting", this);
+    logger.logf(level, "%s :: starting, bsme=%s", this, id(pBsme.getState()));
 
     if (targetStateFound) {
       // ignore further sub-analyses
@@ -348,6 +373,8 @@ class ReachedSetExecutor {
         // Restarting the procedure once should be sufficient,
         // such that the analysis tries a normal cache-access again.
         // --> nothing to do
+        logger.logf(
+            level, "%s :: interleaved with another thread, bsme=%s", this, id(pBsme.getState()));
 
       } else {
         // remove current state from waitlist to avoid exploration until all sub-blocks are done.
@@ -416,11 +443,17 @@ class ReachedSetExecutor {
               error,
               logger);
       // register NOOP here. Callback for results is registered later, we have "lazy" computation.
+      logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
       CompletableFuture<Void> future =
           CompletableFuture.runAsync(NOOP, pool).exceptionally(new ExceptionHandler(subRse));
+      assert !reachedSetMapping.containsKey(newRs)
+          : "should not happen, we are in synchronized context";
       reachedSetMapping.put(newRs, Pair.of(subRse, future));
-      logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
     }
+
+    Preconditions.checkState(
+        reachedSetMapping.containsKey(newRs),
+        "scheduling unregistered reached-set will be difficult");
     return newRs;
   }
 
@@ -432,6 +465,7 @@ class ReachedSetExecutor {
     synchronized (reachedSetMapping) {
       Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.get(pRse.rs);
       assert p.getFirst() == pRse;
+      logger.logf(level, "%s :: scheduling RSE: %s", this, pRse);
       CompletableFuture<Void> future =
           p.getSecond().thenRunAsync(r, pool).exceptionally(new ExceptionHandler(pRse));
       reachedSetMapping.put(pRse.rs, Pair.of(pRse, future));
@@ -461,10 +495,11 @@ class ReachedSetExecutor {
     @Override
     public Void apply(Throwable e) {
       if (e instanceof RejectedExecutionException || e instanceof CompletionException) {
-        // ignore, might happen when target-state is found
-        // TODO cleanup waiting states and dependencies?
+        // pool will shutdown on forced termination after timeout and throw lots of them.
+        // we can ignore those exceptions.
+        logger.logException(level, e, e.getClass().getSimpleName());
       } else {
-        logger.logException(Level.WARNING, e, rse + " :: " + e.getClass().getSimpleName());
+        logger.logException(Level.WARNING, e, e.getClass().getSimpleName());
         error.compareAndSet(null, e);
       }
       return null;
