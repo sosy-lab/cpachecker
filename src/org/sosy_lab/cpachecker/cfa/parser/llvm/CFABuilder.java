@@ -430,7 +430,7 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private CExpression getConstant(final Value pItem) {
     if (pItem.isConstantInt()) {
-      long constantValue = pItem.constIntGetZExtValue();
+      long constantValue = pItem.constIntGetSExtValue();
       return new CIntegerLiteralExpression(
           getLocation(pItem),
           CNumericTypes.LONG_LONG_INT,
