@@ -43,7 +43,8 @@ public class UsageCPAStatistics implements Statistics {
 
   public static enum OutputFileType {
     ETV,
-    KLEVER
+    KLEVER,
+    KLEVER_OLD
   }
 
   @Option(name="outputType", description="all variables should be printed to the one file or to the different",
@@ -102,6 +103,8 @@ public class UsageCPAStatistics implements Statistics {
     transfer = t;
     if (outputFileType == OutputFileType.KLEVER) {
       errPrinter = new KleverErrorTracePrinter(config, transfer, logger, lockTransfer);
+    } else if (outputFileType == OutputFileType.KLEVER_OLD) {
+      errPrinter = new KleverErrorTracePrinterOld(config, transfer, logger, lockTransfer);
     } else if (outputFileType == OutputFileType.ETV) {
       errPrinter = new ETVErrorTracePrinter(config, transfer, logger, lockTransfer);
     }
