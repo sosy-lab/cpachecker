@@ -40,6 +40,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -97,6 +98,7 @@ class ReachedSetExecutor {
   private final ShutdownNotifier shutdownNotifier;
   private final ParallelBAMStatistics stats;
   private final AtomicReference<Throwable> error;
+  private final AtomicBoolean terminateAnalysis;
   private final LogManager logger;
 
   int execCounter = 0; // statistics
@@ -127,6 +129,7 @@ class ReachedSetExecutor {
       ShutdownNotifier pShutdownNotifier,
       ParallelBAMStatistics pStats,
       AtomicReference<Throwable> pError,
+      AtomicBoolean pTerminateAnalysis,
       LogManager pLogger) {
     bamcpa = pBamCpa;
     rs = pRs;
@@ -137,6 +140,7 @@ class ReachedSetExecutor {
     shutdownNotifier = pShutdownNotifier;
     stats = pStats;
     error = pError;
+    terminateAnalysis = pTerminateAnalysis;
     logger = pLogger;
 
     algorithm = algorithmFactory.newInstance();
@@ -164,6 +168,7 @@ class ReachedSetExecutor {
     try {
 
       if (shutdownNotifier.shouldShutdown()) {
+        terminateAnalysis.set(true);
         pool.shutdownNow();
         return;
       }
@@ -195,9 +200,31 @@ class ReachedSetExecutor {
         id(pStatesToBeAdded));
 
     updateStates(pStatesToBeAdded);
-    analyzeReachedSet();
 
-    logger.logf(level, "%s :: RSE.run exiting", this);
+    { // handle finished reached-set after refinement
+      // TODO shuld never happen, because result-states should be cached, -> error in refinement?
+      // TODO checking this once on RSE-creation would be sufficient
+      boolean endsWithTargetState = endsWithTargetState();
+
+      if (endsWithTargetState) {
+        targetStateFound = true;
+        terminateAnalysis.set(true);
+      }
+    }
+
+    if (!targetStateFound) {
+      // further analysis of the reached-set, sub-analysis is scheduled if necessary
+      try {
+        @SuppressWarnings("unused")
+        AlgorithmStatus tmpStatus = algorithm.run(rs);
+      } catch (BlockSummaryMissingException bsme) {
+        handleMissingBlock(bsme);
+      }
+    }
+
+    handleTermination();
+
+    logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
   }
 
   private static String id(final Collection<AbstractState> states) {
@@ -227,21 +254,6 @@ class ReachedSetExecutor {
     }
   }
 
-  private void analyzeReachedSet() throws CPAException, InterruptedException {
-    try {
-      @SuppressWarnings("unused")
-      AlgorithmStatus tmpStatus = algorithm.run(rs);
-      handleTermination();
-
-    } catch (BlockSummaryMissingException bsme) {
-      handleMissingBlock(bsme);
-    }
-  }
-
-  private boolean isFinished() {
-    return !rs.hasWaitingState() && dependsOn.isEmpty();
-  }
-
   private boolean endsWithTargetState() {
     return rs.getLastState() != null && AbstractStates.isTargetState(rs.getLastState());
   }
@@ -257,16 +269,10 @@ class ReachedSetExecutor {
 
     if (endsWithTargetState) {
       targetStateFound = true;
+      terminateAnalysis.set(true);
     }
 
-    if (isFinished || endsWithTargetState) {
-      logger.logf(
-          level,
-          "%s :: finished=%s, endsWithTargetState=%s",
-          this,
-          isFinished,
-          endsWithTargetState);
-
+    if (isFinished) {
       updateCache(endsWithTargetState);
       reAddStatesToDependingReachedSets();
 
@@ -359,7 +365,14 @@ class ReachedSetExecutor {
     logger.logf(level, "%s :: starting, bsme=%s", this, id(pBsme.getState()));
 
     if (targetStateFound) {
-      // ignore further sub-analyses
+      logger.logf(Level.SEVERE, "%s :: after finding a missing block, we should not get new states", this);
+      throw new AssertionError("after finding a missing block, we should not get new states");
+    }
+
+    if (shutdownNotifier.shouldShutdown() || terminateAnalysis.get()) {
+      // if an error was found somewhere, we do not longer schedule new sub-analyses
+      logger.logf(level, "%s :: exiting on demand", this);
+      return;
     }
 
     // register new sub-analysis as asynchronous/parallel/future work, if not existent
@@ -377,26 +390,28 @@ class ReachedSetExecutor {
             level, "%s :: interleaved with another thread, bsme=%s", this, id(pBsme.getState()));
 
       } else {
-        // remove current state from waitlist to avoid exploration until all sub-blocks are done.
-        // The state was removed for exploration,
-        // but re-added by CPA-algorithm when throwing the exception
-        assert rs.contains(pBsme.getState()) : "parent reachedset must contain entry state";
-        rs.removeOnlyFromWaitlist(pBsme.getState());
-
-        // register dependencies to wait for results and to get results, asynchronous
-        ReachedSetExecutor subRse = p.getFirst();
-        addDependencies(pBsme, subRse);
-        logger.logf(level, "%s :: RSE.handleMissingBlock %s -> %s", this, this, id(newRs));
-
-        // register callback to get results of terminated analysis
-        registerJob(subRse, subRse.asRunnable());
+        scheduleSubAnalysis(pBsme, p);
       }
     }
 
     // register current RSE for further analysis
     registerJob(this, this.asRunnable());
+  }
 
-    logger.logf(level, "%s :: RSE.handleMissingBlock exiting", this);
+  private void scheduleSubAnalysis(BlockSummaryMissingException pBsme,
+      Pair<ReachedSetExecutor, CompletableFuture<Void>> p) {
+    // remove current state from waitlist to avoid exploration until all sub-blocks are done.
+    // The state was removed for exploration,
+    // but re-added by CPA-algorithm when throwing the exception
+    assert rs.contains(pBsme.getState()) : "parent reachedset must contain entry state";
+    rs.removeOnlyFromWaitlist(pBsme.getState());
+
+    // register dependencies to wait for results and to get results, asynchronous
+    ReachedSetExecutor subRse = p.getFirst();
+    addDependencies(pBsme, subRse);
+
+    // register callback to get results of terminated analysis
+    registerJob(subRse, subRse.asRunnable());
   }
 
   /**
@@ -427,9 +442,11 @@ class ReachedSetExecutor {
               .getData()
               .createAndRegisterNewReachedSet(
                   pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
+    }
 
-      // we have not even cached a partly computed reach-set,
-      // so we must compute the subgraph specification from scratch
+    if (!reachedSetMapping.containsKey(newRs)) {
+      // we have a partial (or even finished) reached-set,
+      // so we schedule it for further exploration
       ReachedSetExecutor subRse =
           new ReachedSetExecutor(
               bamcpa,
@@ -441,6 +458,7 @@ class ReachedSetExecutor {
               shutdownNotifier,
               stats,
               error,
+              terminateAnalysis,
               logger);
       // register NOOP here. Callback for results is registered later, we have "lazy" computation.
       logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
@@ -501,7 +519,9 @@ class ReachedSetExecutor {
       } else {
         logger.logException(Level.WARNING, e, e.getClass().getSimpleName());
         error.compareAndSet(null, e);
+        rse.terminateAnalysis.set(true);
       }
+
       return null;
     }
   }

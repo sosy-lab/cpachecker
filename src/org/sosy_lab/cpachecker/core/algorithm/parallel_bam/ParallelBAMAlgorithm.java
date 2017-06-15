@@ -104,6 +104,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     logger.logf(Level.INFO, "creating pool for %d threads", numberOfCores);
     final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores);
     final AtomicReference<Throwable> error = new AtomicReference<>(null);
+    final AtomicBoolean terminateAnalysis = new AtomicBoolean(false);
 
     synchronized (reachedSetMapping) {
       ReachedSetExecutor rse =
@@ -117,6 +118,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
               shutdownNotifier,
               stats,
               error,
+              terminateAnalysis,
               logger);
       CompletableFuture<Void> future = CompletableFuture.runAsync(rse.asRunnable(), pool);
       reachedSetMapping.put(mainReachedSet, Pair.of(rse, future));
