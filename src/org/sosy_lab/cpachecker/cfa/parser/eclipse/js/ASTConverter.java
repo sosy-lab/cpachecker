@@ -99,8 +99,9 @@ class ASTConverter {
           JSAnyType.ANY,
           ((StringLiteral) pExpression).getEscapedValue());
     } else if (pExpression instanceof NumberLiteral) {
+      final String numberToken = ((NumberLiteral) pExpression).getToken();
       return new JSFloatLiteralExpression(
-          getFileLocation(pExpression), new BigDecimal(((NumberLiteral) pExpression).getToken()));
+          getFileLocation(pExpression), new BigDecimal(numberToken));
     }
     throw new CFAGenerationRuntimeException(
         "Unknown kind of expression (not handled yet).", pExpression);
