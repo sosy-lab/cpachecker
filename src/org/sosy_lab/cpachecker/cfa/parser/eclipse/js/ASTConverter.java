@@ -27,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.logging.Level;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
+import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
@@ -34,6 +35,7 @@ import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
@@ -99,6 +101,8 @@ class ASTConverter {
       return convert((StringLiteral) pExpression);
     } else if (pExpression instanceof NumberLiteral) {
       return convert((NumberLiteral) pExpression);
+    } else if (pExpression instanceof BooleanLiteral) {
+      return convert((BooleanLiteral) pExpression);
     }
     throw new CFAGenerationRuntimeException(
         "Unknown kind of expression (not handled yet).", pExpression);
@@ -109,6 +113,11 @@ class ASTConverter {
         getFileLocation(pStringLiteral),
         JSAnyType.ANY,
         pStringLiteral.getEscapedValue());
+  }
+
+  public JSBooleanLiteralExpression convert(final BooleanLiteral pBooleanLiteral) {
+    return new JSBooleanLiteralExpression(
+        getFileLocation(pBooleanLiteral), pBooleanLiteral.booleanValue());
   }
 
   public JSExpression convert(final NumberLiteral pNumberLiteral) {
