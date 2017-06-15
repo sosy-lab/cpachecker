@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -52,17 +53,7 @@ public class LlvmTypeConverter {
 
   private final static String PREFIX_LITERAL_STRUCT = "lit_struc_";
   private final static String PREFIX_STRUCT_MEMBER = "mem_";
-  private final static CSimpleType ARRAY_LENGTH_TYPE = new CSimpleType(
-      false,
-      false,
-      CBasicType.INT,
-      false,
-      false,
-      false,
-      true,
-      false,
-      false,
-      true);
+  private final static CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
 
   private static int structCount = 0;
 
@@ -196,10 +187,10 @@ public class LlvmTypeConverter {
       final boolean pIsConst,
       final boolean pIsVolatile
   ) {
-    final boolean isSigned = false;
+    final boolean isSigned = true;
     final boolean isComplex = false;
     final boolean isImaginary = false;
-    final boolean isUnsigned = true;
+    final boolean isUnsigned = false;
 
     final boolean isLong = false;
     boolean isShort = false;
