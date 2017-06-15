@@ -207,7 +207,7 @@ public class PathPairIterator extends
   }
 
   @Override
-  public Object handleFinishSignal(Class<? extends RefinementInterface> callerClass) {
+  public void handleFinishSignal(Class<? extends RefinementInterface> callerClass) {
     if (callerClass.equals(IdentifierIterator.class)) {
       //Refinement iteration finishes
       refinedStates.clear();
@@ -217,7 +217,6 @@ public class PathPairIterator extends
       currentIterators.clear();
       computedPathsForUsage.clear();
     }
-    return null;
   }
 
   private void updateTheComputedSet(ExtendedARGPath path) {

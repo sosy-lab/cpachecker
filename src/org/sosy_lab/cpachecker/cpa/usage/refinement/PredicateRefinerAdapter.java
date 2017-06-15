@@ -212,7 +212,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   }
 
   @Override
-  protected Object handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
+  protected void handleFinishSignal(Class<? extends RefinementInterface> pCallerClass) {
     if (pCallerClass.equals(IdentifierIterator.class)) {
       //false cache may contain other precision
       //It happens if we clean it for other Id and rerefine it now
@@ -220,7 +220,6 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
       falseCacheForCurrentIteration.forEach((edges, prec) -> falseCache.put(edges, prec));
       falseCacheForCurrentIteration.clear();
     }
-    return null;
   }
 
   @Override

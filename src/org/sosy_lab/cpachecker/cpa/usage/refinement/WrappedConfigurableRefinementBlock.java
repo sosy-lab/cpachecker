@@ -32,7 +32,7 @@ public abstract class WrappedConfigurableRefinementBlock<I, O> implements Config
 
   protected void handleStartSignal(Class<? extends RefinementInterface> callerClass) {}
 
-  protected Object handleFinishSignal(Class<? extends RefinementInterface> callerClass) throws CPAException, InterruptedException {return null;}
+  protected void handleFinishSignal(Class<? extends RefinementInterface> callerClass) throws CPAException, InterruptedException {}
 
   protected void handleUpdateSignal(Class<? extends RefinementInterface> callerClass, Object data) {}
 
