@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 import com.google.common.base.Optional;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import org.llvm.Module;
 import org.llvm.TypeRef;
@@ -38,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
@@ -47,6 +50,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -78,12 +83,16 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private final LlvmTypeConverter typeConverter;
 
+  private final Map<Value, CSimpleDeclaration> variableDeclarations;
+
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
     super(pLogger);
     logger = pLogger;
     machineModel = pMachineModel;
 
     typeConverter = new LlvmTypeConverter(pMachineModel, pLogger);
+
+    variableDeclarations = new HashMap<>();
   }
 
   public ParseResult build(final Module pModule) {
