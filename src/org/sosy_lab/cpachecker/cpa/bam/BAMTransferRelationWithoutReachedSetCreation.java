@@ -127,15 +127,14 @@ public class BAMTransferRelationWithoutReachedSetCreation
     // a reached set associated with the recursive call.
     final Pair<ReachedSet, Collection<AbstractState>> pair =
         data.getCache().get(reducedInitialState, reducedInitialPrecision, innerSubtree);
-    ReachedSet cachedReached = pair.getFirst();
+    final ReachedSet cachedReached = pair.getFirst();
     final Collection<AbstractState> cachedReturnStates = pair.getSecond();
 
     assert cachedReturnStates == null || cachedReached != null
         : "there cannot be result-states without reached-states";
 
-    if (cachedReturnStates == null) {
+    if (!isCacheHit(cachedReached, cachedReturnStates)) {
       // no cache hit, block summary missing, -> compute states from scratch or from waitlist
-
       throw new BlockSummaryMissingException(
           initialState, reducedInitialState, reducedInitialPrecision, innerSubtree, cachedReached);
     }

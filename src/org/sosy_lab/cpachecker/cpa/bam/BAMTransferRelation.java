@@ -278,22 +278,12 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
     final Collection<AbstractState> reducedResult;
     final ReachedSet reached;
-    if (cachedReturnStates != null && !cachedReached.hasWaitingState()) {
-
+    if (isCacheHit(cachedReached, cachedReturnStates)) {
       // cache hit, return element from cache
-      logger.log(Level.FINEST, "Cache hit with finished reached-set with "
-          + "root", cachedReached.getFirstState());
-      reducedResult = cachedReturnStates;
-      statesForFurtherAnalysis = reducedResult;
-      reached = cachedReached;
-
-    } else if (cachedReturnStates != null && cachedReturnStates.size() == 1 &&
-        cachedReached.getLastState() != null && ((ARGState)cachedReached.getLastState()).isTarget()) {
-      assert Iterables.getOnlyElement(cachedReturnStates) == cachedReached.getLastState() :
-              "cache hit only allowed for finished reached-sets or target-states";
-
-      // cache hit, return element from cache
-      logger.log(Level.FINEST, "Cache hit with target-state in reached-set with root", cachedReached.getFirstState());
+      logger.log(
+          Level.FINEST,
+          "Cache hit with finished reached-set with root",
+          cachedReached.getFirstState());
       reducedResult = cachedReturnStates;
       statesForFurtherAnalysis = cachedReturnStates;
       reached = cachedReached;
