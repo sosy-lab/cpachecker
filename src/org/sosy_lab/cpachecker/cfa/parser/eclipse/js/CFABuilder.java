@@ -92,11 +92,6 @@ class CFABuilder extends ASTVisitor {
 
       prevNode = nextNode;
     }
-
-    // add dummy edge from previous node to exit node
-    CFACreationUtils.addEdgeToCFA(
-        new BlankEdge("", FileLocation.DUMMY, prevNode, exitNode, "end of file"), logger);
-
     return super.visit(node);
   }
 
@@ -117,6 +112,11 @@ class CFABuilder extends ASTVisitor {
   }
 
   public ParseResult createCFA() {
+    // add dummy edge from previous node to exit node
+    CFACreationUtils.addEdgeToCFA(
+        new BlankEdge("", FileLocation.DUMMY, prevNode, exitNode, "end of file"), logger);
+
+
     exitNode.setEntryNode(entryNode);
     cfas.put(functionName, entryNode);
     cfaNodes.put(functionName, entryNode);
