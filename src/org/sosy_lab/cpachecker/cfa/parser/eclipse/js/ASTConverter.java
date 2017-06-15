@@ -96,15 +96,19 @@ class ASTConverter {
 
   public JSExpression convert(final Expression pExpression) {
     if (pExpression instanceof StringLiteral) {
-      return new JSStringLiteralExpression(
-          getFileLocation(pExpression),
-          JSAnyType.ANY,
-          ((StringLiteral) pExpression).getEscapedValue());
+      return convert((StringLiteral) pExpression);
     } else if (pExpression instanceof NumberLiteral) {
       return convert((NumberLiteral) pExpression);
     }
     throw new CFAGenerationRuntimeException(
         "Unknown kind of expression (not handled yet).", pExpression);
+  }
+
+  public JSStringLiteralExpression convert(final StringLiteral pStringLiteral) {
+    return new JSStringLiteralExpression(
+        getFileLocation(pStringLiteral),
+        JSAnyType.ANY,
+        pStringLiteral.getEscapedValue());
   }
 
   public JSExpression convert(final NumberLiteral pNumberLiteral) {
