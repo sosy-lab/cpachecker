@@ -112,6 +112,10 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
     return new TreeSet<>(topUsages).iterator();
   }
 
+  public Iterator<UsagePoint> getPointIteratorFrom(UsagePoint p) {
+    return new TreeSet<>(topUsages.tailSet(p)).iterator();
+  }
+
   @Override
   public int getNumberOfTopUsagePoints() {
     return topUsages.size();
