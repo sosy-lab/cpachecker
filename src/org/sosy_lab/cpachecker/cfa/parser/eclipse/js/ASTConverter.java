@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.logging.Level;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.Expression;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
@@ -107,8 +109,10 @@ class ASTConverter {
 
   public JSExpression convert(final NumberLiteral pNumberLiteral) {
     final String numberToken = pNumberLiteral.getToken();
-    return new JSFloatLiteralExpression(
-        getFileLocation(pNumberLiteral), new BigDecimal(numberToken));
+    final FileLocation fileLocation = getFileLocation(pNumberLiteral);
+    return numberToken.contains(".")
+      ? new JSFloatLiteralExpression(fileLocation, new BigDecimal(numberToken))
+      : new JSIntegerLiteralExpression(fileLocation, new BigInteger(numberToken));
   }
 
 }
