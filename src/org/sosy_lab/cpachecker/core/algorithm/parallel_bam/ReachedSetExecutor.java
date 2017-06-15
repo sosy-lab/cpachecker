@@ -202,14 +202,8 @@ class ReachedSetExecutor {
     updateStates(pStatesToBeAdded);
 
     { // handle finished reached-set after refinement
-      // TODO shuld never happen, because result-states should be cached, -> error in refinement?
       // TODO checking this once on RSE-creation would be sufficient
-      boolean endsWithTargetState = endsWithTargetState();
-
-      if (endsWithTargetState) {
-        targetStateFound = true;
-        terminateAnalysis.set(true);
-      }
+      checkForTargetState();
     }
 
     if (!targetStateFound) {
@@ -227,6 +221,23 @@ class ReachedSetExecutor {
     logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
   }
 
+  private void checkForTargetState() {
+    boolean endsWithTargetState = endsWithTargetState();
+
+    if (targetStateFound) {
+      Preconditions.checkState(
+          endsWithTargetState,
+          "when a target was found before, it should remain as target of the reached-set");
+      Preconditions.checkState(
+          terminateAnalysis.get(),
+          "when a target was found before, we want to stop further scheduling");
+    }
+
+    if (endsWithTargetState) {
+      targetStateFound = true;
+      terminateAnalysis.set(true);
+    }
+  }
   private static String id(final Collection<AbstractState> states) {
     return Collections2.transform(states, s -> id(s)).toString();
   }
@@ -264,16 +275,12 @@ class ReachedSetExecutor {
 
   /** check whether we have to update any depending reached-set. */
   private void handleTermination() {
+
+    checkForTargetState();
+
     boolean isFinished = dependsOn.isEmpty();
-    boolean endsWithTargetState = endsWithTargetState();
-
-    if (endsWithTargetState) {
-      targetStateFound = true;
-      terminateAnalysis.set(true);
-    }
-
     if (isFinished) {
-      updateCache(endsWithTargetState);
+      updateCache(targetStateFound);
       reAddStatesToDependingReachedSets();
 
       if (rs == mainReachedSet) {
@@ -292,7 +299,7 @@ class ReachedSetExecutor {
     }
 
     logger.logf(
-        level, "%s :: finished=%s, endsWithTargetState=%s", this, isFinished, endsWithTargetState);
+        level, "%s :: finished=%s, targetStateFound=%s", this, isFinished, targetStateFound);
   }
 
   private void updateCache(boolean pEndsWithTargetState) {
