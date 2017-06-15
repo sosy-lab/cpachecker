@@ -68,23 +68,41 @@ public interface BAMDataManager {
    **/
   boolean alreadyReturnedFromSameBlock(AbstractState state, Block block);
 
+  /**
+   * Returns the non-expanded abstract state for a expanded abstract state, recursively if needed,
+   * or the given state itself, if the state was never an expanded result.
+   */
   AbstractState getInnermostState(AbstractState state);
 
   /**
-   * Get a list of states {@code [s1,s2,s3...]},
+   * Get a list of states {@code [s2,s3...]},
    * such that {@code expand(s1)=s2}, {@code expand(s2)=s3},...
-   * The state {@code s1} is the most inner state.
+   * The state {@code s1} is the state given as argument and is not contained in the list.
    */
   List<AbstractState> getExpandedStatesList(AbstractState state);
 
+  /**
+   * Add a mapping of a non-reduced abstract state to a reached-set whose first state is the
+   * matching reduced abstract state.
+   */
   void registerInitialState(AbstractState state, ReachedSet reachedSet);
 
+  /**
+   * Receive the reached-set for a non-reduced initial state. We expect that the given abstract
+   * state has a matching reached-set.
+   */
   ReachedSet getReachedSetForInitialState(AbstractState state);
 
+  /** CHech whether the given abstract state is the non-reduced initial state of a reached-set. */
   boolean hasInitialState(AbstractState state);
 
+  /**
+   * Returns the non-expanded abstract state for an expanded abstract state. We expect that the
+   * given abstract state was registered as expanded state.
+   */
   AbstractState getReducedStateForExpandedState(AbstractState state);
 
+  /** Check whether any abstract state was expanded to the given abstract state. */
   boolean hasExpandedState(AbstractState state);
 
   BAMCache getCache();
