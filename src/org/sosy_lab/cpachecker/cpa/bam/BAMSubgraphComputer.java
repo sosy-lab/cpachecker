@@ -205,6 +205,13 @@ public class BAMSubgraphComputer {
     final Map<BackwardARGState, BackwardARGState> newExpandedToNewInnerTargets = new HashMap<>();
 
     for (BackwardARGState newExpandedTarget : newExpandedTargets) {
+
+      if (!data.hasExpandedState(newExpandedTarget.getARGState())) {
+        logger.log(Level.FINE,
+            "Target state refers to a missing ARGState, i.e., the cached subtree was deleted. Updating it.");
+        throw new MissingBlockException();
+      }
+
       final ARGState reducedTarget =
           (ARGState) data.getReducedStateForExpandedState(newExpandedTarget.getARGState());
 
