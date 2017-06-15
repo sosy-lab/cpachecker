@@ -160,9 +160,9 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       printPath(secondUsage, secondIterator, builder);
 
       builder.addDataElementChild(currentNode, NodeFlag.ISVIOLATION.key, "true");
-      //builder.appendTo(w);
+
       MoreFiles.writeFile(Paths.get(name.getAbsolutePath()), Charset.defaultCharset(), (Appender) a -> builder.appendTo(a));
-      //w.close();
+
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e.getMessage());
     } catch (ParserConfigurationException e) {
@@ -253,6 +253,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       CFunctionCall fCall = ((CFunctionCallEdge)pEdge).getSummaryEdge().getExpression();
       if (fCall instanceof CThreadCreateStatement) {
         currentThread++;
+        builder.addDataElementChild(result, KeyDef.CREATETHREAD, Integer.toString(currentThread));
       }
     }
   }
