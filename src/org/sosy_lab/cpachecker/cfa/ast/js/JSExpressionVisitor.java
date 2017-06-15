@@ -32,4 +32,6 @@ public interface JSExpressionVisitor<R, X extends Exception> extends JSLeftHandS
   R visit(JSFloatLiteralExpression pLiteral) throws X;
 
   R visit(JSUnaryExpression pIastUnaryExpression) throws X;
+
+  R visit(JSIntegerLiteralExpression pIntegerLiteralExpression) throws X;
 }
