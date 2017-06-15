@@ -153,30 +153,36 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private CAstNode handleAlloca(final Value pItem, String pFunctionName) {
     // We ignore the specifics and handle alloca statements like C declarations
-    String assignedVar = getAssignedVarName(pItem, pFunctionName);
-
-    final boolean isGlobal = pItem.isGlobalValue();
-    // TODO: Support static and other storage classes
-    final CStorageClass storageClass = CStorageClass.AUTO;
-    final CType varType = typeConverter.getCType(pItem.getAllocatedType());
-
-    return new CVariableDeclaration(
-        getLocation(pItem),
-        isGlobal,
-        storageClass,
-        varType,
-        assignedVar,
-        getQualifiedName(assignedVar, pFunctionName),
-        assignedVar,
-        null);
+    CSimpleDeclaration assignedVar = getAssignedVarDeclaration(pItem, pFunctionName);
+    return assignedVar;
   }
 
-  private String getAssignedVarName(final Value pItem, final String pFunctionName) {
-    String assignedVar = pItem.getValueName();
-    if (assignedVar.isEmpty()) {
-      assignedVar = getTempVar();
+  private CSimpleDeclaration getAssignedVarDeclaration(final Value pItem, final String pFunctionName) {
+    if (!variableDeclarations.containsKey(pItem)) {
+      String assignedVar = pItem.getValueName();
+
+      if (assignedVar.isEmpty()) {
+        assignedVar = getTempVar();
+      }
+
+      final boolean isGlobal = pItem.isGlobalValue();
+      // TODO: Support static and other storage classes
+      final CStorageClass storageClass = CStorageClass.AUTO;
+      final CType varType = typeConverter.getCType(pItem.getAllocatedType());
+
+      CSimpleDeclaration newDecl = new CVariableDeclaration(
+          getLocation(pItem),
+          isGlobal,
+          storageClass,
+          varType,
+          assignedVar,
+          getQualifiedName(assignedVar, pFunctionName),
+          assignedVar,
+          null);
+      variableDeclarations.put(pItem, newDecl);
     }
-    return assignedVar;
+
+    return variableDeclarations.get(pItem);
   }
 
   private CAstNode handleReturn(final Value pItem, final String pFuncName) {
