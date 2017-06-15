@@ -73,8 +73,8 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
       String pFunctionName = tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
 
       ThreadLabel label = new ThreadLabel(pFunctionName, pVarName, pParentThread);
-      for (ThreadLabel created : tSet) {
-        if (created.equals(label)) {
+      for (ThreadLabel existed : tSet) {
+        if (existed.getName().equals(label.getName()) && existed.getVarName().equals(label.getVarName())) {
           throw new HandleCodeException("Can not create thread " + label.getName() + ", it was already created");
         }
       }
