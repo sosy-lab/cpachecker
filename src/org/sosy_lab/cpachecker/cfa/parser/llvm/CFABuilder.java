@@ -262,15 +262,10 @@ public class CFABuilder extends LlvmAstVisitor {
       case LLVMShl:
       case LLVMLShr:
       case LLVMAShr:
-        return handleArithmeticOp(pItem, opCode, pFunctionName);
-
-      // Boolean operations
       case LLVMAnd:
-        break;
       case LLVMOr:
-        break;
       case LLVMXor:
-        break;
+        return handleArithmeticOp(pItem, opCode, pFunctionName);
 
       // Comparison operations
       case LLVMICmp:
@@ -399,6 +394,15 @@ public class CFABuilder extends LlvmAstVisitor {
       case LLVMAShr: // arithmetic shift right
         // TODO Differentiate between logical and arithmetic shift somehow
         operation = BinaryOperator.SHIFT_RIGHT;
+        break;
+      case LLVMAnd:
+        operation = BinaryOperator.BINARY_AND;
+        break;
+      case LLVMOr:
+        operation = BinaryOperator.BINARY_OR;
+        break;
+      case LLVMXor:
+        operation = BinaryOperator.BINARY_XOR;
         break;
       default:
         throw new UnsupportedOperationException(String.valueOf(pOpCode.value()));
