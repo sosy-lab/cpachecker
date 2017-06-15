@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 import com.google.common.base.Optional;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -74,6 +77,21 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private static final String RETURN_VAR_NAME = "__retval__";
   private static final String TMP_VAR_PREFIX = "__tmp_";
+
+  private static final CFunctionDeclaration ABORT_FUNC_DECL = new CFunctionDeclaration(
+          FileLocation.DUMMY,
+          new CFunctionType(
+              false,
+              false,
+              CVoidType.VOID,
+              Collections.emptyList(),
+              false),
+      "abort",
+          Collections.emptyList()
+  );
+  private static final CExpression ABORT_FUNC_NAME =
+      new CIdExpression(FileLocation.DUMMY, CVoidType.VOID, "abort", ABORT_FUNC_DECL);
+
   private static long tmpVarCount = 0;
 
   private final LogManager logger;
@@ -119,7 +137,7 @@ public class CFABuilder extends LlvmAstVisitor {
     } else if (pItem.isReturnInst()) {
       return handleReturn(pItem, pFunctionName);
     } else if (pItem.isUnreachableInst()) {
-      // TODO
+      return handleUnreachable(pItem, pFunctionName);
 
     } else if (pItem.isBinaryOperator()) {
       return handleBinaryOp(pItem, pFunctionName);
@@ -145,6 +163,11 @@ public class CFABuilder extends LlvmAstVisitor {
         BigInteger.ONE
     );
     return new CExpressionStatement(getLocation(pItem), dummy_exp);
+  private CAstNode handleUnreachable(final Value pItem, final String pFunctionName) {
+    CFunctionCallExpression callExpression =
+        new CFunctionCallExpression(getLocation(pItem), CVoidType.VOID, ABORT_FUNC_NAME,
+            Collections.emptyList(), ABORT_FUNC_DECL);
+    return new CFunctionCallStatement(getLocation(pItem), callExpression);
   }
 
   private CAstNode handleUnaryOp(final Value pItem, final String pFunctionName) {
