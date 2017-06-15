@@ -124,22 +124,13 @@ public abstract class LlvmAstVisitor {
   }
 
   private void iterateOverFunctions(final Module pItem) {
-    Value func = pItem.getFirstFunction();
-    if (func == null)
+    if (pItem.getFirstFunction() == null)
       return;
 
-    Value funcLast = pItem.getFirstFunction();
-    assert funcLast != null;
-
-    while (true) {
+    for (Value func : pItem) {
       // skip declarations
-      if (func.isDeclaration()) {
-        if (func.equals(funcLast))
-          break;
-
-        func = func.getNextFunction();
+      if (func.isDeclaration())
         continue;
-      }
 
       String funcName = func.getValueName();
       assert !funcName.isEmpty();
@@ -170,12 +161,6 @@ public abstract class LlvmAstVisitor {
       }
 
       functions.put(funcName, en);
-
-      // process the next function
-      if (func.equals(funcLast))
-        break;
-
-      func = func.getNextFunction();
     }
   }
 
@@ -190,16 +175,12 @@ public abstract class LlvmAstVisitor {
                                             String funcName,
                                             SortedMap<Long, BasicBlockInfo> basicBlocks) {
     assert pItem.isFunction();
-
-    BasicBlock BB = pItem.getFirstBasicBlock();
-    if (BB == null)
+    if (pItem.countBasicBlocks() == 0)
       return null;
 
-    BasicBlock lastBB = pItem.getLastBasicBlock();
-    assert lastBB != null;
-
     CLabelNode entryBB = null;
-    while (true) {
+    org.llvm.Function F = pItem.asFunction();
+    for (BasicBlock BB : F) {
       // process this basic block
       CLabelNode label = new CLabelNode(funcName, getBBName(BB));
       addNode(funcName, label);
@@ -214,11 +195,6 @@ public abstract class LlvmAstVisitor {
       addEdge(new BlankEdge("label_to_first", FileLocation.DUMMY,
                             label, bbi.getEntryNode(), "edge to first instr"));
 
-      // did we process all basic blocks?
-      if (BB.equals(lastBB))
-        break;
-
-      BB = BB.getNextBasicBlock();
     }
 
     assert entryBB != null || basicBlocks.isEmpty();
@@ -234,23 +210,12 @@ public abstract class LlvmAstVisitor {
 
     List<CFANode> termnodes = new ArrayList<CFANode>();
 
-    BasicBlock BB = pItem.getFirstBasicBlock();
-    if (BB == null)
-      return termnodes;
-
-    BasicBlock lastBB = pItem.getLastBasicBlock();
-    assert lastBB != null;
-
     // for every basic block, get the last instruction and
     // add edges from it to labels where it jumps
-    while (true) {
+    org.llvm.Function F = pItem.asFunction();
+    for (BasicBlock BB : F) {
       Value terminatorInst = BB.getLastInstruction();
       if (terminatorInst == null) {
-        if (BB.equals(lastBB))
-          break;
-
-        // FIXME: we should really create iterators...
-        BB = BB.getNextBasicBlock();
         continue;
       }
 
@@ -260,10 +225,6 @@ public abstract class LlvmAstVisitor {
       int succNum = terminatorInst.getNumSuccessors();
       if (succNum == 0) {
         termnodes.add(brNode);
-        if (BB.equals(lastBB))
-          break;
-
-        BB = BB.getNextBasicBlock();
         continue;
       }
 
@@ -287,12 +248,6 @@ public abstract class LlvmAstVisitor {
         addEdge(new CAssumeEdge("?", FileLocation.DUMMY,
                         brNode, (CFANode)label, expr, false));
       }
-
-      // did we processed all basic blocks?
-      if (BB.equals(lastBB))
-        break;
-
-      BB = BB.getNextBasicBlock();
     }
 
     return termnodes;
@@ -312,9 +267,7 @@ public abstract class LlvmAstVisitor {
    * Create a chain of nodes and edges corresponding to one basic block.
    */
   private BasicBlockInfo handleInstructions(String funcName, final BasicBlock pItem) {
-    Value I = pItem.getFirstInstruction();
-    if (I == null)
-      return null;
+    assert pItem.getFirstInstruction() != null; // empty BB not supported
 
     Value lastI = pItem.getLastInstruction();
     assert lastI != null;
@@ -325,7 +278,7 @@ public abstract class LlvmAstVisitor {
     addNode(funcName, prevNode);
     addNode(funcName, curNode);
 
-    while (true) {
+    for (Value I : pItem) {
       // process this basic block
       CAstNode expr = visitInstruction(I, funcName);
 
@@ -337,8 +290,6 @@ public abstract class LlvmAstVisitor {
       // did we processed all instructions in this basic block?
       if (I.equals(lastI))
         break;
-
-      I = I.getNextInstruction();
 
       prevNode = curNode;
       curNode = new CFANode(funcName);
