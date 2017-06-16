@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
 import org.sosy_lab.cpachecker.cpa.bam.BlockSummaryMissingException;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -158,14 +157,20 @@ class ReachedSetExecutor {
     return () -> apply(copy);
   }
 
-  /** Wrapper-method around {@link #apply0} for handling errors. */
+  /**
+   * This method contains the main function of the RSE: It analyzes the reached-set, handles blocks
+   * and updates dependencies.
+   *
+   * <p>This method should be synchronized by design of the algorithm. There exists a mapping of
+   * ReachedSet to ReachedSetExecutor that guarantees single-threaded access to each ReachedSet.
+   */
   private void apply(Collection<AbstractState> pStatesToBeAdded) {
     int running = stats.numActiveThreads.incrementAndGet();
     stats.histActiveThreads.insertValue(running);
     stats.numMaxRSE.accumulate(reachedSetMapping.size());
     execCounter++;
 
-    try {
+    try { // big try-block to catch all exceptions
 
       if (shutdownNotifier.shouldShutdown()) {
         terminateAnalysis.set(true);
@@ -173,52 +178,42 @@ class ReachedSetExecutor {
         return;
       }
 
-      try {
-        apply0(pStatesToBeAdded);
+      logger.logf(
+          level,
+          "%s :: starting, target=%s, statesToBeAdded=%s",
+          this,
+          targetStateFound,
+          id(pStatesToBeAdded));
 
-      } catch (CPAException | InterruptedException e) {
-        // maybe timeout of analysis, log and continue
-        logger.logException(level, e, e.getClass().getName());
+      updateStates(pStatesToBeAdded);
+
+      // handle finished reached-set after refinement
+      // TODO checking this once on RSE-creation would be sufficient
+      checkForTargetState();
+
+      if (!targetStateFound) {
+        // further analysis of the reached-set, sub-analysis is scheduled if necessary
+        try {
+          @SuppressWarnings("unused")
+          AlgorithmStatus tmpStatus = algorithm.run(rs);
+        } catch (BlockSummaryMissingException bsme) {
+          handleMissingBlock(bsme);
+        }
       }
+
+      handleTermination();
+
+      logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
+
+    } catch (Exception e) {
+      logger.logException(level, e, e.getClass().getName());
+      terminateAnalysis.set(true);
+      error.set(e);
+      pool.shutdownNow();
 
     } finally {
       stats.numActiveThreads.decrementAndGet();
     }
-  }
-
-  /**
-   * This method should be synchronized by design of the algorithm. There exists a mapping of
-   * ReachedSet to ReachedSetExecutor that guarantees single-threaded access to each ReachedSet.
-   */
-  private void apply0(Collection<AbstractState> pStatesToBeAdded)
-      throws CPAException, InterruptedException {
-    logger.logf(
-        level,
-        "%s :: starting, target=%s, statesToBeAdded=%s",
-        this,
-        targetStateFound,
-        id(pStatesToBeAdded));
-
-    updateStates(pStatesToBeAdded);
-
-    { // handle finished reached-set after refinement
-      // TODO checking this once on RSE-creation would be sufficient
-      checkForTargetState();
-    }
-
-    if (!targetStateFound) {
-      // further analysis of the reached-set, sub-analysis is scheduled if necessary
-      try {
-        @SuppressWarnings("unused")
-        AlgorithmStatus tmpStatus = algorithm.run(rs);
-      } catch (BlockSummaryMissingException bsme) {
-        handleMissingBlock(bsme);
-      }
-    }
-
-    handleTermination();
-
-    logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
   }
 
   private void checkForTargetState() {
