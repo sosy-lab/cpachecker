@@ -47,6 +47,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
@@ -75,6 +76,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
   private final ParallelBAMStatistics stats = new ParallelBAMStatistics();
   private final LogManager logger;
+  private final LogManagerWithoutDuplicates oneTimeLogger;
   private final BAMCPAWithoutReachedSetCreation bamcpa;
   private final CPAAlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
@@ -88,6 +90,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     pConfig.inject(this);
     bamcpa = (BAMCPAWithoutReachedSetCreation) pCpa;
     logger = pLogger;
+    oneTimeLogger = new LogManagerWithoutDuplicates(pLogger);
     shutdownNotifier = pShutdownNotifier;
     algorithmFactory = new CPAAlgorithmFactory(bamcpa, logger, pConfig, pShutdownNotifier);
   }
@@ -101,7 +104,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     Map<ReachedSet, Pair<ReachedSetExecutor, CompletableFuture<Void>>> reachedSetMapping =
         new HashMap<>();
     final int numberOfCores = getNumberOfCores();
-    logger.logf(Level.INFO, "creating pool for %d threads", numberOfCores);
+    oneTimeLogger.logfOnce(Level.INFO, "creating pool for %d threads", numberOfCores);
     final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores);
     final AtomicReference<Throwable> error = new AtomicReference<>(null);
     final AtomicBoolean terminateAnalysis = new AtomicBoolean(false);
