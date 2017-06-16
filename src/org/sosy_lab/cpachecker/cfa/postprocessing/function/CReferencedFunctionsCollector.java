@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 class CReferencedFunctionsCollector {
 
   final Set<String> collectedFunctions = new HashSet<>();
-  private final CollectFunctionsVisitor collector;
+  protected CollectFunctionsVisitor collector;
 
   public CReferencedFunctionsCollector() {
     collector = new CollectFunctionsVisitor(collectedFunctions);
@@ -105,16 +105,12 @@ class CReferencedFunctionsCollector {
     default:
       throw new AssertionError();
     }
-    collectedFunctions.addAll(collector.collectedFunctions);
-    collector.collectedFunctions.clear();
   }
 
   public void visitDeclaration(CVariableDeclaration decl) {
     if (decl.getInitializer() != null) {
       decl.getInitializer().accept(collector);
     }
-    collectedFunctions.addAll(collector.collectedFunctions);
-    collector.collectedFunctions.clear();
   }
 
   static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
