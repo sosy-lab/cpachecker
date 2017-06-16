@@ -13,13 +13,18 @@
 				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
 				$scope.help_content = "<p>I am currently being developed</p>";
 				$scope.tab = 1;
-				$scope.argWorker = argWorker;
+				$scope.argWorker = argWorker; // TODO: move in ARGToolbarController
 				$scope.argLoaderDone = argLoaderDone;
 				$scope.$on("ChangeTab", function(event, tabIndex) {
 					$scope.setTab(tabIndex);
 				});
 				$scope.setTab = function(tabIndex) {
-					console.log($scope.argWorker);
+					console.log(tabIndex);
+					if (tabIndex !== 1) {
+						d3.select("#cfa-toolbar").style("visibility", "hidden");
+					} else {
+						d3.select("#cfa-toolbar").style("visibility", "visible");
+					}
 					if (tabIndex === 2) {
 						d3.select("#arg-container").classed("content", true);
 						if (!argLoaderDone) d3.select("#arg-loader").style("display", "inline-block");
@@ -47,36 +52,73 @@
 		        };
 		        $scope.sourceFileIsSet = function(value) {
 		            return value === $scope.selectedSourceFile;
-		        };				
+		        };
 			}]);
+	
+	app.controller('CFAToolbarController', ['$scope', 
+		function($scope) {
+    		$scope.functions = ["all"].concat(functions);
+    		$scope.selectedCFAFunction = 0;
+    		$scope.zoomEnabled = false;
+    		$scope.originalTranslations = {};
+    	
+    		$scope.setCFAFunction = function(value) {
+    			$("#cfa-container").scrollTop(0).scrollLeft(0);
+    			if ($scope.zoomEnabled) {
+    				$scope.zoomEnabled = false;
+    				$scope.zoomControl();
+    			}
+    			$scope.selectedCFAFunction = value;
+    			if (value === 0) {
+    				functions.forEach(function(func) {
+    					d3.selectAll("#cfa-svg-" + func).attr("display", "inline-block");
+    				});
+    			} else {
+    				var funcToHide = $scope.functions.filter(function(it){
+    					return it !== $scope.functions[value] && it !== "all";
+    				});
+    				funcToHide.forEach(function(func){
+    					d3.selectAll("#cfa-svg-" + func).attr("display", "none");
+    				});
+    				d3.selectAll("#cfa-svg-" + $scope.functions[value]).attr("display", "inline-block");
+    			}
+    		};
+        
+    		$scope.cfaFunctionIsSet = function(value){
+    			return value === $scope.selectedCFAFunction;
+    		};
+        
+    		$scope.zoomControl = function() {
+    			if ($scope.zoomEnabled) {
+    				$scope.zoomEnabled = false;
+    				d3.select("#cfa-zoom-checkbox").html("<i class='glyphicon glyphicon-unchecked'></i>");
+    				d3.select("#cfa-zoom-checkbox-label").text(" Zoom Disabled ");
+    				// revert zoom and remove listeners
+    				d3.selectAll(".cfa-svg").each(function(d, i) {
+    					var zoom = d3.behavior.zoom().on("zoom", null);
+    					d3.select(this).call(zoom);
+    					d3.select(this.firstChild).attr("transform", $scope.originalTranslations[i]);
+    				});
+    			} else {
+    				$scope.zoomEnabled = true;
+    				d3.select("#cfa-zoom-checkbox").html("<i class='glyphicon glyphicon-ok'></i>");
+    				d3.select("#cfa-zoom-checkbox-label").text(" Zoom Enabled ");
+    				d3.selectAll(".cfa-svg").each(function(d, i) {
+    					var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
+    					$scope.originalTranslations[i] = svgGroup.attr("transform");
+    					var zoom = d3.behavior.zoom().on("zoom", function() {
+    						svgGroup.attr("transform", "translate("
+    								+ d3.event.translate + ")" + "scale("
+    								+ d3.event.scale + ")");
+    					});        			
+    					svg.call(zoom);
+    				});
+    			}
+    		};	
+	}]);
 	
 	app.controller('CFAController', ['$rootScope', '$scope',
 		function($rootScope, $scope) {
-        	$rootScope.functions = ["all"].concat(functions);
-        	$rootScope.selectedCFAFunction = 0;
-        	
-            $scope.setCFAFunction = function(value) {
-            	$("#cfa-container").scrollTop(0).scrollLeft(0);
-                //TODO: clear zoom if it is enabled
-                $rootScope.selectedCFAFunction = value;
-                if (value === 0) {
-                	functions.forEach(function(func) {
-                		d3.selectAll("#cfa-svg-" + func).attr("display", "inline-block");
-                	});
-                } else {
-                    var funcToHide = $rootScope.functions.filter(function(it){
-                    	return it !== $rootScope.functions[value] && it !== "all";
-                    });
-                    funcToHide.forEach(function(func){
-                    	d3.selectAll("#cfa-svg-" + func).attr("display", "none");
-                    });
-                    d3.selectAll("#cfa-svg-" + $rootScope.functions[value]).attr("display", "inline-block");
-                }
-            };
-            
-            $scope.cfaFunctionIsSet = function(value){
-                return value === $rootScope.selectedCFAFunction;
-            };
             
 		}]);
 	
@@ -136,9 +178,9 @@ function init() {
 	 */
 	function cfaWorker_function() {
 		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
-		var json, nodes, mainNodes, edges, functions, combinedNodes, inversedCombinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath, graphMap;
-		var requiredGraphs = 1;
+		var json, nodes, mainNodes, edges, functions, combinedNodes, inversedCombinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
 		var graphSplitThreshold = 700; // default value
+		var graphMap;
 		// TODO: different edge weights based on type?
 		var constants = {
 			blankEdge : "BlankEdge",
@@ -161,7 +203,6 @@ function init() {
     			json = JSON.parse(m.data.json);
     			extractVariables();
     			if (mainNodes.length > graphSplitThreshold) {
-    				graphMap = {};
     				buildMultipleGraphs(mainNodes, "main");
     			} else {
     				buildSingleGraph(mainNodes, "main");
@@ -175,7 +216,6 @@ function init() {
     						return n.func === func;
     					});
     					if (funcNodes.length > graphSplitThreshold) {
-    						graphMap = {};
     						buildMultipleGraphs(funcNodes, func);
     					} else {
     						buildSingleGraph(funcNodes, func);
@@ -221,18 +261,19 @@ function init() {
     	}
     	
     	function buildMultipleGraphs(nodesToSet, funcName) {
-    		requiredGraphs = Math.ceil(nodesToSet.length/graphSplitThreshold);
+    		var requiredGraphs = Math.ceil(nodesToSet.length/graphSplitThreshold);
     		var firstGraphBuild = false;
     		var nodesPerGraph = [];
+    		graphMap = {};
     		for (var i = 1; i <= requiredGraphs; i++) {
     			if (!firstGraphBuild) {
-    				nodesPerGraph = nodes.slice(0, graphSplitThreshold);
+    				nodesPerGraph = nodesToSet.slice(0, graphSplitThreshold);
     				firstGraphBuild = true;
     			} else {
-    				if (nodes[graphSplitThreshold * i - 1] !== undefined)
-    					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
+    				if (nodesToSet[graphSplitThreshold * i - 1] !== undefined)
+    					nodesPerGraph = nodesToSet.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
     				else
-    					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1));
+    					nodesPerGraph = nodesToSet.slice(graphSplitThreshold * (i - 1));
     			}
     			var graph = createGraph();
     			graphMap[nodesPerGraph[nodesPerGraph.length - 1].index] = graph;
@@ -249,7 +290,7 @@ function init() {
     		buildCrossgraphEdges(nodesToSet);
     		// Send each graph to the main script
     		for (var i = 1; i <= requiredGraphs; i++) {
-    			self.postMessage({"graph" : JSON.stringify(graphMap[Object.keys(graphMap)[i - 1]]), "id" : funcName});
+    			self.postMessage({"graph" : JSON.stringify(graphMap[Object.keys(graphMap)[i - 1]]), "id" : funcName + i});
     		}
     	}
     	
@@ -261,7 +302,7 @@ function init() {
     			nodesIndexes.push(n.index);
     		});
     		var edgesToConsider = edges.filter(function(e) {
-    			return nodesIndexes.includes("" + e.source) && nodesIndexes.includes("" + e.target);
+    			return nodesIndexes.includes(e.source) && nodesIndexes.includes(e.target);
     		});
     		edgesToConsider.forEach(function(edge){
     			var source = edge.source;
@@ -276,7 +317,7 @@ function init() {
         			graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
         			graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "D", class: "dummy", id: "node" + source});
         			graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
-    			} else if(targetGraph > sourceGraph){ 
+    			} else if(sourceGraph > targetGraph) { 
     				graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
     				graphMap[sourceGraph].setEdge("" + source + target + sourceGraph, source, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
     				graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "D", class: "dummy", id: "node" + source});
@@ -555,17 +596,18 @@ function init() {
 				var g = createGraph();
 				g = Object.assign(g, JSON.parse(m.data.graph));
 				renderedCfaGraphs[m.data.id] = g;
-				var svg = d3.select("#cfa-graph-" + id).append("svg").attr("id", "cfa-svg-" + id), svgGroup = svg.append("g");
+				var svg = d3.select("#cfa-graph-" + id).append("svg").attr("id", "cfa-svg-" + id).attr("class", "cfa-svg");
+				var svgGroup = svg.append("g");
 				render(d3.select("#cfa-svg-" + id + " g"), g);
 				//TODO: own function pass the id and use d3.select() to select svg and svgGroup -> zoom can be set later (after svg is rendered)
-				var zoom = d3.behavior.zoom().on(
-						"zoom",
-						function() {
-							svgGroup.attr("transform", "translate("
-									+ d3.event.translate + ")" + "scale("
-									+ d3.event.scale + ")");
-						});
-				svg.call(zoom);					
+//				var zoom = d3.behavior.zoom().on(
+//						"zoom",
+//						function() {
+//							svgGroup.attr("transform", "translate("
+//									+ d3.event.translate + ")" + "scale("
+//									+ d3.event.scale + ")");
+//						});
+//				svg.call(zoom);			
 				// Center the graph - calculate svg.attributes
 				// TODO: own function for svg size -> compare with parent size after bootstrap is used. i.e. col-lg-12 etc.
 				svg.attr("height", g.graph().height + constants.margin * 2);
@@ -609,7 +651,8 @@ function init() {
 				g = Object.assign(g, JSON.parse(m.data.graph));
 				createdArgGraphs[m.data.id] = g;
 				d3.select("#arg-container").append("div").attr("id", "arg-graph" + id).attr("class", "arg-graph");
-				var svg = d3.select("#arg-graph" + id).append("svg").attr("id", "arg-svg" + id), svgGroup = svg.append("g");
+				var svg = d3.select("#arg-graph" + id).append("svg").attr("id", "arg-svg" + id).attr("class", "arg-svg");
+				var svgGroup = svg.append("g");
 				render(d3.select("#arg-svg" + id + " g"), g);
 				//TODO: own function pass the id and use d3.select() to select svg and svgGroup -> zoom can be set later (after svg is rendered)
 				var zoom = d3.behavior.zoom().on(

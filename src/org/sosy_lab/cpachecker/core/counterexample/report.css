@@ -101,6 +101,15 @@ body {
 	right: 5px;
 }
 
+#externalFiles_section div.cfa-content {
+	overflow: scroll;
+	position: absolute;
+	top: 100px;
+	bottom: 5px;
+	left: 5px;
+	right: 5px;	
+}
+
 table {
 	border-collapse: separate;
 	border-spacing: 2px;
@@ -118,6 +127,25 @@ td:first-child {
 
 .sourceContent tr:nth-child(odd) td pre.prettyprint {
 	background-color: #f3f3f3;
+}
+
+.edit-line {
+    width: 100%;
+    background-color: white;
+    padding: 5px;
+}
+
+.edit-line div {
+    display: inline-block;
+}
+
+.edit-line label {
+    margin-right: 100px;
+    display: inline-block;
+}
+
+.edit-line p {
+    display: inline-block;
 }
 
 div pre {
@@ -183,6 +211,12 @@ div pre {
 
 #cfa-toolbar #cfa-dropdown-label {
 	margin-left: 10px;
+    margin-right: 50px;
+    display: inline-block;
+}
+
+#cfa-toolbar #cfa-zoom-checkbox-label {
+	margin-left: 5px;
     margin-right: 50px;
     display: inline-block;
 }

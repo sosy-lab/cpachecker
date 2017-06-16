@@ -73,24 +73,29 @@
         </a>
       </ul>
     </nav>
-    <div id="cfa-container" class="content" ng-show="tabIsSet(1)" ng-class="{active: tabIsSet(1)}"
-         ng-controller="CFAController">
-         <span id="cfa-loader" class="loader">Rendering CFA Graphs </span>
-      <div id="cfa-toolbar">
-        <div class="dropdown" id="cfa-dropdown">
-          <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown"
-                  aria-haspopup="true" aria-expanded="true">
-            Displayed CFA
-            <span class="caret"></span>
-          </button>
-          <ul class="dropdown-menu pre-scrollable">
-            <li ng-repeat="func in functions"
-                ng-class="{'active, disabled': cfaFunctionIsSet($index)}"><a
-                ng-click="setCFAFunction($index)">{{func}}</a></li>
-          </ul>
-        </div>
-        <label id="cfa-dropdown-label">{{functions[selectedCFAFunction]}}</label>
-      </div>          
+    
+	<span id="cfa-loader" class="loader">Rendering CFA Graphs </span>
+    <div id="cfa-toolbar" ng-controller="CFAToolbarController">
+      <div class="dropdown" id="cfa-dropdown">
+        <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+            Displayed CFA <span class="caret"></span></button>
+        <ul class="dropdown-menu pre-scrollable">
+          <li ng-repeat="func in functions"
+              ng-class="{'active, disabled': cfaFunctionIsSet($index)}"><a
+              ng-click="setCFAFunction($index)">{{func}}</a></li>
+        </ul>
+      </div>
+      <label id="cfa-dropdown-label">{{functions[selectedCFAFunction]}}</label>
+   	  <span class="button-checkbox">
+      	<button class="btn btn-default" id ="cfa-zoom-checkbox" type="button" data-color="primary"
+        	ng-click="zoomControl()">
+        	<i class="glyphicon glyphicon-unchecked"></i></button>
+	  </span>
+      <label id="cfa-zoom-checkbox-label"> Zoom Disabled </label>
+    </div>	
+	 
+    <div id="cfa-container" class="cfa-content" ng-show="tabIsSet(1)" ng-class="{active: tabIsSet(1)}"
+         ng-controller="CFAController">         
     </div>
     <div id="arg-container" ng-class="{active: tabIsSet(2)}"
     	 ng-controller="ARGController">
