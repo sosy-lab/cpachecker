@@ -345,6 +345,9 @@ class ReachedSetExecutor {
   }
 
   private void reAddStatesToDependingReachedSets() {
+    // first lock is only against deadlock of locks for 'reachedSetMapping' and 'dependingFrom'.
+    // TODO optimize lock/unlock behavior if performance is too bad
+    synchronized (reachedSetMapping) {
     synchronized (dependingFrom) {
       logger.logf(level, "%s :: %s -> %s", this, this, dependingFrom.keys());
       for (Entry<ReachedSetExecutor, Collection<AbstractState>> parent :
@@ -352,6 +355,7 @@ class ReachedSetExecutor {
         registerJob(parent.getKey(), parent.getKey().asRunnable(parent.getValue()));
       }
       dependingFrom.clear();
+    }
     }
   }
 
