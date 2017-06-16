@@ -280,7 +280,11 @@ class ReachedSetExecutor {
 
     boolean isFinished = dependsOn.isEmpty();
     if (isFinished) {
-      updateCache(targetStateFound);
+      if (rs.getWaitlist().isEmpty() || targetStateFound) {
+        updateCache(targetStateFound);
+      } else {
+        // otherwise we have an unfinished reached-set and do not cache the incomplete result.
+      }
       reAddStatesToDependingReachedSets();
 
       if (rs == mainReachedSet) {
