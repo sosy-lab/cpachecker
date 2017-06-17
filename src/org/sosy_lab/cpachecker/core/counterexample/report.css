@@ -212,26 +212,37 @@ div pre {
 	margin-left: 10px;
     padding: 5px;
     position: fixed;
+    display: inline-block;
     visibility: hidden;
 }
 
-#cfa-toolbar div {
-    display: inline-block;
+#cfa-toolbar select {
+	max-width: 150px;
 }
 
-#cfa-toolbar #cfa-dropdown-label {
-	margin-left: 10px;
-    margin-right: 50px;
-    display: inline-block;
+#cfa-toolbar label {
+	margin-left: 20px;
+	margin-right: 5px;
 }
 
-#cfa-toolbar #cfa-zoom-checkbox-label {
-	margin-left: 5px;
-    margin-right: 50px;
-    display: inline-block;
+#cfa-toolbar text {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-size: 11px;
+}
+
+input[type=text] {
+	width: 80px;
+	height: 34px;
 }
 
 #arg-toolbar {
+    width: 95%;
+    background-color: white;
+    left: 20px;
+    top: 60px;
+    padding: 5px;
+    position: absolute;
+    display: inline-block;
 	visibility: hidden;
 }
 

@@ -27,8 +27,8 @@
 						if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
 							d3.select("#arg-toolbar").style("visibility", "hidden");
 							d3.selectAll(".arg-graph").style("visibility", "hidden");
-							if (d3.select("#arg-container").classed("content")) {
-								d3.select("#arg-container").classed("content", false);
+							if (d3.select("#arg-container").classed("arg-content")) {
+								d3.select("#arg-container").classed("arg-content", false);
 							}
 						}
 						if (cfaLoaderDone) {
@@ -53,8 +53,8 @@
 						}
 						if (argLoaderDone) {
 							d3.select("#arg-toolbar").style("visibility", "visible");
-							if (!d3.select("#arg-container").classed("content")) {
-								d3.select("#arg-container").classed("content", true);
+							if (!d3.select("#arg-container").classed("arg-content")) {
+								d3.select("#arg-container").classed("arg-content", true);
 							}
 							d3.selectAll(".arg-graph").style("visibility", "visible");
 						} else {
@@ -109,30 +109,33 @@
 	
 	app.controller('CFAToolbarController', ['$scope', 
 		function($scope) {
-    		$scope.functions = ["all"].concat(functions);
-    		$scope.selectedCFAFunction = 0;
+			$scope.cfaWorker = cfaWorker;
+			if (functions.length > 1) {
+	    		$scope.functions = ["all"].concat(functions);
+			} else {
+				$scope.functions = functions;
+			}
+			$scope.selectedCFAFunction = $scope.functions[0];
     		$scope.zoomEnabled = false;
     		$scope.originalTranslations = {};
     	
-    		$scope.setCFAFunction = function(value) {
+    		$scope.setCFAFunction = function() {
     			$("#cfa-container").scrollTop(0).scrollLeft(0);
     			if ($scope.zoomEnabled) {
-    				$scope.zoomEnabled = false;
     				$scope.zoomControl();
     			}
-    			$scope.selectedCFAFunction = value;
-    			if (value === 0) {
+    			if ($scope.selectedCFAFunction === "all") {
     				functions.forEach(function(func) {
     					d3.selectAll("#cfa-svg-" + func).attr("display", "inline-block");
     				});
     			} else {
     				var funcToHide = $scope.functions.filter(function(it){
-    					return it !== $scope.functions[value] && it !== "all";
+    					return it !== $scope.selectedCFAFunction && it !== "all";
     				});
     				funcToHide.forEach(function(func){
     					d3.selectAll("#cfa-svg-" + func).attr("display", "none");
     				});
-    				d3.selectAll("#cfa-svg-" + $scope.functions[value]).attr("display", "inline-block");
+    				d3.selectAll("#cfa-svg-" + $scope.selectedCFAFunction).attr("display", "inline-block");
     			}
     		};
         
@@ -143,8 +146,8 @@
     		$scope.zoomControl = function() {
     			if ($scope.zoomEnabled) {
     				$scope.zoomEnabled = false;
-    				d3.select("#cfa-zoom-checkbox").html("<i class='glyphicon glyphicon-unchecked'></i>");
-    				d3.select("#cfa-zoom-checkbox-label").text(" Zoom Disabled ");
+    				d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
+    				d3.select("#cfa-zoom-label").text(" Zoom Disabled ");
     				// revert zoom and remove listeners
     				d3.selectAll(".cfa-svg").each(function(d, i) {
     					var zoom = d3.behavior.zoom().on("zoom", null);
@@ -153,8 +156,8 @@
     				});
     			} else {
     				$scope.zoomEnabled = true;
-    				d3.select("#cfa-zoom-checkbox").html("<i class='glyphicon glyphicon-ok'></i>");
-    				d3.select("#cfa-zoom-checkbox-label").text(" Zoom Enabled ");
+    				d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
+    				d3.select("#cfa-zoom-label").text(" Zoom Enabled ");
     				d3.selectAll(".cfa-svg").each(function(d, i) {
     					var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
     					$scope.originalTranslations[i] = svgGroup.attr("transform");
@@ -166,7 +169,39 @@
     					svg.call(zoom);
     				});
     			}
-    		};	
+    		};
+    		
+    		$scope.redraw = function() {
+    			var input = $("#cfa-split-threshold").val();
+    			if (!$scope.validateInput(input)) {
+    				alert("Invalid input!");
+    				return;
+    			}
+    			renderedCfaGraphs = {};
+    			d3.selectAll(".cfa-graph").remove();
+    			if ($scope.zoomEnabled) {
+    				$scope.zoomControl;
+    			}
+    			$scope.selectedCFAFunction = $scope.functions[0];
+    			d3.select("#cfa-toolbar").style("visibility", "hidden");
+    			cfaLoaderDone = false;
+    			d3.select("#cfa-loader").style("display", "inline");
+    			cfaRefreshInterval = setInterval(function() {
+    				var loader = $("#cfa-loader");
+    				if (loader.html().length > 23) {
+    					loader.html("Rendering CFA Graphs ");
+    				} else {
+    					loader.html(loader.html() + ".");
+    				}
+    			},150);
+    			$scope.cfaWorker.postMessage({"split" : input});
+    		};
+    		
+    		$scope.validateInput = function(input) {
+    			if (input % 1 !== 0) return false;
+    			if (input < 500 || input > 900) return false;
+    			return true;
+    		}
 	}]);
 	
 	app.controller('CFAController', ['$rootScope', '$scope',
@@ -254,29 +289,10 @@ function init() {
     		if (m.data.json !== undefined) {
     			json = JSON.parse(m.data.json);
     			extractVariables();
-    			if (mainNodes.length > graphSplitThreshold) {
-    				buildMultipleGraphs(mainNodes, "main");
-    			} else {
-    				buildSingleGraph(mainNodes, "main");
-    			}
-    			if (functions.length > 1) {
-    				var functionsToProcess = functions.filter(function(f){
-    					return f !== "main";
-    				});
-    				functionsToProcess.forEach(function(func) {
-    					var funcNodes = nodes.filter(function(n){
-    						return n.func === func;
-    					});
-    					if (funcNodes.length > graphSplitThreshold) {
-    						buildMultipleGraphs(funcNodes, func);
-    					} else {
-    						buildSingleGraph(funcNodes, func);
-    					}
-    				});
-    				self.postMessage({"status": "done"});
-    			} else {
-    				self.postMessage({"status": "done"});
-    			}
+    			buildGraphsAndPostResults();
+    		} else if (m.data.split !== undefined) {
+    			graphSplitThreshold = m.data.split;
+    			buildGraphsAndPostResults();
     		}
 		}, false);
     	
@@ -295,6 +311,32 @@ function init() {
 			functionCallEdges = json.functionCallEdges;
 			if (json.hasOwnProperty("errorPath"))
 				erroPath = json.errorPath;
+    	}
+    	
+    	function buildGraphsAndPostResults() {
+			if (mainNodes.length > graphSplitThreshold) {
+				buildMultipleGraphs(mainNodes, "main");
+			} else {
+				buildSingleGraph(mainNodes, "main");
+			}
+			if (functions.length > 1) {
+				var functionsToProcess = functions.filter(function(f){
+					return f !== "main";
+				});
+				functionsToProcess.forEach(function(func) {
+					var funcNodes = nodes.filter(function(n){
+						return n.func === func;
+					});
+					if (funcNodes.length > graphSplitThreshold) {
+						buildMultipleGraphs(funcNodes, func);
+					} else {
+						buildSingleGraph(funcNodes, func);
+					}
+				});
+				self.postMessage({"status": "done"});
+			} else {
+				self.postMessage({"status": "done"});
+			}    		
     	}
     	
     	function buildSingleGraph(nodesToSet, funcName) {
@@ -631,8 +673,8 @@ function init() {
     		return 1;
     	}
 		
-	}	
-	// ======================= Create CFA and ARG Workers =======================
+	}
+	// ======================= Create CFA and ARG Worker Listeners =======================
 	/**
 	 * Create workers using blobs due to Chrome's default security policy and 
 	 * the need of having a single file at the end that can be send i.e. via e-mail
@@ -743,7 +785,7 @@ function init() {
 			d3.select("#arg-loader").attr("display", "none");
 			if($("#report-controller").scope().getTabSet() === 2) {
 				d3.select("#arg-toolbar").style("visibility", "visible");
-				d3.select("#arg-container").classed("content", true);
+				d3.select("#arg-container").classed("arg-content", true);
 				d3.selectAll(".arg-graph").style("visibility", "visible");
 			}			
 		}
@@ -770,6 +812,24 @@ function init() {
 		return g;
 	}
 	
+	// Add desired events to the nodes
+	function addEventsToNodes() {
+		d3.selectAll("svg g.node").on("mouseover", function(d){showInfoBoxNode(d3.event, d);})
+			.on("mouseout", function(){hideInfoBoxNode();})
+			.on("click", function(d) {
+				var scope = angular.element($("#arg-container")).scope();
+				scope.$apply(function(){scope.printIt(d)})
+			})
+		// TODO: node.on("click") needed?
+	}
+
+	// Add desired events to edge
+	function addEventsToEdges() {
+		d3.selectAll("svg g.edgePath").on("mouseover", function(d){showInfoBoxEdge(d3.event, d);})
+			.on("mouseout", function(){hideInfoBoxEdge();})
+		// TODO: edge.on("click")
+	}	
+	
 	cfaRefreshInterval = setInterval(function() {
 		var loader = $("#cfa-loader");
 		if (loader.html().length > 23) {
@@ -787,24 +847,6 @@ function init() {
 			loader.html(loader.html() + ".");
 		}
 	},150);
-
-	// Add desired events to the nodes
-	function addEventsToNodes() {
-		d3.selectAll("svg g.node").on("mouseover", function(d){showInfoBoxNode(d3.event, d);})
-			.on("mouseout", function(){hideInfoBoxNode();})
-			.on("click", function(d) {
-				var scope = angular.element($("#arg-container")).scope();
-				scope.$apply(function(){scope.printIt(d)})
-			})
-		// TODO: node.on("click") needed?
-	}
-
-	// Add desired events to edge
-	function addEventsToEdges() {
-		d3.selectAll("svg g.edgePath").on("mouseover", function(d){showInfoBoxEdge(d3.event, d);})
-			.on("mouseout", function(){hideInfoBoxEdge();})
-		// TODO: edge.on("click")
-	}
 	
 	// on mouse over display info box for node
 	function showInfoBoxNode(e, nodeIndex) {
@@ -812,8 +854,9 @@ function init() {
 		var offsetY = 0;
 		var positionX = e.pageX;
 		var positionY = e.pageY;
-		var node = nodes.find(function(n) {return n.index == nodeIndex;});
-		var displayInfo = "function: " + node.func + "<br/>" + "type: " + node.type;
+//		var node = nodes.find(function(n) {return n.index == nodeIndex;});
+//		var displayInfo = "function: " + node.func + "<br/>" + "type: " + node.type;
+		var displayInfo = "Tooltip tbd";
 		d3.select("#boxContentNode").html("<p>" + displayInfo + "</p>");
 		d3.select("#infoBoxNode").style("left", function() {
 			return positionX + offsetX + "px";
@@ -834,8 +877,9 @@ function init() {
 		var positionX = e.pageX;
 		var positionY = e.pageY;
 		// line, file, stmt, type
-		var edge = edges.find(function(e){return e.source == edgeIndex.v && e.target == edgeIndex.w;});
-		var displayInfo = "line: " + edge.line+ "<br/>" + "file: " + edge.file + "<br/>" + "stmt: " + edge.stmt + "<br/>" + "type: " + edge.type;
+//		var edge = edges.find(function(e){return e.source == edgeIndex.v && e.target == edgeIndex.w;});
+//		var displayInfo = "line: " + edge.line+ "<br/>" + "file: " + edge.file + "<br/>" + "stmt: " + edge.stmt + "<br/>" + "type: " + edge.type;
+		var displayInfo = "Tooltip tbd";
 		d3.select("#boxContentEdge").html("<p>" + displayInfo + "</p>");
 		d3.select("#infoBoxEdge").style("left", function() {
 			return positionX + offsetX + "px";
