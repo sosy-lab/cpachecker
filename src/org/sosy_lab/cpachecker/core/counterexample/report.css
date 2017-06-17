@@ -110,6 +110,15 @@ body {
 	right: 5px;	
 }
 
+#externalFiles_section div.arg-content {
+	overflow: scroll;
+	position: absolute;
+	top: 100px;
+	bottom: 5px;
+	left: 5px;
+	right: 5px;	
+}
+
 table {
 	border-collapse: separate;
 	border-spacing: 2px;
@@ -171,6 +180,7 @@ div pre {
 
 .cfa-graph {
 	margin-top: 35px;
+	visibility: hidden;
 }
 
 .arg-graph {
@@ -219,6 +229,10 @@ div pre {
 	margin-left: 5px;
     margin-right: 50px;
     display: inline-block;
+}
+
+#arg-toolbar {
+	visibility: hidden;
 }
 
 .entry-node {

@@ -32,7 +32,7 @@
 	
 </script>
 </head>
-<body ng-controller="ReportController" onload="prettyPrint(); init()">
+<body ng-controller="ReportController" id="report-controller" onload="prettyPrint(); init()">
 	<header class="header">
 		<a href="https://cpachecker.sosy-lab.org/"><img class="logo"
 			ng-src="{{logo}}" /></a>
@@ -94,12 +94,15 @@
       <label id="cfa-zoom-checkbox-label"> Zoom Disabled </label>
     </div>	
 	 
-    <div id="cfa-container" class="cfa-content" ng-show="tabIsSet(1)" ng-class="{active: tabIsSet(1)}"
+    <div id="cfa-container" ng-class="{active: tabIsSet(1)}"
          ng-controller="CFAController">         
     </div>
+    
+    <span id="arg-loader" class="loader">Rendering ARG Graphs </span>
+    <div id="arg-toolbar"> Toolbar here soon do</div>
+    
     <div id="arg-container" ng-class="{active: tabIsSet(2)}"
     	 ng-controller="ARGController">
-    	 <span id="arg-loader" class="loader">Rendering ARG Graphs </span>
     </div>
     <div class="fileContent content" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}"
          ng-controller="SourceController">

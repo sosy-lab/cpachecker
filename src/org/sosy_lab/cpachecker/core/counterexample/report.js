@@ -14,30 +14,82 @@
 				$scope.help_content = "<p>I am currently being developed</p>";
 				$scope.tab = 1;
 				$scope.argWorker = argWorker; // TODO: move in ARGToolbarController
+				$scope.cfaLoaderDone = cfaLoaderDone;
 				$scope.argLoaderDone = argLoaderDone;
 				$scope.$on("ChangeTab", function(event, tabIndex) {
 					$scope.setTab(tabIndex);
 				});
 				$scope.setTab = function(tabIndex) {
-					console.log(tabIndex);
-					if (tabIndex !== 1) {
-						d3.select("#cfa-toolbar").style("visibility", "hidden");
+					if (tabIndex === 1) {
+						if (d3.select("#arg-loader").style("display") !== "none") {
+							d3.select("#arg-loader").style("display", "none");
+						}
+						if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
+							d3.select("#arg-toolbar").style("visibility", "hidden");
+							d3.selectAll(".arg-graph").style("visibility", "hidden");
+							if (d3.select("#arg-container").classed("content")) {
+								d3.select("#arg-container").classed("content", false);
+							}
+						}
+						if (cfaLoaderDone) {
+							d3.select("#cfa-toolbar").style("visibility", "visible");
+							if (!d3.select("#cfa-container").classed("cfa-content")) {
+								d3.select("#cfa-container").classed("cfa-content", true);
+							}
+							d3.selectAll(".cfa-graph").style("visibility", "visible");
+						} else {
+							d3.select("#cfa-loader").style("display", "inline");
+						}
+					} else if (tabIndex === 2) {
+						if (d3.select("#cfa-loader").style("display") !== "none") {
+							d3.select("#cfa-loader").style("display", "none");
+						}
+						if (d3.select("#cfa-toolbar").style("visibility") !== "hidden") {
+							d3.select("#cfa-toolbar").style("visibility", "hidden");
+							d3.selectAll(".cfa-graph").style("visibility", "hidden");
+							if (d3.select("#cfa-container").classed("cfa-content")) {
+								d3.select("#cfa-container").classed("cfa-content", false);
+							}							
+						}
+						if (argLoaderDone) {
+							d3.select("#arg-toolbar").style("visibility", "visible");
+							if (!d3.select("#arg-container").classed("content")) {
+								d3.select("#arg-container").classed("content", true);
+							}
+							d3.selectAll(".arg-graph").style("visibility", "visible");
+						} else {
+							d3.select("#arg-loader").style("display", "inline");
+						}
 					} else {
-						d3.select("#cfa-toolbar").style("visibility", "visible");
-					}
-					if (tabIndex === 2) {
-						d3.select("#arg-container").classed("content", true);
-						if (!argLoaderDone) d3.select("#arg-loader").style("display", "inline-block");
-						d3.selectAll(".arg-graph").style("visibility", "visible");
-					} else {
-						d3.select("#arg-container").classed("content", false);
-						if (!argLoaderDone) d3.select("#arg-loader").style("display", "none");
-						d3.selectAll(".arg-graph").style("visibility", "hidden");
+						if (d3.select("#cfa-loader").style("display") !== "none") {
+							d3.select("#cfa-loader").style("display", "none");
+						}
+						if (d3.select("#cfa-toolbar").style("visibility") !== "hidden") {
+							d3.select("#cfa-toolbar").style("visibility", "hidden");
+							d3.selectAll(".cfa-graph").style("visibility", "hidden");
+							if (d3.select("#cfa-container").classed("cfa-content")) {
+								d3.select("#cfa-container").classed("cfa-content", false);
+							}							
+						}						
+						if (d3.select("#arg-loader").style("display") !== "none") {
+							d3.select("#arg-loader").style("display", "none");
+						}
+						if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
+							d3.select("#arg-toolbar").style("visibility", "hidden");
+							d3.selectAll(".arg-graph").style("visibility", "hidden");
+							if (d3.select("#arg-container").classed("content")) {
+								d3.select("#arg-container").classed("content", false);
+							}
+						}						
 					}
 					$scope.tab = tabIndex;
 				};
 				$scope.tabIsSet = function(tabIndex) {
 					return $scope.tab === tabIndex;
+				};
+				
+				$scope.getTabSet = function() {
+					return $scope.tab;
 				};
 			}]);
 
@@ -630,7 +682,11 @@ function init() {
 			clearInterval(cfaRefreshInterval);
 			cfaLoaderDone = true;
 			d3.select("#cfa-loader").style("display", "none");
-			d3.select("#cfa-toolbar").style("visibility", "visible");
+			if($("#report-controller").scope().getTabSet() === 1) {
+				d3.select("#cfa-toolbar").style("visibility", "visible");
+				d3.select("#cfa-container").classed("cfa-content", true);
+				d3.selectAll(".cfa-graph").style("visibility", "visible");
+			}
 		}
 	}, false);
 	
@@ -685,6 +741,11 @@ function init() {
 			clearInterval(argRefreshInterval);
 			argLoaderDone = true;
 			d3.select("#arg-loader").attr("display", "none");
+			if($("#report-controller").scope().getTabSet() === 2) {
+				d3.select("#arg-toolbar").style("visibility", "visible");
+				d3.select("#arg-container").classed("content", true);
+				d3.selectAll(".arg-graph").style("visibility", "visible");
+			}			
 		}
 	}, false);
 	
