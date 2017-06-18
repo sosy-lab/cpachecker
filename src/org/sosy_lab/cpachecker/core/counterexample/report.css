@@ -284,6 +284,7 @@ text {
 
 .edgePath path {
 	stroke: blue;
+	fill: #ffffff;
 	stroke-width: 1.5px;
 }
 

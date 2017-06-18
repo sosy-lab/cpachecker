@@ -482,9 +482,17 @@ function init() {
     			if (mergedNodes.includes(target)) target = getMergingNode(target);
     			var sourceGraph = getGraphForNode(source);
     			var targetGraph = getGraphForNode(target);
-    			if (sourceGraph < targetGraph) { 
-        			graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
-        			graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
+    			if (sourceGraph < targetGraph) {
+    				if (Object.keys(functionCallEdges).includes("" + source)) {
+    					var funcCallNodeId = functionCallEdges["" + source][0];
+    					graphMap[sourceGraph].setNode(funcCallNodeId, {label: getNodeLabelFCall(edge.stmt), class: "fcall", id: "cfa-node" + funcCallNodeId, shape: "rect"});
+    					graphMap[sourceGraph].setEdge(source, funcCallNodeId, {label: edge.stmt, class: edge.type, id: "cfa-edge" + source + funcCallNodeId, weight: edgeWeightDecider(edge)});
+    					graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
+    					graphMap[sourceGraph].setEdge(funcCallNodeId, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
+    				} else {
+            			graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
+            			graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
+    				}
         			graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "D", class: "dummy", id: "node" + source});
         			graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
     			} else if(sourceGraph > targetGraph) { 
@@ -569,12 +577,34 @@ function init() {
     			if (multigraph && (!graph.nodes().includes("" + source) || !graph.nodes().includes("" + target))) 
     				source = undefined;
     			if (source !== undefined && target !== undefined && checkEligibleEdge(source, target)) {
-    				graph.setEdge(source, target, {
-    					label: e.stmt, 
-    					class: e.type, 
-    					id: "cfa-edge"+ source + target,
-    					weight: edgeWeightDecider(e)
-    				});
+    				if (Object.keys(functionCallEdges).includes("" + source)) {
+    					var funcCallNodeId = functionCallEdges["" + source][0];
+        				graph.setNode(funcCallNodeId, {
+        					label : getNodeLabelFCall(e.stmt),
+        					class : "fcall",
+        					id : "cfa-node" + funcCallNodeId,
+        					shape : "rect"
+        				});
+        				graph.setEdge(source, funcCallNodeId, {
+        					label: e.stmt, 
+        					class: e.type, 
+        					id: "cfa-edge"+ source + funcCallNodeId,
+        					weight: edgeWeightDecider(e)
+        				});
+        				graph.setEdge(funcCallNodeId, target, {
+        					label: "",
+        					class: e.type, 
+        					id: "cfa-edge"+ funcCallNodeId + target,
+        					weight: edgeWeightDecider(e)
+        				});        				
+    				} else {
+        				graph.setEdge(source, target, {
+        					label: e.stmt, 
+        					class: e.type, 
+        					id: "cfa-edge"+ source + target,
+        					weight: edgeWeightDecider(e)
+        				});
+    				}
     			}
     		});
     	}
@@ -610,10 +640,19 @@ function init() {
     	function edgeWeightDecider(edge) {
     		if (edge.source === edge.target)
     			return 2;
-    		if (edge.type === constants.functionCallEdge)
-    			return 0;
     		else
     			return 1;
+    	}
+    	
+    	// Get node label for functionCall node by providing the edge statement
+    	function getNodeLabelFCall(stmt) {
+    		var result = "";
+    		if (stmt.includes("=")) {
+    			result = stmt.split("=")[1].split("(")[0].trim();
+    		} else {
+    			result = stmt.split("(")[0].trim();
+    		}
+    		return result;
     	}
     	
 	}
