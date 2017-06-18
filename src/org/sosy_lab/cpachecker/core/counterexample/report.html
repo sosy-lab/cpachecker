@@ -94,11 +94,26 @@
     </div>	
 	 
     <div id="cfa-container" ng-class="{active: tabIsSet(1)}"
-         ng-controller="CFAController">         
+         ng-controller="CFAController">      
     </div>
     
     <span id="arg-loader" class="loader">Rendering ARG Graphs </span>
-    <div id="arg-toolbar"> Toolbar here soon do</div>
+    <div id="arg-toolbar" ng-controller="ARGToolbarController">
+    	<label>Displayed ARG</label>
+    	<select class="btn btn-default selectpicker"
+    		ng-options="s as s for s in argSelections" ng-model="displayedARG" ng-change="displayARG()"></select>
+    	<label id="arg-zoom-label">Zoom Disabled</label>
+		<span class="button-checkbox">
+			<button class="btn btn-default" id="arg-zoom-button" type="button" data-color="primary"
+				ng-click="argZoomControl()">
+				<i class="glyphicon glyphicon-unchecked"></i></button>
+		</span>
+		<label>Split Threshold</label>
+      	<input type="text" id="arg-split-threshold">
+        <button class="btn btn-default" type="button" ng-click="argRedraw()">
+        	<i class="glyphicon glyphicon-refresh"></i>
+        </button>    	
+    </div>
     
     <div id="arg-container" ng-class="{active: tabIsSet(2)}"
     	 ng-controller="ARGController">

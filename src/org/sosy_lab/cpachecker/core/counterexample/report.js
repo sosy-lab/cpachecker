@@ -180,7 +180,7 @@
     			renderedCfaGraphs = {};
     			d3.selectAll(".cfa-graph").remove();
     			if ($scope.zoomEnabled) {
-    				$scope.zoomControl;
+    				$scope.zoomControl();
     			}
     			$scope.selectedCFAFunction = $scope.functions[0];
     			d3.select("#cfa-toolbar").style("visibility", "hidden");
@@ -209,6 +209,80 @@
             
 		}]);
 	
+	app.controller('ARGToolbarController', ['$scope',
+		function($scope) {
+			$scope.argWorker = argWorker;
+			$scope.zoomEnabled = false;
+			$scope.argSelections = ["complete"];
+			if (errorPath !== undefined) {
+				$scope.argSelections.push("error path");
+			}
+			$scope.displayedARG = $scope.argSelections[0];
+			$scope.originalTranslations = {};
+			
+			$scope.displayARG = function() {
+				console.log($scope.displayedARG);
+			};
+			
+    		$scope.argZoomControl = function() {
+    			if ($scope.zoomEnabled) {
+    				$scope.zoomEnabled = false;
+    				d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
+    				d3.select("#arg-zoom-label").text(" Zoom Disabled ");
+    				// revert zoom and remove listeners
+    				d3.selectAll(".arg-svg").each(function(d, i) {
+    					var zoom = d3.behavior.zoom().on("zoom", null);
+    					d3.select(this).call(zoom);
+    					d3.select(this.firstChild).attr("transform", $scope.originalTranslations[i]);
+    				});
+    			} else {
+    				$scope.zoomEnabled = true;
+    				d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
+    				d3.select("#arg-zoom-label").text(" Zoom Enabled ");
+    				d3.selectAll(".arg-svg").each(function(d, i) {
+    					var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
+    					$scope.originalTranslations[i] = svgGroup.attr("transform");
+    					var zoom = d3.behavior.zoom().on("zoom", function() {
+    						svgGroup.attr("transform", "translate("
+    								+ d3.event.translate + ")" + "scale("
+    								+ d3.event.scale + ")");
+    					});        			
+    					svg.call(zoom);
+    				});
+    			}
+    		};
+    		
+    		$scope.argRedraw = function() {
+    			var input = $("#arg-split-threshold").val();
+    			if (!$scope.validateInput(input)) {
+    				alert("Invalid input!");
+    				return;
+    			}
+    			renderedArgGraphs = {};
+    			d3.selectAll(".arg-graph").remove();
+    			if ($scope.zoomEnabled) {
+    				$scope.argZoomControl();
+    			}
+    			d3.select("#arg-toolbar").style("visibility", "hidden");
+    			d3.select("#arg-loader").style("display", "inline");
+    			argRefreshInterval = setInterval(function() {
+    				var loader = $("#arg-loader");
+    				if (loader.html().length > 23) {
+    					loader.html("Rendering ARG Graphs ");
+    				} else {
+    					loader.html(loader.html() + ".");
+    				}
+    			},150);
+    			$scope.argWorker.postMessage({"split" : input});
+    		};
+    		
+    		$scope.validateInput = function(input) {
+    			if (input % 1 !== 0) return false;
+    			if (input < 500 || input > 900) return false;
+    			return true;
+    		}    		
+	}]);
+	
 	app.controller('ARGController', ['$rootScope', '$scope',
 		function($rootScope, $scope) {
 			$scope.printIt = function(value) {
@@ -230,11 +304,11 @@ var errorPath;
 if (cfaJson.hasOwnProperty("errorPath")) {
 	errorPath = cfaJson.errorPath;
 }
-var graphSplitThreshold = 700; // TODO: allow user input with max value 900
-var zoomEnabled = false; // TODO: allow user to switch between zoom possibilities
+var graphSplitThreshold = 700;
+var zoomEnabled = false;
 // Graphs already rendered in the master script
 var renderedCfaGraphs = {};
-var createdArgGraphs = {};
+var renderedArgGraphs = {};
 // A Dagre D3 Renderer
 var render = new dagreD3.render();
 // TODO: different edge weights based on type?
@@ -359,7 +433,6 @@ function init() {
     		var firstGraphBuild = false;
     		var nodesPerGraph = [];
     		graphMap = {};
-    		// TODO: debug nodesPerGraph -> leads to empty graph
     		for (var i = 1; i <= requiredGraphs; i++) {
     			if (!firstGraphBuild) {
     				nodesPerGraph = nodesToSet.slice(0, graphSplitThreshold);
@@ -552,20 +625,28 @@ function init() {
 	function argWorker_function() {
 		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
 		var json, nodes, edges;
-		var graphSplitThreshold = 700; // default TODO: enable change by user
+		var graphSplitThreshold = 700;
 		var graphMap = {};
 		self.addEventListener("message", function(m) {
 			if (m.data.json !== undefined) {
 				json = JSON.parse(m.data.json);
 				nodes = json.nodes;
 				edges = json.edges;
-    			if (nodes.length > graphSplitThreshold) {
-    				buildMultipleGraphs();
-    			} else {
-    				buildSingleGraph();
-    			}
-			}
+				buildGraphsAndPostResults()
+			} else if (m.data.split !== undefined) {
+    			graphSplitThreshold = m.data.split;
+    			graphMap = {};
+    			buildGraphsAndPostResults();
+    		}
 		}, false);
+		
+		function buildGraphsAndPostResults() {
+			if (nodes.length > graphSplitThreshold) {
+				buildMultipleGraphs();
+			} else {
+				buildSingleGraph();
+			}			
+		}
 		
 		function buildSingleGraph() {
 			var g = createGraph();
@@ -584,10 +665,11 @@ function init() {
     				nodesPerGraph = nodes.slice(0, graphSplitThreshold);
     				firstGraphBuild = true;
     			} else {
-    				if (nodes[graphSplitThreshold * i - 1] !== undefined)
+    				if (nodes[graphSplitThreshold * i - 1] !== undefined) {
     					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
-    				else
+    				} else {
     					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1));
+    				}
     			}
     			var graph = createGraph();
     			graphMap[nodesPerGraph[nodesPerGraph.length - 1].index] = graph;
@@ -608,7 +690,7 @@ function init() {
     		self.postMessage({"status": "done"});
 		} 
 		
-		// TODO: reverseArrowHead + styles
+		// TODO: reverseArrowHead + styles, Covered by label!
 		// Handle graph connecting edges
     	function buildCrossgraphEdges() {
     		edges.forEach(function(edge){
@@ -619,7 +701,7 @@ function init() {
         			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;"});
         			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
         			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;"});
-    			} else if(targetGraph > sourceGraph) {
+    			} else if (sourceGraph > targetGraph) {
     				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
     				graphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
     				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
@@ -693,7 +775,7 @@ function init() {
 				var g = createGraph();
 				g = Object.assign(g, JSON.parse(m.data.graph));
 				renderedCfaGraphs[m.data.id] = g;
-				var svg = d3.select("#cfa-graph-" + id).append("svg").attr("id", "cfa-svg-" + id).attr("class", "cfa-svg").attr("class", "cfa-svg-" + m.data.func);
+				var svg = d3.select("#cfa-graph-" + id).append("svg").attr("id", "cfa-svg-" + id).attr("class", "cfa-svg " + "cfa-svg-" + m.data.func);
 				var svgGroup = svg.append("g");
 				render(d3.select("#cfa-svg-" + id + " g"), g);
 				// Center the graph - calculate svg.attributes
@@ -737,24 +819,15 @@ function init() {
 
 	argWorker.addEventListener('message', function(m) {
 		if (m.data.graph !== undefined) {
-			if (createdArgGraphs[m.data.id] === undefined) {
+			if (renderedArgGraphs[m.data.id] === undefined) {
 				var id = m.data.id;
 				var g = createGraph();
 				g = Object.assign(g, JSON.parse(m.data.graph));
-				createdArgGraphs[m.data.id] = g;
+				renderedArgGraphs[m.data.id] = g;
 				d3.select("#arg-container").append("div").attr("id", "arg-graph" + id).attr("class", "arg-graph");
 				var svg = d3.select("#arg-graph" + id).append("svg").attr("id", "arg-svg" + id).attr("class", "arg-svg");
 				var svgGroup = svg.append("g");
 				render(d3.select("#arg-svg" + id + " g"), g);
-				//TODO: own function pass the id and use d3.select() to select svg and svgGroup -> zoom can be set later (after svg is rendered)
-				var zoom = d3.behavior.zoom().on(
-						"zoom",
-						function() {
-							svgGroup.attr("transform", "translate("
-									+ d3.event.translate + ")" + "scale("
-									+ d3.event.scale + ")");
-						});
-				svg.call(zoom);			
 				// Center the graph - calculate svg.attributes
 				// TODO: own function for svg size -> compare with parent size after bootstrap is used. i.e. col-lg-12 etc.
 				svg.attr("height", g.graph().height + constants.margin * 2);
@@ -765,10 +838,10 @@ function init() {
 				addEventsToEdges();
 			} else {
 				// This is needed for re-rendering after user interaction
-				createdArgGraphs[m.data.id] = Object.assign(createdArgGraphs[m.data.id], JSON.parse(m.data.graph));
-				render(d3.select("#arg-svg" + id + " g"), createdArgGraphs[m.data.id]);
-				var width = createdArgGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
-				d3.select("#arg-svg" + id).attr("height", createdArgGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
+				renderedArgGraphs[m.data.id] = Object.assign(renderedArgGraphs[m.data.id], JSON.parse(m.data.graph));
+				render(d3.select("#arg-svg" + id + " g"), renderedArgGraphs[m.data.id]);
+				var width = renderedArgGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
+				d3.select("#arg-svg" + id).attr("height", renderedArgGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
 				d3.select("#arg-svg" + id + "> g").attr("transform", "translate(" + width / 2 + ", 20)");
 				addEventsToNodes();
 				addEventsToEdges();

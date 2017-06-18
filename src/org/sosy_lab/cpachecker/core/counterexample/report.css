@@ -246,6 +246,16 @@ input[type=text] {
 	visibility: hidden;
 }
 
+#arg-toolbar label {
+	margin-left: 20px;
+	margin-right: 5px;
+}
+
+#arg-toolbar text {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
+	font-size: 11px;
+}
+
 .entry-node {
 	fill: #00ffd0;
 }
