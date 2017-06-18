@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @Options(prefix="cpa.arg.export.code")
 public class ARGToCTranslator {
@@ -547,6 +549,19 @@ public class ARGToCTranslator {
         declaration = lDeclarationEdge.getDeclaration().toASTString();
       } else {
         declaration = lDeclarationEdge.getRawStatement();
+        if(declaration.contains(",")) {
+          // TODO
+          for(CFAEdge predEdge: CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
+            if(predEdge.getRawStatement().equals(declaration)) {
+              declaration = "";
+              break;
+            }
+          }
+        }
+          if (includeHeader && declaration.contains("assert")
+              && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
+            declaration = "";
+          }
       }
 
       if (lDeclarationEdge.getDeclaration().isGlobal()) {
