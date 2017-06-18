@@ -548,7 +548,7 @@ public class ARGToCTranslator {
       if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
         declaration = lDeclarationEdge.getDeclaration().toASTString();
       } else {
-        declaration = lDeclarationEdge.getRawStatement();
+        declaration = lDeclarationEdge.getCode(); //lDeclarationEdge.getRawStatement();
         if(declaration.contains(",")) {
           // TODO
           for(CFAEdge predEdge: CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
