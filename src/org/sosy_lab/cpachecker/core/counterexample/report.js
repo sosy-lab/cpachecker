@@ -12,8 +12,13 @@
 			function($rootScope, $scope) {
 				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
 				$scope.help_content = "<p>I am currently being developed</p>";
+		        $scope.help_errorpath = "<p>The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA)</p>\n" +
+	            "<p><b>-V-</b> Click to show all initialized variables and their values at that point</p>\n" +
+	            "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab)</p>\n" +
+	            "<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>\n" +
+	            "<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
+	            "- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)</p>";
 				$scope.tab = 1;
-				$scope.argWorker = argWorker; // TODO: move in ARGToolbarController
 				$scope.cfaLoaderDone = cfaLoaderDone;
 				$scope.argLoaderDone = argLoaderDone;
 				$scope.$on("ChangeTab", function(event, tabIndex) {
@@ -77,8 +82,8 @@
 						if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
 							d3.select("#arg-toolbar").style("visibility", "hidden");
 							d3.selectAll(".arg-graph").style("visibility", "hidden");
-							if (d3.select("#arg-container").classed("content")) {
-								d3.select("#arg-container").classed("content", false);
+							if (d3.select("#arg-container").classed("arg-content")) {
+								d3.select("#arg-container").classed("arg-content", false);
 							}
 						}						
 					}
@@ -92,20 +97,51 @@
 					return $scope.tab;
 				};
 			}]);
+	
+	app.controller("ErrorpathController", ['$rootScope', '$scope', function($rootScope, $scope) {
+        $scope.errPathPrevClicked = function() {
+        	console.log("Prev button clicked");
+        };
+        
+        $scope.errPathStartClicked = function() {
+        	console.log("Start button clicked");
+        };
+        
+        $scope.errPathNextClicked = function() {
+        	console.log("Next button clicked");
+        };
+        
+        $scope.clickedErrpathElement = function($event){
+        	console.log("clicked error path element");
+        	console.log($event);
+        };
+		
+	}]);
+	
+	app.controller("SearchController", ['$rootScope', '$scope', function($rootScope, $scope) {
+        $scope.numOfValueMatches = 0;
+        $scope.numOfDescriptionMatches = 0;
 
-	app.controller('SourceController', [ '$rootScope', '$scope', '$location',
-			'$anchorScroll',
-			function($rootScope, $scope, $location, $anchorScroll) {
-				// available sourcefiles
-				$scope.sourceFiles = sourceFiles;
-				$scope.selectedSourceFile = 0;
-		        $scope.setSourceFile = function(value) {
-		            $scope.selectedSourceFile = value;
-		        };
-		        $scope.sourceFileIsSet = function(value) {
-		            return value === $scope.selectedSourceFile;
-		        };
-			}]);
+        $scope.checkIfEnter = function($event){
+            if($event.keyCode == 13){
+                $scope.searchFor();
+            }
+        };
+        
+        $scope.searchFor = function(){
+        	console.log("search for");
+        };
+		
+	}]);
+	
+	app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function($rootScope, $scope) {
+		$rootScope.errorPath = errorPath;
+		console.log($scope.errorPath);
+		$scope.showValues = function($event){
+			console.log("show values ");
+			console.log($event);
+		};
+	}]);
 	
 	app.controller('CFAToolbarController', ['$scope', 
 		function($scope) {
@@ -288,7 +324,21 @@
 			$scope.printIt = function(value) {
 				console.log(value);
 			}
-		}]);
+		}]);	
+
+	app.controller('SourceController', [ '$rootScope', '$scope', '$location',
+			'$anchorScroll',
+			function($rootScope, $scope, $location, $anchorScroll) {
+				// available sourcefiles
+				$scope.sourceFiles = sourceFiles;
+				$scope.selectedSourceFile = 0;
+		        $scope.setSourceFile = function(value) {
+		            $scope.selectedSourceFile = value;
+		        };
+		        $scope.sourceFileIsSet = function(value) {
+		            return value === $scope.selectedSourceFile;
+		        };
+			}]);
 
 })();
 
@@ -332,6 +382,15 @@ var cfaLoaderDone = false;
 var argLoaderDone = false;
 
 function init() {
+	
+	// Setup section widths accordingly 
+	if (errorPath === undefined) {
+		d3.select("#errorpath_section").style("display", "none");
+	} else {
+		d3.select("#externalFiles_section").style("width", "75%");
+		d3.select("#cfa-toolbar").style("width", "70%");
+	}
+	
 	// ======================= Define CFA and ARG Workers logic =======================
 	/**
 	 * The CFA Worker. Contains the logic for building a single or a multi CFA graph.

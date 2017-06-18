@@ -49,18 +49,6 @@ body {
 	font-size: 80%;
 }
 
-#externalFiles_section {
-	float: right;
-	width: 100%;
-	height: 100%;
-	background-color: white;
-	padding: 5px;
-	border: solid 4px;
-	border-color: lightgrey;
-	overflow: hidden;
-	position: relative;
-}
-
 .popover {
 	min-width: 500px;
 	max-height: 500px;
@@ -78,6 +66,85 @@ body {
 
 .dropdown-menu a {
 	cursor: pointer;
+}
+
+#errorpath_section {
+    position:relative;
+    float: left;
+    width: 25%;
+    min-width: 70px;
+    height: inherit;
+    background-color: white;
+    border: solid 4px;
+    border-color: lightgrey;
+    padding: 5px;
+}
+
+#errorpath_section header .input-group {
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+#errorpath_section .fileContent {
+    height: calc(100% - 110px);
+    margin: 5px;
+    overflow: auto;
+}
+
+#searchOptions label {
+    font-weight: normal;
+}
+
+#matches {
+    display: none;
+}
+
+.markedValues {
+    background-color: #83d480;
+    border-radius: 25px;
+    margin-bottom: 2px;
+    padding: 2px;
+    padding-left: 8px;
+    max-width: 270px;
+}
+
+.markedDescriptions {
+    background-color: #71afff;
+    border-radius: 20px;
+    padding: 2px;
+    padding-left: 8px;
+    margin-bottom: 2px;
+    max-width: 270px;
+}
+/* was err_table previously */
+#err-table td {
+    cursor: pointer;
+}
+#err-table td:hover {
+    font-weight: bold;
+}
+#err-table td:first-child {
+    border-radius: 6px;
+}
+#err-table td pre {
+    padding: 0px;
+    margin: 0px;
+    border: none;
+}
+#err-table tr:nth-child(odd) td pre.prettyprint {
+    background-color: #f3f3f3;
+}
+
+#externalFiles_section {
+	float: right;
+	width: 100%;
+	height: 100%;
+	background-color: white;
+	padding: 5px;
+	border: solid 4px;
+	border-color: lightgrey;
+	overflow: hidden;
+	position: relative;
 }
 
 #externalFiles_section .popover {
