@@ -399,6 +399,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           Configuration.builder()
               .setOption("analysis.entryFunction", mainFunction)
               .setOption("parser.usePreprocessor", "true")
+              .setOption("analysis.useLoopStructure", "false")
               .build(),
           logger, shutdown);
       cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(residualProgram.toString()));
