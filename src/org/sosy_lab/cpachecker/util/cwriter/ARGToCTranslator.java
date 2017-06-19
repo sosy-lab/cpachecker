@@ -79,6 +79,14 @@ public class ARGToCTranslator {
     }
   }
 
+  private static class InlinedFunction extends CompoundStatement {
+
+    public InlinedFunction(CompoundStatement pOuterBlock) {
+      super(pOuterBlock);
+    }
+
+  }
+
   private static class CompoundStatement extends Statement {
     private final List<Statement> statements;
     private final CompoundStatement outerBlock;
@@ -223,7 +231,7 @@ public class ARGToCTranslator {
 
     translate(argRoot);
 
-    return generateCCode(includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE);
+    return generateCCode(includeHeader);
   }
 
 
@@ -232,6 +240,8 @@ public class ARGToCTranslator {
 
     if (includeHeader) {
       buffer.append("#include <stdio.h>\n");
+    }
+    if (includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE) {
       buffer.append("#include <assert.h>\n");
     }
     for(String globalDef : globalDefinitionsList) {
@@ -589,7 +599,7 @@ public class ARGToCTranslator {
   }
 
   private CompoundStatement processFunctionCall(CFAEdge pCFAEdge, CompoundStatement currentBlock) {
-    CompoundStatement newBlock = new CompoundStatement(currentBlock);
+    CompoundStatement newBlock = new InlinedFunction(currentBlock);
     currentBlock.addStatement(newBlock);
 
     CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge)pCFAEdge;
@@ -636,7 +646,7 @@ public class ARGToCTranslator {
       String returnVar = "__return_" + id;
       String leftHandSide = exp.getLeftHandSide().toASTString();
 
-      pCurrentBlock = pCurrentBlock.getSurroundingBlock();
+      pCurrentBlock = getInnerMostInlinedFunction(pCurrentBlock).getSurroundingBlock();
       pCurrentBlock.addStatement(new SimpleStatement(leftHandSide + " = " + returnVar + ";"));
 
       return pCurrentBlock;
@@ -645,6 +655,13 @@ public class ARGToCTranslator {
     }
 
     return null;
+  }
+
+  private CompoundStatement getInnerMostInlinedFunction(CompoundStatement currentBlock) {
+    while (!(currentBlock instanceof InlinedFunction)) {
+      currentBlock = currentBlock.getSurroundingBlock();
+    }
+    return currentBlock;
   }
 
   private @Nullable Statement processTargetState(final ARGState pTargetState,
