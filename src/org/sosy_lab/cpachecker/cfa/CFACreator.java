@@ -149,6 +149,10 @@ public class CFACreator {
       description="add declarations for global variables before entry function")
   private boolean useGlobalVars = true;
 
+  @Option(secure=true, name="analysis.useLoopStructure",
+      description="add loop-structure information to CFA.")
+  private boolean useLoopStructure = true;
+
   @Option(secure=true, name="cfa.export",
       description="export CFA as .dot file")
   private boolean exportCfa = true;
@@ -410,7 +414,9 @@ private boolean classifyNodes = false;
 
     // get loop information
     // (needs post-order information)
-    addLoopStructure(cfa);
+    if (useLoopStructure) {
+      addLoopStructure(cfa);
+    }
 
     // FOURTH, insert call and return edges and build the supergraph
     if (interprocedural) {
