@@ -82,10 +82,6 @@ public class BoundsCPA extends AbstractCPA
   + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
   private int maxLoopIterations = 0;
 
-  @Option(secure=true, description="threshold for unwinding recursion (0 is infinite)\n"
-  + "works only if assumption storage CPA is enabled, because otherwise it would be unsound")
-  private int maxRecursionDepth = 0;
-
   @Option(secure=true, description="this option controls how the maxLoopIterations condition is adjusted when a condition adjustment is invoked.")
   private MaxLoopIterationAdjusters maxLoopIterationAdjusterFactory = MaxLoopIterationAdjusters.STATIC;
 
@@ -114,7 +110,7 @@ public class BoundsCPA extends AbstractCPA
     config.inject(this);
     this.transferRelation = pDelegatingTransferRelation;
     this.transferRelation.setDelegate(new BoundsTransferRelation(
-        loopIterationsBeforeAbstraction, maxLoopIterations, maxRecursionDepth, loopStructure));
+        loopIterationsBeforeAbstraction, maxLoopIterations, loopStructure));
     this.logger = pLogger;
   }
 
@@ -366,7 +362,7 @@ public class BoundsCPA extends AbstractCPA
     this.maxLoopIterations = pMaxLoopIterations;
     this.transferRelation.setDelegate(new BoundsTransferRelation(
         loopIterationsBeforeAbstraction,
-        maxLoopIterations, maxRecursionDepth, loopStructure));
+        maxLoopIterations, loopStructure));
   }
 
   @Override

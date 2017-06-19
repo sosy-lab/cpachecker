@@ -42,7 +42,6 @@ public enum PreventingHeuristic {
   MEMORYOUT("MO"),
   TIMEOUT("TO"),
   LOOPITERATIONS("LI"),
-  RECURSIONDEPTH("RD"),
   EDGECOUNT("EC"),
   BLOCKCOUNT("BC");
 

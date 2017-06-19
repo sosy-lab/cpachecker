@@ -49,11 +49,7 @@ public class BoundsState
 
   private final int deepestIteration;
 
-  private final int deepestRecursion;
-
   private final boolean stopIt;
-
-  private final boolean stopRec;
 
   private final PersistentSortedMap<ComparableLoop, Integer> iterations;
 
@@ -64,24 +60,21 @@ public class BoundsState
   private int hashCache = 0;
 
   public BoundsState() {
-    this(false, false);
+    this(false);
   }
 
-  public BoundsState(boolean pStopIt, boolean pStopRec) {
-    this(pStopIt, pStopRec, PathCopyingPersistentTreeMap.<ComparableLoop, Integer>of(), 0, 1, null, 0);
+  public BoundsState(boolean pStopIt) {
+    this(pStopIt, PathCopyingPersistentTreeMap.<ComparableLoop, Integer>of(), 0, null, 0);
   }
 
-  private BoundsState(boolean pStopIt, boolean pStopRec, PersistentSortedMap<ComparableLoop, Integer> pIterations, int pDeepestIteration, int pDeepestRecursion, String pCurrentFunction, int pReturnFromCounter) {
+  private BoundsState(boolean pStopIt, PersistentSortedMap<ComparableLoop, Integer> pIterations, int pDeepestIteration, String pCurrentFunction, int pReturnFromCounter) {
     Preconditions.checkArgument(pDeepestIteration >= 0);
     Preconditions.checkArgument(
         (pDeepestIteration == 0 && pIterations.isEmpty())
             || (pDeepestIteration > 0 && !pIterations.isEmpty()));
-    Preconditions.checkArgument(pDeepestRecursion >= 1);
     this.stopIt = pStopIt;
-    this.stopRec = pStopRec;
     this.iterations = pIterations;
     this.deepestIteration = pDeepestIteration;
-    this.deepestRecursion = pDeepestRecursion;
     this.currentFunction = pCurrentFunction;
     this.returnFromCounter = pReturnFromCounter;
   }
@@ -100,10 +93,8 @@ public class BoundsState
     }
     return new BoundsState(
         stopIt,
-        stopRec,
         iterations.putAndCopy(new ComparableLoop(pLoop), iteration),
         iteration > deepestIteration ? iteration : deepestIteration,
-        deepestRecursion,
         currentFunction,
         returnFromCounter);
   }
@@ -111,27 +102,18 @@ public class BoundsState
 
 
   public BoundsState stopIt() {
-    return new BoundsState(true, stopRec, iterations, deepestIteration, deepestRecursion, currentFunction, returnFromCounter);
-  }
-
-  public BoundsState stopRec() {
-    return new BoundsState(stopIt, true, iterations, deepestIteration, deepestRecursion, currentFunction, returnFromCounter);
-  }
-
-  public BoundsState setDeepestRecursion(int pDeepestRecursion) {
-    Preconditions.checkArgument(pDeepestRecursion >= this.deepestRecursion);
-    return new BoundsState(stopIt, stopRec, iterations, deepestIteration, pDeepestRecursion, currentFunction, returnFromCounter);
+    return new BoundsState(true, iterations, deepestIteration, currentFunction, returnFromCounter);
   }
 
   public BoundsState setCurrentFunction(String pCurrentFunction) {
     if (!Objects.equals(currentFunction, pCurrentFunction)) {
-      return new BoundsState(stopIt, stopRec, iterations, deepestIteration, deepestRecursion, pCurrentFunction, 0);
+      return new BoundsState(stopIt, iterations, deepestIteration, pCurrentFunction, 0);
     }
     return this;
   }
 
   public BoundsState returnFromFunction() {
-    return new BoundsState(stopIt, stopRec, iterations, deepestIteration, deepestRecursion, currentFunction, returnFromCounter + 1);
+    return new BoundsState(stopIt, iterations, deepestIteration, currentFunction, returnFromCounter + 1);
   }
 
   @Override
@@ -143,10 +125,6 @@ public class BoundsState
   @Override
   public int getDeepestIteration() {
     return deepestIteration;
-  }
-
-  public int getDeepestRecursion() {
-    return deepestRecursion;
   }
 
   public int getReturnFromCounter() {
@@ -178,7 +156,7 @@ public class BoundsState
   }
 
   public boolean isStopState() {
-    return stopIt || stopRec;
+    return stopIt;
   }
 
   @Override
@@ -188,8 +166,7 @@ public class BoundsState
 
   @Override
   public String toString() {
-    return " Deepest loop iteration " + deepestIteration
-         + ", deepest recursion " + deepestRecursion;
+    return " Deepest loop iteration " + deepestIteration;
   }
 
   @Override
@@ -203,8 +180,6 @@ public class BoundsState
 
     BoundsState other = (BoundsState)obj;
     return this.stopIt == other.stopIt
-        && this.stopRec == other.stopRec
-        && this.deepestRecursion == other.deepestRecursion
         && this.returnFromCounter == other.returnFromCounter
         && Objects.equals(this.currentFunction, other.currentFunction)
         && this.iterations.equals(other.iterations);
@@ -213,7 +188,7 @@ public class BoundsState
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(deepestRecursion, returnFromCounter, stopIt, stopRec, currentFunction, iterations);
+      hashCache = Objects.hash(stopIt, returnFromCounter, currentFunction, iterations);
     }
     return hashCache;
   }
@@ -224,9 +199,6 @@ public class BoundsState
     BooleanFormula reasonFormula = bfmgr.makeTrue();
     if (stopIt) {
       reasonFormula = bfmgr.and(reasonFormula, PreventingHeuristic.LOOPITERATIONS.getFormula(manager, getDeepestIteration()));
-    }
-    if (stopRec) {
-      reasonFormula = bfmgr.and(reasonFormula, PreventingHeuristic.RECURSIONDEPTH.getFormula(manager, getDeepestRecursion()));
     }
     return reasonFormula;
   }

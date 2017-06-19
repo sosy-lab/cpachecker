@@ -23,11 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.bounds;
 
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -40,28 +41,20 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-
 public class BoundsTransferRelation extends SingleEdgeTransferRelation {
 
   private Multimap<CFANode, Loop> loopHeads = null;
 
   private final int maxLoopIterations;
-  private final int maxRecursionDepth;
   private final int loopIterationsBeforeAbstraction;
 
   public BoundsTransferRelation(
       int pLoopIterationsBeforeAbstraction,
       int pMaxLoopIterations,
-      int pMaxRecursionDepth,
       LoopStructure pLoops) {
 
     loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
     this.maxLoopIterations = pMaxLoopIterations;
-    this.maxRecursionDepth = pMaxRecursionDepth;
 
     ImmutableMultimap.Builder<CFANode, Loop> heads = ImmutableMultimap.builder();
 
@@ -108,10 +101,6 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    if (maxRecursionDepth > 0 && e.getDeepestRecursion() > maxRecursionDepth) {
-      e = e.stopRec();
-    }
-
     return Collections.singleton(e);
   }
 
@@ -123,46 +112,8 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
     BoundsState state = (BoundsState) pState;
 
     for (CallstackState callstackState : FluentIterable.from(pOtherStates).filter(CallstackState.class)) {
-      int recursionDepth = getRecursionDepth(callstackState);
-      if (recursionDepth > state.getDeepestRecursion()) {
-        assert recursionDepth == getDeepestRecursion(callstackState);
-        state = state.setDeepestRecursion(recursionDepth);
-      }
       state = state.setCurrentFunction(callstackState.getCurrentFunction());
-      if (state.getReturnFromCounter() > state.getDeepestRecursion()) {
-        state = state.setDeepestRecursion(state.getReturnFromCounter());
-      }
     }
     return state.equals(pState) ? Collections.singleton(pState) : Collections.singleton(state);
-  }
-
-  private static final int getRecursionDepth(CallstackState pCallstackState) {
-    int depth = 0;
-    CallstackState state = pCallstackState;
-    String function = pCallstackState.getCurrentFunction();
-    while (state != null) {
-      if (state.getCurrentFunction().equals(function)) {
-        ++depth;
-      }
-      state = state.getPreviousState();
-    }
-    return depth;
-  }
-
-  private static final int getDeepestRecursion(CallstackState pCallstackState) {
-    Map<String, Integer> depths = Maps.newHashMap();
-    CallstackState state = pCallstackState;
-    int deepest = 0;
-    while (state != null) {
-      String function = state.getCurrentFunction();
-      Integer currentDepth = depths.get(function);
-      currentDepth = currentDepth == null ? 1 : currentDepth + 1;
-      if (currentDepth > deepest) {
-        deepest = currentDepth;
-      }
-      depths.put(function, currentDepth);
-      state = state.getPreviousState();
-    }
-    return deepest;
   }
 }
