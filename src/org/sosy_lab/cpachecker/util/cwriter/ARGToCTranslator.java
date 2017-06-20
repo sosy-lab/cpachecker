@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -67,6 +68,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 @Options(prefix="cpa.arg.export.code")
 public class ARGToCTranslator {
   private static String ASSERTFAIL = "__assert_fail";
+  private static String DEFAULTRETURN = "default return";
 
   private static abstract class Statement {
     public abstract void translateToCode(StringBuffer buffer, int indent);
@@ -477,6 +479,9 @@ public class ARGToCTranslator {
         edgeStatementCodes.append("\n");
       }
       currentBlock.addStatement(new SimpleStatement(edgeStatementCodes.toString()));
+    } else if (mustHandleDefaultReturn(edge, childElement)) {
+      processDefaultReturn((CFunctionDeclaration) ((FunctionExitNode) edge.getSuccessor())
+          .getEntryNode().getFunctionDefinition(), childElement.getStateId());
     } else {
       String statement = processSimpleEdge(edge);
       if (!statement.isEmpty()) {
@@ -492,6 +497,12 @@ public class ARGToCTranslator {
     }
 
     return currentBlock;
+  }
+
+  private boolean mustHandleDefaultReturn(final CFAEdge pEdge, final ARGState pChild) {
+    return pEdge.getSuccessor() instanceof FunctionExitNode
+        && (!pChild.getCoveredByThis().isEmpty() || mergeElements.contains(pChild))
+        && pEdge.getDescription().equals(DEFAULTRETURN);
   }
 
   private ARGState getCovering(final ARGState pCovered) {
@@ -528,6 +539,17 @@ public class ARGToCTranslator {
 
   }
 
+  private void processDefaultReturn(final CFunctionDeclaration pFunDecl, int pElementId) {
+    String returnStat="";
+
+    CType returnType = pFunDecl.getType().getReturnType();
+    if(!(returnType instanceof CVoidType)) {
+      String varName = "__return_" + pElementId;
+      globalDefinitionsList.add(returnType.toASTString(varName) + ";");
+    }
+
+  }
+
   private String processSimpleEdge(CFAEdge pCFAEdge) {
     if(pCFAEdge == null) {
       return "";
@@ -558,9 +580,8 @@ public class ARGToCTranslator {
       if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
         declaration = lDeclarationEdge.getDeclaration().toASTString();
       } else {
-        declaration = lDeclarationEdge.getCode(); //lDeclarationEdge.getRawStatement();
+        declaration = lDeclarationEdge.getCode(); //TODO check if works without lDeclarationEdge.getRawStatement();
         if(declaration.contains(",")) {
-          // TODO
           for(CFAEdge predEdge: CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
             if(predEdge.getRawStatement().equals(declaration)) {
               declaration = "";
