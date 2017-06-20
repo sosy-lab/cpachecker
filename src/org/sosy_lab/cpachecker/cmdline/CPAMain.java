@@ -51,7 +51,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.matheclipse.core.util.WriterOutputStream;
@@ -344,7 +343,6 @@ public class CPAMain {
     BootstrapOptions options = new BootstrapOptions();
     config.inject(options);
 
-    Consumer<ConfigurationBuilder> witnessFileOptionSetter = builder -> {};
     if (options.witness != null) {
       WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
       ConfigurationBuilder witnessConfigBuilder = Configuration.builder();
@@ -352,20 +350,14 @@ public class CPAMain {
       switch (witnessType) {
         case VIOLATION_WITNESS:
           validationConfigFile = options.violationWitnessValidationConfig;
-          witnessFileOptionSetter =
-              builder -> {
-                String specs = cmdLineOptions.get(SPECIFICATION_OPTION);
-                specs = Joiner.on(',').join(specs, options.witness.toString());
-                builder.setOption(SPECIFICATION_OPTION, specs);
-              };
+          String specs = cmdLineOptions.get(SPECIFICATION_OPTION);
+          specs = Joiner.on(',').join(specs, options.witness.toString());
+          cmdLineOptions.put(SPECIFICATION_OPTION, specs);
           break;
         case CORRECTNESS_WITNESS:
           validationConfigFile = options.correctnessWitnessValidationConfig;
-          witnessFileOptionSetter =
-              builder ->
-                  builder.setOption(
-                      "invariantGeneration.kInduction.invariantsAutomatonFile",
-                      options.witness.toString());
+          cmdLineOptions.put(
+              "invariantGeneration.kInduction.invariantsAutomatonFile", options.witness.toString());
           break;
         default:
           throw new InvalidConfigurationException(
@@ -387,7 +379,6 @@ public class CPAMain {
           .clearOption("witness.validation.correctness.config")
           .clearOption("output.path")
           .clearOption("rootDirectory");
-      witnessFileOptionSetter.accept(witnessConfigBuilder);
       config = witnessConfigBuilder.build();
       config.inject(options);
     }
@@ -413,7 +404,6 @@ public class CPAMain {
               .clearOption("output.disable")
               .clearOption("output.path")
               .clearOption("rootDirectory");
-      witnessFileOptionSetter.accept(builder);
       config = builder.build();
     }
     if (propertyTypes.contains(PropertyType.OVERFLOW)) {
@@ -434,7 +424,6 @@ public class CPAMain {
               .clearOption("output.disable")
               .clearOption("output.path")
               .clearOption("rootDirectory");
-      witnessFileOptionSetter.accept(builder);
       config = builder.build();
     }
     if (propertyTypes.contains(PropertyType.TERMINATION)) {
@@ -455,7 +444,6 @@ public class CPAMain {
               .clearOption("output.disable")
               .clearOption("output.path")
               .clearOption("rootDirectory");
-      witnessFileOptionSetter.accept(builder);
       config = builder.build();
     }
 
