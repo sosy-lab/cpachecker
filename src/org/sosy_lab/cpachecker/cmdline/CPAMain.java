@@ -349,9 +349,27 @@ public class CPAMain {
       config.inject(options); // need to re-inject to get appropriate values for property options
     }
 
+    // Switch to appropriate config depending on property (if necessary)
+    config = handlePropertyOptions(config, options, cmdLineOptions, properties);
+
+    if (options.printUsedOptions) {
+      config.dumpUsedOptionsTo(System.out);
+    }
+
+    return new Config(config, outputDirectory, properties);
+  }
+
+  private static Configuration handlePropertyOptions(
+      Configuration config,
+      BootstrapOptions options,
+      Map<String, String> cmdLineOptions,
+      Set<SpecificationProperty> properties)
+      throws InvalidConfigurationException, IOException {
     Set<PropertyType> propertyTypes =
         Sets.immutableEnumSet(
             Collections2.transform(properties, SpecificationProperty::getPropertyType));
+
+    Path alternateConfigFile = null;
 
     if (!Collections.disjoint(propertyTypes, MEMSAFETY_PROPERTY_TYPES)) {
       if (!MEMSAFETY_PROPERTY_TYPES.containsAll(propertyTypes)) {
@@ -362,15 +380,7 @@ public class CPAMain {
       if (options.memsafetyConfig == null) {
         throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
       }
-      ConfigurationBuilder builder =
-          Configuration.builder()
-              .loadFromFile(options.memsafetyConfig)
-              .setOptions(cmdLineOptions)
-              .clearOption("memorysafety.config")
-              .clearOption("output.disable")
-              .clearOption("output.path")
-              .clearOption("rootDirectory");
-      config = builder.build();
+      alternateConfigFile = options.memsafetyConfig;
     }
     if (propertyTypes.contains(PropertyType.OVERFLOW)) {
       if (propertyTypes.size() != 1) {
@@ -382,15 +392,7 @@ public class CPAMain {
 
         throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
       }
-      ConfigurationBuilder builder =
-          Configuration.builder()
-              .loadFromFile(options.overflowConfig)
-              .setOptions(cmdLineOptions)
-              .clearOption("overflow.config")
-              .clearOption("output.disable")
-              .clearOption("output.path")
-              .clearOption("rootDirectory");
-      config = builder.build();
+      alternateConfigFile = options.overflowConfig;
     }
     if (propertyTypes.contains(PropertyType.TERMINATION)) {
       // Termination property cannot be checked with others in combination
@@ -402,22 +404,22 @@ public class CPAMain {
         throw new InvalidConfigurationException(
             "Verifying termination is not supported if option termination.config is not specified.");
       }
-      ConfigurationBuilder builder =
-          Configuration.builder()
-              .loadFromFile(options.terminationConfig)
-              .setOptions(cmdLineOptions)
-              .clearOption("termination.config")
-              .clearOption("output.disable")
-              .clearOption("output.path")
-              .clearOption("rootDirectory");
-      config = builder.build();
+      alternateConfigFile = options.terminationConfig;
     }
 
-    if (options.printUsedOptions) {
-      config.dumpUsedOptionsTo(System.out);
+    if (alternateConfigFile != null) {
+      return Configuration.builder()
+          .loadFromFile(alternateConfigFile)
+          .setOptions(cmdLineOptions)
+          .clearOption("memorysafety.config")
+          .clearOption("overflow.config")
+          .clearOption("termination.config")
+          .clearOption("output.disable")
+          .clearOption("output.path")
+          .clearOption("rootDirectory")
+          .build();
     }
-
-    return new Config(config, outputDirectory, properties);
+    return config;
   }
 
   private static final ImmutableMap<PropertyType, String> SPECIFICATION_FILES =
