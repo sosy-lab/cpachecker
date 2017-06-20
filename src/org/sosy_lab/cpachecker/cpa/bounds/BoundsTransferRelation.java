@@ -30,6 +30,7 @@ import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -75,7 +76,14 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (pCfaEdge instanceof FunctionCallEdge) {
-      // such edges do never change loop stack status
+      // such edges do never change loop status
+      return Collections.singleton(pElement);
+    }
+
+    if (pCfaEdge instanceof CFunctionReturnEdge) {
+      // such edges may be real loop-exit edges "while () { return; }",
+      // but never loop-entry edges
+      // Return here because they might be mis-classified as entry edges
       return Collections.singleton(pElement);
     }
 
