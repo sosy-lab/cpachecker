@@ -54,20 +54,15 @@ public class ParseResult {
 
   private final List<Path> fileNames;
 
-  private final Language language;
-
   public ParseResult(
       SortedMap<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
-      List<Path> pFileNames,
-      Language pLanguage) {
+      List<Path> pFileNames) {
     functions = pFunctions;
     cfaNodes = pCfaNodes;
     globalDeclarations = pGlobalDeclarations;
     fileNames = ImmutableList.copyOf(pFileNames);
-    language = pLanguage;
-
   }
 
   public boolean isEmpty() {
@@ -84,10 +79,6 @@ public class ParseResult {
 
   public List<Pair<ADeclaration, String>> getGlobalDeclarations() {
     return globalDeclarations;
-  }
-
-  public Language getLanguage() {
-    return language;
   }
 
   public List<Path> getFileNames() {

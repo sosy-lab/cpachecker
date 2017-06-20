@@ -55,7 +55,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
@@ -370,8 +369,7 @@ class EclipseJavaParser implements Parser {
           builder.getCFAs(),
           builder.getCFANodes(),
           builder.getStaticFieldDeclarations(),
-          parsedFiles,
-          Language.JAVA);
+          parsedFiles);
     } catch (CFAGenerationRuntimeException e) {
       throw new JParserException(e);
     } finally {

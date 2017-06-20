@@ -52,7 +52,6 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -348,7 +347,7 @@ class CFABuilder extends ASTVisitor {
       throw new CParserException("Invalid C code because of undefined identifiers mentioned above.");
     }
 
-    ParseResult result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles, Language.C);
+    ParseResult result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
 
     return result;
   }
