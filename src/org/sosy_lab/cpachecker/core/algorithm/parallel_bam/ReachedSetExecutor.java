@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
 import org.sosy_lab.cpachecker.cpa.bam.BlockSummaryMissingException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -117,6 +119,9 @@ class ReachedSetExecutor {
    */
   private final Multimap<ReachedSetExecutor, AbstractState> dependingFrom =
       LinkedHashMultimap.create();
+
+  /** We need to track some data to avoid circular dependencies with recursive function-calls. */
+  private final Set<Block> surroundingBlocks = new LinkedHashSet<>();
 
   public ReachedSetExecutor(
       BAMCPAWithoutReachedSetCreation pBamCpa,
@@ -361,6 +366,10 @@ class ReachedSetExecutor {
     synchronized (subRse.dependingFrom) {
       subRse.dependingFrom.put(this, pBsme.getState());
     }
+    synchronized (subRse.surroundingBlocks) {
+      subRse.surroundingBlocks.addAll(surroundingBlocks);
+      subRse.surroundingBlocks.add(pBsme.getBlock());
+    }
   }
 
   /**
@@ -370,13 +379,22 @@ class ReachedSetExecutor {
    * <li>remove the initial state from the reached-set,
    * <li>create a new {@link ReachedSetExecutor} for the missing block,
    * <li>add a dependency between the sub-analysis and the current one.
+   *
+   * @throws UnsupportedCodeException when finding a recursive function call
    */
-  private void handleMissingBlock(BlockSummaryMissingException pBsme) {
+  private void handleMissingBlock(BlockSummaryMissingException pBsme)
+      throws UnsupportedCodeException {
     logger.logf(level, "%s :: starting, bsme=%s", this, id(pBsme.getState()));
 
     if (targetStateFound) {
       logger.logf(Level.SEVERE, "%s :: after finding a missing block, we should not get new states", this);
       throw new AssertionError("after finding a missing block, we should not get new states");
+    }
+
+    final CFANode entryLocation = AbstractStates.extractLocation(pBsme.getState());
+    if (hasRecursion(entryLocation)) {
+      // we directly abort when finding recursion, instead of asking {@link CallstackCPA}
+      throw new UnsupportedCodeException("recursion", entryLocation.getLeavingEdge(0));
     }
 
     if (shutdownNotifier.shouldShutdown() || terminateAnalysis.get()) {
@@ -412,6 +430,10 @@ class ReachedSetExecutor {
       // this step results in 'parallel' execution of current analysis and sub-analysis.
       registerJob(this, this.asRunnable());
     }
+  }
+
+  private boolean hasRecursion(CFANode pEntryLocation) {
+    return Iterables.any(surroundingBlocks, b -> b.getCallNodes().contains(pEntryLocation));
   }
 
   private void scheduleSubAnalysis(BlockSummaryMissingException pBsme,
