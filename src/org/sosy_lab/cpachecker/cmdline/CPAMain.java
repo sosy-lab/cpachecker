@@ -80,8 +80,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
+import org.sosy_lab.cpachecker.util.SpecificationProperty.PropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -510,9 +510,9 @@ public class CPAMain {
                 .transform(
                     prop ->
                         new SpecificationProperty(
-                            prop.getEntryFunctionName(),
-                            prop.getPropertyType(),
-                            Optional.ofNullable(SPECIFICATION_FILES.get(prop.getPropertyType()))
+                            parser.getEntryFunction(),
+                            prop,
+                            Optional.ofNullable(SPECIFICATION_FILES.get(prop))
                                 .map(CmdLineArguments::resolveSpecificationFileOrExit)))
                 .toSet();
         assert !properties.isEmpty();

@@ -25,9 +25,38 @@ package org.sosy_lab.cpachecker.util;
 
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 
 public class SpecificationProperty {
+
+  public static enum PropertyType {
+    REACHABILITY_LABEL("G ! label(ERROR)"),
+
+    REACHABILITY("G ! call(__VERIFIER_error())"),
+
+    VALID_FREE("G valid-free"),
+
+    VALID_DEREF("G valid-deref"),
+
+    VALID_MEMTRACK("G valid-memtrack"),
+
+    OVERFLOW("G ! overflow"),
+
+    DEADLOCK("G ! deadlock"),
+
+    TERMINATION("F end"),
+    ;
+
+    private final String representation;
+
+    private PropertyType(String pRepresentation) {
+      representation = pRepresentation;
+    }
+
+    @Override
+    public String toString() {
+      return representation;
+    }
+  }
 
   private final String entryFunction;
 
