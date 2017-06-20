@@ -222,34 +222,6 @@ public class CPAMain {
 
     @Option(
       secure = true,
-      name = "witness.validation.file",
-      description = "The witness to validate."
-    )
-    @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private @Nullable Path witness = null;
-
-    @Option(
-      secure = true,
-      name = "witness.validation.violation.config",
-      description =
-          "When validating a violation witness, "
-              + "use this configuration file instead of the current one."
-    )
-    @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private @Nullable Path violationWitnessValidationConfig = null;
-
-    @Option(
-      secure = true,
-      name = "witness.validation.correctness.config",
-      description =
-          "When validating a correctness witness, "
-              + "use this configuration file instead of the current one."
-    )
-    @FileOption(Type.OPTIONAL_INPUT_FILE)
-    private @Nullable Path correctnessWitnessValidationConfig = null;
-
-    @Option(
-      secure = true,
       name = CmdLineArguments.PRINT_USED_OPTIONS_OPTION,
       description = "all used options are printed"
     )
@@ -339,15 +311,11 @@ public class CPAMain {
     config = p.getFirst();
     String outputDirectory = p.getSecond();
 
-    // Check if we should switch to another config because we are analyzing memsafety properties.
+    // Read witness file if present, switch to appropriate config and adjust cmdline options
+    config = handleWitnessOptions(config, cmdLineOptions);
+
     BootstrapOptions options = new BootstrapOptions();
     config.inject(options);
-
-    if (options.witness != null) {
-      // Read witness file if present, switch to appropriate config and adjust cmdline options
-      config = handleWitnessOptions(options, cmdLineOptions);
-      config.inject(options); // need to re-inject to get appropriate values for property options
-    }
 
     // Switch to appropriate config depending on property (if necessary)
     config = handlePropertyOptions(config, options, cmdLineOptions, properties);
@@ -521,23 +489,58 @@ public class CPAMain {
     return Pair.of(config, outputDirectory);
   }
 
+  @Options
+  private static class WitnessOptions {
+    @Option(
+      secure = true,
+      name = "witness.validation.file",
+      description = "The witness to validate."
+    )
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path witness = null;
+
+    @Option(
+      secure = true,
+      name = "witness.validation.violation.config",
+      description =
+          "When validating a violation witness, "
+              + "use this configuration file instead of the current one."
+    )
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path violationWitnessValidationConfig = null;
+
+    @Option(
+      secure = true,
+      name = "witness.validation.correctness.config",
+      description =
+          "When validating a correctness witness, "
+              + "use this configuration file instead of the current one."
+    )
+    @FileOption(Type.OPTIONAL_INPUT_FILE)
+    private @Nullable Path correctnessWitnessValidationConfig = null;
+  }
+
   private static Configuration handleWitnessOptions(
-      BootstrapOptions options, Map<String, String> cmdLineOptions)
+      Configuration config, Map<String, String> overrideOptions)
       throws InvalidConfigurationException, IOException {
-    Configuration config;
+    WitnessOptions options = new WitnessOptions();
+    config.inject(options);
+    if (options.witness == null) {
+      return config;
+    }
+
     WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
-    ConfigurationBuilder witnessConfigBuilder = Configuration.builder();
     final Path validationConfigFile;
     switch (witnessType) {
       case VIOLATION_WITNESS:
         validationConfigFile = options.violationWitnessValidationConfig;
-        String specs = cmdLineOptions.get(SPECIFICATION_OPTION);
+        String specs = overrideOptions.get(SPECIFICATION_OPTION);
         specs = Joiner.on(',').join(specs, options.witness.toString());
-        cmdLineOptions.put(SPECIFICATION_OPTION, specs);
+        overrideOptions.put(SPECIFICATION_OPTION, specs);
         break;
       case CORRECTNESS_WITNESS:
         validationConfigFile = options.correctnessWitnessValidationConfig;
-        cmdLineOptions.put(
+        overrideOptions.put(
             "invariantGeneration.kInduction.invariantsAutomatonFile", options.witness.toString());
         break;
       default:
@@ -548,16 +551,15 @@ public class CPAMain {
       throw new InvalidConfigurationException(
           "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
     }
-    witnessConfigBuilder.loadFromFile(validationConfigFile);
-    witnessConfigBuilder
-        .setOptions(cmdLineOptions)
+    return Configuration.builder()
+        .loadFromFile(validationConfigFile)
+        .setOptions(overrideOptions)
         .clearOption("witness.validation.file")
         .clearOption("witness.validation.violation.config")
         .clearOption("witness.validation.correctness.config")
         .clearOption("output.path")
-        .clearOption("rootDirectory");
-    config = witnessConfigBuilder.build();
-    return config;
+        .clearOption("rootDirectory")
+        .build();
   }
 
   @SuppressWarnings("deprecation")
