@@ -27,6 +27,7 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -41,6 +42,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -72,6 +74,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -191,32 +194,17 @@ public class CPAMain {
 
   @Options
   private static class BootstrapOptions {
-    @Option(secure=true, name="memorysafety.check",
-        description="Whether to check for memory safety properties "
-            + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
-    private boolean checkMemsafety = false;
-
     @Option(secure=true, name="memorysafety.config",
         description="When checking for memory safety properties, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path memsafetyConfig = null;
 
-    @Option(secure=true, name="overflow.check",
-        description="Whether to check for the overflow property "
-            + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
-    private boolean checkOverflow = false;
-
     @Option(secure=true, name="overflow.config",
         description="When checking for the overflow property, "
             + "use this configuration file instead of the current one.")
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     private @Nullable Path overflowConfig = null;
-
-    @Option(secure=true, name="termination.check",
-        description="Whether to check for the termination property "
-            + "(this can be specified by passing an appropriate .prp file to the -spec parameter).")
-    private boolean checkTermination = false;
 
     @Option(secure=true, name="termination.config",
         description="When checking for the termination property, "
@@ -301,6 +289,10 @@ public class CPAMain {
       }
     }
   }
+
+  private static final ImmutableSet<PropertyType> MEMSAFETY_PROPERTY_TYPES =
+      Sets.immutableEnumSet(
+          PropertyType.VALID_DEREF, PropertyType.VALID_FREE, PropertyType.VALID_MEMTRACK);
 
   /**
    * Parse the command line, read the configuration file, and setup the program-wide base paths.
@@ -388,7 +380,17 @@ public class CPAMain {
       config = witnessConfigBuilder.build();
       config.inject(options);
     }
-    if (options.checkMemsafety) {
+
+    Set<PropertyType> propertyTypes =
+        Sets.immutableEnumSet(
+            Collections2.transform(properties, SpecificationProperty::getPropertyType));
+
+    if (!Collections.disjoint(propertyTypes, MEMSAFETY_PROPERTY_TYPES)) {
+      if (!MEMSAFETY_PROPERTY_TYPES.containsAll(propertyTypes)) {
+        // Memsafety property cannot be checked with others in combination
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + propertyTypes);
+      }
       if (options.memsafetyConfig == null) {
         throw new InvalidConfigurationException("Verifying memory safety is not supported if option memorysafety.config is not specified.");
       }
@@ -396,7 +398,6 @@ public class CPAMain {
           Configuration.builder()
               .loadFromFile(options.memsafetyConfig)
               .setOptions(cmdLineOptions)
-              .clearOption("memorysafety.check")
               .clearOption("memorysafety.config")
               .clearOption("output.disable")
               .clearOption("output.path")
@@ -404,15 +405,20 @@ public class CPAMain {
       witnessFileOptionSetter.accept(builder);
       config = builder.build();
     }
-    if (options.checkOverflow) {
+    if (propertyTypes.contains(PropertyType.OVERFLOW)) {
+      if (propertyTypes.size() != 1) {
+        // Overflow property cannot be checked with others in combination
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + propertyTypes);
+      }
       if (options.overflowConfig == null) {
+
         throw new InvalidConfigurationException("Verifying overflows is not supported if option overflow.config is not specified.");
       }
       ConfigurationBuilder builder =
           Configuration.builder()
               .loadFromFile(options.overflowConfig)
               .setOptions(cmdLineOptions)
-              .clearOption("overflow.check")
               .clearOption("overflow.config")
               .clearOption("output.disable")
               .clearOption("output.path")
@@ -420,7 +426,12 @@ public class CPAMain {
       witnessFileOptionSetter.accept(builder);
       config = builder.build();
     }
-    if (options.checkTermination) {
+    if (propertyTypes.contains(PropertyType.TERMINATION)) {
+      // Termination property cannot be checked with others in combination
+      if (propertyTypes.size() != 1) {
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + propertyTypes);
+      }
       if (options.terminationConfig == null) {
         throw new InvalidConfigurationException(
             "Verifying termination is not supported if option termination.config is not specified.");
@@ -429,7 +440,6 @@ public class CPAMain {
           Configuration.builder()
               .loadFromFile(options.terminationConfig)
               .setOptions(cmdLineOptions)
-              .clearOption("termination.check")
               .clearOption("termination.config")
               .clearOption("output.disable")
               .clearOption("output.path")

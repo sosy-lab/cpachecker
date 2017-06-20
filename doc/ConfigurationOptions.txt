@@ -2534,10 +2534,6 @@ locmapper.dumpTokenizedProgramToFile = no default value
 # all used options are printed
 log.usedOptions.export = false
 
-# Whether to check for memory safety properties (this can be specified by
-# passing an appropriate .prp file to the -spec parameter).
-memorysafety.check = false
-
 # When checking for memory safety properties, use this configuration file
 # instead of the current one.
 memorysafety.config = no default value
@@ -2545,10 +2541,6 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
-
-# Whether to check for the overflow property (this can be specified by
-# passing an appropriate .prp file to the -spec parameter).
-overflow.check = false
 
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
@@ -2931,10 +2923,6 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# Whether to check for the termination property (this can be specified by
-# passing an appropriate .prp file to the -spec parameter).
-termination.check = false
 
 # When checking for the termination property, use this configuration file
 # instead of the current one.

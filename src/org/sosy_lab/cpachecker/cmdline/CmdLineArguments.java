@@ -30,7 +30,6 @@ import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -43,7 +42,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -379,17 +377,6 @@ class CmdLineArguments {
     properties.put(key, value);
   }
 
-  private static void putIfNotDifferent(final Map<String, String> properties, final String key, final String value)
-      throws InvalidCmdlineArgumentException {
-
-    if (properties.containsKey(key) && !properties.get(key).equals(value)) {
-      throw new InvalidCmdlineArgumentException("Duplicate option " + key + " specified on command-line, "
-          + "with different values " + properties.get(key) + " and " + value + ".");
-    }
-
-    properties.put(key, value);
-  }
-
   static void appendOptionValue(
       final Map<String, String> options, final String option, String newValue) {
     if (newValue != null) {
@@ -440,7 +427,7 @@ class CmdLineArguments {
         Iterables.addAll(pSpecificationProperties, properties);
         assert !Iterables.isEmpty(properties);
 
-        specification = getSpecifications(options, properties);
+        specification = getSpecifications(properties);
 
       } else {
         ERROR_OUTPUT.println("The property file " + specification + " does not exist.");
@@ -461,23 +448,11 @@ class CmdLineArguments {
     return pSpecification;
   }
 
-  /**
-   * This method returns all specifications for the given properties. If needed for the analysis,
-   * some options can be set.
-   */
-  private static String getSpecifications(
-      final Map<String, String> options, Iterable<SpecificationProperty> pProperties)
-      throws InvalidCmdlineArgumentException {
+  /** This method returns all specifications for the given properties. */
+  private static String getSpecifications(Iterable<SpecificationProperty> pProperties) {
     final List<String> specifications = new ArrayList<>();
     for (SpecificationProperty specificationProperty : pProperties) {
       Optional<String> newSpec = specificationProperty.getInternalSpecificationPath();
-      for (Map.Entry<String, String> additionalOptions :
-          specificationProperty
-              .getPropertyType()
-              .accept(PropertyOptionVisitor.INSTANCE)
-              .entrySet()) {
-        putIfNotDifferent(options, additionalOptions.getKey(), additionalOptions.getValue());
-      }
       assert newSpec != null;
       newSpec.ifPresent(specifications::add);
     }
@@ -525,50 +500,6 @@ class CmdLineArguments {
     }
 
     return null;
-  }
-
-  private static enum PropertyOptionVisitor implements PropertyTypeVisitor<Map<String, String>> {
-    INSTANCE;
-
-    @Override
-    public Map<String, String> visitReachabilityLabel() {
-      return Collections.emptyMap();
-    }
-
-    @Override
-    public Map<String, String> visitReachability() {
-      return Collections.emptyMap();
-    }
-
-    @Override
-    public Map<String, String> visitValidFree() {
-      return ImmutableMap.of("memorysafety.check", "true");
-    }
-
-    @Override
-    public Map<String, String> visitValidDeref() {
-      return ImmutableMap.of("memorysafety.check", "true");
-    }
-
-    @Override
-    public Map<String, String> visitValidMemtrack() {
-      return ImmutableMap.of("memorysafety.check", "true");
-    }
-
-    @Override
-    public Map<String, String> visitOverflow() {
-      return ImmutableMap.of("overflow.check", "true");
-    }
-
-    @Override
-    public Map<String, String> visitDeadlock() {
-      return Collections.emptyMap();
-    }
-
-    @Override
-    public Map<String, String> visitTermination() {
-      return ImmutableMap.of("termination.check", "true");
-    }
   }
 
   private static enum PropertySpecificationFileVisitor
