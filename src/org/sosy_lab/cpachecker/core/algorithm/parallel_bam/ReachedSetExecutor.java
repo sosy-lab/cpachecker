@@ -404,8 +404,14 @@ class ReachedSetExecutor {
       }
     }
 
-    // register current RSE for further analysis
-    registerJob(this, this.asRunnable());
+    if (rs.getWaitlist().isEmpty()) {
+      // optimization: if no further states are waiting, no need to schedule the current RSE.
+      // when sub-analysis is finished, the current analysis is re-started.
+    } else {
+      // register current RSE for further analysis.
+      // this step results in 'parallel' execution of current analysis and sub-analysis.
+      registerJob(this, this.asRunnable());
+    }
   }
 
   private void scheduleSubAnalysis(BlockSummaryMissingException pBsme,
