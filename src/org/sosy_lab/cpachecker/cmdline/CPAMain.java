@@ -76,7 +76,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
@@ -306,10 +305,23 @@ public class CPAMain {
     configBuilder.setOptions(cmdLineOptions);
     Configuration config = configBuilder.build();
 
-    // Get output directory and setup paths.
-    Pair<Configuration, String> p = setupPaths(config, secureMode);
-    config = p.getFirst();
-    String outputDirectory = p.getSecond();
+    // We want to be able to use options of type "File" with some additional
+    // logic provided by FileTypeConverter, so we create such a converter,
+    // add it to our Configuration object and to the the map of default converters.
+    // The latter will ensure that it is used whenever a Configuration object
+    // is created.
+    FileTypeConverter fileTypeConverter =
+        secureMode
+            ? FileTypeConverter.createWithSafePathsOnly(config)
+            : FileTypeConverter.create(config);
+    String outputDirectory = fileTypeConverter.getOutputDirectory();
+    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
+
+    config =
+        Configuration.builder()
+            .copyFrom(config)
+            .addConverter(FileOption.class, fileTypeConverter)
+            .build();
 
     // Read witness file if present, switch to appropriate config and adjust cmdline options
     config = handleWitnessOptions(config, cmdLineOptions);
@@ -464,29 +476,6 @@ public class CPAMain {
       newSpec.ifPresent(specifications::add);
     }
     return Joiner.on(",").join(specifications);
-  }
-
-  private static Pair<Configuration, String> setupPaths(Configuration pConfig,
-      boolean pSecureMode) throws InvalidConfigurationException {
-    // We want to be able to use options of type "File" with some additional
-    // logic provided by FileTypeConverter, so we create such a converter,
-    // add it to our Configuration object and to the the map of default converters.
-    // The latter will ensure that it is used whenever a Configuration object
-    // is created.
-    FileTypeConverter fileTypeConverter = pSecureMode
-        ? FileTypeConverter.createWithSafePathsOnly(pConfig)
-        : FileTypeConverter.create(pConfig);
-    String outputDirectory = fileTypeConverter.getOutputDirectory();
-
-    Configuration config = Configuration.builder()
-                        .copyFrom(pConfig)
-                        .addConverter(FileOption.class, fileTypeConverter)
-                        .build();
-
-    Configuration.getDefaultConverters()
-                 .put(FileOption.class, fileTypeConverter);
-
-    return Pair.of(config, outputDirectory);
   }
 
   @Options
