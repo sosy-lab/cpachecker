@@ -382,7 +382,14 @@ private boolean classifyNodes = false;
 
     assert mainFunction != null;
 
-    MutableCFA cfa = new MutableCFA(machineModel, pParseResult.getFunctions(), pParseResult.getCFANodes(), mainFunction, language);
+    MutableCFA cfa =
+        new MutableCFA(
+            machineModel,
+            pParseResult.getFunctions(),
+            pParseResult.getCFANodes(),
+            mainFunction,
+            pParseResult.getFileNames(),
+            language);
 
     stats.checkTime.start();
 

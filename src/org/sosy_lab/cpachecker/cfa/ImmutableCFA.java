@@ -27,12 +27,14 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
 import java.io.Serializable;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +63,7 @@ class ImmutableCFA implements CFA, Serializable {
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification varClassification;
   private final @Nullable LiveVariables liveVariables;
+  private final ImmutableList<Path> fileNames;
   private final Language language;
 
   ImmutableCFA(
@@ -71,6 +74,7 @@ class ImmutableCFA implements CFA, Serializable {
       Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
       Optional<LiveVariables> pLiveVariables,
+      List<Path> pFileNames,
       Language pLanguage) {
 
     machineModel = pMachineModel;
@@ -80,6 +84,7 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = pLoopStructure.orElse(null);
     varClassification = pVarClassification.orElse(null);
     liveVariables = pLiveVariables.orElse(null);
+    fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
 
     checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
@@ -93,6 +98,7 @@ class ImmutableCFA implements CFA, Serializable {
     loopStructure = null;
     varClassification = null;
     liveVariables = null;
+    fileNames = ImmutableList.of();
     language = pLanguage;
   }
 
@@ -173,6 +179,10 @@ class ImmutableCFA implements CFA, Serializable {
     return language;
   }
 
+  @Override
+  public List<Path> getFileNames() {
+    return fileNames;
+  }
 
   private void writeObject(java.io.ObjectOutputStream s) throws java.io.IOException {
 

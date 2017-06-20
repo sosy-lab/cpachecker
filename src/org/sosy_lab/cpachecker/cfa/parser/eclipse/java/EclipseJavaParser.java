@@ -106,6 +106,8 @@ class EclipseJavaParser implements Parser {
   private final String[] javaSourcePaths;
   private final String[] javaClassPaths;
 
+  private final List<Path> parsedFiles = new ArrayList<>();
+
   private static final boolean IGNORE_METHOD_BODY = true;
   private static final boolean PARSE_METHOD_BODY = false;
   private static final String JAVA_SOURCE_FILE_REGEX = ".*\\.java";
@@ -285,6 +287,7 @@ class EclipseJavaParser implements Parser {
   }
 
   private CompilationUnit parse(Path file, boolean ignoreMethodBody) throws JParserException {
+    parsedFiles.add(file);
 
     parser.setEnvironment(javaClassPaths, javaSourcePaths, getEncodings(), false);
     parser.setResolveBindings(true);
@@ -363,7 +366,12 @@ class EclipseJavaParser implements Parser {
       DynamicBindingCreator tracker = new DynamicBindingCreator(builder);
       tracker.trackAndCreateDynamicBindings();
 
-      return new ParseResult(builder.getCFAs(), builder.getCFANodes(), builder.getStaticFieldDeclarations(), Language.JAVA);
+      return new ParseResult(
+          builder.getCFAs(),
+          builder.getCFANodes(),
+          builder.getStaticFieldDeclarations(),
+          parsedFiles,
+          Language.JAVA);
     } catch (CFAGenerationRuntimeException e) {
       throw new JParserException(e);
     } finally {

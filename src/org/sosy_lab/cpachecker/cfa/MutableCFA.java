@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SortedSetMultimap;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,6 +48,7 @@ public class MutableCFA implements CFA {
   private final SortedMap<String, FunctionEntryNode> functions;
   private final SortedSetMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
+  private final List<Path> fileNames;
   private final Language language;
   private Optional<LoopStructure> loopStructure = Optional.empty();
   private Optional<LiveVariables> liveVariables = Optional.empty();
@@ -54,12 +58,14 @@ public class MutableCFA implements CFA {
       SortedMap<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
+      List<Path> pFileNames,
       Language pLanguage) {
 
     machineModel = pMachineModel;
     functions = pFunctions;
     allNodes = pAllNodes;
     mainFunction = pMainFunction;
+    fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
 
     assert functions.keySet().equals(allNodes.keySet());
@@ -161,6 +167,7 @@ public class MutableCFA implements CFA {
         loopStructure,
         pVarClassification,
         liveVariables,
+        fileNames,
         language);
   }
 
@@ -183,4 +190,8 @@ public class MutableCFA implements CFA {
       return language;
   }
 
+  @Override
+  public List<Path> getFileNames() {
+    return fileNames;
+  }
 }

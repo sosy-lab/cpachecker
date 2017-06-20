@@ -25,11 +25,15 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static org.junit.Assert.assertEquals;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,12 +77,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 import org.sosy_lab.java_smt.test.SolverBasedTest0;
-
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 /**
  * Testing the custom SSA implementation.
@@ -226,13 +224,9 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     functions.put("main", entryNode);
 
-    MutableCFA cfa = new MutableCFA(
-        MachineModel.LINUX32,
-        functions,
-        nodes,
-        entryNode,
-        Language.C
-    );
+    MutableCFA cfa =
+        new MutableCFA(
+            MachineModel.LINUX32, functions, nodes, entryNode, ImmutableList.of(), Language.C);
     return Triple.of(a_to_b, b_to_a, cfa);
   }
 

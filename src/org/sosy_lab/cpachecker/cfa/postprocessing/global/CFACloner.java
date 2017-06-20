@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
-
+import java.util.Collection;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,10 +42,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.Collection;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 @Options(prefix = "cfa.cfaCloner")
 public class CFACloner {
@@ -108,7 +106,13 @@ public class CFACloner {
       }
     }
 
-    return new MutableCFA(cfa.getMachineModel(), functions, nodes, cfa.getMainFunction(), cfa.getLanguage());
+    return new MutableCFA(
+        cfa.getMachineModel(),
+        functions,
+        nodes,
+        cfa.getMainFunction(),
+        cfa.getFileNames(),
+        cfa.getLanguage());
   }
 
   /** build a new name consisting of a function-name and an index. */

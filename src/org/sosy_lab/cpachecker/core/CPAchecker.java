@@ -290,16 +290,15 @@ public class CPAchecker {
 
     try {
       try {
-        stats = new MainCPAStatistics(config, logger, programDenotation, shutdownNotifier);
+        stats = new MainCPAStatistics(config, logger, shutdownNotifier);
 
         // create reached set, cpa, algorithm
         stats.creationTime.start();
         reached = factory.createReachedSet();
 
         if (runCBMCasExternalTool) {
-
-          checkIfOneValidFile(programDenotation);
-          algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
+          algorithm =
+              new ExternalCBMCAlgorithm(checkIfOneValidFile(programDenotation), config, logger);
 
         } else {
           cfa = parse(programDenotation, stats);
@@ -323,7 +322,7 @@ public class CPAchecker {
 
           GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-          algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, specification);
+          algorithm = factory.createAlgorithm(cpa, cfa, specification);
 
           if (algorithm instanceof StatisticsProvider) {
             ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
@@ -415,7 +414,7 @@ public class CPAchecker {
     return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
   }
 
-  private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
+  private Path checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
     if (!denotesOneFile(fileDenotation)) {
       throw new InvalidConfigurationException(
         "Exactly one code file has to be given.");
@@ -428,6 +427,8 @@ public class CPAchecker {
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
+
+    return file;
   }
 
   private boolean denotesOneFile(String programDenotation) {

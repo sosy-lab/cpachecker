@@ -82,7 +82,6 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   private final Configuration config;
   private final Specification specification;
   private final CFA cfa;
-  private final String filename;
 
   @Option(secure=true, name = "path.file",
       description = "File name where to put the path specification that is generated "
@@ -107,7 +106,6 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
-      String pFilename,
       Function<ARGState, Optional<CounterexampleInfo>> pGetCounterexampleInfo)
       throws InvalidConfigurationException {
     this.logger = logger;
@@ -116,7 +114,6 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
     config.inject(this);
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
-    this.filename = pFilename;
     getCounterexampleInfo = Objects.requireNonNull(pGetCounterexampleInfo);
   }
 
@@ -180,7 +177,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
           new CoreComponentsFactory(
               lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
-      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, lSpecification);
+      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, cfa, lSpecification);
       ReachedSet lReached = factory.createReachedSet();
       lReached.add(
           lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),
