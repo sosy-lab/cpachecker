@@ -99,7 +99,7 @@ public final class Specification {
 
       if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
-            new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
+            new AutomatonGraphmlParser(config, logger, cfa, scope);
         automata = graphmlParser.parseAutomatonFile(specFile);
 
       } else {

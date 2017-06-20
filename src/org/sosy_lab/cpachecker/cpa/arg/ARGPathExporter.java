@@ -71,7 +71,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -109,7 +108,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
@@ -208,10 +206,6 @@ public class ARGPathExporter {
 
   private final CFA cfa;
 
-  private final MachineModel machineModel;
-
-  private final Language language;
-
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
@@ -228,9 +222,8 @@ public class ARGPathExporter {
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
     this.cfa = pCFA;
-    this.machineModel = pCFA.getMachineModel();
-    this.language = pCFA.getLanguage();
-    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
+    this.assumptionToEdgeAllocator =
+        new AssumptionToEdgeAllocator(pConfig, pLogger, pCFA.getMachineModel());
     this.verificationTaskMetaData =
         new VerificationTaskMetaData(pConfig, Optional.of(pSpecification));
   }
@@ -940,9 +933,7 @@ public class ARGPathExporter {
 
       final GraphMlBuilder doc;
       try {
-        doc =
-            new GraphMlBuilder(
-                graphType, defaultSourcefileName, language, machineModel, verificationTaskMetaData);
+        doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }

@@ -23,16 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
-import com.google.common.io.BaseEncoding;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -43,7 +38,6 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
@@ -57,13 +51,6 @@ public class VerificationTaskMetaData {
    */
   @Options
   private static class HackyOptions {
-
-    @Option(
-      secure = true,
-      name = "analysis.programNames",
-      description = "A String, denoting the programs to be analyzed"
-    )
-    private String programs;
 
     @Option(
       secure = true,
@@ -95,13 +82,7 @@ public class VerificationTaskMetaData {
 
   private final VerificationTaskMetaData.HackyOptions hackyOptions = new HackyOptions();
 
-  private final Optional<Iterable<String>> programNames;
-
   private final Optional<Specification> specification;
-
-  private List<String> programHash;
-
-  private List<String> inputWitnessHashes = null;
 
   private List<Path> nonWitnessAutomatonFiles = null;
 
@@ -111,61 +92,11 @@ public class VerificationTaskMetaData {
       throws InvalidConfigurationException {
     pConfig.inject(hackyOptions);
     specification = pSpecification;
-    if (hackyOptions.programs == null) {
-      programNames = Optional.empty();
-    } else {
-      Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-      programNames = Optional.of(commaSplitter.split(hackyOptions.programs));
-    }
   }
 
-  private static String computeHash(Path pPath) throws IOException {
-    HashCode hash = MoreFiles.asByteSource(pPath).hash(Hashing.sha1());
-    return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
-  }
-
-  /**
-   * Gets the names of the source-code files of the verification task if this information is
-   * available.
-   *
-   * @return the names of the source-code files of the verification task.
-   */
-  public Optional<Iterable<String>> getProgramNames() {
-    return programNames;
-  }
-
-  /**
-   * Gets the SHA-1 hash values of the source-code files of the verification task if they are
-   * available.
-   *
-   * @return the SHA-1 hash values of the source-code files of the verification task.
-   * @throws IOException if an {@code IOException} occurs while trying to read the source-code
-   *     files.
-   */
-  public Optional<List<String>> getProgramHashes() throws IOException {
-    if (!programNames.isPresent()) {
-      return Optional.empty();
-    }
-    if (programHash == null) {
-      ImmutableList.Builder<String> programHashesBuilder = ImmutableList.builder();
-      for (String programDenotation : programNames.get()) {
-        programHashesBuilder.add(computeHash(Paths.get(programDenotation)));
-      }
-      programHash = programHashesBuilder.build();
-    }
-    return Optional.of(programHash);
-  }
-
-  public List<String> getInputWitnessHashes() throws IOException {
-    if (inputWitnessHashes == null) {
-      classifyAutomataFiles();
-      ImmutableList.Builder<String> inputWitnessHashesBuilder = ImmutableList.builder();
-      for (Path witnessAutomatonFile : witnessAutomatonFiles) {
-        inputWitnessHashesBuilder.add(computeHash(witnessAutomatonFile));
-      }
-      inputWitnessHashes = inputWitnessHashesBuilder.build();
-    }
-    return inputWitnessHashes;
+  public List<Path> getInputWitnessFiles() throws IOException {
+    classifyAutomataFiles();
+    return witnessAutomatonFiles;
   }
 
   /**
