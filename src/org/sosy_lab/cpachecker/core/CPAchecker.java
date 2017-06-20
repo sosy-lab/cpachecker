@@ -221,7 +221,6 @@ public class CPAchecker {
 
   private final LogManager logger;
   private final Configuration config;
-  private final Set<SpecificationProperty> properties;
   private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
@@ -257,13 +256,9 @@ public class CPAchecker {
   }
 
   public CPAchecker(
-      Configuration pConfiguration,
-      LogManager pLogManager,
-      ShutdownManager pShutdownManager,
-      Set<SpecificationProperty> pProperties)
+      Configuration pConfiguration, LogManager pLogManager, ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     config = pConfiguration;
-    properties = ImmutableSet.copyOf(pProperties);
     logger = pLogManager;
     shutdownManager = pShutdownManager;
     shutdownNotifier = pShutdownManager.getNotifier();
@@ -274,7 +269,8 @@ public class CPAchecker {
             pConfiguration, pLogManager, shutdownNotifier, new AggregatedReachedSets());
   }
 
-  public CPAcheckerResult run(List<String> programDenotation) {
+  public CPAcheckerResult run(
+      List<String> programDenotation, Set<SpecificationProperty> properties) {
     checkArgument(!programDenotation.isEmpty());
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
@@ -333,7 +329,7 @@ public class CPAchecker {
             ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
             reached.add(mcmillan.getInitialState(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
           } else {
-            initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
+            initializeReachedSet(reached, cpa, properties, cfa.getMainFunction(), cfa);
           }
         }
 
@@ -535,6 +531,7 @@ public class CPAchecker {
   private void initializeReachedSet(
       final ReachedSet pReached,
       final ConfigurableProgramAnalysis pCpa,
+      final Set<SpecificationProperty> pProperties,
       final FunctionEntryNode pAnalysisEntryFunction,
       final CFA pCfa)
       throws InvalidConfigurationException, InterruptedException {
@@ -572,7 +569,7 @@ public class CPAchecker {
               tlp.tryGetAutomatonTargetLocations(
                   pAnalysisEntryFunction,
                   Specification.fromFiles(
-                      properties, backwardSpecificationFiles, pCfa, config, logger));
+                      pProperties, backwardSpecificationFiles, pCfa, config, logger));
           break;
       default:
         throw new AssertionError("Unhandled case statement: " + initialStatesFor);

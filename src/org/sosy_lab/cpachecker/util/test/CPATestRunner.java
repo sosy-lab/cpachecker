@@ -58,8 +58,9 @@ public class CPATestRunner {
     LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);
 
     ShutdownManager shutdownManager = ShutdownManager.create();
-    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager, ImmutableSet.of());
-    CPAcheckerResult results = cpaChecker.run(ImmutableList.of(pSourceCodeFilePath));
+    CPAchecker cpaChecker = new CPAchecker(config, logger, shutdownManager);
+    CPAcheckerResult results =
+        cpaChecker.run(ImmutableList.of(pSourceCodeFilePath), ImmutableSet.of());
     logger.flush();
     return new TestResults(stringLogHandler.getLog(), results);
   }

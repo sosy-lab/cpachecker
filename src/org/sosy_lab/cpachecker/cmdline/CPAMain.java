@@ -145,7 +145,7 @@ public class CPAMain {
       limits = ResourceLimitChecker.fromConfiguration(cpaConfig, logManager, shutdownManager);
       limits.start();
 
-      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownManager, properties);
+      cpachecker = new CPAchecker(cpaConfig, logManager, shutdownManager);
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
@@ -167,7 +167,7 @@ public class CPAMain {
     shutdownNotifier.register(forcedExitOnShutdown);
 
     // run analysis
-    CPAcheckerResult result = cpachecker.run(options.programs);
+    CPAcheckerResult result = cpachecker.run(options.programs, properties);
 
     // generated proof (if enabled)
     if (proofGenerator != null) {
