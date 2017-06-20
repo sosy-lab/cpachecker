@@ -53,8 +53,6 @@ public class BoundsState
 
   private final PersistentSortedMap<ComparableLoop, Integer> iterations;
 
-  private final String currentFunction;
-
   private final int returnFromCounter;
 
   private int hashCache = 0;
@@ -64,10 +62,10 @@ public class BoundsState
   }
 
   public BoundsState(boolean pStopIt) {
-    this(pStopIt, PathCopyingPersistentTreeMap.<ComparableLoop, Integer>of(), 0, null, 0);
+    this(pStopIt, PathCopyingPersistentTreeMap.<ComparableLoop, Integer>of(), 0, 0);
   }
 
-  private BoundsState(boolean pStopIt, PersistentSortedMap<ComparableLoop, Integer> pIterations, int pDeepestIteration, String pCurrentFunction, int pReturnFromCounter) {
+  private BoundsState(boolean pStopIt, PersistentSortedMap<ComparableLoop, Integer> pIterations, int pDeepestIteration, int pReturnFromCounter) {
     Preconditions.checkArgument(pDeepestIteration >= 0);
     Preconditions.checkArgument(
         (pDeepestIteration == 0 && pIterations.isEmpty())
@@ -75,7 +73,6 @@ public class BoundsState
     this.stopIt = pStopIt;
     this.iterations = pIterations;
     this.deepestIteration = pDeepestIteration;
-    this.currentFunction = pCurrentFunction;
     this.returnFromCounter = pReturnFromCounter;
   }
 
@@ -95,25 +92,17 @@ public class BoundsState
         stopIt,
         iterations.putAndCopy(new ComparableLoop(pLoop), iteration),
         iteration > deepestIteration ? iteration : deepestIteration,
-        currentFunction,
         returnFromCounter);
   }
 
 
 
   public BoundsState stopIt() {
-    return new BoundsState(true, iterations, deepestIteration, currentFunction, returnFromCounter);
-  }
-
-  public BoundsState setCurrentFunction(String pCurrentFunction) {
-    if (!Objects.equals(currentFunction, pCurrentFunction)) {
-      return new BoundsState(stopIt, iterations, deepestIteration, pCurrentFunction, 0);
-    }
-    return this;
+    return new BoundsState(true, iterations, deepestIteration, returnFromCounter);
   }
 
   public BoundsState returnFromFunction() {
-    return new BoundsState(stopIt, iterations, deepestIteration, currentFunction, returnFromCounter + 1);
+    return new BoundsState(stopIt, iterations, deepestIteration, returnFromCounter + 1);
   }
 
   @Override
@@ -181,14 +170,13 @@ public class BoundsState
     BoundsState other = (BoundsState)obj;
     return this.stopIt == other.stopIt
         && this.returnFromCounter == other.returnFromCounter
-        && Objects.equals(this.currentFunction, other.currentFunction)
         && this.iterations.equals(other.iterations);
   }
 
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(stopIt, returnFromCounter, currentFunction, iterations);
+      hashCache = Objects.hash(stopIt, returnFromCounter, iterations);
     }
     return hashCache;
   }

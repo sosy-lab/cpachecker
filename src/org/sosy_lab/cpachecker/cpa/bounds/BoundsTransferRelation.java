@@ -23,20 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.bounds;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -83,10 +79,6 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(pElement);
     }
 
-    if (pCfaEdge instanceof FunctionReturnEdge) {
-      e = e.returnFromFunction();
-    }
-
     CFANode loc = pCfaEdge.getSuccessor();
 
     Collection<Loop> loops = loopHeads.get(loc);
@@ -104,16 +96,4 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
     return Collections.singleton(e);
   }
 
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState pState, List<AbstractState> pOtherStates,
-      CFAEdge pCfaEdge, Precision pPrecision) {
-
-    BoundsState state = (BoundsState) pState;
-
-    for (CallstackState callstackState : FluentIterable.from(pOtherStates).filter(CallstackState.class)) {
-      state = state.setCurrentFunction(callstackState.getCurrentFunction());
-    }
-    return state.equals(pState) ? Collections.singleton(pState) : Collections.singleton(state);
-  }
 }
