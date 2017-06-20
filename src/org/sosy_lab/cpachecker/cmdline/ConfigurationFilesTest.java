@@ -280,7 +280,7 @@ public class ConfigurationFilesTest {
     }
 
     try {
-      cpachecker.run(createEmptyProgram(isJava));
+      cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)));
     } catch (IllegalArgumentException e) {
       if (isJava) {
         assume().fail("Java frontend has a bug and cannot be run twice");

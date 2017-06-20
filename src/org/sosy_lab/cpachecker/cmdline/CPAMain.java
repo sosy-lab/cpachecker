@@ -27,7 +27,6 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -42,6 +41,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -128,7 +128,7 @@ public class CPAMain {
     MainOptions options = new MainOptions();
     try {
       cpaConfig.inject(options);
-      if (Strings.isNullOrEmpty(options.programs)) {
+      if (options.programs.isEmpty()) {
         throw new InvalidConfigurationException("Please specify a program to analyze on the command line.");
       }
       dumpConfiguration(options, cpaConfig, logManager);
@@ -262,10 +262,13 @@ public class CPAMain {
 
   @Options
   private static class MainOptions {
-    @Option(secure=true, name="analysis.programNames",
-        //required=true, NOT required because we want to give a nicer user message ourselves
-        description="A String, denoting the programs to be analyzed")
-    private @Nullable String programs;
+    @Option(
+      secure = true,
+      name = "analysis.programNames",
+      //required=true, NOT required because we want to give a nicer user message ourselves
+      description = "A String, denoting the programs to be analyzed"
+    )
+    private @Nullable List<String> programs;
 
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")

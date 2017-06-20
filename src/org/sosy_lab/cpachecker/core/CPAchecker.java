@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableCollection;
@@ -274,7 +274,8 @@ public class CPAchecker {
             pConfiguration, pLogManager, shutdownNotifier, new AggregatedReachedSets());
   }
 
-  public CPAcheckerResult run(String programDenotation) {
+  public CPAcheckerResult run(List<String> programDenotation) {
+    checkArgument(!programDenotation.isEmpty());
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
@@ -414,13 +415,14 @@ public class CPAchecker {
     return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
   }
 
-  private Path checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
-    if (!denotesOneFile(fileDenotation)) {
+  private Path checkIfOneValidFile(List<String> fileDenotation)
+      throws InvalidConfigurationException {
+    if (fileDenotation.size() != 1) {
       throw new InvalidConfigurationException(
         "Exactly one code file has to be given.");
     }
 
-    Path file = Paths.get(fileDenotation);
+    Path file = Paths.get(fileDenotation.get(0));
 
     try {
       MoreFiles.checkReadableFile(file);
@@ -431,18 +433,13 @@ public class CPAchecker {
     return file;
   }
 
-  private boolean denotesOneFile(String programDenotation) {
-    return !programDenotation.contains(",");
-  }
-
-  private CFA parse(String fileNamesCommaSeparated, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
-      ParserException, InterruptedException {
+  private CFA parse(List<String> fileNames, MainCPAStatistics stats)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     // parse file and create CFA
     CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     stats.setCFACreator(cfaCreator);
 
-    Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(commaSplitter.splitToList(fileNamesCommaSeparated));
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
     stats.setCFA(cfa);
     return cfa;
   }
