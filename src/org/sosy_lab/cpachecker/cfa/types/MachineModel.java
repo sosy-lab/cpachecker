@@ -75,7 +75,7 @@ public enum MachineModel {
       2, // short
       4, //int
       4, //long int
-      8, // long long int
+      4, // long long int
       4, //float
       4, //double
       4, //long double
@@ -890,14 +890,49 @@ public enum MachineModel {
             outParameterMap.put(
                 typeMember, BigInteger.valueOf(bitOffset + sizeOfConsecutiveBitFields));
           }
-          sizeOfConsecutiveBitFields += fieldSizeInBits;
+
+          CType innerType = ((CBitFieldType) type).getType();
+
+          if (fieldSizeInBits == 0) {
+            // Bitfields with length 0 guarantee that
+            // the next bitfield starts at the beginning of the
+            // next address an object of the declaring
+            // type could be addressed by.
+            //
+            // E.g., if you have a struct like this:
+            //   struct s { int a : 8; char : 0; char b; };
+            //
+            // then the struct will be aligned to the size of int
+            // (4 Bytes) and will occupy 4 Bytes of memory.
+            //
+            // A struct like this:
+            //   struct t { int a : 8; int : 0; char b; };
+            //
+            // will also be aligned to the size of int, but
+            // since the 'int : 0;' member adjusts the next object
+            // to the next int-like addressable unit, t will
+            // occupy 8 Bytes instead of 4 (the char b is placed
+            // at the next 4-Byte addressable unit).
+            //
+            // At last, a struct like this:
+            //   struct u { char a : 4; char : 0; char b : 4; };
+            //
+            // will be aligned to size of char and occupy 2 Bytes
+            // in memory, while the same struct without the
+            // 'char : 0;' member would just occupy 1 Byte.
+            bitOffset +=
+                calculatePaddedBitsize(0, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
+            sizeOfConsecutiveBitFields = 0;
+          } else {
+            sizeOfConsecutiveBitFields =
+                calculateNecessaryBitfieldOffset(
+                    sizeOfConsecutiveBitFields, innerType, sizeOfByte, fieldSizeInBits);
+            sizeOfConsecutiveBitFields += fieldSizeInBits;
+          }
         } else {
-          bitOffset += sizeOfConsecutiveBitFields;
+          bitOffset =
+              calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, type, sizeOfByte);
           sizeOfConsecutiveBitFields = 0;
-          // once pad the bits to full bytes, than pad bytes to the
-          // alignment of the current type
-          bitOffset = sizeofVisitor.calculateByteSize(bitOffset);
-          bitOffset = (bitOffset + getPadding(bitOffset, type)) * sizeOfByte;
 
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
@@ -916,19 +951,40 @@ public enum MachineModel {
     if (bitOffset != null && found) {
       return OptionalInt.of(bitOffset);
     } else if (bitOffset != null && pFieldName == null) {
-      if (sizeOfConsecutiveBitFields > 0) {
-        bitOffset += sizeOfConsecutiveBitFields;
-      }
-      bitOffset = sizeofVisitor.calculateByteSize(bitOffset);
-      bitOffset += getPadding(bitOffset, pOwnerType);
+      // call with byte size of 1 to return size in bytes instead of bits
+      bitOffset = calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1);
       return OptionalInt.of(bitOffset);
     } else {
       return OptionalInt.empty();
     }
   }
 
+  private int calculateNecessaryBitfieldOffset(
+      int pBitFieldOffset, CType pType, int pSizeOfByte, int pBitFieldLength) {
+    int paddingBitSpace = getPaddingInBits(pBitFieldOffset, pType, pSizeOfByte);
+
+    if (paddingBitSpace < pBitFieldLength) {
+      pBitFieldOffset += paddingBitSpace;
+    }
+    return pBitFieldOffset;
+  }
+
+  private Integer calculatePaddedBitsize(
+      Integer pBitOffset, int pSizeOfConsecutiveBitFields, CType pType, int pSizeOfByte) {
+    pBitOffset += pSizeOfConsecutiveBitFields;
+    // once pad the bits to full bytes, then pad bytes to the
+    // alignment of the current type
+    pBitOffset = sizeofVisitor.calculateByteSize(pBitOffset);
+
+    return (pBitOffset + getPadding(pBitOffset, pType)) * pSizeOfByte;
+  }
+
   public int getPadding(int pOffset, CType pType) {
-    int alignof = getAlignof(pType);
+    return getPaddingInBits(pOffset, pType, 1);
+  }
+
+  private int getPaddingInBits(int pOffset, CType pType, int pSizeOfByte) {
+    int alignof = getAlignof(pType) * pSizeOfByte;
     int padding = alignof - (pOffset % alignof);
     if (padding < alignof) {
       return padding;
