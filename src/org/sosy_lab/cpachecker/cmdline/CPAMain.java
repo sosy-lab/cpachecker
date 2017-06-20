@@ -344,43 +344,9 @@ public class CPAMain {
     config.inject(options);
 
     if (options.witness != null) {
-      WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
-      ConfigurationBuilder witnessConfigBuilder = Configuration.builder();
-      final Path validationConfigFile;
-      switch (witnessType) {
-        case VIOLATION_WITNESS:
-          validationConfigFile = options.violationWitnessValidationConfig;
-          String specs = cmdLineOptions.get(SPECIFICATION_OPTION);
-          specs = Joiner.on(',').join(specs, options.witness.toString());
-          cmdLineOptions.put(SPECIFICATION_OPTION, specs);
-          break;
-        case CORRECTNESS_WITNESS:
-          validationConfigFile = options.correctnessWitnessValidationConfig;
-          cmdLineOptions.put(
-              "invariantGeneration.kInduction.invariantsAutomatonFile", options.witness.toString());
-          break;
-        default:
-          throw new InvalidConfigurationException(
-              "Witness type "
-                  + witnessType
-                  + " of witness "
-                  + options.witness
-                  + " is not supported");
-      }
-      if (validationConfigFile == null) {
-        throw new InvalidConfigurationException(
-            "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
-      }
-      witnessConfigBuilder.loadFromFile(validationConfigFile);
-      witnessConfigBuilder
-          .setOptions(cmdLineOptions)
-          .clearOption("witness.validation.file")
-          .clearOption("witness.validation.violation.config")
-          .clearOption("witness.validation.correctness.config")
-          .clearOption("output.path")
-          .clearOption("rootDirectory");
-      config = witnessConfigBuilder.build();
-      config.inject(options);
+      // Read witness file if present, switch to appropriate config and adjust cmdline options
+      config = handleWitnessOptions(options, cmdLineOptions);
+      config.inject(options); // need to re-inject to get appropriate values for property options
     }
 
     Set<PropertyType> propertyTypes =
@@ -551,6 +517,45 @@ public class CPAMain {
                  .put(FileOption.class, fileTypeConverter);
 
     return Pair.of(config, outputDirectory);
+  }
+
+  private static Configuration handleWitnessOptions(
+      BootstrapOptions options, Map<String, String> cmdLineOptions)
+      throws InvalidConfigurationException, IOException {
+    Configuration config;
+    WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
+    ConfigurationBuilder witnessConfigBuilder = Configuration.builder();
+    final Path validationConfigFile;
+    switch (witnessType) {
+      case VIOLATION_WITNESS:
+        validationConfigFile = options.violationWitnessValidationConfig;
+        String specs = cmdLineOptions.get(SPECIFICATION_OPTION);
+        specs = Joiner.on(',').join(specs, options.witness.toString());
+        cmdLineOptions.put(SPECIFICATION_OPTION, specs);
+        break;
+      case CORRECTNESS_WITNESS:
+        validationConfigFile = options.correctnessWitnessValidationConfig;
+        cmdLineOptions.put(
+            "invariantGeneration.kInduction.invariantsAutomatonFile", options.witness.toString());
+        break;
+      default:
+        throw new InvalidConfigurationException(
+            "Witness type " + witnessType + " of witness " + options.witness + " is not supported");
+    }
+    if (validationConfigFile == null) {
+      throw new InvalidConfigurationException(
+          "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
+    }
+    witnessConfigBuilder.loadFromFile(validationConfigFile);
+    witnessConfigBuilder
+        .setOptions(cmdLineOptions)
+        .clearOption("witness.validation.file")
+        .clearOption("witness.validation.violation.config")
+        .clearOption("witness.validation.correctness.config")
+        .clearOption("output.path")
+        .clearOption("rootDirectory");
+    config = witnessConfigBuilder.build();
+    return config;
   }
 
   @SuppressWarnings("deprecation")
