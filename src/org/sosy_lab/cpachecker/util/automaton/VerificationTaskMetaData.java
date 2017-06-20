@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -54,16 +55,6 @@ public class VerificationTaskMetaData {
 
     @Option(
       secure = true,
-      name = "specification",
-      description =
-          "comma-separated list of files with specifications that should be checked"
-              + "\n(see config/specification/ for examples)"
-    )
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private List<Path> specificationFiles = ImmutableList.of();
-
-    @Option(
-      secure = true,
       name = "witness.validation.file",
       description = "The witness to validate."
     )
@@ -82,16 +73,16 @@ public class VerificationTaskMetaData {
 
   private final VerificationTaskMetaData.HackyOptions hackyOptions = new HackyOptions();
 
-  private final Optional<Specification> specification;
+  private final Specification specification;
 
   private List<Path> nonWitnessAutomatonFiles = null;
 
   private List<Path> witnessAutomatonFiles = null;
 
-  public VerificationTaskMetaData(Configuration pConfig, Optional<Specification> pSpecification)
+  public VerificationTaskMetaData(Configuration pConfig, Specification pSpecification)
       throws InvalidConfigurationException {
     pConfig.inject(hackyOptions);
-    specification = pSpecification;
+    specification = checkNotNull(pSpecification);
   }
 
   public List<Path> getInputWitnessFiles() throws IOException {
@@ -125,10 +116,7 @@ public class VerificationTaskMetaData {
    * @return the specification properties considered for this verification task.
    */
   public Set<SpecificationProperty> getProperties() {
-    if (specification.isPresent()) {
-      return specification.get().getProperties();
-    }
-    return Collections.emptySet();
+    return specification.getProperties();
   }
 
   private final void classifyAutomataFiles() throws IOException {
@@ -136,11 +124,7 @@ public class VerificationTaskMetaData {
       assert witnessAutomatonFiles == null;
       ImmutableList.Builder<Path> nonWitnessAutomatonFilesBuilder = ImmutableList.builder();
       ImmutableList.Builder<Path> witnessAutomatonFilesBuilder = ImmutableList.builder();
-      Iterable<Path> specs =
-          specification.isPresent()
-              ? specification.get().getSpecFiles()
-              : hackyOptions.specificationFiles;
-      specs = FluentIterable.from(specs).transform(Path::normalize);
+      Set<Path> specs = from(specification.getSpecFiles()).transform(Path::normalize).toSet();
       for (Path path : specs) {
         if (AutomatonGraphmlParser.isGraphmlAutomaton(path)) {
           witnessAutomatonFilesBuilder.add(path);
@@ -150,14 +134,14 @@ public class VerificationTaskMetaData {
       }
       Optional<Path> inputWitness =
           Optional.ofNullable(hackyOptions.inputWitness).map(Path::normalize);
-      if (inputWitness.isPresent() && !Iterables.contains(specs, inputWitness.get())) {
+      if (inputWitness.isPresent() && !specs.contains(inputWitness.get())) {
         witnessAutomatonFilesBuilder.add(inputWitness.get());
       }
       Optional<Path> correctnessWitness =
           Optional.ofNullable(hackyOptions.invariantsAutomatonFile).map(Path::normalize);
       if (correctnessWitness.isPresent()
           && !correctnessWitness.equals(inputWitness)
-          && !Iterables.contains(specs, correctnessWitness.get())) {
+          && !specs.contains(correctnessWitness.get())) {
         witnessAutomatonFilesBuilder.add(correctnessWitness.get());
       }
       witnessAutomatonFiles = witnessAutomatonFilesBuilder.build();

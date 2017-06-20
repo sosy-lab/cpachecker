@@ -224,8 +224,7 @@ public class ARGPathExporter {
     this.cfa = pCFA;
     this.assumptionToEdgeAllocator =
         new AssumptionToEdgeAllocator(pConfig, pLogger, pCFA.getMachineModel());
-    this.verificationTaskMetaData =
-        new VerificationTaskMetaData(pConfig, Optional.of(pSpecification));
+    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
   }
 
   public void writeErrorWitness(
