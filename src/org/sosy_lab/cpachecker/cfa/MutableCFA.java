@@ -23,24 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SortedSetMultimap;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import org.sosy_lab.common.Optionals;
 
 public class MutableCFA implements CFA {
 
@@ -156,10 +153,14 @@ public class MutableCFA implements CFA {
   }
 
   public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
-    return new ImmutableCFA(machineModel, functions, allNodes, mainFunction,
-        Optionals.toGuavaOptional(loopStructure),
-        Optionals.toGuavaOptional(pVarClassification),
-        Optionals.toGuavaOptional(liveVariables),
+    return new ImmutableCFA(
+        machineModel,
+        functions,
+        allNodes,
+        mainFunction,
+        loopStructure,
+        pVarClassification,
+        liveVariables,
         language);
   }
 
