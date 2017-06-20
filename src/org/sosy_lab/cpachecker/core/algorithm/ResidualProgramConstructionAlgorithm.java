@@ -388,7 +388,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       return Pair.of((ARGState) reached.getFirstState(), reached);
     } catch (InvalidConfigurationException | CPAException | IllegalArgumentException
         | InterruptedException e1) {
-      logger.logException(Level.SEVERE, e1, "Analysis to build structure of residual program failed");
+      logger.log(Level.SEVERE, "Analysis to build structure of residual program failed", e1);
       return null;
     }
   }
@@ -404,8 +404,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           logger, shutdown);
       cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(residualProgram.toString()));
     } catch (InvalidConfigurationException e) {
-      logger.logException(Level.SEVERE, e,
-          "Default configuration unsuitable for parsing residual program.");
+      logger.log(Level.SEVERE, "Default configuration unsuitable for parsing residual program.", e);
       return false;
     } catch (IOException | ParserException e) {
       logger.log(Level.SEVERE, "No valid residual program generated. ", e);
