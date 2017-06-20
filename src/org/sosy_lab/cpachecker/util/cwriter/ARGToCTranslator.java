@@ -294,9 +294,9 @@ public class ARGToCTranslator {
         //it was indeed covered; jump to element it was covered by
         currentBlock.addStatement(new SimpleStatement("goto label_" + currentElement.getCoveringState().getStateId() + ";"));
       } else {
-        // check whether we have a return statement for the main method before
+        // check whether we have a return statement for the main method before (only when main is non-void)
         CFANode loc = AbstractStates.extractLocation(currentElement);
-        if (currentElement.getWrappedState() != null && loc.getNumLeavingEdges() == 0
+        if (!isVoidMain && currentElement.getWrappedState() != null && loc.getNumLeavingEdges() == 0
             && loc.getEnteringEdge(0).getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
           currentBlock.addStatement(
               new SimpleStatement("return " + "__return_" + currentElement.getStateId() + ";"));
