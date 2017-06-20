@@ -27,7 +27,9 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -42,10 +44,12 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -74,6 +78,8 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.PropertyFileParser;
+import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyType;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
@@ -192,6 +198,9 @@ public class CPAMain {
   private static final ImmutableMap<String, String> EXTERN_OPTION_DEFAULTS = ImmutableMap.of(
       "log.level", Level.INFO.toString());
 
+  private static final String SPECIFICATION_OPTION = "specification";
+  private static final String ENTRYFUNCTION_OPTION = "analysis.entryFunction";
+
   @Options
   private static class BootstrapOptions {
     @Option(secure=true, name="memorysafety.config",
@@ -302,13 +311,15 @@ public class CPAMain {
   private static Config createConfiguration(String[] args)
       throws InvalidConfigurationException, InvalidCmdlineArgumentException, IOException {
     // if there are some command line arguments, process them
-    Set<SpecificationProperty> properties = Sets.newHashSetWithExpectedSize(1);
-    Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args, properties);
+    Map<String, String> cmdLineOptions = CmdLineArguments.processArguments(args);
 
     boolean secureMode = cmdLineOptions.remove(CmdLineArguments.SECURE_MODE_OPTION) != null;
     if (secureMode) {
       Configuration.enableSecureModeGlobally();
     }
+
+    // Read property file if present and adjust cmdline options
+    Set<SpecificationProperty> properties = handlePropertyFile(cmdLineOptions);
 
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)
@@ -332,6 +343,7 @@ public class CPAMain {
     // Check if we should switch to another config because we are analyzing memsafety properties.
     BootstrapOptions options = new BootstrapOptions();
     config.inject(options);
+
     Consumer<ConfigurationBuilder> witnessFileOptionSetter = builder -> {};
     if (options.witness != null) {
       WitnessType witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
@@ -342,10 +354,9 @@ public class CPAMain {
           validationConfigFile = options.violationWitnessValidationConfig;
           witnessFileOptionSetter =
               builder -> {
-                String specificationOptionName = "specification";
-                String specs = cmdLineOptions.get(specificationOptionName);
+                String specs = cmdLineOptions.get(SPECIFICATION_OPTION);
                 specs = Joiner.on(',').join(specs, options.witness.toString());
-                builder.setOption(specificationOptionName, specs);
+                builder.setOption(SPECIFICATION_OPTION, specs);
               };
           break;
         case CORRECTNESS_WITNESS:
@@ -453,6 +464,82 @@ public class CPAMain {
     }
 
     return new Config(config, outputDirectory, properties);
+  }
+
+  private static final ImmutableMap<PropertyType, String> SPECIFICATION_FILES =
+      ImmutableMap.<PropertyType, String>builder()
+          .put(PropertyType.REACHABILITY_LABEL, "sv-comp-errorlabel")
+          .put(PropertyType.REACHABILITY, "sv-comp-reachability")
+          .put(PropertyType.VALID_FREE, "memorysafety-free")
+          .put(PropertyType.VALID_DEREF, "memorysafety-deref")
+          .put(PropertyType.VALID_MEMTRACK, "memorysafety-memtrack")
+          .put(PropertyType.OVERFLOW, "overflow")
+          .put(PropertyType.DEADLOCK, "deadlock")
+          //.put(PropertyType.TERMINATION, "none needed")
+          .build();
+
+  private static Set<SpecificationProperty> handlePropertyFile(Map<String, String> cmdLineOptions)
+      throws InvalidCmdlineArgumentException {
+    if (!cmdLineOptions.containsKey(SPECIFICATION_OPTION)) {
+      return ImmutableSet.of();
+    }
+
+    List<String> specificationFiles =
+        Splitter.on(',')
+            .trimResults()
+            .omitEmptyStrings()
+            .splitToList(cmdLineOptions.get(SPECIFICATION_OPTION));
+
+    // Parse property files
+    Set<SpecificationProperty> properties = ImmutableSet.of();
+    for (String propertyFile : specificationFiles) {
+      if (propertyFile.endsWith(".prp")) {
+        if (specificationFiles.size() != 1) {
+          throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
+        }
+        PropertyFileParser parser = new PropertyFileParser(Paths.get(propertyFile));
+        try {
+          parser.parse();
+        } catch (InvalidPropertyFileException e) {
+          throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
+        }
+
+        // set the file from where to read the specification automaton
+        properties =
+            FluentIterable.from(parser.getProperties())
+                .transform(
+                    prop ->
+                        new SpecificationProperty(
+                            prop.getEntryFunctionName(),
+                            prop.getPropertyType(),
+                            Optional.ofNullable(SPECIFICATION_FILES.get(prop.getPropertyType()))
+                                .map(CmdLineArguments::resolveSpecificationFileOrExit)))
+                .toSet();
+        assert !properties.isEmpty();
+
+        cmdLineOptions.put(SPECIFICATION_OPTION, getSpecifications(properties));
+        if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
+          if (!cmdLineOptions.get(ENTRYFUNCTION_OPTION).equals(parser.getEntryFunction())) {
+            throw new InvalidCmdlineArgumentException(
+                "Mismatching names for entry function on command line and in property file");
+          }
+        } else {
+          cmdLineOptions.put(ENTRYFUNCTION_OPTION, parser.getEntryFunction());
+        }
+      }
+    }
+    return ImmutableSet.copyOf(properties);
+  }
+
+  /** This method returns all specifications for the given properties. */
+  private static String getSpecifications(Iterable<SpecificationProperty> pProperties) {
+    final List<String> specifications = new ArrayList<>();
+    for (SpecificationProperty specificationProperty : pProperties) {
+      Optional<String> newSpec = specificationProperty.getInternalSpecificationPath();
+      assert newSpec != null;
+      newSpec.ifPresent(specifications::add);
+    }
+    return Joiner.on(",").join(specifications);
   }
 
   private static Pair<Configuration, String> setupPaths(Configuration pConfig,
