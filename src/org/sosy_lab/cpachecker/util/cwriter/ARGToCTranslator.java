@@ -540,8 +540,6 @@ public class ARGToCTranslator {
   }
 
   private void processDefaultReturn(final CFunctionDeclaration pFunDecl, int pElementId) {
-    String returnStat="";
-
     CType returnType = pFunDecl.getType().getReturnType();
     if(!(returnType instanceof CVoidType)) {
       String varName = "__return_" + pElementId;
