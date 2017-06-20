@@ -961,6 +961,16 @@ public enum MachineModel {
 
   private int calculateNecessaryBitfieldOffset(
       int pBitFieldOffset, CType pType, int pSizeOfByte, int pBitFieldLength) {
+    // gcc -std=c11 implements bitfields such, that it only positions a bitfield 'B'
+    // directly adjacent to its preceding bitfield 'A', if 'B' fits into the
+    // remainder of its own alignment unit that is already partially occupied by
+    // 'A'. Otherwise 'B' is pushed into its corresponding next alignment unit.
+    //
+    // E.g., in 'struct s { char a: 7; int b: 25; };', 'b' is placed directly
+    // preceding 'a' and a 'struct s' allocates 4 bytes.
+    // On the other hand, in 'struct s { char a: 7; int b: 26; };', the 25 remaining
+    // bits int the first integer alignment of 'struct s' are padded and 'b' is pushed
+    // to the next integer-aligned unit, resulting in 'struct s' having 8 bytes size.
     int paddingBitSpace = getPaddingInBits(pBitFieldOffset, pType, pSizeOfByte);
 
     if (paddingBitSpace < pBitFieldLength) {
