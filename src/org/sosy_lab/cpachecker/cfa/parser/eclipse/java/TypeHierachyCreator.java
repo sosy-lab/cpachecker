@@ -58,13 +58,10 @@ class TypeHierachyCreator extends ASTVisitor {
 
   private static final boolean VISIT_CHILDREN = true;
 
-  private static final String JAVA_FILE_SUFFIX = ".java";
-
   private static final boolean SKIP_CHILDREN = false;
 
   private static final int FIRST = 0;
 
-  @SuppressWarnings("unused")
   private final LogManager logger;
   private final THTypeTable typeTable;
   private final TypeHierachyConverter converter;
@@ -184,7 +181,7 @@ class TypeHierachyCreator extends ASTVisitor {
       if (typeBinding.isTopLevel()) {
 
         String simpleName = node.getName().getIdentifier();
-        String expectedFilename = simpleName + JAVA_FILE_SUFFIX;
+        String expectedFilename = simpleName + EclipseJavaParser.JAVA_SOURCE_FILE_EXTENSION;
 
         if (!expectedFilename.equals(fileOfCU)) {
           classNameException = true;

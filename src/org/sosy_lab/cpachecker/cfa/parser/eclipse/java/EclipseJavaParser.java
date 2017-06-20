@@ -110,7 +110,7 @@ class EclipseJavaParser implements Parser {
 
   private static final boolean IGNORE_METHOD_BODY = true;
   private static final boolean PARSE_METHOD_BODY = false;
-  private static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
+  static final String JAVA_SOURCE_FILE_EXTENSION = ".java";
 
   public EclipseJavaParser(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
 
