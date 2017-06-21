@@ -121,7 +121,6 @@ public class CFABuilder extends LlvmAstVisitor {
   private Map<String, CFunctionDeclaration> functionDeclarations;
 
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
-    super(pLogger);
     logger = pLogger;
     machineModel = pMachineModel;
 
@@ -155,7 +154,7 @@ public class CFABuilder extends LlvmAstVisitor {
     try {
       CType expectedType = typeConverter.getCType(cond.typeOf());
       return binaryExpressionBuilder.buildBinaryExpression(
-        getExpression(cond, expectedType, funcName),
+        getExpression(cond, expectedType),
         new CIntegerLiteralExpression(
             getLocation(pItem),
             CNumericTypes.BOOL,
@@ -292,7 +291,7 @@ public class CFABuilder extends LlvmAstVisitor {
     Value valueToLoad = pItem.getOperand(0);
 
     CType expectedType = typeConverter.getCType(valueToLoad.typeOf());
-    CExpression expression = getExpression(valueToLoad, expectedType, pFunctionName);
+    CExpression expression = getExpression(valueToLoad, expectedType);
 
     return getAssignStatement(valueToStoreTo, expression, pFunctionName);
   }
@@ -313,7 +312,7 @@ public class CFABuilder extends LlvmAstVisitor {
 
     } else {
       CType expectedType = typeConverter.getCType(returnVal.typeOf());
-      CExpression returnExp = getExpression(returnVal, expectedType, pFuncName);
+      CExpression returnExp = getExpression(returnVal, expectedType);
       maybeExpression = Optional.of(returnExp);
 
       CSimpleDeclaration returnVarDecl = getReturnVar(pFuncName, returnExp.getExpressionType());
@@ -448,11 +447,11 @@ public class CFABuilder extends LlvmAstVisitor {
     Value operand1 = pItem.getOperand(0); // First operand
     logger.log(Level.FINE, "Getting id expression for operand 1");
     CType op1type = typeConverter.getCType(operand1.typeOf());
-    CExpression operand1Exp = getExpression(operand1, op1type, pFunctionName);
+    CExpression operand1Exp = getExpression(operand1, op1type);
     Value operand2 = pItem.getOperand(1); // Second operand
     CType op2type = typeConverter.getCType(operand2.typeOf());
     logger.log(Level.FINE, "Getting id expression for operand 2");
-    CExpression operand2Exp = getExpression(operand2, op2type, pFunctionName);
+    CExpression operand2Exp = getExpression(operand2, op2type);
 
     CBinaryExpression.BinaryOperator operation;
     switch (pOpCode) {
@@ -514,7 +513,7 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   private CExpression getExpression(
-      final Value pItem, final CType pExpectedType, final String pFunctionName) {
+      final Value pItem, final CType pExpectedType) {
     if (pItem.isConstantInt() || pItem.isConstantFP()) {
       return getConstant(pItem);
     } else {
@@ -802,8 +801,8 @@ public class CFABuilder extends LlvmAstVisitor {
     CType op2type = typeConverter.getCType(operand2.typeOf());
     try {
       CBinaryExpression cmp = binaryExpressionBuilder.buildBinaryExpression(
-        getExpression(operand1, op1type, pFunctionName),
-        getExpression(operand2, op2type, pFunctionName),
+        getExpression(operand1, op1type),
+        getExpression(operand2, op2type),
         operator);
 
       return getAssignStatement(pItem, cmp, pFunctionName);
@@ -818,7 +817,7 @@ public class CFABuilder extends LlvmAstVisitor {
     CType operandType = typeConverter.getCType(castOperand.typeOf());
     CCastExpression cast = new CCastExpression(getLocation(pItem),
                                                typeConverter.getCType(pItem.typeOf()),
-                                               getExpression(castOperand, operandType, pFunctionName));
+                                               getExpression(castOperand, operandType));
     return getAssignStatement(pItem, cast, pFunctionName);
   }
 

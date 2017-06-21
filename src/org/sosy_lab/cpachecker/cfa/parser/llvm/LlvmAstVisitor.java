@@ -66,11 +66,7 @@ public abstract class LlvmAstVisitor {
   protected SortedSetMultimap<String, CFANode> cfaNodes;
   protected List<Pair<ADeclaration, String>> globalDeclarations;
 
-  private final LogManager logger;
-
-  public LlvmAstVisitor(LogManager pLogger) {
-    logger = pLogger;
-
+  public LlvmAstVisitor() {
     basicBlockId = 0;
 
     functions = new TreeMap<>();

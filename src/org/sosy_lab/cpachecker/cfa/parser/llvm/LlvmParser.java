@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import java.io.IOException;
 import org.llvm.Module;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
