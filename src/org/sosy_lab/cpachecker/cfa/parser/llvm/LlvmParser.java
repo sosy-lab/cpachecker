@@ -49,7 +49,6 @@ public class LlvmParser implements Parser {
 
   public LlvmParser(
       final LogManager pLogger,
-      final Configuration pConfig,
       final MachineModel pMachineModel
   ) {
     logger = pLogger;

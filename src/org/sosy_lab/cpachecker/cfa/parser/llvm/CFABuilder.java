@@ -176,7 +176,7 @@ public class CFABuilder extends LlvmAstVisitor {
     } else if (pItem.isReturnInst()) {
       return handleReturn(pItem, pFunctionName);
     } else if (pItem.isUnreachableInst()) {
-      return handleUnreachable(pItem, pFunctionName);
+      return handleUnreachable(pItem);
 
     } else if (pItem.isBinaryOperator()) {
       return handleBinaryOp(pItem, pFunctionName);
@@ -189,7 +189,7 @@ public class CFABuilder extends LlvmAstVisitor {
     } else if (pItem.isCmpInst()) {
       return handleCmpInst(pItem, pFunctionName);
     } else if (pItem.isGetElementPtrInst()) {
-      return handleGEP(pItem, pFunctionName);
+      return handleGEP();
     } else if (pItem.isSwitchInst()) {
 
       throw new UnsupportedOperationException();
@@ -229,7 +229,7 @@ public class CFABuilder extends LlvmAstVisitor {
         assert functionArg.isConstant() || variableDeclarations.containsKey(functionArg.getAddress());
         CType expectedType = typeConverter.getCType(functionArg.typeOf());
         parameterTypes.add(expectedType);
-        parameters.add(getAssignedIdExpression(functionArg, expectedType, pFunctionName));
+        parameters.add(getAssignedIdExpression(functionArg, expectedType));
       }
 
       CFunctionType functionType =
@@ -248,7 +248,7 @@ public class CFABuilder extends LlvmAstVisitor {
 
         assert
             functionArg.isConstant() || variableDeclarations.containsKey(functionArg.getAddress());
-        parameters.add(getAssignedIdExpression(functionArg, expectedType, pFunctionName));
+        parameters.add(getAssignedIdExpression(functionArg, expectedType));
       }
     }
 
@@ -262,7 +262,7 @@ public class CFABuilder extends LlvmAstVisitor {
     }
   }
 
-  private List<CAstNode> handleUnreachable(final Value pItem, final String pFunctionName) {
+  private List<CAstNode> handleUnreachable(final Value pItem) {
     CFunctionCallExpression callExpression =
         new CFunctionCallExpression(getLocation(pItem), CVoidType.VOID, ABORT_FUNC_NAME,
             Collections.emptyList(), ABORT_FUNC_DECL);
@@ -283,7 +283,7 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private List<CAstNode> handleLoad(final Value pItem, final String pFunctionName) {
     CType expectedType = typeConverter.getCType(pItem.typeOf());
-    CExpression expression = getAssignedIdExpression(pItem.getOperand(0), expectedType, pFunctionName);
+    CExpression expression = getAssignedIdExpression(pItem.getOperand(0), expectedType);
     return getAssignStatement(pItem, expression, pFunctionName);
   }
 
@@ -518,7 +518,7 @@ public class CFABuilder extends LlvmAstVisitor {
     if (pItem.isConstantInt() || pItem.isConstantFP()) {
       return getConstant(pItem);
     } else {
-      return getAssignedIdExpression(pItem, pExpectedType, pFunctionName);
+      return getAssignedIdExpression(pItem, pExpectedType);
     }
   }
 
@@ -545,8 +545,7 @@ public class CFABuilder extends LlvmAstVisitor {
     CType expectedType = pAssignment.getExpressionType();
     // Variable is already declared, so it must only be assigned the new value
     if (variableDeclarations.containsKey(assigneeId)) {
-      CLeftHandSide assigneeIdExp = (CLeftHandSide) getAssignedIdExpression(pAssignee,
-          expectedType, pFunctionName);
+      CLeftHandSide assigneeIdExp = (CLeftHandSide) getAssignedIdExpression(pAssignee, expectedType);
 
       CType varType = assigneeIdExp.getExpressionType();
       if (!(varType.equals(expectedType))) {
@@ -573,7 +572,7 @@ public class CFABuilder extends LlvmAstVisitor {
         CSimpleDeclaration assigneeDecl =
             getAssignedVarDeclaration(pAssignee, pFunctionName, null);
         CLeftHandSide assigneeIdExp =
-            (CLeftHandSide) getAssignedIdExpression(pAssignee, expectedType, pFunctionName);
+            (CLeftHandSide) getAssignedIdExpression(pAssignee, expectedType);
 
         return ImmutableList.of(
             assigneeDecl,
@@ -636,8 +635,7 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
 
-  private CExpression getAssignedIdExpression(final Value pItem, final CType pExpectedType,
-                                              final String pFunctionName) {
+  private CExpression getAssignedIdExpression(final Value pItem, final CType pExpectedType) {
     logger.log(Level.FINE, "Getting var declaration for item");
     assert variableDeclarations.containsKey(pItem.getAddress())
         : "ID expression has no declaration!";
@@ -760,7 +758,7 @@ public class CFABuilder extends LlvmAstVisitor {
         RETURN_VAR_NAME, getQualifiedName(RETURN_VAR_NAME, pFunctionName), null /* no initializer */);
   }
 
-  private List<CAstNode> handleGEP(final Value pItem, String pFunctionName) {
+  private List<CAstNode> handleGEP() {
       return null;
       //return getAssignStatement(pItem, ptrexpr, pFunctionName);
   }
@@ -837,6 +835,7 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   private FileLocation getLocation(final Value pItem) {
+    assert pItem != null;
     return FileLocation.DUMMY;
   }
 }

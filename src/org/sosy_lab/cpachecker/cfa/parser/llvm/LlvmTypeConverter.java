@@ -149,11 +149,11 @@ public class LlvmTypeConverter {
       return pStructType.getStructName();
 
     } else {
-      return getLiteralStructName(pStructType);
+      return getLiteralStructName();
     }
   }
 
-  private String getLiteralStructName(final TypeRef pStructType) {
+  private String getLiteralStructName() {
     structCount++;
     return PREFIX_LITERAL_STRUCT + structCount;
   }

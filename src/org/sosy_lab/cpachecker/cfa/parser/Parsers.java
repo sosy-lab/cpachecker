@@ -212,13 +212,13 @@ public class Parsers {
         Class<? extends CParser> parserClass = (Class<? extends CParser>)
             classLoader.loadClass(LLVM_PARSER_CLASS);
         parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class,
-            Configuration.class, MachineModel.class });
+            MachineModel.class });
         parserConstructor.setAccessible(true);
         loadedLlvmParser = new WeakReference<>(parserConstructor);
       }
 
       try {
-        return parserConstructor.newInstance(pLogger, pConfig, pMachineModel);
+        return parserConstructor.newInstance(pLogger, pMachineModel);
       } catch (InvocationTargetException e) {
         if (e.getCause() instanceof InvalidConfigurationException) {
           throw (InvalidConfigurationException)e.getCause();
