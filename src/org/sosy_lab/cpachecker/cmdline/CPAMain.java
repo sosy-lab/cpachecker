@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static java.util.logging.Level.WARNING;
+import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
 import com.google.common.base.Joiner;
@@ -44,7 +45,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -52,8 +52,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.matheclipse.core.util.WriterOutputStream;
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -416,66 +418,57 @@ public class CPAMain {
 
   private static Set<SpecificationProperty> handlePropertyFile(Map<String, String> cmdLineOptions)
       throws InvalidCmdlineArgumentException {
-    if (!cmdLineOptions.containsKey(SPECIFICATION_OPTION)) {
-      return ImmutableSet.of();
-    }
-
     List<String> specificationFiles =
         Splitter.on(',')
             .trimResults()
             .omitEmptyStrings()
-            .splitToList(cmdLineOptions.get(SPECIFICATION_OPTION));
+            .splitToList(cmdLineOptions.getOrDefault(SPECIFICATION_OPTION, ""));
+
+    List<String> propertyFiles =
+        specificationFiles.stream().filter(file -> file.endsWith(".prp")).collect(toList());
+    if (propertyFiles.isEmpty()) {
+      return ImmutableSet.of();
+    }
+    if (propertyFiles.size() > 1) {
+      throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
+    }
+    String propertyFile = propertyFiles.get(0);
 
     // Parse property files
-    Set<SpecificationProperty> properties = ImmutableSet.of();
-    for (String propertyFile : specificationFiles) {
-      if (propertyFile.endsWith(".prp")) {
-        if (specificationFiles.size() != 1) {
-          throw new InvalidCmdlineArgumentException("Multiple property files are not supported.");
-        }
-        PropertyFileParser parser = new PropertyFileParser(Paths.get(propertyFile));
-        try {
-          parser.parse();
-        } catch (InvalidPropertyFileException e) {
-          throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
-        }
+    PropertyFileParser parser = new PropertyFileParser(Paths.get(propertyFile));
+    try {
+      parser.parse();
+    } catch (InvalidPropertyFileException e) {
+      throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
+    }
 
-        // set the file from where to read the specification automaton
-        properties =
-            FluentIterable.from(parser.getProperties())
-                .transform(
-                    prop ->
-                        new SpecificationProperty(
-                            parser.getEntryFunction(),
-                            prop,
-                            Optional.ofNullable(SPECIFICATION_FILES.get(prop))
-                                .map(CmdLineArguments::resolveSpecificationFileOrExit)))
-                .toSet();
-        assert !properties.isEmpty();
+    // set the file from where to read the specification automaton
+    ImmutableSet<SpecificationProperty> properties =
+        FluentIterable.from(parser.getProperties())
+            .transform(
+                prop ->
+                    new SpecificationProperty(
+                        parser.getEntryFunction(),
+                        prop,
+                        Optional.ofNullable(SPECIFICATION_FILES.get(prop))
+                            .map(CmdLineArguments::resolveSpecificationFileOrExit)))
+            .toSet();
+    assert !properties.isEmpty();
 
-        cmdLineOptions.put(SPECIFICATION_OPTION, getSpecifications(properties));
-        if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
-          if (!cmdLineOptions.get(ENTRYFUNCTION_OPTION).equals(parser.getEntryFunction())) {
-            throw new InvalidCmdlineArgumentException(
-                "Mismatching names for entry function on command line and in property file");
-          }
-        } else {
-          cmdLineOptions.put(ENTRYFUNCTION_OPTION, parser.getEntryFunction());
-        }
+    String specFiles =
+        Optionals.presentInstances(
+                properties.stream().map(SpecificationProperty::getInternalSpecificationPath))
+            .collect(Collectors.joining(","));
+    cmdLineOptions.put(SPECIFICATION_OPTION, specFiles);
+    if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
+      if (!cmdLineOptions.get(ENTRYFUNCTION_OPTION).equals(parser.getEntryFunction())) {
+        throw new InvalidCmdlineArgumentException(
+            "Mismatching names for entry function on command line and in property file");
       }
+    } else {
+      cmdLineOptions.put(ENTRYFUNCTION_OPTION, parser.getEntryFunction());
     }
-    return ImmutableSet.copyOf(properties);
-  }
-
-  /** This method returns all specifications for the given properties. */
-  private static String getSpecifications(Iterable<SpecificationProperty> pProperties) {
-    final List<String> specifications = new ArrayList<>();
-    for (SpecificationProperty specificationProperty : pProperties) {
-      Optional<String> newSpec = specificationProperty.getInternalSpecificationPath();
-      assert newSpec != null;
-      newSpec.ifPresent(specifications::add);
-    }
-    return Joiner.on(",").join(specifications);
+    return properties;
   }
 
   @Options
