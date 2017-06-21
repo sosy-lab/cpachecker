@@ -23,21 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.bounds;
 
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Ordering;
-import java.util.Map.Entry;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
+import org.sosy_lab.cpachecker.cpa.bounds.LoopIterationState.DeterminedLoopIterationState;
+import org.sosy_lab.cpachecker.cpa.bounds.LoopIterationState.UndeterminedLoopIterationState;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -47,84 +45,60 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 public class BoundsState
     implements AbstractState, Partitionable, AvoidanceReportingState, LoopIterationReportingState {
 
-  private final int deepestIteration;
+  private final LoopStack loopStack;
 
   private final boolean stopIt;
-
-  private final PersistentSortedMap<ComparableLoop, Integer> iterations;
 
   private int hashCache = 0;
 
   public BoundsState() {
-    this(false);
+    this(new LoopStack(UndeterminedLoopIterationState.newState()), false);
   }
 
-  public BoundsState(boolean pStopIt) {
-    this(pStopIt, PathCopyingPersistentTreeMap.<ComparableLoop, Integer>of(), 0);
-  }
-
-  private BoundsState(boolean pStopIt, PersistentSortedMap<ComparableLoop, Integer> pIterations, int pDeepestIteration) {
-    Preconditions.checkArgument(pDeepestIteration >= 0);
-    Preconditions.checkArgument(
-        (pDeepestIteration == 0 && pIterations.isEmpty())
-            || (pDeepestIteration > 0 && !pIterations.isEmpty()));
+  private BoundsState(LoopStack pLoopStack, boolean pStopIt) {
+    this.loopStack = Objects.requireNonNull(pLoopStack);
     this.stopIt = pStopIt;
-    this.iterations = pIterations;
-    this.deepestIteration = pDeepestIteration;
   }
 
-  public BoundsState enter(Loop pLoop) {
-    return enter(pLoop, Integer.MAX_VALUE);
-  }
-
-  public BoundsState enter(Loop pLoop, int pLoopIterationsBeforeAbstraction) {
-    int iteration = getIteration(pLoop);
-    if (pLoopIterationsBeforeAbstraction != 0
-        && iteration >= pLoopIterationsBeforeAbstraction) {
-      iteration = pLoopIterationsBeforeAbstraction;
-    } else {
-      ++iteration;
+  public BoundsState exit(Loop pOldLoop) throws CPATransferException {
+    assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
+    LoopIterationState loopIterationState = loopStack.peek();
+    if (loopIterationState.isEntryKnown()) {
+      if (!pOldLoop.equals(loopIterationState.getLoopEntry().getLoop())) {
+        throw new CPATransferException("Unexpected exit from loop " + pOldLoop + " when loop stack is " + this);
+      }
+      return new BoundsState(loopStack.pop(), stopIt);
     }
-    return new BoundsState(
-        stopIt,
-        iterations.putAndCopy(new ComparableLoop(pLoop), iteration),
-        iteration > deepestIteration ? iteration : deepestIteration);
+    return this;
   }
 
+  public BoundsState enter(LoopEntry pLoopEntry) {
+    return new BoundsState(
+        loopStack.push(DeterminedLoopIterationState.newState(pLoopEntry)),
+        stopIt);
+  }
 
+  public BoundsState visitLoopHead(LoopEntry pLoopEntry) {
+    return visitLoopHead(pLoopEntry, Integer.MAX_VALUE);
+  }
+
+  public BoundsState visitLoopHead(LoopEntry pLoopEntry, int pLoopIterationsBeforeAbstraction) {
+    assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
+    LoopIterationState loopIterationState = loopStack.peek();
+    if (pLoopIterationsBeforeAbstraction == 0
+        || loopIterationState.getMaxIterationCount() < pLoopIterationsBeforeAbstraction) {
+      LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoopEntry);
+      if (newLoopIterationState != loopIterationState) {
+        return new BoundsState(
+            loopStack.pop().push(newLoopIterationState),
+            stopIt);
+      }
+    }
+    return this;
+  }
 
   public BoundsState stopIt() {
-    return new BoundsState(true, iterations, deepestIteration);
-  }
-
-  @Override
-  public int getIteration(Loop pLoop) {
-    Integer iteration = iterations.get(new ComparableLoop(pLoop));
-    return iteration == null ? 0 : iteration;
-  }
-
-  @Override
-  public int getDeepestIteration() {
-    return deepestIteration;
-  }
-
-  @Override
-  public Set<Loop> getDeepestIterationLoops() {
-    return FluentIterable.from(iterations.entrySet()).filter(new Predicate<Entry<ComparableLoop, Integer>>() {
-
-      @Override
-      public boolean apply(Entry<ComparableLoop, Integer> pArg0) {
-        return pArg0.getValue() == getDeepestIteration();
-      }
-
-    }).transform(new Function<Entry<ComparableLoop, Integer>, Loop>() {
-
-      @Override
-      public Loop apply(Entry<ComparableLoop, Integer> pArg0) {
-        return pArg0.getKey().loop;
-      }
-
-    }).toSet();
+    return new BoundsState(loopStack, true);
   }
 
   @Override
@@ -143,7 +117,7 @@ public class BoundsState
 
   @Override
   public String toString() {
-    return " Deepest loop iteration " + deepestIteration;
+    return loopStack.toString();
   }
 
   @Override
@@ -157,13 +131,13 @@ public class BoundsState
 
     BoundsState other = (BoundsState)obj;
     return this.stopIt == other.stopIt
-        && this.iterations.equals(other.iterations);
+        && this.loopStack.equals(other.loopStack);
   }
 
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(stopIt, iterations);
+      hashCache = Objects.hash(stopIt, loopStack);
     }
     return hashCache;
   }
@@ -178,50 +152,134 @@ public class BoundsState
     return reasonFormula;
   }
 
-  private static class ComparableLoop implements Comparable<ComparableLoop> {
+  private static final class LoopStack implements Iterable<LoopIterationState> {
 
-    private final Loop loop;
+    public static final LoopStack EMPTY_STACK = new LoopStack();
 
-    public ComparableLoop(Loop pLoop) {
-      Preconditions.checkNotNull(pLoop);
-      this.loop = pLoop;
+    private final LoopIterationState head;
+
+    private final LoopStack tail;
+
+    private LoopStack() {
+      head = null;
+      tail = null;
+    }
+
+    private LoopStack(LoopIterationState pLoop) {
+      head = Objects.requireNonNull(pLoop);
+      tail = EMPTY_STACK;
+    }
+
+    private LoopStack(LoopIterationState pHead, LoopStack pTail) {
+      head = Objects.requireNonNull(pHead);
+      tail = pTail;
+    }
+
+    public LoopIterationState peek() {
+      if (isEmpty()) {
+        throw new NoSuchElementException("Stack is empty.");
+      }
+      return head;
+    }
+
+    public LoopStack pop() {
+      if (isEmpty()) {
+        throw new IllegalStateException("Stack is empty.");
+      }
+      return tail;
+    }
+
+    public LoopStack push(LoopIterationState pHead) {
+      return new LoopStack(pHead, this);
+    }
+
+    public boolean isEmpty() {
+      return head == null && tail == null;
     }
 
     @Override
-    public int hashCode() {
-      return loop.hashCode();
+    public String toString() {
+      if (isEmpty()) {
+        return "";
+      }
+      if (tail.isEmpty()) {
+        return head.toString();
+      }
+      return String.format("%s (%s)", head, tail);
     }
 
     @Override
-    public boolean equals(Object pO) {
-      if (this == pO) {
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
         return true;
       }
-      if (pO instanceof ComparableLoop) {
-        ComparableLoop other = (ComparableLoop) pO;
-        return loop.equals(other.loop);
+      if (pObj instanceof LoopStack) {
+        LoopStack other = (LoopStack) pObj;
+        return Objects.equals(head, other.head)
+            && Objects.equals(tail, other.tail);
       }
       return false;
     }
 
     @Override
-    public String toString() {
-      return loop.toString();
+    public int hashCode() {
+      return Objects.hash(head, tail);
     }
 
     @Override
-    public int compareTo(ComparableLoop pOther) {
-      // Compare by size
-      int sizeComp = Integer.compare(loop.getLoopNodes().size(), pOther.loop.getLoopNodes().size());
-      if (sizeComp != 0) {
-        return sizeComp;
-      }
+    public Iterator<LoopIterationState> iterator() {
+      return new Iterator<LoopIterationState>() {
 
-      // If sizes are equal, compare lexicographically
-      return Ordering.<CFANode>natural()
-          .lexicographical()
-          .compare(loop.getLoopNodes(), pOther.loop.getLoopNodes());
+        private LoopStack current = LoopStack.this;
+
+        @Override
+        public boolean hasNext() {
+          return !current.isEmpty();
+        }
+
+        @Override
+        public LoopIterationState next() {
+          LoopIterationState next = current.peek();
+          current = current.pop();
+          return next;
+        }
+
+      };
     }
 
+  }
+
+  @Override
+  public int getIteration(Loop pLoop) {
+    for (LoopIterationState loopIterationState : loopStack) {
+      if (!loopIterationState.isEntryKnown()) {
+        return loopIterationState.getLoopIterationCount(pLoop);
+      }
+      if (loopIterationState.getLoopEntry().getLoop().equals(pLoop)) {
+        return loopIterationState.getLoopIterationCount(pLoop);
+      }
+    }
+    return 0;
+  }
+
+  @Override
+  public int getDeepestIteration() {
+    int deepestIteration = 0;
+    for (LoopIterationState loopIterationState : loopStack) {
+      deepestIteration = Math.max(deepestIteration, loopIterationState.getMaxIterationCount());
+    }
+    return deepestIteration;
+  }
+
+  @Override
+  public Set<Loop> getDeepestIterationLoops() {
+    if (loopStack.isEmpty()) {
+      return Collections.emptySet();
+    }
+    int deepestIteration = getDeepestIteration();
+    return FluentIterable.from(loopStack)
+        .filter(l -> l.getMaxIterationCount() == deepestIteration)
+        .transformAndConcat(l -> l.getDeepestIterationLoops())
+        .toSet();
   }
 }

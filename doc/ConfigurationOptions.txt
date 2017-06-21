@@ -984,6 +984,9 @@ cpa.bounds.maxLoopIterations = 0
 # adjuster.
 cpa.bounds.maxLoopIterationsUpperBound = 0
 
+# enable stack-based tracking of loops
+cpa.bounds.trackStack = false
+
 # depth of recursion bound
 cpa.callstack.depth = 0
 

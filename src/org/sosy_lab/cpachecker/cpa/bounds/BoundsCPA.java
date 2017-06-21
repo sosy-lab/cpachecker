@@ -44,7 +44,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -89,6 +88,9 @@ public class BoundsCPA extends AbstractCPA
   + "only relevant in combination with a non-static maximum loop iteration adjuster.")
   private int maxLoopIterationsUpperBound = 0;
 
+  @Option(secure=true, description="enable stack-based tracking of loops")
+  private boolean trackStack = false;
+
   private final DelegatingTransferRelation transferRelation;
 
   public static CPAFactory factory() {
@@ -116,20 +118,18 @@ public class BoundsCPA extends AbstractCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    if (pNode instanceof FunctionEntryNode) {
-      // shortcut for the common case, a function start node can never be in a loop
-      // (loops don't span across functions)
-      return new BoundsState();
+    BoundsState initialState = new BoundsState();
+    Set<Loop> loopsAtLocation = loopStructure.getLoopsForLoopHead(pNode);
+    for (Loop loop : loopsAtLocation) {
+      initialState = initialState.visitLoopHead(new LoopEntry(pNode, loop));
     }
+    return initialState;
+  }
 
-    BoundsState e = new BoundsState(); // the bottom element of the stack
-
-    for (Loop loop : loopStructure.getAllLoops()) {
-      if (loop.getLoopHeads().contains(pNode)) {
-        e = e.enter(loop);
-      }
-    }
-    return e;
+  @Override
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
+    return new BoundsPrecision(false);
   }
 
   @Override
