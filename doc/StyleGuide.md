@@ -62,6 +62,7 @@ Design:
   Do not add setters unless really required!
 - Avoid null, replace it with real objects, or (at last resort) Optional:
   https://github.com/google/guava/wiki/UsingAndAvoidingNullExplained
+  In fields and private context, null is acceptable if there is no nicer solution.
 - Avoid boolean parameters. They carry no semantics
   and make it hard to understand for the reader what effect they have
   (cf. http://martinfowler.com/bliki/FlagArgument.html)
@@ -128,6 +129,9 @@ Coding:
   Use a solution that returns an immutable collection instead,
   or one that is guaranteed to return a mutable one if you need it.
   We have utility methods for this in MoreCollectors and Collections3.
+- For Function, Predicate, and Optional,
+  use the JDK types instead of the Guava types where possible.
+  For Optional fields in serializable classes, make them @Nullable instead.
 - Do not over-use functional idioms!
   When an imperative version of the code is shorter and easier to read,
   it should be preferred.

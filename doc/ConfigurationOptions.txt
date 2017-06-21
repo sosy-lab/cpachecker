@@ -312,6 +312,9 @@ analysis.unknownIfUnrestrictedProgram = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# add loop-structure information to CFA.
+analysis.useLoopStructure = true
+
 # Use analyses parallely. The resulting reachedset is the one of the first
 # analysis finishing in time. All other analyses are terminated.
 analysis.useParallelAnalyses = false
@@ -792,6 +795,10 @@ cpa.arg.dumpAfterIteration = false
 # export final ARG as .dot file
 cpa.arg.export = true
 
+# How to deal with target states during code generation
+cpa.arg.export.code.handleTargetStates = NONE
+  enum:     [NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA]
+
 # write include directives
 cpa.arg.export.code.header = true
 
@@ -983,11 +990,6 @@ cpa.bounds.maxLoopIterations = 0
 # only relevant in combination with a non-static maximum loop iteration
 # adjuster.
 cpa.bounds.maxLoopIterationsUpperBound = 0
-
-# threshold for unwinding recursion (0 is infinite)
-# works only if assumption storage CPA is enabled, because otherwise it would
-# be unsound
-cpa.bounds.maxRecursionDepth = 0
 
 # depth of recursion bound
 cpa.callstack.depth = 0
@@ -2353,6 +2355,9 @@ cpa.value.refinement.searchForFurtherErrorPaths = false
 # store all refined paths
 cpa.value.refinement.storeAllRefinedPaths = false
 
+# if this option is set to false, constraints are never kept
+cpa.value.refinement.trackConstraints = true
+
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
@@ -2536,10 +2541,6 @@ locmapper.dumpTokenizedProgramToFile = no default value
 # all used options are printed
 log.usedOptions.export = false
 
-# Whether to check for memory safety properties (this can be specified by
-# passing an appropriate .prp file to the -spec parameter).
-memorysafety.check = false
-
 # When checking for memory safety properties, use this configuration file
 # instead of the current one.
 memorysafety.config = no default value
@@ -2547,10 +2548,6 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
-
-# Whether to check for the overflow property (this can be specified by
-# passing an appropriate .prp file to the -spec parameter).
-overflow.check = false
 
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
@@ -2834,7 +2831,7 @@ report.export = true
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
 
-# set specification file to automaton which guide analysis along assumption
+# set specification file to automaton which guides analysis along assumption
 # produced by incomplete analysis,e.g.,
 # config/specification/AssumptionGuidingAutomaton.spc, to enable residual
 # program from combination of program and assumption condition
@@ -2933,10 +2930,6 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# Whether to check for the termination property (this can be specified by
-# passing an appropriate .prp file to the -spec parameter).
-termination.check = false
 
 # When checking for the termination property, use this configuration file
 # instead of the current one.

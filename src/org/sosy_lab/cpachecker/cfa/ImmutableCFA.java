@@ -23,15 +23,23 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.SetMultimap;
 import java.io.Serializable;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.sosy_lab.common.Optionals;
+import java.util.Optional;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -40,12 +48,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.VariableClassification;
-
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.SetMultimap;
 
 /**
  * This class represents a CFA after it has been fully created (parsing, linking
@@ -58,9 +60,10 @@ class ImmutableCFA implements CFA, Serializable {
   private final ImmutableSortedMap<String, FunctionEntryNode> functions;
   private final ImmutableSortedSet<CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
-  private final Optional<LoopStructure> loopStructure;
-  private final Optional<VariableClassification> varClassification;
-  private final Optional<LiveVariables> liveVariables;
+  private final @Nullable LoopStructure loopStructure;
+  private final @Nullable VariableClassification varClassification;
+  private final @Nullable LiveVariables liveVariables;
+  private final ImmutableList<Path> fileNames;
   private final Language language;
 
   ImmutableCFA(
@@ -71,15 +74,17 @@ class ImmutableCFA implements CFA, Serializable {
       Optional<LoopStructure> pLoopStructure,
       Optional<VariableClassification> pVarClassification,
       Optional<LiveVariables> pLiveVariables,
+      List<Path> pFileNames,
       Language pLanguage) {
 
     machineModel = pMachineModel;
     functions = ImmutableSortedMap.copyOf(pFunctions);
     allNodes = ImmutableSortedSet.copyOf(pAllNodes.values());
     mainFunction = checkNotNull(pMainFunction);
-    loopStructure = pLoopStructure;
-    varClassification = pVarClassification;
-    liveVariables = pLiveVariables;
+    loopStructure = pLoopStructure.orElse(null);
+    varClassification = pVarClassification.orElse(null);
+    liveVariables = pLiveVariables.orElse(null);
+    fileNames = ImmutableList.copyOf(pFileNames);
     language = pLanguage;
 
     checkArgument(functions.get(mainFunction.getFunctionName()) == mainFunction);
@@ -90,9 +95,10 @@ class ImmutableCFA implements CFA, Serializable {
     functions = ImmutableSortedMap.of();
     allNodes = ImmutableSortedSet.of();
     mainFunction = null;
-    loopStructure = Optional.absent();
-    varClassification = Optional.absent();
-    liveVariables = Optional.absent();
+    loopStructure = null;
+    varClassification = null;
+    liveVariables = null;
+    fileNames = ImmutableList.of();
     language = pLanguage;
   }
 
@@ -146,26 +152,26 @@ class ImmutableCFA implements CFA, Serializable {
   }
 
   @Override
-  public java.util.Optional<LoopStructure> getLoopStructure() {
-    return Optionals.fromGuavaOptional(loopStructure);
+  public Optional<LoopStructure> getLoopStructure() {
+    return Optional.ofNullable(loopStructure);
   }
 
   @Override
-  public java.util.Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
-    if (loopStructure.isPresent()) {
-      return java.util.Optional.of(loopStructure.get().getAllLoopHeads());
+  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
+    if (loopStructure != null) {
+      return Optional.of(loopStructure.getAllLoopHeads());
     }
-    return java.util.Optional.empty();
+    return Optional.empty();
   }
 
   @Override
-  public java.util.Optional<VariableClassification> getVarClassification() {
-    return Optionals.fromGuavaOptional(varClassification);
+  public Optional<VariableClassification> getVarClassification() {
+    return Optional.ofNullable(varClassification);
   }
 
   @Override
-  public java.util.Optional<LiveVariables> getLiveVariables() {
-    return Optionals.fromGuavaOptional(liveVariables);
+  public Optional<LiveVariables> getLiveVariables() {
+    return Optional.ofNullable(liveVariables);
   }
 
   @Override
@@ -173,6 +179,10 @@ class ImmutableCFA implements CFA, Serializable {
     return language;
   }
 
+  @Override
+  public List<Path> getFileNames() {
+    return fileNames;
+  }
 
   private void writeObject(java.io.ObjectOutputStream s) throws java.io.IOException {
 

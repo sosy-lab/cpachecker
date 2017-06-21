@@ -55,7 +55,7 @@ public class MachineModelGetOffsetTest {
   public static Object[][] machineModels() {
     // XXX: Note that this only holds as long as
     // the available MachineModels have a Byte-size
-    // of 8 Bits and the used types ('int and 'long long int')
+    // of 8 Bits and the used types ('int' and 'long long int')
     // have the same size in all of them.
     //
     // This premise holds for the currently (May 4th, 2017)
@@ -67,13 +67,14 @@ public class MachineModelGetOffsetTest {
     // LINUX64, you have to either implement the respective scenarios
     // separately or to think of a clever way to determine in-line
     // which expectation to apply.
-    Object[][] types = new Object[][] {
-        // fieldname          // expected offset in bits
-        { FIRST_BITFIELD_12, 0 },
-        { SECOND_BITFIELD_10, 12 },
-        { THIRD_INT, 32 },
-        { LAST_INCOMPLETEARRAY, 64 }
-    };
+    Object[][] types =
+        new Object[][] {
+          // fieldname          // expected offset in bits
+          {FIRST_BITFIELD_12, 0},
+          {SECOND_BITFIELD_10, 12},
+          {THIRD_INT, 32},
+          {LAST_INCOMPLETEARRAY, 64}
+        };
 
     // Create a copy of types for each MachineModel and append the MachineModel instance in each row
     MachineModel[] machineModels = MachineModel.values();
