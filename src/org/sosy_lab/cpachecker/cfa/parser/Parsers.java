@@ -1,8 +1,8 @@
 /*
- *  CPAchecker is a tool for configurable software verification.
+ * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.parser.eclipse;
+package org.sosy_lab.cpachecker.cfa.parser;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
  * Without this, nothing could be garbage collected because all the parser objects
  * are referenced statically inside their classes.
  */
-public class EclipseParsers {
+public class Parsers {
 
   @Options(prefix = "cfa")
   public static class EclipseCParserOptions extends ParserOptions {
@@ -104,17 +104,19 @@ public class EclipseParsers {
     }
   }
 
-  private EclipseParsers() { }
+  private Parsers() { }
 
   private static final Pattern OUR_CLASSES = Pattern.compile("^(org\\.eclipse|org\\.sosy_lab\\.cpachecker\\.cfa\\.parser\\.eclipse\\..*\\.*)\\..*");
 
   private static final String C_PARSER_CLASS    = "org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCParser";
   private static final String JAVA_PARSER_CLASS = "org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser";
+  private static final String LLVM_PARSER_CLASS = "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser";
 
   private static WeakReference<ClassLoader> loadedClassLoader = new WeakReference<>(null);
 
   private static WeakReference<Constructor<? extends CParser>> loadedCParser    = new WeakReference<>(null);
   private static WeakReference<Constructor<? extends Parser>>  loadedJavaParser = new WeakReference<>(null);
+  private static WeakReference<Constructor<? extends Parser>> loadedLlvmParser = new WeakReference<>(null);
 
   private static final AtomicInteger loadingCount = new AtomicInteger(0);
 
@@ -129,7 +131,7 @@ public class EclipseParsers {
       logger.log(Level.INFO, "Repeated loading of Eclipse source parser");
     }
 
-    classLoader = EclipseParsers.class.getClassLoader();
+    classLoader = Parsers.class.getClassLoader();
     if (classLoader instanceof URLClassLoader) {
       classLoader =
           Classes.makeExtendedURLClassLoader()
@@ -143,6 +145,7 @@ public class EclipseParsers {
   }
 
   public static CParser getCParser(
+
       LogManager logger, EclipseCParserOptions options, MachineModel machine) {
 
     try {
@@ -191,6 +194,39 @@ public class EclipseParsers {
       }
     } catch (ReflectiveOperationException e) {
       throw new Classes.UnexpectedCheckedException("Failed to create Eclipse Java parser", e);
+    }
+  }
+
+  public static Parser getLlvmParser(
+      final LogManager pLogger,
+      final Configuration pConfig,
+      final MachineModel pMachineModel
+  ) throws InvalidConfigurationException {
+    try {
+      Constructor<? extends Parser> parserConstructor = loadedLlvmParser.get();
+
+      if (parserConstructor == null) {
+        ClassLoader classLoader = getClassLoader(pLogger);
+
+        @SuppressWarnings("unchecked")
+        Class<? extends CParser> parserClass = (Class<? extends CParser>)
+            classLoader.loadClass(LLVM_PARSER_CLASS);
+        parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class,
+            Configuration.class, MachineModel.class });
+        parserConstructor.setAccessible(true);
+        loadedLlvmParser = new WeakReference<>(parserConstructor);
+      }
+
+      try {
+        return parserConstructor.newInstance(pLogger, pConfig, pMachineModel);
+      } catch (InvocationTargetException e) {
+        if (e.getCause() instanceof InvalidConfigurationException) {
+          throw (InvalidConfigurationException)e.getCause();
+        }
+        throw e;
+      }
+    } catch (ReflectiveOperationException e) {
+      throw new Classes.UnexpectedCheckedException("Failed to create LLVM parser", e);
     }
   }
 }

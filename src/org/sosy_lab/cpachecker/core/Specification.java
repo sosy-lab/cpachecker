@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core;
 
 import static java.util.stream.Collectors.joining;
+import static org.sosy_lab.cpachecker.cfa.DummyScope.getInstance;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -81,8 +82,17 @@ public final class Specification {
       return Specification.alwaysSatisfied();
     }
 
-    Scope scope =
-        cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
+    Scope scope;
+    switch (cfa.getLanguage()) {
+      case C:
+      case LLVM:
+        scope = new CProgramScope(cfa, logger);
+        break;
+      default:
+        scope = DummyScope.getInstance();
+        break;
+    }
+
     List<Automaton> allAutomata = new ArrayList<>();
 
     for (Path specFile : specFiles) {
