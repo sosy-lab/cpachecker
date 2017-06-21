@@ -207,7 +207,7 @@ public class CFABuilder extends LlvmAstVisitor {
     }
   }
 
-  private List<CAstNode> handleCall(final Value pItem, final String pFunctionName) {
+  private List<CAstNode> handleCall(final Value pItem, final String pCallingFunctionName) {
     assert pItem.isCallInst();
     FileLocation loc = getLocation(pItem);
     CType returnType = typeConverter.getCType(pItem.typeOf());
@@ -258,7 +258,7 @@ public class CFABuilder extends LlvmAstVisitor {
     if (returnType.equals(CVoidType.VOID)) {
       return ImmutableList.of(new CFunctionCallStatement(loc, callExpression));
     } else {
-      return getAssignStatement(pItem, callExpression, functionName);
+      return getAssignStatement(pItem, callExpression, pCallingFunctionName);
     }
   }
 
