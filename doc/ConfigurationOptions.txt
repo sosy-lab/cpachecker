@@ -964,29 +964,6 @@ cpa.bdd.merge = "join"
 # threshold.
 cpa.blockcount.threshold = 1
 
-# Number of loop iterations before the loop counter is abstracted. Zero is
-# equivalent to no limit.
-cpa.bounds.loopIterationsBeforeAbstraction = 0
-
-# this option controls how the maxLoopIterations condition is adjusted when a
-# condition adjustment is invoked.
-cpa.bounds.maxLoopIterationAdjusterFactory = STATIC
-  enum:     [STATIC, INCREMENT, DOUBLE]
-
-# threshold for unrolling loops of the program (0 is infinite)
-# works only if assumption storage CPA is enabled, because otherwise it would
-# be unsound
-cpa.bounds.maxLoopIterations = 0
-
-# threshold for adjusting the threshold for unrolling loops of the program (0
-# is infinite).
-# only relevant in combination with a non-static maximum loop iteration
-# adjuster.
-cpa.bounds.maxLoopIterationsUpperBound = 0
-
-# enable stack-based tracking of loops
-cpa.bounds.trackStack = false
-
 # depth of recursion bound
 cpa.callstack.depth = 0
 
@@ -1251,6 +1228,29 @@ cpa.liveVar.assumeGlobalVariablesAreAlwaysLive = true
 # By disabling this option one can traverse a function without following
 # function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
+
+# Number of loop iterations before the loop counter is abstracted. Zero is
+# equivalent to no limit.
+cpa.loopbound.loopIterationsBeforeAbstraction = 0
+
+# this option controls how the maxLoopIterations condition is adjusted when a
+# condition adjustment is invoked.
+cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
+  enum:     [STATIC, INCREMENT, DOUBLE]
+
+# threshold for unrolling loops of the program (0 is infinite)
+# works only if assumption storage CPA is enabled, because otherwise it would
+# be unsound
+cpa.loopbound.maxLoopIterations = 0
+
+# threshold for adjusting the threshold for unrolling loops of the program (0
+# is infinite).
+# only relevant in combination with a non-static maximum loop iteration
+# adjuster.
+cpa.loopbound.maxLoopIterationsUpperBound = 0
+
+# enable stack-based tracking of loops
+cpa.loopbound.trackStack = false
 
 # this option determines which merge operator to use
 cpa.loopinvariants.mergeType = "SEP"

@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix = "cpa.bounds")
+@Options(prefix = "cpa.loopbound")
 public class LoopBoundCPA extends AbstractCPA
     implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics, LoopIterationBounding {
 
