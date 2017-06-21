@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bounds;
+package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -33,14 +33,14 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 
-public class BoundsCPAFactory extends AbstractCPAFactory {
+public class LoopBoundCPAFactory extends AbstractCPAFactory {
 
   private CFA cfa;
 
   @Override
   public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException {
     checkNotNull(cfa, "CFA instance needed to create LoopstackCPA");
-    return new BoundsCPA(getConfiguration(), cfa, getLogger());
+    return new LoopBoundCPA(getConfiguration(), cfa, getLogger());
   }
 
   @Override

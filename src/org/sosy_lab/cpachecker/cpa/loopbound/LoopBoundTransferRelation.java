@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bounds;
+package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-public class BoundsTransferRelation extends SingleEdgeTransferRelation {
+public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
   private Map<CFAEdge, Loop> loopEntryEdges = null;
   private Map<CFAEdge, Loop> loopExitEdges = null;
@@ -53,7 +53,7 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
   private final int maxLoopIterations;
   private final int loopIterationsBeforeAbstraction;
 
-  public BoundsTransferRelation(
+  public LoopBoundTransferRelation(
       int pLoopIterationsBeforeAbstraction,
       int pMaxLoopIterations,
       LoopStructure pLoops) {
@@ -93,8 +93,8 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    BoundsState e = (BoundsState) pElement;
-    BoundsPrecision precision = (BoundsPrecision) pPrecision;
+    LoopBoundState e = (LoopBoundState) pElement;
+    LoopBoundPrecision precision = (LoopBoundPrecision) pPrecision;
 
     if (e.isStopState()) {
       return Collections.emptySet();

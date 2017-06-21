@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bounds;
+package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -67,7 +67,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.bounds")
-public class BoundsCPA extends AbstractCPA
+public class LoopBoundCPA extends AbstractCPA
     implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics, LoopIterationBounding {
 
   private final LogManager logger;
@@ -94,16 +94,16 @@ public class BoundsCPA extends AbstractCPA
   private final DelegatingTransferRelation transferRelation;
 
   public static CPAFactory factory() {
-    return new BoundsCPAFactory();
+    return new LoopBoundCPAFactory();
   }
 
   private final LoopStructure loopStructure;
 
-  public BoundsCPA(Configuration config, CFA pCfa, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+  public LoopBoundCPA(Configuration config, CFA pCfa, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     this(config, pCfa, pLogger, new DelegatingTransferRelation());
   }
 
-  private BoundsCPA(Configuration config, CFA pCfa, LogManager pLogger, DelegatingTransferRelation pDelegatingTransferRelation) throws InvalidConfigurationException, CPAException {
+  private LoopBoundCPA(Configuration config, CFA pCfa, LogManager pLogger, DelegatingTransferRelation pDelegatingTransferRelation) throws InvalidConfigurationException, CPAException {
     super("sep", "sep", pDelegatingTransferRelation);
     if (!pCfa.getLoopStructure().isPresent()) {
       throw new CPAException("UnifiedLoopstackCPA cannot work without loop-structure information in CFA.");
@@ -111,14 +111,14 @@ public class BoundsCPA extends AbstractCPA
     loopStructure = pCfa.getLoopStructure().get();
     config.inject(this);
     this.transferRelation = pDelegatingTransferRelation;
-    this.transferRelation.setDelegate(new BoundsTransferRelation(
+    this.transferRelation.setDelegate(new LoopBoundTransferRelation(
         loopIterationsBeforeAbstraction, maxLoopIterations, loopStructure));
     this.logger = pLogger;
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    BoundsState initialState = new BoundsState();
+    LoopBoundState initialState = new LoopBoundState();
     Set<Loop> loopsAtLocation = loopStructure.getLoopsForLoopHead(pNode);
     for (Loop loop : loopsAtLocation) {
       initialState = initialState.visitLoopHead(new LoopEntry(pNode, loop));
@@ -129,7 +129,7 @@ public class BoundsCPA extends AbstractCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return new BoundsPrecision(false);
+    return new LoopBoundPrecision(false);
   }
 
   @Override
@@ -161,7 +161,7 @@ public class BoundsCPA extends AbstractCPA
         if (pArg0 == null) {
           return false;
         }
-        BoundsState loopstackState = extractStateByType(pArg0, BoundsState.class);
+        LoopBoundState loopstackState = extractStateByType(pArg0, LoopBoundState.class);
         return loopstackState != null && loopstackState.mustDumpAssumptionForAvoidance();
       }}).toSet();
 
@@ -208,7 +208,7 @@ public class BoundsCPA extends AbstractCPA
 
   private static interface MaxLoopIterationAdjusterFactory {
 
-    MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(BoundsCPA pCPA);
+    MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopBoundCPA pCPA);
 
   }
 
@@ -217,7 +217,7 @@ public class BoundsCPA extends AbstractCPA
     STATIC {
 
       @Override
-      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(BoundsCPA pCPA) {
+      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopBoundCPA pCPA) {
         return StaticLoopIterationAdjuster.INSTANCE;
       }
 
@@ -226,7 +226,7 @@ public class BoundsCPA extends AbstractCPA
     INCREMENT {
 
       @Override
-      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(BoundsCPA pCPA) {
+      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopBoundCPA pCPA) {
         return new IncrementalLoopIterationAdjuster(pCPA);
       }
 
@@ -235,7 +235,7 @@ public class BoundsCPA extends AbstractCPA
     DOUBLE {
 
       @Override
-      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(BoundsCPA pCPA) {
+      public MaxLoopIterationAdjuster getMaxLoopIterationAdjuster(LoopBoundCPA pCPA) {
         return new DoublingLoopIterationAdjuster(pCPA);
       }
 
@@ -262,9 +262,9 @@ public class BoundsCPA extends AbstractCPA
 
   private static class IncrementalLoopIterationAdjuster implements MaxLoopIterationAdjuster {
 
-    private final BoundsCPA cpa;
+    private final LoopBoundCPA cpa;
 
-    public IncrementalLoopIterationAdjuster(BoundsCPA pCPA) {
+    public IncrementalLoopIterationAdjuster(LoopBoundCPA pCPA) {
       this.cpa = pCPA;
     }
 
@@ -282,9 +282,9 @@ public class BoundsCPA extends AbstractCPA
 
   private static class DoublingLoopIterationAdjuster implements MaxLoopIterationAdjuster {
 
-    private final BoundsCPA cpa;
+    private final LoopBoundCPA cpa;
 
-    public DoublingLoopIterationAdjuster(BoundsCPA pCPA) {
+    public DoublingLoopIterationAdjuster(LoopBoundCPA pCPA) {
       this.cpa = pCPA;
     }
 
@@ -343,7 +343,7 @@ public class BoundsCPA extends AbstractCPA
     writer.put("Bound k", this.maxLoopIterations);
     int maximumLoopIterationReached = 0;
     for (AbstractState state : pReached) {
-      BoundsState loopstackState = AbstractStates.extractStateByType(state, BoundsState.class);
+      LoopBoundState loopstackState = AbstractStates.extractStateByType(state, LoopBoundState.class);
       if (loopstackState != null) {
         maximumLoopIterationReached = Math.max(maximumLoopIterationReached, loopstackState.getDeepestIteration());
       }
@@ -360,7 +360,7 @@ public class BoundsCPA extends AbstractCPA
   @Override
   public void setMaxLoopIterations(int pMaxLoopIterations) {
     this.maxLoopIterations = pMaxLoopIterations;
-    this.transferRelation.setDelegate(new BoundsTransferRelation(
+    this.transferRelation.setDelegate(new LoopBoundTransferRelation(
         loopIterationsBeforeAbstraction,
         maxLoopIterations, loopStructure));
   }

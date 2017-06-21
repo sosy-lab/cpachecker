@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bounds;
+package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import com.google.common.collect.FluentIterable;
 import java.util.Collections;
@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
-import org.sosy_lab.cpachecker.cpa.bounds.LoopIterationState.DeterminedLoopIterationState;
-import org.sosy_lab.cpachecker.cpa.bounds.LoopIterationState.UndeterminedLoopIterationState;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopIterationState.DeterminedLoopIterationState;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopIterationState.UndeterminedLoopIterationState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
@@ -42,7 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-public class BoundsState
+public class LoopBoundState
     implements AbstractState, Partitionable, AvoidanceReportingState, LoopIterationReportingState {
 
   private final LoopStack loopStack;
@@ -51,45 +51,45 @@ public class BoundsState
 
   private int hashCache = 0;
 
-  public BoundsState() {
+  public LoopBoundState() {
     this(new LoopStack(UndeterminedLoopIterationState.newState()), false);
   }
 
-  private BoundsState(LoopStack pLoopStack, boolean pStopIt) {
+  private LoopBoundState(LoopStack pLoopStack, boolean pStopIt) {
     this.loopStack = Objects.requireNonNull(pLoopStack);
     this.stopIt = pStopIt;
   }
 
-  public BoundsState exit(Loop pOldLoop) throws CPATransferException {
+  public LoopBoundState exit(Loop pOldLoop) throws CPATransferException {
     assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
     LoopIterationState loopIterationState = loopStack.peek();
     if (loopIterationState.isEntryKnown()) {
       if (!pOldLoop.equals(loopIterationState.getLoopEntry().getLoop())) {
         throw new CPATransferException("Unexpected exit from loop " + pOldLoop + " when loop stack is " + this);
       }
-      return new BoundsState(loopStack.pop(), stopIt);
+      return new LoopBoundState(loopStack.pop(), stopIt);
     }
     return this;
   }
 
-  public BoundsState enter(LoopEntry pLoopEntry) {
-    return new BoundsState(
+  public LoopBoundState enter(LoopEntry pLoopEntry) {
+    return new LoopBoundState(
         loopStack.push(DeterminedLoopIterationState.newState(pLoopEntry)),
         stopIt);
   }
 
-  public BoundsState visitLoopHead(LoopEntry pLoopEntry) {
+  public LoopBoundState visitLoopHead(LoopEntry pLoopEntry) {
     return visitLoopHead(pLoopEntry, Integer.MAX_VALUE);
   }
 
-  public BoundsState visitLoopHead(LoopEntry pLoopEntry, int pLoopIterationsBeforeAbstraction) {
+  public LoopBoundState visitLoopHead(LoopEntry pLoopEntry, int pLoopIterationsBeforeAbstraction) {
     assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
     LoopIterationState loopIterationState = loopStack.peek();
     if (pLoopIterationsBeforeAbstraction == 0
         || loopIterationState.getMaxIterationCount() < pLoopIterationsBeforeAbstraction) {
       LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoopEntry);
       if (newLoopIterationState != loopIterationState) {
-        return new BoundsState(
+        return new LoopBoundState(
             loopStack.pop().push(newLoopIterationState),
             stopIt);
       }
@@ -97,8 +97,8 @@ public class BoundsState
     return this;
   }
 
-  public BoundsState stopIt() {
-    return new BoundsState(loopStack, true);
+  public LoopBoundState stopIt() {
+    return new LoopBoundState(loopStack, true);
   }
 
   @Override
@@ -125,11 +125,11 @@ public class BoundsState
     if (obj == this) {
       return true;
     }
-    if (!(obj instanceof BoundsState)) {
+    if (!(obj instanceof LoopBoundState)) {
       return false;
     }
 
-    BoundsState other = (BoundsState)obj;
+    LoopBoundState other = (LoopBoundState)obj;
     return this.stopIt == other.stopIt
         && this.loopStack.equals(other.loopStack);
   }

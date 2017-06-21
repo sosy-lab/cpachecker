@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2017  Dirk Beyer
+ *  Copyright (C) 2007-2014  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,25 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bounds;
-
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-
-public class BoundsPrecision implements Precision {
-
-  private final boolean stack;
-
-  public BoundsPrecision(boolean pStack) {
-    stack = pStack;
-  }
-
-  public boolean shouldTrackStack() {
-    return stack;
-  }
-
-  @Override
-  public String toString() {
-    return shouldTrackStack() ? "Stack" : "Flat";
-  }
-
-}
+/**
+ * This CPA tracks the loop iterations
+ * and stops exploration after a given (modifiable) bound is reached,
+ * thereby implementing a bound.
+ *
+ * Applications of this CPA are bounded model checking and k-induction.
+ */
+package org.sosy_lab.cpachecker.cpa.loopbound;
