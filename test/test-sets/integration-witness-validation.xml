@@ -16,10 +16,10 @@
     <requiredfiles>../results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml.gz</requiredfiles>
   </rundefinition>
 
-  <option name="-witness-validation"/>
+  <option name="-witnessValidation"/>
   <option name="-disable-java-assertions"/>
   <option name="-heap">10000m</option>
-  <option name="-spec">test/results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml.gz</option>
+  <option name="-witness">test/results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/witness.graphml.gz</option>
 
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
