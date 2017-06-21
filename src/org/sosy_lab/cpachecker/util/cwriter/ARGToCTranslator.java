@@ -658,7 +658,7 @@ public class ARGToCTranslator {
     CFunctionCall retExp = pEdge.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
       //end of void function, just leave block (no assignment needed)
-      return pCurrentBlock.getSurroundingBlock();
+      return getInnerMostInlinedFunction(pCurrentBlock).getSurroundingBlock();
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
 
