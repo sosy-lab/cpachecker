@@ -129,7 +129,7 @@ public class LoopBoundCPA extends AbstractCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return new LoopBoundPrecision(false);
+    return new LoopBoundPrecision(trackStack);
   }
 
   @Override
