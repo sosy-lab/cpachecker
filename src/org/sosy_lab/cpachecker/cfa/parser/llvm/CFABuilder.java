@@ -220,13 +220,16 @@ public class CFABuilder extends LlvmAstVisitor {
     CFunctionDeclaration functionDeclaration = functionDeclarations.get(functionName);
 
     CIdExpression functionNameExp;
+    List<CExpression> parameters = new ArrayList<>(argumentCount);
     if (functionDeclaration == null) {
       // Try to derive a function type from the call
       List<CType> parameterTypes = new ArrayList<>(argumentCount-1);
       for (int i = 1; i < argumentCount; i++) {
         Value functionArg = pItem.getOperand(i);
         assert functionArg.isConstant() || variableDeclarations.containsKey(functionArg.getAddress());
-        parameterTypes.add(typeConverter.getCType(functionArg.typeOf()));
+        CType expectedType = typeConverter.getCType(functionArg.typeOf());
+        parameterTypes.add(expectedType);
+        parameters.add(getAssignedIdExpression(functionArg, expectedType, pFunctionName));
       }
 
       CFunctionType functionType =
@@ -235,18 +238,18 @@ public class CFABuilder extends LlvmAstVisitor {
     } else {
       functionNameExp =
           new CIdExpression(loc, functionDeclaration.getType(), functionName, functionDeclaration);
-    }
 
-    List<CParameterDeclaration> parameterDeclarations = functionDeclaration.getParameters();
-    List<CExpression> parameters = new ArrayList<>(argumentCount);
-    // i = 1 to skip the function name, we only want to look at arguments
-    for (int i = 1; i < argumentCount; i++) {
-      Value functionArg = pItem.getOperand(i);
-      // Parameter declarations start at 0, not 1, so we have to subtract 1 again
-      CType expectedType = parameterDeclarations.get(i-1).getType();
+      List<CParameterDeclaration> parameterDeclarations = functionDeclaration.getParameters();
+      // i = 1 to skip the function name, we only want to look at arguments
+      for (int i = 1; i < argumentCount; i++) {
+        Value functionArg = pItem.getOperand(i);
+        // Parameter declarations start at 0, not 1, so we have to subtract 1 again
+        CType expectedType = parameterDeclarations.get(i - 1).getType();
 
-      assert functionArg.isConstant() || variableDeclarations.containsKey(functionArg.getAddress());
-      parameters.add(getAssignedIdExpression(functionArg, expectedType, pFunctionName));
+        assert
+            functionArg.isConstant() || variableDeclarations.containsKey(functionArg.getAddress());
+        parameters.add(getAssignedIdExpression(functionArg, expectedType, pFunctionName));
+      }
     }
 
     CFunctionCallExpression callExpression = new CFunctionCallExpression(loc, returnType,
