@@ -959,7 +959,7 @@ public enum MachineModel {
     }
   }
 
-  private int calculateNecessaryBitfieldOffset(
+  public int calculateNecessaryBitfieldOffset(
       int pBitFieldOffset, CType pType, int pSizeOfByte, int pBitFieldLength) {
     // gcc -std=c11 implements bitfields such, that it only positions a bitfield 'B'
     // directly adjacent to its preceding bitfield 'A', if 'B' fits into the
@@ -979,7 +979,7 @@ public enum MachineModel {
     return pBitFieldOffset;
   }
 
-  private Integer calculatePaddedBitsize(
+  public Integer calculatePaddedBitsize(
       Integer pBitOffset, int pSizeOfConsecutiveBitFields, CType pType, int pSizeOfByte) {
     pBitOffset += pSizeOfConsecutiveBitFields;
     // once pad the bits to full bytes, then pad bytes to the
