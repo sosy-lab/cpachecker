@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.types;
 import static com.google.common.truth.Truth8.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import java.util.List;
 import java.util.OptionalInt;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,7 +59,7 @@ public class MachineModelSizeOfVisitorTest {
   private static final MachineModel MODEL64 = MachineModel.LINUX64;
   private static final MachineModel MODEL32 = MachineModel.LINUX32;
 
-  private static final List<CCompositeTypeMemberDeclaration> FIELDS =
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(
               new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12), FIRST_BITFIELD_12),
@@ -71,7 +70,7 @@ public class MachineModelSizeOfVisitorTest {
   private static final CCompositeType STRUCT_1 =
       new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS, TEST_STRUCT, TEST_STRUCT);
 
-  private static final List<CCompositeTypeMemberDeclaration> FIELDS_2 =
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_2 =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(
               new CBitFieldType(CNumericTypes.CHAR, 4), CHAR_BITFIELD_4_0),
@@ -86,7 +85,7 @@ public class MachineModelSizeOfVisitorTest {
   private static final CCompositeType STRUCT_2 =
       new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_2, TEST_STRUCT, TEST_STRUCT);
 
-  private static final List<CCompositeTypeMemberDeclaration> FIELDS_3 =
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_3 =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(
               new CBitFieldType(CNumericTypes.CHAR, 4), CHAR_BITFIELD_4_0),
@@ -101,7 +100,7 @@ public class MachineModelSizeOfVisitorTest {
   private static final CCompositeType STRUCT_3 =
       new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_3, TEST_STRUCT, TEST_STRUCT);
 
-  private static final List<CCompositeTypeMemberDeclaration> FIELDS_4 =
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_4 =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(
               new CBitFieldType(CNumericTypes.LONG_LONG_INT, 8), LONGLONG_BITFIELD));
@@ -109,7 +108,7 @@ public class MachineModelSizeOfVisitorTest {
   private static final CCompositeType STRUCT_4 =
       new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_4, TEST_STRUCT, TEST_STRUCT);
 
-  private static final List<CCompositeTypeMemberDeclaration> FIELDS_5 =
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_5 =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(CNumericTypes.CHAR, CHAR),
           new CCompositeTypeMemberDeclaration(CNumericTypes.LONG_LONG_INT, LONGLONG),
