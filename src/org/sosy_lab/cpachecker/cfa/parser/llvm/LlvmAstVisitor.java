@@ -32,7 +32,6 @@ import java.util.TreeMap;
 import org.llvm.BasicBlock;
 import org.llvm.Module;
 import org.llvm.Value;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
