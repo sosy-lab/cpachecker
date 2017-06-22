@@ -343,6 +343,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write residual program to file");
       return;
+    } catch (CPAException e) {
+      logger.logException(Level.SEVERE, e, "Failed to generate residual program.");
+      return;
     }
     String mainFunction = AbstractStates.extractLocation(pArgRoot).getFunctionName();
     assert (isValidResidualProgram(mainFunction));

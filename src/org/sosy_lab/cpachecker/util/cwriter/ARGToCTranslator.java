@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -222,12 +223,13 @@ public class ARGToCTranslator {
     deleteAssertFail = targetStrategy == TargetTreatment.FRAMACPRAGMA;
   }
 
-  public String translateARG(ARGState argRoot) {
+  public String translateARG(ARGState argRoot) throws CPAException {
 
     return translateARG(argRoot, null);
   }
 
-  public String translateARG(ARGState argRoot, @Nullable Set<ARGState> pAddPragma) {
+  public String translateARG(ARGState argRoot, @Nullable Set<ARGState> pAddPragma)
+      throws CPAException {
 
     addPragmaAfter = pAddPragma == null ? Collections.emptySet() : pAddPragma;
 
@@ -255,7 +257,7 @@ public class ARGToCTranslator {
     return buffer.toString();
   }
 
-  private void translate(ARGState rootElement) {
+  private void translate(ARGState rootElement) throws CPAException {
     // waitlist for the edges to be processed
     Deque<ARGEdge> waitlist = new ArrayDeque<>(); //TODO: used to be sorted list and I don't know why yet ;-)
 
@@ -398,7 +400,7 @@ public class ARGToCTranslator {
     }
   }
 
-  private void handleEdge(ARGEdge nextEdge, Deque<ARGEdge> waitlist) {
+  private void handleEdge(ARGEdge nextEdge, Deque<ARGEdge> waitlist) throws CPAException {
     ARGState parentElement = nextEdge.getParentElement();
     ARGState childElement = nextEdge.getChildElement();
     CFAEdge edge = nextEdge.getCfaEdge();
@@ -420,7 +422,8 @@ public class ARGToCTranslator {
   }
 
 
-  private CompoundStatement processEdge(ARGState currentElement, ARGState childElement, CFAEdge edge, CompoundStatement currentBlock) {
+  private CompoundStatement processEdge(ARGState currentElement, ARGState childElement,
+      CFAEdge edge, CompoundStatement currentBlock) throws CPAException {
     if (edge instanceof CFunctionCallEdge) {
       // if this is a function call edge we need to inline it
       currentBlock = processFunctionCall(edge, currentBlock);
@@ -548,7 +551,7 @@ public class ARGToCTranslator {
 
   }
 
-  private String processSimpleEdge(CFAEdge pCFAEdge) {
+  private String processSimpleEdge(CFAEdge pCFAEdge) throws CPAException {
     if (pCFAEdge == null) { return ""; }
 
     switch (pCFAEdge.getEdgeType()) {
@@ -589,6 +592,12 @@ public class ARGToCTranslator {
               && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
             declaration = "";
           }
+        }
+
+        if (declaration.contains(
+            "org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
+          throw new CPAException(
+                "Failed to translate ARG into program because a type could not be properly resolved.");
         }
 
         if (lDeclarationEdge.getDeclaration().isGlobal()) {
