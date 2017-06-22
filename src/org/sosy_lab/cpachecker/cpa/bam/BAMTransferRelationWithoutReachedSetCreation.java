@@ -27,7 +27,6 @@ import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -58,32 +57,18 @@ public class BAMTransferRelationWithoutReachedSetCreation
   }
 
   /**
-   * Enters a new block and performs a new analysis by recursively initiating {@link CPAAlgorithm},
-   * or returns a cached result from {@link BAMCache}.
-   *
-   * <p>Postcondition: sets the {@code currentBlock} variable to the currently processed block.
-   *
-   * <p>Postcondition: pushes the current recursive level on the {@code stack}.
+   * Enters a new block and returns a cached result from {@link BAMCache} if possible.
    *
    * @param initialState Initial state of the analyzed block.
    * @param pPrecision Initial precision associated with the block start.
    * @param node Node corresponding to the block start.
+   * @throws BlockSummaryMissingException if no cached result is available.
    * @return Set of states associated with the block exit.
    */
   @Override
   protected Collection<AbstractState> doRecursiveAnalysis(
       final AbstractState initialState, final Precision pPrecision, final CFANode node)
       throws CPATransferException, InterruptedException {
-
-    //Create ReachSet with node as initial element (+ add corresponding Location+CallStackElement)
-    //do an CPA analysis to get the complete reachset
-    //if lastElement is error State
-    // -> return lastElement and break at precision adjustment
-    //else
-    // -> compute which states refer to return nodes
-    // -> return these states as successor
-    // -> cache the result
-
     final Block outerSubtree = getBlockForState((ARGState) initialState);
     final Block innerSubtree = partitioning.getBlockForCallNode(node);
     assert innerSubtree.getCallNodes().contains(node);
@@ -106,13 +91,14 @@ public class BAMTransferRelationWithoutReachedSetCreation
   }
 
   /**
-   * Analyse the block starting at the node with {@code initialState}. If there is a result in the
-   * cache ({@code data.bamCache}), it is used, otherwise a recursive {@link CPAAlgorithm} is
-   * started.
+   * Analyze the block starting at the node with {@code initialState}. If there is a result in the
+   * cache ({@code data.bamCache}), it is used, otherwise a {@link BlockSummaryMissingException} is
+   * thrown.
    *
    * @param initialState State associated with the block entry.
    * @param reducedInitialState Reduced {@code initialState}.
    * @param reducedInitialPrecision Reduced precision associated with the block entry.
+   * @throws BlockSummaryMissingException if no cached result is available.
    * @return Set of reduced pairs of abstract states associated with the exit of the block and the
    *     reached-set they belong to.
    */
