@@ -482,7 +482,7 @@ public class ARGToCTranslator {
         edgeStatementCodes.append("\n");
       }
       currentBlock.addStatement(new SimpleStatement(edgeStatementCodes.toString()));
-    } else if (mustHandleDefaultReturn(edge, childElement)) {
+    } else if (mustHandleDefaultReturn(edge)) {
       processDefaultReturn((CFunctionDeclaration) ((FunctionExitNode) edge.getSuccessor())
           .getEntryNode().getFunctionDefinition(), childElement.getStateId());
     } else {
@@ -502,9 +502,8 @@ public class ARGToCTranslator {
     return currentBlock;
   }
 
-  private boolean mustHandleDefaultReturn(final CFAEdge pEdge, final ARGState pChild) {
+  private boolean mustHandleDefaultReturn(final CFAEdge pEdge) {
     return pEdge.getSuccessor() instanceof FunctionExitNode
-        && (!pChild.getCoveredByThis().isEmpty() || mergeElements.contains(pChild))
         && pEdge.getDescription().equals(DEFAULTRETURN);
   }
 
