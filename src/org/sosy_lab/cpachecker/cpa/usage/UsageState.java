@@ -132,7 +132,7 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     if (linkedId.isPresent()) {
       AbstractIdentifier pointsFrom = linkedId.get();
       int delta = id.getDereference() - pointsFrom.getDereference();
-      AbstractIdentifier initialId = variableBindingRelation.get(id);
+      AbstractIdentifier initialId = variableBindingRelation.get(linkedId);
       AbstractIdentifier pointsTo =
           initialId.cloneWithDereference(initialId.getDereference() + delta);
       if (this.containsLinks(pointsTo)) {
