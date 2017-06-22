@@ -177,6 +177,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
     argRoot = result.getFirst();
 
     boolean useCombination = isCombination(argRoot);
+    boolean programWritten;
 
     if (doSlicing) {
       Set<ARGState> addPragma;
@@ -185,9 +186,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       } else {
         addPragma = getAllTargetStatesNotFullyExplored(pReachedSet, result.getSecond());
       }
-      writeResidualProgram(argRoot, addPragma);
+      programWritten = writeResidualProgram(argRoot, addPragma);
     } else {
-      writeResidualProgram(argRoot, null);
+      programWritten = writeResidualProgram(argRoot, null);
+    }
+
+    if(!programWritten) {
+      throw new CPAException("Failed to write residual program.");
     }
 
     return status;
@@ -334,21 +339,21 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
                     AbstractStates.extractStateByType(state, CallstackState.class)))));
   }
 
-   private void writeResidualProgram(final ARGState pArgRoot,
-      @Nullable final Set<ARGState> pAddPragma)
-      throws InterruptedException {
+  private boolean writeResidualProgram(final ARGState pArgRoot,
+      @Nullable final Set<ARGState> pAddPragma) throws InterruptedException {
     logger.log(Level.INFO, "Generate residual program");
     try (Writer writer = MoreFiles.openOutputFile(residualProgram, Charset.defaultCharset())) {
       writer.write(translator.translateARG(pArgRoot, pAddPragma));
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write residual program to file");
-      return;
+      return false;
     } catch (CPAException e) {
       logger.logException(Level.SEVERE, e, "Failed to generate residual program.");
-      return;
+      return false;
     }
     String mainFunction = AbstractStates.extractLocation(pArgRoot).getFunctionName();
     assert (isValidResidualProgram(mainFunction));
+    return true;
   }
 
   private @Nullable Pair<ARGState, ReachedSet> prepareARGToConstructResidualProgram(final CFANode mainFunction,
