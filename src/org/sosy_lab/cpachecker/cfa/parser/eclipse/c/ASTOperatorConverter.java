@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Set;
+import com.google.common.collect.Sets;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTTypeIdExpression;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
@@ -187,13 +187,14 @@ class ASTOperatorConverter {
     }
   }
 
-  private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
-      BinaryOperator.EQUALS,
-      BinaryOperator.NOT_EQUALS,
-      BinaryOperator.GREATER_EQUAL,
-      BinaryOperator.GREATER_THAN,
-      BinaryOperator.LESS_EQUAL,
-      BinaryOperator.LESS_THAN);
+  private static final ImmutableSet<BinaryOperator> BOOLEAN_BINARY_OPERATORS =
+      Sets.immutableEnumSet(
+          BinaryOperator.EQUALS,
+          BinaryOperator.NOT_EQUALS,
+          BinaryOperator.GREATER_EQUAL,
+          BinaryOperator.GREATER_THAN,
+          BinaryOperator.LESS_EQUAL,
+          BinaryOperator.LESS_THAN);
 
   static boolean isBooleanExpression(CExpression e) {
     if (e instanceof CBinaryExpression) {

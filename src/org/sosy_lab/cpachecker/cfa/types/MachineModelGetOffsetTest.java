@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth8.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.OptionalInt;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -96,7 +95,7 @@ public class MachineModelGetOffsetTest {
   // of these:
   //    a) (DO NOT) insert a new Member after LAST_INCOMPLETE
   //    b) (DO NOT) insert a new Member before THIRD_INT
-  private static final List<CCompositeTypeMemberDeclaration> FIELDS =
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12),
               FIRST_BITFIELD_12),
@@ -112,7 +111,7 @@ public class MachineModelGetOffsetTest {
           TEST_STRUCT, TEST_STRUCT);
 
 
-  private static final List<CCompositeTypeMemberDeclaration> BOUND_TO_FAIL_FIELDS =
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> BOUND_TO_FAIL_FIELDS =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12),
               FIRST_BITFIELD_12),
