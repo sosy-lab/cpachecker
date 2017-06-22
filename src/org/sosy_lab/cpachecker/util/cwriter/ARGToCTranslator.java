@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -222,12 +223,13 @@ public class ARGToCTranslator {
     deleteAssertFail = targetStrategy == TargetTreatment.FRAMACPRAGMA;
   }
 
-  public String translateARG(ARGState argRoot) {
+  public String translateARG(ARGState argRoot) throws CPAException {
 
     return translateARG(argRoot, null);
   }
 
-  public String translateARG(ARGState argRoot, @Nullable Set<ARGState> pAddPragma) {
+  public String translateARG(ARGState argRoot, @Nullable Set<ARGState> pAddPragma)
+      throws CPAException {
 
     addPragmaAfter = pAddPragma == null ? Collections.emptySet() : pAddPragma;
 
@@ -255,7 +257,7 @@ public class ARGToCTranslator {
     return buffer.toString();
   }
 
-  private void translate(ARGState rootElement) {
+  private void translate(ARGState rootElement) throws CPAException {
     // waitlist for the edges to be processed
     Deque<ARGEdge> waitlist = new ArrayDeque<>(); //TODO: used to be sorted list and I don't know why yet ;-)
 
@@ -398,7 +400,7 @@ public class ARGToCTranslator {
     }
   }
 
-  private void handleEdge(ARGEdge nextEdge, Deque<ARGEdge> waitlist) {
+  private void handleEdge(ARGEdge nextEdge, Deque<ARGEdge> waitlist) throws CPAException {
     ARGState parentElement = nextEdge.getParentElement();
     ARGState childElement = nextEdge.getChildElement();
     CFAEdge edge = nextEdge.getCfaEdge();
@@ -420,7 +422,8 @@ public class ARGToCTranslator {
   }
 
 
-  private CompoundStatement processEdge(ARGState currentElement, ARGState childElement, CFAEdge edge, CompoundStatement currentBlock) {
+  private CompoundStatement processEdge(ARGState currentElement, ARGState childElement,
+      CFAEdge edge, CompoundStatement currentBlock) throws CPAException {
     if (edge instanceof CFunctionCallEdge) {
       // if this is a function call edge we need to inline it
       currentBlock = processFunctionCall(edge, currentBlock);
@@ -479,7 +482,7 @@ public class ARGToCTranslator {
         edgeStatementCodes.append("\n");
       }
       currentBlock.addStatement(new SimpleStatement(edgeStatementCodes.toString()));
-    } else if (mustHandleDefaultReturn(edge, childElement)) {
+    } else if (mustHandleDefaultReturn(edge)) {
       processDefaultReturn((CFunctionDeclaration) ((FunctionExitNode) edge.getSuccessor())
           .getEntryNode().getFunctionDefinition(), childElement.getStateId());
     } else {
@@ -499,9 +502,8 @@ public class ARGToCTranslator {
     return currentBlock;
   }
 
-  private boolean mustHandleDefaultReturn(final CFAEdge pEdge, final ARGState pChild) {
+  private boolean mustHandleDefaultReturn(final CFAEdge pEdge) {
     return pEdge.getSuccessor() instanceof FunctionExitNode
-        && (!pChild.getCoveredByThis().isEmpty() || mergeElements.contains(pChild))
         && pEdge.getDescription().equals(DEFAULTRETURN);
   }
 
@@ -548,70 +550,74 @@ public class ARGToCTranslator {
 
   }
 
-  private String processSimpleEdge(CFAEdge pCFAEdge) {
-    if(pCFAEdge == null) {
-      return "";
-    }
+  private String processSimpleEdge(CFAEdge pCFAEdge) throws CPAException {
+    if (pCFAEdge == null) { return ""; }
 
     switch (pCFAEdge.getEdgeType()) {
-    case BlankEdge: {
-      //nothing to do
-      break;
-    }
+      case BlankEdge: {
+        //nothing to do
+        break;
+      }
 
-    case AssumeEdge: {
-      //nothing to do
-      break;
-    }
+      case AssumeEdge: {
+        //nothing to do
+        break;
+      }
 
-    case StatementEdge: {
-      CStatementEdge lStatementEdge = (CStatementEdge)pCFAEdge;
+      case StatementEdge: {
+        CStatementEdge lStatementEdge = (CStatementEdge) pCFAEdge;
         String statementText = lStatementEdge.getStatement().toASTString();
         if (deleteAssertFail && statementText.startsWith(ASSERTFAIL)) { return ""; }
         return statementText + (statementText.endsWith(";") ? "" : ";");
       }
 
-    case DeclarationEdge: {
-      CDeclarationEdge lDeclarationEdge = (CDeclarationEdge)pCFAEdge;
-      String declaration;
-      // TODO adapt if String in org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
-      if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
-        declaration = lDeclarationEdge.getDeclaration().toASTString();
-      } else {
-        declaration = lDeclarationEdge.getCode(); //TODO check if works without lDeclarationEdge.getRawStatement();
-        if(declaration.contains(",")) {
-          for(CFAEdge predEdge: CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
-            if(predEdge.getRawStatement().equals(declaration)) {
-              declaration = "";
-              break;
+      case DeclarationEdge: {
+        CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
+        String declaration;
+        // TODO adapt if String in org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
+        if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
+          declaration = lDeclarationEdge.getDeclaration().toASTString();
+        } else {
+          declaration = lDeclarationEdge.getCode(); //TODO check if works without lDeclarationEdge.getRawStatement();
+          if (declaration.contains(",")) {
+            for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
+              if (predEdge.getRawStatement().equals(declaration)) {
+                declaration = "";
+                break;
+              }
             }
           }
-        }
           if (includeHeader && declaration.contains("assert")
               && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
             declaration = "";
           }
+        }
+
+        if (declaration.contains(
+            "org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
+          throw new CPAException(
+                "Failed to translate ARG into program because a type could not be properly resolved.");
+        }
+
+        if (lDeclarationEdge.getDeclaration().isGlobal()) {
+          globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
+        } else {
+          return declaration;
+        }
+
+        break;
       }
 
-      if (lDeclarationEdge.getDeclaration().isGlobal()) {
-        globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
-      } else {
-        return declaration;
+      case CallToReturnEdge: {
+        //          this should not have been taken
+        assert false : "CallToReturnEdge in counterexample path: " + pCFAEdge;
+
+        break;
       }
 
-      break;
-    }
-
-    case CallToReturnEdge: {
-      //          this should not have been taken
-      assert false : "CallToReturnEdge in counterexample path: " + pCFAEdge;
-
-      break;
-    }
-
-    default: {
-      assert false  : "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType();
-    }
+      default: {
+        assert false : "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType();
+      }
     }
 
     return "";

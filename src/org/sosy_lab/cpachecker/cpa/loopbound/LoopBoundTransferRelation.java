@@ -21,15 +21,20 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.bounds;
+package org.sosy_lab.cpachecker.cpa.loopbound;
 
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
+import static com.google.common.base.Predicates.instanceOf;
+import static com.google.common.base.Predicates.not;
+import static com.google.common.collect.Iterables.filter;
+
+import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -38,14 +43,17 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-public class BoundsTransferRelation extends SingleEdgeTransferRelation {
+public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
-  private Multimap<CFANode, Loop> loopHeads = null;
+  private Map<CFAEdge, Loop> loopEntryEdges = null;
+  private Map<CFAEdge, Loop> loopExitEdges = null;
+
+  private Map<CFANode, Loop> loopHeads = null;
 
   private final int maxLoopIterations;
   private final int loopIterationsBeforeAbstraction;
 
-  public BoundsTransferRelation(
+  public LoopBoundTransferRelation(
       int pLoopIterationsBeforeAbstraction,
       int pMaxLoopIterations,
       LoopStructure pLoops) {
@@ -53,13 +61,29 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
     loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
     this.maxLoopIterations = pMaxLoopIterations;
 
-    ImmutableMultimap.Builder<CFANode, Loop> heads = ImmutableMultimap.builder();
+    ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
+    ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
+    ImmutableMap.Builder<CFANode, Loop> heads = ImmutableMap.builder();
 
     for (Loop l : pLoops.getAllLoops()) {
+      // function edges do not count as incoming/outgoing edges
+      Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
+                                               not(instanceOf(CFunctionReturnEdge.class)));
+      Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
+                                               not(instanceOf(CFunctionCallEdge.class)));
+
+      for (CFAEdge e : incomingEdges) {
+        entryEdges.put(e, l);
+      }
+      for (CFAEdge e : outgoingEdges) {
+        exitEdges.put(e, l);
+      }
       for (CFANode h : l.getLoopHeads()) {
         heads.put(h, l);
       }
     }
+    loopEntryEdges = entryEdges.build();
+    loopExitEdges = exitEdges.build();
     loopHeads = heads.build();
   }
 
@@ -69,7 +93,8 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    BoundsState e = (BoundsState) pElement;
+    LoopBoundState e = (LoopBoundState) pElement;
+    LoopBoundPrecision precision = (LoopBoundPrecision) pPrecision;
 
     if (e.isStopState()) {
       return Collections.emptySet();
@@ -80,21 +105,34 @@ public class BoundsTransferRelation extends SingleEdgeTransferRelation {
       return Collections.singleton(pElement);
     }
 
+    CFANode loc = pCfaEdge.getSuccessor();
+
+    Loop oldLoop = loopExitEdges.get(pCfaEdge);
+    if (oldLoop != null) {
+      e = e.exit(oldLoop);
+    }
+
     if (pCfaEdge instanceof CFunctionReturnEdge) {
-      // such edges may be real loop-exit edges "while () { return; }",
-      // but never loop-entry edges
-      // Return here because they might be mis-classified as entry edges
+      // Such edges may be real loop-exit edges "while () { return; }",
+      // but never loop-entry edges.
+      // Return here because they might be mis-classified as entry edges.
       return Collections.singleton(pElement);
     }
 
-    CFANode loc = pCfaEdge.getSuccessor();
-
-    Collection<Loop> loops = loopHeads.get(loc);
-    assert loops.size() <= 1;
-    if (!loops.isEmpty()) {
-      for (Loop loop : loops) {
-        e = e.enter(loop, loopIterationsBeforeAbstraction);
+    Loop newLoop = null;
+    if (precision.shouldTrackStack()) {
+      // Push a new loop onto the stack if we enter it
+      newLoop = loopEntryEdges.get(pCfaEdge);
+      if (newLoop != null) {
+        e = e.enter(new LoopEntry(loc, newLoop));
       }
+    }
+
+    // Check if we need to increment the loop counter
+    Loop loop = loopHeads.get(loc);
+    assert newLoop == null || newLoop.equals(loop);
+    if (loop != null) {
+      e = e.visitLoopHead(new LoopEntry(loc, loop), loopIterationsBeforeAbstraction);
       if ((maxLoopIterations > 0)
           && e.getDeepestIteration() > maxLoopIterations) {
         e = e.stopIt();

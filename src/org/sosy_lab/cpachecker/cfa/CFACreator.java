@@ -77,7 +77,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers;
+import org.sosy_lab.cpachecker.cfa.parser.Parsers;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFADeclarationMover;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFunctionPointerResolver;
@@ -280,7 +280,7 @@ private boolean classifyNodes = false;
 
     switch (language) {
     case JAVA:
-      parser = EclipseParsers.getJavaParser(logger, config);
+      parser = Parsers.getJavaParser(logger, config);
       break;
     case C:
       CParser outerParser =
@@ -298,6 +298,10 @@ private boolean classifyNodes = false;
       parser = outerParser;
 
       break;
+    case LLVM:
+      parser = Parsers.getLlvmParser(logger, config, machineModel);
+      break;
+
     default:
       throw new AssertionError();
     }
@@ -363,6 +367,9 @@ private boolean classifyNodes = false;
         mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
         break;
       case C:
+        mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+        break;
+      case LLVM:
         mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
         break;
       default:
@@ -824,6 +831,7 @@ private boolean classifyNodes = false;
       final CFAEdge newEdge;
       switch (cfa.getLanguage()) {
         case C:
+        case LLVM:
           newEdge = new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
           break;
         case JAVA :

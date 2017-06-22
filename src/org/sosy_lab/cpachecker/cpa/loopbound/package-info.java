@@ -21,28 +21,11 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa;
-
 /**
- *  Enumeration for Supported Languages.
+ * This CPA tracks the loop iterations
+ * and stops exploration after a given (modifiable) bound is reached,
+ * thereby implementing a bound.
+ *
+ * Applications of this CPA are bounded model checking and k-induction.
  */
-public enum Language {
-  C,
-  JAVA,
-  LLVM
-  ;
-
-  @Override
-  public String toString() {
-    switch (this) {
-    case C:
-      return "C";
-    case JAVA:
-      return "Java";
-    case LLVM:
-      return "LLVM IR";
-    default:
-      throw new AssertionError();
-    }
-  }
-}
+package org.sosy_lab.cpachecker.cpa.loopbound;

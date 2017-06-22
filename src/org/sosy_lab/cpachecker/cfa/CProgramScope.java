@@ -231,7 +231,7 @@ public class CProgramScope implements Scope {
    */
   public CProgramScope(CFA pCFA, LogManager pLogger) {
 
-    assert pCFA.getLanguage() == Language.C;
+    assert pCFA.getLanguage() == Language.C || pCFA.getLanguage() == Language.LLVM;
 
     functionName = null;
 

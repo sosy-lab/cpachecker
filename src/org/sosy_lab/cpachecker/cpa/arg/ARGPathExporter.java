@@ -332,9 +332,10 @@ public class ARGPathExporter {
 
   private String getInitialFileName(ARGState pRootState) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
-
+    Set<CFANode> visited = new HashSet<>();
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
+      visited.add(l);
       for (CFAEdge e : CFAUtils.leavingEdges(l)) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
         if (fileLocations.size() > 0) {
@@ -343,7 +344,9 @@ public class ARGPathExporter {
             return fileName;
           }
         }
-        worklist.push(e.getSuccessor());
+        if (!visited.contains(e.getSuccessor())) {
+          worklist.push(e.getSuccessor());
+        }
       }
     }
 

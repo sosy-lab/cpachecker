@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,28 +21,25 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa;
+package org.sosy_lab.cpachecker.cpa.loopbound;
 
-/**
- *  Enumeration for Supported Languages.
- */
-public enum Language {
-  C,
-  JAVA,
-  LLVM
-  ;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+
+public class LoopBoundPrecision implements Precision {
+
+  private final boolean stack;
+
+  public LoopBoundPrecision(boolean pStack) {
+    stack = pStack;
+  }
+
+  public boolean shouldTrackStack() {
+    return stack;
+  }
 
   @Override
   public String toString() {
-    switch (this) {
-    case C:
-      return "C";
-    case JAVA:
-      return "Java";
-    case LLVM:
-      return "LLVM IR";
-    default:
-      throw new AssertionError();
-    }
+    return shouldTrackStack() ? "Stack" : "Flat";
   }
+
 }
