@@ -381,7 +381,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       algo.run(reached);
 
       if (reached.hasWaitingState()) {
-        logger.log(Level.SEVERE, "Location analysis run to get structure of residual program is incomplete");
+        logger.log(Level.SEVERE, "Analysis run to get structure of residual program is incomplete");
         return null;
       }
 
