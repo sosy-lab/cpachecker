@@ -58,11 +58,6 @@ public class UsageCPAStatistics implements Statistics {
    */
 
   private final LogManager logger;
-  //What is true now?
-  //private int trueUsagesInTrueUnsafe = 0;
-  //private int trueUsagesInAllUnsafes = 0;
-  //private int maxTrueUsages = 0;
- // private final ShutdownNotifier shutdownNotifier;
 
   private BAMTransferRelation transfer;
   private final Configuration config;
