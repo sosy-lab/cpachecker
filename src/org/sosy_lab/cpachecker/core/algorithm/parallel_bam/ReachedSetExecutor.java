@@ -295,8 +295,7 @@ class ReachedSetExecutor {
       // we never need to execute this RSE again,
       // thus we can clean up and avoid a (small) memory-leak
       synchronized (reachedSetMapping) {
-        @SuppressWarnings("unused")
-        Pair<ReachedSetExecutor, CompletableFuture<Void>> p = reachedSetMapping.remove(rs);
+        reachedSetMapping.remove(rs);
         stats.executionCounter.insertValue(execCounter);
         // no need to wait for p.getSecond(), we assume a error-free exit after this point.
       }
