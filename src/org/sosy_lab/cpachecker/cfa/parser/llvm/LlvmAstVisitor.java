@@ -109,7 +109,7 @@ public abstract class LlvmAstVisitor {
     assert globalItemLast != null;
 
     while (true) {
-      ADeclaration decl = visitGlobalItem(globalItem);
+      //ADeclaration decl = visitGlobalItem(globalItem);
       //globalDeclarations.add(Pair.of(decl, globalItem.toString()));
 
       /* we processed the last global variable? */
