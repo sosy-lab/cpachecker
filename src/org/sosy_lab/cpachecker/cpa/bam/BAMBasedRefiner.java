@@ -37,9 +37,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 /**
@@ -57,10 +59,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   final StatTimer computeCounterexampleTimer = new StatTimer("Searching path to error location");
   final StatTimer removeCachedSubtreeTimer = new StatTimer("Removing cached subtrees");
 
-  private final BAMCPA bamCpa;
+  private final AbstractBAMCPA bamCpa;
 
   private BAMBasedRefiner(
-      ARGBasedRefiner pRefiner, ARGCPA pArgCpa, BAMCPA pBamCpa, LogManager pLogger) {
+      ARGBasedRefiner pRefiner, ARGCPA pArgCpa, AbstractBAMCPA pBamCpa, LogManager pLogger) {
     super(pRefiner, pArgCpa, pLogger);
 
     bamCpa = pBamCpa;
@@ -77,10 +79,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
         !(pRefiner instanceof Refiner),
         "ARGBasedRefiners may not implement Refiner, choose between these two!");
 
-    if (!(pCpa instanceof BAMCPA)) {
+    if (!(pCpa instanceof AbstractBAMCPA)) {
       throw new InvalidConfigurationException("BAM CPA needed for BAM-based refinement");
     }
-    BAMCPA bamCpa = (BAMCPA) pCpa;
+    AbstractBAMCPA bamCpa = (AbstractBAMCPA) pCpa;
     ARGCPA argCpa = bamCpa.retrieveWrappedCpa(ARGCPA.class);
     if (argCpa == null) {
       throw new InvalidConfigurationException("ARG CPA needed for refinement");
@@ -120,10 +122,10 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     computePathTimer.start();
     try {
       computeSubtreeTimer.start();
-      ARGState rootOfSubgraph;
+      Pair<BackwardARGState, BackwardARGState> rootAndTargetOfSubgraph;
       try {
         try {
-          rootOfSubgraph = computeCounterexampleSubgraph(pLastElement, pMainReachedSet);
+          rootAndTargetOfSubgraph = computeCounterexampleSubgraph(pLastElement, pMainReachedSet);
         } catch (MissingBlockException e) {
           // We return NULL, such that the method performRefinementForPath can handle it.
           return null;
@@ -134,8 +136,8 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
 
       computeCounterexampleTimer.start();
       try {
-        // We assume, that every path in the subgraph reaches the target state. Thus we choose randomly.
-        return ARGUtils.getRandomPath(rootOfSubgraph);
+        // search path to target, as in super-class
+        return ARGUtils.getOnePathTo(rootAndTargetOfSubgraph.getSecond());
       } finally {
         computeCounterexampleTimer.stop();
       }
@@ -147,7 +149,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   //returns root of a subtree leading from the root element of the given reachedSet to the target state
   //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
   //in the constructed subtree that represents target
-  private ARGState computeCounterexampleSubgraph(ARGState target, ARGReachedSet pMainReachedSet)
+  private Pair<BackwardARGState, BackwardARGState> computeCounterexampleSubgraph(ARGState target, ARGReachedSet pMainReachedSet)
       throws MissingBlockException, InterruptedException {
     assert pMainReachedSet.asReachedSet().contains(target);
     final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
