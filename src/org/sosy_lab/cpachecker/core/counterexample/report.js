@@ -136,7 +136,7 @@
 	
 	app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function($rootScope, $scope) {
 		$rootScope.errorPath = errorPath;
-		console.log($scope.errorPath);
+		// console.log($scope.errorPath); // logs undefined
 		$scope.showValues = function($event){
 			console.log("show values ");
 			console.log($event);
@@ -362,7 +362,7 @@ var renderedArgGraphs = {};
 // A Dagre D3 Renderer
 var render = new dagreD3.render();
 // TODO: different edge weights based on type?
-var constants = {
+const constants = {
 	blankEdge : "BlankEdge",
 	assumeEdge : "AssumeEdge",
 	statementEdge : "StatementEdge",
@@ -402,7 +402,7 @@ function init() {
 		var graphSplitThreshold = 700; // default value
 		var graphMap;
 		// TODO: different edge weights based on type?
-		var constants = {
+		const constants = {
 			blankEdge : "BlankEdge",
 			assumeEdge : "AssumeEdge",
 			statementEdge : "StatementEdge",
@@ -877,21 +877,10 @@ function init() {
 				var svgGroup = svg.append("g");
 				render(d3.select("#cfa-svg-" + id + " g"), g);
 				// Center the graph - calculate svg.attributes
-				// TODO: own function for svg size -> compare with parent size after bootstrap is used. i.e. col-lg-12 etc.
 				svg.attr("height", g.graph().height + constants.margin * 2);
-				svg.attr("width", g.graph().width * 2 + constants.margin * 2);
-				var xCenterOffset = (svg.attr("width") / 2);
-				svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
+				svg.attr("width", g.graph().width + constants.margin * 4);
+				svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
 				addEventsToNodes(); // TODO: CFA specific!
-				addEventsToEdges();
-			} else {
-				// This is needed for re-rendering after user interaction
-				renderedCfaGraphs[m.data.id] = Object.assign(renderedCfaGraphs[m.data.id], JSON.parse(m.data.graph));
-				render(d3.select("#cfa-svg-" + id + " g"), renderedCfaGraphs[m.data.id]);
-				var width = renderedCfaGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
-				d3.select("#cfa-svg-" + id).attr("height", renderedCfaGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
-				d3.select("#cfa-svg-" + id + "> g").attr("transform", "translate(" + width / 2 + ", 20)");
-				addEventsToNodes();
 				addEventsToEdges();
 			}
 		} else if (m.data.status !== undefined) {
@@ -927,21 +916,10 @@ function init() {
 				var svgGroup = svg.append("g");
 				render(d3.select("#arg-svg" + id + " g"), g);
 				// Center the graph - calculate svg.attributes
-				// TODO: own function for svg size -> compare with parent size after bootstrap is used. i.e. col-lg-12 etc.
 				svg.attr("height", g.graph().height + constants.margin * 2);
-				svg.attr("width", g.graph().width * 2 + constants.margin * 2);
-				var xCenterOffset = (svg.attr("width") / 2);
-				svgGroup.attr("transform", "translate(" + xCenterOffset + ", 20)");
+				svg.attr("width", g.graph().width + constants.margin * 4);
+				svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
 				addEventsToNodes(); // TODO: ARG specific!
-				addEventsToEdges();
-			} else {
-				// This is needed for re-rendering after user interaction
-				renderedArgGraphs[m.data.id] = Object.assign(renderedArgGraphs[m.data.id], JSON.parse(m.data.graph));
-				render(d3.select("#arg-svg" + id + " g"), renderedArgGraphs[m.data.id]);
-				var width = renderedArgGraphs[m.data.id].graph().width * 2 + constants.margin * 2;
-				d3.select("#arg-svg" + id).attr("height", renderedArgGraphs[m.data.id].graph().height + constants.margin * 2).attr("width", width);
-				d3.select("#arg-svg" + id + "> g").attr("transform", "translate(" + width / 2 + ", 20)");
-				addEventsToNodes();
 				addEventsToEdges();
 			}
 		} else if (m.data.status !== undefined) {

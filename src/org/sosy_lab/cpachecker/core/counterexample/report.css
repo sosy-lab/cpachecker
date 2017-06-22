@@ -1,6 +1,7 @@
 html {
 	position: relative;
 	height: 100%;
+	overflow-y:hidden;
 }
 
 body {
@@ -246,7 +247,6 @@ div pre {
 }
 
 .cfa-graph {
-	margin-top: 35px;
 	visibility: hidden;
 }
 
