@@ -169,19 +169,24 @@ public class LoopBoundState
 
     private final LoopStack tail;
 
+    private final int size;
+
     private LoopStack() {
       head = null;
       tail = null;
+      size = 0;
     }
 
     private LoopStack(LoopIterationState pLoop) {
       head = Objects.requireNonNull(pLoop);
       tail = EMPTY_STACK;
+      size = 1;
     }
 
     private LoopStack(LoopIterationState pHead, LoopStack pTail) {
       head = Objects.requireNonNull(pHead);
       tail = pTail;
+      size = pTail.size + 1;
     }
 
     public LoopIterationState peek() {
@@ -203,7 +208,11 @@ public class LoopBoundState
     }
 
     public boolean isEmpty() {
-      return head == null && tail == null;
+      return size == 0;
+    }
+
+    public int getSize() {
+      return size;
     }
 
     @Override
@@ -224,7 +233,8 @@ public class LoopBoundState
       }
       if (pObj instanceof LoopStack) {
         LoopStack other = (LoopStack) pObj;
-        return Objects.equals(head, other.head)
+        return size == other.size
+            && Objects.equals(head, other.head)
             && Objects.equals(tail, other.tail);
       }
       return false;
@@ -232,6 +242,7 @@ public class LoopBoundState
 
     @Override
     public int hashCode() {
+      // No need to hash size; it is already implied by tail
       return Objects.hash(head, tail);
     }
 
@@ -290,5 +301,10 @@ public class LoopBoundState
         .filter(l -> l.getMaxIterationCount() == deepestIteration)
         .transformAndConcat(l -> l.getDeepestIterationLoops())
         .toSet();
+  }
+
+  public int getDepth() {
+    // Subtract 1 to account for the "undetermined" element at the bottom of the stack
+    return loopStack.getSize() - 1;
   }
 }
