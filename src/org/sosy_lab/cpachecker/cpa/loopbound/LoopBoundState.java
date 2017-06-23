@@ -141,7 +141,7 @@ public class LoopBoundState
 
     LoopBoundState other = (LoopBoundState)obj;
     return this.stopIt == other.stopIt
-        && this.loopStack.equals(other.loopStack);
+        && this.loopStack == other.loopStack;
   }
 
   @Override
