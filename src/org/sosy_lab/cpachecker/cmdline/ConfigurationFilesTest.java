@@ -136,7 +136,8 @@ public class ConfigurationFilesTest {
           "counterexample.checker",
           "counterexample.checker.config",
           // LoopstackCPA can be removed from inhering configuration.
-          "cpa.loopstack.loopIterationsBeforeAbstraction");
+          "cpa.loopbound.loopIterationsBeforeAbstraction",
+          "cpa.loopbound.trackStack");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {

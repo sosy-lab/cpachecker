@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -296,8 +296,8 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
       case ALL:
         return true;
       case LOOPHEAD:
-        LoopstackState loopState = AbstractStates.extractStateByType(totalState,
-            LoopstackState.class);
+        LoopBoundState loopState =
+            AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
         return (cfa.getAllLoopHeads().get().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));
