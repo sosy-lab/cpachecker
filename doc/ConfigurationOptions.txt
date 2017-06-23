@@ -2504,7 +2504,7 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 # Specifies the java version of source code accepted
 java.version = JavaCore.VERSION_1_7
 
-# C or Java?
+# C, Java, or LLVM IR?
 language = C
   enum:     [C, JAVA, LLVM]
 

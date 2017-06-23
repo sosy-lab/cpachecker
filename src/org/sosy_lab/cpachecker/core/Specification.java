@@ -83,7 +83,6 @@ public final class Specification {
     Scope scope;
     switch (cfa.getLanguage()) {
       case C:
-      case LLVM:
         scope = new CProgramScope(cfa, logger);
         break;
       default:

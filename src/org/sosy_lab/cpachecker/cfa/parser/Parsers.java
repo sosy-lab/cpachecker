@@ -199,7 +199,6 @@ public class Parsers {
 
   public static Parser getLlvmParser(
       final LogManager pLogger,
-      final Configuration pConfig,
       final MachineModel pMachineModel
   ) throws InvalidConfigurationException {
     try {
@@ -209,7 +208,7 @@ public class Parsers {
         ClassLoader classLoader = getClassLoader(pLogger);
 
         @SuppressWarnings("unchecked")
-        Class<? extends CParser> parserClass = (Class<? extends CParser>)
+        Class<? extends Parser> parserClass = (Class<? extends Parser>)
             classLoader.loadClass(LLVM_PARSER_CLASS);
         parserConstructor = parserClass.getConstructor(new Class<?>[]{ LogManager.class,
             MachineModel.class });

@@ -634,7 +634,6 @@ public final class LoopStructure implements Serializable {
     if (!nodes.isEmpty()) {
       switch (language) {
       case C:
-      case LLVM:
         throw new CParserException("Code structure is too complex, could not detect all loops!");
       case JAVA:
         throw new JParserException("Code structure is too complex, could not detect all loops!");

@@ -224,7 +224,7 @@ public class CFACreator {
       description="This option enables the computation of a classification of CFA nodes.")
 private boolean classifyNodes = false;
 
-  @Option(secure=true, description="C or Java?")
+  @Option(secure=true, description="C, Java, or LLVM IR?")
   private Language language = Language.C;
 
   private final LogManager logger;
@@ -299,7 +299,8 @@ private boolean classifyNodes = false;
 
       break;
     case LLVM:
-      parser = Parsers.getLlvmParser(logger, config, machineModel);
+      parser = Parsers.getLlvmParser(logger, machineModel);
+      language = Language.C; // After parsing we will have a CFA representing C code
       break;
 
     default:
@@ -367,9 +368,6 @@ private boolean classifyNodes = false;
         mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
         break;
       case C:
-        mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
-        break;
-      case LLVM:
         mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
         break;
       default:
@@ -831,7 +829,6 @@ private boolean classifyNodes = false;
       final CFAEdge newEdge;
       switch (cfa.getLanguage()) {
         case C:
-        case LLVM:
           newEdge = new CDeclarationEdge(rawSignature, d.getFileLocation(), cur, n, (CDeclaration) d);
           break;
         case JAVA :
