@@ -30,7 +30,6 @@ import static com.google.common.collect.Iterables.filter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -121,7 +120,7 @@ public class LoopstackTransferRelation extends SingleEdgeTransferRelation {
       // such edges may be real loop-exit edges "while () { return; }",
       // but never loop-entry edges
       // Return here because they might be mis-classified as entry edges
-      return Collections.singleton(pElement);
+      return Collections.singleton(e);
     }
 
     Loop newLoop = loopEntryEdges.get(pCfaEdge);

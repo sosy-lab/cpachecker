@@ -112,7 +112,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       // Such edges may be real loop-exit edges "while () { return; }",
       // but never loop-entry edges.
       // Return here because they might be mis-classified as entry edges.
-      return Collections.singleton(pElement);
+      return Collections.singleton(e);
     }
 
     Loop newLoop = null;
