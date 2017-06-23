@@ -27,9 +27,11 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
+import com.google.common.collect.Lists;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -47,6 +49,9 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
+import org.sosy_lab.cpachecker.util.coverage.CoverageWriter;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 @Options
@@ -69,6 +74,8 @@ public class CoverageStatistics extends AbstractStatistics {
   private final CoverageData cov;
   private final CFA cfa;
 
+  private final Collection<CoverageWriter> reportWriters;
+
   public CoverageStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA, CoverageData pCov)
       throws InvalidConfigurationException {
 
@@ -77,6 +84,16 @@ public class CoverageStatistics extends AbstractStatistics {
     this.logger = pLogger;
     this.cov = pCov;
     this.cfa = pCFA;
+
+    this.reportWriters = Lists.newArrayList();
+
+    if (writeToStdout) {
+      this.reportWriters.add(new CoverageReportStdoutSummary(pConfig));
+    }
+
+    if (writeToFile) {
+      this.reportWriters.add(new CoverageReportGcov(pConfig, logger));
+    }
   }
 
   @Override
@@ -86,16 +103,9 @@ public class CoverageStatistics extends AbstractStatistics {
       computeCoverageFromReached(pReached);
     }
 
-    if (writeToStdout) {
-      CoverageReportStdoutSummary writer = new CoverageReportStdoutSummary();
-      writer.write(cov, pOut);
+    for (CoverageWriter writer : reportWriters) {
+      writer.write(cov.getInfosPerFile(), pOut);
     }
-
-    if (writeToFile && outputCoverageFile != null) {
-      CoverageReportGcov writer = new CoverageReportGcov(logger);
-      writer.write(cov, outputCoverageFile);
-    }
-
   }
 
   @Override
