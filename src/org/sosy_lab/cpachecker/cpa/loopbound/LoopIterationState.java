@@ -68,6 +68,7 @@ public interface LoopIterationState {
 
     private UndeterminedLoopIterationState(PersistentSortedMap<ComparableLoop, LoopIteration> pIterations, int pMaxLoopIteration, boolean pLoopCounterAbstracted) {
       iterations = Objects.requireNonNull(pIterations);
+      Preconditions.checkArgument(pMaxLoopIteration >= 0);
       maxLoopIteration = pMaxLoopIteration;
       loopCounterAbstracted = pLoopCounterAbstracted;
     }

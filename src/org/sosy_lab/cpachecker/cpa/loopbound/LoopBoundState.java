@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import java.util.Collections;
 import java.util.Iterator;
@@ -57,6 +58,11 @@ public class LoopBoundState
 
   private LoopBoundState(LoopStack pLoopStack, boolean pStopIt) {
     this.loopStack = Objects.requireNonNull(pLoopStack);
+    Preconditions.checkArgument(!pLoopStack.isEmpty(), "Always initialize the stack with an UndeterminedLoopIterationState");
+    Preconditions.checkArgument(
+        (pLoopStack.getSize() == 1 && !pLoopStack.peek().isEntryKnown())
+        || (pLoopStack.getSize() > 1 && pLoopStack.peek().isEntryKnown()),
+        "The deepest element in the stack must be an UndeterminedLoopIterationState, and all other elements must be determined.");
     this.stopIt = pStopIt;
   }
 

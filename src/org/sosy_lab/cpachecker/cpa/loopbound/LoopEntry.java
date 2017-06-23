@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -34,6 +35,7 @@ public class LoopEntry {
   private final Loop loop;
 
   public LoopEntry(CFANode pEntryPoint, Loop pLoop) {
+    Preconditions.checkArgument(pLoop.getLoopHeads().contains(pEntryPoint));
     entryPoint = Objects.requireNonNull(pEntryPoint);
     loop = Objects.requireNonNull(pLoop);
   }
