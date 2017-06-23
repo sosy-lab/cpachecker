@@ -369,4 +369,11 @@ public class LoopBoundCPA extends AbstractCPA
   public int getMaxLoopIterations() {
     return this.maxLoopIterations;
   }
+
+  public void incrementLoopIterationsBeforeAbstraction() {
+    loopIterationsBeforeAbstraction++;
+    this.transferRelation.setDelegate(new LoopBoundTransferRelation(
+        loopIterationsBeforeAbstraction,
+        maxLoopIterations, loopStructure));
+  }
 }
