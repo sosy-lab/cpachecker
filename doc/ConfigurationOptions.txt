@@ -2002,6 +2002,9 @@ cpa.sign.merge = "JOIN"
 cpa.sign.stop = "SEP"
   allowed values: [SEP, JOIN]
 
+# max length of a chain of states, -1 for infinity
+cpa.singleSuccessorCompactor.maxChainLength = -1
+
 # Apply AND- LBE transformation to loop transition relation.
 cpa.slicing.applyLBETransformation = true
 
