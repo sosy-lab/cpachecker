@@ -28,14 +28,11 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,10 +40,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -78,7 +71,6 @@ public class CoverageReport {
     this.reportWriters = Lists.newArrayList();
     this.reportWriters.add(new CoverageReportGcov(pConfig, pLogger));
     this.reportWriters.add(new CoverageReportStdoutSummary(pConfig));
-
   }
 
   public void writeCoverageReport(
@@ -90,34 +82,23 @@ public class CoverageReport {
       return;
     }
 
-    Multiset<FunctionEntryNode> reachedLocations = getFunctionEntriesFromReached(pReached);
+    CoverageData data = new CoverageData();
 
-    Map<String, FileCoverageInformation> infosPerFile = new HashMap<>();
+    Multiset<FunctionEntryNode> reachedLocations = getFunctionEntriesFromReached(pReached);
 
     // Add information about existing functions
     for (FunctionEntryNode entryNode : pCfa.getAllFunctionHeads()) {
-      final FileLocation loc = entryNode.getFileLocation();
-      if (loc.getStartingLineNumber() == 0) {
-        // dummy location
-        continue;
-      }
-      final String functionName = entryNode.getFunctionName();
-      final FileCoverageInformation infos = getFileInfoTarget(loc, infosPerFile);
-
-      final int startingLine = loc.getStartingLineInOrigin();
-      final int endingLine = loc.getEndingLineInOrigin();
-
-      infos.addExistingFunction(functionName, startingLine, endingLine);
+      data.putExistingFunction(entryNode);
 
       if (reachedLocations.contains(entryNode)) {
-        infos.addVisitedFunction(entryNode.getFunctionName(), reachedLocations.count(entryNode));
+        data.addVisitedFunction(entryNode, reachedLocations.count(entryNode));
       }
     }
 
     //Add information about existing locations
     for (CFANode node : pCfa.getAllNodes()) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        handleExistedEdge(node.getLeavingEdge(i), infosPerFile);
+        data.handleEdgeCoverage(node.getLeavingEdge(i), false);
       }
     }
 
@@ -132,14 +113,9 @@ public class CoverageReport {
         for (ARGState child : argState.getChildren()) {
           // Do not specially check child.isCovered, as the edge to covered state also should be marked as covered edge
           List<CFAEdge> edges = argState.getEdgesToChild(child);
-          if (edges.size() > 1) {
-            for (CFAEdge innerEdge : edges) {
-              handleCoveredEdge(innerEdge, infosPerFile);
-            }
-
-            //BAM produces paths with no edge connection thus the list will be empty
-          } else if (!edges.isEmpty()) {
-            handleCoveredEdge(Iterables.getOnlyElement(edges), infosPerFile);
+          //BAM produces paths with no edge connection thus the list will be empty
+          for (CFAEdge innerEdge : edges) {
+            data.handleEdgeCoverage(innerEdge, true);
           }
         }
       } else {
@@ -150,82 +126,25 @@ public class CoverageReport {
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge edge = node.getLeavingEdge(i);
           if (reachedNodes.contains(edge.getSuccessor())) {
-            handleCoveredEdge(edge, infosPerFile);
+            data.handleEdgeCoverage(edge, true);
           }
         }
       }
     }
 
+    writeCoverageReport(pStatisticsOutput, data);
+  }
+
+  //We have precomputed coverage data
+  public void writeCoverageReport(final PrintStream pStatisticsOutput, CoverageData data) {
+
+    if (!enabled) {
+      return;
+    }
+
     for (CoverageWriter w: reportWriters) {
-      w.write(infosPerFile, pStatisticsOutput);
+      w.write(data.getInfosPerFile(), pStatisticsOutput);
     }
-
-  }
-
-  private void handleExistedEdge(
-      final CFAEdge pEdge,
-      final Map<String, FileCoverageInformation> pCollectors) {
-
-    final FileLocation loc = pEdge.getFileLocation();
-    if (loc.getStartingLineNumber() == 0) {
-      // dummy location
-      return;
-    }
-    if (pEdge instanceof ADeclarationEdge
-        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
-      // Function declarations span the complete body, this is not desired.
-      return;
-    }
-
-    final FileCoverageInformation collector = getFileInfoTarget(loc, pCollectors);
-
-    if (pEdge instanceof AssumeEdge) {
-      collector.addExistingAssume((AssumeEdge) pEdge);
-    }
-
-    //Do not extract lines from edge - there are not origin lines
-    collector.addExistingLine(loc.getStartingLineInOrigin());
-  }
-
-
-  private void handleCoveredEdge(
-      final CFAEdge pEdge,
-      final Map<String, FileCoverageInformation> pCollectors) {
-
-    FileLocation loc = pEdge.getFileLocation();
-    if (loc.getStartingLineNumber() == 0) {
-      return;
-    }
-    if (pEdge instanceof ADeclarationEdge
-        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
-      return;
-    }
-
-    final FileCoverageInformation collector = getFileInfoTarget(loc, pCollectors);
-
-    if (pEdge instanceof AssumeEdge) {
-      collector.addVisitedAssume((AssumeEdge) pEdge);
-    }
-
-    //Do not extract lines from edge - there are not origin lines
-    collector.addVisitedLine(loc.getStartingLineInOrigin());
-  }
-
-  private FileCoverageInformation getFileInfoTarget(
-      final FileLocation pLoc,
-      final Map<String, FileCoverageInformation> pTargets) {
-
-    assert pLoc.getStartingLineNumber() != 0; // Cannot produce coverage info for dummy file location
-
-    String file = pLoc.getFileName();
-    FileCoverageInformation fileInfos = pTargets.get(file);
-
-    if (fileInfos == null) {
-      fileInfos = new FileCoverageInformation();
-      pTargets.put(file, fileInfos);
-    }
-
-    return fileInfos;
   }
 
   private Multiset<FunctionEntryNode> getFunctionEntriesFromReached(UnmodifiableReachedSet pReached) {

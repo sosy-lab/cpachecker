@@ -46,10 +46,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
 @Options
 public class CoverageCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
+
+  public static enum CoverageMode { NONE, REACHED, TRANSFER }
 
   public static CPAFactory factory() {
     AutomaticCPAFactory factory = AutomaticCPAFactory.forType(CoverageCPA.class);
@@ -79,19 +81,15 @@ public class CoverageCPA implements ConfigurableProgramAnalysisWithBAM, Statisti
     stop = new StopSepOperator(domain);
     merge = new MergeJoinOperator(domain);
 
-    if (mode != CoverageMode.NONE) {
-      if (cov == null) {
-        cov = new CoverageData(mode);
-      } else {
-        assert cov.getCoverageMode() == mode;
-      }
+    if (mode != CoverageMode.NONE && cov == null) {
+      cov = new CoverageData();
     }
 
     transfer = mode == CoverageMode.TRANSFER
         ? new CoverageTransferRelation(pCFA, cov)
         : IdentityTransferRelation.INSTANCE;
 
-    stats = new CoverageStatistics(pConfig, pLogger, pCFA, cov);
+    stats = CoverageStatistics.create(mode, pConfig, pLogger, pCFA, cov);
   }
 
   @Override
@@ -121,7 +119,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysisWithBAM, Statisti
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (cov != null && cov.getCoverageMode() != CoverageMode.NONE) {
+    if (stats != null) {
       pStatsCollection.add(stats);
     }
   }
