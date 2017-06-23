@@ -50,7 +50,7 @@ public class LoopEntry {
 
   @Override
   public String toString() {
-    return loop + " via " + entryPoint;
+    return "Loop starting at " + entryPoint;
   }
 
   @Override

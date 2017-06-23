@@ -132,7 +132,7 @@ public class LoopBoundState
 
   @Override
   public String toString() {
-    return loopStack.toString();
+    return loopStack.peek().toString() + ", stack depth " + getDepth() + " [" + Integer.toHexString(System.identityHashCode(loopStack.pop())) + "]";
   }
 
   @Override
