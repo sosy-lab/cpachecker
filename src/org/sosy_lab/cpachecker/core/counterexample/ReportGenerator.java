@@ -64,6 +64,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -517,7 +518,11 @@ public class ReportGenerator {
       int parentStateId = ((ARGState) entry).getStateId();
       for (CFANode node : AbstractStates.extractLocations(entry)) {
         if (!argNodes.containsKey(parentStateId)) {
-          createArgNode(parentStateId, node, ((ARGState) entry).toDOTLabel());
+          if (((ARGState) entry).toDOTLabel().length() > 0) {
+            createArgNode(parentStateId, node, ((ARGState) entry).toDOTLabel().substring(0, ((ARGState) entry).toDOTLabel().length() - 2));
+          } else {
+            createArgNode(parentStateId, node, ((ARGState) entry).toDOTLabel());
+          }
         }
         if (!((ARGState) entry).getChildren().isEmpty()) {
           for (ARGState child : ((ARGState) entry).getChildren()) {
@@ -584,7 +589,11 @@ public class ReportGenerator {
         argEdge.put("line", edgeLabel.substring(5));
       }
       for (CFAEdge edge : edges) {
-        edgeLabel += "\n" + getEdgeText(edge);
+        if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+          edgeLabel += "\n" + getEdgeText(edge).split(":")[0] + "\n" + getEdgeText(edge).split(":")[1];
+        } else {
+          edgeLabel += "\n" + getEdgeText(edge);
+        }
       }
       argEdge.put("file", edges.get(0).getFileLocation().getFileName());
     }

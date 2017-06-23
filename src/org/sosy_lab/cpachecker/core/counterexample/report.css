@@ -337,6 +337,11 @@ text {
 	font-size: 14px;
 }
 
+.arg-node text {
+	text-anchor: middle;
+	font-family: "Times New Roman", serif;
+}
+
 .node rect {
 	stroke: #999;
 	fill: #fff;

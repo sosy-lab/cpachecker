@@ -62,6 +62,7 @@
 								d3.select("#arg-container").classed("arg-content", true);
 							}
 							d3.selectAll(".arg-graph").style("visibility", "visible");
+							$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
 						} else {
 							d3.select("#arg-loader").style("display", "inline");
 						}
@@ -586,7 +587,7 @@ function init() {
     			if (!mergedNodes.includes(n.index)) {
     				graph.setNode(n.index, {
     					label : setNodeLabel(n),
-    					class : n.type,
+    					class : "cfa-node " + n.type,
     					id : "cfa-node" + n.index,
     					shape : nodeShapeDecider(n)
     				});
@@ -830,7 +831,7 @@ function init() {
     		nodesToSet.forEach(function(n) {
     			graph.setNode(n.index, {
     				label : n.label,
-    				class : n.type,
+    				class : "arg-node " + n.type,
     				id : "arg-node" + n.index
     			});
     		});
@@ -919,6 +920,9 @@ function init() {
 				svg.attr("height", g.graph().height + constants.margin * 2);
 				svg.attr("width", g.graph().width + constants.margin * 4);
 				svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
+				d3.selectAll(".arg-node tspan").each(function(d,i) {
+					d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
+				})
 				addEventsToNodes(); // TODO: ARG specific!
 				addEventsToEdges();
 			}
