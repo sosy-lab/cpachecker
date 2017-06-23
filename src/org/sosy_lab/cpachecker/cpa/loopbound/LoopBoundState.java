@@ -84,21 +84,29 @@ public class LoopBoundState
 
   public LoopBoundState visitLoopHead(LoopEntry pLoopEntry, int pLoopIterationsBeforeAbstraction) {
     assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
+    if (isLoopCounterAbstracted()) {
+      return this;
+    }
     LoopIterationState loopIterationState = loopStack.peek();
-    if (pLoopIterationsBeforeAbstraction == 0
-        || loopIterationState.getMaxIterationCount() < pLoopIterationsBeforeAbstraction) {
-      LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoopEntry);
-      if (newLoopIterationState != loopIterationState) {
-        return new LoopBoundState(
-            loopStack.pop().push(newLoopIterationState),
-            stopIt);
-      }
+    LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoopEntry);
+    if (pLoopIterationsBeforeAbstraction != 0
+        && newLoopIterationState.getMaxIterationCount() >= pLoopIterationsBeforeAbstraction) {
+      newLoopIterationState = newLoopIterationState.abstractLoopCounter();
+    }
+    if (newLoopIterationState != loopIterationState) {
+      return new LoopBoundState(
+          loopStack.pop().push(newLoopIterationState),
+          stopIt);
     }
     return this;
   }
 
   public LoopBoundState stopIt() {
     return new LoopBoundState(loopStack, true);
+  }
+
+  public boolean isLoopCounterAbstracted() {
+    return loopStack.peek().isLoopCounterAbstracted();
   }
 
   @Override
@@ -109,6 +117,7 @@ public class LoopBoundState
   public boolean isStopState() {
     return stopIt;
   }
+
 
   @Override
   public boolean mustDumpAssumptionForAvoidance() {

@@ -50,20 +50,26 @@ public interface LoopIterationState {
 
   LoopEntry getLoopEntry();
 
+  boolean isLoopCounterAbstracted();
+
+  LoopIterationState abstractLoopCounter();
+
   public static class UndeterminedLoopIterationState implements LoopIterationState {
 
     private final PersistentSortedMap<ComparableLoop, LoopIteration> iterations;
 
     private final int maxLoopIteration;
 
+    private final boolean loopCounterAbstracted;
+
     private UndeterminedLoopIterationState() {
-      iterations = PathCopyingPersistentTreeMap.<ComparableLoop, LoopIteration>of();
-      maxLoopIteration = 0;
+      this(PathCopyingPersistentTreeMap.<ComparableLoop, LoopIteration>of(), 0, false);
     }
 
-    private UndeterminedLoopIterationState(PersistentSortedMap<ComparableLoop, LoopIteration> pIterations, int pMaxLoopIteration) {
+    private UndeterminedLoopIterationState(PersistentSortedMap<ComparableLoop, LoopIteration> pIterations, int pMaxLoopIteration, boolean pLoopCounterAbstracted) {
       iterations = Objects.requireNonNull(pIterations);
       maxLoopIteration = pMaxLoopIteration;
+      loopCounterAbstracted = pLoopCounterAbstracted;
     }
 
     @Override
@@ -76,7 +82,8 @@ public interface LoopIterationState {
         storedIteration = storedIteration.increment();
         return new UndeterminedLoopIterationState(
             iterations.putAndCopy(loop, storedIteration),
-            Math.max(storedIteration.getCount(), maxLoopIteration));
+            Math.max(storedIteration.getCount(), maxLoopIteration),
+            loopCounterAbstracted);
       }
       return this;
     }
@@ -98,7 +105,8 @@ public interface LoopIterationState {
       }
       if (pObj instanceof UndeterminedLoopIterationState) {
         UndeterminedLoopIterationState other = (UndeterminedLoopIterationState) pObj;
-        return maxLoopIteration == other.maxLoopIteration
+        return loopCounterAbstracted == other.loopCounterAbstracted
+            && maxLoopIteration == other.maxLoopIteration
             && iterations.equals(other.iterations);
       }
       return false;
@@ -106,7 +114,7 @@ public interface LoopIterationState {
 
     @Override
     public int hashCode() {
-      return Objects.hash(maxLoopIteration, iterations);
+      return Objects.hash(loopCounterAbstracted, maxLoopIteration, iterations);
     }
 
     @Override
@@ -140,6 +148,19 @@ public interface LoopIterationState {
         }
       }
       return builder.build();
+    }
+
+    @Override
+    public boolean isLoopCounterAbstracted() {
+      return loopCounterAbstracted;
+    }
+
+    @Override
+    public LoopIterationState abstractLoopCounter() {
+      if (isLoopCounterAbstracted()) {
+        return this;
+      }
+      return new UndeterminedLoopIterationState(iterations, maxLoopIteration, true);
     }
 
     public static LoopIterationState newState() {
@@ -248,14 +269,17 @@ public interface LoopIterationState {
 
     private final int iteration;
 
+    private final boolean loopCounterAbstracted;
+
     private DeterminedLoopIterationState(LoopEntry pLoopEntry) {
-      this(pLoopEntry, 0);
+      this(pLoopEntry, 0, false);
     }
 
-    private DeterminedLoopIterationState(LoopEntry pLoopEntry, int pIteration) {
+    private DeterminedLoopIterationState(LoopEntry pLoopEntry, int pIteration, boolean pLoopCounterAbstracted) {
       loopEntry = Objects.requireNonNull(pLoopEntry);
       Preconditions.checkArgument(pIteration >= 0);
       iteration = pIteration;
+      loopCounterAbstracted = pLoopCounterAbstracted;
     }
 
     @Override
@@ -270,7 +294,8 @@ public interface LoopIterationState {
       }
       if (pObj instanceof DeterminedLoopIterationState) {
         DeterminedLoopIterationState other = (DeterminedLoopIterationState) pObj;
-        return iteration == other.iteration
+        return loopCounterAbstracted == other.loopCounterAbstracted
+            && iteration == other.iteration
             && loopEntry.equals(other.loopEntry);
       }
       return false;
@@ -278,7 +303,7 @@ public interface LoopIterationState {
 
     @Override
     public int hashCode() {
-      return Objects.hash(iteration, loopEntry);
+      return Objects.hash(loopCounterAbstracted, iteration, loopEntry);
     }
 
     @Override
@@ -286,7 +311,7 @@ public interface LoopIterationState {
       if (!getLoopEntry().equals(loopEntry)) {
         return this;
       }
-      return new DeterminedLoopIterationState(loopEntry, iteration + 1);
+      return new DeterminedLoopIterationState(loopEntry, iteration + 1, loopCounterAbstracted);
     }
 
     @Override
@@ -316,6 +341,19 @@ public interface LoopIterationState {
 
     public static LoopIterationState newState(LoopEntry pLoopEntry) {
       return new DeterminedLoopIterationState(pLoopEntry);
+    }
+
+    @Override
+    public boolean isLoopCounterAbstracted() {
+      return loopCounterAbstracted;
+    }
+
+    @Override
+    public LoopIterationState abstractLoopCounter() {
+      if (isLoopCounterAbstracted()) {
+        return this;
+      }
+      return new DeterminedLoopIterationState(loopEntry, iteration, true);
     }
 
   }
