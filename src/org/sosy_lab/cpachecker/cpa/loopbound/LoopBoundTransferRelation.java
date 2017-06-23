@@ -96,10 +96,6 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     LoopBoundState e = (LoopBoundState) pElement;
     LoopBoundPrecision precision = (LoopBoundPrecision) pPrecision;
 
-    if (e.isStopState()) {
-      return Collections.emptySet();
-    }
-
     if (pCfaEdge instanceof FunctionCallEdge) {
       // such edges do never change loop status
       return Collections.singleton(pElement);

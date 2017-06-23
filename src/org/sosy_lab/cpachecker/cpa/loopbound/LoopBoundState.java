@@ -120,14 +120,9 @@ public class LoopBoundState
     return this;
   }
 
-  public boolean isStopState() {
-    return stopIt;
-  }
-
-
   @Override
   public boolean mustDumpAssumptionForAvoidance() {
-    return isStopState();
+    return stopIt;
   }
 
   @Override
