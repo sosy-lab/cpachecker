@@ -39,7 +39,7 @@ public class LoopBoundCPAFactory extends AbstractCPAFactory {
 
   @Override
   public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException {
-    checkNotNull(cfa, "CFA instance needed to create LoopstackCPA");
+    checkNotNull(cfa, "CFA instance needed to create LoopBoundCPA");
     return new LoopBoundCPA(getConfiguration(), cfa, getLogger());
   }
 
