@@ -42,4 +42,21 @@ public class LoopBoundPrecision implements Precision {
     return shouldTrackStack() ? "Stack" : "Flat";
   }
 
+  @Override
+  public boolean equals(Object pOther) {
+    if (this == pOther) {
+      return true;
+    }
+    if (pOther instanceof LoopBoundPrecision) {
+      LoopBoundPrecision other = (LoopBoundPrecision) pOther;
+      return stack == other.stack;
+    }
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return Boolean.hashCode(stack);
+  }
+
 }
