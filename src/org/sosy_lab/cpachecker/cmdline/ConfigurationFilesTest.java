@@ -142,7 +142,7 @@ public class ConfigurationFilesTest {
   @Options
   private static class OptionsWithSpecialHandlingInTest {
 
-    @Option(secure = true, description = "C or Java?")
+    @Option(secure = true, description = "C, Java, or LLVM IR?")
     private Language language = Language.C;
 
     @Option(
