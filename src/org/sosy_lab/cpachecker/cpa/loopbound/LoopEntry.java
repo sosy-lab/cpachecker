@@ -28,7 +28,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-public class LoopEntry {
+class LoopEntry {
 
   private final CFANode entryPoint;
 

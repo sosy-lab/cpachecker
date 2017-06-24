@@ -36,7 +36,7 @@ import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-public interface LoopIterationState {
+interface LoopIterationState {
 
   LoopIterationState visitLoopHead(LoopEntry pLoopEntry);
 
