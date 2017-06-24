@@ -1263,26 +1263,6 @@ cpa.loopbound.trackStack = false
 cpa.loopinvariants.mergeType = "SEP"
   allowed values: [SEP, MERGE]
 
-# Number of loop iterations before the loop counter is abstracted. Zero is
-# equivalent to no limit.
-cpa.loopstack.loopIterationsBeforeAbstraction = 0
-
-# this option controls how the maxLoopIterations condition is adjusted when a
-# condition adjustment is invoked.
-cpa.loopstack.maxLoopIterationAdjusterFactory = STATIC
-  enum:     [STATIC, INCREMENT, DOUBLE]
-
-# threshold for unrolling loops of the program (0 is infinite)
-# The option is ignored unless AssumptionStorageCPA is enabled (as otherwise
-# it is unsound).
-cpa.loopstack.maxLoopIterations = 0
-
-# threshold for adjusting the threshold for unrolling loops of the program (0
-# is infinite).
-# only relevant in combination with a non-static maximum loop iteration
-# adjuster.
-cpa.loopstack.maxLoopIterationsUpperBound = 0
-
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD
   enum:     [ALL, LOOPHEAD, MERGE]
