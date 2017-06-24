@@ -37,6 +37,8 @@ final class LoopStack implements Iterable<LoopIterationState> {
 
   private final int size;
 
+  private int hashCache = 0;
+
   private LoopStack() {
     head = null;
     tail = null;
@@ -108,8 +110,11 @@ final class LoopStack implements Iterable<LoopIterationState> {
 
   @Override
   public int hashCode() {
-    // No need to hash size; it is already implied by tail
-    return Objects.hash(head, tail);
+    if (hashCache == 0) {
+      // No need to hash size; it is already implied by tail
+      hashCache = Objects.hash(head, tail);
+    }
+    return hashCache;
   }
 
   @Override
