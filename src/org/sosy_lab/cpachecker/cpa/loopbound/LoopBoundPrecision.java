@@ -27,14 +27,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class LoopBoundPrecision implements Precision {
 
-  private final boolean stack;
+  private final boolean trackStack;
 
   public LoopBoundPrecision(boolean pStack) {
-    stack = pStack;
+    trackStack = pStack;
   }
 
   public boolean shouldTrackStack() {
-    return stack;
+    return trackStack;
   }
 
   @Override
@@ -49,14 +49,14 @@ public class LoopBoundPrecision implements Precision {
     }
     if (pOther instanceof LoopBoundPrecision) {
       LoopBoundPrecision other = (LoopBoundPrecision) pOther;
-      return stack == other.stack;
+      return trackStack == other.trackStack;
     }
     return true;
   }
 
   @Override
   public int hashCode() {
-    return Boolean.hashCode(stack);
+    return Boolean.hashCode(trackStack);
   }
 
 }
