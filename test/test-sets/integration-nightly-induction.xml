@@ -6,34 +6,34 @@
   <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
-  <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
   <tasks name="ControlFlowInteger">
-    <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="DeviceDrivers64">
-    <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
   <tasks name="ECA">
-    <includesfile>../programs/benchmarks/ECA.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="HeapManipulation">
-    <includesfile>../programs/benchmarks/HeapReach.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Loops">
-    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ProductLines">
-    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
-    <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-  </tasks>
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
 
   <rundefinition>

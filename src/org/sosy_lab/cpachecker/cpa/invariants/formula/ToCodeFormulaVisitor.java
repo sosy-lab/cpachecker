@@ -23,10 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
+import java.util.Map;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundFloatingPointInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
@@ -36,11 +40,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
-import java.util.Map;
-
-import javax.annotation.Nullable;
 
 /**
  * Instances of this class are compound state invariants visitors used to
@@ -394,23 +393,28 @@ public class ToCodeFormulaVisitor
         right = pEqual.getOperand1();
       }
       CompoundInterval rightValue = right.accept(evaluationVisitor, pEnvironment);
-      ExpressionTree<String> bf = ExpressionTrees.getFalse();
-      for (SimpleInterval interval : rightValue.getIntervals()) {
-        ExpressionTree<String> intervalFormula = ExpressionTrees.getTrue();
-        if (interval.isSingleton()) {
-          String value = asFormulaString(typeInfo, interval.getLowerBound());
-          intervalFormula = And.of(intervalFormula, equal(left, value));
-        } else {
-          if (interval.hasLowerBound()) {
-            String lb = asFormulaString(typeInfo, interval.getLowerBound());
-            intervalFormula = And.of(intervalFormula, greaterEqual(left, lb));
+      ExpressionTree<String> bf;
+      if (rightValue instanceof CompoundFloatingPointInterval) {
+        bf = ExpressionTrees.getTrue();
+      } else {
+        bf = ExpressionTrees.getFalse();
+        for (SimpleInterval interval : rightValue.getIntervals()) {
+          ExpressionTree<String> intervalFormula = ExpressionTrees.getTrue();
+          if (interval.isSingleton()) {
+            String value = asFormulaString(typeInfo, interval.getLowerBound());
+            intervalFormula = And.of(intervalFormula, equal(left, value));
+          } else {
+            if (interval.hasLowerBound()) {
+              String lb = asFormulaString(typeInfo, interval.getLowerBound());
+              intervalFormula = And.of(intervalFormula, greaterEqual(left, lb));
+            }
+            if (interval.hasUpperBound()) {
+              String ub = asFormulaString(typeInfo, interval.getUpperBound());
+              intervalFormula = And.of(intervalFormula, lessEqual(left, ub));
+            }
           }
-          if (interval.hasUpperBound()) {
-            String ub = asFormulaString(typeInfo, interval.getUpperBound());
-            intervalFormula = And.of(intervalFormula, lessEqual(left, ub));
-          }
+          bf = Or.of(bf, intervalFormula);
         }
-        bf = Or.of(bf, intervalFormula);
       }
       return And.of(bf, inversion);
     }

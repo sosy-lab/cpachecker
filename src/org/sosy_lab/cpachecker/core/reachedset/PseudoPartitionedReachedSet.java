@@ -27,18 +27,16 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Table;
-
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
-
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
+import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 /**
  * Special implementation of the partitioned reached set {@link PartitionedReachedSet}.
@@ -50,7 +48,7 @@ import java.util.Set;
  * is called (which is usually done by the CPAAlgorithm to get the candidates
  * for merging and coverage checks), it will return a subset of the set of all
  * reached states. This subset contains exactly those states,
- * that might be 'lessOrEqual' than the given state.
+ * where the given state might be 'lessOrEqual'.
  *
  * This type of reached-set might work best in combination with an analysis
  * that uses the operators merge_sep and stop_sep.
@@ -63,7 +61,7 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
    * column/second key: the pseudo-partition, see {@link PseudoPartitionable}.
    */
   private final Table<Object, Comparable<?>, SetMultimap<Object, AbstractState>> partitionedReached =
-      HashBasedTable.create();
+      HashBasedTable.create(1,1);
 
   public PseudoPartitionedReachedSet(WaitlistFactory waitlistFactory) {
     super(waitlistFactory);
@@ -130,9 +128,9 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
       states.addAll(partition.get(pseudoKey).get(pseudoHash));
     }
 
-    // add all states with a smaller pseudo-key, they might be "lessOrEqual".
+    // add all states with a smaller pseudo-key, we might be "lessOrEqual" than those.
     for (Entry<Comparable<?>, SetMultimap<Object, AbstractState>> entry : partition.entrySet()) {
-      if (pseudoKey.compareTo(entry.getKey()) < 0) {
+      if (pseudoKey.compareTo(entry.getKey()) > 0) { // pseudoKey is "greaterThan"
         states.addAll(entry.getValue().values());
       }
     }
@@ -140,19 +138,19 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
     return Collections.unmodifiableSet(states);
   }
 
-  private Comparable<?> getPseudoPartitionKey(AbstractState pState) {
+  private static Comparable<?> getPseudoPartitionKey(AbstractState pState) {
     assert pState instanceof PseudoPartitionable
         : "PseudoPartitionable states necessary for PseudoPartitionedReachedSet";
     return ((PseudoPartitionable) pState).getPseudoPartitionKey();
   }
 
-  private Object getPseudoHashCode(AbstractState pState) {
+  private static Object getPseudoHashCode(AbstractState pState) {
     assert pState instanceof PseudoPartitionable
         : "PseudoPartitionable states necessary for PseudoPartitionedReachedSet";
     return ((PseudoPartitionable) pState).getPseudoHashCode();
   }
 
-  private Object getPartitionKey(AbstractState pState) {
+  private static Object getPartitionKey(AbstractState pState) {
     assert pState instanceof Partitionable
         : "Partitionable states necessary for PartitionedReachedSet";
     return ((Partitionable) pState).getPartitionKey();

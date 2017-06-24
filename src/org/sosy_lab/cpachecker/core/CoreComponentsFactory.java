@@ -26,7 +26,8 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Preconditions;
-
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -52,10 +54,13 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.pdr.PDRAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar.PDRAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -65,12 +70,10 @@ import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -100,6 +103,9 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, description = "use counterexample check and the BDDCPA Restriction option")
   private boolean checkCounterexamplesWithBDDCPARestriction = false;
+
+  @Option(secure = true, description="After an incomplete analysis constructs a residual program which contains all program paths which are not fully explored")
+  private boolean constructResidualProgram = false;
 
   @Option(secure=true, name="algorithm.BMC",
       description="use a BMC like algorithm that checks for satisfiability "
@@ -142,6 +148,20 @@ public class CoreComponentsFactory {
       description="use a proof check algorithm to validate a previously generated proof")
   private boolean useProofCheckAlgorithm = false;
 
+  @Option(secure=true, name="algorithm.proofCheckReadConfig",
+      description="use a proof check algorithm to validate a previously generated proof"
+          + "and read the configuration for checking from the proof")
+  private boolean useProofCheckAlgorithmWithStoredConfig = false;
+
+  @Option(secure=true, name="algorithm.proofCheckAndGetHWRequirements",
+      description="use a proof check algorithm to validate a previously generated proof"
+      + "and extract requirements on a (reconfigurable) HW from the proof")
+  private boolean useProofCheckAndExtractCIRequirementsAlgorithm = false;
+
+  @Option(secure=true, name="algorithm.proofCheckWithARGCMCStrategy",
+      description="use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to validate a previously generated proof")
+  private boolean useProofCheckWithARGCMCStrategy = false;
+
   @Option(secure=true, name="algorithm.propertyCheck",
       description = "do analysis and then check "
       + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
@@ -157,6 +177,9 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="restartAlgorithmWithARGReplay",
       description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
   private boolean useRestartAlgorithmWithARGReplay = false;
+
+  @Option(secure = true, name = "algorithm.useParallelBAM", description = "run the parallel BAM algortihm.")
+  private boolean useParallelBAM = false;
 
   @Option(secure=true, name="unknownIfUnrestrictedProgram",
       description="stop the analysis with the result unknown if the program does not satisfies certain restrictions.")
@@ -220,6 +243,7 @@ public class CoreComponentsFactory {
     // We must not create such a new ShutdownManager if it is not needed,
     // because otherwise the GC will throw it away and shutdowns will NOT WORK!
     return !useProofCheckAlgorithm
+        && !useProofCheckAlgorithmWithStoredConfig
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
         && !useRestartAlgorithmWithARGReplay
@@ -229,7 +253,6 @@ public class CoreComponentsFactory {
 
   public Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa,
-      final String programDenotation,
       final CFA cfa,
       final Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
@@ -245,16 +268,23 @@ public class CoreComponentsFactory {
 
     Algorithm algorithm;
 
-    if (useProofCheckAlgorithm) {
+    if(useProofCheckAlgorithmWithStoredConfig) {
+      logger.log(Level.INFO, "Using Proof Check Algorithm");
+      algorithm =
+          new ConfigReadingProofCheckAlgorithm(config, logger, shutdownNotifier, cfa, specification);
+    } else if (useProofCheckAlgorithm || useProofCheckWithARGCMCStrategy) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
           new ProofCheckAlgorithm(cpa, config, logger, shutdownNotifier, cfa, specification);
 
+    } else if (useProofCheckAndExtractCIRequirementsAlgorithm) {
+      logger.log(Level.INFO, "Using Proof Check Algorithm");
+      algorithm =
+          new ProofCheckAndExtractCIRequirementsAlgorithm(cpa, config, logger, shutdownNotifier,
+              cfa, specification);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm =
-          RestartAlgorithm.create(
-              config, logger, shutdownNotifier, specification, programDenotation, cfa);
+      algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
@@ -264,7 +294,11 @@ public class CoreComponentsFactory {
           new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa, specification);
 
     } else if (runCBMCasExternalTool) {
-      algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
+      if (cfa.getFileNames().size() > 1) {
+        throw new InvalidConfigurationException(
+            "Cannot use CBMC as analysis with more than one input file");
+      }
+      algorithm = new ExternalCBMCAlgorithm(cfa.getFileNames().get(0), config, logger);
 
     } else if (useParallelAlgorithm) {
       algorithm =
@@ -274,11 +308,14 @@ public class CoreComponentsFactory {
               shutdownNotifier,
               specification,
               cfa,
-              programDenotation,
               aggregatedReachedSets);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+
+      if (useParallelBAM) {
+        algorithm = new ParallelBAMAlgorithm(cpa, config, logger, shutdownNotifier);
+      }
 
       if (useAnalysisWithEnablerCPAAlgorithm) {
         algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
@@ -291,7 +328,14 @@ public class CoreComponentsFactory {
       if (usePDR) {
         algorithm =
             new PDRAlgorithm(
-                reachedSetFactory, cpa, algorithm, cfa, config, logger, shutdownNotifier);
+                reachedSetFactory,
+                cpa,
+                algorithm,
+                cfa,
+                config,
+                logger,
+                shutdownNotifier,
+                specification);
       }
 
       if (useBMC) {
@@ -310,7 +354,15 @@ public class CoreComponentsFactory {
       }
 
       if (checkCounterexamples) {
-        algorithm = new CounterexampleCheckAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa, programDenotation);
+        if (cpa instanceof BAMCPA) {
+          algorithm =
+              new BAMCounterexampleCheckAlgorithm(
+                  algorithm, cpa, config, logger, shutdownNotifier, specification, cfa);
+        } else {
+          algorithm =
+              new CounterexampleCheckAlgorithm(
+                  algorithm, cpa, config, specification, logger, shutdownNotifier, cfa);
+        }
       }
 
       algorithm =
@@ -346,6 +398,10 @@ public class CoreComponentsFactory {
 
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
+      }
+
+      if (constructResidualProgram) {
+        algorithm = new ResidualProgramConstructionAlgorithm(cfa, algorithm, config, logger, shutdownNotifier, specification);
       }
 
       if (unknownIfUnrestrictedProgram) {
@@ -389,7 +445,8 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useRestartingAlgorithm || useParallelAlgorithm) {
+    if (useRestartingAlgorithm || useParallelAlgorithm || useProofCheckAlgorithmWithStoredConfig
+        || useProofCheckWithARGCMCStrategy) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
@@ -409,7 +466,8 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException {
     Preconditions.checkState(useTerminationAlgorithm);
     Specification terminationSpecification =
-        TerminationAlgorithm.loadTerminationSpecification(cfa, config, logger);
+        TerminationAlgorithm.loadTerminationSpecification(
+            originalSpecification.getProperties(), cfa, config, logger);
 
     if (!originalSpecification.equals(Specification.alwaysSatisfied())
         && !originalSpecification.equals(terminationSpecification)) {

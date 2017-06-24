@@ -36,7 +36,26 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
+import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -78,27 +97,6 @@ import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
-
-import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * This class is the central entry point for all formula creation
@@ -567,7 +565,7 @@ public class FormulaManagerView {
     if (pF1 instanceof IntegerFormula && pF2 instanceof IntegerFormula) {
       t = integerFormulaManager.modularCongruence((IntegerFormula) pF1, (IntegerFormula) pF2, pModulo);
     } else if (pF1 instanceof NumeralFormula && pF2 instanceof NumeralFormula) {
-      t = booleanFormulaManager.makeBoolean(true);
+      t = booleanFormulaManager.makeTrue();
     } else if (pF1 instanceof BitvectorFormula && pF2 instanceof BitvectorFormula) {
       Formula unwrapped1 = unwrap(pF1);
       Formula unwrapped2 = unwrap(pF2);
@@ -1408,7 +1406,7 @@ public class FormulaManagerView {
       }
     });
 
-    BooleanFormula result = booleanFormulaManager.makeBoolean(true);
+    BooleanFormula result = booleanFormulaManager.makeTrue();
     if (andFound.get()) {
       // Note: We can assume that we have no real bitvectors here, so size should be not important
       // If it ever should be we can just add an method to the unsafe-manager to read the size.
@@ -1482,22 +1480,20 @@ public class FormulaManagerView {
   }
 
   public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
-    return getDeadFunctionNames(pFormula, pSsa, true);
+    return getFunctionNames(pFormula, varName -> isIntermediate(varName, pSsa), true);
   }
 
-  private Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa,
-      boolean extractUFs) {
-    return myGetDeadVariables(pFormula, pSsa, extractUFs).keySet();
+  private Set<String> getFunctionNames(
+      BooleanFormula pFormula, Predicate<String> pIsDesired, boolean extractUFs) {
+    return myGetDesiredVariables(pFormula, pIsDesired, extractUFs).keySet();
   }
 
   /**
-   * Do not make this method public, because the returned formulas have incorrect
-   * types (they are not appropriately wrapped).
+   * Do not make this method public, because the returned formulas have incorrect types (they are
+   * not appropriately wrapped).
    */
-  private Map<String, Formula> myGetDeadVariables(
-      BooleanFormula pFormula,
-      SSAMap pSsa,
-      boolean extractUF) {
+  private Map<String, Formula> myGetDesiredVariables(
+      BooleanFormula pFormula, Predicate<String> pIsDesired, boolean extractUF) {
     Map<String, Formula> result = new HashMap<>();
 
     Map<String, Formula> vars;
@@ -1511,7 +1507,7 @@ public class FormulaManagerView {
 
       String name = entry.getKey();
       Formula varFormula = entry.getValue();
-      if (isIntermediate(name, pSsa)) {
+      if (pIsDesired.apply(name)) {
         result.put(name, varFormula);
       }
     }
@@ -1534,10 +1530,24 @@ public class FormulaManagerView {
       final SSAMap pSsa)
     throws SolverException, InterruptedException {
 
-    Preconditions.checkNotNull(pF);
     Preconditions.checkNotNull(pSsa);
+    return eliminateVariables(pF, varName -> isIntermediate(varName, pSsa));
+  }
 
-    Map<String, Formula> irrelevantVariables = myGetDeadVariables(pF, pSsa, false);
+  /**
+   * Eliminate all propositions about variables described by a given predicate in a given formula.
+   *
+   * <p>Quantifier elimination is used! This has to be supported by the solver! (solver-independent
+   * approaches would be possible)
+   */
+  public BooleanFormula eliminateVariables(
+      final BooleanFormula pF, final Predicate<String> pToEliminate)
+      throws SolverException, InterruptedException {
+
+    Preconditions.checkNotNull(pF);
+    Preconditions.checkNotNull(pToEliminate);
+
+    Map<String, Formula> irrelevantVariables = myGetDesiredVariables(pF, pToEliminate, false);
 
     BooleanFormula eliminationResult = pF;
 
@@ -1558,7 +1568,8 @@ public class FormulaManagerView {
    */
   public BooleanFormula quantifyDeadVariables(BooleanFormula pF,
       SSAMap pSSAMap) {
-    Map<String, Formula> irrelevantVariables = myGetDeadVariables(pF, pSSAMap, false);
+    Map<String, Formula> irrelevantVariables =
+        myGetDesiredVariables(pF, varName -> isIntermediate(varName, pSSAMap), false);
     if (irrelevantVariables.isEmpty()) {
       return pF;
     }
@@ -1650,7 +1661,10 @@ public class FormulaManagerView {
       T f,
       FormulaTransformationVisitor pFormulaVisitor) {
     @SuppressWarnings("unchecked")
-    T out = (T) manager.transformRecursively(unwrap(f), pFormulaVisitor);
+    T out =
+        (T)
+            manager.transformRecursively(
+                unwrap(f), new UnwrappingFormulaTransformationVisitor(pFormulaVisitor));
     return out;
   }
 
@@ -1671,7 +1685,7 @@ public class FormulaManagerView {
               @Override
               public BooleanFormula visitNot(BooleanFormula pOperand) {
                 if (!toKeep.apply(pOperand)) {
-                  return booleanFormulaManager.makeBoolean(true);
+                  return booleanFormulaManager.makeTrue();
                 }
                 return super.visitNot(pOperand);
               }
@@ -1683,7 +1697,7 @@ public class FormulaManagerView {
               BooleanFormula pOperand,
               FunctionDeclaration<BooleanFormula> decl) {
             if (!toKeep.apply(pOperand)) {
-              return booleanFormulaManager.makeBoolean(true);
+              return booleanFormulaManager.makeTrue();
             }
             return super.visitAtom(pOperand, decl);
           }
@@ -1704,5 +1718,47 @@ public class FormulaManagerView {
     protected FormulaTransformationVisitor(FormulaManagerView fmgr) {
       super(fmgr.manager);
     }
+  }
+
+  private class UnwrappingFormulaTransformationVisitor
+      extends org.sosy_lab.java_smt.api.visitors.FormulaTransformationVisitor {
+
+    private final FormulaTransformationVisitor delegate;
+
+    protected UnwrappingFormulaTransformationVisitor(FormulaTransformationVisitor pDelegate) {
+      super(manager);
+      delegate = Objects.requireNonNull(pDelegate);
+    }
+
+    @Override
+    public Formula visitBoundVariable(Formula pF, int pDeBruijnIdx) {
+      return unwrap(delegate.visitBoundVariable(pF, pDeBruijnIdx));
+    }
+
+    @Override
+    public Formula visitFreeVariable(Formula pF, String pName) {
+      return unwrap(delegate.visitFreeVariable(pF, pName));
+    }
+
+    @Override
+    public Formula visitFunction(
+        Formula pF, List<Formula> pNewArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+      return unwrap(delegate.visitFunction(pF, pNewArgs, pFunctionDeclaration));
+    }
+
+    @Override
+    public Formula visitConstant(Formula pF, Object pValue) {
+      return unwrap(delegate.visitConstant(pF, pValue));
+    }
+
+    @Override
+    public BooleanFormula visitQuantifier(
+        BooleanFormula pF,
+        Quantifier pQuantifier,
+        List<Formula> pBoundVariables,
+        BooleanFormula pTransformedBody) {
+      return delegate.visitQuantifier(pF, pQuantifier, pBoundVariables, pTransformedBody);
+    }
+
   }
 }

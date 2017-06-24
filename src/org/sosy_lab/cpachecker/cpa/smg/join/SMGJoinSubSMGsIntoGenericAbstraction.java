@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.base.Function;
-import java.util.Optional;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
@@ -50,10 +50,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 
 @SuppressWarnings("unused")
 public class SMGJoinSubSMGsIntoGenericAbstraction {
+
+  private final MachineModel machineModel;
 
   private final GenericAbstractionCandidateTemplate template;
   private final SMG inputSMG1;
@@ -70,10 +73,12 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
 
   private Map<Integer, List<GenericAbstractionCandidate>> previouslyMatched;
 
-  public SMGJoinSubSMGsIntoGenericAbstraction(SMG pInputSMG1, SMG pInputSMG2,
+  public SMGJoinSubSMGsIntoGenericAbstraction(MachineModel pMachineModel,
+      SMG pInputSMG1, SMG pInputSMG2,
       GenericAbstractionCandidateTemplate pTemplate, SMGObject pRootObject1, SMGObject pRootObject2,
       SMGNodeMapping pMapping1, SMGNodeMapping pMapping2,
       Map<Integer, List<GenericAbstractionCandidate>> pValueAbstractionCandidates) {
+    machineModel = pMachineModel;
     template = pTemplate;
     inputSMG1 = pInputSMG1;
     inputSMG2 = pInputSMG2;
@@ -143,7 +148,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     MatchResult destres = builder.build();
 
     return Optional
-        .of(GenericAbstractionCandidate.valueOf(destres.getObjectsToBeRemovedForAbstraction(),
+        .of(GenericAbstractionCandidate.valueOf(machineModel, destres.getObjectsToBeRemovedForAbstraction(),
             destres.getAbstractToConcretePointerMap(), template.getMaterlisationStepMap(), score));
   }
 
@@ -162,10 +167,10 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
   private MatchResult subSMGmatchSpecificShape(GenericAbstraction pRootObject,
       GenericAbstractionCandidateTemplate pTemplate,  Set<SMGObject> pAlreadyVisited) {
 
-    GenericAbstractionCandidateTemplate rootObjectTemaplate = pRootObject.createCandidateTemplate();
+    GenericAbstractionCandidateTemplate rootObjectTemaplate = pRootObject.createCandidateTemplate(machineModel);
 
     if (rootObjectTemaplate.isSpecificShape(pTemplate)) {
-      return MatchResult.valueOf(pRootObject);
+      return MatchResult.valueOf(machineModel, pRootObject);
     } else {
       return MatchResult.getUnknownInstance();
     }
@@ -786,8 +791,8 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
               .get(destPointerValue)) {
 
             if (pTemplate.equals(abstractionCandidate
-                .createTemplate())) {
-              return MatchResult.valueOf(abstractionCandidate);
+                .createTemplate(machineModel))) {
+              return MatchResult.valueOf(machineModel, abstractionCandidate);
             }
           }
         }
@@ -907,16 +912,16 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       template = pMatchResultBuilder.getGenAbsTemplate();
     }
 
-    public static MatchResult valueOf(GenericAbstractionCandidate pAbstractionCandidate) {
+    public static MatchResult valueOf(MachineModel pMachineModel, GenericAbstractionCandidate pAbstractionCandidate) {
 
       Map<Integer, Integer> abstractToConcretePointerMapInputSMG = ImmutableMap.of();
       Set<SMGObject> objectsToBeRemovedForAbstractionInputSMG = ImmutableSet.of();
       return new MatchResult(true, pAbstractionCandidate.getObjectsToBeRemoved(),
           pAbstractionCandidate.getScore(), pAbstractionCandidate.getAbstractToConcretePointerMap(),
-          objectsToBeRemovedForAbstractionInputSMG, abstractToConcretePointerMapInputSMG, pAbstractionCandidate.createTemplate());
+          objectsToBeRemovedForAbstractionInputSMG, abstractToConcretePointerMapInputSMG, pAbstractionCandidate.createTemplate(pMachineModel));
     }
 
-    public static MatchResult valueOf(GenericAbstraction pRootObject) {
+    public static MatchResult valueOf(MachineModel pMachineModel, GenericAbstraction pRootObject) {
 
       Set<SMGObject> toBeRemoved = new HashSet<>();
       toBeRemoved.add(pRootObject);
@@ -924,7 +929,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       Map<Integer, Integer> emptyMap = ImmutableMap.of();
 
       return new MatchResult(true, emptySet, 100, emptyMap,
-          toBeRemoved, pRootObject.getAbstractToConcretePointerMap(), pRootObject.createCandidateTemplate());
+          toBeRemoved, pRootObject.getAbstractToConcretePointerMap(), pRootObject.createCandidateTemplate(pMachineModel));
     }
 
     public static MatchResult getUnknownInstance() {

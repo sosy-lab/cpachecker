@@ -24,7 +24,12 @@
 package org.sosy_lab.cpachecker.pcc.strategy.parallel;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.concurrent.ThreadFactory;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -40,13 +45,6 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.pcc.strategy.ReachedSetStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.concurrent.ThreadFactory;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 @Options
 public class ReachedSetParallelStrategy extends ReachedSetStrategy{
 
@@ -54,9 +52,10 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      Path pProofFile,
       @Nullable PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier, pCpa);
+    super(pConfig, pLogger, pShutdownNotifier, pProofFile, pCpa);
   }
 
   @Override

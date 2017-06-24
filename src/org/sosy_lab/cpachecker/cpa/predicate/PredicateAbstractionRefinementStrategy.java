@@ -41,7 +41,19 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -57,7 +69,6 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -83,20 +94,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
 /**
  * This class provides the refinement strategy for the classical predicate
  * abstraction (adding the predicates from the interpolant to the precision
@@ -119,7 +116,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   @Option(secure=true, name="refinement.predicateBasisStrategy",
       description="Which predicates should be used as basis for a new precision."
-          + "ALL: During refinement, keep predicates from all removed parts of the ARG."
+          + "ALL: During refinement, collect predicates from the complete ARG."
+          + "SUBGRAPH: During refinement, keep predicates from all removed parts (subgraph) of the ARG."
           + "CUTPOINT: Only predicates from the cut-point's precision are kept."
           + "TARGET: Only predicates from the target state's precision are kept.")
   /* There are usually more predicates at the target location that at the cut-point.
@@ -127,9 +125,10 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * - (nearly) no difference for predicate analysis L.
    * - predicate analysis LF is much slower with CUTPOINT than with TARGET or ALL
    *   (especially on the source files product-lines/minepump_spec*).
+   * 05/2017: evaluation confirmed on sv-benchmarks.
    */
   private PredicateBasisStrategy predicateBasisStrategy = PredicateBasisStrategy.TARGET;
-  private static enum PredicateBasisStrategy {ALL, TARGET, CUTPOINT}
+  private static enum PredicateBasisStrategy {ALL, SUBGRAPH, TARGET, CUTPOINT}
 
   @Option(secure=true, name="refinement.restartAfterRefinements",
       description="Do a complete restart (clearing the reached set) "
@@ -191,7 +190,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
       StatisticsWriter w1 = w0.beginLevel();
 
@@ -428,6 +427,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     PredicatePrecision basePrecision;
     switch(predicateBasisStrategy) {
     case ALL:
+      basePrecision = findAllPredicatesFromSubgraph((ARGState)reached.getFirstState(), reached);
+      break;
+    case SUBGRAPH:
       basePrecision = findAllPredicatesFromSubgraph(refinementRoot, reached);
       break;
     case TARGET:
@@ -561,7 +563,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * their predicates.
    * @return a new precision with all these predicates.
    */
-  private PredicatePrecision findAllPredicatesFromSubgraph(
+  public static PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
     return PredicatePrecision.unionOf(
         from(refinementRoot.getSubgraph())

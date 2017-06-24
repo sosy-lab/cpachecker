@@ -52,10 +52,6 @@ public class Template {
         .map(s -> s.getDeclaration().getQualifiedName());
   }
 
-  public boolean hasGlobals() {
-    return getUsedVars().filter(s -> !s.contains("::")).findAny().isPresent();
-  }
-
   /**
    * Template type.
    */

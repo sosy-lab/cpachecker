@@ -25,14 +25,9 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -46,13 +41,18 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
 
@@ -157,7 +157,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
     // add the node itself (it is not an interpolant)
     previousInterpolants.add(formulas.get(subtrees.size() - 1));
 
-    if (!solver.implies(bfmgr.and(previousInterpolants), bfmgr.makeBoolean(false))) {
+    if (!solver.implies(bfmgr.and(previousInterpolants), bfmgr.makeFalse())) {
       throw new SolverException(
               "Interpolant " + interpolants.get(subtrees.size() - 1) + " is not implied by previous part of the path");
     }
@@ -366,7 +366,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
       final BooleanFormula itp;
       switch (getTreePosition(formulasWithStatesAndGroupdIds, positionOfA)) {
         case START: {
-          itp = bfmgr.makeBoolean(true);
+          itp = bfmgr.makeTrue();
           break;
         }
         case END: {

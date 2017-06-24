@@ -23,12 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,30 +45,19 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Stream;
 
 @Options(prefix="cinvariants")
 public class CExpressionInvariantExporter {
@@ -97,35 +94,27 @@ public class CExpressionInvariantExporter {
   }
 
   /**
-   * Export invariants extracted from {@code pReachedSet} into the file
-   * specified by the options as {@code __VERIFIER_assume()} calls,
-   * intermixed with the program source code.
+   * Export invariants extracted from {@code pReachedSet} into the file specified by the options as
+   * {@code __VERIFIER_assume()} calls, intermixed with the program source code.
    */
-  public void exportInvariant(
-      String analyzedPrograms,
-      ReachedSet pReachedSet) throws IOException, InterruptedException {
+  public void exportInvariant(CFA pCfa, UnmodifiableReachedSet pReachedSet)
+      throws IOException, InterruptedException {
 
-    Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-    List<String> programs = commaSplitter.splitToList(analyzedPrograms);
-
-    for (String program : programs) {
+    for (Path program : pCfa.getFileNames()) {
       // Grab only the last component of the program filename.
-      Path trimmedFilename = Paths.get(program).getFileName();
+      Path trimmedFilename = program.getFileName();
       if (trimmedFilename != null) {
         try (Writer output =
             MoreFiles.openOutputFile(
                 prefix.getPath(trimmedFilename.toString()), Charset.defaultCharset())) {
-          writeProgramWithInvariants(output, program, pReachedSet);
+          writeProgramWithInvariants(output, program.toString(), pReachedSet);
         }
       }
     }
   }
 
   private void writeProgramWithInvariants(
-      Appendable out,
-      String filename,
-      ReachedSet pReachedSet
-      )
+      Appendable out, String filename, UnmodifiableReachedSet pReachedSet)
       throws IOException, InterruptedException {
 
     Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename);
@@ -164,7 +153,7 @@ public class CExpressionInvariantExporter {
    * @return Mapping from line numbers to states associated with the given line.
    */
   private Map<Integer, BooleanFormula> getInvariantsForFile(
-      ReachedSet pReachedSet,
+      UnmodifiableReachedSet pReachedSet,
       String filename) {
 
     // One formula per reported state.

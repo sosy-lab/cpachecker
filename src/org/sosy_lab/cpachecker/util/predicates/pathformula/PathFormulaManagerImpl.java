@@ -25,12 +25,18 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
+import java.io.PrintStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -74,14 +80,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
 
 /**
  * Class implementing the FormulaManager interface,
@@ -132,8 +130,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pCfa.getVarClassification(), pDirection);
   }
 
-  @VisibleForTesting
-  PathFormulaManagerImpl(FormulaManagerView pFmgr,
+  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification, AnalysisDirection pDirection)
@@ -175,6 +172,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
 
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
+
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
           aliasingTypeHandler, pDirection);
@@ -259,7 +257,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(bfmgr.makeBoolean(true),
+    return new PathFormula(bfmgr.makeTrue(),
                            SSAMap.emptySSAMap(),
                            PointerTargetSet.emptyPointerTargetSet(),
                            0);
@@ -267,7 +265,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(bfmgr.makeBoolean(true),
+    return new PathFormula(bfmgr.makeTrue(),
                            oldFormula.getSsa(),
                            oldFormula.getPointerTargetSet(),
                            0);
@@ -369,7 +367,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
     // build the branching formula that will help us find the real error path
-    BooleanFormula branchingFormula = bfmgr.makeBoolean(true);
+    BooleanFormula branchingFormula = bfmgr.makeTrue();
     for (final ARGState pathElement : elementsOnPath) {
       Set<ARGState> children = Sets.newHashSet(pathElement.getChildren());
       Set<ARGState> childrenOnPath = Sets.intersection(children, elementsOnPath).immutableCopy();
@@ -382,7 +380,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             continue;
           } else {
             logger.log(Level.WARNING, "ARG branching with more than two outgoing edges at ARG node " + pathElement.getStateId() + ".");
-            return bfmgr.makeBoolean(true);
+            return bfmgr.makeTrue();
           }
         }
 
@@ -394,7 +392,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             continue;
           } else {
             logger.log(Level.WARNING, "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
-            return bfmgr.makeBoolean(true);
+            return bfmgr.makeTrue();
           }
         }
 
@@ -412,7 +410,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         }
         if (positiveEdge == null || negativeEdge == null) {
           logger.log(Level.WARNING, "Ambiguous ARG branching at ARG node " + pathElement.getStateId() + ".");
-          return bfmgr.makeBoolean(true);
+          return bfmgr.makeTrue();
         }
 
         BooleanFormula pred = bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId());
@@ -424,7 +422,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
         if (pe == null) {
           logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
-          return bfmgr.makeBoolean(true);
+          return bfmgr.makeTrue();
         } else {
           pf = pe.getPathFormula();
         }
@@ -498,6 +496,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         merger.addMergeAssumptions(
             pF1.getFormula(), pF1.getSsa(), pF1.getPointerTargetSet(), pF2.getSsa()),
         bfmgr.not(bF));
+  }
+
+  @Override
+  public void printStatistics(PrintStream out) {
+    converter.printStatistics(out);
   }
 
 }

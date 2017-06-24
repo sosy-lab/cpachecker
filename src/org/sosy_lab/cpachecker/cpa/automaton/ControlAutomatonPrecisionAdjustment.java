@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Function;
+import java.util.Optional;
 import javax.annotation.Nullable;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -37,29 +34,19 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-import com.google.common.base.Function;
-import java.util.Optional;
-
-@Options(prefix="cpa.automaton.prec")
 public class ControlAutomatonPrecisionAdjustment implements PrecisionAdjustment {
 
   private final @Nullable PrecisionAdjustment wrappedPrec;
   private final AutomatonState topState;
-
-  @Option(secure=true, name="topOnFinalSelfLoopingState",
-      description="An implicit precision: consider states with a self-loop and no other outgoing edges as TOP.")
-  private boolean topOnFinalSelfLoopingState = false;
+  private final boolean topOnFinalSelfLoopingState;
 
   public ControlAutomatonPrecisionAdjustment(
-      Configuration pConfig,
       AutomatonState pTopState,
-      PrecisionAdjustment pWrappedPrecisionAdjustment)
-          throws InvalidConfigurationException {
-
-    pConfig.inject(this);
-
+      PrecisionAdjustment pWrappedPrecisionAdjustment,
+      boolean pTopOnFinalSelfLoopingState) {
     this.topState = pTopState;
     this.wrappedPrec = pWrappedPrecisionAdjustment;
+    this.topOnFinalSelfLoopingState = pTopOnFinalSelfLoopingState;
   }
 
   @Override

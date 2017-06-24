@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="4">
+  <option name="-heap">10000M</option>
+
+  <resultfiles>**.graphml</resultfiles>
+
+  <tasks name="ArraysMemSafety">
+    <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
+    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
+  </tasks>
+  <tasks name="BusyBoxMemSafety">
+    <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
+    <option name="-64"/>
+  </tasks>
+  <tasks name="HeapMemSafety">
+    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
+  </tasks>
+
+  <rundefinition name="sv-comp17-k-induction">
+    <option name="-sv-comp17-k-induction"/>
+  </rundefinition>
+</benchmark>

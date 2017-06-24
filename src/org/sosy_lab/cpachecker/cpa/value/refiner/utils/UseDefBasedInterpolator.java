@@ -31,7 +31,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -39,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -329,6 +329,12 @@ public class UseDefBasedInterpolator {
 
     private List<MemoryLocation> createMemoryLocationsForUnion(final CCompositeType pCompositeType) {
       return createSingleMemoryLocation(new BaseSizeofVisitor(model).visit(pCompositeType));
+    }
+
+    @Override
+    public List<MemoryLocation> visit(CBitFieldType pCBitFieldType)
+        throws IllegalArgumentException {
+      return createSingleMemoryLocation(model.getSizeof(pCBitFieldType));
     }
   }
 }

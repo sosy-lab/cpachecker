@@ -161,15 +161,25 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
       Formula minusOne = fmgrView.makeNumber(formulaType, -1);
       Formula zero = fmgrView.makeNumber(formulaType, 0);
 
+      // a * 0 = 0, 0 * b = 0
       BooleanFormula aIsZero = fmgrView.makeEqual(a, zero);
       BooleanFormula bIsZero = fmgrView.makeEqual(b, zero);
       BooleanFormula factorIsZero = fmgrView.makeOr(aIsZero, bIsZero);
       cases.add(fmgrView.makeAnd(factorIsZero, fmgrView.makeEqual(multAux, zero)));
 
-      BooleanFormula aIsOne = fmgrView.makeEqual(a, one);
-      BooleanFormula bIsOne = fmgrView.makeEqual(b, one);
+      // a * 1 = a, 1 * b = b
+      BooleanFormula aIsOne = fmgrView.makeEqual(a, minusOne);
+      BooleanFormula bIsOne = fmgrView.makeEqual(b, minusOne);
       cases.add(fmgrView.makeAnd(bIsOne, fmgrView.makeEqual(multAux, a)));
       cases.add(fmgrView.makeAnd(aIsOne, fmgrView.makeEqual(multAux, b)));
+
+      // a * (-1) = -a, (-1) * b = -b
+      BooleanFormula aIsminusOne = fmgrView.makeEqual(a, one);
+      BooleanFormula bIsminusOne = fmgrView.makeEqual(b, one);
+      Formula minusA = fmgrView.makeNegate(a);
+      Formula minusB = fmgrView.makeNegate(b);
+      cases.add(fmgrView.makeAnd(aIsminusOne, fmgrView.makeEqual(multAux, minusA)));
+      cases.add(fmgrView.makeAnd(bIsminusOne, fmgrView.makeEqual(multAux, minusB)));
 
       // 0 < a < 1,  0 < b < 1, -1 < a < 0, -1 < b < 0, a > 1, ...
       BooleanFormula zeroLessALessOne =

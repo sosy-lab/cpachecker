@@ -306,7 +306,7 @@ public class TranslatorTest {
 
     // Initialize formula manager
     BooleanFormulaManager bfmgr = fmv.getBooleanFormulaManager();
-    BooleanFormula bf = bfmgr.makeBoolean(true);
+    BooleanFormula bf = bfmgr.makeTrue();
 
     // create empty path formula
     PathFormula pathFormula = new PathFormula(bf, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
@@ -322,14 +322,14 @@ public class TranslatorTest {
     BooleanFormula bf13 = ifmgr.lessThan(ifmgr.makeVariable("fun::var1"), ifmgr.makeNumber(0));
     BooleanFormula bf14 = bfmgr.or(bf11, bf12);
     BooleanFormula bf1 = bfmgr.and(bf14, bf13);
-    aFormula = new AbstractionFormula(fmv, region, bf1, bfmgr.makeBoolean(true), pathFormula, Collections.<Integer>emptySet());
+    aFormula = new AbstractionFormula(fmv, region, bf1, bfmgr.makeTrue(), pathFormula, Collections.<Integer>emptySet());
     PredicateAbstractState pf1State = PredicateAbstractState.mkAbstractionState(pathFormula, aFormula, PathCopyingPersistentTreeMap.<CFANode, Integer>of());
 
     // create PredicateAbstractState pf2State
     BooleanFormula bf21 = ifmgr.greaterThan(ifmgr.makeVariable("var2"), ifmgr.makeVariable("fun::varB"));
     BooleanFormula bf22 = ifmgr.lessThan(ifmgr.makeVariable("fun::varC"), ifmgr.makeNumber(0));
     BooleanFormula bf2 = bfmgr.and(bf21, bf22);
-    aFormula = new AbstractionFormula(fmv, region, bf2, bfmgr.makeBoolean(true), pathFormula, Collections.<Integer>emptySet());
+    aFormula = new AbstractionFormula(fmv, region, bf2, bfmgr.makeTrue(), pathFormula, Collections.<Integer>emptySet());
     PredicateAbstractState pf2State = PredicateAbstractState.mkAbstractionState(pathFormula, aFormula, PathCopyingPersistentTreeMap.<CFANode, Integer>of());
 
     PredicateRequirementsTranslator pReqTrans = new PredicateRequirementsTranslator(predicateCpa);

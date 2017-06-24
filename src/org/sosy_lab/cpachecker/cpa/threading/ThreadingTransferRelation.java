@@ -23,10 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import static com.google.common.collect.Collections2.transform;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -52,23 +64,18 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 @Options(prefix="cpa.threading")
 public final class ThreadingTransferRelation extends SingleEdgeTransferRelation {
+
 
   @Option(description="do not use the original functions from the CFA, but cloned ones. "
       + "See cfa.postprocessing.CFACloner for detail.",
@@ -106,8 +113,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
-  private static final Set<String> THREAD_FUNCTIONS = Sets.newHashSet(
-      THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT);
+  private static final ImmutableSet<String> THREAD_FUNCTIONS = ImmutableSet.of(
+      THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT,
+      VERIFIER_ATOMIC_BEGIN, VERIFIER_ATOMIC_END);
 
   private final CFA cfa;
   private final LogManagerWithoutDuplicates logger;
@@ -164,7 +172,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     Collection<ThreadingState> results = getAbstractSuccessorsFromWrappedCPAs(
         activeThread, threadingState, precision, cfaEdge);
 
-    return getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
+    results = getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
+
+    results = setActiveThread(activeThread, results);
+
+    return results;
   }
 
   /** Search for the thread, where the current edge is available.
@@ -193,6 +205,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** handle all edges related to thread-management:
    * THREAD_START, THREAD_JOIN, THREAD_EXIT, THREAD_MUTEX_LOCK, VERIFIER_ATOMIC,...
+   *
+   * If nothing changes, then return <code>results</code> unmodified.
    */
   private Collection<ThreadingState> getAbstractSuccessorsForEdge0(
       final CFAEdge cfaEdge, final ThreadingState threadingState,
@@ -217,6 +231,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           case THREAD_EXIT:
             // this function-call is already handled in the beginning with isLastNodeOfThread.
             // return exitThread(threadingState, activeThread, results);
+            break;
+          case VERIFIER_ATOMIC_BEGIN:
+            if (useAtomicLocks) {
+              return addLock(threadingState, activeThread, ATOMIC_LOCK, results);
+            }
+            break;
+          case VERIFIER_ATOMIC_END:
+            if (useAtomicLocks) {
+              return removeLock(activeThread, ATOMIC_LOCK, results);
+            }
+            break;
           default:
             // nothing to do, return results
           }
@@ -229,6 +254,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         // cloning changes the function-name -> we use 'startsWith'.
         // we have 2 different atomic sequences:
         //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+        //      (@Deprecated, for old benchmark tasks)
         //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X where X can be anything
         final String calledFunction = cfaEdge.getSuccessor().getFunctionName();
         if (calledFunction.startsWith(VERIFIER_ATOMIC_BEGIN)) {
@@ -244,6 +270,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         // cloning changes the function-name -> we use 'startsWith'.
         // we have 2 different atomic sequences:
         //   1) from calling VERIFIER_ATOMIC_BEGIN to exiting VERIFIER_ATOMIC_END.
+        //      (@Deprecated, for old benchmark tasks)
         //   2) from calling VERIFIER_ATOMIC_X to exiting VERIFIER_ATOMIC_X  where X can be anything
         final String exitedFunction = cfaEdge.getPredecessor().getFunctionName();
         if (exitedFunction.startsWith(VERIFIER_ATOMIC_END)) {
@@ -268,8 +295,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       String activeThread, ThreadingState threadingState, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
 
-    final Collection<ThreadingState> results = new HashSet<>();
-
     // compute new locations
     Collection<? extends AbstractState> newLocs = locationCPA.getTransferRelation().
         getAbstractSuccessorsForEdge(threadingState.getThreadLocation(activeThread), precision, cfaEdge);
@@ -279,6 +304,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         getAbstractSuccessorsForEdge(threadingState.getThreadCallstack(activeThread), precision, cfaEdge);
 
     // combine them pairwise, all combinations needed
+    final Collection<ThreadingState> results = new ArrayList<>();
     for (AbstractState loc : newLocs) {
       for (AbstractState stack : newStacks) {
         results.add(threadingState.updateLocationAndCopy(activeThread, stack, loc));
@@ -398,8 +424,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
    * @param threadId a unique identifier for the new thread
    * @param newThreadNum a unique number for the new thread
    * @param functionName the main-function of the new thread
+   * @return a threadingState with the new thread,
+   *         or {@code null} if the new thread cannot be created.
    */
-  ThreadingState addNewThread(
+  @Nullable ThreadingState addNewThread(
       ThreadingState threadingState, String threadId, int newThreadNum, String functionName)
       throws InterruptedException {
     CFANode functioncallNode =
@@ -444,13 +472,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return Collections.emptySet();
     }
 
-    // update all successors
-    final Collection<ThreadingState> newResults = new ArrayList<>();
-    for (ThreadingState ts : results) {
-      ts = ts.addLockAndCopy(activeThread, lockId);
-      newResults.add(ts);
-    }
-    return newResults;
+    return transform(results, ts -> ts.addLockAndCopy(activeThread, lockId));
   }
 
   /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */
@@ -491,13 +513,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final String activeThread,
       final String lockId,
       final Collection<ThreadingState> results) {
-    // update all successors
-    final Collection<ThreadingState> newResults = new ArrayList<>();
-    for (ThreadingState ts : results) {
-      ts = ts.removeLockAndCopy(activeThread, lockId);
-      newResults.add(ts);
-    }
-    return newResults;
+    return transform(results, ts -> ts.removeLockAndCopy(activeThread, lockId));
   }
 
   private Collection<ThreadingState> joinThread(ThreadingState threadingState,
@@ -557,11 +573,75 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return false;
     }
     case FunctionCallEdge:
+      // @Deprecated, for old benchmark tasks
       return cfaEdge.getSuccessor().getFunctionName().startsWith(VERIFIER_ATOMIC_BEGIN);
     case FunctionReturnEdge:
+      // @Deprecated, for old benchmark tasks
       return cfaEdge.getPredecessor().getFunctionName().startsWith(VERIFIER_ATOMIC_END);
     default:
       return false;
+    }
+  }
+
+  /**
+   * Store the active thread in the given states.
+   *
+   * @see ThreadingState#setActiveThread
+   */
+  private Collection<ThreadingState> setActiveThread(
+      @Nullable String activeThread, Collection<ThreadingState> results) {
+    return transform(results, ts -> ts.setActiveThread(activeThread));
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      List<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    Collection<ThreadingState> results = Collections.singleton((ThreadingState) state);
+
+    for (AutomatonState automatonState :
+        AbstractStates.projectToType(otherStates, AutomatonState.class)) {
+      if ("WitnessAutomaton".equals(automatonState.getOwningAutomatonName())) {
+        results = transform(results, ts -> handleWitnessAutomaton(ts, automatonState));
+        results = Collections2.filter(results, Predicates.notNull());
+      }
+    }
+
+    assert !results.contains(null);
+
+    return setActiveThread(null, results);
+  }
+
+  private @Nullable ThreadingState handleWitnessAutomaton(
+      ThreadingState ts, AutomatonState automatonState) {
+    Map<String, AutomatonVariable> vars = automatonState.getVars();
+    AutomatonVariable witnessThreadId = vars.get(KeyDef.THREADID.id.toUpperCase());
+    String threadId = ts.getActiveThread();
+    if (witnessThreadId == null || threadId == null || witnessThreadId.getValue() == 0) {
+      // values not available or default value zero -> ignore and return state unchanged
+      return ts;
+    }
+
+    Integer witnessId = ts.getThreadIdForWitness(threadId);
+    if (witnessId == null) {
+      if (ts.hasWitnessIdForThread(witnessThreadId.getValue())) {
+        // state contains a mapping, but not for current thread -> wrong branch?
+        // TODO returning NULL here would be nice, but leads to unaccepted witnesses :-(
+        return ts;
+      } else {
+        // we know nothing, but can store the new mapping in the state
+        return ts.setThreadIdForWitness(threadId, witnessThreadId.getValue());
+      }
+    }
+    if (witnessId.equals(witnessThreadId.getValue())) {
+      // corrent branch
+      return ts;
+    } else {
+      // threadId does not match -> no successor
+      return ts;
     }
   }
 }

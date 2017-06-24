@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -32,13 +37,6 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 
 /**
@@ -67,25 +65,26 @@ public abstract class PartitioningHeuristic {
 
   /**
    * Creates a <code>BlockPartitioning</code> using the represented heuristic.
-   * @param mainFunction CFANode at which the main-function is defined
+   * @param cfa control-flow automaton of the program
    * @return BlockPartitioning
    * @see org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning
    */
-  public final BlockPartitioning buildPartitioning(CFANode mainFunction, BlockPartitioningBuilder builder) {
+  public final BlockPartitioning buildPartitioning(CFA cfa, BlockPartitioningBuilder builder) {
 
     //traverse CFG
-    Set<CFANode> seen = new HashSet<>();
-    Deque<CFANode> stack = new ArrayDeque<>();
+    final Set<CFANode> seen = new HashSet<>();
+    final Deque<CFANode> stack = new ArrayDeque<>();
 
+    final  CFANode mainFunction = cfa.getMainFunction();
     seen.add(mainFunction);
     stack.push(mainFunction);
 
     while (!stack.isEmpty()) {
-      CFANode node = stack.pop();
+      final CFANode node = stack.pop();
 
-      Set<CFANode> subtree = getBlockForNode(node);
+      final Set<CFANode> subtree = getBlockForNode(node);
       if (subtree != null) {
-        builder.addBlock(subtree, mainFunction, node);
+        builder.addBlock(subtree, node);
       }
 
       for (CFANode nextNode : CFAUtils.successorsOf(node)) {
@@ -96,10 +95,19 @@ public abstract class PartitioningHeuristic {
       }
     }
 
-    return builder.build(mainFunction);
+    return builder.build(cfa);
   }
 
   /**
+   * Compute the nodes of a block,
+   * such that the entry-node and all possible exit-nodes should be part of the block.
+   * For efficiency a block should not contain the nodes of inner function calls,
+   * because we will add them automatically later.
+   * <p>
+   * (TODO This case never happened before, but who knows... :
+   * If a block contains a partial body of a called function,
+   * we expect that either the function entry or the function exit is not part of the block.)
+   *
    * @param pBlockHead CFANode that should be cached.
    * @return set of nodes that represent a {@link Block},
    *         or NULL, if no block should be build for this node.

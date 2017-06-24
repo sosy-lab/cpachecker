@@ -32,7 +32,11 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Predicate;
-
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -45,9 +49,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-
-import java.io.Serializable;
-import java.util.Collections;
 
 public class LocationState implements AbstractStateWithLocation, AbstractQueryableState, Partitionable, Serializable {
 
@@ -167,7 +168,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       }
       return 0; // DUMMY
     } else {
-      return Boolean.valueOf(checkProperty(pProperty));
+      return checkProperty(pProperty);
     }
   }
 
@@ -180,6 +181,14 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   private Object writeReplace() {
     return new SerialProxy(locationNode.getNodeNumber());
+  }
+
+  /**
+   * javadoc to remove unused parameter warning
+   * @param in the input stream
+   */
+  private void readObject(ObjectInputStream in) throws IOException {
+    throw new InvalidObjectException("Proxy required");
   }
 
   private static class SerialProxy implements Serializable {

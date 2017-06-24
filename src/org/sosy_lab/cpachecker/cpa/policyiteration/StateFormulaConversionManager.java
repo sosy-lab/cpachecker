@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 public class StateFormulaConversionManager {
 
   @Option(description="Remove redundant items when abstract values.")
-  private boolean simplifyDotOutput = true;
+  private boolean simplifyDotOutput = false;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -177,7 +177,7 @@ public class StateFormulaConversionManager {
       extraPredicate = fmgr.instantiate(abstractState.getExtraInvariant(),
           abstractState.getSSA());
     } else {
-      extraPredicate = fmgr.getBooleanFormulaManager().makeBoolean(true);
+      extraPredicate = fmgr.getBooleanFormulaManager().makeTrue();
     }
     return new PathFormula(extraPredicate, abstractState.getSSA(),
         abstractState.getPointerTargetSet(), 1);

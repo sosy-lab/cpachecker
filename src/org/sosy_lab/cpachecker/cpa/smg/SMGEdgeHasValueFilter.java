@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.base.Predicate;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import java.util.Collections;
@@ -145,6 +146,24 @@ public class SMGEdgeHasValueFilter {
     }
 
     return true;
+  }
+
+  public Set<SMGEdgeHasValue> filterSet(SMGHasValueEdges pEdges) {
+    Set<SMGEdgeHasValue> returnSet = new HashSet<>();
+    Set<SMGEdgeHasValue> filtered;
+    if (object != null) {
+      filtered = pEdges.getEdgesForObject(object);
+    } else {
+      filtered = pEdges.getHvEdges();
+    }
+    if (filtered != null) {
+      for (SMGEdgeHasValue edge : filtered) {
+        if (holdsFor(edge)) {
+          returnSet.add(edge);
+        }
+      }
+    }
+    return returnSet;
   }
 
   public Set<SMGEdgeHasValue> filterSet(Set<SMGEdgeHasValue> pEdges) {

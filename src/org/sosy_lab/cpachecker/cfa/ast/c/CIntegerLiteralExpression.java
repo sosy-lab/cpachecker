@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -33,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CIntegerLiteralExpression extends AIntegerLiteralExpression implements CLiteralExpression {
 
+  private static final long serialVersionUID = 7691279268370356228L;
   public static final CIntegerLiteralExpression ONE = createDummyLiteral(1L, CNumericTypes.INT);
   public static final CIntegerLiteralExpression ZERO = createDummyLiteral(0L, CNumericTypes.INT);
 

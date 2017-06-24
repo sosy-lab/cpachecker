@@ -34,7 +34,24 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -49,6 +66,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -70,26 +88,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.ProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
@@ -256,6 +254,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula buildAbstraction(
       final CFANode location,
+      Optional<CallstackStateEqualsWrapper> callstackInformation,
       final BooleanFormula f,
       final PathFormula blockFormula,
       final Collection<AbstractionPredicate> predicates)
@@ -266,7 +265,7 @@ public class PredicateAbstractionManager {
 
     AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
     AbstractionFormula newAbstraction =
-        buildAbstraction(location, emptyAbstraction, pf, predicates);
+        buildAbstraction(location, callstackInformation, emptyAbstraction, pf, predicates);
 
     // fix block formula in result
     return new AbstractionFormula(
@@ -290,6 +289,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula buildAbstraction(
       final CFANode location,
+      Optional<CallstackStateEqualsWrapper> callstackInformation,
       final AbstractionFormula abstractionFormula,
       final PathFormula pathFormula,
       final Collection<AbstractionPredicate> pPredicates)
@@ -361,7 +361,7 @@ public class PredicateAbstractionManager {
         logger.log(Level.FINEST, "Block feasibility of abstraction", stats.numCallsAbstraction, "was cached and is false.");
         stats.numCallsAbstractionCached++;
         return new AbstractionFormula(fmgr, rmgr.makeFalse(),
-            bfmgr.makeBoolean(false), bfmgr.makeBoolean(false),
+            bfmgr.makeFalse(), bfmgr.makeFalse(),
             pathFormula, noAbstractionReuse);
       }
     }
@@ -378,7 +378,8 @@ public class PredicateAbstractionManager {
 
     // add invariants to abstraction formula if available
     if (invariantSupplier != TrivialInvariantSupplier.INSTANCE) {
-      BooleanFormula invariant = invariantSupplier.getInvariantFor(location, fmgr, pfmgr, pathFormula);
+      BooleanFormula invariant = invariantSupplier.getInvariantFor(
+          location, callstackInformation, fmgr, pfmgr, pathFormula);
 
       if (!bfmgr.isTrue(invariant)) {
         AbstractionPredicate absPred = amgr.makePredicate(invariant);
@@ -429,11 +430,11 @@ public class PredicateAbstractionManager {
   /**
    * Compute an abstraction of a formula.
    * This is a low-level version of
-   * {@link #buildAbstraction(CFANode, BooleanFormula, PathFormula, Collection)}:
+   * {@link #buildAbstraction(CFANode, Optional, BooleanFormula, PathFormula, Collection)}:
    * it does not handle instantiation and does not return an {@link AbstractionFormula}
    * but just a {@link BooleanFormula}.
    * It also misses several of the optimizations and features of
-   * {@link #buildAbstraction(CFANode, BooleanFormula, PathFormula, Collection)},
+   * {@link #buildAbstraction(CFANode, Optional, BooleanFormula, PathFormula, Collection)},
    * so if possible use that method.
    *
    * @param pF The formula to be abstracted. Must not be instantiated.
@@ -561,7 +562,7 @@ public class PredicateAbstractionManager {
         }
 
         Set<Integer> reuseIds = Sets.newTreeSet();
-        BooleanFormula reuseFormula = bfmgr.makeBoolean(true);
+        BooleanFormula reuseFormula = bfmgr.makeTrue();
         for (AbstractionNode an : candidateAbstractions) {
           reuseFormula = bfmgr.and(reuseFormula, an.getFormula());
           abstractionStorage.markAbstractionBeingReused(an.getId());
@@ -924,7 +925,7 @@ public class PredicateAbstractionManager {
     // build the definition of the predicates, and instantiate them
     // also collect all predicate variables so that the solver knows for which
     // variables we want to have the satisfying assignments
-    BooleanFormula predDef = bfmgr.makeBoolean(true);
+    BooleanFormula predDef = bfmgr.makeTrue();
     List<BooleanFormula> predVars = new ArrayList<>(predicates.size());
 
     for (AbstractionPredicate p : predicates) {
@@ -1125,7 +1126,7 @@ public class PredicateAbstractionManager {
       pPreviousBlockFormula = pfmgr.makeEmptyPathFormula();
     }
 
-    return new AbstractionFormula(fmgr, amgr.getRegionCreator().makeTrue(), bfmgr.makeBoolean(true), bfmgr.makeBoolean(true),
+    return new AbstractionFormula(fmgr, amgr.getRegionCreator().makeTrue(), bfmgr.makeTrue(), bfmgr.makeTrue(),
         pPreviousBlockFormula, noAbstractionReuse);
   }
 

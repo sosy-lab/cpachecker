@@ -36,11 +36,18 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
@@ -51,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -58,20 +66,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * Used to store the types of the cfa that are
@@ -79,6 +80,8 @@ import javax.annotation.Nullable;
  * of the original program is parsed.
  */
 public class CProgramScope implements Scope {
+
+  public static final String ARTIFICIAL_RETVAL_NAME = "__artificial_result__";
 
   private static final Function<CFANode, Iterable<? extends CSimpleDeclaration>>
       TO_C_SIMPLE_DECLARATIONS =
@@ -181,6 +184,8 @@ public class CProgramScope implements Scope {
   // TODO map type declarations to types and construct types that have original names for witness automaton parsing
   private final Map<String, CComplexType> qualifiedTypes;
 
+  private final Map<String, CSimpleDeclaration> retValDeclarations;
+
   private final String functionName;
 
   /**
@@ -193,6 +198,7 @@ public class CProgramScope implements Scope {
     functionDeclarations = ImmutableListMultimap.of();
     qualifiedTypes = Collections.emptyMap();
     qualifiedTypeDefs = Collections.emptyMap();
+    retValDeclarations = Collections.emptyMap();
     functionName = null;
   }
 
@@ -209,6 +215,7 @@ public class CProgramScope implements Scope {
     qualifiedDeclarations = pScope.qualifiedDeclarations;
     qualifiedTypes = pScope.qualifiedTypes;
     qualifiedTypeDefs = pScope.qualifiedTypeDefs;
+    retValDeclarations = pScope.retValDeclarations;
     functionName = pFunctionName;
   }
 
@@ -219,18 +226,19 @@ public class CProgramScope implements Scope {
    * the whole program has to be parsed to generate complex types for the variables.
    * These types and declarations are stored in this scope.
    *
-   * @param cfa the cfa of the program, where single or block of statements are supposed to be parsed
+   * @param pCFA the cfa of the program, where single or block of statements are supposed to be
+   *     parsed
    */
-  public CProgramScope(CFA cfa, LogManager pLogger) {
+  public CProgramScope(CFA pCFA, LogManager pLogger) {
 
-    assert cfa.getLanguage() == Language.C;
+    assert pCFA.getLanguage() == Language.C || pCFA.getLanguage() == Language.LLVM;
 
     functionName = null;
 
     /* Get all nodes, get all edges from nodes, get all declarations from edges,
      * assign every declaration its name.
      */
-    Collection<CFANode> nodes = cfa.getAllNodes();
+    Collection<CFANode> nodes = pCFA.getAllNodes();
 
     FluentIterable<CSimpleDeclaration> allDcls = FluentIterable.from(nodes).transformAndConcat(TO_C_SIMPLE_DECLARATIONS);
 
@@ -245,6 +253,22 @@ public class CProgramScope implements Scope {
     qualifiedTypeDefs = extractTypeDefs(typeDcls, pLogger);
 
     functionDeclarations = functionDcls.index(GET_ORIGINAL_QUALIFIED_NAME);
+
+    Map<String, CSimpleDeclaration> artificialRetValDeclarations = Maps.newHashMap();
+    for (CFunctionDeclaration functionDeclaration : functionDeclarations.values()) {
+      if (!(functionDeclaration.getType().getReturnType().getCanonicalType()
+          instanceof CVoidType)) {
+        String name = functionDeclaration.getName();
+        if (!artificialRetValDeclarations.containsKey(name)) {
+          CSimpleDeclaration retValDecl = getArtificialFunctionReturnVariable(functionDeclaration);
+          artificialRetValDeclarations.put(name, retValDecl);
+        }
+      }
+    }
+    this.retValDeclarations = Collections.unmodifiableMap(artificialRetValDeclarations);
+    nonFunctionDcls =
+        FluentIterable.from(
+            Iterables.concat(nonFunctionDcls, artificialRetValDeclarations.values()));
 
     variableNames = nonFunctionDcls.transform(GET_NAME).toSet();
 
@@ -360,9 +384,13 @@ public class CProgramScope implements Scope {
   @Override
   public String createScopedNameOf(String pName) {
     if (!isGlobalScope()) {
-      return getCurrentFunctionName() + "::" + pName;
+      return createScopedNameOf(getCurrentFunctionName(), pName);
     }
     return pName;
+  }
+
+  private static String createScopedNameOf(String pFunctionName, String pName) {
+    return pFunctionName + "::" + pName;
   }
 
   /**
@@ -622,8 +650,7 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CArrayType pArrayType) {
-      if (!collectedTypes.contains(pArrayType)) {
-        collectedTypes.add(pArrayType);
+      if (collectedTypes.add(pArrayType)) {
         pArrayType.getType().accept(this);
         if (pArrayType.getLength() != null) {
           pArrayType.getLength().getExpressionType().accept(this);
@@ -634,8 +661,7 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CCompositeType pCompositeType) {
-      if (!collectedTypes.contains(pCompositeType)) {
-        collectedTypes.add(pCompositeType);
+      if (collectedTypes.add(pCompositeType)) {
         for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
           member.getType().accept(this);
         }
@@ -645,8 +671,7 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CElaboratedType pElaboratedType) {
-      if (!collectedTypes.contains(pElaboratedType)) {
-        collectedTypes.add(pElaboratedType);
+      if (collectedTypes.add(pElaboratedType)) {
         if (pElaboratedType.getRealType() != null) {
           pElaboratedType.getRealType().accept(this);
         }
@@ -656,8 +681,7 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CFunctionType pFunctionType) {
-      if (!collectedTypes.contains(pFunctionType)) {
-        collectedTypes.add(pFunctionType);
+      if (collectedTypes.add(pFunctionType)) {
         for (CType parameterType : pFunctionType.getParameters()) {
           parameterType.accept(this);
         }
@@ -667,8 +691,7 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CPointerType pPointerType) {
-      if (!collectedTypes.contains(pPointerType)) {
-        collectedTypes.add(pPointerType);
+      if (collectedTypes.add(pPointerType)) {
         pPointerType.getType().accept(this);
       }
       return null;
@@ -676,12 +699,70 @@ public class CProgramScope implements Scope {
 
     @Override
     public Void visit(CTypedefType pTypedefType) {
-      if (!collectedTypes.contains(pTypedefType)) {
-        collectedTypes.add(pTypedefType);
+      if (collectedTypes.add(pTypedefType)) {
         pTypedefType.getRealType().accept(this);
       }
       return null;
     }
+
+    @Override
+    public Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      if (collectedTypes.add(pCBitFieldType)) {
+        pCBitFieldType.getType().accept(this);
+      }
+      return null;
+    }
+  }
+
+  public boolean hasFunctionReturnVariable(String pFunctionName) {
+    return retValDeclarations.containsKey(pFunctionName);
+  }
+
+  public CSimpleDeclaration getFunctionReturnVariable(String pFunctionName) {
+    CSimpleDeclaration result = retValDeclarations.get(pFunctionName);
+    if (result == null) {
+      throw new IllegalArgumentException(
+          "Function unknown or does not have a return value: " + pFunctionName);
+    }
+    return result;
+  }
+
+  private static CSimpleDeclaration getArtificialFunctionReturnVariable(
+      CFunctionDeclaration pFunctionDeclaration) {
+    String name = ARTIFICIAL_RETVAL_NAME + pFunctionDeclaration.getName() + "__";
+    return new CVariableDeclaration(
+        pFunctionDeclaration.getFileLocation(),
+        false,
+        CStorageClass.AUTO,
+        pFunctionDeclaration.getType().getReturnType(),
+        name,
+        name,
+        createScopedNameOf(pFunctionDeclaration.getName(), name),
+        null);
+  }
+
+  public static boolean isArtificialFunctionReturnVariable(CIdExpression pCIdExpression) {
+    if (pCIdExpression.getDeclaration() == null) {
+      return false;
+    }
+    String name = pCIdExpression.getDeclaration().getName();
+    if (!name.startsWith(ARTIFICIAL_RETVAL_NAME)) {
+      return false;
+    }
+    String qualifiedName = pCIdExpression.getDeclaration().getQualifiedName();
+    String[] parts = qualifiedName.split("::");
+    if (parts.length < 2) {
+      return false;
+    }
+    return parts[1].equals(ARTIFICIAL_RETVAL_NAME + parts[0] + "__");
+  }
+
+  public static String getFunctionNameOfArtificialReturnVar(CIdExpression pCIdExpression) {
+    if (!isArtificialFunctionReturnVariable(pCIdExpression)) {
+      throw new IllegalArgumentException("Variable is not an artificial return variable.");
+    }
+    String qualifiedName = pCIdExpression.getDeclaration().getQualifiedName();
+    return qualifiedName.substring(0, qualifiedName.indexOf("::"));
   }
 
 }

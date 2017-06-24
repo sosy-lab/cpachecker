@@ -29,7 +29,20 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -47,12 +60,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.assumptions.AssumptionWithLocation;
@@ -60,21 +75,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
 
 /**
  * Outer algorithm to collect all invariants generated during
@@ -101,6 +101,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   @Option(secure=true, description="If it is enabled, automaton does not add assumption which is considered to continue path with corresponding this edge.")
   private boolean automatonIgnoreAssumptions = false;
 
+  @Option(secure=true, description="If it is enabled, check if a state that should lead to false state indeed has successors.")
+  private boolean removeNonExploredWithoutSuccessors = false;
+
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
   private final FormulaManagerView formulaManager;
@@ -112,6 +115,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   // statistics
   private int automatonStates = 0;
+
+  private final ConfigurableProgramAnalysis cpa;
 
   public AssumptionCollectorAlgorithm(Algorithm algo,
                                       ConfigurableProgramAnalysis pCpa,
@@ -133,6 +138,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     this.formulaManager = cpa.getFormulaManager();
     this.bfmgr = formulaManager.getBooleanFormulaManager();
     this.exceptionAssumptions = new AssumptionWithLocation(formulaManager);
+    this.cpa=pCpa;
   }
 
   @Override
@@ -195,7 +201,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return status;
   }
 
-  private AssumptionWithLocation collectLocationAssumptions(ReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
+  private AssumptionWithLocation collectLocationAssumptions(UnmodifiableReachedSet reached, AssumptionWithLocation exceptionAssumptions) {
     AssumptionWithLocation result = AssumptionWithLocation.copyOf(exceptionAssumptions);
 
     // collect and dump all assumptions stored in abstract states
@@ -242,16 +248,16 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
    * Create an assumption that is sufficient to exclude an abstract state
    */
   private void addAvoidingAssumptions(AssumptionWithLocation invariant, AbstractState state) {
-    addAssumption(invariant, bfmgr.makeBoolean(false), state);
+    addAssumption(invariant, bfmgr.makeFalse(), state);
   }
 
-  private void produceAssumptionAutomaton(Appendable output, ReachedSet reached) throws IOException {
+  private void produceAssumptionAutomaton(Appendable output, UnmodifiableReachedSet reached) throws IOException {
     final AbstractState firstState = reached.getFirstState();
     if (!(firstState instanceof ARGState)) {
       output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
     }
 
-    Set<AbstractState> falseAssumptionStates = Sets.newHashSet(reached.getWaitlist());
+    Set<AbstractState> falseAssumptionStates = getFalseAssumptionStates(reached);
 
     // scan reached set for all relevant states with an assumption
     // Invariant: relevantStates does not contain any covered state.
@@ -291,6 +297,34 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     automatonStates += writeAutomaton(output, (ARGState) firstState, relevantStates, falseAssumptionStates,
             automatonBranchingThreshold, automatonIgnoreAssumptions);
   }
+
+  private Set<AbstractState> getFalseAssumptionStates(UnmodifiableReachedSet pReached) {
+    Set<AbstractState> falseAssumptionStates;
+    if (removeNonExploredWithoutSuccessors) {
+      falseAssumptionStates = Sets.newHashSetWithExpectedSize(pReached.getWaitlist().size());
+      for (AbstractState state : pReached.getWaitlist()) {
+        try {
+          if (cpa.getTransferRelation().getAbstractSuccessors(state, pReached.getPrecision(state))
+              .size() > 0) {
+            falseAssumptionStates.add(state);
+            if(state instanceof ARGState) {
+              ARGState argState = (ARGState) state;
+              while(!argState.getChildren().isEmpty()) {
+                argState.getChildren().iterator().next().removeFromARG();
+              }
+            }
+          }
+        } catch (CPATransferException | UnsupportedOperationException | InterruptedException e) {
+          falseAssumptionStates.add(state);
+        }
+      }
+      return falseAssumptionStates;
+    } else {
+      falseAssumptionStates = Sets.newHashSet(pReached.getWaitlist());
+    }
+    return falseAssumptionStates;
+  }
+
 
   /**
    * Create a String containing the assumption automaton.
@@ -504,7 +538,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       AssumptionWithLocation resultAssumption = collectLocationAssumptions(pReached, exceptionAssumptions);
 
       put(out, "Number of locations with assumptions", resultAssumption.getNumberOfLocations());

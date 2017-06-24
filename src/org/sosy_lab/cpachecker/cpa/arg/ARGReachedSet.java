@@ -33,14 +33,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
-
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Precisions;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +41,12 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ARG
@@ -273,6 +271,11 @@ public class ARGReachedSet {
     for (ARGState ae : toUnreach) {
       newToUnreach.addAll(ae.getCoveredByThis());
     }
+    // we remove the covered states completely,
+    // maybe we re-explore them later and find coverage again.
+    // caution: siblings of the covered state might be re-explored, too,
+    // they should be covered by the existing/previous siblings
+    // (if sibling not removed and precision is not weaker)
     toUnreach.addAll(newToUnreach);
 
     Set<ARGState> toWaitlist = removeSet(toUnreach);
@@ -285,7 +288,7 @@ public class ARGReachedSet {
       return;
     }
 
-    ARGToDotWriter refinementGraph = cpa.getRefinementGraphWriter();
+    ARGToDotWriter refinementGraph = cpa.getARGExporter().getRefinementGraphWriter();
     if (refinementGraph == null) {
       return;
     }

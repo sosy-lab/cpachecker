@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public abstract class CTypeDeclaration extends AbstractDeclaration implements CDeclaration {
 
+  private static final long serialVersionUID = -607383651501118425L;
   private final String qualifiedName;
 
   public CTypeDeclaration(FileLocation pFileLocation, boolean pIsGlobal,

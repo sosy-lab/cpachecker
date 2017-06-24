@@ -28,26 +28,24 @@ package org.sosy_lab.cpachecker.util.predicates;
  * predicates during the predicate analysis.
  */
 public enum PredicateOrderingStrategy {
-  SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
-  FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE, FRAMEWORK_WIN2, FRAMEWORK_WIN2ITE,
-  FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE, CHRONOLOGICAL;
+  SIMILARITY(false),
+  FREQUENCY(false),
+  IMPLICATION(false),
+  REV_IMPLICATION(false),
+  RANDOMLY(false),
+  FRAMEWORK_RANDOM(true),
+  FRAMEWORK_SIFT(true),
+  FRAMEWORK_SIFTITE(true),
+  FRAMEWORK_WIN2(true),
+  FRAMEWORK_WIN2ITE(true),
+  FRAMEWORK_WIN3(true),
+  FRAMEWORK_WIN3ITE(true),
+  CHRONOLOGICAL(true);
 
-  private boolean isFrameworkStrategy;
+  private final boolean isFrameworkStrategy;
 
-  static {
-    SIMILARITY.isFrameworkStrategy = false;
-    FREQUENCY.isFrameworkStrategy = false;
-    IMPLICATION.isFrameworkStrategy = false;
-    REV_IMPLICATION.isFrameworkStrategy = false;
-    RANDOMLY.isFrameworkStrategy = false;
-    FRAMEWORK_RANDOM.isFrameworkStrategy = true;
-    FRAMEWORK_SIFT.isFrameworkStrategy = true;
-    FRAMEWORK_SIFTITE.isFrameworkStrategy = true;
-    FRAMEWORK_WIN2.isFrameworkStrategy = true;
-    FRAMEWORK_WIN2ITE.isFrameworkStrategy = true;
-    FRAMEWORK_WIN3.isFrameworkStrategy = true;
-    FRAMEWORK_WIN3ITE.isFrameworkStrategy = true;
-    CHRONOLOGICAL.isFrameworkStrategy = true;
+  private PredicateOrderingStrategy(boolean pIsFrameworkStrategy) {
+    isFrameworkStrategy = pIsFrameworkStrategy;
   }
 
   public boolean getIsFrameworkStrategy() {

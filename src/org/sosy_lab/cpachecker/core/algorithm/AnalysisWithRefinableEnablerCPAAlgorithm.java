@@ -30,7 +30,14 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
@@ -94,17 +101,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="enabledanalysis")
 public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, StatisticsProvider{
@@ -137,8 +135,8 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     PREDICATE(PredicateAbstractState.class, PredicateCPA.class),
     VALUE(ValueAnalysisState.class, ValueAnalysisCPA.class);
 
-    private Class<? extends AbstractState> stateClass;
-    private Class<? extends ConfigurableProgramAnalysis> cpaClass;
+    private final Class<? extends AbstractState> stateClass;
+    private final Class<? extends ConfigurableProgramAnalysis> cpaClass;
 
     private Enabler(Class<? extends AbstractState> pStateClassOfEnabler,
         Class<? extends ConfigurableProgramAnalysis> pCPAClassOfEnabler) {

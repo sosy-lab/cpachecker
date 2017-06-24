@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util;
 
-import java.util.logging.Level;
-
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
-
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeTraverser;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
 /**
  * Helper functions to work with CPAs.
@@ -95,7 +93,7 @@ public class CPAs {
       try {
         ((AutoCloseable)obj).close();
       } catch (Exception e) {
-        Throwables.propagateIfPossible(e);
+        Throwables.throwIfUnchecked(e);
         logger.logUserException(Level.WARNING, e, "Failed to close " + obj.getClass().getSimpleName());
       }
     }

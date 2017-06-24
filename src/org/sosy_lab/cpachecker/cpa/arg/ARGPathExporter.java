@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -38,25 +39,44 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
-import com.google.common.collect.TreeMultimap;
-
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import javax.annotation.Nullable;
+import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -78,15 +98,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -94,9 +116,10 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.cpa.arg.graphExport.Edge;
-import org.sosy_lab.cpachecker.cpa.arg.graphExport.TransitionCondition;
+import org.sosy_lab.cpachecker.cpa.arg.graphexport.Edge;
+import org.sosy_lab.cpachecker.cpa.arg.graphexport.TransitionCondition;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -109,10 +132,11 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.ElementType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
-import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeType;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
+import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -121,30 +145,18 @@ import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-import javax.xml.parsers.ParserConfigurationException;
-
 @Options(prefix = "cpa.arg.witness")
 public class ARGPathExporter {
+
+  private static final EnumSet<KeyDef> INSUFFICIENT_KEYS =
+      EnumSet.of(
+          KeyDef.SOURCECODE,
+          KeyDef.STARTLINE,
+          KeyDef.ORIGINFILE,
+          KeyDef.OFFSET,
+          KeyDef.LINECOLS,
+          KeyDef.ASSUMPTIONSCOPE,
+          KeyDef.ASSUMPTIONRESULTFUNCTION);
 
   private static final Function<ARGState, ARGState> COVERED_TO_COVERING = new Function<ARGState, ARGState>() {
 
@@ -183,64 +195,36 @@ public class ARGPathExporter {
   @Option(secure=true, description="Verification witness: Include an thread-identifier within the file?")
   private boolean exportThreadId = false;
 
+  @Option(secure=true, description="Some redundant transitions will be removed")
+  private boolean removeInsufficientEdges = true;
+
   @Option(
     secure = true,
     description = "Verification witness: Revert escaping/renaming of functions for threads?"
   )
   private boolean revertThreadFunctionRenaming = false;
 
-  private final LogManager logger;
-
   private final CFA cfa;
-
-  private final MachineModel machineModel;
-
-  private final Language language;
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
   private final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
-  /**
-   * This is a temporary hack to easily obtain specification and verification tasks.
-   * TODO: Move the witness export out of the ARG CPA after the new error report has been integrated
-   * and obtain the values without this hack.
-   */
-  @Options
-  private static class HackyOptions {
-
-    @Option(secure=true, name="analysis.programNames",
-        description="A String, denoting the programs to be analyzed")
-    private String programs;
-
-    @Option(secure=true, name="properties",
-        description="List of property files (INTERNAL USAGE ONLY - DO NOT USE)")
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private List<Path> propertyFiles = ImmutableList.of();
-
-    @Option(secure=true,
-        name="cpa.predicate.handlePointerAliasing",
-        description = "Handle aliasing of pointers. "
-        + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
-    private boolean handlePointerAliasing = true;
-  }
-
-  private final HackyOptions hackyOptions = new HackyOptions();
+  private final VerificationTaskMetaData verificationTaskMetaData;
 
   public ARGPathExporter(
       final Configuration pConfig,
       final LogManager pLogger,
-      CFA pCFA)
+      final Specification pSpecification,
+      final CFA pCFA)
       throws InvalidConfigurationException {
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
-    pConfig.inject(hackyOptions);
     this.cfa = pCFA;
-    this.machineModel = pCFA.getMachineModel();
-    this.language = pCFA.getLanguage();
-    this.logger = pLogger;
-    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
+    this.assumptionToEdgeAllocator =
+        new AssumptionToEdgeAllocator(pConfig, pLogger, pCFA.getMachineModel());
+    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
   }
 
   public void writeErrorWitness(
@@ -252,7 +236,7 @@ public class ARGPathExporter {
       throws IOException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessWriter writer = new WitnessWriter(defaultFileName, GraphType.ERROR_WITNESS);
+    WitnessWriter writer = new WitnessWriter(defaultFileName, WitnessType.VIOLATION_WITNESS);
     writer.writePath(
         pTarget,
         pRootState,
@@ -336,7 +320,7 @@ public class ARGPathExporter {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessWriter writer =
-        new WitnessWriter(defaultFileName, GraphType.PROOF_WITNESS, pInvariantProvider);
+        new WitnessWriter(defaultFileName, WitnessType.CORRECTNESS_WITNESS, pInvariantProvider);
     writer.writePath(
         pTarget,
         pRootState,
@@ -348,9 +332,10 @@ public class ARGPathExporter {
 
   private String getInitialFileName(ARGState pRootState) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
-
+    Set<CFANode> visited = new HashSet<>();
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
+      visited.add(l);
       for (CFAEdge e : CFAUtils.leavingEdges(l)) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
         if (fileLocations.size() > 0) {
@@ -359,7 +344,9 @@ public class ARGPathExporter {
             return fileName;
           }
         }
-        worklist.push(e.getSuccessor());
+        if (!visited.contains(e.getSuccessor())) {
+          worklist.push(e.getSuccessor());
+        }
       }
     }
 
@@ -368,12 +355,12 @@ public class ARGPathExporter {
 
   private class WitnessWriter implements EdgeAppender {
 
-    private final Multimap<String, NodeFlag> nodeFlags = TreeMultimap.create();
+    private final Multimap<String, NodeFlag> nodeFlags = LinkedHashMultimap.create();
     private final Multimap<String, Property> violatedProperties = HashMultimap.create();
     private final Map<DelayedAssignmentsKey, CFAEdgeWithAssumptions> delayedAssignments = Maps.newHashMap();
 
-    private final Multimap<String, Edge> leavingEdges = TreeMultimap.create();
-    private final Multimap<String, Edge> enteringEdges = TreeMultimap.create();
+    private final Multimap<String, Edge> leavingEdges = LinkedHashMultimap.create();
+    private final Multimap<String, Edge> enteringEdges = LinkedHashMultimap.create();
 
     private final Map<String, ExpressionTree<Object>> stateInvariants = Maps.newLinkedHashMap();
     private final Map<String, String> stateScopes = Maps.newLinkedHashMap();
@@ -381,18 +368,20 @@ public class ARGPathExporter {
     private final Map<Edge, CFANode> loopHeadEnteringEdges = Maps.newHashMap();
 
     private final String defaultSourcefileName;
-    private final GraphType graphType;
+    private final WitnessType graphType;
 
     private final InvariantProvider invariantProvider;
 
     private boolean isFunctionScope = false;
 
-    public WitnessWriter(@Nullable String pDefaultSourcefileName, GraphType pGraphType) {
+    public WitnessWriter(@Nullable String pDefaultSourcefileName, WitnessType pGraphType) {
       this(pDefaultSourcefileName, pGraphType, InvariantProvider.TrueInvariantProvider.INSTANCE);
     }
 
     public WitnessWriter(
-        String pDefaultSourceFileName, GraphType pGraphType, InvariantProvider pInvariantProvider) {
+        String pDefaultSourceFileName,
+        WitnessType pGraphType,
+        InvariantProvider pInvariantProvider) {
       this.defaultSourcefileName = pDefaultSourceFileName;
       this.graphType = pGraphType;
       this.invariantProvider = pInvariantProvider;
@@ -400,12 +389,11 @@ public class ARGPathExporter {
 
     @Override
     public void appendNewEdge(
-        final GraphMlBuilder pDoc,
         String pFrom,
         final String pTo,
         final CFAEdge pEdge,
         final Optional<Collection<ARGState>> pFromState,
-        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+        final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
       attemptSwitchToFunctionScope(pEdge);
 
@@ -424,12 +412,11 @@ public class ARGPathExporter {
 
     @Override
     public void appendNewEdgeToSink(
-        GraphMlBuilder pDoc,
         String pFrom,
         CFAEdge pEdge,
         Optional<Collection<ARGState>> pFromState,
-        Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-      appendNewEdge(pDoc, pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap);
+        Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      appendNewEdge(pFrom, SINK_NODE_ID, pEdge, pFromState, pValueMap);
     }
 
     private void attemptSwitchToFunctionScope(CFAEdge pEdge) {
@@ -446,18 +433,20 @@ public class ARGPathExporter {
       isFunctionScope = true;
     }
 
-    /** build a transition-condition for the given edge, i.e. collect all
-     * important data and store it in the new transition-condition. */
+    /**
+     * build a transition-condition for the given edge, i.e. collect all important data and store it
+     * in the new transition-condition.
+     */
     private TransitionCondition constructTransitionCondition(
         final String pFrom,
         final String pTo,
         final CFAEdge pEdge,
         final Optional<Collection<ARGState>> pFromState,
-        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+        final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
 
-      TransitionCondition result = new TransitionCondition();
+      TransitionCondition result = TransitionCondition.empty();
 
-      if (graphType != GraphType.ERROR_WITNESS) {
+      if (graphType != WitnessType.VIOLATION_WITNESS) {
         ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
         if (exportInvariant(pEdge)) {
           invariant = simplifier.simplify(invariantProvider.provideInvariantFor(pEdge, pFromState));
@@ -467,7 +456,7 @@ public class ARGPathExporter {
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
-      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
+      if (!isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
         return result;
       }
 
@@ -503,32 +492,33 @@ public class ARGPathExporter {
                           .anyMatch(
                               sibling -> sibling.getRawStatement().startsWith("pointer call")))) {
             // remove all info from transitionCondition
-            return new TransitionCondition();
+            return TransitionCondition.empty();
           }
           AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
           result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
         }
       }
 
-      if (exportLineNumbers) {
-        Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-        if (locations.size() > 0) {
-          FileLocation l = locations.iterator().next();
-          if (!l.getFileName().equals(defaultSourcefileName)) {
-            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
-          }
-          result = result.putAndCopy(KeyDef.ORIGINLINE, Integer.toString(l.getStartingLineInOrigin()));
+      Optional<FileLocation> minFileLocation = getMinFileLocation(pEdge);
+      Optional<FileLocation> maxFileLocation = getMaxFileLocation(pEdge);
+      if (exportLineNumbers && minFileLocation.isPresent()) {
+        FileLocation min = minFileLocation.get();
+        if (!min.getFileName().equals(defaultSourcefileName)) {
+          result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
+        result =
+            result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
       }
 
-      if (exportOffset) {
-        Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-        if (locations.size() > 0) {
-          FileLocation l = locations.iterator().next();
-          if (!l.getFileName().equals(defaultSourcefileName)) {
-            result = result.putAndCopy(KeyDef.ORIGINFILE, l.getFileName());
-          }
-          result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(l.getNodeOffset()));
+      if (exportOffset && minFileLocation.isPresent()) {
+        FileLocation min = minFileLocation.get();
+        if (!min.getFileName().equals(defaultSourcefileName)) {
+          result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
+        }
+        result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
+        if (maxFileLocation.isPresent()) {
+          FileLocation max = maxFileLocation.get();
+          result = result.putAndCopy(KeyDef.ENDOFFSET, Integer.toString(max.getNodeOffset()+max.getNodeLength()));
         }
       }
 
@@ -539,15 +529,60 @@ public class ARGPathExporter {
       return result;
     }
 
+    private Optional<FileLocation> getMinFileLocation(CFAEdge pEdge) {
+      Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge);
+      if (locations.size() > 0) {
+        Iterator<FileLocation> locationIterator = locations.iterator();
+        FileLocation min = locationIterator.next();
+        while (locationIterator.hasNext()) {
+          FileLocation l = locationIterator.next();
+          if (l.getNodeOffset() < min.getNodeOffset()) {
+            min = l;
+          }
+        }
+        return Optional.of(min);
+      }
+      return Optional.empty();
+    }
+
+    private Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge) {
+      Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge);
+      if (locations.size() > 0) {
+        Iterator<FileLocation> locationIterator = locations.iterator();
+        FileLocation max = locationIterator.next();
+        while (locationIterator.hasNext()) {
+          FileLocation l = locationIterator.next();
+          if (l.getNodeOffset()+l.getNodeLength() > max.getNodeOffset()+max.getNodeLength()) {
+            max = l;
+          }
+        }
+        return Optional.of(max);
+      }
+      return Optional.empty();
+    }
+
+    private Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
+      if (pEdge instanceof AStatementEdge) {
+        AStatementEdge statementEdge = (AStatementEdge) pEdge;
+        FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
+        if (!FileLocation.DUMMY.equals(statementLocation)) {
+          return Collections.singleton(statementLocation);
+        }
+      }
+      return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+    }
+
     private TransitionCondition extractTransitionForStates(
         final String pFrom,
         final String pTo,
         final CFAEdge pEdge,
         final Collection<ARGState> pFromStates,
-        final Map<ARGState, CFAEdgeWithAssumptions> pValueMap,
+        final Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         TransitionCondition result) {
 
       List<ExpressionTree<Object>> code = new ArrayList<>();
+      Optional<AIdExpression> resultVariable = Optional.empty();
+      Optional<String> resultFunction = Optional.empty();
       String functionName = pEdge.getPredecessor().getFunctionName();
       boolean isFunctionScope = this.isFunctionScope;
 
@@ -557,7 +592,8 @@ public class ARGPathExporter {
         CFAEdgeWithAssumptions cfaEdgeWithAssignments = delayedAssignments.get(key);
 
         final CFAEdgeWithAssumptions currentEdgeWithAssignments;
-        if (pValueMap != null && (currentEdgeWithAssignments = pValueMap.get(state)) != null) {
+        if (pValueMap != null
+            && (currentEdgeWithAssignments = getFromValueMap(pValueMap, state, pEdge)) != null) {
           if (cfaEdgeWithAssignments == null) {
             cfaEdgeWithAssignments = currentEdgeWithAssignments;
 
@@ -618,7 +654,7 @@ public class ARGPathExporter {
           }
 
           // Do not export our own temporary variables
-          Predicate<CIdExpression> isTmpVariable =
+          Predicate<AIdExpression> isTmpVariable =
               idExpression ->
                   idExpression
                       .getDeclaration()
@@ -633,6 +669,42 @@ public class ARGPathExporter {
                           && !CFAUtils.getIdExpressionsOfExpression(
                                   (CExpression) statement.getExpression())
                               .anyMatch(isTmpVariable));
+
+          // Export function return value for cases where it is not explicitly assigned to a variable
+          if (pEdge instanceof AStatementEdge) {
+            AStatementEdge edge = (AStatementEdge) pEdge;
+            if (edge.getStatement() instanceof AFunctionCallAssignmentStatement) {
+              AFunctionCallAssignmentStatement assignment =
+                  (AFunctionCallAssignmentStatement) edge.getStatement();
+              if (assignment.getLeftHandSide() instanceof AIdExpression
+                  && assignment.getFunctionCallExpression().getFunctionNameExpression()
+                      instanceof AIdExpression) {
+                AIdExpression idExpression = (AIdExpression) assignment.getLeftHandSide();
+                if (isTmpVariable.apply(idExpression)) {
+                  assignments =
+                      Collections2.filter(
+                          cfaEdgeWithAssignments.getExpStmts(),
+                          statement ->
+                              statement.getExpression() instanceof CExpression
+                                  && !CFAUtils.getIdExpressionsOfExpression(
+                                          (CExpression) statement.getExpression())
+                                      .anyMatch(
+                                          id ->
+                                              isTmpVariable.apply(id) && !id.equals(idExpression)));
+                  resultVariable = Optional.of(idExpression);
+                  AIdExpression resultFunctionName =
+                      (AIdExpression)
+                          assignment.getFunctionCallExpression().getFunctionNameExpression();
+                  if (resultFunctionName.getDeclaration() != null) {
+                    resultFunction = Optional.of(resultFunctionName.getDeclaration().getOrigName());
+                  } else {
+                    resultFunction = Optional.of(resultFunctionName.getName());
+                  }
+                }
+              }
+            }
+          }
+          assert resultVariable.isPresent() == resultFunction.isPresent();
 
           if (!assignments.isEmpty()) {
             code.add(
@@ -649,16 +721,20 @@ public class ARGPathExporter {
         }
       }
 
-      if (graphType != GraphType.PROOF_WITNESS && exportAssumptions && !code.isEmpty()) {
+      if (graphType != WitnessType.CORRECTNESS_WITNESS && exportAssumptions && !code.isEmpty()) {
         ExpressionTree<Object> invariant = factory.or(code);
+        CExpressionToOrinalCodeVisitor transformer =
+            resultVariable.isPresent()
+                ? CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER.substitute(
+                    (CIdExpression) resultVariable.get(), "\\result")
+                : CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER;
         final Function<Object, String> converter =
             new Function<Object, String>() {
 
               @Override
               public String apply(Object pLeafExpression) {
                 if (pLeafExpression instanceof CExpression) {
-                  return ((CExpression) pLeafExpression)
-                      .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+                  return ((CExpression) pLeafExpression).accept(transformer);
                 }
                 if (pLeafExpression == null) {
                   return "(0)";
@@ -687,6 +763,9 @@ public class ARGPathExporter {
           }
           result = result.putAndCopy(KeyDef.ASSUMPTIONSCOPE, functionName);
         }
+        if (resultFunction.isPresent()) {
+          result = result.putAndCopy(KeyDef.ASSUMPTIONRESULTFUNCTION, resultFunction.get());
+        }
       }
 
       return result;
@@ -696,16 +775,55 @@ public class ARGPathExporter {
      * We assume that the edge can be assigned to exactly one thread. */
     private TransitionCondition exportThreadId(TransitionCondition result, final CFAEdge pEdge,
         ARGState state) {
-      ThreadingState threadingState = AbstractStates.extractStateByType(state, ThreadingState.class);
+      ThreadingState threadingState = extractStateByType(state, ThreadingState.class);
       if (threadingState != null) {
         for (String threadId : threadingState.getThreadIds()) {
           if (threadingState.getThreadLocation(threadId).getLocationNode().equals(pEdge.getPredecessor())) {
             result = result.putAndCopy(KeyDef.THREADID, threadId);
+            result = result.putAndCopy(KeyDef.THREAD, getUniqueThreadNum(threadId));
+            result = exportThreadCreation(result, pEdge, state, threadingState);
             break;
           }
         }
       }
       return result;
+    }
+
+    private TransitionCondition exportThreadCreation(
+        TransitionCondition result,
+        final CFAEdge pEdge,
+        ARGState state,
+        ThreadingState threadingState) {
+      if (pEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
+        AStatement statement = ((AStatementEdge) pEdge).getStatement();
+        if (statement instanceof AFunctionCall) {
+          AExpression functionNameExp =
+              ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
+          if (functionNameExp instanceof AIdExpression) {
+            final String functionName = ((AIdExpression) functionNameExp).getName();
+            if (ThreadingTransferRelation.THREAD_START.equals(functionName)) {
+              // extract new thread-id from succeeding state. we assume there is only 'one' match
+              ARGState child =
+                  from(state.getChildren()).firstMatch(c -> pEdge == state.getEdgeToChild(c)).get();
+              // search the new created thread-id
+              ThreadingState succThreadingState = extractStateByType(child, ThreadingState.class);
+              for (String threadId : succThreadingState.getThreadIds()) {
+                if (!threadingState.getThreadIds().contains(threadId)) {
+                  // we found the new created thread-id. we assume there is only 'one' match
+                  result = result.putAndCopy(KeyDef.CREATETHREAD, getUniqueThreadNum(threadId));
+                }
+              }
+            }
+          }
+        }
+      }
+      return result;
+    }
+
+    private String getUniqueThreadNum(String threadId) {
+      // TODO threadNum should be unique, hashCode might have collisions, but works for most cases.
+      //      and as long as we do not support multiple LHS for thread-creation, it works.
+      return threadId.hashCode() + "";
     }
 
     /**
@@ -808,41 +926,21 @@ public class ARGPathExporter {
         GraphBuilder pGraphBuilder)
         throws IOException {
 
-      Map<ARGState, CFAEdgeWithAssumptions> valueMap = null;
+      final Multimap<ARGState, CFAEdgeWithAssumptions> valueMap;
       if (pCounterExample.isPresent() && pCounterExample.get().isPreciseCounterExample()) {
         valueMap = pCounterExample.get().getExactVariableValues();
+      } else {
+        valueMap = ImmutableMultimap.of();
       }
 
-      GraphMlBuilder doc;
+      final GraphMlBuilder doc;
       try {
-        doc =
-            new GraphMlBuilder(
-                graphType,
-                defaultSourcefileName,
-                language,
-                machineModel,
-                hackyOptions.handlePointerAliasing ? "precise" : "simple",
-                FluentIterable.from(hackyOptions.propertyFiles)
-                    .transform(
-                        new Function<Path, String>() {
-
-                          @Override
-                          public String apply(Path pArg0) {
-                            try {
-                              return MoreFiles.toString(pArg0, Charsets.UTF_8).trim();
-                            } catch (IOException e) {
-                              logger.logUserException(
-                                  Level.WARNING, e, "Could not export specification to witness.");
-                              return "Unknown specification";
-                            }
-                          }
-                        }),
-                hackyOptions.programs);
+        doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }
 
-      String entryStateNodeId = pGraphBuilder.getId(pRootState);
+      final String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       // Collect node flags in advance
       for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState)) {
@@ -868,28 +966,12 @@ public class ARGPathExporter {
           collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState),
           this);
 
-      // Remove edges that lead to the sink but have a sibling edge that has the same label
-      Collection<Edge> toRemove = Sets.newHashSet();
-      for (Edge edge : leavingEdges.values()) {
-        if (edge.target.equals(SINK_NODE_ID)) {
-          for (Edge otherEdge : leavingEdges.get(edge.source)) {
-            if (!edge.equals(otherEdge)
-                && edge.label.equals(otherEdge.label)
-                && !toRemove.contains(otherEdge)) {
-              toRemove.add(edge);
-              break;
-            }
-          }
-        }
-      }
-      for (Edge edge : toRemove) {
-        boolean removed = removeEdge(edge);
-        assert removed;
-      }
+      // remove redundant edges leading to sink
+      removeUnnecessarySinkEdges();
 
       // Merge nodes with empty or repeated edges
       Supplier<Iterator<Edge>> redundantEdgeIteratorSupplier =
-          () -> Iterables.filter(leavingEdges.values(), isEdgeRedundant).iterator();
+          () -> FluentIterable.from(leavingEdges.values()).filter(isEdgeRedundant).iterator();
 
       Iterator<Edge> redundantEdgeIterator = redundantEdgeIteratorSupplier.get();
       while (redundantEdgeIterator.hasNext()) {
@@ -900,32 +982,63 @@ public class ARGPathExporter {
       }
 
       // Write elements
-      {
-        Map<String, Element> nodes = Maps.newHashMap();
-        Deque<String> waitlist = Queues.newArrayDeque();
-        waitlist.push(entryStateNodeId);
-        Element entryNode = createNewNode(doc, entryStateNodeId);
-        addInvariantsData(doc, entryNode, entryStateNodeId);
-        nodes.put(entryStateNodeId, entryNode);
-        while (!waitlist.isEmpty()) {
-          String source = waitlist.pop();
-          for (Edge edge : leavingEdges.get(source)) {
-            setLoopHeadInvariantIfApplicable(edge.target);
+      writeElementsOfGraphToDoc(doc, entryStateNodeId);
+      doc.appendTo(pTarget);
+    }
 
-            Element targetNode = nodes.get(edge.target);
-            if (targetNode == null) {
-              targetNode = createNewNode(doc, edge.target);
-              if (!ExpressionTrees.getFalse()
-                  .equals(addInvariantsData(doc, targetNode, edge.target))) {
-                waitlist.push(edge.target);
+    /** Remove edges that lead to the sink but have a sibling edge that has the same label.
+     *
+     * <p>
+     * We additionally remove redundant edges.
+     * This is needed for concurrency witnesses at thread-creation.
+     * </p>
+     */
+    private void removeUnnecessarySinkEdges() {
+      final Collection<Edge> toRemove = Sets.newHashSet();
+      for (Edge edge : leavingEdges.values()) {
+        if (edge.target.equals(SINK_NODE_ID)) {
+          for (Edge otherEdge : leavingEdges.get(edge.source)) {
+            // ignore the edge itself, as well as already handled edges.
+            if (!edge.equals(otherEdge) && !toRemove.contains(otherEdge)) {
+              // remove edges with either identical labels or redundant edge-transition
+              if (edge.label.equals(otherEdge.label) || isEdgeRedundant.apply(edge)) {
+                toRemove.add(edge);
+                break;
               }
-              nodes.put(edge.target, targetNode);
             }
-            createNewEdge(doc, edge, targetNode);
           }
         }
       }
-      doc.appendTo(pTarget);
+      for (Edge edge : toRemove) {
+        boolean removed = removeEdge(edge);
+        assert removed;
+      }
+    }
+
+    private void writeElementsOfGraphToDoc(GraphMlBuilder doc, String entryStateNodeId) {
+      Map<String, Element> nodes = Maps.newHashMap();
+      Deque<String> waitlist = Queues.newArrayDeque();
+      waitlist.push(entryStateNodeId);
+      Element entryNode = createNewNode(doc, entryStateNodeId);
+      addInvariantsData(doc, entryNode, entryStateNodeId);
+      nodes.put(entryStateNodeId, entryNode);
+      while (!waitlist.isEmpty()) {
+        String source = waitlist.pop();
+        for (Edge edge : leavingEdges.get(source)) {
+          setLoopHeadInvariantIfApplicable(edge.target);
+
+          Element targetNode = nodes.get(edge.target);
+          if (targetNode == null) {
+            targetNode = createNewNode(doc, edge.target);
+            if (!ExpressionTrees.getFalse()
+                .equals(addInvariantsData(doc, targetNode, edge.target))) {
+              waitlist.push(edge.target);
+            }
+            nodes.put(edge.target, targetNode);
+          }
+          createNewEdge(doc, edge, targetNode);
+        }
+      }
     }
 
     private void setLoopHeadInvariantIfApplicable(String pTarget) {
@@ -976,6 +1089,10 @@ public class ARGPathExporter {
       return tree;
     }
 
+    private boolean hasFlagsOrProperties(String pNode) {
+      return !nodeFlags.get(pNode).isEmpty() || !violatedProperties.get(pNode).isEmpty();
+    }
+
     private final Predicate<String> isNodeRedundant =
         new Predicate<String>() {
 
@@ -984,10 +1101,7 @@ public class ARGPathExporter {
             if (!ExpressionTrees.getTrue().equals(getStateInvariant(pNode))) {
               return false;
             }
-            if (!nodeFlags.get(pNode).isEmpty()) {
-              return false;
-            }
-            if (!violatedProperties.get(pNode).isEmpty()) {
+            if (hasFlagsOrProperties(pNode)) {
               return false;
             }
             if (enteringEdges.get(pNode).isEmpty()) {
@@ -1041,10 +1155,18 @@ public class ARGPathExporter {
               return true;
             }
 
-            if (Iterables.all(leavingEdges.get(pEdge.source),
+            if (Iterables.all(
+                leavingEdges.get(pEdge.source),
                 pLeavingEdge -> pLeavingEdge.label.getMapping().isEmpty())) {
               return true;
             }
+
+            if (removeInsufficientEdges) {
+              if (INSUFFICIENT_KEYS.containsAll(pEdge.label.getMapping().keySet())) {
+                return true;
+              }
+            }
+
             return false;
           }
         };
@@ -1085,7 +1207,13 @@ public class ARGPathExporter {
       // Add them as leaving edges to the source node,
       // Add them as entering edges to their target nodes
       for (Edge leavingEdge : leavingEdgesToMove) {
-        TransitionCondition label = pEdge.label.putAllAndCopy(leavingEdge.label);
+        TransitionCondition label;
+        // Don't merge "originfile" tag if leavingEdge corresponds to default originfile
+        if (leavingEdge.label.getMapping().containsKey(KeyDef.SOURCECODE)) {
+          label = pEdge.label.removeAndCopy(KeyDef.ORIGINFILE).putAllAndCopy(leavingEdge.label);
+        } else {
+          label = pEdge.label.putAllAndCopy(leavingEdge.label);
+        }
         Edge replacementEdge = new Edge(source, leavingEdge.target, label);
         putEdge(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
@@ -1491,6 +1619,16 @@ public class ARGPathExporter {
         .ignoreSummaryEdges()
         .traverse(pEdge.getSuccessor(), enterLoopVisitor);
     return Optional.ofNullable(enterLoopVisitor.loopHead);
+  }
+
+  private static @Nullable CFAEdgeWithAssumptions getFromValueMap(
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap, ARGState pState, CFAEdge pEdge) {
+    Iterable<CFAEdgeWithAssumptions> assumptions = pValueMap.get(pState);
+    assumptions = Iterables.filter(assumptions, a -> a.getCFAEdge().equals(pEdge));
+    if (Iterables.isEmpty(assumptions)) {
+      return null;
+    }
+    return Iterables.getOnlyElement(assumptions);
   }
 
 }

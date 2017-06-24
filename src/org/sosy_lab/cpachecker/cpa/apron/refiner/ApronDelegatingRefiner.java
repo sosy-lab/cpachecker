@@ -74,7 +74,7 @@ public abstract class ApronDelegatingRefiner implements Refiner {
         new ValueAnalysisPathInterpolator(
             feasibilityChecker,
             strongestPostOp,
-            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            new ValueAnalysisPrefixProvider(logger, cfa, config, shutdownNotifier),
             config,
             logger,
             shutdownNotifier,

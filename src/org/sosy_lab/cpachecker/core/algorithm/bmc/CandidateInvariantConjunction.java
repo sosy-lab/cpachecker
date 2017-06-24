@@ -52,7 +52,7 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
   public BooleanFormula getFormula(FormulaManagerView pFMGR, PathFormulaManager pPFMGR,
       @Nullable PathFormula pContext) throws CPATransferException, InterruptedException {
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    BooleanFormula formula = bfmgr.makeBoolean(true);
+    BooleanFormula formula = bfmgr.makeTrue();
     for (CandidateInvariant element : elements) {
       formula = bfmgr.and(formula, element.getFormula(pFMGR, pPFMGR, pContext));
     }
@@ -64,7 +64,7 @@ public class CandidateInvariantConjunction implements CandidateInvariant {
       PathFormulaManager pPFMGR, int pDefaultIndex)
       throws CPATransferException, InterruptedException {
     BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    BooleanFormula formula = bfmgr.makeBoolean(true);
+    BooleanFormula formula = bfmgr.makeTrue();
     for (CandidateInvariant element : elements) {
       formula = bfmgr.and(formula, element.getAssertion(pReachedSet, pFMGR, pPFMGR, pDefaultIndex));
     }

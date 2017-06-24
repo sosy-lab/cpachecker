@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -109,7 +110,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -157,9 +157,10 @@ public class VariableClassificationBuilder {
 
   private final Dependencies dependencies = new Dependencies();
 
-  private Optional<Set<String>> relevantVariables = Optional.empty();
-  private Optional<Multimap<CCompositeType, String>> relevantFields = Optional.empty();
-  private Optional<Set<String>> addressedVariables = Optional.empty();
+  private Optional<Set<String>> relevantVariables = Optional.absent();
+  private Optional<Multimap<CCompositeType, String>> relevantFields = Optional.absent();
+  private Optional<Multimap<CCompositeType, String>> addressedFields = Optional.absent();
+  private Optional<Set<String>> addressedVariables = Optional.absent();
 
   private final LogManager logger;
 
@@ -231,6 +232,7 @@ public class VariableClassificationBuilder {
         relevantVariables.get(),
         addressedVariables.get(),
         relevantFields.get(),
+        addressedFields.get(),
         dependencies.partitions,
         intBoolPartitions,
         intEqualPartitions,
@@ -350,7 +352,10 @@ public class VariableClassificationBuilder {
         "number of intEq vars:    " + numOfIntEquals,
         "number of intAdd vars:   " + numOfIntAdds,
         "number of all vars:      " + allVars.size(),
+        "number of rel. vars:     " + relevantVariables.get().size(),
         "number of addr. vars:    " + addressedVariables.get().size(),
+        "number of rel. fields:   " + relevantFields.get().size(),
+        "number of addr. fields:  " + addressedFields.get().size(),
         "number of intBool partitions:  " + vc.getIntBoolPartitions().size(),
         "number of intEq partitions:    " + vc.getIntEqualPartitions().size(),
         "number of intAdd partitions:   " + vc.getIntAddPartitions().size(),
@@ -377,6 +382,7 @@ public class VariableClassificationBuilder {
       }
     }
     addressedVariables = Optional.of(varFieldDependencies.computeAddressedVariables());
+    addressedFields = Optional.of(varFieldDependencies.computeAddressedFields());
     final Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> relevant =
                                                               varFieldDependencies.computeRelevantVariablesAndFields();
     relevantVariables = Optional.of(relevant.getFirst());

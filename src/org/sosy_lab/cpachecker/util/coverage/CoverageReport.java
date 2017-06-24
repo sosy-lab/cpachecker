@@ -31,7 +31,12 @@ import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multiset;
-
+import java.io.PrintStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -47,16 +52,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Class responsible for extracting coverage information from ReachedSet and CFA
@@ -85,7 +83,7 @@ public class CoverageReport {
 
   public void writeCoverageReport(
       final PrintStream pStatisticsOutput,
-      final ReachedSet pReached,
+      final UnmodifiableReachedSet pReached,
       final CFA pCfa) {
 
     if (!enabled) {
@@ -132,17 +130,16 @@ public class CoverageReport {
       ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
       if (argState != null ) {
         for (ARGState child : argState.getChildren()) {
-          if (!child.isCovered()) {
-            List<CFAEdge> edges = argState.getEdgesToChild(child);
-            if (edges.size() > 1) {
-              for (CFAEdge innerEdge : edges) {
-                handleCoveredEdge(innerEdge, infosPerFile);
-              }
-
-              //BAM produces paths with no edge connection thus the list will be empty
-            } else if (!edges.isEmpty()) {
-              handleCoveredEdge(Iterables.getOnlyElement(edges), infosPerFile);
+          // Do not specially check child.isCovered, as the edge to covered state also should be marked as covered edge
+          List<CFAEdge> edges = argState.getEdgesToChild(child);
+          if (edges.size() > 1) {
+            for (CFAEdge innerEdge : edges) {
+              handleCoveredEdge(innerEdge, infosPerFile);
             }
+
+            //BAM produces paths with no edge connection thus the list will be empty
+          } else if (!edges.isEmpty()) {
+            handleCoveredEdge(Iterables.getOnlyElement(edges), infosPerFile);
           }
         }
       } else {
@@ -186,7 +183,8 @@ public class CoverageReport {
       collector.addExistingAssume((AssumeEdge) pEdge);
     }
 
-    collector.addExistingLine(pEdge.getLineNumber());
+    //Do not extract lines from edge - there are not origin lines
+    collector.addExistingLine(loc.getStartingLineInOrigin());
   }
 
 
@@ -209,7 +207,8 @@ public class CoverageReport {
       collector.addVisitedAssume((AssumeEdge) pEdge);
     }
 
-    collector.addVisitedLine(pEdge.getLineNumber());
+    //Do not extract lines from edge - there are not origin lines
+    collector.addVisitedLine(loc.getStartingLineInOrigin());
   }
 
   private FileCoverageInformation getFileInfoTarget(
@@ -229,9 +228,9 @@ public class CoverageReport {
     return fileInfos;
   }
 
-  private Multiset<FunctionEntryNode> getFunctionEntriesFromReached(ReachedSet pReached) {
+  private Multiset<FunctionEntryNode> getFunctionEntriesFromReached(UnmodifiableReachedSet pReached) {
     if (pReached instanceof ForwardingReachedSet) {
-      pReached = ((ForwardingReachedSet)pReached).getDelegate();
+      pReached = ((ForwardingReachedSet) pReached).getDelegate();
     }
     return HashMultiset.create(from(pReached)
                 .transform(EXTRACT_LOCATION)

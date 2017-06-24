@@ -29,12 +29,14 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
-
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
@@ -46,9 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.util.Set;
-import java.util.logging.Level;
 
 
 /** This Class build binary expression.
@@ -82,15 +81,6 @@ import java.util.logging.Level;
  *
  */
 public class CBinaryExpressionBuilder {
-
-
-  public final static Set<BinaryOperator> relationalOperators = Sets.immutableEnumSet(
-      BinaryOperator.EQUALS,
-      BinaryOperator.NOT_EQUALS,
-      BinaryOperator.LESS_THAN,
-      BinaryOperator.LESS_EQUAL,
-      BinaryOperator.GREATER_THAN,
-      BinaryOperator.GREATER_EQUAL);
 
   private final static Set<BinaryOperator> shiftOperators = Sets.immutableEnumSet(
       BinaryOperator.SHIFT_LEFT,
@@ -144,6 +134,10 @@ public class CBinaryExpressionBuilder {
     t1 = handleEnum(t1);
     t2 = handleEnum(t2);
 
+    // For calculation type determination, bit-field types are treated the same as their actual types
+    t1 = unwrapBitFields(t1);
+    t2 = unwrapBitFields(t2);
+
     final CType calculationType;
     final CType resultType;
 
@@ -162,6 +156,7 @@ public class CBinaryExpressionBuilder {
 
     return new CBinaryExpression(op1.getFileLocation(), resultType, calculationType, op1, op2, op);
   }
+
 
   /**
    * This method does the same as {@link #buildBinaryExpression(CExpression, CExpression, BinaryOperator)},
@@ -186,8 +181,8 @@ public class CBinaryExpressionBuilder {
     // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
     if (expr instanceof CBinaryExpression) {
       final CBinaryExpression binExpr = (CBinaryExpression)expr;
-      if (CBinaryExpressionBuilder.relationalOperators.contains(binExpr.getOperator())) {
-        BinaryOperator inverseOperator = getNegatedOperator(binExpr.getOperator());
+      if (binExpr.getOperator().isLogicalOperator()) {
+        BinaryOperator inverseOperator = binExpr.getOperator().getOppositLogicalOperator();
         return buildBinaryExpression(binExpr.getOperand1(), binExpr.getOperand2(), inverseOperator);
       }
     }
@@ -196,25 +191,6 @@ public class CBinaryExpressionBuilder {
     // ISO-C 6.5.3.3: Unary arithmetic operators: The expression !E is equivalent to (0==E).
     // TODO do not wrap numerals, replace them directly with the result? This may be done later with SimplificationVisitor.
     return buildBinaryExpression(CIntegerLiteralExpression.ZERO, expr, BinaryOperator.EQUALS);
-  }
-
-  private static BinaryOperator getNegatedOperator(final BinaryOperator op) {
-    switch (op) {
-      case EQUALS:
-        return BinaryOperator.NOT_EQUALS;
-      case NOT_EQUALS:
-        return BinaryOperator.EQUALS;
-      case LESS_THAN:
-        return BinaryOperator.GREATER_EQUAL;
-      case LESS_EQUAL:
-        return BinaryOperator.GREATER_THAN;
-      case GREATER_THAN:
-        return BinaryOperator.LESS_EQUAL;
-      case GREATER_EQUAL:
-        return BinaryOperator.LESS_THAN;
-      default:
-        throw new AssertionError("operator can not be negated");
-    }
   }
 
   /**
@@ -229,9 +205,26 @@ public class CBinaryExpressionBuilder {
         (pType instanceof CElaboratedType
         && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
       return CNumericTypes.SIGNED_INT;
+    } else if (pType instanceof CBitFieldType) {
+      CBitFieldType bitFieldType = (CBitFieldType) pType;
+      CType handledInnerType = handleEnum(bitFieldType.getType());
+      if (handledInnerType == bitFieldType.getType()) {
+        return pType;
+      }
+      return new CBitFieldType(handledInnerType, bitFieldType.getBitFieldSize());
     } else {
       return pType;
     }
+  }
+
+  /**
+   * This method returns the wrapped type for all bit-field types, and the type itself otherwise.
+   *
+   * @param pType the type.
+   * @return the wrapped type for all bit-field types, and the type itself otherwise.
+   */
+  private CType unwrapBitFields(CType pType) {
+    return pType instanceof CBitFieldType ? ((CBitFieldType) pType).getType() : pType;
   }
 
   /**
@@ -262,7 +255,7 @@ public class CBinaryExpressionBuilder {
      * The == and != operators are analogous to the relational operators [...]
      * The result has type 'int'.
      */
-    if (relationalOperators.contains(pBinOperator)) { return CNumericTypes.SIGNED_INT; }
+    if (pBinOperator.isLogicalOperator()) { return CNumericTypes.SIGNED_INT; }
 
     /*
      * ISO-C99 (6.5.7 #3): Bitwise shift operators
@@ -339,7 +332,7 @@ public class CBinaryExpressionBuilder {
 
       if (pBinOperator == BinaryOperator.MINUS) { return machineModel.getPointerDiffType(); }
 
-      if (!relationalOperators.contains(pBinOperator)) {
+      if (!pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with two pointer operands",
                 getDummyBinExprForLogging(pBinOperator, op1, op2));
       }
@@ -390,7 +383,7 @@ public class CBinaryExpressionBuilder {
 
     // if one type is an pointer, return the pointer.
     if (pType instanceof CPointerType) {
-      if (!additiveOperators.contains(pBinOperator) && !relationalOperators.contains(pBinOperator)) {
+      if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with pointer operand",
                 getDummyBinExprForLogging(pBinOperator, op1,  op2));
       }
@@ -399,7 +392,7 @@ public class CBinaryExpressionBuilder {
 
     // if one type is an array, return the pointer-equivalent to the array-type.
     if (pType instanceof CArrayType) {
-      if (!additiveOperators.contains(pBinOperator) && !relationalOperators.contains(pBinOperator)) {
+      if (!additiveOperators.contains(pBinOperator) && !pBinOperator.isLogicalOperator()) {
         throw new UnrecognizedCCodeException("Operator " + pBinOperator + " cannot be used with array operand",
                 getDummyBinExprForLogging(pBinOperator, op1,  op2));
       }

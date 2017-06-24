@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 
 /**
  * Interface for classes representing a Configurable Program Analysis.
@@ -37,7 +39,26 @@ public interface ConfigurableProgramAnalysis {
   public TransferRelation getTransferRelation();
   public MergeOperator getMergeOperator();
   public StopOperator getStopOperator();
-  public PrecisionAdjustment getPrecisionAdjustment();
+
+  /**
+   * Returns the precision adjustment operator {@link PrecisionAdjustment} that may adjust the
+   * current abstractState and precision using information from the current set of reached states.
+   */
+  default PrecisionAdjustment getPrecisionAdjustment() {
+    return StaticPrecisionAdjustment.getInstance();
+  }
+
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition) throws InterruptedException;
-  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition) throws InterruptedException;
+
+  /**
+   * Returns the initial precision for the initial state.
+   *
+   * @param node location of the initial state/precision
+   * @param partition partition of the initial state/precision
+   * @throws InterruptedException if interrupted
+   */
+  default Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    return SingletonPrecision.getInstance();
+  }
 }

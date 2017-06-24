@@ -75,7 +75,7 @@ public abstract class BddRefiner implements Refiner {
         new ValueAnalysisPathInterpolator(
             feasibilityChecker,
             strongestPostOperator,
-            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            new ValueAnalysisPrefixProvider(logger, cfa, config, shutdownNotifier),
             config,
             logger,
             shutdownNotifier,

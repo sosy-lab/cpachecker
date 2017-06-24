@@ -86,8 +86,9 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
         Iterables.getOnlyElement(AbstractStates.extractLocations(others));
     String function = currentLocation.getFunctionName();
 
-    BooleanFormula assumption =  bfmgr.makeBoolean(true);
-    BooleanFormula stopFormula = bfmgr.makeBoolean(false); // initialize with false because we create a disjunction
+    BooleanFormula assumption =  bfmgr.makeTrue();
+    BooleanFormula stopFormula = bfmgr.makeFalse(); // initialize with false because we create a
+    // disjunction
 
     // process stop flag
     boolean stop = false;
@@ -113,7 +114,7 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
     Preconditions.checkState(!bfmgr.isTrue(stopFormula));
 
     if (!stop) {
-      stopFormula = bfmgr.makeBoolean(true);
+      stopFormula = bfmgr.makeTrue();
     }
 
     if (bfmgr.isTrue(assumption) && bfmgr.isTrue(stopFormula)) {

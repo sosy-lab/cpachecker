@@ -24,7 +24,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import com.google.common.collect.Maps;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -76,17 +85,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-
 
 public class ProofSlicer {
   private int numNotCovered;
@@ -125,8 +123,14 @@ public class ProofSlicer {
         assert (varMap.containsKey(succ));
 
         for (ARGState p : succ.getParents()) {
-          if (computeTransferTo(p, p.getEdgeToChild(succ), varMap.get(succ), varMap)) {
-            waitlist.push(p);
+          if (p.getEdgeToChild(succ) == null) {
+            if (computeTransferTo(p, succ, varMap.get(succ), varMap)) {
+              waitlist.push(p);
+            }
+          } else {
+            if (computeTransferTo(p, p.getEdgeToChild(succ), varMap.get(succ), varMap)) {
+              waitlist.push(p);
+            }
           }
         }
       }
@@ -149,6 +153,34 @@ public class ProofSlicer {
     }
 
     return result;
+  }
+
+  private boolean computeTransferTo(final ARGState pred, final ARGState succ,
+      final Set<String> succVars,
+      final HashMap<ARGState, Set<String>> varMap) {
+    assert (varMap.containsKey(pred));
+    Set<String> updatedVars = new HashSet<>(varMap.get(pred));
+
+    Set<String> sSet = new HashSet<>(succVars);
+    Set<String> pSet = new HashSet<>();
+
+    List<CFAEdge> edges = pred.getEdgesToChild(succ);
+    for (int i = edges.size() - 1; i >= 0; i--) {
+      addTransferSet(edges.get(i), sSet, pSet);
+
+      sSet = pSet;
+      pSet = new HashSet<>();
+    }
+
+    updatedVars.addAll(sSet);
+
+    if (varMap.get(pred).size() != updatedVars.size()) {
+      assert (varMap.get(pred).size() < updatedVars.size());
+      varMap.put(pred, updatedVars);
+      updateCoveredNodes(pred, updatedVars, varMap);
+      return true;
+    }
+    return false;
   }
 
   private boolean computeTransferTo(final ARGState pred, final CFAEdge edge,

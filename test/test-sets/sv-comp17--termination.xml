@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="4">
+  <option name="-heap">10000M</option>
+
+  <resultfiles>**.graphml</resultfiles>
+
+  <tasks name="Termination-MainControlFlow">
+    <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
+    <option name="-64" />
+  </tasks>
+  <tasks name="Termination-MainHeap">
+    <includesfile>../programs/benchmarks/Termination-MainHeap.set</includesfile>
+    <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
+  </tasks>
+  <tasks name="Termination-Other">
+    <includesfile>../programs/benchmarks/Termination-Other.set</includesfile>
+    <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
+  </tasks>
+
+  <rundefinition name="sv-comp17">
+    <option name="-sv-comp17"/>
+  </rundefinition>
+</benchmark>

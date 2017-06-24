@@ -24,21 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.argReplay;
 
 import com.google.common.base.Preconditions;
-
+import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
-import java.util.Collections;
 
 /** This CPA explores the state space of a powerset domain, backed by an old reached-set.
  * Each abstract state contains the corresponding states of the old reached-set.
@@ -76,10 +72,5 @@ public class ARGReplayCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     Preconditions.checkNotNull(reached);
     return new ARGReplayState(Collections.singleton((ARGState)reached.getFirstState()), cpa);
-  }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
   }
 }

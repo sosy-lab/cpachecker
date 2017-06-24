@@ -29,24 +29,20 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-
-import java.io.IOException;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 public final class CCompositeType implements CComplexType {
 
   private static final long serialVersionUID = -839957929135012583L;
   private final CComplexType.ComplexTypeKind kind;
-  private transient List<CCompositeTypeMemberDeclaration> members = null;
+  private List<CCompositeTypeMemberDeclaration> members = null;
   private final String name;
   private final String origName;
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final boolean isConst;
+  private final boolean isVolatile;
 
   public CCompositeType(
       final boolean pConst,
@@ -308,24 +304,4 @@ public final class CCompositeType implements CComplexType {
     }
     return result;
   }
-
-  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-    out.defaultWriteObject();
-
-    if (members != null) {
-      out.writeObject(new ArrayList<>(members));
-    } else {
-      out.writeObject(null);
-    }
-  }
-
-  @SuppressWarnings("unchecked")
-  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-    in.defaultReadObject();
-    Object serializedMembers = in.readObject();
-    if (serializedMembers != null) {
-      members = ImmutableList.copyOf((Iterable<CCompositeTypeMemberDeclaration>)serializedMembers);
-    }
-  }
-
 }

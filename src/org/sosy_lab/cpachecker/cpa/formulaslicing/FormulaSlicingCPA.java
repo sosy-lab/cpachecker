@@ -1,7 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Function;
-
+import java.util.Collection;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -12,7 +13,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,9 +37,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
-
-import java.util.Collection;
-import java.util.Optional;
 
 
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
@@ -143,13 +140,6 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
       throws CPAException, InterruptedException {
     return manager.isLessOrEqual((SlicingState)state1,
         (SlicingState)state2);
-  }
-
-  @Override
-  public Precision getInitialPrecision(CFANode node,
-      StateSpacePartition partition) {
-    // At the moment, precision is not used for formula slicing.
-    return SingletonPrecision.getInstance();
   }
 
   @Override

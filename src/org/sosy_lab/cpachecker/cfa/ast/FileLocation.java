@@ -26,12 +26,14 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-
+import com.google.errorprone.annotations.Immutable;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 
+@Immutable
 public class FileLocation implements Serializable {
 
   private static final long serialVersionUID = 6652099907084949014L;
@@ -143,6 +145,11 @@ public class FileLocation implements Serializable {
 
   public String getFileName() {
     return fileName;
+  }
+
+  @VisibleForTesting
+  public String getNiceFileName() {
+    return niceFileName;
   }
 
   public int getNodeOffset() {

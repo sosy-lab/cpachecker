@@ -26,12 +26,6 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.math.IntMath;
-
-import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ICCOperatorFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.IICOperatorFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ISCOperatorFactory;
-
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,12 +33,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ICCOperatorFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.IICOperatorFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector.ISCOperatorFactory;
 
-/**
- * Instances of this class represent compound states of intervals.
- */
+/** Instances of this class represent compound states of intervals. */
+@SuppressWarnings("AmbiguousMethodReference")
 public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitVectorType {
 
   private final BitVectorInfo info;

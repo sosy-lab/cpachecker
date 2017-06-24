@@ -29,7 +29,15 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -56,14 +65,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 @Options(prefix="counterexample.checker")
 public class CounterexampleCPAChecker implements CounterexampleChecker {
@@ -79,8 +80,8 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
+  private final Specification specification;
   private final CFA cfa;
-  private final String filename;
 
   @Option(secure=true, name = "path.file",
       description = "File name where to put the path specification that is generated "
@@ -97,14 +98,23 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path configFile;
 
-  public CounterexampleCPAChecker(Configuration config, LogManager logger,
-      ShutdownNotifier pShutdownNotifier, CFA pCfa, String pFilename) throws InvalidConfigurationException {
+  private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
+
+  public CounterexampleCPAChecker(
+      Configuration config,
+      Specification pSpecification,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa,
+      Function<ARGState, Optional<CounterexampleInfo>> pGetCounterexampleInfo)
+      throws InvalidConfigurationException {
     this.logger = logger;
     this.config = config;
+    specification = pSpecification;
     config.inject(this);
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
-    this.filename = pFilename;
+    getCounterexampleInfo = Objects.requireNonNull(pGetCounterexampleInfo);
   }
 
   @Override
@@ -139,7 +149,7 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
           pRootState,
           pErrorPathStates,
           "CounterexampleToCheck",
-          pErrorState.getCounterexampleInformation().orElse(null));
+          getCounterexampleInfo.apply(pErrorState).orElse(null));
     }
 
     CFANode entryNode = extractLocation(pRootState);
@@ -157,12 +167,17 @@ public class CounterexampleCPAChecker implements CounterexampleChecker {
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownManager).start();
 
       Specification lSpecification =
-          Specification.fromFiles(ImmutableList.of(automatonFile), cfa, lConfig, lLogger);
+          Specification.fromFiles(
+              specification.getProperties(),
+              ImmutableList.of(automatonFile),
+              cfa,
+              lConfig,
+              lLogger);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
               lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
-      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, filename, cfa, lSpecification);
+      Algorithm lAlgorithm = factory.createAlgorithm(lCpas, cfa, lSpecification);
       ReachedSet lReached = factory.createReachedSet();
       lReached.add(
           lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ImmutableSet;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -84,8 +83,7 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   private String memoryFreeFunctionName = "free";
 
   @Option(secure = true, description = "Use quantifiers when encoding heap accesses. "
-      + "This requires an SMT solver that is capable of quantifiers (e.g. Z3 or PRINCESS). "
-      + "Currently universal quantifiers will only be introduced for array initializer statements.")
+      + "This requires an SMT solver that is capable of quantifiers (e.g. Z3 or PRINCESS).")
   private boolean useQuantifiersOnArrays = false;
 
   @Option(secure=true, description = "When a string literal initializer is encountered, initialize the contents of the char array "
@@ -96,6 +94,12 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure=true, description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;
 
+  @Option(secure=true, description = "Use regions for pointer analysis. "
+      + "So called Burstall&Bornat (BnB) memory regions will be used for pointer analysis. "
+      + "BnB regions are based not only on type, but also on structure field names. "
+      + "If the field is not accessed by an address then it is placed into a separate region.")
+  private boolean useMemoryRegions = false;
+
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
@@ -103,6 +107,15 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     if (maxArrayLength == -1) {
       maxArrayLength = Integer.MAX_VALUE;
     }
+  }
+
+  @Override
+  public boolean shouldAbortOnLargeArrays() {
+    if (useArraysForHeap() || useQuantifiersOnArrays()) {
+      // In this case large arrays are maybe possible to handle
+      return false;
+    }
+    return super.shouldAbortOnLargeArrays();
   }
 
   boolean hasSuperfluousParameters(final String name) {
@@ -183,5 +196,9 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   boolean handleImplicitInitialization() {
     return handleImplicitInitialization;
+  }
+
+  public boolean useMemoryRegions() {
+    return useMemoryRegions;
   }
 }

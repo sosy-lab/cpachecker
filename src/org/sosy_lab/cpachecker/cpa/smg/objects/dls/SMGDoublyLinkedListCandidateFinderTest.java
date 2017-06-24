@@ -85,12 +85,12 @@ public class SMGDoublyLinkedListCandidateFinderTest {
     SMGValueFactory.getNewValue();
     SMGValueFactory.getNewValue();
 
-    SMGRegion l1 = new SMGRegion(12, "l1");
-    SMGRegion l2 = new SMGRegion(12, "l2");
-    SMGRegion l3 = new SMGRegion(12, "l3");
-    SMGRegion l4 = new SMGRegion(12, "l4");
-    SMGRegion l5 = new SMGRegion(12, "l5");
-    SMGRegion head = new SMGRegion(8, "head");
+    SMGRegion l1 = new SMGRegion(96, "l1");
+    SMGRegion l2 = new SMGRegion(96, "l2");
+    SMGRegion l3 = new SMGRegion(96, "l3");
+    SMGRegion l4 = new SMGRegion(96, "l4");
+    SMGRegion l5 = new SMGRegion(96, "l5");
+    SMGRegion head = new SMGRegion(64, "head");
 
     SMGEdgeHasValue headfn = new SMGEdgeHasValue(pointerType, 0, head, 6);
     SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, 7);
@@ -99,12 +99,12 @@ public class SMGDoublyLinkedListCandidateFinderTest {
     SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, 0, l4, 10);
     SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, 0, l5, 5);
 
-    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 4, l1, 5);
-    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 4, l2, 6);
-    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, 4, l3, 7);
-    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, 4, l4, 8);
-    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, 4, l5, 9);
-    SMGEdgeHasValue headfp = new SMGEdgeHasValue(pointerType, 4, head, 10);
+    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 32, l1, 5);
+    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 32, l2, 6);
+    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(pointerType, 32, l3, 7);
+    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(pointerType, 32, l4, 8);
+    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(pointerType, 32, l5, 9);
+    SMGEdgeHasValue headfp = new SMGEdgeHasValue(pointerType, 32, head, 10);
 
     SMGEdgePointsTo lht = new SMGEdgePointsTo(5, head, 0);
     SMGEdgePointsTo l1t = new SMGEdgePointsTo(6, l1, 0);

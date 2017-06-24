@@ -100,7 +100,7 @@ public class BlockCountState
   @Override
   public BooleanFormula getReasonFormula(FormulaManagerView manager) {
     BooleanFormulaManager bfmgr = manager.getBooleanFormulaManager();
-    BooleanFormula reasonFormula = bfmgr.makeBoolean(true);
+    BooleanFormula reasonFormula = bfmgr.makeTrue();
     if (stop) {
       reasonFormula =
           bfmgr.and(reasonFormula, PreventingHeuristic.BLOCKCOUNT.getFormula(manager, count));

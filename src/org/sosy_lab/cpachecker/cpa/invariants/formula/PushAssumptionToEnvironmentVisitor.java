@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
+import java.util.Map;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntegralInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
@@ -30,9 +33,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
 import org.sosy_lab.cpachecker.cpa.invariants.NonRecursiveEnvironment;
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
-import java.util.Map;
 
 /**
  * Instances of this class are parameterized compound state invariants formula
@@ -79,6 +79,14 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
     this.environment = pEnvironment;
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+  }
+
+  private CompoundIntervalManager createCompoundIntervalManager(TypeInfo pTypeInfo) {
+    if (compoundIntervalManagerFactory instanceof CompoundBitVectorIntervalManagerFactory) {
+      CompoundBitVectorIntervalManagerFactory compoundBitVectorIntervalManagerFactory = (CompoundBitVectorIntervalManagerFactory) compoundIntervalManagerFactory;
+      return compoundBitVectorIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo, false);
+    }
+    return compoundIntervalManagerFactory.createCompoundIntervalManager(pTypeInfo);
   }
 
   /**
@@ -220,7 +228,7 @@ public class PushAssumptionToEnvironmentVisitor implements ParameterizedBooleanF
       if (pParameter.getValue()) {
         TypeInfo typeInfo = pLessThan.getOperand1().getTypeInfo();
         CompoundIntervalManager cim =
-            compoundIntervalManagerFactory.createCompoundIntervalManager(typeInfo);
+            createCompoundIntervalManager(typeInfo);
         leftPushValue =
             rightValue.isSingleton()
                 ? cim.intersect(rightValue.invert(), rightValue.extendToMinValue())

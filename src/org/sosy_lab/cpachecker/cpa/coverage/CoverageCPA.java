@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.coverage;
 
 import java.util.Collection;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -36,16 +35,12 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.IdentityTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -62,9 +57,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   }
 
   private final TransferRelation transfer;
-  private final PrecisionAdjustment prec;
   private final AbstractDomain domain;
-  private final Precision precision;
   private final MergeOperator merge;
   private final StopOperator stop;
   private final Statistics stats;
@@ -83,8 +76,6 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
     pConfig.inject(this);
 
     domain = new FlatLatticeDomain(CoverageState.getSingleton());
-    prec = StaticPrecisionAdjustment.getInstance();
-    precision = SingletonPrecision.getInstance();
     stop = new StopSepOperator(domain);
     merge = new MergeJoinOperator(domain);
 
@@ -124,18 +115,8 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   }
 
   @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return prec;
-  }
-
-  @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
     return CoverageState.getSingleton();
-  }
-
-  @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return precision;
   }
 
   @Override

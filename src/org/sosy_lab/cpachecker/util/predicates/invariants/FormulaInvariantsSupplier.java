@@ -31,9 +31,16 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -42,6 +49,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.LazyLocationMapping;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -51,21 +59,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   private final AggregatedReachedSets aggregatedReached;
-  private final LogManager logger;
 
   private Set<UnmodifiableReachedSet> lastUsedReachedSets = Collections.emptySet();
   private InvariantSupplier lastInvariantSupplier = TrivialInvariantSupplier.INSTANCE;
@@ -73,19 +69,20 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
   private final Map<UnmodifiableReachedSet, ReachedSetBasedFormulaSupplier>
       singleInvariantSuppliers = new HashMap<>();
 
-  public FormulaInvariantsSupplier(AggregatedReachedSets pAggregated, LogManager pLogger) {
+  public FormulaInvariantsSupplier(AggregatedReachedSets pAggregated) {
     aggregatedReached = pAggregated;
-    logger = pLogger;
     updateInvariants(); // at initialization we want to update the invariants the first time
   }
 
   @Override
   public BooleanFormula getInvariantFor(
       CFANode pNode,
+      Optional<CallstackStateEqualsWrapper> pCallstackInfo,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
-      @Nullable PathFormula pContext) {
-    return lastInvariantSupplier.getInvariantFor(pNode, pFmgr, pPfmgr, pContext);
+      @Nullable PathFormula pContext)
+      throws InterruptedException {
+    return lastInvariantSupplier.getInvariantFor(pNode, pCallstackInfo, pFmgr, pPfmgr, pContext);
   }
 
   public void updateInvariants() {
@@ -103,8 +100,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
       lastUsedReachedSets = tmp;
       lastInvariantSupplier =
-          new AggregatedInvariantSupplier(
-              ImmutableSet.copyOf(singleInvariantSuppliers.values()), logger);
+          new AggregatedInvariantSupplier(ImmutableSet.copyOf(singleInvariantSuppliers.values()));
     }
   }
 
@@ -133,18 +129,20 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
         if (!ssa.containsVariable(varName)) {
           if (varName.startsWith("*(") && varName.endsWith(")")) {
-            varName = varName.substring(2, varName.length() - 1);
-            if (!ssa.containsVariable(varName)) {
-              throw new IllegalArgumentException();
+            String unwrappedVarName = varName.substring(2, varName.length() - 1);
+            if (!ssa.containsVariable(unwrappedVarName)) {
+              // Variable needs to be eliminated later
+              return atom;
             }
 
-            CType type = ((CPointerType) ssa.getType(varName)).getType();
-            atom = fmgr.uninstantiate(pfgmr.makeFormulaForVariable(context, varName, type, true));
+            CType type = ((CPointerType) ssa.getType(unwrappedVarName)).getType();
+            atom =
+                fmgr.uninstantiate(
+                    pfgmr.makeFormulaForVariable(context, unwrappedVarName, type, true));
             return atom;
           }
-
-          throw new IllegalArgumentException(
-              "Variable " + varName + " could not be found in SSAMap");
+          // Variable needs to be eliminated later
+          return atom;
         }
 
         // nothing special, just return the variable as is
@@ -162,11 +160,13 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     }
 
     public BooleanFormula getInvariantFor(
-        CFANode pLocation, FormulaManagerView fmgr) {
+        CFANode pLocation,
+        Optional<CallstackStateEqualsWrapper> pCallstackInformation,
+        FormulaManagerView fmgr) {
       BooleanFormulaManager bfmgr = fmgr.getBooleanFormulaManager();
-      BooleanFormula invariant = bfmgr.makeBoolean(false);
+      BooleanFormula invariant = bfmgr.makeFalse();
 
-      for (AbstractState locState : lazyLocationMapping.get(pLocation)) {
+      for (AbstractState locState : lazyLocationMapping.get(pLocation, pCallstackInformation)) {
         invariant = bfmgr.or(invariant, extractReportedFormulas(fmgr, locState));
       }
       return invariant;
@@ -177,19 +177,21 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
     private final Collection<ReachedSetBasedFormulaSupplier> invariantSuppliers;
     private final Map<InvariantsCacheKey, List<BooleanFormula>> cache = new HashMap<>();
-    private final LogManager logger;
 
     private AggregatedInvariantSupplier(
-        ImmutableCollection<ReachedSetBasedFormulaSupplier> pInvariantSuppliers,
-        LogManager pLogger) {
+        ImmutableCollection<ReachedSetBasedFormulaSupplier> pInvariantSuppliers) {
       invariantSuppliers = checkNotNull(pInvariantSuppliers);
-      logger = pLogger;
     }
 
     @Override
     public BooleanFormula getInvariantFor(
-        CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr, PathFormula pContext) {
-      InvariantsCacheKey key = new InvariantsCacheKey(pNode, pFmgr, pPfmgr);
+        CFANode pNode,
+        Optional<CallstackStateEqualsWrapper> callstackInformation,
+        FormulaManagerView pFmgr,
+        PathFormulaManager pPfmgr,
+        PathFormula pContext)
+        throws InterruptedException {
+      InvariantsCacheKey key = new InvariantsCacheKey(pNode, callstackInformation, pFmgr, pPfmgr);
 
       List<BooleanFormula> invariants;
       if (cache.containsKey(key)) {
@@ -197,32 +199,30 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       } else {
         invariants =
             Collections3.transformedImmutableListCopy(
-                invariantSuppliers, s -> s.getInvariantFor(pNode, pFmgr));
+                invariantSuppliers, s -> s.getInvariantFor(pNode, callstackInformation, pFmgr));
 
         cache.put(key, invariants);
       }
 
       final BooleanFormulaManager bfmgr = pFmgr.getBooleanFormulaManager();
 
-      // add pointer target information if possible/necessary
       if (pContext != null) {
-        invariants =
-            Lists.transform(
-                invariants,
-                i -> {
-                  try {
-                    return pFmgr.transformRecursively(
-                        i, new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr));
-                  } catch (IllegalArgumentException e) {
-                    logger.logUserException(
-                        Level.INFO,
-                        e,
-                        "Ignoring invariant for location "
-                            + pNode
-                            + " which could not be wrapped properly.");
-                    return bfmgr.makeBoolean(true);
-                  }
-                });
+        List<BooleanFormula> adjustedInvariants = Lists.newArrayListWithCapacity(invariants.size());
+        Set<String> variables = pContext.getSsa().allVariables();
+        for (BooleanFormula invariant : invariants) {
+          // Handle pointer aliasing
+          BooleanFormula inv =
+              pFmgr.transformRecursively(
+                  invariant, new AddPointerInformationVisitor(pFmgr, pContext, pPfmgr));
+          // Drop information about unknown variables
+          if (!variables.containsAll(pFmgr.extractVariableNames(inv))) {
+            inv =
+                pFmgr.filterLiterals(
+                    inv, bf -> variables.containsAll(pFmgr.extractVariableNames(bf)));
+          }
+          adjustedInvariants.add(inv);
+        }
+        invariants = adjustedInvariants;
       }
 
       return verifyNotNull(bfmgr.and(invariants));
@@ -231,40 +231,39 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
 
   private static class InvariantsCacheKey {
     private final CFANode node;
+    private final Optional<CallstackStateEqualsWrapper> callstackInformation;
     private final FormulaManagerView fmgr;
     private final PathFormulaManager pfmgr;
 
-    public InvariantsCacheKey(CFANode pNode, FormulaManagerView pFmgr, PathFormulaManager pPfmgr) {
+    public InvariantsCacheKey(
+        CFANode pNode,
+        Optional<CallstackStateEqualsWrapper> pCallstackInformation,
+        FormulaManagerView pFmgr,
+        PathFormulaManager pPfmgr) {
       node = pNode;
+      callstackInformation = pCallstackInformation;
       fmgr = pFmgr;
       pfmgr = pPfmgr;
     }
 
     @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + Objects.hashCode(fmgr);
-      result = prime * result + Objects.hashCode(node);
-      result = prime * result + Objects.hashCode(pfmgr);
-      return result;
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      InvariantsCacheKey that = (InvariantsCacheKey) pO;
+      return Objects.equals(node, that.node) &&
+          Objects.equals(callstackInformation, that.callstackInformation) &&
+          Objects.equals(fmgr, that.fmgr) &&
+          Objects.equals(pfmgr, that.pfmgr);
     }
 
     @Override
-    public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-
-      if (!(obj instanceof InvariantsCacheKey)) {
-        return false;
-      }
-
-      InvariantsCacheKey other = (InvariantsCacheKey) obj;
-      return Objects.equals(node, other.node)
-          && Objects.equals(fmgr, other.fmgr)
-          && Objects.equals(pfmgr, other.pfmgr);
+    public int hashCode() {
+      return Objects.hash(node, callstackInformation, fmgr, pfmgr);
     }
   }
-
 }

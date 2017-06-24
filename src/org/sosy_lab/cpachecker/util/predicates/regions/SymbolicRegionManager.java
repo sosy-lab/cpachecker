@@ -23,21 +23,23 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.regions;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
+import com.google.common.base.Function;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 
-import com.google.common.base.Function;
+import java.io.PrintStream;
+import java.util.ArrayList;
 
 /**
  * Adaptor from FormulaManager/Solver to RegionManager in order to use Formulas
@@ -94,8 +96,8 @@ public class SymbolicRegionManager implements RegionManager {
     solver = pSolver;
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    trueRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(true));
-    falseRegion = new SymbolicRegion(bfmgr,  bfmgr.makeBoolean(false));
+    trueRegion = new SymbolicRegion(bfmgr,  bfmgr.makeTrue());
+    falseRegion = new SymbolicRegion(bfmgr,  bfmgr.makeFalse());
   }
 
   @Override
@@ -193,7 +195,7 @@ public class SymbolicRegionManager implements RegionManager {
   private class SymbolicRegionBuilder implements RegionBuilder {
 
     private BooleanFormula currentCube = null;
-    private BooleanFormula cubes = bfmgr.makeBoolean(false);
+    private BooleanFormula cubes = bfmgr.makeFalse();
 
     @Override
     public void startNewConjunction() {

@@ -4,7 +4,7 @@
 
   <option name="-noout"/>
   <option name="-heap">150M</option>
-  <option name="-valueAnalysis-symbolic-java"/>
+  <option name="-symbolicExecution-java"/>
 
   <rundefinition/>
 

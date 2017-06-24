@@ -25,7 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
-
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.ast.c.AdaptingCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -61,13 +66,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.java_smt.api.Formula;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.logging.Level;
 
 /**
  * A visitor the handle C expressions with the support for pointer aliasing.
@@ -146,7 +144,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                           final SSAMapBuilder ssa,
                                           final Constraints constraints,
                                           final ErrorConditions errorConditions,
-                                          final PointerTargetSetBuilder pts) {
+                                          final PointerTargetSetBuilder pts,
+                                          final MemoryRegionManager regionMgr) {
 
     delegate =
         new ExpressionToFormulaVisitor(
@@ -172,7 +171,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     this.constraints = constraints;
     this.errorConditions = errorConditions;
     this.pts = pts;
-
+    this.regionMgr = regionMgr;
     this.baseVisitor = new BaseVisitor(cfaEdge, pts, typeHandler);
   }
 
@@ -211,8 +210,12 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     if (e.isValue()) {
       return e.asValue().getValue();
     } else if (e.isAliasedLocation()) {
-      return !isSafe ? conv.makeDereference(type, e.asAliasedLocation().getAddress(), ssa, errorConditions) :
-                       conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa);
+      MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
+      if(region == null) {
+        region = regionMgr.makeMemoryRegion(type);
+      }
+      return !isSafe ? conv.makeDereference(type, e.asAliasedLocation().getAddress(), ssa, errorConditions, region) :
+                       conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa, region);
     } else { // Unaliased location
       return conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
     }
@@ -302,7 +305,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                         constraints,
                                         edge);
 
-    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
+    final Formula coeff = conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getBitSizeof(elementType));
     final Formula baseAddress = base.asAliasedLocation().getAddress();
     final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
     addEqualBaseAddressConstraint(baseAddress, address);
@@ -332,11 +335,13 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         final String fieldName = e.getFieldName();
         usedFields.add(Pair.of((CCompositeType) fieldOwnerType, fieldName));
         final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                    typeHandler.getOffset((CCompositeType) fieldOwnerType, fieldName));
+                                                    typeHandler.getBitOffset((CCompositeType) fieldOwnerType, fieldName));
 
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAddressConstraint(base.getAddress(), address);
-        return AliasedLocation.ofAddress(address);
+        final CType fieldType = typeHandler.simplifyType(e.getExpressionType());
+        final MemoryRegion region = regionMgr.makeMemoryRegion(fieldOwnerType, fieldType, fieldName);
+        return AliasedLocation.ofAddressWithRegion(address, region);
       } else {
         throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
       }
@@ -487,7 +492,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                 (CCompositeType) CTypeUtils.checkIsSimplified(pointerType.getType());
             usedFields.add(Pair.of(compositeType, fieldName));
             final Formula offset = conv.fmgr.makeNumber(conv.voidPointerFormulaType,
-                                                        typeHandler.getOffset(compositeType, fieldName));
+                                                        typeHandler.getBitOffset(compositeType, fieldName));
             addressExpression = AliasedLocation.ofAddress(conv.fmgr.makePlus(base, offset));
             addEqualBaseAddressConstraint(base, addressExpression.getAddress());
           }
@@ -514,7 +519,8 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                        base,
                                        initializedFields,
                                        ssa,
-                                       constraints);
+                                       constraints,
+                                       null);
         if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
           ssa.deleteVariable(base.getName());
         }
@@ -627,7 +633,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
       final String functionName = ((CIdExpression)functionNameExpression).getName();
 
       if (conv.options.isDynamicMemoryFunction(functionName)) {
-        DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions);
+        DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
         try {
           return memoryHandler.handleDynamicMemoryFunction(e, functionName, this);
         } catch (InterruptedException exc) {
@@ -756,6 +762,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
   private final PointerTargetSetBuilder pts;
+  private final MemoryRegionManager regionMgr;
 
   private final BaseVisitor baseVisitor;
   private final ExpressionToFormulaVisitor delegate;

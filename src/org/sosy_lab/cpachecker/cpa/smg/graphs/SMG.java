@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.TreeMultimap;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -39,13 +40,15 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class SMG {
   private Set<SMGObject> objects = new HashSet<>();
@@ -542,25 +545,42 @@ public class SMG {
   }
 
   /**
-   * Obtains a bitset signifying where the object bytes are nullified.
+   * Obtains a TreeMap offset to size signifying where the object bytes are nullified.
    *
    * Constant.
    *
    * @param pObj SMGObject for which the information is to be obtained
-   * @return A bitset. A bit has 1 value if the appropriate byte is guaranteed
-   * to be NULL (is covered by a HasValue edge leading from an object to null value,
-   * 0 otherwise.
+   * @return A TreeMap offsets to size which are covered by a HasValue edge leading from an
+   * object to null value
    */
-  public BitSet getNullBytesForObject(SMGObject pObj) {
-    BitSet bs = new BitSet(pObj.getSize());
-    bs.clear();
-    SMGEdgeHasValueFilter objectFilter = SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(getNullValue());
+  public TreeMap<Integer, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
+    Set<SMGEdgeHasValue> edges = hv_edges.getEdgesForObject(pObj);
+    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterHavingValue(getNullValue());
+    edges = objectFilter.filterSet(edges);
 
-    for (SMGEdgeHasValue edge : getHVEdges(objectFilter)) {
-      bs.set(edge.getOffset(), edge.getOffset() + edge.getSizeInBytes(machine_model));
+    TreeMultimap<Integer, Integer> offsetToSize = TreeMultimap.create();
+    for (SMGEdgeHasValue edge : edges) {
+      offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
     }
 
-    return bs;
+    TreeMap<Integer, Integer> resultOffsetToSize = new TreeMap<>();
+    if (offsetToSize != null && !offsetToSize.isEmpty()) {
+      Iterator<Integer> offsetsIterator = offsetToSize.keySet().iterator();
+      Integer resultOffset = offsetsIterator.next();
+      Integer resultSize = offsetToSize.get(resultOffset).last();
+      while (offsetsIterator.hasNext()) {
+        Integer nextOffset = offsetsIterator.next();
+        if (nextOffset <= resultOffset + resultSize) {
+          resultSize = Integer.max(offsetToSize.get(nextOffset).last() + nextOffset - resultOffset, resultSize);
+        } else {
+          resultOffsetToSize.put(resultOffset, resultSize);
+          resultOffset = nextOffset;
+          resultSize = offsetToSize.get(nextOffset).last();
+        }
+      }
+      resultOffsetToSize.put(resultOffset, resultSize);
+    }
+    return resultOffsetToSize;
   }
 
   /**
@@ -589,18 +609,19 @@ public class SMG {
   }
 
   public boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
-    return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBytes(machine_model));
+    return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBits(machine_model));
   }
 
   public boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, CType pType ) {
-    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeof(pType));
+    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getBitSizeof(pType));
   }
 
   private boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, int size) {
-    BitSet objectNullBytes = getNullBytesForObject(pObject);
     int expectedMinClear = pOffset + size;
 
-    return (objectNullBytes.nextClearBit(pOffset) >= expectedMinClear);
+    TreeMap<Integer, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
+    Entry<Integer, Integer> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
+    return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }
 
   public void mergeValues(int pV1, int pV2) {

@@ -33,14 +33,25 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
-
+import java.io.Serializable;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -58,24 +69,12 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NavigableSet;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-
-import javax.annotation.Nullable;
-
 /**
  * Class collecting and containing information about all loops in a CFA.
  */
-public final class LoopStructure {
+public final class LoopStructure implements Serializable {
+
+  private static final long serialVersionUID = 1L;
 
   /**
    * Class representing one loop in a CFA.
@@ -113,7 +112,10 @@ public final class LoopStructure {
    * In such cases, both loops are considered only one loop
    * (which is legal according to the definition above).
    */
-  public static class Loop {
+  public static class Loop implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
     // Technically not immutable, but all modifying methods are private
     // and never called after the LoopStructure information has been collected.
 
@@ -141,6 +143,7 @@ public final class LoopStructure {
       if (innerLoopEdges != null) {
         assert incomingEdges != null;
         assert outgoingEdges != null;
+        return;
       }
 
       Set<CFAEdge> incomingEdges = new HashSet<>();
@@ -320,17 +323,7 @@ public final class LoopStructure {
   }
 
   public ImmutableSet<Loop> getLoopsForLoopHead(final CFANode loopHead) {
-    return from(loops.values())
-        .transform(
-            loop -> {
-              if (loop.getLoopHeads().contains(loopHead)) {
-                return loop;
-              } else {
-                return null;
-              }
-            })
-        .filter(Predicates.notNull())
-        .toSet();
+    return from(loops.values()).filter(loop -> loop.getLoopHeads().contains(loopHead)).toSet();
   }
 
   /**

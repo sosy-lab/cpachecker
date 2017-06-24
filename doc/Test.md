@@ -1,8 +1,12 @@
 Integration Tests
 -----------------
 
-Integration tests are available in the directory `test/test-sets`.
-Please refer to [`README.md`](../README.md) in this directory for further information.
+Integration tests that are executed automatically by the [BuildBot](https://buildbot.sosy-lab.org/buildbot/waterfall)
+are defined by the files `../test/test-sets/integration-*.xml`.
+You can also execute these tests directly with BenchExec.
+All major projects and configurations within CPAchecker should be part of this test suite.
+To add tests for your project or configuration,
+please contact the maintainers on the developer mailing list.
 
 Unit Tests
 ----------

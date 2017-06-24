@@ -48,7 +48,7 @@ public class TargetLocationCandidateInvariant extends AbstractLocationFormulaInv
   public BooleanFormula getFormula(
       FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
       throws CPATransferException, InterruptedException {
-    return pFMGR.getBooleanFormulaManager().makeBoolean(false);
+    return pFMGR.getBooleanFormulaManager().makeFalse();
   }
 
   @Override

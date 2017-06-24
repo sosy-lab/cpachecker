@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
+import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
-
-import java.util.Map;
 
 public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
@@ -44,7 +43,7 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
   @Override
   public String toString() {
-    return "REGION("+ getLabel() + ", " + getSize() + "B)\n" + "level=" + getLevel();
+    return "REGION("+ getLabel() + ", " + getSize() + "b)\n" + "level=" + getLevel();
   }
 
   public boolean propertiesEqual(SMGRegion pOther) {

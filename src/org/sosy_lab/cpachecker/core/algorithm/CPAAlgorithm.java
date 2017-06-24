@@ -24,8 +24,15 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Functions;
-import com.google.common.collect.Iterables;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,20 +56,11 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
@@ -92,8 +90,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult,
-        ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("Number of iterations:            " + countIterations);
       if (countIterations == 0) {
         // Statistics not relevant, prevent division by zero
@@ -253,6 +250,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       }
 
     }
+
     return status;
   }
 
@@ -297,7 +295,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     stats.countSuccessors += numSuccessors;
     stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-    for (AbstractState successor : Iterables.consumingIterable(successors)) {
+    for (Iterator<? extends AbstractState> it = successors.iterator(); it.hasNext();) {
+      AbstractState successor = it.next();
       shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINER, "Considering successor of current state");
       logger.log(Level.ALL, "Successor of", state, "\nis", successor);
@@ -344,7 +343,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
           // add the new state
           reachedSet.add(successor, successorPrecision);
 
-          if (!successors.isEmpty()) {
+          if (it.hasNext()) {
             // re-add the old state to the waitlist, there are unhandled
             // successors left that otherwise would be forgotten
             reachedSet.reAddToWaitlist(state);

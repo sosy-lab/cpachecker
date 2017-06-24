@@ -3,17 +3,15 @@ package org.sosy_lab.cpachecker.cpa.policyiteration;
 import com.google.common.base.Objects;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
-
+import java.io.PrintStream;
+import java.math.BigInteger;
+import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.templates.Template;
-
-import java.io.PrintStream;
-import java.math.BigInteger;
-import java.util.concurrent.TimeUnit;
 
 public class PolicyIterationStatistics implements Statistics {
 
@@ -29,7 +27,6 @@ public class PolicyIterationStatistics implements Statistics {
 
   final Timer optTimer = new Timer();
   final Timer checkIndependenceTimer = new Timer();
-  final Timer simplifyTimer = new Timer();
 
   final Timer ackermannizationTimer = new Timer();
   final Timer linearizationTimer = new Timer();
@@ -40,17 +37,13 @@ public class PolicyIterationStatistics implements Statistics {
 
   private BigInteger wideningTemplatesGenerated = BigInteger.ZERO;
 
-  public void incWideningTemplatesGenerated() {
-    wideningTemplatesGenerated = wideningTemplatesGenerated.add(BigInteger.ONE);
-  }
-
   public PolicyIterationStatistics(CFA pCFA) {
     cfa = pCFA;
   }
 
   @Override
   public void printStatistics(
-      PrintStream out, CPAcheckerResult.Result result, ReachedSet reached) {
+      PrintStream out, CPAcheckerResult.Result result, UnmodifiableReachedSet reached) {
 
     printTimer(out, getBoundTimer, "getting policy bound");
     printTimer(out, valueDeterminationTimer, "value determination");
@@ -60,7 +53,6 @@ public class PolicyIterationStatistics implements Statistics {
     printTimer(out, checkSATTimer, "checking bad states (SMT)");
 
     printTimer(out, checkIndependenceTimer, "checking independence");
-    printTimer(out, simplifyTimer, "simplifying formulas");
     printTimer(out, polyhedraWideningTimer, "computing polyhedra widening");
     printTimer(out, ackermannizationTimer, "performing ackermannization on policies");
 

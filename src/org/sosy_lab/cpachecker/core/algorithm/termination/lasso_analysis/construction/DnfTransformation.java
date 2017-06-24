@@ -71,7 +71,7 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
 
   @Override
   public BooleanFormula visitAnd(List<BooleanFormula> pProcessedOperands) {
-    Collection<BooleanFormula> clauses = Lists.newArrayList(fmgr.makeBoolean(true));
+    Collection<BooleanFormula> clauses = Lists.newArrayList(fmgr.makeTrue());
 
     List<Set<BooleanFormula>> operands =
         pProcessedOperands

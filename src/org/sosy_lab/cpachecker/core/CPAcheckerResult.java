@@ -25,14 +25,12 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.PrintStream;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-
-import java.io.PrintStream;
-
-import javax.annotation.Nullable;
 
 /**
  * Class that represents the result of a CPAchecker analysis.

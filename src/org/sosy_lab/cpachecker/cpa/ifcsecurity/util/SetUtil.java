@@ -49,15 +49,13 @@ public final class SetUtil<E extends Comparable<? super E>> {
     public static <E> SortedSet<E> union(SortedSet<E> pSet1,SortedSet<E> pSet2){
       SortedSet<E> result=new TreeSet<>();
       E elem;
-      Iterator<E> it1 = pSet1.iterator();
 
-      while(it1.hasNext()){
-        elem=it1.next();
+    for (E aPSet1 : pSet1) {
+      elem = aPSet1;
         result.add(elem);
       }
-      Iterator<E> it2 = pSet2.iterator();
-      while(it2.hasNext()){
-        elem=it2.next();
+    for (E aPSet2 : pSet2) {
+      elem = aPSet2;
         result.add(elem);
       }
       return result;
@@ -121,10 +119,8 @@ public final class SetUtil<E extends Comparable<? super E>> {
      */
     public static <E> SortedSet<E> setminus(SortedSet<E> pSet1,SortedSet<E> pSet2){
       SortedSet<E> result=new TreeSet<>();
-      Iterator<E> it1 = pSet1.iterator();
-      while(it1.hasNext()){
-        E elem=it1.next();
-        if(!pSet2.contains(elem)){
+    for (E elem : pSet1) {
+      if (!pSet2.contains(elem)) {
           result.add(elem);
         }
       }

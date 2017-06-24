@@ -3,7 +3,14 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -19,7 +26,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -34,25 +41,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FunctionDeclaration;
-import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
-import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
-import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="cpa.slicing")
 public class FormulaSlicingManager implements IFormulaSlicingManager {
@@ -150,7 +141,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     }
 
     boolean shouldPerformAbstraction = shouldPerformAbstraction(iState.getNode(), pFullState);
+
     if (shouldPerformAbstraction) {
+
       Optional<SlicingAbstractedState> oldState = findOldToMerge(
           pStates, pFullState, pState);
 
@@ -198,7 +191,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   private Set<BooleanFormula> toRcnf(SlicingIntermediateState iState)
       throws InterruptedException {
     PathFormula pf = iState.getPathFormula();
-    final SSAMap ssa = pf.getSsa();
     CFANode node = iState.getNode();
     SlicingAbstractedState abstractParent = iState.getAbstractParent();
 
@@ -207,13 +199,9 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         bfmgr.and(abstractParent.getInstantiatedAbstraction())
     );
 
-    // Filter non-final UFs out first, as they can not be quantified.
-    transition = fmgr.filterLiterals(transition,
-        input -> !hasDeadUf(input, ssa));
-    BooleanFormula quantified = fmgr.quantifyDeadVariables(
-        transition, ssa);
-
-    Set<BooleanFormula> lemmas = rcnfManager.toLemmas(quantified, fmgr);
+    Set<BooleanFormula> lemmas = rcnfManager.toLemmasInstantiated(
+        pf.updateFormula(transition), fmgr
+    );
 
     Set<BooleanFormula> finalLemmas = new HashSet<>();
     for (BooleanFormula lemma : lemmas) {
@@ -277,6 +265,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     try {
       statistics.inductiveWeakening.start();
       if (parentState != prevToMerge) {
+
         finalClauses = inductiveWeakeningManager.findInductiveWeakeningForRCNF(
             parentState.getSSA(),
             parentState.getAbstraction(),
@@ -444,7 +433,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     return SlicingIntermediateState.of(
         pSlicingAbstractedState.getNode(),
         new PathFormula(
-            bfmgr.makeBoolean(true),
+            bfmgr.makeTrue(),
             pSlicingAbstractedState.getSSA(),
             pSlicingAbstractedState.getPointerTargetSet(),
             0), pSlicingAbstractedState
@@ -452,8 +441,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   }
 
   private boolean shouldPerformAbstraction(CFANode node, AbstractState pFullState) {
-    LoopstackState loopState = AbstractStates.extractStateByType(pFullState,
-        LoopstackState.class);
+    LoopBoundState loopState = AbstractStates.extractStateByType(pFullState, LoopBoundState.class);
 
     // Slicing is only performed on the loop heads.
     return loopStructure.getAllLoopHeads().contains(node) &&
@@ -504,6 +492,7 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
                 states.getReached(pArgState),
                 SlicingAbstractedState.class)
         );
+
     if (filteredSiblings.isEmpty()) {
       return Optional.empty();
     }
@@ -535,30 +524,5 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
-  }
-
-  private boolean hasDeadUf(BooleanFormula atom, final SSAMap pSSAMap) {
-    final AtomicBoolean out = new AtomicBoolean(false);
-    fmgr.visitRecursively(atom, new DefaultFormulaVisitor<TraversalProcess>() {
-      @Override
-      protected TraversalProcess visitDefault(Formula f) {
-        return TraversalProcess.CONTINUE;
-      }
-
-      @Override
-      public TraversalProcess visitFunction(
-          Formula f,
-          List<Formula> args,
-          FunctionDeclaration<?> functionDeclaration) {
-        if (functionDeclaration.getKind() == FunctionDeclarationKind.UF) {
-          if (fmgr.isIntermediate(functionDeclaration.getName(), pSSAMap)) {
-            out.set(true);
-            return TraversalProcess.ABORT;
-          }
-        }
-        return TraversalProcess.CONTINUE;
-      }
-    });
-    return out.get();
   }
 }

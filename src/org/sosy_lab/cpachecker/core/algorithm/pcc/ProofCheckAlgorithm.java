@@ -23,9 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -38,14 +46,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 
-import java.io.PrintStream;
-import java.util.Collection;
-import java.util.logging.Level;
-
+@Options(prefix = "pcc")
 public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
@@ -59,8 +65,7 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult,
-        ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println();
       out.println("Proof Checking statistics");
       out.println("-------------------------------------");
@@ -70,10 +75,15 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private final CPAStatistics stats = new CPAStatistics();
-  private final LogManager logger;
+  protected final LogManager logger;
 
-  private PCCStrategy checkingStrategy;
+  protected final PCCStrategy checkingStrategy;
 
+  @Option(secure=true,
+      name = "proof",
+      description = "file in which proof representation needed for proof checking is stored")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  protected Path proofFile = Paths.get("arg.obj");
 
   public ProofCheckAlgorithm(
       ConfigurableProgramAnalysis cpa,
@@ -83,10 +93,11 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       CFA pCfa,
       Specification specification)
       throws InvalidConfigurationException {
+    pConfig.inject(this, ProofCheckAlgorithm.class);
 
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(
-            pConfig, logger, pShutdownNotifier, cpa, pCfa, specification);
+            pConfig, logger, pShutdownNotifier, proofFile, cpa, pCfa, specification);
 
     this.logger = logger;
 
@@ -113,11 +124,12 @@ public class ProofCheckAlgorithm implements Algorithm, StatisticsProvider {
       CFA pCfa,
       Specification specification)
       throws InvalidConfigurationException, InterruptedException {
-    pConfig.inject(this);
+
+    pConfig.inject(this, ProofCheckAlgorithm.class);
 
     checkingStrategy =
         PCCStrategyBuilder.buildStrategy(
-            pConfig, logger, pShutdownNotifier, cpa, pCfa, specification);
+            pConfig, logger, pShutdownNotifier, proofFile, cpa, pCfa, specification);
     this.logger = logger;
 
     if (pReachedSet == null || pReachedSet.hasWaitingState()) { throw new IllegalArgumentException(

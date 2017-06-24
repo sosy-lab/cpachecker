@@ -9,7 +9,19 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -33,7 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics.TemplateUpdateEvent;
 import org.sosy_lab.cpachecker.cpa.policyiteration.ValueDeterminationManager.ValueDeterminationConstraints;
 import org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra.PolyhedraWideningManager;
@@ -62,25 +74,10 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
-
-import javax.annotation.Nullable;
-
 /**
  * Main logic in a single class.
  */
-@Options(prefix = "cpa.lpi", deprecatedPrefix = "cpa.stator.policy")
+@Options(prefix = "cpa.lpi")
 public class PolicyIterationManager {
 
   @Option(secure = true,
@@ -152,9 +149,6 @@ public class PolicyIterationManager {
       + "let other CPAs use the output of LPI.")
   private boolean delayAbstractionUntilStrengthen = false;
 
-  @Option(secure=true, description="Use the new SSA after the merge operation.")
-  private boolean useNewSSAAfterMerge = false;
-
   private final FormulaManagerView fmgr;
   private final CFA cfa;
   private final PathFormulaManager pfmgr;
@@ -185,7 +179,8 @@ public class PolicyIterationManager {
       FormulaLinearizationManager pLinearizationManager,
       PolyhedraWideningManager pPwm,
       StateFormulaConversionManager pStateFormulaConversionManager,
-      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager)
+      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager,
+      TemplatePrecision pPrecision)
       throws InvalidConfigurationException {
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     pConfig.inject(this, PolicyIterationManager.class);
@@ -202,8 +197,7 @@ public class PolicyIterationManager {
     statistics = pStatistics;
     linearizationManager = pLinearizationManager;
     rcnfManager = new RCNFManager(pConfig);
-    initialPrecision = new TemplatePrecision(
-        logger, pConfig, cfa, templateToFormulaConversionManager);
+    initialPrecision = pPrecision;
   }
 
   /**
@@ -223,7 +217,7 @@ public class PolicyIterationManager {
   public PolicyState getInitialState(CFANode pNode) {
     return PolicyAbstractedState.empty(
         pNode,
-        bfmgr.makeBoolean(true), stateFormulaConversionManager);
+        bfmgr.makeTrue(), stateFormulaConversionManager);
   }
 
   public Precision getInitialPrecision() {
@@ -472,7 +466,7 @@ public class PolicyIterationManager {
       Optional<PolicyAbstractedState> element = Optional.empty();
       if (runHopefulValueDetermination) {
         constraints = vdfmgr.valueDeterminationFormulaCheap(
-            newState, latestSibling, merged, updated.keySet());
+            newState, merged, updated.keySet());
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           logger.log(Level.INFO, "Switching to more expensive value "
@@ -484,7 +478,7 @@ public class PolicyIterationManager {
 
         // Hopeful value determination failed, run the more expensive version.
         constraints = vdfmgr.valueDeterminationFormula(
-            newState, latestSibling, merged, updated.keySet());
+            newState, merged, updated.keySet());
         element = performValueDetermination(merged, updated, constraints);
         if (!element.isPresent()) {
           throw new CPATransferException("Value determination problem is "
@@ -590,9 +584,7 @@ public class PolicyIterationManager {
       newAbstraction.put(template, mergedBound);
     }
 
-    // Cache coherence for CachingPathFormulaManager is better with oldSSA,
-    // but newSSA is required for LPI+BAM.
-    SSAMap mergedSSA = useNewSSAAfterMerge ? newState.getSSA() : oldState.getSSA();
+    SSAMap mergedSSA = newState.getSSA();
 
     PolicyAbstractedState merged =
         PolicyAbstractedState.of(
@@ -1223,8 +1215,8 @@ public class PolicyIterationManager {
       case ALL:
         return true;
       case LOOPHEAD:
-        LoopstackState loopState = AbstractStates.extractStateByType(totalState,
-            LoopstackState.class);
+        LoopBoundState loopState =
+            AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
         return (cfa.getAllLoopHeads().get().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));
@@ -1282,14 +1274,6 @@ public class PolicyIterationManager {
         a = iState.getBackpointerState();
       }
     }
-  }
-
-  public boolean adjustPrecision() {
-    return initialPrecision.adjustPrecision();
-  }
-
-  void adjustReachedSet(ReachedSet pReachedSet) {
-    pReachedSet.clear();
   }
 
   public boolean isLessOrEqual(PolicyState state1, PolicyState state2) {

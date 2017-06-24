@@ -66,7 +66,7 @@ def _create_argument_parser():
 
     parser.add_argument("--cloudMaster",
                       dest="cloud_master",
-                      default="http://vcloud.sosy-lab.org/webclient/",
+                      default="https://vcloud.sosy-lab.org/cpachecker/webclient/",
                       metavar="HOST",
                       help="Sets the webclient host of the VerifierCloud instance to be used.")
 
