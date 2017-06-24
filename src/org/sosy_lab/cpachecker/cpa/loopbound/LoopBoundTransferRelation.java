@@ -90,29 +90,29 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
+      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
       throws CPATransferException {
 
-    LoopBoundState e = (LoopBoundState) pElement;
+    LoopBoundState state = (LoopBoundState) pState;
     LoopBoundPrecision precision = (LoopBoundPrecision) pPrecision;
 
     if (pCfaEdge instanceof FunctionCallEdge) {
       // such edges do never change loop status
-      return Collections.singleton(pElement);
+      return Collections.singleton(pState);
     }
 
     CFANode loc = pCfaEdge.getSuccessor();
 
     Loop oldLoop = loopExitEdges.get(pCfaEdge);
     if (oldLoop != null) {
-      e = e.exit(oldLoop);
+      state = state.exit(oldLoop);
     }
 
     if (pCfaEdge instanceof CFunctionReturnEdge) {
       // Such edges may be real loop-exit edges "while () { return; }",
       // but never loop-entry edges.
       // Return here because they might be mis-classified as entry edges.
-      return Collections.singleton(e);
+      return Collections.singleton(state);
     }
 
     Loop newLoop = null;
@@ -120,7 +120,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       // Push a new loop onto the stack if we enter it
       newLoop = loopEntryEdges.get(pCfaEdge);
       if (newLoop != null) {
-        e = e.enter(new LoopEntry(loc, newLoop));
+        state = state.enter(new LoopEntry(loc, newLoop));
       }
     }
 
@@ -128,14 +128,14 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     Loop loop = loopHeads.get(loc);
     assert newLoop == null || newLoop.equals(loop);
     if (loop != null) {
-      e = e.visitLoopHead(new LoopEntry(loc, loop), loopIterationsBeforeAbstraction);
+      state = state.visitLoopHead(new LoopEntry(loc, loop), loopIterationsBeforeAbstraction);
       if ((maxLoopIterations > 0)
-          && e.getDeepestIteration() > maxLoopIterations) {
-        e = e.stopIt();
+          && state.getDeepestIteration() > maxLoopIterations) {
+        state = state.stopIt();
       }
     }
 
-    return Collections.singleton(e);
+    return Collections.singleton(state);
   }
 
 }
