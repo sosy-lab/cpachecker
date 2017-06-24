@@ -34,8 +34,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -68,9 +67,9 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     for (Loop l : pLoops.getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
       Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
-                                               not(instanceOf(CFunctionReturnEdge.class)));
+                                               not(instanceOf(FunctionReturnEdge.class)));
       Iterable<CFAEdge> outgoingEdges = filter(l.getOutgoingEdges(),
-                                               not(instanceOf(CFunctionCallEdge.class)));
+                                               not(instanceOf(FunctionCallEdge.class)));
 
       for (CFAEdge e : incomingEdges) {
         entryEdges.put(e, l);
@@ -108,7 +107,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       state = state.exit(oldLoop);
     }
 
-    if (pCfaEdge instanceof CFunctionReturnEdge) {
+    if (pCfaEdge instanceof FunctionReturnEdge) {
       // Such edges may be real loop-exit edges "while () { return; }",
       // but never loop-entry edges.
       // Return here because they might be mis-classified as entry edges.
