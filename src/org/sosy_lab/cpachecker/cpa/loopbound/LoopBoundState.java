@@ -198,4 +198,16 @@ public class LoopBoundState
     // Subtract 1 to account for the "undetermined" element at the bottom of the stack
     return loopStack.getSize() - 1;
   }
+
+  boolean deepEquals(LoopBoundState pOther) {
+    // Quick checks for common case (inequality) first
+    if (this.stopIt != pOther.stopIt) {
+      return false;
+    }
+    // Hash code is cached, so this is also quick
+    if (loopStack.hashCode() != pOther.loopStack.hashCode()) {
+      return false;
+    }
+    return loopStack.equals(pOther.loopStack);
+  }
 }

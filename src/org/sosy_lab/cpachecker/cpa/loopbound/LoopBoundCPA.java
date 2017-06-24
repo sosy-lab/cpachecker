@@ -104,7 +104,7 @@ public class LoopBoundCPA extends AbstractCPA
   }
 
   private LoopBoundCPA(Configuration config, CFA pCfa, LogManager pLogger, DelegatingTransferRelation pDelegatingTransferRelation) throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", pDelegatingTransferRelation);
+    super("sep", "sep", LoopBoundDomain.INSTANCE, pDelegatingTransferRelation);
     if (!pCfa.getLoopStructure().isPresent()) {
       throw new CPAException("LoopBoundCPA cannot work without loop-structure information in CFA.");
     }
