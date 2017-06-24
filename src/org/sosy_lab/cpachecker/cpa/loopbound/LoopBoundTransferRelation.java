@@ -49,16 +49,13 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
   private Map<CFANode, Loop> loopHeads = null;
 
-  private final int maxLoopIterations;
   private final int loopIterationsBeforeAbstraction;
 
   public LoopBoundTransferRelation(
       int pLoopIterationsBeforeAbstraction,
-      int pMaxLoopIterations,
       LoopStructure pLoops) {
 
     loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
-    this.maxLoopIterations = pMaxLoopIterations;
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
@@ -128,9 +125,13 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     assert newLoop == null || newLoop.equals(loop);
     if (loop != null) {
       state = state.visitLoopHead(new LoopEntry(loc, loop), loopIterationsBeforeAbstraction);
-      if ((maxLoopIterations > 0)
-          && state.getDeepestIteration() > maxLoopIterations) {
-        state = state.stopIt();
+      // Check if the bound for unrolling has been reached;
+      // this check is also performed by the precision adjustment,
+      // but we need to do it here, too,
+      // to ensure that states are consistent during strengthening
+      if ((precision.getMaxLoopIterations() > 0)
+          && state.getDeepestIteration() > precision.getMaxLoopIterations()) {
+        state = state.setStop(true);
       }
     }
 

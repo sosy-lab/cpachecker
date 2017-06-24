@@ -23,23 +23,41 @@
  */
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
+import com.google.common.base.Preconditions;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 public class LoopBoundPrecision implements Precision {
 
   private final boolean trackStack;
 
-  public LoopBoundPrecision(boolean pStack) {
+  private final int maxLoopIterations;
+
+  public LoopBoundPrecision(boolean pStack, int pMaxLoopIterations) {
+    Preconditions.checkArgument(pMaxLoopIterations >= 0);
     trackStack = pStack;
+    maxLoopIterations = pMaxLoopIterations;
   }
 
   public boolean shouldTrackStack() {
     return trackStack;
   }
 
+  public int getMaxLoopIterations() {
+    return maxLoopIterations;
+  }
+
+  public LoopBoundPrecision withMaxLoopIterations(int pMaxLoopIterations) {
+    if (pMaxLoopIterations == maxLoopIterations) {
+      return this;
+    }
+    return new LoopBoundPrecision(trackStack, pMaxLoopIterations);
+  }
+
   @Override
   public String toString() {
-    return shouldTrackStack() ? "Stack" : "Flat";
+    return "k = " + maxLoopIterations + ", "
+        + (shouldTrackStack() ? "track loop stack" : "do not track loop stack");
   }
 
   @Override
@@ -49,14 +67,15 @@ public class LoopBoundPrecision implements Precision {
     }
     if (pOther instanceof LoopBoundPrecision) {
       LoopBoundPrecision other = (LoopBoundPrecision) pOther;
-      return trackStack == other.trackStack;
+      return trackStack == other.trackStack
+          && maxLoopIterations == other.maxLoopIterations;
     }
     return true;
   }
 
   @Override
   public int hashCode() {
-    return Boolean.hashCode(trackStack);
+    return Objects.hash(trackStack, maxLoopIterations);
   }
 
 }

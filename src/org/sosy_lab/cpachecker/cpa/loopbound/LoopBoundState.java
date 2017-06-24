@@ -105,8 +105,11 @@ public class LoopBoundState
     return this;
   }
 
-  public LoopBoundState stopIt() {
-    return new LoopBoundState(loopStack, true);
+  public LoopBoundState setStop(boolean pStop) {
+    if (stopIt == pStop) {
+      return this;
+    }
+    return new LoopBoundState(loopStack, pStop);
   }
 
   public boolean isLoopCounterAbstracted() {
