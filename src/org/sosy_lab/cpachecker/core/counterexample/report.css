@@ -121,17 +121,26 @@ body {
 #err-table td {
     cursor: pointer;
 }
+
+#err-table td.disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 #err-table td:hover {
     font-weight: bold;
 }
+
 #err-table td:first-child {
     border-radius: 6px;
 }
+
 #err-table td pre {
     padding: 0px;
     margin: 0px;
     border: none;
 }
+
 #err-table tr:nth-child(odd) td pre.prettyprint {
     background-color: #f3f3f3;
 }

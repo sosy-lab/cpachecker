@@ -213,7 +213,6 @@
     				alert("Invalid input!");
     				return;
     			}
-    			renderedCfaGraphs = {};
     			d3.selectAll(".cfa-graph").remove();
     			if ($scope.zoomEnabled) {
     				$scope.zoomControl();
@@ -285,7 +284,6 @@
     				alert("Invalid input!");
     				return;
     			}
-    			renderedArgGraphs = {};
     			d3.selectAll(".arg-graph").remove();
     			if ($scope.zoomEnabled) {
     				$scope.argZoomControl();
@@ -339,9 +337,6 @@ if (cfaJson.hasOwnProperty("errorPath")) {
 }
 var graphSplitThreshold = 700;
 var zoomEnabled = false;
-// Graphs already rendered in the master script
-var renderedCfaGraphs = {};
-var renderedArgGraphs = {};
 // A Dagre D3 Renderer
 var render = new dagreD3.render();
 // TODO: different edge weights based on type?
@@ -844,22 +839,17 @@ function init() {
 
 	cfaWorker.addEventListener("message", function(m) {
 		if (m.data.graph !== undefined) {
-			if (renderedCfaGraphs[m.data.id] === undefined) {
-				var id = m.data.id;
-				d3.select("#cfa-container").append("div").attr("id", "cfa-graph-" + id).attr("class", "cfa-graph");
-				var g = createGraph();
-				g = Object.assign(g, JSON.parse(m.data.graph));
-				renderedCfaGraphs[m.data.id] = g;
-				var svg = d3.select("#cfa-graph-" + id).append("svg").attr("id", "cfa-svg-" + id).attr("class", "cfa-svg " + "cfa-svg-" + m.data.func);
-				var svgGroup = svg.append("g");
-				render(d3.select("#cfa-svg-" + id + " g"), g);
-				// Center the graph - calculate svg.attributes
-				svg.attr("height", g.graph().height + constants.margin * 2);
-				svg.attr("width", g.graph().width + constants.margin * 4);
-				svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
-				addEventsToNodes(); // TODO: CFA specific!
-				addEventsToEdges();
-			}
+			var id = m.data.id;
+			d3.select("#cfa-container").append("div").attr("id", "cfa-graph-" + id).attr("class", "cfa-graph");
+			var g = createGraph();
+			g = Object.assign(g, JSON.parse(m.data.graph));
+			var svg = d3.select("#cfa-graph-" + id).append("svg").attr("id", "cfa-svg-" + id).attr("class", "cfa-svg " + "cfa-svg-" + m.data.func);
+			var svgGroup = svg.append("g");
+			render(d3.select("#cfa-svg-" + id + " g"), g);
+			// Center the graph - calculate svg.attributes
+			svg.attr("height", g.graph().height + constants.margin * 2);
+			svg.attr("width", g.graph().width + constants.margin * 4);
+			svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
 		} else if (m.data.status !== undefined) {
 			cfaLoaderDone = true;
 			d3.select("#cfa-loader").style("display", "none");
@@ -867,6 +857,11 @@ function init() {
 				d3.select("#cfa-toolbar").style("visibility", "visible");
 				d3.select("#cfa-container").classed("cfa-content", true);
 				d3.selectAll(".cfa-graph").style("visibility", "visible");
+			}
+			addEventsToNodes(); // TODO: CFA specific!
+			addEventsToEdges();
+			if (argLoaderDone) {
+				d3.selectAll("td.disabled").classed("disabled", false);
 			}
 		}
 	}, false);
@@ -882,33 +877,33 @@ function init() {
 
 	argWorker.addEventListener('message', function(m) {
 		if (m.data.graph !== undefined) {
-			if (renderedArgGraphs[m.data.id] === undefined) {
-				var id = m.data.id;
-				var g = createGraph();
-				g = Object.assign(g, JSON.parse(m.data.graph));
-				renderedArgGraphs[m.data.id] = g;
-				d3.select("#arg-container").append("div").attr("id", "arg-graph" + id).attr("class", "arg-graph");
-				var svg = d3.select("#arg-graph" + id).append("svg").attr("id", "arg-svg" + id).attr("class", "arg-svg");
-				var svgGroup = svg.append("g");
-				render(d3.select("#arg-svg" + id + " g"), g);
-				// Center the graph - calculate svg.attributes
-				svg.attr("height", g.graph().height + constants.margin * 2);
-				svg.attr("width", g.graph().width + constants.margin * 4);
-				svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
-				d3.selectAll(".arg-node tspan").each(function(d,i) {
-					d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
-				})
-				addEventsToNodes(); // TODO: ARG specific!
-				addEventsToEdges();
-			}
+			var id = m.data.id;
+			var g = createGraph();
+			g = Object.assign(g, JSON.parse(m.data.graph));
+			d3.select("#arg-container").append("div").attr("id", "arg-graph" + id).attr("class", "arg-graph");
+			var svg = d3.select("#arg-graph" + id).append("svg").attr("id", "arg-svg" + id).attr("class", "arg-svg");
+			var svgGroup = svg.append("g");
+			render(d3.select("#arg-svg" + id + " g"), g);
+			// Center the graph - calculate svg.attributes
+			svg.attr("height", g.graph().height + constants.margin * 2);
+			svg.attr("width", g.graph().width + constants.margin * 4);
+			svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
+			d3.selectAll(".arg-node tspan").each(function(d,i) {
+				d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
+			})
 		} else if (m.data.status !== undefined) {
 			argLoaderDone = true;
 			d3.select("#arg-loader").attr("display", "none");
-			if($("#report-controller").scope().getTabSet() === 2) {
+			if ($("#report-controller").scope().getTabSet() === 2) {
 				d3.select("#arg-toolbar").style("visibility", "visible");
 				d3.select("#arg-container").classed("arg-content", true);
 				d3.selectAll(".arg-graph").style("visibility", "visible");
-			}			
+			}
+			addEventsToNodes(); // TODO: ARG specific!
+			addEventsToEdges();
+			if (cfaLoaderDone) {
+				d3.selectAll("td.disabled").classed("disabled", false);
+			}
 		}
 	}, false);
 	
