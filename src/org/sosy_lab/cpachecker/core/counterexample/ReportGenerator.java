@@ -463,7 +463,7 @@ public class ReportGenerator {
     try {
       writer.write("\"errorPath\":");
       counterExample.toJSON(writer);
-      writer.write("," + "//CounterExample\n");
+      writer.write(",\n");
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of counter example failed.");
