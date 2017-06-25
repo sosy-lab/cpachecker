@@ -83,20 +83,12 @@ public class LoopBoundState
   }
 
   public LoopBoundState visitLoopHead(LoopEntry pLoopEntry) {
-    return visitLoopHead(pLoopEntry, Integer.MAX_VALUE);
-  }
-
-  public LoopBoundState visitLoopHead(LoopEntry pLoopEntry, int pLoopIterationsBeforeAbstraction) {
     assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
     if (isLoopCounterAbstracted()) {
       return this;
     }
     LoopIterationState loopIterationState = loopStack.peek();
     LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoopEntry);
-    if (pLoopIterationsBeforeAbstraction != 0
-        && newLoopIterationState.getMaxIterationCount() >= pLoopIterationsBeforeAbstraction) {
-      newLoopIterationState = newLoopIterationState.abstractLoopCounter();
-    }
     if (newLoopIterationState != loopIterationState) {
       return new LoopBoundState(
           loopStack.pop().push(newLoopIterationState),
@@ -212,5 +204,17 @@ public class LoopBoundState
       return false;
     }
     return loopStack.equals(pOther.loopStack);
+  }
+
+  public LoopBoundState enforceAbstraction(int pLoopIterationsBeforeAbstraction) {
+    if (loopStack.isEmpty()) {
+      return this;
+    }
+    LoopIterationState currentLoopIterationState = loopStack.peek();
+    LoopIterationState newLoopIterationState = currentLoopIterationState.enforceAbstraction(pLoopIterationsBeforeAbstraction);
+    if (currentLoopIterationState == newLoopIterationState) {
+      return this;
+    }
+    return new LoopBoundState(loopStack.pop().push(newLoopIterationState), stopIt);
   }
 }

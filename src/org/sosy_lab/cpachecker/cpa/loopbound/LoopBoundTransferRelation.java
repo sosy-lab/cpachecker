@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -38,8 +39,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
@@ -49,19 +50,16 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
   private Map<CFANode, Loop> loopHeads = null;
 
-  private final int loopIterationsBeforeAbstraction;
-
-  public LoopBoundTransferRelation(
-      int pLoopIterationsBeforeAbstraction,
-      LoopStructure pLoops) {
-
-    loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
+  public LoopBoundTransferRelation(CFA pCFA) throws CPAException {
+    if (!pCFA.getLoopStructure().isPresent()) {
+      throw new CPAException("LoopBoundCPA cannot work without loop-structure information in CFA.");
+    }
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
     ImmutableMap.Builder<CFANode, Loop> heads = ImmutableMap.builder();
 
-    for (Loop l : pLoops.getAllLoops()) {
+    for (Loop l : pCFA.getLoopStructure().get().getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
       Iterable<CFAEdge> incomingEdges = filter(l.getIncomingEdges(),
                                                not(instanceOf(FunctionReturnEdge.class)));
@@ -124,7 +122,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     Loop loop = loopHeads.get(loc);
     assert newLoop == null || newLoop.equals(loop);
     if (loop != null) {
-      state = state.visitLoopHead(new LoopEntry(loc, loop), loopIterationsBeforeAbstraction);
+      state = state.visitLoopHead(new LoopEntry(loc, loop));
       // Check if the bound for unrolling has been reached;
       // this check is also performed by the precision adjustment,
       // but we need to do it here, too,
@@ -133,6 +131,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
           && state.getDeepestIteration() > precision.getMaxLoopIterations()) {
         state = state.setStop(true);
       }
+      state = state.enforceAbstraction(precision.getLoopIterationsBeforeAbstraction());
     }
 
     return Collections.singleton(state);

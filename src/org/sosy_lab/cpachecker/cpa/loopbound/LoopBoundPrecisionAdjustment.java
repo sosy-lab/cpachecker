@@ -54,6 +54,11 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
   @Option(secure=true, description="this option controls how the maxLoopIterations condition is adjusted when a condition adjustment is invoked.")
   private MaxLoopIterationAdjusters maxLoopIterationAdjusterFactory = MaxLoopIterationAdjusters.STATIC;
 
+  @Option(secure=true,
+      description="Number of loop iterations before the loop counter is"
+          + " abstracted. Zero is equivalent to no limit.")
+  private int loopIterationsBeforeAbstraction = 0;
+
   private final LogManager logger;
 
   public LoopBoundPrecisionAdjustment(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
@@ -73,6 +78,19 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
     maxLoopIterations = pMaxLoopIterations;
   }
 
+  public int getLoopIterationsBeforeAbstraction() {
+    return loopIterationsBeforeAbstraction;
+  }
+
+  private void setLoopIterationsBeforeAbstraction(int pLoopIterationsBeforeAbstraction) {
+    Preconditions.checkArgument(pLoopIterationsBeforeAbstraction >= 0);
+    loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
+  }
+
+  public void incrementLoopIterationsBeforeAbstraction() {
+    setLoopIterationsBeforeAbstraction(getLoopIterationsBeforeAbstraction() + 1);
+  }
+
   @Override
   public String toString() {
     return "k = " + maxLoopIterations + ", adjustment strategy = " + maxLoopIterationAdjusterFactory;
@@ -84,10 +102,14 @@ public class LoopBoundPrecisionAdjustment implements PrecisionAdjustment {
       AbstractState pFullState) throws CPAException, InterruptedException {
 
     LoopBoundPrecision precision = (LoopBoundPrecision) pPrecision;
-    LoopBoundPrecision adjustedPrecision = precision.withMaxLoopIterations(maxLoopIterations);
+    LoopBoundPrecision adjustedPrecision = precision
+        .withMaxLoopIterations(maxLoopIterations)
+        .withLoopIterationsBeforeAbstraction(loopIterationsBeforeAbstraction);
 
     LoopBoundState state = (LoopBoundState) pState;
-    LoopBoundState adjustedState = state.setStop(maxLoopIterations > 0 && state.getDeepestIteration() > maxLoopIterations);
+    LoopBoundState adjustedState = state
+        .setStop(maxLoopIterations > 0 && state.getDeepestIteration() > maxLoopIterations)
+        .enforceAbstraction(loopIterationsBeforeAbstraction == 0 ? Integer.MAX_VALUE : loopIterationsBeforeAbstraction);
 
     PrecisionAdjustmentResult result = PrecisionAdjustmentResult.create(adjustedState, adjustedPrecision, Action.CONTINUE);
 

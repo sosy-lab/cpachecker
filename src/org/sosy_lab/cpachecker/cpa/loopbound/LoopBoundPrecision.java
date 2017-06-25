@@ -33,10 +33,14 @@ public class LoopBoundPrecision implements Precision {
 
   private final int maxLoopIterations;
 
-  public LoopBoundPrecision(boolean pStack, int pMaxLoopIterations) {
+  private final int loopIterationsBeforeAbstraction;
+
+  public LoopBoundPrecision(boolean pStack, int pMaxLoopIterations, int pLoopIterationsBeforeAbstraction) {
     Preconditions.checkArgument(pMaxLoopIterations >= 0);
+    Preconditions.checkArgument(pLoopIterationsBeforeAbstraction >= 0);
     trackStack = pStack;
     maxLoopIterations = pMaxLoopIterations;
+    loopIterationsBeforeAbstraction = pLoopIterationsBeforeAbstraction;
   }
 
   public boolean shouldTrackStack() {
@@ -47,11 +51,22 @@ public class LoopBoundPrecision implements Precision {
     return maxLoopIterations;
   }
 
+  public int getLoopIterationsBeforeAbstraction() {
+    return loopIterationsBeforeAbstraction;
+  }
+
   public LoopBoundPrecision withMaxLoopIterations(int pMaxLoopIterations) {
     if (pMaxLoopIterations == maxLoopIterations) {
       return this;
     }
-    return new LoopBoundPrecision(trackStack, pMaxLoopIterations);
+    return new LoopBoundPrecision(trackStack, pMaxLoopIterations, loopIterationsBeforeAbstraction);
+  }
+
+  public LoopBoundPrecision withLoopIterationsBeforeAbstraction(int pLoopIterationsBeforeAbstraction) {
+    if (pLoopIterationsBeforeAbstraction == loopIterationsBeforeAbstraction) {
+      return this;
+    }
+    return new LoopBoundPrecision(trackStack, maxLoopIterations, pLoopIterationsBeforeAbstraction);
   }
 
   @Override

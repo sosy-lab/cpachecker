@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import java.io.PrintStream;
 import java.util.Collection;
@@ -41,11 +40,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
@@ -54,13 +51,11 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -70,15 +65,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class LoopBoundCPA extends AbstractCPA
     implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics, LoopIterationBounding {
 
-  @Option(secure=true,
-      description="Number of loop iterations before the loop counter is"
-          + " abstracted. Zero is equivalent to no limit.")
-  private int loopIterationsBeforeAbstraction = 0;
-
   @Option(secure=true, description="enable stack-based tracking of loops")
   private boolean trackStack = false;
-
-  private final DelegatingTransferRelation transferRelation;
 
   public static CPAFactory factory() {
     return new LoopBoundCPAFactory();
@@ -88,20 +76,10 @@ public class LoopBoundCPA extends AbstractCPA
 
   private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
-  public LoopBoundCPA(Configuration config, CFA pCfa, LogManager pLogger) throws InvalidConfigurationException, CPAException {
-    this(config, pCfa, pLogger, new DelegatingTransferRelation());
-  }
-
-  private LoopBoundCPA(Configuration pConfig, CFA pCfa, LogManager pLogger, DelegatingTransferRelation pDelegatingTransferRelation) throws InvalidConfigurationException, CPAException {
-    super("sep", "sep", LoopBoundDomain.INSTANCE, pDelegatingTransferRelation);
-    if (!pCfa.getLoopStructure().isPresent()) {
-      throw new CPAException("LoopBoundCPA cannot work without loop-structure information in CFA.");
-    }
-    loopStructure = pCfa.getLoopStructure().get();
+  LoopBoundCPA(Configuration pConfig, CFA pCFA, LogManager pLogger) throws InvalidConfigurationException, CPAException {
+    super("sep", "sep", LoopBoundDomain.INSTANCE, new LoopBoundTransferRelation(pCFA));
+    loopStructure = pCFA.getLoopStructure().get();
     pConfig.inject(this);
-    this.transferRelation = pDelegatingTransferRelation;
-    this.transferRelation.setDelegate(new LoopBoundTransferRelation(
-        loopIterationsBeforeAbstraction, loopStructure));
     precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pLogger);
   }
 
@@ -118,15 +96,10 @@ public class LoopBoundCPA extends AbstractCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    return new LoopBoundPrecision(trackStack, precisionAdjustment.getMaxLoopIterations());
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    if (this.transferRelation == null) {
-      return super.getTransferRelation();
-    }
-    return this.transferRelation;
+    return new LoopBoundPrecision(
+        trackStack,
+        precisionAdjustment.getMaxLoopIterations(),
+        precisionAdjustment.getLoopIterationsBeforeAbstraction());
   }
 
   @Override
@@ -185,38 +158,6 @@ public class LoopBoundCPA extends AbstractCPA
     }
   }
 
-  private static class DelegatingTransferRelation extends SingleEdgeTransferRelation {
-
-    private TransferRelation delegate = null;
-
-    public DelegatingTransferRelation() {
-      this(null);
-    }
-
-    public DelegatingTransferRelation(TransferRelation pDelegate) {
-      this.delegate = pDelegate;
-    }
-
-    public void setDelegate(TransferRelation pNewDelegate) {
-      this.delegate = pNewDelegate;
-    }
-
-    @Override
-    public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-        AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-            throws CPATransferException, InterruptedException {
-      Preconditions.checkState(delegate != null);
-      return this.delegate.getAbstractSuccessorsForEdge(pState, pPrecision, pCfaEdge);
-    }
-
-    @Override
-    public Collection<? extends AbstractState> strengthen(AbstractState pState, List<AbstractState> pOtherStates,
-        CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException, InterruptedException {
-      return this.delegate.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
-    }
-
-  }
-
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(this);
@@ -245,9 +186,6 @@ public class LoopBoundCPA extends AbstractCPA
   @Override
   public void setMaxLoopIterations(int pMaxLoopIterations) {
     precisionAdjustment.setMaxLoopIterations(pMaxLoopIterations);
-    this.transferRelation.setDelegate(new LoopBoundTransferRelation(
-        loopIterationsBeforeAbstraction,
-        loopStructure));
   }
 
   @Override
@@ -256,9 +194,6 @@ public class LoopBoundCPA extends AbstractCPA
   }
 
   public void incrementLoopIterationsBeforeAbstraction() {
-    loopIterationsBeforeAbstraction++;
-    this.transferRelation.setDelegate(new LoopBoundTransferRelation(
-        loopIterationsBeforeAbstraction,
-        loopStructure));
+    precisionAdjustment.incrementLoopIterationsBeforeAbstraction();
   }
 }
