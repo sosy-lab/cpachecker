@@ -557,9 +557,6 @@ function init() {
     				function() {
     					return {};
     				});
-    		g.graph().transition = function(selection) {
-    			return selection.transition().duration(500);
-    		};
     		return g;
     	}
     	
@@ -802,9 +799,6 @@ function init() {
     				function() {
     					return {};
     				});
-    		g.graph().transition = function(selection) {
-    			return selection.transition().duration(500);
-    		};
     		return g;
     	}
     	
@@ -933,9 +927,6 @@ function init() {
 				function() {
 					return {};
 				});
-		g.graph().transition = function(selection) {
-			return selection.transition().duration(500);
-		};
 		return g;
 	}
 	
