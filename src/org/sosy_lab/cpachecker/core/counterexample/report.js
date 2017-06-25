@@ -697,7 +697,7 @@ function init() {
 	 */
 	function argWorker_function() {
 		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
-		var json, nodes, edges;
+		var json, nodes, edges, errorPath;
 		var graphSplitThreshold = 700;
 		var graphMap = {};
 		self.addEventListener("message", function(m) {
@@ -706,6 +706,9 @@ function init() {
 				nodes = json.nodes;
 				edges = json.edges;
 				buildGraphsAndPostResults()
+			} else if (m.data.errorPath !== undefined) {
+				errorPath = JSON.parse(m.data.errorPath);
+				console.log(errorPath);
 			} else if (m.data.split !== undefined) {
     			graphSplitThreshold = m.data.split;
     			graphMap = {};
@@ -871,9 +874,7 @@ function init() {
 	}, false);
 
 	// Initial postMessage to the CFA worker to trigger CFA graph(s) creation
-	setTimeout(function() {
-		cfaWorker.postMessage({"json" : JSON.stringify(cfaJson)});
-	}, 2000);
+	cfaWorker.postMessage({"json" : JSON.stringify(cfaJson)});
 
 	argWorker.addEventListener('message', function(m) {
 		if (m.data.graph !== undefined) {
@@ -912,9 +913,10 @@ function init() {
 	}, false);
 	
 	// Initial postMessage to the ARG worker to trigger ARG graph(s) creation
-	setTimeout(function() {
-		argWorker.postMessage({"json" : JSON.stringify(argJson)});
-	}, 2000);
+	if (errorPath !== undefined) {
+		argWorker.postMessage({"errorPath" : JSON.stringify(errorPath)});
+	}
+	argWorker.postMessage({"json" : JSON.stringify(argJson)});
 	
 	// create and return a graph element with a set transition
 	function createGraph() {
