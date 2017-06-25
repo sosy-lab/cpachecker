@@ -146,7 +146,6 @@
 	
 	app.controller('CFAToolbarController', ['$scope', 
 		function($scope) {
-			$scope.cfaWorker = cfaWorker;
 			if (functions.length > 1) {
 	    		$scope.functions = ["all"].concat(functions);
 			} else {
@@ -187,7 +186,7 @@
     				d3.select("#cfa-zoom-label").text(" Zoom Disabled ");
     				// revert zoom and remove listeners
     				d3.selectAll(".cfa-svg").each(function(d, i) {
-    					var zoom = d3.behavior.zoom().on("zoom", null);
+    					var zoom = d3.behavior.zoom().on("zoom", null).on("wheel.zoom", null);
     					d3.select(this).call(zoom);
     					d3.select(this.firstChild).attr("transform", $scope.originalTranslations[i]);
     				});
@@ -223,15 +222,7 @@
     			d3.select("#cfa-toolbar").style("visibility", "hidden");
     			cfaLoaderDone = false;
     			d3.select("#cfa-loader").style("display", "inline");
-    			cfaRefreshInterval = setInterval(function() {
-    				var loader = $("#cfa-loader");
-    				if (loader.html().length > 23) {
-    					loader.html("Rendering CFA Graphs ");
-    				} else {
-    					loader.html(loader.html() + ".");
-    				}
-    			},150);
-    			$scope.cfaWorker.postMessage({"split" : input});
+    			cfaWorker.postMessage({"split" : input});
     		};
     		
     		$scope.validateInput = function(input) {
@@ -248,7 +239,6 @@
 	
 	app.controller('ARGToolbarController', ['$scope',
 		function($scope) {
-			$scope.argWorker = argWorker;
 			$scope.zoomEnabled = false;
 			$scope.argSelections = ["complete"];
 			if (errorPath !== undefined) {
@@ -268,7 +258,7 @@
     				d3.select("#arg-zoom-label").text(" Zoom Disabled ");
     				// revert zoom and remove listeners
     				d3.selectAll(".arg-svg").each(function(d, i) {
-    					var zoom = d3.behavior.zoom().on("zoom", null);
+    					var zoom = d3.behavior.zoom().on("zoom", null).on("wheel.zoom", null);
     					d3.select(this).call(zoom);
     					d3.select(this.firstChild).attr("transform", $scope.originalTranslations[i]);
     				});
@@ -302,15 +292,7 @@
     			}
     			d3.select("#arg-toolbar").style("visibility", "hidden");
     			d3.select("#arg-loader").style("display", "inline");
-    			argRefreshInterval = setInterval(function() {
-    				var loader = $("#arg-loader");
-    				if (loader.html().length > 23) {
-    					loader.html("Rendering ARG Graphs ");
-    				} else {
-    					loader.html(loader.html() + ".");
-    				}
-    			},150);
-    			$scope.argWorker.postMessage({"split" : input});
+    			argWorker.postMessage({"split" : input});
     		};
     		
     		$scope.validateInput = function(input) {
@@ -378,7 +360,7 @@ const constants = {
 	beforeNode : "before",
 	margin : 20,
 }
-var cfaWorker, argWorker, cfaRefreshInterval, argRefreshInterval;
+var cfaWorker, argWorker;
 var cfaLoaderDone = false;
 var argLoaderDone = false;
 
@@ -885,7 +867,6 @@ function init() {
 				addEventsToEdges();
 			}
 		} else if (m.data.status !== undefined) {
-			clearInterval(cfaRefreshInterval);
 			cfaLoaderDone = true;
 			d3.select("#cfa-loader").style("display", "none");
 			if($("#report-controller").scope().getTabSet() === 1) {
@@ -927,7 +908,6 @@ function init() {
 				addEventsToEdges();
 			}
 		} else if (m.data.status !== undefined) {
-			clearInterval(argRefreshInterval);
 			argLoaderDone = true;
 			d3.select("#arg-loader").attr("display", "none");
 			if($("#report-controller").scope().getTabSet() === 2) {
@@ -976,24 +956,6 @@ function init() {
 			.on("mouseout", function(){hideInfoBoxEdge();})
 		// TODO: edge.on("click")
 	}	
-	
-	cfaRefreshInterval = setInterval(function() {
-		var loader = $("#cfa-loader");
-		if (loader.html().length > 23) {
-			loader.html("Rendering CFA Graphs ");
-		} else {
-			loader.html(loader.html() + ".");
-		}
-	},150);
-	
-	argRefreshInterval = setInterval(function() {
-		var loader = $("#arg-loader");
-		if (loader.html().length > 23) {
-			loader.html("Rendering ARG Graphs ");
-		} else {
-			loader.html(loader.html() + ".");
-		}
-	},150);
 	
 	// on mouse over display info box for node
 	function showInfoBoxNode(e, nodeIndex) {
