@@ -5,6 +5,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
@@ -40,14 +41,8 @@ public class UsagePoint implements Comparable<UsagePoint> {
       }
       UsagePointWithEmptyLockSet other = (UsagePointWithEmptyLockSet) obj;
       //This is for distinction usages with empty sets of locks
-      if (keyUsage == null) {
-        if (other.keyUsage != null) {
-          return false;
-        }
-      } else if (!keyUsage.equals(other.keyUsage)) {
-        return false;
-      }
-      return true;
+
+      return Objects.equals(keyUsage, other.keyUsage);
     }
 
     @Override
@@ -144,24 +139,15 @@ public class UsagePoint implements Comparable<UsagePoint> {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     UsagePoint other = (UsagePoint) obj;
     if (access != other.access) {
       return false;
     }
-    if (compatibleNodes == null) {
-      if (other.compatibleNodes != null) {
-        return false;
-      }
-    } else if (!compatibleNodes.equals(other.compatibleNodes)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(compatibleNodes, other.compatibleNodes);
   }
 
   @Override

@@ -1,16 +1,14 @@
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import com.google.common.collect.Sets;
 
 public class UsageInfoSet {
   private final SortedSet<UsageInfo> unrefinedUsages;
@@ -44,7 +42,7 @@ public class UsageInfoSet {
       UsageInfo uinfo = iterator.next();
       AbstractState keyState = uinfo.getKeyState();
       assert (keyState != null);
-      if (AbstractStates.extractStateByType(keyState, UsageState.class).equals(pUstate)) {
+      if (UsageState.get(keyState).equals(pUstate)) {
         iterator.remove();
         changed = true;
       }
@@ -57,7 +55,7 @@ public class UsageInfoSet {
   }
 
   public UsageInfo getOneExample() {
-    return unrefinedUsages.iterator().next();
+    return Iterables.get(unrefinedUsages, 0);
   }
 
   public Set<UsageInfo> getUsages() {
