@@ -36,6 +36,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -107,7 +108,7 @@ public abstract class ErrorTracePrinter {
     }
   }
 
-  protected void createPath(UsageInfo usage) {
+  private void createPath(UsageInfo usage) {
     assert usage.getKeyState() != null;
 
     Function<ARGState, Integer> dummyFunc = s -> s.getStateId();
@@ -179,7 +180,7 @@ public abstract class ErrorTracePrinter {
       Set<SingleIdentifier> initialUnsafes = container.getInitialUnsafes();
       Set<SingleIdentifier> falseUnsafes = Sets.difference(initialUnsafes, currentUnsafes);
 
-      if (falseUnsafes.size() > 0) {
+      if (!falseUnsafes.isEmpty()) {
         try (Writer writer = Files.newBufferedWriter(Paths.get(outputFalseUnsafes.toString()), Charset.defaultCharset())) {
           logger.log(Level.FINE, "Print statistics about false unsafes");
 
@@ -205,12 +206,24 @@ public abstract class ErrorTracePrinter {
     out.println("Time for reseting unsafes:     " + container.resetTimer);
   }
 
-  protected String shouldBeHighlighted(CFAEdge pEdge) {
+  protected String getNoteFor(CFAEdge pEdge) {
     if (lockTransfer != null) {
       return lockTransfer.doesChangeTheState(pEdge);
     } else {
       return null;
     }
+  }
+
+  protected List<CFAEdge> getPath(UsageInfo usage) {
+    if (usage.getPath() == null) {
+      createPath(usage);
+    }
+    List<CFAEdge> path = usage.getPath();
+
+    if (path.isEmpty()) {
+      return null;
+    }
+    return path;
   }
 
   protected abstract void printUnsafe(SingleIdentifier id, Pair<UsageInfo, UsageInfo> pair);

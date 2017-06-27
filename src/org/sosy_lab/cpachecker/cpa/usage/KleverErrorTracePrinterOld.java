@@ -78,14 +78,8 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     UsageInfo secondUsage = pTmpPair.getSecond();
     List<CFAEdge> firstPath, secondPath;
 
-    if (firstUsage.getPath() == null) {
-      createPath(firstUsage);
-    }
-    firstPath = firstUsage.getPath();
-    if (secondUsage.getPath() == null) {
-      createPath(secondUsage);
-    }
-    secondPath = secondUsage.getPath();
+    firstPath = getPath(firstUsage);
+    secondPath = getPath(secondUsage);
 
     if (firstPath == null || secondPath == null) {
       return;
@@ -171,7 +165,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
       result = builder.createEdgeElement(currentId, nextId);
       dumpCommonInfoForEdge(builder, result, pEdge);
 
-      String note = shouldBeHighlighted(pEdge);
+      String note = getNoteFor(pEdge);
       if (!note.isEmpty()) {
         builder.addDataElementChild(result, KeyDef.NOTE, note);
       }

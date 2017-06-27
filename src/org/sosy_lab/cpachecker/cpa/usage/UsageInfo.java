@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -77,7 +78,7 @@ public class UsageInfo implements Comparable<UsageInfo> {
     id = ident;
   }
 
-  public static UsageInfo createUsageInfo(@Nonnull Access atype,  int l,
+  public static UsageInfo createUsageInfo(@Nonnull Access atype, int l,
       @Nonnull UsageState state, AbstractIdentifier ident) {
     if (ident instanceof SingleIdentifier) {
       UsageInfo result = new UsageInfo(atype, new LineInfo(l, AbstractStates.extractLocation(state)), (SingleIdentifier)ident);
@@ -139,28 +140,14 @@ public class UsageInfo implements Comparable<UsageInfo> {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     UsageInfo other = (UsageInfo) obj;
-    if (accessType != other.accessType) {
-      return false;
-    }
-    if (line == null) {
-      if (other.line != null) {
-        return false;
-      }
-    } else if (!line.equals(other.line)) {
-      return false;
-    }
-    if (compatibleStates == null) {
-      if (other.compatibleStates != null) {
-        return false;
-      }
-    } else if (!compatibleStates.equals(other.compatibleStates)) {
+    if (accessType != other.accessType
+        || !Objects.equals(line, other.line)
+        || !Objects.equals(compatibleStates, other.compatibleStates)) {
       return false;
     }
     return true;

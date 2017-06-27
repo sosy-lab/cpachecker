@@ -30,8 +30,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.Appender;
@@ -65,12 +67,46 @@ import org.w3c.dom.Element;
 
 public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
+  private static class ThreadIterator implements Iterator<Integer> {
+    private Set<Integer> usedThreadIds;
+    private int currentThread;
+
+    public ThreadIterator() {
+      usedThreadIds = new HashSet<>();
+      currentThread = 0;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return true;
+    }
+
+    @Override
+    public Integer next() {
+      int nextThread = currentThread + 1;
+      while (usedThreadIds.contains(nextThread)) {
+        nextThread = currentThread + 1;
+      }
+      currentThread = nextThread;
+      usedThreadIds.add(new Integer(nextThread));
+      return getCurrentThread();
+    }
+
+    public int getCurrentThread() {
+      return currentThread;
+    }
+
+    public void setCurrentThread(int newVal) {
+      currentThread = newVal;
+    }
+  }
+
   public KleverErrorTracePrinter(Configuration c, BAMTransferRelation pT, LogManager pL, LockTransferRelation lT) throws InvalidConfigurationException {
     super(c, pT, pL, lT);
   }
 
   int idCounter = 0;
-  int currentThread = 0;
+  ThreadIterator threadIterator;
 
   private String getCurrentId() {
     return "A" + idCounter;
@@ -89,14 +125,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     UsageInfo secondUsage = pTmpPair.getSecond();
     List<CFAEdge> firstPath, secondPath;
 
-    if (firstUsage.getPath() == null) {
-      createPath(firstUsage);
-    }
-    firstPath = firstUsage.getPath();
-    if (secondUsage.getPath() == null) {
-      createPath(secondUsage);
-    }
-    secondPath = secondUsage.getPath();
+    firstPath = getPath(firstUsage);
+    secondPath = getPath(secondUsage);
 
     if (firstPath == null || secondPath == null) {
       return;
@@ -110,9 +140,8 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
           MachineModel.LINUX64, new VerificationTaskMetaData(config, java.util.Optional.empty()));
 
       idCounter = 0;
-      currentThread = 0;
-      String nextId = getCurrentId(), forkId;
-      Element result = builder.createNodeElement(nextId, NodeType.ONPATH);
+      threadIterator = new ThreadIterator();
+      Element result = builder.createNodeElement(getCurrentId(), NodeType.ONPATH);
       builder.addDataElementChild(result, NodeFlag.ISENTRY.key , "true");
 
       Iterator<CFAEdge> firstIterator = getIterator(firstPath);
@@ -149,14 +178,12 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
         secondEdge = secondIterator.next();
       }
 
-      forkId = getCurrentId();
-      forkThread = currentThread;
-
+      forkThread = threadIterator.getCurrentThread();
       printEdge(builder, firstEdge);
       printPath(firstUsage, firstIterator, builder);
 
-      currentThread = forkThread;
-      printEdge(builder, secondEdge, forkId, getNextId());
+      threadIterator.setCurrentThread(forkThread);
+      printEdge(builder, secondEdge);
       printPath(secondUsage, secondIterator, builder);
 
       builder.addDataElementChild(currentNode, NodeFlag.ISVIOLATION.key, "true");
@@ -172,9 +199,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     } catch (InvalidConfigurationException e1) {
       logger.log(Level.SEVERE, "Exception during printing unsafe " + pId + ": " + e1.getMessage());
     }
-
   }
-
 
   private void printPath(UsageInfo usage, Iterator<CFAEdge> iterator, GraphMlBuilder builder) {
     SingleIdentifier pId = usage.getId();
@@ -212,7 +237,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     Element result = builder.createEdgeElement(currentId, nextId);
     dumpCommonInfoForEdge(builder, result, edge);
 
-    String note = shouldBeHighlighted(edge);
+    String note = getNoteFor(edge);
     if (!note.isEmpty()) {
       builder.addDataElementChild(result, KeyDef.NOTE, note);
     }
@@ -248,20 +273,19 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       builder.addDataElementChild(result, KeyDef.SOURCECODE, pEdge.getRawStatement());
     }
 
-    builder.addDataElementChild(result, KeyDef.THREADID, Integer.toString(currentThread));
+    builder.addDataElementChild(result, KeyDef.THREADID, Integer.toString(threadIterator.getCurrentThread()));
     if (pEdge instanceof CFunctionCallEdge) {
       CFunctionCall fCall = ((CFunctionCallEdge)pEdge).getSummaryEdge().getExpression();
       if (fCall instanceof CThreadCreateStatement) {
-        currentThread++;
-        builder.addDataElementChild(result, KeyDef.CREATETHREAD, Integer.toString(currentThread));
+        builder.addDataElementChild(result, KeyDef.CREATETHREAD, Integer.toString(threadIterator.next()));
       }
     }
   }
-
 
   private Iterator<CFAEdge> getIterator(List<CFAEdge> path) {
     return from(path)
         .filter(FILTER_EMPTY_FILE_LOCATIONS)
         .iterator();
   }
+
 }

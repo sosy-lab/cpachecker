@@ -31,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
+import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -140,15 +141,16 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
     if (usage.isLooped()) {
       writer.append("Line 0:     N0 -{/*Failure in refinement*/}-> N0\n");
     }
-    if (usage.getPath() == null && usage.getKeyState() != null) {
-      createPath(usage);
+    List<CFAEdge> path = getPath(usage);
+    if (path == null) {
+      return;
     }
     int callstackDepth = 1;
     /*
      * We must use iterator to be sure, when is the end of the list.
      * I tried to check the edge, it is the last, but it can be repeated during the sequence
      */
-    Iterator<CFAEdge> iterator = usage.getPath().iterator();
+    Iterator<CFAEdge> iterator = path.iterator();
     while (iterator.hasNext()) {
       CFAEdge edge = iterator.next();
       if (edge instanceof CDeclarationEdge) {
@@ -166,7 +168,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
         assert callstackDepth > 0;
         callstackDepth--;
       }
-      String caption = shouldBeHighlighted(edge);
+      String caption = getNoteFor(edge);
       if (!caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
         writer.write("Line 0:     N0 -{/*" + caption + "*/}-> N0\n");
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
