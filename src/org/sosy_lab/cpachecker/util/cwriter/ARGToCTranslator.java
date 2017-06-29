@@ -197,6 +197,12 @@ public class ARGToCTranslator {
     NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA;
   }
 
+  public static enum BlockTreatmentAtFunctionEnd {
+    CLOSEFUNCTIONBLOCK,
+    ADDNEWBLOCK,
+    KEEPBLOCK;
+  }
+
   private final LogManager logger;
   private final List<String> globalDefinitionsList = new ArrayList<>();
   private final Set<ARGState> discoveredElements = new HashSet<>();
@@ -212,6 +218,9 @@ public class ARGToCTranslator {
 
   @Option(secure=true, name="header", description="write include directives")
   private boolean includeHeader = true;
+
+  @Option(secure=true, name="blockAtFunctionEnd", description="Only enable CLOSEFUNCTIONBLOCK if you are sure that the ARG merges different flows through a function at the end of the function.")
+  private BlockTreatmentAtFunctionEnd handleCompoundStatementAtEndOfFunction = BlockTreatmentAtFunctionEnd.KEEPBLOCK;
 
   @Option(secure=true, name="handleTargetStates", description="How to deal with target states during code generation")
   private TargetTreatment targetStrategy = TargetTreatment.NONE;
@@ -660,18 +669,19 @@ public class ARGToCTranslator {
     return newBlock;
   }
 
-  private CompoundStatement processReturnStatementCall(CFunctionSummaryEdge pEdge, CompoundStatement pCurrentBlock, int id) {
+  private CompoundStatement processReturnStatementCall(CFunctionSummaryEdge pEdge,
+      CompoundStatement pCurrentBlock, int id) {
     CFunctionCall retExp = pEdge.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
       //end of void function, just leave block (no assignment needed)
-      return getInnerMostInlinedFunction(pCurrentBlock).getSurroundingBlock();
+      return getBlockAfterEndOfFunction(pCurrentBlock);
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
+      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement) retExp;
 
       String returnVar = "__return_" + id;
       String leftHandSide = exp.getLeftHandSide().toASTString();
 
-      pCurrentBlock = getInnerMostInlinedFunction(pCurrentBlock).getSurroundingBlock();
+      pCurrentBlock = getBlockAfterEndOfFunction(pCurrentBlock);
       pCurrentBlock.addStatement(new SimpleStatement(leftHandSide + " = " + returnVar + ";"));
 
       return pCurrentBlock;
@@ -682,11 +692,22 @@ public class ARGToCTranslator {
     return null;
   }
 
-  private CompoundStatement getInnerMostInlinedFunction(CompoundStatement currentBlock) {
-    while (!(currentBlock instanceof InlinedFunction)) {
-      currentBlock = currentBlock.getSurroundingBlock();
+  private CompoundStatement getBlockAfterEndOfFunction(
+      CompoundStatement currentBlock) {
+    switch (handleCompoundStatementAtEndOfFunction) {
+      case CLOSEFUNCTIONBLOCK:
+        while (!(currentBlock instanceof InlinedFunction)) {
+          currentBlock = currentBlock.getSurroundingBlock();
+        }
+        return currentBlock.getSurroundingBlock();
+      case ADDNEWBLOCK:
+        currentBlock = new CompoundStatement(currentBlock);
+        currentBlock.getSurroundingBlock().addStatement(currentBlock);
+        return currentBlock;
+      default: // KEEPBLOCK
+        return currentBlock;
     }
-    return currentBlock;
+
   }
 
   private @Nullable Statement processTargetState(final ARGState pTargetState,
