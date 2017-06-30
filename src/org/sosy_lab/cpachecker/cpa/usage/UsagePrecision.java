@@ -23,17 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import com.google.common.base.Predicate;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
-
-import com.google.common.base.Predicate;
 
 
 public class UsagePrecision implements WrapperPrecision {
@@ -73,8 +72,8 @@ public class UsagePrecision implements WrapperPrecision {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((localStatistics == null) ? 0 : localStatistics.hashCode());
-    result = prime * result + ((wrappedPrecision == null) ? 0 : wrappedPrecision.hashCode());
+    result = prime * result + Objects.hashCode(localStatistics);
+    result = prime * result + Objects.hashCode(wrappedPrecision);
     return result;
   }
 
@@ -83,28 +82,13 @@ public class UsagePrecision implements WrapperPrecision {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     UsagePrecision other = (UsagePrecision) obj;
-    if (localStatistics == null) {
-      if (other.localStatistics != null) {
-        return false;
-      }
-    } else if (!localStatistics.equals(other.localStatistics)) {
-      return false;
-    }
-    if (wrappedPrecision == null) {
-      if (other.wrappedPrecision != null) {
-        return false;
-      }
-    } else if (!wrappedPrecision.equals(other.wrappedPrecision)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(localStatistics, other.localStatistics)
+        && Objects.equals(wrappedPrecision, other.wrappedPrecision);
   }
 
   @Override

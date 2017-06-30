@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -142,12 +143,8 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   }
 
   private boolean checkSharednessOfComposedIds(AbstractIdentifier name) {
-    if (from(name.getComposedIdentifiers())
-        .anyMatch(id -> isGlobal(id))) {
-      return true;
-    } else {
-      return false;
-    }
+    return from(name.getComposedIdentifiers())
+        .anyMatch(id -> isGlobal(id));
   }
 
   public void set(AbstractIdentifier name, DataType type) {
@@ -226,10 +223,7 @@ public class LocalState implements LatticeAbstractState<LocalState> {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((DataInfo == null) ? 0 : DataInfo.hashCode());
-    return result;
+    return Objects.hashCode(DataInfo);
   }
 
   @Override
@@ -237,21 +231,12 @@ public class LocalState implements LatticeAbstractState<LocalState> {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     LocalState other = (LocalState) obj;
-    if (DataInfo == null) {
-      if (other.DataInfo != null) {
-        return false;
-      }
-    } else if (!DataInfo.equals(other.DataInfo)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(DataInfo, other.DataInfo);
   }
 
   public String toLog() {

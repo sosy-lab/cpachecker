@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
@@ -316,10 +317,7 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((locks == null) ? 0 : locks.hashCode());
-    return result;
+    return Objects.hashCode(locks);
   }
 
   @Override
@@ -327,28 +325,15 @@ public class LockState implements LatticeAbstractState<LockState>, Serializable,
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     LockState other = (LockState) obj;
-    if (locks == null) {
-      if (other.locks != null) {
-        return false;
-      }
-    } else if (!locks.equals(other.locks)) {
+    if (!Objects.equals(locks, other.locks)) {
       return false;
     }
-    if (toRestore == null) {
-      if (other.toRestore != null) {
-        return false;
-      }
-    } else if (!toRestore.equals(other.toRestore)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(toRestore, other.toRestore);
   }
 
   /**

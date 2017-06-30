@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.identifiers;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class LocalVariableIdentifier extends VariableIdentifier {
@@ -37,7 +38,7 @@ public class LocalVariableIdentifier extends VariableIdentifier {
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result + ((function == null) ? 0 : function.hashCode());
+    result = prime * result + Objects.hashCode(function);
     return result;
   }
 
@@ -46,21 +47,12 @@ public class LocalVariableIdentifier extends VariableIdentifier {
     if (this == obj) {
       return true;
     }
-    if (!super.equals(obj)) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!super.equals(obj) ||
+        getClass() != obj.getClass()) {
       return false;
     }
     LocalVariableIdentifier other = (LocalVariableIdentifier) obj;
-    if (function == null) {
-      if (other.function != null) {
-        return false;
-      }
-    } else if (!function.equals(other.function)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(function, other.function);
   }
 
   @Override
@@ -75,12 +67,6 @@ public class LocalVariableIdentifier extends VariableIdentifier {
 
   public String getFunction() {
     return function;
-  }
-
-  //it needs to set function after creation in lockStatistics.
-  //In shared analysis function isn't used because of reducing
-  public void setFunction(String func) {
-    function = func;
   }
 
   @Override

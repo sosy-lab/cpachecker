@@ -21,15 +21,14 @@ public class UsagePoint implements Comparable<UsagePoint> {
 
     private UsagePointWithEmptyLockSet(List<UsageTreeNode> nodes, Access pAccess, UsageInfo pInfo) {
       super(nodes, pAccess);
-      assert pInfo != null;
-      keyUsage = pInfo;
+      keyUsage = Objects.requireNonNull(pInfo);
     }
 
     @Override
     public int hashCode() {
       final int prime = 31;
       int result = super.hashCode();
-      result = prime * result + ((keyUsage == null) ? 0 : keyUsage.hashCode());
+      result = prime * result + Objects.hashCode(keyUsage);
       return result;
     }
 
@@ -129,8 +128,8 @@ public class UsagePoint implements Comparable<UsagePoint> {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((access == null) ? 0 : access.hashCode());
-    result = prime * result + ((compatibleNodes == null) ? 0 : compatibleNodes.hashCode());
+    result = prime * result + Objects.hashCode(access);
+    result = prime * result + Objects.hashCode(compatibleNodes);
     return result;
   }
 
@@ -144,10 +143,8 @@ public class UsagePoint implements Comparable<UsagePoint> {
       return false;
     }
     UsagePoint other = (UsagePoint) obj;
-    if (access != other.access) {
-      return false;
-    }
-    return Objects.equals(compatibleNodes, other.compatibleNodes);
+    return access == other.access
+        && Objects.equals(compatibleNodes, other.compatibleNodes);
   }
 
   @Override

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.thread;
 
+import java.util.Objects;
 
 public class ThreadLabel implements Comparable<ThreadLabel> {
 
@@ -47,8 +48,8 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
     final int prime = 31;
     int result = 1;
     result = prime * result + status.hashCode();
-    result = prime * result + ((varName == null) ? 0 : varName.hashCode());
-    result = prime * result + ((threadName == null) ? 0 : threadName.hashCode());
+    result = prime * result + Objects.hashCode(varName);
+    result = prime * result + Objects.hashCode(threadName);
     return result;
   }
 
@@ -57,31 +58,14 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     ThreadLabel other = (ThreadLabel) obj;
-    if (status != other.status) {
-      return false;
-    }
-    if (threadName == null) {
-      if (other.threadName != null) {
-        return false;
-      }
-    } else if (!threadName.equals(other.threadName)) {
-      return false;
-    }
-    if (varName == null) {
-      if (other.varName != null) {
-        return false;
-      }
-    } else if (!varName.equals(other.varName)) {
-      return false;
-    }
-    return true;
+    return status == other.status
+        && Objects.equals(threadName, other.threadName)
+        && Objects.equals(varName, other.varName);
   }
 
   @Override
@@ -101,21 +85,8 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
     if (status != LabelStatus.SELF_PARALLEL_THREAD && status == other.status) {
       return false;
     }
-    if (threadName == null) {
-      if (other.threadName != null) {
-        return false;
-      }
-    } else if (!threadName.equals(other.threadName)) {
-      return false;
-    }
-    if (varName == null) {
-      if (other.varName != null) {
-        return false;
-      }
-    } else if (!varName.equals(other.varName)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(threadName, other.threadName)
+        && Objects.equals(varName, other.varName);
   }
 
   public String getName() {

@@ -139,8 +139,6 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
     private final Multimap<String, String> funcToGlobal = HashMultimap.create();
     private String lastFunction;
 
-    private IdentifierCreator idCreator = new IdentifierCreator();
-
     public CollectFunctionsVisitorWithFieldMatching(Set<String> collectedFuncs) {
       super(collectedFuncs);
     }
@@ -166,6 +164,7 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
         if (left instanceof CFieldReference) {
           functionToFieldMatching.put(((CFieldReference) left).getFieldName(), lastFunction);
         } else {
+          IdentifierCreator idCreator = new IdentifierCreator("");
           AbstractIdentifier id = left.accept(idCreator);
           if (id instanceof StructureIdentifier) {
             assert false : "Structures should be handled above";

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.identifiers;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 
 public class ConstantIdentifier implements AbstractIdentifier {
 
@@ -68,7 +69,7 @@ public class ConstantIdentifier implements AbstractIdentifier {
     final int prime = 31;
     int result = 1;
     result = prime * result + dereference;
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
+    result = prime * result + Objects.hashCode(name);
     return result;
   }
 
@@ -77,24 +78,13 @@ public class ConstantIdentifier implements AbstractIdentifier {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     ConstantIdentifier other = (ConstantIdentifier) obj;
-    if (dereference != other.dereference) {
-      return false;
-    }
-    if (name == null) {
-      if (other.name != null) {
-        return false;
-      }
-    } else if (!name.equals(other.name)) {
-      return false;
-    }
-    return true;
+    return dereference == other.dereference
+        && Objects.equals(name, other.name);
   }
 
   @Override

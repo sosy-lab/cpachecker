@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadCreateStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CThreadOperationStatement.CThreadJoinStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -68,16 +69,16 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
     }
 
     private void createThread(CThreadCreateStatement tCall, LabelStatus pParentThread) throws HandleCodeException {
-      String pVarName = tCall.getVariableName();
+      final String pVarName = tCall.getVariableName();
       //Just to info
-      String pFunctionName = tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+      final String pFunctionName = tCall.getFunctionCallExpression().getFunctionNameExpression().toASTString();
+
+      if (from(tSet)
+          .anyMatch(l -> l.getName().equals(pFunctionName) && l.getVarName().equals(pVarName))) {
+        throw new HandleCodeException("Can not create thread " + pFunctionName + ", it was already created");
+      }
 
       ThreadLabel label = new ThreadLabel(pFunctionName, pVarName, pParentThread);
-      for (ThreadLabel existed : tSet) {
-        if (existed.getName().equals(label.getName()) && existed.getVarName().equals(label.getVarName())) {
-          throw new HandleCodeException("Can not create thread " + label.getName() + ", it was already created");
-        }
-      }
       if (!tSet.isEmpty() && tSet.get(tSet.size() - 1).isSelfParallel()) {
         //Can add only the same status
         label = label.toSelfParallelLabel();
@@ -129,10 +130,10 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((callstack == null) ? 0 : callstack.hashCode());
-    result = prime * result + ((location == null) ? 0 : location.hashCode());
-    result = prime * result + ((removedSet == null) ? 0 : removedSet.hashCode());
-    result = prime * result + ((threadSet == null) ? 0 : threadSet.hashCode());
+    result = prime * result + Objects.hashCode(callstack);
+    result = prime * result + Objects.hashCode(location);
+    result = prime * result + Objects.hashCode(removedSet);
+    result = prime * result + Objects.hashCode(threadSet);
     return result;
   }
 
@@ -141,42 +142,15 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     ThreadState other = (ThreadState) obj;
-    if (callstack == null) {
-      if (other.callstack != null) {
-        return false;
-      }
-    } else if (!callstack.equals(other.callstack)) {
-      return false;
-    }
-    if (location == null) {
-      if (other.location != null) {
-        return false;
-      }
-    } else if (!location.equals(other.location)) {
-      return false;
-    }
-    if (removedSet == null) {
-      if (other.removedSet != null) {
-        return false;
-      }
-    } else if (!removedSet.equals(other.removedSet)) {
-      return false;
-    }
-    if (threadSet == null) {
-      if (other.threadSet != null) {
-        return false;
-      }
-    } else if (!threadSet.equals(other.threadSet)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(callstack, other.callstack)
+        && Objects.equals(location, other.location)
+        && Objects.equals(removedSet, other.removedSet)
+        && Objects.equals(threadSet, other.threadSet);
   }
 
   @Override

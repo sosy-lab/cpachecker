@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.identifiers;
 
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Set;
 
 
@@ -45,8 +46,8 @@ public class BinaryIdentifier implements AbstractIdentifier {
     final int prime = 31;
     int result = 1;
     result = prime * result + dereference;
-    result = prime * result + ((id1 == null) ? 0 : id1.hashCode());
-    result = prime * result + ((id2 == null) ? 0 : id2.hashCode());
+    result = prime * result + Objects.hashCode(id1);
+    result = prime * result + Objects.hashCode(id2);
     return result;
   }
   @Override
@@ -54,31 +55,14 @@ public class BinaryIdentifier implements AbstractIdentifier {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     BinaryIdentifier other = (BinaryIdentifier) obj;
-    if (dereference != other.dereference) {
-      return false;
-    }
-    if (id1 == null) {
-      if (other.id1 != null) {
-        return false;
-      }
-    } else if (!id1.equals(other.id1)) {
-      return false;
-    }
-    if (id2 == null) {
-      if (other.id2 != null) {
-        return false;
-      }
-    } else if (!id2.equals(other.id2)) {
-      return false;
-    }
-    return true;
+    return dereference == other.dereference
+        && Objects.equals(id1, other.id1)
+        && Objects.equals(id2, other.id2);
   }
 
   @Override
@@ -118,22 +102,14 @@ public class BinaryIdentifier implements AbstractIdentifier {
 
   @Override
   public boolean isPointer() {
-    if (dereference != 0 ||
-        id1.isPointer() || id2.isPointer()) {
-      return true;
-    } else {
-      return false;
-    }
+    return (dereference != 0 ||
+        id1.isPointer() || id2.isPointer());
   }
 
   @Override
   public boolean isDereferenced() {
-    if (dereference != 0 ||
-        id1.isDereferenced() || id2.isDereferenced()) {
-      return true;
-    } else {
-      return false;
-    }
+    return (dereference != 0 ||
+        id1.isDereferenced() || id2.isDereferenced());
   }
 
   @Override

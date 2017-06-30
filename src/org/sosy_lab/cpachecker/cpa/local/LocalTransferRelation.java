@@ -92,12 +92,9 @@ public class LocalTransferRelation extends ForwardingTransferRelation<LocalState
 
   private Map<String, Integer> allocateInfo;
 
-  private final IdentifierCreator idCreator;
-
   public LocalTransferRelation(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
     parseAllocatedFunctions(config);
-    idCreator = new IdentifierCreator();
   }
 
   @SuppressWarnings("deprecation")
@@ -320,6 +317,7 @@ public class LocalTransferRelation extends ForwardingTransferRelation<LocalState
   }
 
   private AbstractIdentifier createId(CExpression expression, int dereference) {
+    IdentifierCreator idCreator = new IdentifierCreator(getFunctionName());
     AbstractIdentifier id = idCreator.createIdentifier(expression, dereference);
     if (id instanceof GlobalVariableIdentifier || id instanceof LocalVariableIdentifier) {
       id = ((SingleIdentifier)id).getGeneralId();

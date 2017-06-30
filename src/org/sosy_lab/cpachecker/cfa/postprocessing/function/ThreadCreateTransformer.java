@@ -150,7 +150,6 @@ public class ThreadCreateTransformer {
   public void transform(CFA cfa) throws InvalidConfigurationException, CParserException {
     ThreadFinder threadVisitor = new ThreadFinder(threadCreate, threadCreateN, threadJoin, threadJoinN);
 
-    int tmpVarCounter = 0;
     for (FunctionEntryNode functionStartNode : cfa.getAllFunctionHeads()) {
       CFATraversal.dfs().traverseOnce(functionStartNode, threadVisitor);
     }

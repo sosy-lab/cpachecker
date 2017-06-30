@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.identifiers;
 
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
@@ -38,17 +39,7 @@ public class StructureIdentifier extends SingleIdentifier{
 
   @Override
   public String toString() {
-    String info = "";
-    if (dereference > 0) {
-      for (int i = 0; i < dereference; i++) {
-        info += "*";
-      }
-    } else if (dereference == -1) {
-      info += "&";
-    } else if (dereference < -1){
-      info = "Error in string representation, dereference < -1";
-      return info;
-    }
+    String info = Identifiers.getCharsOf(dereference);
     info += "(" + owner.toString() + ").";
     info += name;
     return info;
@@ -72,7 +63,7 @@ public class StructureIdentifier extends SingleIdentifier{
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result + ((owner == null) ? 0 : owner.hashCode());
+    result = prime * result + Objects.hashCode(owner);
     return result;
   }
 
@@ -81,21 +72,12 @@ public class StructureIdentifier extends SingleIdentifier{
     if (this == obj) {
       return true;
     }
-    if (!super.equals(obj)) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!super.equals(obj) ||
+        getClass() != obj.getClass()) {
       return false;
     }
     StructureIdentifier other = (StructureIdentifier) obj;
-    if (owner == null) {
-      if (other.owner != null) {
-        return false;
-      }
-    } else if (!owner.equals(other.owner)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(owner, other.owner);
   }
 
   @Override

@@ -54,9 +54,8 @@ public class PresisionParser {
     cfa = pCfa;
     logger = l;
     idToNodeMap = new HashMap<>();
-    for (CFANode n : cfa.getAllNodes()) {
-      idToNodeMap.put(n.getNodeNumber(), n);
-    }
+    cfa.getAllNodes()
+      .forEach(n -> idToNodeMap.put(n.getNodeNumber(), n));
   }
 
   public UsagePrecision parse(UsagePrecision precision) {

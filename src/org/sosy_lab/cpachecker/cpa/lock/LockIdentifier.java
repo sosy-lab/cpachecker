@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 
@@ -103,9 +104,9 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + ((type == null) ? 0 : type.hashCode());
-    result = prime * result + ((variable == null) ? 0 : variable.hashCode());
+    result = prime * result + Objects.hashCode(name);
+    result = prime * result + Objects.hashCode(type);
+    result = prime * result + Objects.hashCode(variable);
     return result;
   }
 
@@ -114,31 +115,14 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     LockIdentifier other = (LockIdentifier) obj;
-    if (name == null) {
-      if (other.name != null) {
-        return false;
-      }
-    } else if (!name.equals(other.name)) {
-      return false;
-    }
-    if (type != other.type) {
-      return false;
-    }
-    if (variable == null) {
-      if (other.variable != null) {
-        return false;
-      }
-    } else if (!variable.equals(other.variable)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(name, other.name)
+        && Objects.equals(type, other.type)
+        && Objects.equals(variable, other.variable);
   }
 
   @Override
@@ -152,8 +136,7 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
     if (result != 0) {
       return result;
     }
-    result = this.variable.compareTo(pO.variable);
-    return result;
+    return this.variable.compareTo(pO.variable);
   }
 
 }

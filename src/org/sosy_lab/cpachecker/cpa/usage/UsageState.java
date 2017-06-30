@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -157,7 +158,7 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((variableBindingRelation == null) ? 0 : variableBindingRelation.hashCode());
+    result = prime * result + Objects.hashCode(variableBindingRelation);
     result = prime * super.hashCode();
     return result;
   }
@@ -167,21 +168,13 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     UsageState other = (UsageState) obj;
-    if (variableBindingRelation == null) {
-      if (other.variableBindingRelation != null) {
-        return false;
-      }
-    } else if (!variableBindingRelation.equals(other.variableBindingRelation)) {
-      return false;
-    }
-    return super.equals(other);
+    return Objects.equals(variableBindingRelation, other.variableBindingRelation)
+        && super.equals(other);
   }
 
   @Override

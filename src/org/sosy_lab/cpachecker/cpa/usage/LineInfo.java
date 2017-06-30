@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 
@@ -53,7 +54,7 @@ public class LineInfo implements Comparable<LineInfo> {
     final int prime = 31;
     int result = 1;
     result = prime * result + line;
-    result = prime * result + ((node == null) ? 0 : node.getNodeNumber());
+    result = prime * result + Objects.hashCode(node);
     return result;
   }
 
@@ -62,24 +63,13 @@ public class LineInfo implements Comparable<LineInfo> {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     LineInfo other = (LineInfo) obj;
-    if (line != other.line) {
-      return false;
-    }
-    if (node == null) {
-      if (other.node != null) {
-        return false;
-      }
-    } else if (node.getNodeNumber() != other.node.getNodeNumber()) {
-      return false;
-    }
-    return true;
+    return line == other.line
+        && Objects.equals(node, other.node);
   }
 
   @Override
@@ -89,11 +79,7 @@ public class LineInfo implements Comparable<LineInfo> {
       return result;
     }
     //Some nodes can be from one line, but different nodes
-    result = node.getNodeNumber() - pO.node.getNodeNumber();
-    if (result != 0) {
-      return result;
-    }
-    return 0;
+    return node.compareTo(pO.node);
   }
 
 }

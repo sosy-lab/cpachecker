@@ -129,9 +129,9 @@ public class UsageInfo implements Comparable<UsageInfo> {
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((accessType == null) ? 0 : accessType.hashCode());
-    result = prime * result + ((line == null) ? 0 : line.hashCode());
-    result = prime * result + ((compatibleStates == null) ? 0 : compatibleStates.hashCode());
+    result = prime * result + Objects.hashCode(accessType);
+    result = prime * result + Objects.hashCode(line);
+    result = prime * result + Objects.hashCode(compatibleStates);
     return result;
   }
 
@@ -145,12 +145,9 @@ public class UsageInfo implements Comparable<UsageInfo> {
       return false;
     }
     UsageInfo other = (UsageInfo) obj;
-    if (accessType != other.accessType
-        || !Objects.equals(line, other.line)
-        || !Objects.equals(compatibleStates, other.compatibleStates)) {
-      return false;
-    }
-    return true;
+    return accessType == other.accessType
+        && Objects.equals(line, other.line)
+        && Objects.equals(compatibleStates, other.compatibleStates);
   }
 
   @Override

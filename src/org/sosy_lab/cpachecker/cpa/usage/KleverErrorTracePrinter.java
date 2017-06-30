@@ -88,7 +88,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
         nextThread = currentThread + 1;
       }
       currentThread = nextThread;
-      usedThreadIds.add(new Integer(nextThread));
+      usedThreadIds.add(Integer.valueOf(nextThread));
       return getCurrentThread();
     }
 

@@ -47,7 +47,7 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
   protected int dereference;
   protected String function;
 
-  public void setFunction(String func) {
+  public IdentifierCreator(String func) {
     function = func;
   }
 

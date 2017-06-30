@@ -325,9 +325,8 @@ public class UsageTransferRelation implements TransferRelation {
       linkVariables(newState, left, params, currentInfo.linkInfo);
 
       AbstractIdentifier id;
-      IdentifierCreator creator = new IdentifierCreator();
       String functionName = AbstractStates.extractStateByType(newState, CallstackState.class).getCurrentFunction();
-      creator.setFunction(functionName);
+      IdentifierCreator creator = new IdentifierCreator(functionName);
 
       for (int i = 0; i < params.size(); i++) {
         id = creator.createIdentifier(params.get(i), currentInfo.pInfo.get(i).dereference);
@@ -379,8 +378,7 @@ public class UsageTransferRelation implements TransferRelation {
       , final Pair<LinkerInfo, LinkerInfo> linkInfo) {
     String function = AbstractStates.extractStateByType(state, CallstackState.class).getCurrentFunction();
     AbstractIdentifier leftId, rightId;
-    IdentifierCreator creator = new IdentifierCreator();
-    creator.setFunction(function);
+    IdentifierCreator creator = new IdentifierCreator(function);
 
     if (linkInfo != null) {
       //Sometimes these functions are used not only for linkings.
@@ -427,8 +425,7 @@ public class UsageTransferRelation implements TransferRelation {
     handler.setMode(access);
     expression.accept(handler);
 
-    IdentifierCreator creator = new IdentifierCreator();
-    creator.setFunction(functionName);
+    IdentifierCreator creator = new IdentifierCreator(functionName);
     for (Pair<CExpression, Access> pair : handler.getProcessedExpressions()) {
       AbstractIdentifier id = creator.createIdentifier(pair.getFirst(), 0);
       id = newState.getLinksIfNecessary(id);
