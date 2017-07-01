@@ -100,6 +100,60 @@
 			}]);
 	
 	app.controller("ErrorpathController", ['$rootScope', '$scope', function($rootScope, $scope) {
+		$rootScope.errorPath = [];
+		
+		function getValues(val) {
+            var values = {};
+            if(val != "") {
+                var singleStatements = val.split("\n");
+                for (var i = 0; i < singleStatements.length - 1; i++) {
+                    values[singleStatements[i].split("==")[0].trim()] = singleStatements[i].split("==")[1].trim().slice(0,-1);
+                }
+            }
+            return values;
+        };
+        
+        if (errorPath !== undefined) {
+        	var indentationlevel = 0;
+            for(var i = 0; i < errorPath.length; i++) {
+                var errPathElem = errorPath[i];
+                //do not show start, return and blank edges
+                if (errPathElem.desc.substring(0, "Return edge from".length) != "Return edge from" && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
+                    // TODO: is this really needed ? Jump to CFA edge will be done with d3
+                	if (errPathElem.source in cfaJson.functionCallEdges) {
+                        errPathElem.target = cfaJson.functionCallEdges[errPathElem.source][0];
+                    }
+                    var newValues = getValues(errPathElem.val);
+                    errPathElem["newValDict"] = newValues;
+                    errPathElem["valDict"] = {};
+                    errPathElem["valString"] = "";
+                    if (i > 0) {
+                        for (key in $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict) {
+                            errPathElem.valDict[key] = $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict[key];
+                        }
+                    }
+                    if (newValues != {}) {
+                        for (key in newValues) {
+                            errPathElem.valDict[key] = newValues[key];
+                        }
+                    }
+                    // if I do it in one of the for-loops before, I get the new values doubled
+                    for (key in errPathElem.valDict){
+                        errPathElem.valString = errPathElem.valString + key + ":  " + errPathElem.valDict[key] + "\n";
+                    }
+                    //add indentation
+                    for(var j = 1; j <= indentationlevel; j++) {
+                        errPathElem.desc = "   " + errPathElem.desc;
+                    }
+                    $rootScope.errorPath.push(errPathElem);
+                } else if(errPathElem.desc.substring(0, "Return edge from".length) == "Return edge from"){
+                    indentationlevel -= 1;
+                } else if(errPathElem.desc == "Function start dummy edge"){
+                    indentationlevel += 1;
+                }
+            }        	
+        }
+		
         $scope.errPathPrevClicked = function() {
         	console.log("Prev button clicked");
         };
@@ -136,10 +190,13 @@
 	}]);
 	
 	app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function($rootScope, $scope) {
-		$rootScope.errorPath = errorPath;
 		$scope.showValues = function($event){
-			console.log("show values ");
-			console.log($event);
+            var element = $event.currentTarget;
+            if (element.classList.contains("markedTableElement")) {
+                element.classList.remove("markedTableElement");
+            } else {
+                element.classList.add("markedTableElement");
+            }
 		};
 	}]);
 	

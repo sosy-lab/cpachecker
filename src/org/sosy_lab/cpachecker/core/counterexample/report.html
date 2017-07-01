@@ -75,7 +75,7 @@
       <table id="err-table">
         <tr id="errpath-{{$index}}" ng-repeat="line in errorPath">
           <td ng-click="showValues($event)" data-toggle="popover" data-placement="right"
-              data-trigger="click" data-content="{{line.val}}">
+              data-trigger="click" data-content="{{line.valString}}">
             <pre>-V-</pre>
           </td>
           <td class="disabled" ng-click="clickedErrpathElement($event)">

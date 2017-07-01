@@ -332,6 +332,11 @@ input[type=text] {
 	font-size: 11px;
 }
 
+.markedTableElement {
+    border: solid 2px;
+    border-color: #00d415;
+}
+
 .entry-node {
 	fill: #00ffd0;
 }
