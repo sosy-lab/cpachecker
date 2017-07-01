@@ -220,7 +220,11 @@
     			d3.select("#cfa-toolbar").style("visibility", "hidden");
     			cfaLoaderDone = false;
     			d3.select("#cfa-loader").style("display", "inline");
+    			if (cfaWorker === undefined) {
+    				cfaWorker = new Worker(URL.createObjectURL(new Blob(["("+cfaWorker_function.toString()+")()"], {type: "text/javascript"})));
+    			}
     			cfaWorker.postMessage({"split" : input});
+    			cfaWorker.postMessage({"renderer" : "ready"});
     		};
     		
     		$scope.validateInput = function(input) {
@@ -289,7 +293,11 @@
     			}
     			d3.select("#arg-toolbar").style("visibility", "hidden");
     			d3.select("#arg-loader").style("display", "inline");
+    			if (argWorker === undefined) {
+    				argWorker = new Worker(URL.createObjectURL(new Blob(["("+argWorker_function.toString()+")()"], {type: "text/javascript"})));
+    			}
     			argWorker.postMessage({"split" : input});
+    			argWorker.postMessage({"renderer" : "ready"});
     		};
     		
     		$scope.validateInput = function(input) {
@@ -462,12 +470,12 @@ function init() {
             var g = createGraph();
             setGraphNodes(g, nodesToSet);
             roundNodeCorners(g);
-            var nodesIndexes = [];
+            var nodesIndices = [];
             nodesToSet.forEach(function(n){
-                nodesIndexes.push(n.index);
+            	nodesIndices.push(n.index);
             });
             var edgesToSet = edges.filter(function(e){
-                return nodesIndexes.includes(e.source) && nodesIndexes.includes(e.target);
+                return nodesIndices.includes(e.source) && nodesIndices.includes(e.target);
             });
             setGraphEdges(g, edgesToSet, false);
             if (funcName === "main") {
@@ -516,12 +524,12 @@ function init() {
         // TODO: reverseArrowHead + styles
         // Handle Edges that connect Graphs
         function buildCrossgraphEdges(crossGraphNodes) {
-            var nodesIndexes = [];
+            var nodesIndices = [];
             crossGraphNodes.forEach(function(n) {
-                nodesIndexes.push(n.index);
+            	nodesIndices.push(n.index);
             });
             var edgesToConsider = edges.filter(function(e) {
-                return nodesIndexes.includes(e.source) && nodesIndexes.includes(e.target);
+                return nodesIndices.includes(e.source) && nodesIndices.includes(e.target);
             });
             edgesToConsider.forEach(function(edge){
                 var source = edge.source;
@@ -554,15 +562,11 @@ function init() {
         }
 
         // Return the graph in which the nodeNumber is present
-        function getGraphForNode(nodeNumber) {
-            var graphKey;
-            Object.keys(graphMap).forEach(function(key) {
-                if (graphMap[key].nodes().includes("" + nodeNumber)) {
-                    graphKey = key;
-                }
-            });
-            return graphKey;
-        }
+    	function getGraphForNode(nodeNumber) {
+    		return graphMap.findIndex(function(graph) {
+    			return graph.nodes().includes("" + nodeNumber);
+    		})
+    	}
         
         // create and return a graph element with a set transition
         function createGraph() {
@@ -723,7 +727,7 @@ function init() {
 				json = JSON.parse(m.data.json);
 				nodes = json.nodes;
 				edges = json.edges;
-				buildGraphsAndPostResults()
+				buildGraphsAndPrepareResults()
 			} else if (m.data.errorPath !== undefined) {
 				errorPath = JSON.parse(m.data.errorPath);
 			} else if (m.data.renderer !== undefined) {
@@ -736,11 +740,11 @@ function init() {
                 }
 			} else if (m.data.split !== undefined) {
     			graphSplitThreshold = m.data.split;
-    			buildGraphsAndPostResults();
+    			buildGraphsAndPrepareResults();
     		}
 		}, false);
 		
-		function buildGraphsAndPostResults() {
+		function buildGraphsAndPrepareResults() {
 			if (nodes.length > graphSplitThreshold) {
 				buildMultipleGraphs();
 			} else {
@@ -773,9 +777,12 @@ function init() {
     			var graph = createGraph();
     			graphMap.push(graph);
     			setGraphNodes(graph, nodesPerGraph);
+    			var nodesIndices = []
+    			nodesPerGraph.forEach(function(n) {
+    				nodesIndices.push(n.index);
+    			});
     			var graphEdges = edges.filter(function(e) {
-    				if ( (nodesPerGraph[0].index <= e.source && e.source <= nodesPerGraph[nodesPerGraph.length - 1].index ) &&
-    						(nodesPerGraph[0].index <= e.target && e.target <= nodesPerGraph[nodesPerGraph.length - 1].index) ) {
+    				if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
     					return e;
     				}
     			});
@@ -806,13 +813,9 @@ function init() {
     	
     	// Return the graph in which the nodeNumber is present
     	function getGraphForNode(nodeNumber) {
-    		var graphKey;
-            Object.keys(graphMap).forEach(function(key) {
-                if (graphMap[key].nodes().includes("" + nodeNumber)) {
-                    graphKey = key;
-                }
-            });
-            return graphKey;
+    		return graphMap.findIndex(function(graph) {
+    			return graph.nodes().includes("" + nodeNumber);
+    		})
     	}
 		
     	// create and return a graph element with a set transition
