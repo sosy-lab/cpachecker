@@ -183,8 +183,48 @@
             }
         };
         
-        $scope.searchFor = function(){
-        	console.log("search for");
+        $scope.searchFor = function() {
+            $scope.numOfValueMatches = 0;
+            $scope.numOfDescriptionMatches = 0;
+            if (d3.select("#matches").style("display") === "none") {
+            	d3.select("#matches").style("display", "inline");
+            }
+            d3.selectAll(".markedValueDescElement").classed("markedValueDescElement", false);
+            d3.selectAll(".markedValueElement").classed("markedValueElement", false);
+            d3.selectAll(".markedDescElement").classed("markedDescElement", false);
+        	var searchInput = $(".search-input").val();
+        	if (searchInput.trim() != "") {
+        		if ($("#optionExactMatch").prop("checked")) {
+        			$rootScope.errorPath.forEach(function(it, i) {
+                        if (searchInput in it.newValDict && it.desc == searchInput) {
+                            $scope.numOfValueMatches++;
+                            $scope.numOfDescriptionMatches++;
+                            $("#errpath-" + i + " td")[1].classList.add("markedValueDescElement");
+                        } else if (searchInput in it.newValDict) {
+                            $scope.numOfValueMatches++;
+                            $("#errpath-" + i + " td")[1].classList.add("markedValueElement");
+                        } else if (it.desc == searchInput) {
+                            $scope.numOfDescriptionMatches++;
+                            $("#errpath-" + i + " td")[1].classList.add("markedDescElement");
+                        }
+        			})
+        		} else {
+        			console.log("else")
+        			$rootScope.errorPath.forEach(function(it, i) {
+        				if (it.val.indexOf(searchInput) !== -1 && it.desc.indexOf(searchInput) !== -1) {
+							$scope.numOfValueMatches++;
+							$scope.numOfDescriptionMatches++;
+							$("#errpath-" + i + " td")[1].classList.add("markedValueDescElement");
+        				} else if (it.val.indexOf(searchInput) !== -1) {
+        					$scope.numOfValueMatches++;
+        					$("#errpath-" + i + " td")[1].classList.add("markedValueElement");
+        				} else if (it.desc.indexOf(searchInput) !== -1) {
+        					$scope.numOfDescriptionMatches++;
+        					$("#errpath-" + i + " td")[1].classList.add("markedDescElement");
+        				}
+        			})
+        		}
+        	}
         };
 		
 	}]);

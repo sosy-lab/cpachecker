@@ -117,6 +117,23 @@ body {
     margin-bottom: 2px;
     max-width: 270px;
 }
+
+.markedTableElement {
+    border: solid 2px;
+    border-color: #00d415;
+}
+
+.markedValueElement pre {
+    background-color: #83d480 !important;
+}
+
+.markedDescElement pre {
+    background-color: #71afff !important;
+}
+
+.markedValueDescElement pre {
+    background: linear-gradient(#83d480, #71afff) !important;
+}
 /* was err_table previously */
 #err-table td {
     cursor: pointer;
@@ -330,11 +347,6 @@ input[type=text] {
 #arg-toolbar text {
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
 	font-size: 11px;
-}
-
-.markedTableElement {
-    border: solid 2px;
-    border-color: #00d415;
 }
 
 .entry-node {
