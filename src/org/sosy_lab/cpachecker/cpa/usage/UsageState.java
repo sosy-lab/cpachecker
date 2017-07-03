@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer;
+import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer.StorageStatistics;
 import org.sosy_lab.cpachecker.cpa.usage.storage.TemporaryUsageStorage;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -82,8 +83,9 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
 
   public static UsageState createInitialState(final AbstractState pWrappedElement
       , final UsageContainer pContainer) {
+    FunctionContainer initialContainer = FunctionContainer.createInitialContainer();
     return new UsageState(pWrappedElement, new HashMap<>(), new TemporaryUsageStorage(),
-        pContainer, true, FunctionContainer.createInitialContainer(), new StateStatistics());
+        pContainer, true, initialContainer, new StateStatistics(initialContainer.getStatistics()));
   }
 
   private UsageState(final AbstractState pWrappedElement, final UsageState state) {
@@ -297,10 +299,18 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     private Timer joinTimer = new Timer();
     private Timer addRecentUsagesTimer = new Timer();
 
+    private final StorageStatistics storageStats;
+
+    public StateStatistics(StorageStatistics stats) {
+      storageStats = Objects.requireNonNull(stats);
+    }
+
     public void printStatistics(PrintStream out) {
+      out.println("");
       out.println("Time for lock difference calculation:" + expandTimer);
       out.println("Time for joining:                    " + joinTimer);
       out.println("Time for adding recent usages:       " + addRecentUsagesTimer);
+      storageStats.printStatistics(out);
     }
   }
 

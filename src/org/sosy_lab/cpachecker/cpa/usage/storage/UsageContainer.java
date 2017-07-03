@@ -45,7 +45,6 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.cpa.usage.refinement.RefinementResult;
-import org.sosy_lab.cpachecker.cpa.usage.storage.FunctionContainer.StorageStatistics;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
@@ -65,8 +64,6 @@ public class UsageContainer {
   private int initialUsages;
 
   private final LogManager logger;
-
-  private StorageStatistics internalStatistics = null;
 
   public Timer resetTimer = new Timer();
 
@@ -112,10 +109,6 @@ public class UsageContainer {
   }
 
   private void copyUsages(AbstractUsageStorage storage) {
-    if (internalStatistics == null && storage instanceof FunctionContainer) {
-      internalStatistics = ((FunctionContainer)storage).getStatistics();
-    }
-
     storage.forEach((id, list) ->
       from(list)
         .filter(info -> info.getKeyState() != null)
@@ -327,10 +320,6 @@ public class UsageContainer {
     out.println("Total amount of failed unsafes:                   " + generalFailedSize);
     out.println("Total amount of failed usages:                    " + failedUsages + "(avg. " +
         (generalFailedSize == 0 ? "0" : (failedUsages/generalFailedSize)) + ")");
-
-    if (internalStatistics != null) {
-      internalStatistics.printStatistics(out);
-    }
   }
 
   @Override

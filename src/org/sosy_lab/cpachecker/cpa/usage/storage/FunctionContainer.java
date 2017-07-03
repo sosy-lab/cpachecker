@@ -25,12 +25,13 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
+import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import java.io.PrintStream;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -59,11 +60,32 @@ public class FunctionContainer extends AbstractUsageStorage {
     stats = pStats;
     stats.numberOfFunctionContainers++;
     effects = pEffects;
-    joinedWith = new HashSet<>();
+    joinedWith = new IdentityHashSet<>();
   }
 
   public FunctionContainer clone(List<LockEffect> effects) {
     return new FunctionContainer(this.stats, effects);
+  }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + Objects.hashCode(effects);
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!super.equals(obj) ||
+        getClass() != obj.getClass()) {
+      return false;
+    }
+    FunctionContainer other = (FunctionContainer) obj;
+    return Objects.equals(effects, other.effects);
   }
 
   public void join(FunctionContainer funcContainer) {
@@ -134,7 +156,7 @@ public class FunctionContainer extends AbstractUsageStorage {
     Timer copyTimer = new Timer();
 
     public void printStatistics(PrintStream out) {
-
+      out.println("");
       out.println("Time for effect:                    " + effectTimer);
       out.println("Time for copy:                      " + copyTimer);
       out.println("Total number of joins:              " + totalJoins);
