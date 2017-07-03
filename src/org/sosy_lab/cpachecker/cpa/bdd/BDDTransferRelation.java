@@ -142,7 +142,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
               ((CFunctionCallStatement) statement).getFunctionCallExpression().getParameterExpressions());
     }
 
-    assert !result.getRegion().isFalse();
+    assert !result.getRegion().isFalse() : "a new assignment should not have a conflict.";
     return result;
   }
 
@@ -190,6 +190,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
       } else {
         final Region[] var = predmgr.createPredicate(scopeVar(lhs), targetType, successor, getBitsize(partition, targetType), precision);
+
+        // delete region for variable
         newState = newState.forget(var);
 
         // make region for RIGHT SIDE and build equality of var and region
@@ -429,7 +431,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (operand == null) {
       return state;
     } // assumption cannot be evaluated
-    Region evaluated = bvmgr.makeOr(operand);
+
+    Region evaluated = bvmgr.makeOr(operand); // from N bits to 1, from integer to boolean value.
 
     if (!truthAssumption) { // if false-branch
       evaluated = rmgr.makeNot(evaluated);
