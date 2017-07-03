@@ -349,18 +349,22 @@ input[type=text] {
 	font-size: 11px;
 }
 
-.entry-node {
-	fill: #00ffd0;
-}
-
-g.node-start>polygon {
-	fill: #00ffd0;
-}
-
 text {
 	font-weight: 300;
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
 	font-size: 14px;
+}
+
+.arg-node.target > rect {
+	fill: red;
+}
+
+.arg-node.not-expanded > rect {
+	fill: orange;
+}
+
+.arg-node.highlighted > rect {
+	fill: cornflowerblue;
 }
 
 .arg-node text {
@@ -368,7 +372,17 @@ text {
 	font-family: "Times New Roman", serif;
 }
 
-.node rect {
+.arg-node rect {
+	fill: #fff;
+}
+
+.cfa-node rect {
+	stroke: #999;
+	fill: #fff;
+	stroke-width: 1.5px;
+}
+
+.fcall rect {
 	stroke: #999;
 	fill: #fff;
 	stroke-width: 1.5px;
@@ -383,6 +397,12 @@ text {
 .edgePath path {
 	stroke: blue;
 	fill: #ffffff;
+	stroke-width: 1.5px;
+}
+
+.error-edge path {
+	stroke: red;
+	fill:#ff0000;
 	stroke-width: 1.5px;
 }
 

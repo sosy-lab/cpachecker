@@ -519,9 +519,9 @@ public class ReportGenerator {
       for (CFANode node : AbstractStates.extractLocations(entry)) {
         if (!argNodes.containsKey(parentStateId)) {
           if (((ARGState) entry).toDOTLabel().length() > 0) {
-            createArgNode(parentStateId, node, ((ARGState) entry).toDOTLabel().substring(0, ((ARGState) entry).toDOTLabel().length() - 2));
+            createArgNode(parentStateId, node, (ARGState) entry);
           } else {
-            createArgNode(parentStateId, node, ((ARGState) entry).toDOTLabel());
+            createArgNode(parentStateId, node, (ARGState) entry);
           }
         }
         if (!((ARGState) entry).getChildren().isEmpty()) {
@@ -539,14 +539,33 @@ public class ReportGenerator {
     });
   }
 
-  private void createArgNode(int parentStateId, CFANode node, String dotLabel) {
+  private void createArgNode(int parentStateId, CFANode node, ARGState argState) {
+    String dotLabel = "";
+    if (argState.toDOTLabel().length() > 0) {
+      dotLabel = argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2);
+    } else {
+      dotLabel = argState.toDOTLabel();
+    }
     Map<String, Object> argNode = new HashMap<>();
     argNode.put("index", parentStateId);
     argNode.put("func", node.getFunctionName());
     argNode.put("label", parentStateId + " @ " +
         node.toString() + "\n" + node.getFunctionName() + nodeTypeInNodeLabel(node)  + dotLabel);
-    argNode.put("type", node.describeFileLocation().split(" ")[0]);
+    argNode.put("type", determineNodeType(argState));
     argNodes.put(parentStateId, argNode);
+  }
+
+  private String determineNodeType(ARGState argState) {
+    if(argState.isTarget()) {
+      return "target";
+    }
+    if (!argState.wasExpanded()) {
+      return "not-expanded";
+    }
+    if (argState.shouldBeHighlighted()) {
+      return "highlighted";
+    }
+    return "";
   }
 
   private void createCoveredArgNode(int childStateId, ARGState child, String dotLabel) {

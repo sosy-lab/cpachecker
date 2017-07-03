@@ -826,7 +826,12 @@ function init() {
 				edges = json.edges;
 				buildGraphsAndPrepareResults()
 			} else if (m.data.errorPath !== undefined) {
-				errorPath = JSON.parse(m.data.errorPath);
+				errorPath = [];
+				JSON.parse(m.data.errorPath).forEach(function(d) {
+					if (d.argelem !== undefined) {
+						errorPath.push(d.argelem);
+					}
+				});
 			} else if (m.data.renderer !== undefined) {
 				if (graphMap.length > 0) {
                     self.postMessage({"graph" : JSON.stringify(graphMap[0]), "id" : graphCounter});
@@ -896,14 +901,14 @@ function init() {
     			var targetGraph = getGraphForNode(edge.target);
     			if (sourceGraph < targetGraph) { 
         			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
-        			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;"});
+        			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
         			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
-        			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;"});
+        			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
     			} else if (sourceGraph > targetGraph) {
     				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
-    				graphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
+    				graphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
     				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
-    				graphMap[targetGraph].setEdge(edge.target, "" + edge.target + edge.source + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
+    				graphMap[targetGraph].setEdge(edge.target, "" + edge.target + edge.source + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
     			}
     		});
     	}
@@ -927,6 +932,9 @@ function init() {
     	// Set nodes for the graph contained in the json nodes
     	function setGraphNodes(graph, nodesToSet) {
     		nodesToSet.forEach(function(n) {
+    			if (n.type === "target" && errorPath !== undefined) {
+    				errorPath.push(n.index);
+    			}
     			graph.setNode(n.index, {
     				label : n.label,
     				class : "arg-node " + n.type,
@@ -941,12 +949,20 @@ function init() {
         		if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
             		graph.setEdge(e.source, e.target, {
             			label: e.label,
-            			class: e.type,
+            			class: edgeClassDecider(e),
             			id: "arg-edge"+ e.source + e.target,
             			weight: edgeWeightDecider(e)
             		});
         		}
         	});
+    	}
+    	
+    	function edgeClassDecider(edge) {
+    		if (errorPath !== undefined && errorPath.includes(edge.source) && errorPath.includes(edge.target)) {
+    			return "error-edge";
+    		} else {
+    			return edge.type;
+    		}
     	}
     	
     	// Decide the weight for the edges based on type
