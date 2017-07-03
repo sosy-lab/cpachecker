@@ -34,6 +34,7 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -485,21 +486,16 @@ public class CFunctionPointerResolver {
       return false;
     }
 
-    List<CType> declParams = functionType.getParameters();
-    List<CExpression> exprParams = functionCallExpression.getParameterExpressions();
-    for (int i=0; i<declParams.size(); i++) {
-      CType dt = declParams.get(i);
-      CType et = exprParams.get(i).getExpressionType();
-      if (machine.getSizeof(dt) != machine.getSizeof(et)) {
-        logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
-            "does not match function", functionType,
-            "because actual parameter", i, "has type", et, "instead of", dt,
-            "(differing sizes).");
-        return false;
-      }
-    }
-
-    return true;
+    return checkParams(
+        functionType,
+        functionCallExpression,
+        (e1, e2) -> {
+          if (machine.getSizeof(e1) == machine.getSizeof(e2)) {
+            return 0;
+          } else {
+            return -1;
+          }
+        });
   }
 
   private boolean checkReturnAndParamTypes(CFunctionCall functionCall, CFunctionType functionType) {
@@ -513,12 +509,40 @@ public class CFunctionPointerResolver {
       return false;
     }
 
+    return checkParams(
+        functionType,
+        functionCallExpression,
+        (e1, e2) -> {
+          if (isCompatibleType(e1, e2)) {
+            return 0;
+          } else {
+            return -1;
+          }
+        });
+  }
+
+  private boolean checkParams(
+      CFunctionType functionType,
+      final CFunctionCallExpression functionCallExpression,
+      Comparator<CType> comparison) {
     List<CType> declParams = functionType.getParameters();
-    List<CExpression> exprParams = functionCallExpression.getParameterExpressions();
+    CFunctionType pointerType = null;
+
+    {
+      CType resolvedType =
+          functionCallExpression.getFunctionNameExpression().getExpressionType().getCanonicalType();
+      if (resolvedType instanceof CFunctionType) {
+        pointerType = (CFunctionType) resolvedType;
+      } else {
+        throw new IllegalArgumentException(resolvedType + " is not a function pointer type.");
+      }
+    }
+
+    List<CType> exprParams = pointerType.getParameters();
     for (int i=0; i<declParams.size(); i++) {
       CType dt = declParams.get(i);
-      CType et = exprParams.get(i).getExpressionType();
-      if (!isCompatibleType(dt, et)) {
+      CType et = exprParams.get(i);
+      if (comparison.compare(dt, et) == -1) {
         logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
             "does not match function", functionType,
             "because actual parameter", i, "has type", et, "instead of", dt);
@@ -614,11 +638,25 @@ public class CFunctionPointerResolver {
     //get the parameter expression
     List<CExpression> parameters = functionCallExpression.getParameterExpressions();
 
+    // check also for the used function pointer
+    CFunctionType pointerType = null;
+
+    {
+      CType resolvedType =
+          functionCallExpression.getFunctionNameExpression().getExpressionType().getCanonicalType();
+      if (resolvedType instanceof CFunctionType) {
+        pointerType = (CFunctionType) resolvedType;
+      } else {
+        throw new IllegalArgumentException(resolvedType + " is not a function pointer type.");
+      }
+    }
+
     // check if the number of function parameters are right
     int declaredParameters = functionType.getParameters().size();
     int actualParameters = parameters.size();
+    int pointerParameters = pointerType.getParameters().size();
 
-    if (actualParameters < declaredParameters) {
+    if (actualParameters < declaredParameters || pointerParameters < declaredParameters) {
       logger.log(
           Level.FINEST,
           "Function call",
@@ -629,7 +667,8 @@ public class CFunctionPointerResolver {
       return false;
     }
 
-    if (!functionType.takesVarArgs() && actualParameters > declaredParameters) {
+    if ((!functionType.takesVarArgs() && actualParameters > declaredParameters)
+        || pointerParameters > declaredParameters) {
       logger.log(
           Level.FINEST,
           "Function call",
