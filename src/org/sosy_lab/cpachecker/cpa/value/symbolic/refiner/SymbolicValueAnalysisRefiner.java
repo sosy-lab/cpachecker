@@ -70,6 +70,9 @@ public class SymbolicValueAnalysisRefiner
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
+  @Option(secure = true, description = "if this option is set to false, constraints are never kept")
+  private boolean trackConstraints = true;
+
   public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
@@ -105,7 +108,8 @@ public class SymbolicValueAnalysisRefiner
             logger,
             cfa,
             config,
-            ValueAnalysisCPA.class);
+            ValueAnalysisCPA.class,
+            shutdownNotifier);
 
     final ElementTestingSymbolicEdgeInterpolator edgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
@@ -174,24 +178,26 @@ public class SymbolicValueAnalysisRefiner
     ConstraintsPrecision.Increment.Builder increment =
         ConstraintsPrecision.Increment.builder();
 
-    Deque<ARGState> todo =
-        new ArrayDeque<>(Collections.singleton(pTree.getPredecessor(pRefinementRoot)));
+    if (trackConstraints) {
+      Deque<ARGState> todo =
+          new ArrayDeque<>(Collections.singleton(pTree.getPredecessor(pRefinementRoot)));
 
-    while (!todo.isEmpty()) {
-      final ARGState currentState = todo.removeFirst();
+      while (!todo.isEmpty()) {
+        final ARGState currentState = todo.removeFirst();
 
-      if (!currentState.isTarget()) {
-        SymbolicInterpolant itp = pTree.getInterpolantForState(currentState);
+        if (!currentState.isTarget()) {
+          SymbolicInterpolant itp = pTree.getInterpolantForState(currentState);
 
-        if (itp != null && !itp.isTrivial()) {
-          for (Constraint c : itp.getConstraints()) {
-            increment.locallyTracked(AbstractStates.extractLocation(currentState), c);
+          if (itp != null && !itp.isTrivial()) {
+            for (Constraint c : itp.getConstraints()) {
+              increment.locallyTracked(AbstractStates.extractLocation(currentState), c);
+            }
           }
         }
-      }
 
-      Collection<ARGState> successors = pTree.getSuccessors(currentState);
-      todo.addAll(successors);
+        Collection<ARGState> successors = pTree.getSuccessors(currentState);
+        todo.addAll(successors);
+      }
     }
 
     return increment.build();

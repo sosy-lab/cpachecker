@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CFloatLiteralExpression extends AFloatLiteralExpression implements CLiteralExpression {
 
+  private static final long serialVersionUID = 5021145411123854111L;
   private static final BigDecimal APPROX_INFINITY = BigDecimal.valueOf(Double.MAX_VALUE).add(BigDecimal.valueOf(Double.MAX_VALUE));
 
   public CFloatLiteralExpression(FileLocation pFileLocation,

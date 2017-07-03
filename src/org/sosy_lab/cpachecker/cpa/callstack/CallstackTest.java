@@ -28,7 +28,8 @@ import static com.google.common.truth.Truth.assert_;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-
+import java.nio.file.Files;
+import java.util.List;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.io.MoreFiles;
@@ -39,9 +40,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
-
-import java.nio.file.Files;
-import java.util.List;
 
 public class CallstackTest {
 
@@ -90,23 +88,23 @@ public class CallstackTest {
       FluentIterable<ARGState> argStates =
           from(result.getCheckerResult().getReached()).filter(ARGState.class);
       assert_()
-          .withFailureMessage("unexpected merged")
+          .withMessage("unexpected merged")
           .that(argStates.filter(s -> s.getParents().size() > 1))
           .isEmpty();
 
       List<ARGState> coveredStates =
           argStates.transformAndConcat(s -> s.getCoveredByThis()).toList();
       assert_()
-          .withFailureMessage("exactly one covered state expected")
+          .withMessage("exactly one covered state expected")
           .that(coveredStates)
           .hasSize(1);
       CFANode coverageLocation = AbstractStates.extractLocation(coveredStates.get(0));
       assert_()
-          .withFailureMessage("expected coverage only in main")
+          .withMessage("expected coverage only in main")
           .that(coverageLocation.getFunctionName())
           .isEqualTo("main");
       assert_()
-          .withFailureMessage("expected coverage right after return from f")
+          .withMessage("expected coverage right after return from f")
           .that(coverageLocation.getEnteringSummaryEdge())
           .isNotNull();
     }

@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.loopstack.LoopstackState;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
@@ -44,8 +44,7 @@ public class LoopstackSortedWaitlist extends AbstractSortedWaitlist<Integer>{
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    LoopstackState loopstackState =
-        AbstractStates.extractStateByType(pState, LoopstackState.class);
+    LoopBoundState loopstackState = AbstractStates.extractStateByType(pState, LoopBoundState.class);
     return (loopstackState != null) ? (multiplier * loopstackState.getDepth()) : 0;
   }
 

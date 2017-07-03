@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.collect.Iterables;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;

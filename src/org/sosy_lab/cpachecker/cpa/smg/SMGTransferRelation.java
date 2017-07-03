@@ -929,7 +929,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   private List<SMGState> handleExitFromFunction(SMGState smgState,
       CReturnStatementEdge returnEdge) throws CPATransferException {
 
-    CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO); // 0 is the default in C
+    CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
     logger.log(Level.ALL, "Handling return Statement: ", returnExp);
 
@@ -940,7 +940,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
-    Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
+    com.google.common.base.Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
     if (returnAssignment.isPresent()) {
       expType = returnAssignment.get().getLeftHandSide().getExpressionType();
     }
@@ -1748,6 +1748,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     String fieldDesignator = ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
 
     int offset = offsetAtStartOfStruct;
+    int sizeOfByte = machineModel.getSizeofCharInBits();
     for (int listCounter = 0; listCounter < pMemberTypes.size(); listCounter++) {
 
       CCompositeTypeMemberDeclaration memberDcl = pMemberTypes.get(listCounter);
@@ -1756,13 +1757,27 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         return Pair.of(offset, listCounter);
       } else {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
-          offset += machineModel.getBitSizeof(memberDcl.getType());
+          int memberSize = machineModel.getBitSizeof(memberDcl.getType());
           if (!(memberDcl.getType() instanceof CBitFieldType)) {
+            offset += memberSize;
             int overByte = offset % machineModel.getSizeofCharInBits();
             if (overByte > 0) {
               offset += machineModel.getSizeofCharInBits() - overByte;
             }
-            offset += machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberDcl.getType()) * machineModel.getSizeofCharInBits();
+            offset +=
+                machineModel.getPadding(offset / sizeOfByte, memberDcl.getType()) * sizeOfByte;
+          } else {
+            // Cf. implementation of {@link MachineModel#getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(...)}
+            CType innerType = ((CBitFieldType) memberDcl.getType()).getType();
+
+            if (memberSize == 0) {
+              offset = machineModel.calculatePaddedBitsize(0, offset, innerType, sizeOfByte);
+            } else {
+              offset =
+                  machineModel.calculateNecessaryBitfieldOffset(
+                      offset, innerType, sizeOfByte, memberSize);
+              offset += memberSize;
+            }
           }
         }
       }

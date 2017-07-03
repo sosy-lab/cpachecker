@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.model;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-
-import java.util.Optional;
 
 
 public class AStatementEdge extends AbstractCFAEdge {
 
+  private static final long serialVersionUID = 2639832981364107114L;
   protected final AStatement statement;
 
   protected AStatementEdge(String pRawStatement, AStatement pStatement,

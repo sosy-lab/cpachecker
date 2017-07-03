@@ -53,10 +53,9 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA cfa,
-      String filename)
+      CFA cfa)
       throws InvalidConfigurationException {
-    super(algorithm, pCpa, config, pSpecification, logger, pShutdownNotifier, cfa, filename);
+    super(algorithm, pCpa, config, pSpecification, logger, pShutdownNotifier, cfa);
 
     if (!(pCpa instanceof BAMCPA)) {
       throw new InvalidConfigurationException("BAM CPA needed for BAM counterexample check");

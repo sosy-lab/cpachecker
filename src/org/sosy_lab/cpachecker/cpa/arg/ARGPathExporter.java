@@ -71,7 +71,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -109,7 +108,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
@@ -208,10 +206,6 @@ public class ARGPathExporter {
 
   private final CFA cfa;
 
-  private final MachineModel machineModel;
-
-  private final Language language;
-
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private final ExpressionTreeFactory<Object> factory = ExpressionTrees.newCachingFactory();
@@ -228,11 +222,9 @@ public class ARGPathExporter {
     Preconditions.checkNotNull(pConfig);
     pConfig.inject(this);
     this.cfa = pCFA;
-    this.machineModel = pCFA.getMachineModel();
-    this.language = pCFA.getLanguage();
-    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, machineModel);
-    this.verificationTaskMetaData =
-        new VerificationTaskMetaData(pConfig, Optional.of(pSpecification));
+    this.assumptionToEdgeAllocator =
+        new AssumptionToEdgeAllocator(pConfig, pLogger, pCFA.getMachineModel());
+    this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
   }
 
   public void writeErrorWitness(
@@ -340,9 +332,10 @@ public class ARGPathExporter {
 
   private String getInitialFileName(ARGState pRootState) {
     Deque<CFANode> worklist = Queues.newArrayDeque(AbstractStates.extractLocations(pRootState));
-
+    Set<CFANode> visited = new HashSet<>();
     while (!worklist.isEmpty()) {
       CFANode l = worklist.pop();
+      visited.add(l);
       for (CFAEdge e : CFAUtils.leavingEdges(l)) {
         Set<FileLocation> fileLocations = CFAUtils.getFileLocationsFromCfaEdge(e);
         if (fileLocations.size() > 0) {
@@ -351,7 +344,9 @@ public class ARGPathExporter {
             return fileName;
           }
         }
-        worklist.push(e.getSuccessor());
+        if (!visited.contains(e.getSuccessor())) {
+          worklist.push(e.getSuccessor());
+        }
       }
     }
 
@@ -461,7 +456,7 @@ public class ARGPathExporter {
         stateScopes.put(pTo, isFunctionScope ? functionName : "");
       }
 
-      if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
+      if (!isFunctionScope || AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {
         return result;
       }
 
@@ -521,7 +516,7 @@ public class ARGPathExporter {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
         result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
-        if(maxFileLocation.isPresent()) {
+        if (maxFileLocation.isPresent()) {
           FileLocation max = maxFileLocation.get();
           result = result.putAndCopy(KeyDef.ENDOFFSET, Integer.toString(max.getNodeOffset()+max.getNodeLength()));
         }
@@ -535,7 +530,7 @@ public class ARGPathExporter {
     }
 
     private Optional<FileLocation> getMinFileLocation(CFAEdge pEdge) {
-      Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+      Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge);
       if (locations.size() > 0) {
         Iterator<FileLocation> locationIterator = locations.iterator();
         FileLocation min = locationIterator.next();
@@ -551,7 +546,7 @@ public class ARGPathExporter {
     }
 
     private Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge) {
-      Set<FileLocation> locations = CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+      Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge);
       if (locations.size() > 0) {
         Iterator<FileLocation> locationIterator = locations.iterator();
         FileLocation max = locationIterator.next();
@@ -564,6 +559,17 @@ public class ARGPathExporter {
         return Optional.of(max);
       }
       return Optional.empty();
+    }
+
+    private Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
+      if (pEdge instanceof AStatementEdge) {
+        AStatementEdge statementEdge = (AStatementEdge) pEdge;
+        FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
+        if (!FileLocation.DUMMY.equals(statementLocation)) {
+          return Collections.singleton(statementLocation);
+        }
+      }
+      return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
     }
 
     private TransitionCondition extractTransitionForStates(
@@ -929,9 +935,7 @@ public class ARGPathExporter {
 
       final GraphMlBuilder doc;
       try {
-        doc =
-            new GraphMlBuilder(
-                graphType, defaultSourcefileName, language, machineModel, verificationTaskMetaData);
+        doc = new GraphMlBuilder(graphType, defaultSourcefileName, cfa, verificationTaskMetaData);
       } catch (ParserConfigurationException e) {
         throw new IOException(e);
       }

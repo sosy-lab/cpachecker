@@ -75,7 +75,8 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
   private boolean pathSlicing = true;
 
-  @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
+  @Option(secure=true, description="which prefix of an actual counterexample trace should be used"
+      + " for interpolation", toUppercase = true)
   private List<PrefixPreference> prefixPreference = ImmutableList.of(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN);
 
   /**
@@ -183,6 +184,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final ARGPath pErrorPath,
       final I pInterpolant
   ) throws CPAException, InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
 
     prefixExtractionTime.start();
     List<InfeasiblePrefix> prefixes =

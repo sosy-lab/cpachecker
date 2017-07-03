@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
@@ -35,7 +34,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -47,6 +45,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -95,25 +94,20 @@ public class CExpressionInvariantExporter {
   }
 
   /**
-   * Export invariants extracted from {@code pReachedSet} into the file
-   * specified by the options as {@code __VERIFIER_assume()} calls,
-   * intermixed with the program source code.
+   * Export invariants extracted from {@code pReachedSet} into the file specified by the options as
+   * {@code __VERIFIER_assume()} calls, intermixed with the program source code.
    */
-  public void exportInvariant(
-      String analyzedPrograms,
-      UnmodifiableReachedSet pReachedSet) throws IOException, InterruptedException {
+  public void exportInvariant(CFA pCfa, UnmodifiableReachedSet pReachedSet)
+      throws IOException, InterruptedException {
 
-    Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-    List<String> programs = commaSplitter.splitToList(analyzedPrograms);
-
-    for (String program : programs) {
+    for (Path program : pCfa.getFileNames()) {
       // Grab only the last component of the program filename.
-      Path trimmedFilename = Paths.get(program).getFileName();
+      Path trimmedFilename = program.getFileName();
       if (trimmedFilename != null) {
         try (Writer output =
             MoreFiles.openOutputFile(
                 prefix.getPath(trimmedFilename.toString()), Charset.defaultCharset())) {
-          writeProgramWithInvariants(output, program, pReachedSet);
+          writeProgramWithInvariants(output, program.toString(), pReachedSet);
         }
       }
     }

@@ -32,6 +32,9 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Predicate;
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -178,6 +181,14 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   private Object writeReplace() {
     return new SerialProxy(locationNode.getNodeNumber());
+  }
+
+  /**
+   * javadoc to remove unused parameter warning
+   * @param in the input stream
+   */
+  private void readObject(ObjectInputStream in) throws IOException {
+    throw new InvalidObjectException("Proxy required");
   }
 
   private static class SerialProxy implements Serializable {

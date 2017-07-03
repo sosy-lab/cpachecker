@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class JExpressionAssignmentStatement extends AExpressionAssignmentStatement
     implements JAssignment, JStatement {
 
+  private static final long serialVersionUID = 4121782081088537434L;
+
   public JExpressionAssignmentStatement(FileLocation pFileLocation, JLeftHandSide pLeftHandSide,
       JExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);

@@ -23,12 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
@@ -57,13 +58,10 @@ class TypeHierachyCreator extends ASTVisitor {
 
   private static final boolean VISIT_CHILDREN = true;
 
-  private static final String JAVA_FILE_SUFFIX = ".java";
-
   private static final boolean SKIP_CHILDREN = false;
 
   private static final int FIRST = 0;
 
-  @SuppressWarnings("unused")
   private final LogManager logger;
   private final THTypeTable typeTable;
   private final TypeHierachyConverter converter;
@@ -110,11 +108,12 @@ class TypeHierachyCreator extends ASTVisitor {
     fileOfCU = fileName;
   }
 
+  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public void createTypeHierachy(List<JavaFileAST> pJavaProgram) throws JParserException {
     String oldFileOfCU = fileOfCU;
 
     for (JavaFileAST ast : pJavaProgram) {
-      fileOfCU = ast.getFileName();
+      fileOfCU = ast.getFile().getFileName().toString();
       CompilationUnit cu = ast.getAst();
       cu.accept(this);
 
@@ -182,7 +181,7 @@ class TypeHierachyCreator extends ASTVisitor {
       if (typeBinding.isTopLevel()) {
 
         String simpleName = node.getName().getIdentifier();
-        String expectedFilename = simpleName + JAVA_FILE_SUFFIX;
+        String expectedFilename = simpleName + EclipseJavaParser.JAVA_SOURCE_FILE_EXTENSION;
 
         if (!expectedFilename.equals(fileOfCU)) {
           classNameException = true;

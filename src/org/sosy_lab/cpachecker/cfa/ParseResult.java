@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.SortedSetMultimap;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.SortedMap;
-
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-
-import com.google.common.collect.SortedSetMultimap;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Class representing the result of parsing a C file before function calls
@@ -52,17 +52,17 @@ public class ParseResult {
 
   private final List<Pair<ADeclaration, String>> globalDeclarations;
 
-  private final Language language;
+  private final List<Path> fileNames;
 
-  public ParseResult(SortedMap<String, FunctionEntryNode> pFunctions,
+  public ParseResult(
+      SortedMap<String, FunctionEntryNode> pFunctions,
       SortedSetMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
-      Language pLanguage) {
+      List<Path> pFileNames) {
     functions = pFunctions;
     cfaNodes = pCfaNodes;
     globalDeclarations = pGlobalDeclarations;
-    language = pLanguage;
-
+    fileNames = ImmutableList.copyOf(pFileNames);
   }
 
   public boolean isEmpty() {
@@ -81,7 +81,7 @@ public class ParseResult {
     return globalDeclarations;
   }
 
-  public Language getLanguage() {
-    return language;
+  public List<Path> getFileNames() {
+    return fileNames;
   }
 }

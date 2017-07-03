@@ -28,6 +28,8 @@ package org.sosy_lab.cpachecker.cfa.model;
  */
 public class CFATerminationNode extends CFANode {
 
+  private static final long serialVersionUID = -8328879108494506389L;
+
   public CFATerminationNode(String pFunctionName) {
     super(pFunctionName);
   }

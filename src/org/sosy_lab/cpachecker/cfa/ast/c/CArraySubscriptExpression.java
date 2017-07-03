@@ -31,6 +31,8 @@ public final class CArraySubscriptExpression extends AArraySubscriptExpression i
 
 
 
+  private static final long serialVersionUID = 129923340158722862L;
+
   public CArraySubscriptExpression(final FileLocation pFileLocation,
                                       final CType pType,
                                       final CExpression pArrayExpression,
