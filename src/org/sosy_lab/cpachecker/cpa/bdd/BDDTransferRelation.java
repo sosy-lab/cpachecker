@@ -363,7 +363,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws UnsupportedCCodeException {
     BDDState newState = state;
-    String returnVar = "";
+    String returnVar = null;
 
     if (cfaEdge.getExpression().isPresent()) {
       returnVar = ((CIdExpression)cfaEdge.asAssignment().get().getLeftHandSide()).getDeclaration().getQualifiedName();
@@ -385,13 +385,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     // delete variables from returning function,
     // we do not need them after this location, because the next edge is the functionReturnEdge.
     // this results in a smaller BDD and allows to call a function twice.
-    for (String var : predmgr.getTrackedVars().keySet()) {
-      if (isLocalVariableForFunction(var, functionName) && !returnVar.equals(var)) {
-        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
-      }
-    }
-
-    return newState;
+    return leaveScope(newState, functionName, returnVar);
   }
 
   @Override
@@ -399,20 +393,25 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       assert "default return".equals(cfaEdge.getDescription())
               || "skipped unnecessary edges".equals(cfaEdge.getDescription());
-
-      // delete variables from returning function,
-      // we do not need them after this location, because the next edge is the functionReturnEdge.
-      // this results in a smaller BDD and allows to call a function twice.
-      BDDState newState = state;
-      for (String var : predmgr.getTrackedVars().keySet()) {
-        if (isLocalVariableForFunction(var, functionName)) {
-          newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
-        }
-      }
-      return newState;
+      return leaveScope(state, functionName, null);
     }
 
     return state;
+  }
+
+  /*
+   * delete variables from returning function,
+   * we do not need them after this location, because the next edge is the functionReturnEdge.
+   * this results in a smaller BDD and allows to call a function twice.
+   */
+  private BDDState leaveScope(BDDState newState, String pFunctionName, @Nullable String ignoreVar) {
+    for (String var : predmgr.getTrackedVars().keySet()) {
+      if (isLocalVariableForFunction(var, pFunctionName)
+          && (ignoreVar == null || !ignoreVar.equals(var))) {
+        newState = newState.forget(predmgr.createPredicateWithoutPrecisionCheck(var, predmgr.getTrackedVars().get(var)));
+      }
+    }
+    return newState;
   }
 
   /** This function handles assumptions like "if(a==b)" and "if(a!=0)".
