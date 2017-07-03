@@ -25,25 +25,23 @@ package org.sosy_lab.cpachecker.util.predicates.regions;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Function;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import com.google.common.base.Function;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * This class provides a RegionManager which additionally keeps track of a name
@@ -155,11 +153,13 @@ public class NamedRegionManager implements RegionManager {
 
     // make nodes for FALSE and TRUE
     if (!r.isTrue()) {
-      str.append("0 [shape=box, label=\"0\", style=filled, shape=box, height=0.3, width=0.3];\n");
+      str.append(
+          "0 [shape=box, label=\"0 (false)\", style=filled, shape=box, height=0.3, width=0.3];\n");
       cache.put(makeFalse(), 0);
     }
     if (!r.isFalse()) {
-      str.append("1 [shape=box, label=\"1\", style=filled, shape=box, height=0.3, width=0.3];\n");
+      str.append(
+          "1 [shape=box, label=\"1 (true)\", style=filled, shape=box, height=0.3, width=0.3];\n");
       cache.put(makeTrue(), 1);
     }
 
