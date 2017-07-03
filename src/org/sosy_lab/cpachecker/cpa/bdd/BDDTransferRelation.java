@@ -123,6 +123,15 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return null;
   }
 
+  @Override
+  protected Collection<BDDState> postProcessing(BDDState newState, CFAEdge edge) {
+    if (newState.getRegion().isFalse()) { // assumption is not fulfilled / not possible
+      return Collections.emptySet();
+    } else {
+      return Collections.singleton(newState);
+    }
+  }
+
   /** This function handles statements like "a = 0;" and "b = !a;" and
    * calls of external functions. */
   @Override
@@ -440,11 +449,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     // get information from region into evaluated region
     Region newRegion = rmgr.makeAnd(state.getRegion(), evaluated);
-    if (newRegion.isFalse()) { // assumption is not fulfilled / not possible
-      return null;
-    } else {
-      return new BDDState(rmgr, bvmgr, newRegion);
-    }
+    return new BDDState(rmgr, bvmgr, newRegion);
   }
 
   /** This function returns a bitvector, that represents the expression.
