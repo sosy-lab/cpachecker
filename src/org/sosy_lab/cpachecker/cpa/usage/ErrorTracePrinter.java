@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -91,7 +92,7 @@ public abstract class ErrorTracePrinter {
   protected UsageContainer container;
   protected final LogManager logger;
 
-  protected final Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS;
+  protected Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS;
 
 
   public ErrorTracePrinter(Configuration c, BAMTransferRelation t, LogManager l, LockTransferRelation lT) throws InvalidConfigurationException {
@@ -100,11 +101,14 @@ public abstract class ErrorTracePrinter {
     config = c;
     lockTransfer = lT;
     config.inject(this, ErrorTracePrinter.class);
+    FILTER_EMPTY_FILE_LOCATIONS =
+        e -> (e.getFileLocation() != null && !e.getFileLocation().getFileName().equals("<none>"));
+
     if (filterMissedFiles) {
-      FILTER_EMPTY_FILE_LOCATIONS =
-        e -> e.getFileLocation() != null && (Files.exists(Paths.get(e.getFileLocation().getFileName())));
-    } else {
-      FILTER_EMPTY_FILE_LOCATIONS = e -> e.getFileLocation() != null;
+      FILTER_EMPTY_FILE_LOCATIONS = Predicates.and(
+          FILTER_EMPTY_FILE_LOCATIONS,
+          e -> (Files.exists(Paths.get(e.getFileLocation().getFileName())))
+          );
     }
   }
 
