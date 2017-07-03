@@ -122,8 +122,9 @@ public class ControlAutomatonCPA
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
 
   private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
-  private final AutomatonTransferRelation transferRelation;
-  private final Statistics stats = new AutomatonStatistics(this);
+  final AutomatonStatistics stats = new AutomatonStatistics(this);
+  private final CFA cfa;
+  private final LogManager logger;
 
   protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
       Configuration pConfig, LogManager pLogger, CFA pCFA)
@@ -131,8 +132,8 @@ public class ControlAutomatonCPA
 
     pConfig.inject(this, ControlAutomatonCPA.class);
 
-    this.transferRelation = new AutomatonTransferRelation(this, pLogger, pCFA.getMachineModel());
-
+    cfa = pCFA;
+    logger = pLogger;
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
 
@@ -226,7 +227,7 @@ public class ControlAutomatonCPA
 
   @Override
   public AutomatonTransferRelation getTransferRelation() {
-    return transferRelation ;
+    return new AutomatonTransferRelation(this, logger, cfa.getMachineModel());
   }
 
   public AutomatonState getBottomState() {

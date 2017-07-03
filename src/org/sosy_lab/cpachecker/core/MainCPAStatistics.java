@@ -128,7 +128,6 @@ class MainCPAStatistics implements Statistics {
   private final Collection<Statistics> subStats;
   private final @Nullable MemoryStatistics memStats;
   private final CoverageReport coverageReport;
-  private final String analyzedFiles;
   private final @Nullable CExpressionInvariantExporter cExpressionInvariantExporter;
   private Thread memStatsThread;
 
@@ -145,12 +144,9 @@ class MainCPAStatistics implements Statistics {
   private @Nullable CFA cfa;
 
   public MainCPAStatistics(
-      Configuration pConfig,
-      LogManager pLogger,
-      String pAnalyzedFiles, ShutdownNotifier pShutdownNotifier)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     logger = pLogger;
-    analyzedFiles = pAnalyzedFiles;
     pConfig.inject(this);
 
     subStats = new ArrayList<>();
@@ -294,9 +290,9 @@ class MainCPAStatistics implements Statistics {
             "Out of memory while generating statistics about final reached set");
       }
 
-      if (cExpressionInvariantExporter != null) {
+      if (cExpressionInvariantExporter != null && cfa != null) {
         try {
-          cExpressionInvariantExporter.exportInvariant(analyzedFiles, reached);
+          cExpressionInvariantExporter.exportInvariant(cfa, reached);
         } catch (IOException e) {
           logger.logUserException(
               Level.WARNING,

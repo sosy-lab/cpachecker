@@ -30,6 +30,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -50,7 +52,6 @@ import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -65,7 +66,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
+import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -94,6 +95,7 @@ class CFABuilder extends ASTVisitor {
   // Data structure for checking amount of initializations per global variable
   private final Set<String> globalInitializedVariables = Sets.newHashSet();
 
+  private final List<Path> parsedFiles = new ArrayList<>();
 
   private GlobalScope fileScope = new GlobalScope();
   private Scope artificialScope;
@@ -129,6 +131,9 @@ class CFABuilder extends ASTVisitor {
 
   public void analyzeTranslationUnit(
       IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope) {
+    if (ast.getFilePath() != null && !ast.getFilePath().isEmpty()) {
+      parsedFiles.add(Paths.get(ast.getFilePath()));
+    }
     sideAssignmentStack = new Sideassignments();
     artificialScope = pFallbackScope;
     fileScope =
@@ -342,10 +347,7 @@ class CFABuilder extends ASTVisitor {
       throw new CParserException("Invalid C code because of undefined identifiers mentioned above.");
     }
 
-    ParseResult result = new ParseResult(cfas,
-                                         cfaNodes,
-                                         globalDecls,
-                                         Language.C);
+    ParseResult result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
 
     return result;
   }

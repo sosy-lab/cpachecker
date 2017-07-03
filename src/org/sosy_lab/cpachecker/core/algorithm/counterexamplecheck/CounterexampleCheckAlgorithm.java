@@ -93,8 +93,7 @@ public class CounterexampleCheckAlgorithm
       Specification pSpecification,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
-      CFA cfa,
-      String filename)
+      CFA cfa)
       throws InvalidConfigurationException {
     this.algorithm = algorithm;
     this.logger = logger;
@@ -118,7 +117,6 @@ public class CounterexampleCheckAlgorithm
                 logger,
                 pShutdownNotifier,
                 cfa,
-                filename,
                 s ->
                     ARGUtils.tryGetOrCreateCounterexampleInformation(
                         s, pCpa, assumptionToEdgeAllocator));

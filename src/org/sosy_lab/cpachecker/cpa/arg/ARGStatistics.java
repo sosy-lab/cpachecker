@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
@@ -210,7 +211,7 @@ public class ARGStatistics implements Statistics {
       try (Writer writer = MoreFiles.openOutputFile(argCFile, Charset.defaultCharset())) {
         writer.write(
             argToCExporter.translateARG((ARGState) pReached.getFirstState()));
-      } catch (IOException e) {
+      } catch (IOException | CPAException e) {
         logger.logUserException(Level.WARNING, e, "Could not write C translation of ARG to file");
       }
     }

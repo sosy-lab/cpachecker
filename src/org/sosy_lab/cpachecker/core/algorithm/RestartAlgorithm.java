@@ -187,7 +187,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
   private final ShutdownNotifier shutdownNotifier;
   private final ShutdownRequestListener logShutdownListener;
   private final RestartAlgorithmStatistics stats;
-  private final String filename;
   private final CFA cfa;
   private final Configuration globalConfig;
   private final Specification specification;
@@ -204,7 +203,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      String pFilename,
       CFA pCfa)
       throws InvalidConfigurationException {
     config.inject(this);
@@ -216,7 +214,6 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
     this.stats = new RestartAlgorithmStatistics(configFiles.size());
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
-    this.filename = pFilename;
     this.cfa = pCfa;
     this.globalConfig = config;
     specification = checkNotNull(pSpecification);
@@ -235,11 +232,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      String pFilename,
       CFA pCfa)
       throws InvalidConfigurationException {
     RestartAlgorithm algorithm =
-        new RestartAlgorithm(pConfig, pLogger, pShutdownNotifier, pSpecification, pFilename, pCfa);
+        new RestartAlgorithm(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
     if (algorithm.useARGCombiningAlgorithm) {
       return new PartialARGsCombiner(algorithm, pConfig, pLogger, pShutdownNotifier);
     }
@@ -505,7 +501,7 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
 
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-    algorithm = coreComponents.createAlgorithm(cpa, filename, cfa, specification);
+    algorithm = coreComponents.createAlgorithm(cpa, cfa, specification);
     if (algorithm instanceof RestartAlgorithm) {
       // To avoid accidental infinitely-recursive nesting.
       throw new InvalidConfigurationException(

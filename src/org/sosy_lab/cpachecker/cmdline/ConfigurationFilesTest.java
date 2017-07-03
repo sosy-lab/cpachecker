@@ -134,14 +134,12 @@ public class ConfigurationFilesTest {
           "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
-          "counterexample.checker.config",
-          // LoopstackCPA can be removed from inhering configuration.
-          "cpa.loopstack.loopIterationsBeforeAbstraction");
+          "counterexample.checker.config");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
 
-    @Option(secure = true, description = "C or Java?")
+    @Option(secure = true, description = "C, Java, or LLVM IR?")
     private Language language = Language.C;
 
     @Option(
@@ -272,7 +270,7 @@ public class ConfigurationFilesTest {
 
     final CPAchecker cpachecker;
     try {
-      cpachecker = new CPAchecker(config, logger, ShutdownManager.create(), ImmutableSet.of());
+      cpachecker = new CPAchecker(config, logger, ShutdownManager.create());
     } catch (InvalidConfigurationException e) {
       assert_()
           .fail("Invalid configuration in configuration file %s : %s", configFile, e.getMessage());
@@ -280,7 +278,7 @@ public class ConfigurationFilesTest {
     }
 
     try {
-      cpachecker.run(createEmptyProgram(isJava));
+      cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
       if (isJava) {
         assume().fail("Java frontend has a bug and cannot be run twice");

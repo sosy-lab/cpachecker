@@ -113,7 +113,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
+import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter.CONDITION;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;

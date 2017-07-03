@@ -26,6 +26,9 @@ package org.sosy_lab.cpachecker.util.automaton;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
+import com.google.common.io.BaseEncoding;
 import com.google.common.io.CharStreams;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -46,7 +49,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
@@ -283,6 +286,11 @@ public class AutomatonGraphmlCommon {
     }
   }
 
+  public static String computeHash(Path pPath) throws IOException {
+    HashCode hash = MoreFiles.asByteSource(pPath).hash(Hashing.sha1());
+    return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
+  }
+
   public static class GraphMlBuilder {
 
     private final Document doc;
@@ -291,8 +299,7 @@ public class AutomatonGraphmlCommon {
     public GraphMlBuilder(
         WitnessType pGraphType,
         String pDefaultSourceFileName,
-        Language pLanguage,
-        MachineModel pMachineModel,
+        CFA pCfa,
         VerificationTaskMetaData pVerificationTaskMetaData)
         throws ParserConfigurationException, DOMException, IOException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -315,7 +322,8 @@ public class AutomatonGraphmlCommon {
       root.appendChild(graph);
       graph.setAttribute("edgedefault", "directed");
       graph.appendChild(createDataElement(KeyDef.WITNESS_TYPE, pGraphType.toString()));
-      graph.appendChild(createDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString()));
+      graph.appendChild(
+          createDataElement(KeyDef.SOURCECODELANGUAGE, pCfa.getLanguage().toString()));
       graph.appendChild(
           createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
 
@@ -328,22 +336,19 @@ public class AutomatonGraphmlCommon {
             createDataElement(
                 KeyDef.SPECIFICATION, MoreFiles.toString(specFile, Charsets.UTF_8).trim()));
       }
-      for (String inputWitnessHash : pVerificationTaskMetaData.getInputWitnessHashes()) {
-        graph.appendChild(createDataElement(KeyDef.INPUTWITNESSHASH, inputWitnessHash));
+      for (Path inputWitness : pVerificationTaskMetaData.getInputWitnessFiles()) {
+        graph.appendChild(createDataElement(KeyDef.INPUTWITNESSHASH, computeHash(inputWitness)));
       }
 
-      if (pVerificationTaskMetaData.getProgramNames().isPresent()) {
-        for (String programName : pVerificationTaskMetaData.getProgramNames().get()) {
-          graph.appendChild(createDataElement(KeyDef.PROGRAMFILE, programName));
-        }
+      for (Path programFile : pCfa.getFileNames()) {
+        graph.appendChild(createDataElement(KeyDef.PROGRAMFILE, programFile.toString()));
       }
-      if (pVerificationTaskMetaData.getProgramHashes().isPresent()) {
-        for (String programHash : pVerificationTaskMetaData.getProgramHashes().get()) {
-          graph.appendChild(createDataElement(KeyDef.PROGRAMHASH, programHash));
-        }
+      for (Path programFile : pCfa.getFileNames()) {
+        graph.appendChild(createDataElement(KeyDef.PROGRAMHASH, computeHash(programFile)));
       }
 
-      graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pMachineModel)));
+      graph.appendChild(
+          createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pCfa.getMachineModel())));
       ZonedDateTime now = ZonedDateTime.now().withNano(0);
       graph.appendChild(
           createDataElement(

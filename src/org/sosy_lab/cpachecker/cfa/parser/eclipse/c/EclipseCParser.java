@@ -73,7 +73,7 @@ import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
+import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 

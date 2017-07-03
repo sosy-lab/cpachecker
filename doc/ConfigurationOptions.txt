@@ -114,6 +114,10 @@ solver.z3.usePhantomReferences = false
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
+# number of threads, positive values match exactly, with -1 we use the number
+# of available cores or the machine automatically.
+algorithm.parallelBam.numberOfThreads = -1
+
 # use a BMC like algorithm that checks for satisfiability after the analysis
 # has finished, works only with PredicateCPA
 analysis.algorithm.BMC = false
@@ -160,6 +164,9 @@ analysis.algorithm.propertyCheck = false
 
 # Use termination algorithm to prove (non-)termination.
 analysis.algorithm.termination = false
+
+# run the parallel BAM algortihm.
+analysis.algorithm.useParallelBAM = false
 
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
@@ -304,6 +311,9 @@ analysis.unknownIfUnrestrictedProgram = false
 
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
+
+# add loop-structure information to CFA.
+analysis.useLoopStructure = true
 
 # Use analyses parallely. The resulting reachedset is the one of the first
 # analysis finishing in time. All other analyses are terminated.
@@ -785,6 +795,15 @@ cpa.arg.dumpAfterIteration = false
 # export final ARG as .dot file
 cpa.arg.export = true
 
+# Only enable CLOSEFUNCTIONBLOCK if you are sure that the ARG merges
+# different flows through a function at the end of the function.
+cpa.arg.export.code.blockAtFunctionEnd = KEEPBLOCK
+  enum:     [CLOSEFUNCTIONBLOCK, ADDNEWBLOCK, KEEPBLOCK]
+
+# How to deal with target states during code generation
+cpa.arg.export.code.handleTargetStates = NONE
+  enum:     [NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA]
+
 # write include directives
 cpa.arg.export.code.header = true
 
@@ -956,31 +975,6 @@ cpa.bdd.merge = "join"
 # Threshold for unrolling blocks before stopping. A value of 0 disables the
 # threshold.
 cpa.blockcount.threshold = 1
-
-# Number of loop iterations before the loop counter is abstracted. Zero is
-# equivalent to no limit.
-cpa.bounds.loopIterationsBeforeAbstraction = 0
-
-# this option controls how the maxLoopIterations condition is adjusted when a
-# condition adjustment is invoked.
-cpa.bounds.maxLoopIterationAdjusterFactory = STATIC
-  enum:     [STATIC, INCREMENT, DOUBLE]
-
-# threshold for unrolling loops of the program (0 is infinite)
-# works only if assumption storage CPA is enabled, because otherwise it would
-# be unsound
-cpa.bounds.maxLoopIterations = 0
-
-# threshold for adjusting the threshold for unrolling loops of the program (0
-# is infinite).
-# only relevant in combination with a non-static maximum loop iteration
-# adjuster.
-cpa.bounds.maxLoopIterationsUpperBound = 0
-
-# threshold for unwinding recursion (0 is infinite)
-# works only if assumption storage CPA is enabled, because otherwise it would
-# be unsound
-cpa.bounds.maxRecursionDepth = 0
 
 # depth of recursion bound
 cpa.callstack.depth = 0
@@ -1247,29 +1241,32 @@ cpa.liveVar.assumeGlobalVariablesAreAlwaysLive = true
 # function calls (in this case FunctionSummaryEdges are used)
 cpa.location.followFunctionCalls = true
 
-# this option determines which merge operator to use
-cpa.loopinvariants.mergeType = "SEP"
-  allowed values: [SEP, MERGE]
-
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
-cpa.loopstack.loopIterationsBeforeAbstraction = 0
+cpa.loopbound.loopIterationsBeforeAbstraction = 0
 
 # this option controls how the maxLoopIterations condition is adjusted when a
 # condition adjustment is invoked.
-cpa.loopstack.maxLoopIterationAdjusterFactory = STATIC
+cpa.loopbound.maxLoopIterationAdjusterFactory = STATIC
   enum:     [STATIC, INCREMENT, DOUBLE]
 
 # threshold for unrolling loops of the program (0 is infinite)
-# The option is ignored unless AssumptionStorageCPA is enabled (as otherwise
-# it is unsound).
-cpa.loopstack.maxLoopIterations = 0
+# works only if assumption storage CPA is enabled, because otherwise it would
+# be unsound
+cpa.loopbound.maxLoopIterations = 0
 
 # threshold for adjusting the threshold for unrolling loops of the program (0
 # is infinite).
 # only relevant in combination with a non-static maximum loop iteration
 # adjuster.
-cpa.loopstack.maxLoopIterationsUpperBound = 0
+cpa.loopbound.maxLoopIterationsUpperBound = 0
+
+# enable stack-based tracking of loops
+cpa.loopbound.trackStack = false
+
+# this option determines which merge operator to use
+cpa.loopinvariants.mergeType = "SEP"
+  allowed values: [SEP, MERGE]
 
 # Where to perform abstraction
 cpa.lpi.abstractionLocations = LOOPHEAD
@@ -1990,6 +1987,9 @@ cpa.sign.merge = "JOIN"
 cpa.sign.stop = "SEP"
   allowed values: [SEP, JOIN]
 
+# max length of a chain of states, -1 for infinity
+cpa.singleSuccessorCompactor.maxChainLength = -1
+
 # Apply AND- LBE transformation to loop transition relation.
 cpa.slicing.applyLBETransformation = true
 
@@ -2346,6 +2346,9 @@ cpa.value.refinement.searchForFurtherErrorPaths = false
 # store all refined paths
 cpa.value.refinement.storeAllRefinedPaths = false
 
+# if this option is set to false, constraints are never kept
+cpa.value.refinement.trackConstraints = true
+
 # whether to use the top-down interpolation strategy or the bottom-up
 # interpolation strategy
 cpa.value.refinement.useTopDownInterpolationStrategy = true
@@ -2486,9 +2489,9 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 # Specifies the java version of source code accepted
 java.version = JavaCore.VERSION_1_7
 
-# C or Java?
+# C, Java, or LLVM IR?
 language = C
-  enum:     [C, JAVA]
+  enum:     [C, JAVA, LLVM]
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
@@ -2529,10 +2532,6 @@ locmapper.dumpTokenizedProgramToFile = no default value
 # all used options are printed
 log.usedOptions.export = false
 
-# Whether to check for memory safety properties (this can be specified by
-# passing an appropriate .prp file to the -spec parameter).
-memorysafety.check = false
-
 # When checking for memory safety properties, use this configuration file
 # instead of the current one.
 memorysafety.config = no default value
@@ -2540,10 +2539,6 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
-
-# Whether to check for the overflow property (this can be specified by
-# passing an appropriate .prp file to the -spec parameter).
-overflow.check = false
 
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
@@ -2926,10 +2921,6 @@ statistics.print = false
 # which stop operator to use for LiveVariablesCPA
 stop = "SEP"
   allowed values: [SEP, JOIN, NEVER]
-
-# Whether to check for the termination property (this can be specified by
-# passing an appropriate .prp file to the -spec parameter).
-termination.check = false
 
 # When checking for the termination property, use this configuration file
 # instead of the current one.

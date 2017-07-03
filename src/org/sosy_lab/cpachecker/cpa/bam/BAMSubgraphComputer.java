@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class BAMSubgraphComputer {
 
@@ -52,7 +54,7 @@ public class BAMSubgraphComputer {
   private final BAMDataManager data;
   private final LogManager logger;
 
-  BAMSubgraphComputer(BAMCPA bamCpa) {
+  BAMSubgraphComputer(AbstractBAMCPA bamCpa) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.reducer = bamCpa.getReducer();
     this.data = bamCpa.getData();
@@ -82,20 +84,22 @@ public class BAMSubgraphComputer {
    *         because one real state can be used multiple times in one path.
    * @throws MissingBlockException for re-computing some blocks
    */
-  BackwardARGState computeCounterexampleSubgraph(
+  Pair<BackwardARGState, BackwardARGState> computeCounterexampleSubgraph(
       final ARGState target, final ARGReachedSet pMainReachedSet)
       throws MissingBlockException, InterruptedException {
-    return computeCounterexampleSubgraph(Collections.singleton(target), pMainReachedSet);
+    Pair<BackwardARGState, Collection<BackwardARGState>> p =
+        computeCounterexampleSubgraph(Collections.singleton(target), pMainReachedSet);
+    return Pair.of(p.getFirst(), Iterables.getOnlyElement(p.getSecond()));
   }
 
-  BackwardARGState computeCounterexampleSubgraph(
+  Pair<BackwardARGState, Collection<BackwardARGState>> computeCounterexampleSubgraph(
       final Collection<ARGState> targets, final ARGReachedSet pMainReachedSet)
       throws MissingBlockException, InterruptedException {
     assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
-    BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet,
-        Collections2.transform(targets, BackwardARGState::new));
+    Collection<BackwardARGState> newTargets = from(targets).transform(BackwardARGState::new).toList();
+    BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet, newTargets);
     assert pMainReachedSet.asReachedSet().getFirstState() == root.getARGState();
-    return root;
+    return Pair.of(root, newTargets);
   }
 
   /**
@@ -201,6 +205,13 @@ public class BAMSubgraphComputer {
     final Map<BackwardARGState, BackwardARGState> newExpandedToNewInnerTargets = new HashMap<>();
 
     for (BackwardARGState newExpandedTarget : newExpandedTargets) {
+
+      if (!data.hasExpandedState(newExpandedTarget.getARGState())) {
+        logger.log(Level.FINE,
+            "Target state refers to a missing ARGState, i.e., the cached subtree was deleted. Updating it.");
+        throw new MissingBlockException();
+      }
+
       final ARGState reducedTarget =
           (ARGState) data.getReducedStateForExpandedState(newExpandedTarget.getARGState());
 
@@ -231,7 +242,7 @@ public class BAMSubgraphComputer {
       final CFANode rootNode = extractLocation(expandedRoot);
       final Block rootBlock = partitioning.getBlockForCallNode(rootNode);
       final AbstractState reducedRootState = reducer.getVariableReducedState(expandedRoot, rootBlock, rootNode);
-      data.bamCache.remove(reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
+      data.getCache().remove(reducedRootState, reachedSet.getPrecision(reachedSet.getFirstState()), rootBlock);
       throw new MissingBlockException();
     }
 

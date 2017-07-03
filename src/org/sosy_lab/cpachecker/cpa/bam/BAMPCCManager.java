@@ -344,10 +344,10 @@ public final class BAMPCCManager {
   }
 
   void addBlockAnalysisInfo(AbstractState pElement) throws CPATransferException {
-    if (data.bamCache.getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) {
+    if (data.getCache().getLastAnalyzedBlock() == null || !(pElement instanceof BAMARGBlockStartState)) {
       throw new CPATransferException("Cannot build proof, ARG, for BAM analysis.");
     }
-    ((BAMARGBlockStartState) pElement).setAnalyzedBlock(data.bamCache.getLastAnalyzedBlock());
+    ((BAMARGBlockStartState) pElement).setAnalyzedBlock(data.getCache().getLastAnalyzedBlock());
   }
 
   void setCurrentBlock(Block pCurrentBlock) {

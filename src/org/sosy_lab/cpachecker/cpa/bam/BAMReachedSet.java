@@ -36,11 +36,11 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
-  private final BAMCPA bamCpa;
+  private final AbstractBAMCPA bamCpa;
   private final ARGPath path;
   private final StatTimer removeCachedSubtreeTimer;
 
-  public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
+  public BAMReachedSet(AbstractBAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
       StatTimer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.bamCpa = cpa;

@@ -104,70 +104,16 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
       CompositeOptions options = new CompositeOptions();
       getConfiguration().inject(options);
 
-      ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
-      ImmutableList.Builder<StopOperator> stopOperators = ImmutableList.builder();
-      ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
-      ImmutableList.Builder<SimplePrecisionAdjustment> simplePrecisionAdjustments = ImmutableList.builder();
-
-      boolean mergeSep = true;
-      boolean simplePrec = true;
-
-      for (ConfigurableProgramAnalysis sp : cpas) {
-        stopOperators.add(sp.getStopOperator());
-
-        PrecisionAdjustment prec = sp.getPrecisionAdjustment();
-        if (prec instanceof SimplePrecisionAdjustment) {
-          simplePrecisionAdjustments.add((SimplePrecisionAdjustment) prec);
-        } else {
-          simplePrec = false;
-        }
-        precisionAdjustments.add(prec);
-
-        MergeOperator merge = sp.getMergeOperator();
-        if (merge != MergeSepOperator.getInstance()) {
-          mergeSep = false;
-        }
-        mergeOperators.add(merge);
+      boolean mergeSep =
+          !from(cpas)
+              .filter(cpa -> cpa.getMergeOperator() != MergeSepOperator.getInstance())
+              .isEmpty();
+      if (!mergeSep && options.inCPAEnabledAnalysis && !options.merge.equals("AGREE")) {
+        throw new InvalidConfigurationException(
+            "Merge PLAIN is currently not supported in predicated analysis");
       }
 
-      ImmutableList<StopOperator> stopOps = stopOperators.build();
-
-      MergeOperator compositeMerge;
-      if (mergeSep) {
-        compositeMerge = MergeSepOperator.getInstance();
-      } else {
-        if (options.inCPAEnabledAnalysis) {
-          if (options.merge.equals("AGREE")) {
-            Optional<PredicateCPA> predicateCPA = from(cpas).filter(PredicateCPA.class).first();
-            Preconditions.checkState(predicateCPA.isPresent(), "Option 'inCPAEnabledAnalysis' needs PredicateCPA");
-            PredicateAbstractionManager abmgr = predicateCPA.get().getPredicateManager();
-            compositeMerge = new CompositeMergeAgreeCPAEnabledAnalysisOperator(mergeOperators.build(), stopOps, abmgr);
-          } else {
-            throw new InvalidConfigurationException("Merge PLAIN is currently not supported in predicated analysis");
-          }
-        } else {
-          if (options.merge.equals("AGREE")) {
-            compositeMerge = new CompositeMergeAgreeOperator(mergeOperators.build(), stopOps);
-          } else if (options.merge.equals("PLAIN")) {
-            compositeMerge = new CompositeMergePlainOperator(mergeOperators.build());
-          } else {
-            throw new AssertionError();
-          }
-        }
-      }
-
-      CompositeStopOperator compositeStop = new CompositeStopOperator(stopOps);
-
-      PrecisionAdjustment compositePrecisionAdjustment;
-      if (simplePrec) {
-        compositePrecisionAdjustment = new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
-      } else {
-        compositePrecisionAdjustment =
-            new CompositePrecisionAdjustment(precisionAdjustments.build());
-      }
-
-      return new CompositeCPA(
-          cfa, compositeMerge, compositeStop, compositePrecisionAdjustment, cpas, options);
+      return new CompositeCPA(cfa, cpas, options);
     }
 
     @Override
@@ -199,25 +145,15 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
     return new CompositeCPAFactory();
   }
 
-  private final MergeOperator mergeOperator;
-  private final CompositeStopOperator stopOperator;
-  private final PrecisionAdjustment precisionAdjustment;
-
   private final ImmutableList<ConfigurableProgramAnalysis> cpas;
   private final CFA cfa;
   private final CompositeOptions options;
 
   private CompositeCPA(
       CFA pCfa,
-      MergeOperator mergeOperator,
-      CompositeStopOperator stopOperator,
-      PrecisionAdjustment precisionAdjustment,
       ImmutableList<ConfigurableProgramAnalysis> cpas,
       CompositeOptions pOptions) {
     this.cfa = pCfa;
-    this.mergeOperator = mergeOperator;
-    this.stopOperator = stopOperator;
-    this.precisionAdjustment = precisionAdjustment;
     this.cpas = cpas;
     this.options = pOptions;
   }
@@ -243,17 +179,72 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    ImmutableList.Builder<MergeOperator> mergeOperators = ImmutableList.builder();
+    boolean mergeSep = true;
+    for (ConfigurableProgramAnalysis sp : cpas) {
+      MergeOperator merge = sp.getMergeOperator();
+      if (merge != MergeSepOperator.getInstance()) {
+        mergeSep = false;
+      }
+      mergeOperators.add(merge);
+    }
+
+    if (mergeSep) {
+      return MergeSepOperator.getInstance();
+    } else {
+      if (options.inCPAEnabledAnalysis) {
+        if (options.merge.equals("AGREE")) {
+          Optional<PredicateCPA> predicateCPA = from(cpas).filter(PredicateCPA.class).first();
+          Preconditions.checkState(
+              predicateCPA.isPresent(), "Option 'inCPAEnabledAnalysis' needs PredicateCPA");
+          PredicateAbstractionManager abmgr = predicateCPA.get().getPredicateManager();
+          return new CompositeMergeAgreeCPAEnabledAnalysisOperator(
+              mergeOperators.build(), getStopOperator().getStopOperators(), abmgr);
+        } else {
+          throw new AssertionError("Merge PLAIN is currently not supported in predicated analysis");
+        }
+      } else {
+        if (options.merge.equals("AGREE")) {
+          return new CompositeMergeAgreeOperator(
+              mergeOperators.build(), getStopOperator().getStopOperators());
+        } else if (options.merge.equals("PLAIN")) {
+          return new CompositeMergePlainOperator(mergeOperators.build());
+        } else {
+          throw new AssertionError();
+        }
+      }
+    }
   }
 
   @Override
-  public StopOperator getStopOperator() {
-    return stopOperator;
+  public CompositeStopOperator getStopOperator() {
+    ImmutableList.Builder<StopOperator> stopOps = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis cpa : cpas) {
+      stopOps.add(cpa.getStopOperator());
+    }
+    return new CompositeStopOperator(stopOps.build());
   }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    ImmutableList.Builder<PrecisionAdjustment> precisionAdjustments = ImmutableList.builder();
+    ImmutableList.Builder<SimplePrecisionAdjustment> simplePrecisionAdjustments =
+        ImmutableList.builder();
+    boolean simplePrec = true;
+    for (ConfigurableProgramAnalysis sp : cpas) {
+      PrecisionAdjustment prec = sp.getPrecisionAdjustment();
+      if (prec instanceof SimplePrecisionAdjustment) {
+        simplePrecisionAdjustments.add((SimplePrecisionAdjustment) prec);
+      } else {
+        simplePrec = false;
+      }
+      precisionAdjustments.add(prec);
+    }
+    if (simplePrec) {
+      return new CompositeSimplePrecisionAdjustment(simplePrecisionAdjustments.build());
+    } else {
+      return new CompositePrecisionAdjustment(precisionAdjustments.build());
+    }
   }
 
   @Override
@@ -298,10 +289,6 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
         ((StatisticsProvider)cpa).collectStatistics(pStatsCollection);
       }
     }
-
-    if (precisionAdjustment instanceof StatisticsProvider) {
-      ((StatisticsProvider)precisionAdjustment).collectStatistics(pStatsCollection);
-    }
   }
 
   @Override
@@ -334,7 +321,7 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
 
   @Override
   public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
-    return stopOperator.isCoveredBy(pElement, pOtherElement, cpas);
+    return getStopOperator().isCoveredBy(pElement, pOtherElement, cpas);
   }
 
   @Override

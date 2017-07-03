@@ -26,6 +26,10 @@ package org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor;
 import java.io.PrintStream;
 import java.util.Collection;
 import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -39,8 +43,12 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
+@Options(prefix = "cpa.singleSuccessorCompactor")
 public class SingleSuccessorCompactorCPA extends AbstractSingleWrapperCPA
     implements ConfigurableProgramAnalysisWithBAM {
+
+  @Option(description = "max length of a chain of states, -1 for infinity")
+  private int maxChainLength = -1;
 
   /** if BAM is used, break chains of edges at block entry and exit. */
   @Nullable private BlockPartitioning partitioning = null;
@@ -60,15 +68,18 @@ public class SingleSuccessorCompactorCPA extends AbstractSingleWrapperCPA
 
   private final LogManager logger;
 
-  public SingleSuccessorCompactorCPA(ConfigurableProgramAnalysis pCpa, LogManager pLogger) {
+  public SingleSuccessorCompactorCPA(
+      ConfigurableProgramAnalysis pCpa, LogManager pLogger, Configuration config)
+      throws InvalidConfigurationException {
     super(pCpa);
+    config.inject(this, SingleSuccessorCompactorCPA.class);
     logger = pLogger;
   }
 
   @Override
   public SingleSuccessorCompactorTransferRelation getTransferRelation() {
     return new SingleSuccessorCompactorTransferRelation(
-        getWrappedCpa().getTransferRelation(), partitioning, chainSizes);
+        getWrappedCpa().getTransferRelation(), partitioning, chainSizes, maxChainLength);
   }
 
   @Override

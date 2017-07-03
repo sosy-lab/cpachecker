@@ -44,10 +44,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -60,11 +62,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 @Options(prefix="cpa.arg.export.code")
 public class ARGToCTranslator {
   private static String ASSERTFAIL = "__assert_fail";
+  private static String DEFAULTRETURN = "default return";
 
   private static abstract class Statement {
     public abstract void translateToCode(StringBuffer buffer, int indent);
@@ -75,6 +80,14 @@ public class ARGToCTranslator {
       }
       buffer.append(" ");
     }
+  }
+
+  private static class InlinedFunction extends CompoundStatement {
+
+    public InlinedFunction(CompoundStatement pOuterBlock) {
+      super(pOuterBlock);
+    }
+
   }
 
   private static class CompoundStatement extends Statement {
@@ -180,6 +193,16 @@ public class ARGToCTranslator {
     }
   }
 
+  public static enum TargetTreatment {
+    NONE, RUNTIMEVERIFICATION, ASSERTFALSE, FRAMACPRAGMA;
+  }
+
+  public static enum BlockTreatmentAtFunctionEnd {
+    CLOSEFUNCTIONBLOCK,
+    ADDNEWBLOCK,
+    KEEPBLOCK;
+  }
+
   private final LogManager logger;
   private final List<String> globalDefinitionsList = new ArrayList<>();
   private final Set<ARGState> discoveredElements = new HashSet<>();
@@ -187,26 +210,35 @@ public class ARGToCTranslator {
   private FunctionBody mainFunctionBody;
   private String mainReturnVar;
   private boolean isVoidMain;
+  private boolean deleteAssertFail;
   // private static Collection<AbstractState> reached;
 
-  private @Nullable Set<CFANode> addPragmaAfter;
+  private @Nullable Set<ARGState> addPragmaAfter;
 
 
   @Option(secure=true, name="header", description="write include directives")
   private boolean includeHeader = true;
 
+  @Option(secure=true, name="blockAtFunctionEnd", description="Only enable CLOSEFUNCTIONBLOCK if you are sure that the ARG merges different flows through a function at the end of the function.")
+  private BlockTreatmentAtFunctionEnd handleCompoundStatementAtEndOfFunction = BlockTreatmentAtFunctionEnd.KEEPBLOCK;
+
+  @Option(secure=true, name="handleTargetStates", description="How to deal with target states during code generation")
+  private TargetTreatment targetStrategy = TargetTreatment.NONE;
+
   public ARGToCTranslator(LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
+    deleteAssertFail = targetStrategy == TargetTreatment.FRAMACPRAGMA;
   }
 
-  public String translateARG(ARGState argRoot) {
+  public String translateARG(ARGState argRoot) throws CPAException {
 
     return translateARG(argRoot, null);
   }
 
-  public String translateARG(ARGState argRoot, @Nullable Set<CFANode> pAddPragma) {
+  public String translateARG(ARGState argRoot, @Nullable Set<ARGState> pAddPragma)
+      throws CPAException {
 
     addPragmaAfter = pAddPragma == null ? Collections.emptySet() : pAddPragma;
 
@@ -221,6 +253,8 @@ public class ARGToCTranslator {
 
     if (includeHeader) {
       buffer.append("#include <stdio.h>\n");
+    }
+    if (includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE) {
       buffer.append("#include <assert.h>\n");
     }
     for(String globalDef : globalDefinitionsList) {
@@ -232,7 +266,7 @@ public class ARGToCTranslator {
     return buffer.toString();
   }
 
-  private void translate(ARGState rootElement) {
+  private void translate(ARGState rootElement) throws CPAException {
     // waitlist for the edges to be processed
     Deque<ARGEdge> waitlist = new ArrayDeque<>(); //TODO: used to be sorted list and I don't know why yet ;-)
 
@@ -271,16 +305,18 @@ public class ARGToCTranslator {
         //it was indeed covered; jump to element it was covered by
         currentBlock.addStatement(new SimpleStatement("goto label_" + currentElement.getCoveringState().getStateId() + ";"));
       } else {
-        // check whether we have a return statement for the main method before
+        // check whether we have a return statement for the main method before (only when main is non-void)
         CFANode loc = AbstractStates.extractLocation(currentElement);
-        if(loc.getNumLeavingEdges()==0 &&  loc.getEnteringEdge(0).getEdgeType()==CFAEdgeType.ReturnStatementEdge) {
-          currentBlock.addStatement(new SimpleStatement("return " + "__return_"+currentElement.getStateId() +";"));
+        if (!isVoidMain && currentElement.getWrappedState() != null && loc.getNumLeavingEdges() == 0
+            && loc.getEnteringEdge(0).getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
+          currentBlock.addStatement(
+              new SimpleStatement("return " + "__return_" + currentElement.getStateId() + ";"));
         } else {
-        if (isVoidMain) {
-          currentBlock.addStatement(new SimpleStatement("return;"));
-        } else {
-          currentBlock.addStatement(new SimpleStatement("return " + mainReturnVar +";"));
-        }
+          if (isVoidMain) {
+            currentBlock.addStatement(new SimpleStatement("return;"));
+          } else {
+            currentBlock.addStatement(new SimpleStatement("return " + mainReturnVar + ";"));
+          }
         }
       }
     } else if (childrenOfElement.size() == 1) {
@@ -299,7 +335,7 @@ public class ARGToCTranslator {
 
         // else part
         newBlock = addIfStatement(currentBlock, "else ");
-        pushToWaitlist(waitlist, currentElement, new ARGState(child.getWrappedState(), null),
+        pushToWaitlist(waitlist, currentElement, new ARGState(null, null),
             edgeToChild.getPredecessor().getLeavingEdge(0) == edgeToChild
                 ? edgeToChild.getPredecessor().getLeavingEdge(1)
                 : edgeToChild.getPredecessor().getLeavingEdge(0),
@@ -373,7 +409,7 @@ public class ARGToCTranslator {
     }
   }
 
-  private void handleEdge(ARGEdge nextEdge, Deque<ARGEdge> waitlist) {
+  private void handleEdge(ARGEdge nextEdge, Deque<ARGEdge> waitlist) throws CPAException {
     ARGState parentElement = nextEdge.getParentElement();
     ARGState childElement = nextEdge.getChildElement();
     CFAEdge edge = nextEdge.getCfaEdge();
@@ -395,7 +431,8 @@ public class ARGToCTranslator {
   }
 
 
-  private CompoundStatement processEdge(ARGState currentElement, ARGState childElement, CFAEdge edge, CompoundStatement currentBlock) {
+  private CompoundStatement processEdge(ARGState currentElement, ARGState childElement,
+      CFAEdge edge, CompoundStatement currentBlock) throws CPAException {
     if (edge instanceof CFunctionCallEdge) {
       // if this is a function call edge we need to inline it
       currentBlock = processFunctionCall(edge, currentBlock);
@@ -454,6 +491,9 @@ public class ARGToCTranslator {
         edgeStatementCodes.append("\n");
       }
       currentBlock.addStatement(new SimpleStatement(edgeStatementCodes.toString()));
+    } else if (mustHandleDefaultReturn(edge)) {
+      processDefaultReturn((CFunctionDeclaration) ((FunctionExitNode) edge.getSuccessor())
+          .getEntryNode().getFunctionDefinition(), childElement.getStateId());
     } else {
       String statement = processSimpleEdge(edge);
       if (!statement.isEmpty()) {
@@ -462,11 +502,18 @@ public class ARGToCTranslator {
     }
 
     if (childElement.isTarget()) {
-      logger.log(Level.ALL, "HALT for line no ", edge.getLineNumber());
-      currentBlock.addStatement(new SimpleStatement("HALT" + childElement.getStateId() + ": goto HALT" + childElement.getStateId() + ";"));
+      Statement afterTarget = processTargetState(childElement, edge);
+      if (afterTarget != null) {
+        currentBlock.addStatement(afterTarget);
+      }
     }
 
     return currentBlock;
+  }
+
+  private boolean mustHandleDefaultReturn(final CFAEdge pEdge) {
+    return pEdge.getSuccessor() instanceof FunctionExitNode
+        && pEdge.getDescription().equals(DEFAULTRETURN);
   }
 
   private ARGState getCovering(final ARGState pCovered) {
@@ -503,72 +550,90 @@ public class ARGToCTranslator {
 
   }
 
-  private String processSimpleEdge(CFAEdge pCFAEdge) {
-    if(pCFAEdge == null) {
-      return "";
+  private void processDefaultReturn(final CFunctionDeclaration pFunDecl, int pElementId) {
+    CType returnType = pFunDecl.getType().getReturnType();
+    if(!(returnType instanceof CVoidType)) {
+      String varName = "__return_" + pElementId;
+      globalDefinitionsList.add(returnType.toASTString(varName) + ";");
     }
+
+  }
+
+  private String processSimpleEdge(CFAEdge pCFAEdge) throws CPAException {
+    if (pCFAEdge == null) { return ""; }
 
     switch (pCFAEdge.getEdgeType()) {
-    case BlankEdge: {
-      //nothing to do
-      break;
-    }
+      case BlankEdge: {
+        //nothing to do
+        break;
+      }
 
-    case AssumeEdge: {
-      //nothing to do
-      break;
-    }
+      case AssumeEdge: {
+        //nothing to do
+        break;
+      }
 
-    case StatementEdge: {
-      CStatementEdge lStatementEdge = (CStatementEdge)pCFAEdge;
-      String statementText = lStatementEdge.getStatement().toASTString();
-        if (statementText.startsWith(ASSERTFAIL)) {
-          if (addPragmaAfter.contains(
-              pCFAEdge.getSuccessor())) {
-            return "assert(0);\n/*@ slice pragma ctrl; */";
-          }
-          return "assert(0);";
-
-        }
+      case StatementEdge: {
+        CStatementEdge lStatementEdge = (CStatementEdge) pCFAEdge;
+        String statementText = lStatementEdge.getStatement().toASTString();
+        if (deleteAssertFail && statementText.startsWith(ASSERTFAIL)) { return ""; }
         return statementText + (statementText.endsWith(";") ? "" : ";");
-    }
-
-    case DeclarationEdge: {
-      CDeclarationEdge lDeclarationEdge = (CDeclarationEdge)pCFAEdge;
-      String declaration;
-      // TODO adapt if String in org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
-      if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
-        declaration = lDeclarationEdge.getDeclaration().toASTString();
-      } else {
-        declaration = lDeclarationEdge.getRawStatement();
       }
 
-      if (lDeclarationEdge.getDeclaration().isGlobal()) {
-        globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
-      } else {
-        return declaration;
+      case DeclarationEdge: {
+        CDeclarationEdge lDeclarationEdge = (CDeclarationEdge) pCFAEdge;
+        String declaration;
+        // TODO adapt if String in org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter#createInitializedTemporaryVariable is changed
+        if (lDeclarationEdge.getDeclaration().toASTString().contains("__CPAchecker_TMP_")) {
+          declaration = lDeclarationEdge.getDeclaration().toASTString();
+        } else {
+          declaration = lDeclarationEdge.getCode(); //TODO check if works without lDeclarationEdge.getRawStatement();
+          if (declaration.contains(",")) {
+            for (CFAEdge predEdge : CFAUtils.enteringEdges(pCFAEdge.getPredecessor())) {
+              if (predEdge.getRawStatement().equals(declaration)) {
+                declaration = "";
+                break;
+              }
+            }
+          }
+          if (includeHeader && declaration.contains("assert")
+              && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
+            declaration = "";
+          }
+        }
+
+        if (declaration.contains(
+            "org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
+          throw new CPAException(
+                "Failed to translate ARG into program because a type could not be properly resolved.");
+        }
+
+        if (lDeclarationEdge.getDeclaration().isGlobal()) {
+          globalDefinitionsList.add(declaration + (declaration.endsWith(";") ? "" : ";"));
+        } else {
+          return declaration;
+        }
+
+        break;
       }
 
-      break;
-    }
+      case CallToReturnEdge: {
+        //          this should not have been taken
+        assert false : "CallToReturnEdge in counterexample path: " + pCFAEdge;
 
-    case CallToReturnEdge: {
-      //          this should not have been taken
-      assert false : "CallToReturnEdge in counterexample path: " + pCFAEdge;
+        break;
+      }
 
-      break;
-    }
-
-    default: {
-      assert false  : "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType();
-    }
+      default: {
+        assert false : "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType();
+      }
     }
 
     return "";
   }
 
   private CompoundStatement processFunctionCall(CFAEdge pCFAEdge, CompoundStatement currentBlock) {
-    CompoundStatement newBlock = new CompoundStatement(currentBlock);
+    CompoundStatement newBlock = new InlinedFunction(currentBlock);
     currentBlock.addStatement(newBlock);
 
     CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge)pCFAEdge;
@@ -604,18 +669,19 @@ public class ARGToCTranslator {
     return newBlock;
   }
 
-  private CompoundStatement processReturnStatementCall(CFunctionSummaryEdge pEdge, CompoundStatement pCurrentBlock, int id) {
+  private CompoundStatement processReturnStatementCall(CFunctionSummaryEdge pEdge,
+      CompoundStatement pCurrentBlock, int id) {
     CFunctionCall retExp = pEdge.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
       //end of void function, just leave block (no assignment needed)
-      return pCurrentBlock.getSurroundingBlock();
+      return getBlockAfterEndOfFunction(pCurrentBlock);
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement)retExp;
+      CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement) retExp;
 
       String returnVar = "__return_" + id;
       String leftHandSide = exp.getLeftHandSide().toASTString();
 
-      pCurrentBlock = pCurrentBlock.getSurroundingBlock();
+      pCurrentBlock = getBlockAfterEndOfFunction(pCurrentBlock);
       pCurrentBlock.addStatement(new SimpleStatement(leftHandSide + " = " + returnVar + ";"));
 
       return pCurrentBlock;
@@ -624,6 +690,46 @@ public class ARGToCTranslator {
     }
 
     return null;
+  }
+
+  private CompoundStatement getBlockAfterEndOfFunction(
+      CompoundStatement currentBlock) {
+    switch (handleCompoundStatementAtEndOfFunction) {
+      case CLOSEFUNCTIONBLOCK:
+        while (!(currentBlock instanceof InlinedFunction)) {
+          currentBlock = currentBlock.getSurroundingBlock();
+        }
+        return currentBlock.getSurroundingBlock();
+      case ADDNEWBLOCK:
+        currentBlock = new CompoundStatement(currentBlock);
+        currentBlock.getSurroundingBlock().addStatement(currentBlock);
+        return currentBlock;
+      default: // KEEPBLOCK
+        return currentBlock;
+    }
+
+  }
+
+  private @Nullable Statement processTargetState(final ARGState pTargetState,
+      final CFAEdge pEdgeToTarget) {
+    switch (targetStrategy) {
+      case RUNTIMEVERIFICATION:
+        logger.log(Level.ALL, "HALT for line no ", pEdgeToTarget.getLineNumber());
+        return new SimpleStatement("HALT" + pTargetState.getStateId() +
+                                     ": goto HALT" + pTargetState.getStateId() + ";");
+      case ASSERTFALSE:
+        return new SimpleStatement("assert(0);");
+      case FRAMACPRAGMA:
+        if (addPragmaAfter.contains(pTargetState)) {
+          return new SimpleStatement("/*@ slice pragma ctrl; */");
+        } else {
+          return null;
+        }
+      default:
+        // case NONE
+        return null;
+    }
+
   }
 
   private int freshIndex = 0;

@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
@@ -177,6 +178,9 @@ public class CoreComponentsFactory {
       description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
   private boolean useRestartAlgorithmWithARGReplay = false;
 
+  @Option(secure = true, name = "algorithm.useParallelBAM", description = "run the parallel BAM algortihm.")
+  private boolean useParallelBAM = false;
+
   @Option(secure=true, name="unknownIfUnrestrictedProgram",
       description="stop the analysis with the result unknown if the program does not satisfies certain restrictions.")
   private boolean unknownIfUnrestrictedProgram = false;
@@ -249,7 +253,6 @@ public class CoreComponentsFactory {
 
   public Algorithm createAlgorithm(
       final ConfigurableProgramAnalysis cpa,
-      final String programDenotation,
       final CFA cfa,
       final Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
@@ -281,9 +284,7 @@ public class CoreComponentsFactory {
               cfa, specification);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
-      algorithm =
-          RestartAlgorithm.create(
-              config, logger, shutdownNotifier, specification, programDenotation, cfa);
+      algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
@@ -293,7 +294,11 @@ public class CoreComponentsFactory {
           new RestartAlgorithmWithARGReplay(config, logger, shutdownNotifier, cfa, specification);
 
     } else if (runCBMCasExternalTool) {
-      algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
+      if (cfa.getFileNames().size() > 1) {
+        throw new InvalidConfigurationException(
+            "Cannot use CBMC as analysis with more than one input file");
+      }
+      algorithm = new ExternalCBMCAlgorithm(cfa.getFileNames().get(0), config, logger);
 
     } else if (useParallelAlgorithm) {
       algorithm =
@@ -303,11 +308,14 @@ public class CoreComponentsFactory {
               shutdownNotifier,
               specification,
               cfa,
-              programDenotation,
               aggregatedReachedSets);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+
+      if (useParallelBAM) {
+        algorithm = new ParallelBAMAlgorithm(cpa, config, logger, shutdownNotifier);
+      }
 
       if (useAnalysisWithEnablerCPAAlgorithm) {
         algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);
@@ -349,25 +357,11 @@ public class CoreComponentsFactory {
         if (cpa instanceof BAMCPA) {
           algorithm =
               new BAMCounterexampleCheckAlgorithm(
-                  algorithm,
-                  cpa,
-                  config,
-                  logger,
-                  shutdownNotifier,
-                  specification,
-                  cfa,
-                  programDenotation);
+                  algorithm, cpa, config, logger, shutdownNotifier, specification, cfa);
         } else {
           algorithm =
               new CounterexampleCheckAlgorithm(
-                  algorithm,
-                  cpa,
-                  config,
-                  specification,
-                  logger,
-                  shutdownNotifier,
-                  cfa,
-                  programDenotation);
+                  algorithm, cpa, config, specification, logger, shutdownNotifier, cfa);
         }
       }
 
@@ -407,7 +401,7 @@ public class CoreComponentsFactory {
       }
 
       if (constructResidualProgram) {
-        algorithm = new ResidualProgramConstructionAlgorithm(cfa, algorithm, config, logger, shutdownNotifier);
+        algorithm = new ResidualProgramConstructionAlgorithm(cfa, algorithm, config, logger, shutdownNotifier, specification);
       }
 
       if (unknownIfUnrestrictedProgram) {

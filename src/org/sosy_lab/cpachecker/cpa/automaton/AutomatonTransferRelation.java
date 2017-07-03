@@ -50,8 +50,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState.AutomatonUnknownStat
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /** The TransferRelation of this CPA determines the AbstractSuccessor of a {@link AutomatonState}
  * and strengthens an {@link AutomatonState.AutomatonUnknownState}.
@@ -62,18 +61,25 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
   private final LogManager logger;
   private final MachineModel machineModel;
 
-  StatTimer totalPostTime         = new StatTimer("Total time for successor computation");
-  StatTimer matchTime             = new StatTimer("Time for transition matches");
-  StatTimer assertionsTime        = new StatTimer("Time for transition assertions");
-  StatTimer actionTime            = new StatTimer("Time for transition actions");
-  StatTimer totalStrengthenTime   = new StatTimer("Total time for strengthen operator");
-  StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
+  private final TimerWrapper totalPostTime;
+  private final TimerWrapper matchTime;
+  private final TimerWrapper assertionsTime;
+  private final TimerWrapper actionTime;
+  private final TimerWrapper totalStrengthenTime;
+  private final StatIntHist automatonSuccessors;
 
   public AutomatonTransferRelation(
       ControlAutomatonCPA pCpa, LogManager pLogger, MachineModel pMachineModel) {
     this.cpa = pCpa;
     this.logger = pLogger;
     this.machineModel = pMachineModel;
+
+    totalPostTime = pCpa.stats.totalPostTime.getNewTimer();
+    matchTime = pCpa.stats.matchTime.getNewTimer();
+    assertionsTime = pCpa.stats.assertionsTime.getNewTimer();
+    actionTime = pCpa.stats.actionTime.getNewTimer();
+    totalStrengthenTime = pCpa.stats.totalStrengthenTime.getNewTimer();
+    automatonSuccessors = pCpa.stats.automatonSuccessors;
   }
 
   @Override
@@ -108,7 +114,6 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
       }
 
       return getFollowStates(pElement, null, pCfaEdge, false);
-
     } finally {
       totalPostTime.stop();
     }
@@ -330,6 +335,7 @@ class AutomatonTransferRelation extends SingleEdgeTransferRelation {
         successors.addAll(getFollowStates(lUnknownState.getPreviousState(), otherStates, pCfaEdge, true));
       }
       totalStrengthenTime.stop();
+
       assert !from(successors).anyMatch(instanceOf(AutomatonUnknownState.class));
       return successors;
     }

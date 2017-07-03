@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.core;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 import com.google.common.base.StandardSystemProperty;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableCollection;
@@ -221,7 +221,6 @@ public class CPAchecker {
 
   private final LogManager logger;
   private final Configuration config;
-  private final Set<SpecificationProperty> properties;
   private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
@@ -257,13 +256,9 @@ public class CPAchecker {
   }
 
   public CPAchecker(
-      Configuration pConfiguration,
-      LogManager pLogManager,
-      ShutdownManager pShutdownManager,
-      Set<SpecificationProperty> pProperties)
+      Configuration pConfiguration, LogManager pLogManager, ShutdownManager pShutdownManager)
       throws InvalidConfigurationException {
     config = pConfiguration;
-    properties = ImmutableSet.copyOf(pProperties);
     logger = pLogManager;
     shutdownManager = pShutdownManager;
     shutdownNotifier = pShutdownManager.getNotifier();
@@ -274,7 +269,9 @@ public class CPAchecker {
             pConfiguration, pLogManager, shutdownNotifier, new AggregatedReachedSets());
   }
 
-  public CPAcheckerResult run(String programDenotation) {
+  public CPAcheckerResult run(
+      List<String> programDenotation, Set<SpecificationProperty> properties) {
+    checkArgument(!programDenotation.isEmpty());
 
     logger.log(Level.INFO, "CPAchecker", getVersion(), "started");
 
@@ -290,16 +287,15 @@ public class CPAchecker {
 
     try {
       try {
-        stats = new MainCPAStatistics(config, logger, programDenotation, shutdownNotifier);
+        stats = new MainCPAStatistics(config, logger, shutdownNotifier);
 
         // create reached set, cpa, algorithm
         stats.creationTime.start();
         reached = factory.createReachedSet();
 
         if (runCBMCasExternalTool) {
-
-          checkIfOneValidFile(programDenotation);
-          algorithm = new ExternalCBMCAlgorithm(programDenotation, config, logger);
+          algorithm =
+              new ExternalCBMCAlgorithm(checkIfOneValidFile(programDenotation), config, logger);
 
         } else {
           cfa = parse(programDenotation, stats);
@@ -323,7 +319,7 @@ public class CPAchecker {
 
           GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-          algorithm = factory.createAlgorithm(cpa, programDenotation, cfa, specification);
+          algorithm = factory.createAlgorithm(cpa, cfa, specification);
 
           if (algorithm instanceof StatisticsProvider) {
             ((StatisticsProvider)algorithm).collectStatistics(stats.getSubStatistics());
@@ -333,7 +329,7 @@ public class CPAchecker {
             ImpactAlgorithm mcmillan = (ImpactAlgorithm)algorithm;
             reached.add(mcmillan.getInitialState(cfa.getMainFunction()), mcmillan.getInitialPrecision(cfa.getMainFunction()));
           } else {
-            initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
+            initializeReachedSet(reached, cpa, properties, cfa.getMainFunction(), cfa);
           }
         }
 
@@ -415,33 +411,31 @@ public class CPAchecker {
     return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
   }
 
-  private void checkIfOneValidFile(String fileDenotation) throws InvalidConfigurationException {
-    if (!denotesOneFile(fileDenotation)) {
+  private Path checkIfOneValidFile(List<String> fileDenotation)
+      throws InvalidConfigurationException {
+    if (fileDenotation.size() != 1) {
       throw new InvalidConfigurationException(
         "Exactly one code file has to be given.");
     }
 
-    Path file = Paths.get(fileDenotation);
+    Path file = Paths.get(fileDenotation.get(0));
 
     try {
       MoreFiles.checkReadableFile(file);
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
+
+    return file;
   }
 
-  private boolean denotesOneFile(String programDenotation) {
-    return !programDenotation.contains(",");
-  }
-
-  private CFA parse(String fileNamesCommaSeparated, MainCPAStatistics stats) throws InvalidConfigurationException, IOException,
-      ParserException, InterruptedException {
+  private CFA parse(List<String> fileNames, MainCPAStatistics stats)
+      throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
     // parse file and create CFA
     CFACreator cfaCreator = new CFACreator(config, logger, shutdownNotifier);
     stats.setCFACreator(cfaCreator);
 
-    Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-    CFA cfa = cfaCreator.parseFileAndCreateCFA(commaSplitter.splitToList(fileNamesCommaSeparated));
+    CFA cfa = cfaCreator.parseFileAndCreateCFA(fileNames);
     stats.setCFA(cfa);
     return cfa;
   }
@@ -537,6 +531,7 @@ public class CPAchecker {
   private void initializeReachedSet(
       final ReachedSet pReached,
       final ConfigurableProgramAnalysis pCpa,
+      final Set<SpecificationProperty> pProperties,
       final FunctionEntryNode pAnalysisEntryFunction,
       final CFA pCfa)
       throws InvalidConfigurationException, InterruptedException {
@@ -574,7 +569,7 @@ public class CPAchecker {
               tlp.tryGetAutomatonTargetLocations(
                   pAnalysisEntryFunction,
                   Specification.fromFiles(
-                      properties, backwardSpecificationFiles, pCfa, config, logger));
+                      pProperties, backwardSpecificationFiles, pCfa, config, logger));
           break;
       default:
         throw new AssertionError("Unhandled case statement: " + initialStatesFor);

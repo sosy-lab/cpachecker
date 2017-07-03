@@ -5,7 +5,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.truth.TruthJUnit;
-
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -14,10 +16,6 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
-
-import java.nio.file.Paths;
-import java.util.HashMap;
-import java.util.Map;
 
 @RunWith(Parameterized.class)
 public class FormulaSlicingTest {
@@ -108,7 +106,7 @@ public class FormulaSlicingTest {
                 .add("cpa.location.LocationCPA")
                 .add("cpa.callstack.CallstackCPA")
                 .add("cpa.functionpointer.FunctionPointerCPA")
-                .add("cpa.loopstack.LoopstackCPA")
+                .add("cpa.loopbound.LoopBoundCPA")
                 .add("cpa.formulaslicing.FormulaSlicingCPA")
                 .add("cpa.targetreachability.TargetReachabilityCPA")
                 .add("cpa.assumptions.storage.AssumptionStorageCPA")
@@ -125,6 +123,8 @@ public class FormulaSlicingTest {
         .put("analysis.traversal.useReversePostorder", "true")
         .put("cpa.predicate.ignoreIrrelevantVariables", "false")
         .put("cpa.loopstack.loopIterationsBeforeAbstraction", "1")
+        .put("cpa.loopbound.loopIterationsBeforeAbstraction", "1")
+        .put("cpa.loopbound.trackStack", "true")
         .put("cfa.findLiveVariables", "true")
         .put("cpa.slicing.weakeningStrategy", weakeningStrategy.toString())
         .build());
