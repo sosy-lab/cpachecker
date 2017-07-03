@@ -196,14 +196,14 @@
         	if (searchInput.trim() != "") {
         		if ($("#optionExactMatch").prop("checked")) {
         			$rootScope.errorPath.forEach(function(it, i) {
-                        if (searchInput in it.newValDict && it.desc == searchInput) {
+                        if (searchInput in it.newValDict && it.desc.trim() == searchInput) {
                             $scope.numOfValueMatches++;
                             $scope.numOfDescriptionMatches++;
                             $("#errpath-" + i + " td")[1].classList.add("markedValueDescElement");
                         } else if (searchInput in it.newValDict) {
                             $scope.numOfValueMatches++;
                             $("#errpath-" + i + " td")[1].classList.add("markedValueElement");
-                        } else if (it.desc == searchInput) {
+                        } else if (it.desc.trim() == searchInput) {
                             $scope.numOfDescriptionMatches++;
                             $("#errpath-" + i + " td")[1].classList.add("markedDescElement");
                         }
