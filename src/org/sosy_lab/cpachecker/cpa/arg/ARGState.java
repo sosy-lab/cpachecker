@@ -306,7 +306,9 @@ public class ARGState extends AbstractSingleWrapperState
 
   void setMergedWith(ARGState pMergedWith) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    assert mergedWith == null : "Second merging of element " + this;
+    // Deactivated since we do merge more than once for splitting.
+    // TODO: find way to still check this for when we are not splitting
+    //assert mergedWith == null : "Second merging of element " + this;
 
     mergedWith = pMergedWith;
   }
@@ -327,8 +329,11 @@ public class ARGState extends AbstractSingleWrapperState
 
   void deleteChild(ARGState child) {
     assert (children.contains(child));
+    assert (child.parents.contains(this));
     children.remove(child);
     child.parents.remove(this);
+    assert (!children.contains(child));
+    assert (!child.parents.contains(this));
   }
 
   // counterexample
@@ -499,6 +504,7 @@ public class ARGState extends AbstractSingleWrapperState
     for (ARGState child : children) {
       assert (child.parents.contains(this));
       child.parents.remove(this);
+      assert (!child.parents.contains(this));
     }
     children.clear();
 
@@ -506,6 +512,7 @@ public class ARGState extends AbstractSingleWrapperState
     for (ARGState parent : parents) {
       assert (parent.children.contains(this));
       parent.children.remove(this);
+      assert (!parent.children.contains(this));
     }
     parents.clear();
   }
@@ -524,6 +531,7 @@ public class ARGState extends AbstractSingleWrapperState
     assert !replacement.destroyed : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
+    assert !(this==replacement) : "Don't replace ARGState " + this + " with itself";
 
     // copy children
     for (ARGState child : children) {
