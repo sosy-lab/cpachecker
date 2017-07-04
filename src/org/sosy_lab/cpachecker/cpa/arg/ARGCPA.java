@@ -88,6 +88,22 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   )
   private boolean keepCoveredStatesInReached = false;
 
+  @Option(
+      secure = true,
+      name = "cpa.arg.useARGStopJoin",
+      description =
+          "whether to use the stop operator for slicing abstractions"
+    )
+  private boolean useARGStopJoin = false;
+
+  @Option(
+      secure = true,
+      name = "cpa.arg.useARGMergeLocationBased",
+      description =
+          "whether to use the merge operator for slicing abstractions"
+    )
+  private boolean useARGMergeLocationBased = false;
+
   private final LogManager logger;
 
   private final ARGStatistics stats;
@@ -118,23 +134,35 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public MergeOperator getMergeOperator() {
-    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
-    if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
-      return MergeSepOperator.getInstance();
-    } else if (inCPAEnabledAnalysis) {
-      return new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
+    if (useARGMergeLocationBased) {
+      return new ARGMergeLocationBased();
     } else {
-      return new ARGMergeJoin(wrappedMergeOperator);
+      MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+      if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
+        return MergeSepOperator.getInstance();
+      } else if (inCPAEnabledAnalysis) {
+        return new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
+      } else {
+        return new ARGMergeJoin(wrappedMergeOperator);
+      }
     }
   }
 
   @Override
   public ForcedCoveringStopOperator getStopOperator() {
-    return new ARGStopSep(
+    if (useARGStopJoin) {
+      return new ARGStopJoin(
         getWrappedCpa().getStopOperator(),
         logger,
         inCPAEnabledAnalysis,
         keepCoveredStatesInReached);
+    } else {
+      return new ARGStopSep(
+        getWrappedCpa().getStopOperator(),
+        logger,
+        inCPAEnabledAnalysis,
+        keepCoveredStatesInReached);
+    }
   }
 
   @Override
