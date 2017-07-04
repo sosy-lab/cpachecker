@@ -75,6 +75,7 @@ public class ARGState extends AbstractSingleWrapperState
   private boolean hasCoveredParent = false;
 
   private ARGState mergedWith = null;
+  private ARGState forkedChild = null;
 
   private final int stateId;
 
@@ -84,6 +85,8 @@ public class ARGState extends AbstractSingleWrapperState
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   private boolean forceMerge = false;
+
+  private boolean forkCompleted = false;
 
   @Override
   public void setForceMerge() {
@@ -566,4 +569,21 @@ public class ARGState extends AbstractSingleWrapperState
 
     destroyed = true;
   }
+
+  public ARGState getForkedChild() {
+    return this.forkedChild;
+  }
+
+  public void unsetForkedChild() {
+    this.forkedChild = null;
+  }
+
+  public boolean isForkCompleted() {
+    return forkCompleted;
+  }
+
+  public void setForkCompleted() {
+    this.forkCompleted = true;
+  }
+
 }
