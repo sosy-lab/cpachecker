@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -56,11 +57,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -269,6 +270,36 @@ public class PathChecker {
             CounterexampleTraceInfo.feasible(
                 ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of()),
             pathWithAssignments);
+      }
+    }
+  }
+
+  /**
+   * @param parent the state at which the edge begins
+   * @param child the state at which the edge ends
+   * @return a boolean that is true if the transition is infeasible
+   * @throws SolverException theorem prover was unable to decide
+   * @throws InterruptedException theorem prover was interrupted
+   */
+  public boolean isInfeasibleEdge(ARGState parent, ARGState child) throws SolverException, InterruptedException {
+
+    BooleanFormula parentStateFormula = getPredicateState(parent).getAbstractionFormula().asInstantiatedFormula();
+    // BlockFormula of child should give us the desired edgeFormula
+    // Maybe this needs adaption for cases other than SBE:
+    BooleanFormula edgeFormula = getPredicateState(child).getAbstractionFormula().getBlockFormula().getFormula();
+    BooleanFormula childStateFormula = getPredicateState(child).getAbstractionFormula().asInstantiatedFormula();
+
+    PathFormula pathFormula = pmgr.makeEmptyPathFormula();
+    pathFormula = pmgr.makeAnd(pathFormula,parentStateFormula);
+    pathFormula = pmgr.makeAnd(pathFormula,edgeFormula);
+    pathFormula = pmgr.makeAnd(pathFormula, childStateFormula);
+    BooleanFormula formula = pathFormula.getFormula();
+    try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      thmProver.push(formula);
+      if (thmProver.isUnsat()) {
+        return true;
+      } else {
+        return false;
       }
     }
   }
