@@ -32,6 +32,7 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingSt
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,6 +45,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -483,8 +485,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
             .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
             .toList();
 
-    assert from(result).allMatch(state -> state.getParents().size() <= 1)
-        : "PredicateCPARefiner expects abstraction states to have only one parent, but at least one state has more.";
+    // This assertion does not hold anymore for slicing abstractions.
+    // TODO: Find a way to still check this for when we do not use slicing!
+    //assert from(result).allMatch(state -> state.getParents().size() <= 1)
+    //    : "PredicateCPARefiner expects abstraction states to have only one parent, but at least one state has more.";
 
     assert pPath.getLastState() == result.get(result.size()-1);
     return result;
