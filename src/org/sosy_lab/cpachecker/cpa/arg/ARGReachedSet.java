@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
@@ -34,13 +35,18 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -105,6 +111,40 @@ public class ARGReachedSet {
     for (ARGState ae : toWaitlist) {
       mReached.reAddToWaitlist(ae);
     }
+  }
+
+  /**
+   * for the case that the ARG is not a tree!
+   */
+  public void recalculateReachedSet() {
+    Set<ARGState> rootStates = ARGUtils.getRootStates(mReached);
+    // TODO: make this more robust, filtering for stateId==0 might fail eventually
+    rootStates = new HashSet<>(rootStates.stream().filter(x -> x.getStateId()==0).limit(1).collect(Collectors.toList()));
+    assert rootStates.size()==1;
+    Deque<ARGState> toVisit = new ArrayDeque<>(rootStates);
+    toVisit.addAll(rootStates);
+    Set<ARGState> reached = new HashSet<>();
+    while (!toVisit.isEmpty()) {
+      ARGState currentElement = toVisit.removeFirst();
+      if (reached.add(currentElement)) {
+        List<ARGState> notYetReached = from(currentElement.getChildren())
+                                        .filter(x -> !reached.contains(x))
+                                        .toList();
+        toVisit.addAll(notYetReached);
+      }
+    }
+    List<AbstractState> toRemove = new ArrayList<>(2);
+    for (AbstractState inOldReached : mReached) {
+      if (!reached.contains(inOldReached)) {
+        toRemove.add(inOldReached);
+      }
+    }
+    for (AbstractState inNewReached : reached) {
+      if (!mReached.contains(inNewReached)) {
+        throw new RuntimeException("UNEXPECTED");
+      }
+    }
+    mReached.removeAll(toRemove);
   }
 
   /**
@@ -496,5 +536,9 @@ public class ARGReachedSet {
     while (mReached.hasWaitingState()) {
       mReached.popFromWaitlist();
     }
+  }
+
+  public void addForkedState(ARGState forkedState, ARGState originalState) {
+    mReached.add(forkedState, mReached.getPrecision(originalState));
   }
 }

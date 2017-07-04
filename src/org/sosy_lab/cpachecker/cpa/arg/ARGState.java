@@ -635,4 +635,17 @@ public class ARGState extends AbstractSingleWrapperState
     this.forkCompleted = true;
   }
 
+  public void removeParent(ARGState pOtherParent) {
+    checkNotNull(pOtherParent);
+    assert !destroyed : "Don't use destroyed ARGState " + this;
+
+    // Manually enforce set semantics.
+    if (parents.contains(pOtherParent)) {
+      assert pOtherParent.children.contains(this);
+      parents.remove(pOtherParent);
+      pOtherParent.children.remove(this);
+    } else {
+      assert !pOtherParent.children.contains(this) : "Problem detected!";
+    }
+  }
 }
