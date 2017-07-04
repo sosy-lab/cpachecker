@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ARGState extends AbstractSingleWrapperState
-    implements Comparable<ARGState>, Graphable, ForceMerge {
+    implements Comparable<ARGState>, Graphable, Splitable, ForceMerge {
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -572,6 +572,55 @@ public class ARGState extends AbstractSingleWrapperState
 
   public ARGState getForkedChild() {
     return this.forkedChild;
+  }
+
+  /* (non-Javadoc)
+   * @see org.sosy_lab.cpachecker.cpa.arg.Splitable#forkWithReplacements(java.util.List)
+   */
+  @Override
+  public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates){
+    AbstractState wrappedState = this.getWrappedState();
+    AbstractState newWrappedState = null;
+    for (AbstractState state : pReplacementStates) {
+      if (state.getClass().isInstance(wrappedState)) {
+        newWrappedState = state;
+        break;
+      }
+    }
+    if (newWrappedState == null) {
+      if (wrappedState instanceof Splitable) {
+        newWrappedState = ((Splitable)wrappedState).forkWithReplacements(pReplacementStates);
+      } else {
+        newWrappedState = wrappedState;
+      }
+    }
+
+    ARGState newState = new ARGState(newWrappedState,null);
+    newState.makeTwinOf(this);
+
+    this.forkedChild = newState;
+
+    return newState;
+  }
+
+  private void makeTwinOf(ARGState pTemplateState) {
+
+    checkState(this.stateId != pTemplateState.stateId);
+    checkState(pTemplateState.destroyed != true);
+    checkState(pTemplateState.counterexample == null);
+
+    for (ARGState child : pTemplateState.getChildren()) {
+      child.addParent(this);
+    }
+
+    for (ARGState parent : pTemplateState.getParents()) {
+      this.addParent(parent);
+    }
+
+    this.wasExpanded = pTemplateState.wasExpanded;
+    this.mayCover = pTemplateState.mayCover;
+    this.hasCoveredParent = pTemplateState.hasCoveredParent;
+
   }
 
   public void unsetForkedChild() {
