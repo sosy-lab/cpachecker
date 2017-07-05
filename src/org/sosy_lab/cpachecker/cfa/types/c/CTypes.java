@@ -27,6 +27,7 @@ import com.google.common.base.Equivalence;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 /**
@@ -300,16 +301,15 @@ public final class CTypes {
   }
 
   /**
-   * Implements adjustment of function and array types according to
-   * C-Standard §6.7.6.3 (7 & 8).
-   * <p>
-   * If <code>pType</code> is not an instance of {@link CArrayType}
-   * or {@link CFunctionType}, it is returned unchanged.
+   * Implements adjustment of function and array types according to C-Standard §6.7.6.3 (7 & 8).
+   *
+   * <p>If <code>pType</code> is not an instance of {@link CArrayType} or {@link CFunctionType}, it
+   * is returned unchanged.
    *
    * @param pType the {@link CType} to be adjusted, if necessary
    * @return the adjusted version of <code>pType</code>
    */
-  public static CType adjustFunctionOrArrayType(CType pType) {
+  public static CType adjustFunctionOrArrayType(@Nullable CType pType) {
     if (pType instanceof CArrayType) {
       CType innerType = ((CArrayType) pType).getType();
       CExpression sizeExpression = ((CArrayType) pType).getLength();

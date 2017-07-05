@@ -539,7 +539,7 @@ public class CFunctionPointerResolver {
     for (int i=0; i<declParams.size(); i++) {
       CType dt = declParams.get(i);
       CType et = exprParams.get(i);
-      if (comparison.compare(dt, et) == -1) {
+      if (comparison.compare(dt, et) != 0) {
         logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
             "does not match function", functionType,
             "because actual parameter", i, "has type", et, "instead of", dt);
