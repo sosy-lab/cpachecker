@@ -82,7 +82,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
 @Options(prefix="residualprogram")
-public class ResidualProgramConstructionAlgorithm implements Algorithm, StatisticsProvider {
+public class ResidualProgramConstructionAfterAnalysisAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(secure=true, name="slice", description="write collected assumptions as automaton to file")
   private boolean doSlicing = true;
@@ -105,7 +105,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   private final ARGToCTranslator translator;
   private final Collection<Statistics> stats = new ArrayList<>();
 
-  public ResidualProgramConstructionAlgorithm(final CFA pCfa, final Algorithm pAlgorithm,
+  public ResidualProgramConstructionAfterAnalysisAlgorithm(final CFA pCfa, final Algorithm pAlgorithm,
       final Configuration pConfig, final LogManager pLogger, final ShutdownNotifier pShutdown,
       final Specification pSpec) throws InvalidConfigurationException {
     pConfig.inject(this);
