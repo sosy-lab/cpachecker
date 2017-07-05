@@ -73,10 +73,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -503,7 +500,7 @@ public class CFunctionPointerResolver {
 
     CType declRet = functionType.getReturnType();
     CType actRet = functionCallExpression.getExpressionType();
-    if (!isCompatibleType(declRet, actRet)) {
+    if (!CTypes.areTypesCompatible(declRet, actRet)) {
       logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(), "with type", actRet,
           "does not match function", functionType, "with return type", declRet);
       return false;
@@ -513,7 +510,7 @@ public class CFunctionPointerResolver {
         functionType,
         functionCallExpression,
         (e1, e2) -> {
-          if (isCompatibleType(e1, e2)) {
+          if (CTypes.areTypesCompatible(e1, e2)) {
             return 0;
           } else {
             return -1;
@@ -564,72 +561,6 @@ public class CFunctionPointerResolver {
       }
     }
     return true;
-  }
-
-  /**
-   * Check whether two types are assignment compatible.
-   *
-   * @param pDeclaredType The type that is declared (e.g., as variable type).
-   * @param pActualType The type that is actually used (e.g., as type of an expression).
-   * @return {@code true} if a value of actualType may be assigned to a variable of declaredType.
-   */
-  private boolean isCompatibleType(CType pDeclaredType, CType pActualType) {
-    // Check canonical types
-    CType declaredType = pDeclaredType.getCanonicalType();
-    CType actualType = pActualType.getCanonicalType();
-
-    // If types are equal, they are trivially compatible
-    if (declaredType.equals(actualType)) {
-      return true;
-    }
-
-    // Implicit conversions among basic types
-    if (declaredType instanceof CSimpleType && actualType instanceof CSimpleType) {
-      return true;
-    }
-
-    // Void pointer can be converted to any other pointer or integer
-    if (declaredType instanceof CPointerType) {
-      CPointerType declaredPointerType = (CPointerType) declaredType;
-      if (declaredPointerType.getType() == CVoidType.VOID) {
-        if (actualType instanceof CSimpleType) {
-          CSimpleType actualSimpleType = (CSimpleType) actualType;
-          CBasicType actualBasicType = actualSimpleType.getType();
-          if (actualBasicType.isIntegerType()) {
-            return true;
-          }
-        } else if (actualType instanceof CPointerType) {
-          return true;
-        }
-      }
-    }
-
-    // Any pointer or integer can be converted to a void pointer
-    if (actualType instanceof CPointerType) {
-      CPointerType actualPointerType = (CPointerType) actualType;
-      if (actualPointerType.getType() == CVoidType.VOID) {
-        if (declaredType instanceof CSimpleType) {
-          CSimpleType declaredSimpleType = (CSimpleType) declaredType;
-          CBasicType declaredBasicType = declaredSimpleType.getType();
-          if (declaredBasicType.isIntegerType()) {
-            return true;
-          }
-        } else if (declaredType instanceof CPointerType) {
-          return true;
-        }
-      }
-    }
-
-    // If both types are pointers, check if the inner types are compatible
-    if (declaredType instanceof CPointerType && actualType instanceof CPointerType) {
-      CPointerType declaredPointerType = (CPointerType) declaredType;
-      CPointerType actualPointerType = (CPointerType) actualType;
-      if (isCompatibleType(declaredPointerType.getType(), actualPointerType.getType())) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   private boolean checkParamCount(CFunctionCall functionCall, CFunctionType functionType) {
