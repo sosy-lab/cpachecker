@@ -23,6 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -66,15 +73,6 @@ import org.sosy_lab.cpachecker.cpa.uninitvars.UninitializedVariablesState.Elemen
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 /**
  * Needs typesCPA to properly deal with field references.
@@ -381,6 +379,7 @@ public class UninitializedVariablesTransferRelation extends SingleEdgeTransferRe
         && ((CCompositeType)t).getKind() == ComplexTypeKind.STRUCT;
   }
 
+  @SuppressWarnings("ShortCircuitBoolean")
   private boolean isExpressionUninitialized(UninitializedVariablesState element,
                                             @Nullable CRightHandSide expression,
                                             CFAEdge cfaEdge) throws UnrecognizedCCodeException {

@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
@@ -176,6 +177,9 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="restartAlgorithmWithARGReplay",
       description = "run a sequence of analysis, where the previous ARG is inserted into the current ARGReplayCPA.")
   private boolean useRestartAlgorithmWithARGReplay = false;
+
+  @Option(secure = true, name = "algorithm.useParallelBAM", description = "run the parallel BAM algortihm.")
+  private boolean useParallelBAM = false;
 
   @Option(secure=true, name="unknownIfUnrestrictedProgram",
       description="stop the analysis with the result unknown if the program does not satisfies certain restrictions.")
@@ -308,6 +312,10 @@ public class CoreComponentsFactory {
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
+
+      if (useParallelBAM) {
+        algorithm = new ParallelBAMAlgorithm(cpa, config, logger, shutdownNotifier);
+      }
 
       if (useAnalysisWithEnablerCPAAlgorithm) {
         algorithm = new AnalysisWithRefinableEnablerCPAAlgorithm(algorithm, cpa, cfa, logger, config, shutdownNotifier);

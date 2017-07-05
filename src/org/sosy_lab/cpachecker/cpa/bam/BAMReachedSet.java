@@ -33,6 +33,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -66,7 +67,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   private final StatTimer removeCachedSubtreeTimer;
   private final LogManager logger;
 
-  public BAMReachedSet(BAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
+  public BAMReachedSet(AbstractBAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
       StatTimer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
     this.partitioning = cpa.getBlockPartitioning();
@@ -99,7 +100,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       final List<Predicate<? super Precision>> pPrecisionTypes)
       throws InterruptedException {
     final BackwardARGState cutState = (BackwardARGState) pCutState;
-    Preconditions.checkArgument(pPrecisionTypes.size() == pPrecisionTypes.size());
+    final ARGState cutPointAsArgState = getReachedState(cutState);
+    Preconditions.checkArgument(pPrecisions.size() == pPrecisionTypes.size());
     final List<Pair<Precision, Predicate<? super Precision>>> newPrecisionsLst =
         Pair.zipList(pPrecisions, pPrecisionTypes);
 
@@ -108,32 +110,42 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     // get blocks that need to be touched
     Map<BackwardARGState, ARGState> blockInitAndExitStates =
         getBlockInitAndExitStates(path.asStatesList());
-    Deque<BackwardARGState> relevantCallStates = getRelevantCallStates(path.asStatesList(), cutState);
-    assert relevantCallStates.peekLast() == path.getFirstState()
-        : "root should be relevant: " + relevantCallStates.peekLast() + " + " + path.getFirstState();
-    assert relevantCallStates.size() >= 1
-        : "at least the main-function should be open at the target-state";
+    List<BackwardARGState> relevantCallStates = getRelevantCallStates(path.asStatesList(), cutState);
+//    assert relevantCallStates.peekLast() == path.getFirstState()
+//        : "root should be relevant: " + relevantCallStates.peekLast() + " + " + path.getFirstState();
+//    assert relevantCallStates.size() >= 1
+//        : "at least the main-function should be open at the target-state";
     // TODO add element's block, if necessary?
 
     logger.log(Level.FINEST, "Path across blocks:\n" +
         dumpPath(path.asStatesList(), blockInitAndExitStates, false));
 
-    // handle reached-sets from most inner reached-set to most-outer reached-set
-    BackwardARGState tmp = cutState;
-    for (BackwardARGState callState : relevantCallStates) {
+    if (delegate.asReachedSet().contains(cutPointAsArgState)) {
+      assert relevantCallStates.isEmpty();
+      delegate.removeSubtree(cutPointAsArgState, pPrecisions, pPrecisionTypes);
+      // nothing else needed, because cutPoint is not at entry- or exit-location of a block.
 
-      logger.logf(Level.FINEST, "removing %s from reachedset with root %s", tmp, callState);
+    } else {
+      assert !relevantCallStates.isEmpty();
 
-      removeCachedSubtreeTimer.start();
+      // handle reached-sets from most inner reached-set to most-outer reached-set
+      BackwardARGState tmp = cutState;
+      for (BackwardARGState callState : Lists.reverse(relevantCallStates)) {
 
-      handleSubtree(
-          callState.getARGState(),
-          checkNotNull(blockInitAndExitStates.get(callState)),
-          data.getInnermostState(tmp.getARGState()),
-          newPrecisionsLst);
-      tmp = callState;
+        logger.logf(Level.FINEST, "removing %s from reachedset with root %s", tmp, callState);
 
-      removeCachedSubtreeTimer.stop();
+        removeCachedSubtreeTimer.start();
+
+        handleSubtree(
+            callState.getARGState(),
+            checkNotNull(blockInitAndExitStates.get(callState)),
+            getReachedState(tmp),
+            (tmp == cutState) ? newPrecisionsLst : Collections.emptyList());
+        tmp = callState;
+
+        removeCachedSubtreeTimer.stop();
+      }
+      delegate.removeSubtree(relevantCallStates.get(0).getARGState());
     }
 
     // post-processing, cleanup data-structures: We remove all states reachable from 'element'.
@@ -143,8 +155,10 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     for (ARGState state : cutState.getSubgraph()) {
       state.removeFromARG();
     }
+  }
 
-    super.delegate.removeSubtree((ARGState) super.delegate.asReachedSet().getLastState());
+  private ARGState getReachedState(ARGState state) {
+    return (ARGState) data.getInnermostState(((BackwardARGState) state).getARGState());
   }
 
   private String dumpPath(
@@ -159,7 +173,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       boolean containsEntryOrExit = false;
       line.append(indent).append(" ").append(dump(bamState)).append(" :: ");
       StringBuilder expandedStr = new StringBuilder();
-      for (AbstractState exitState : Lists.reverse(data.getExpandedStateList(state))) {
+      for (AbstractState exitState : Lists.reverse(data.getExpandedStatesList(state))) {
         indent--;
         expandedStr.append(dump(exitState)).append(" <- ");
         containsEntryOrExit = true;
@@ -202,7 +216,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       // ASSUMPTION: there can be several block-exits at once per location, but only one block-entry per location.
 
       // we use a loop here, because a return-node can be the exit of several blocks at once.
-      for (AbstractState exitState : data.getExpandedStateList(state)) {
+      for (AbstractState exitState : data.getExpandedStatesList(state)) {
         // we are leaving a block, remove the start-state from the stack.
         BackwardARGState initialState = openCallStates.pop();
         AbstractState reducedExitState = data.getReducedStateForExpandedState(exitState);
@@ -244,60 +258,57 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       final ARGState cutState,
       final List<Pair<Precision, Predicate<? super Precision>>> pPrecisionsLst) {
     ReachedSet reached = data.getReachedSetForInitialState(rootState, exitState);
-    assert reached.contains(cutState);
-    assert reached.contains(exitState);
+    assert reached.contains(cutState) : String.format("cutState %s is not in reached-set with root %s.",
+        cutState, reached.getFirstState());
+    assert reached.contains(exitState) : String.format("exitState %s is not in reached-set with root %s.",
+        exitState, reached.getFirstState());
 
     ReachedSet clone = cloneReachedSetPartially(reached, cutState, pPrecisionsLst);
     Block block = partitioning.getBlockForCallNode(AbstractStates.extractLocation(rootState));
 
-    data.bamCache.remove(clone.getFirstState(), clone.getPrecision(clone.getFirstState()), block);
-    data.bamCache.put(
+    data.getCache().remove(clone.getFirstState(), clone.getPrecision(clone.getFirstState()), block);
+    data.getCache().put(
         clone.getFirstState(), clone.getPrecision(clone.getFirstState()), block, clone);
   }
 
-  /**
-   * returns only those states, where a block starts that is 'open' at the cutState. We use the most
-   * inner block as reference point for the cut-state.
-   * Order of result is from most inner block to most outer block (=mainBlock).
-   */
-  private Deque<BackwardARGState> getRelevantCallStates(
-      final List<ARGState> path, final BackwardARGState bamCutState) {
+  /** returns only those states, where a block starts that is 'open' at the cutState.
+   * main-RS-root is only included, if it was reduced in TransferRelation. */
+  private List<BackwardARGState> getRelevantCallStates(List<ARGState> path, ARGState bamCutState) {
     final Deque<BackwardARGState> openCallStates = new ArrayDeque<>();
     for (final ARGState pathState : path) {
-      final BackwardARGState bamState = (BackwardARGState)pathState;
-      final ARGState state = bamState.getARGState();
 
-      if (bamCutState == bamState) {
-        // do not enter or leave a block, when we found the cutState.
-        break;
-      }
+      final BackwardARGState bamState = (BackwardARGState) pathState;
+      final ARGState state = bamState.getARGState();
 
       // ASSUMPTION: there can be several block-exits at once per location, but only one block-entry per location.
 
       // we use a loop here, because a return-node can be the exit of several blocks at once.
       ARGState tmp = state;
       while (data.hasExpandedState(tmp) && bamCutState != bamState) {
-        assert partitioning.isReturnNode(extractLocation(tmp))
-            : "the mapping of expanded to reduced state should only exist for block-return-locations";
+        assert partitioning.isReturnNode(extractLocation(tmp)) : "the mapping of expanded to reduced state should only exist for block-return-locations";
         // we are leaving a block, remove the start-state from the stack.
         tmp = (ARGState) data.getReducedStateForExpandedState(tmp);
-        openCallStates.pop();
+        openCallStates.removeLast();
         // INFO:
         // if we leave several blocks at once, we leave the blocks in reverse order,
         // because the call-state of the most outer block is checked first.
         // We ignore this here, because we just need the 'number' of block-exits.
       }
 
+      if (bamCutState == bamState) {
+        // do not enter or leave a block, when we found the cutState.
+        break;
+      }
+
       if (data.hasInitialState(state)) {
-        assert partitioning.isCallNode(extractLocation(state))
-            : "the mapping of initial state to reached-set should only exist for block-start-locations";
+        assert partitioning.isCallNode(extractLocation(state)) : "the mapping of initial state to reached-set should only exist for block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
-        openCallStates.push(bamState);
+        openCallStates.addLast(bamState);
       }
     }
 
-    return openCallStates;
+    return new ArrayList<>(openCallStates);
   }
 
   /**
@@ -347,7 +358,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     return clonedReached;
   }
 
-  private Set<ARGState> getStatesToRemove(final ARGState cutState) {
+  private static Set<ARGState> getStatesToRemove(final ARGState cutState) {
     Set<ARGState> toRemove = cutState.getSubgraph();
 
     // collect all elements covered by the subtree,
@@ -362,7 +373,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   }
 
   /** Build cloned ARG as a flat copy of existing states. */
-  private void cloneARG(
+  private static void cloneARG(
       final Set<ARGState> reachedStates,
       final Predicate<AbstractState> keepStates,
       final Map<ARGState, ARGState> cloneMapping) {
@@ -408,7 +419,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       if (data.hasExpandedState(state)) {
         data.registerExpandedState(
             clonedState,
-            data.getExpandedPrecisionForExpandedState(state),
+            data.getExpandedPrecisionForState(state),
             data.getReducedStateForExpandedState(state),
             data.getInnerBlockForExpandedState(state));
       }
@@ -426,7 +437,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       final Map<ARGState, ARGState> cloneMapping) {
     // build reachedset, iteration order is very important here,
     // because pReached and clonedReached should behave similar, e.g. first state is equal
-    ReachedSet clonedReached = data.reachedSetFactory.create();
+    ReachedSet clonedReached = data.getReachedSetFactory().create();
     for (AbstractState abstractState : Iterables.filter(pReached, keepStates)) {
       ARGState state = (ARGState) abstractState;
       ARGState clonedState = cloneMapping.get(state);

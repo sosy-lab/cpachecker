@@ -24,7 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.abe;
 
 import com.google.common.base.Preconditions;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -47,15 +51,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Implementation of {@link ABECPA}.
@@ -203,7 +201,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
 
     ABEIntermediateState<A> iState1 = state1.asIntermediate();
     ABEIntermediateState<A> iState2 = state2.asIntermediate();
-    Preconditions.checkState(iState1.getNode() == iState1.getNode());
+    Preconditions.checkState(iState1.getNode() == iState2.getNode());
 
     if (!iState1.getBackpointerState().equals(iState2.getBackpointerState())) {
 

@@ -61,8 +61,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableReleva
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -318,7 +316,9 @@ public abstract class BAMPredicateRefiner implements Refiner {
           if (newRelevantPredicatesComputer.equals(relevantPredicatesComputer)) {
             // repeated CEX && relevantPredicatesComputer was refined && refinement does not produce progress -> error
             // TODO if this happens, there might be a bug in the analysis!
-            throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+
+            // TODO disabled, because of invalid exception in some cases
+            //throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
 
           } else {
             // we have a better relevantPredicatesComputer, thus update it.
@@ -333,7 +333,8 @@ public abstract class BAMPredicateRefiner implements Refiner {
           }
 
         } else {
-          throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+          // TODO disabled, because of invalid exception in some cases
+          //throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
         }
       }
 
