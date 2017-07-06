@@ -2822,6 +2822,9 @@ report.export = true
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
 
+# set path to file which contains the condition
+residualprogram.assumptionFile = Spec = null
+
 # set specification file to automaton which guides analysis along assumption
 # produced by incomplete analysis,e.g.,
 # config/specification/AssumptionGuidingAutomaton.spc, to enable residual
@@ -2833,6 +2836,10 @@ residualprogram.file = "residualProgram.c"
 
 # write collected assumptions as automaton to file
 residualprogram.slice = true
+
+# which strategy to use to generate the residual program
+residualprogram.strategy = CONDITION
+  enum:     [SLICING, CONDITION, COMBINATION]
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
