@@ -45,7 +45,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -73,7 +72,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-@Options(prefix = "residualprogram")
 public class ResidualProgramConstructionAfterAnalysisAlgorithm
     extends ResidualProgramConstructionAlgorithm implements StatisticsProvider {
 
@@ -87,7 +85,6 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       final Configuration pConfig, final LogManager pLogger, final ShutdownNotifier pShutdown,
       final Specification pSpec) throws InvalidConfigurationException {
     super(pCfa, pConfig, pLogger, pShutdown, pSpec);
-    pConfig.inject(this);
 
     cfa = pCfa;
     innerAlgorithm = pAlgorithm;
