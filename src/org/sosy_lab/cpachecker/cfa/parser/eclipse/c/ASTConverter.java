@@ -989,18 +989,6 @@ class ASTConverter {
   private CRightHandSide convert(IASTFunctionCallExpression e) {
 
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
-    if (functionName != null) {
-      CType expressionType = functionName.getExpressionType();
-      assert expressionType instanceof CFunctionType
-              || (expressionType instanceof CPointerType
-                  && ((CPointerType) expressionType).getType() instanceof CFunctionType)
-          : "Invalid function call: Type of expression "
-              + functionName
-              + " in line "
-              + e.getFileLocation().getEndingLineNumber()
-              + " is not a valid function type (neither a plain function nor a function-pointer).";
-    }
-
     CFunctionDeclaration declaration = null;
 
     if (functionName instanceof CIdExpression) {
