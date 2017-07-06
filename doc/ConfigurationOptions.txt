@@ -181,8 +181,7 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
-# After an incomplete analysis constructs a residual program which contains
-# all program paths which are not fully explored
+# Solely construct the residual program for a given condition/assumption.
 analysis.constructResidualProgram = false
 
 # continue analysis after a unsupported code was found on one path
@@ -301,6 +300,10 @@ analysis.traversal.useReverseLoopstack = false
 # reverse postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
+
+# After an incomplete analysis constructs a residual program which contains
+# all program paths which are not fully explored
+analysis.unexploredPathsAsProgram = false
 
 # Do not report unknown if analysis terminated, report true (UNSOUND!).
 analysis.unknownAsTrue = false

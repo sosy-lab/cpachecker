@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ResidualProgramConstructionAfterAnalysisAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
@@ -105,6 +106,9 @@ public class CoreComponentsFactory {
   private boolean checkCounterexamplesWithBDDCPARestriction = false;
 
   @Option(secure = true, description="After an incomplete analysis constructs a residual program which contains all program paths which are not fully explored")
+  private boolean unexploredPathsAsProgram = false;
+
+  @Option(secure = true, description="Solely construct the residual program for a given condition/assumption.")
   private boolean constructResidualProgram = false;
 
   @Option(secure=true, name="algorithm.BMC",
@@ -313,6 +317,11 @@ public class CoreComponentsFactory {
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
+      if (constructResidualProgram) {
+        algorithm = new ResidualProgramConstructionAlgorithm(cfa, config, logger, shutdownNotifier,
+            specification, cpa, algorithm);
+      }
+
       if (useParallelBAM) {
         algorithm = new ParallelBAMAlgorithm(cpa, config, logger, shutdownNotifier);
       }
@@ -400,7 +409,7 @@ public class CoreComponentsFactory {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
 
-      if (constructResidualProgram) {
+      if (unexploredPathsAsProgram) {
         algorithm = new ResidualProgramConstructionAfterAnalysisAlgorithm(cfa, algorithm, config, logger, shutdownNotifier, specification);
       }
 
