@@ -2826,7 +2826,7 @@ report.export = true
 report.file = "Report.html"
 
 # set path to file which contains the condition
-residualprogram.assumptionFile = Spec = null
+residualprogram.assumptionFile = no default value
 
 # set specification file to automaton which guides analysis along assumption
 # produced by incomplete analysis,e.g.,
