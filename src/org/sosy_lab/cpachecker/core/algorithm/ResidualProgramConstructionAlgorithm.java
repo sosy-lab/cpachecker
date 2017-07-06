@@ -123,7 +123,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
   protected ResidualProgramConstructionAlgorithm(final CFA pCfa, final Configuration pConfig,
       final LogManager pLogger, final ShutdownNotifier pShutdown, final Specification pSpec)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
+    pConfig.inject(this, ResidualProgramConstructionAlgorithm.class);
 
     cfa = pCfa;
     logger = pLogger;
