@@ -352,7 +352,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
         throw new InvalidConfigurationException(
           "For current strategy " + getStrategy().toString() +
           ", the control automaton guiding the exploration based on the condition is needed. " +
-          "Please set the option residualprogram.assumptionGuilder."); }
+          "Please set the option residualprogram.assumptionGuider."); }
     }
   }
 
