@@ -89,7 +89,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
   @Option(secure = true, name = "assumptionGuider",
       description = "set specification file to automaton which guides analysis along assumption produced by incomplete analysis,e.g., config/specification/AssumptionGuidingAutomaton.spc, to enable residual program from combination of program and assumption condition")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path conditionSpec = null;
+  private @Nullable Path conditionSpec = null;
 
   @Option(secure = true, name = "assumptionFile", description = "set path to file which contains the condition")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -355,7 +355,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
     return spec;
   }
 
-  protected Path getAssumptionGuider() {
+  protected @Nullable Path getAssumptionGuider() {
     return conditionSpec;
   }
 
