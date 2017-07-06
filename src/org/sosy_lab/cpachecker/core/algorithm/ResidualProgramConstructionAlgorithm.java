@@ -97,8 +97,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
 
   private final CFA cfa;
   private final Specification spec;
-  private final LogManager logger;
-  private final ShutdownNotifier shutdown;
+  protected final LogManager logger;
+  protected final ShutdownNotifier shutdown;
 
   private CPAAlgorithm cpaAlgorithm;
 
@@ -178,7 +178,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
     return status;
   }
 
-  private Set<ARGState> getAllTargetStates(final ReachedSet pReachedSet) {
+  protected Set<ARGState> getAllTargetStates(final ReachedSet pReachedSet) {
     logger.log(Level.INFO, "All target states in residual program are relevant and will be considered in slicing.");
     return Sets.newHashSet(
         Iterables.filter(Iterables.filter(pReachedSet, ARGState.class), state -> state.isTarget()));
@@ -345,6 +345,18 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
     }
 
     return true;
+  }
+
+  protected ResidualGenStrategy getStrategy() {
+    return constructionStrategy;
+  }
+
+  protected Specification getSpecification() {
+    return spec;
+  }
+
+  protected Path getAssumptionGuider() {
+    return conditionSpec;
   }
 
 }

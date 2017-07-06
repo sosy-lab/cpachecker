@@ -2837,9 +2837,6 @@ residualprogram.assumptionGuider = no default value
 # write residual program to file
 residualprogram.file = "residualProgram.c"
 
-# write collected assumptions as automaton to file
-residualprogram.slice = true
-
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
   enum:     [SLICING, CONDITION, COMBINATION]
