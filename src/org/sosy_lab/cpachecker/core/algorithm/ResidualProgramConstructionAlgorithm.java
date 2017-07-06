@@ -125,13 +125,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    checkConfiguration();
-
     cfa = pCfa;
     logger = pLogger;
     shutdown = pShutdown;
     spec = pSpec;
     translator = new ARGToCTranslator(logger, pConfig);
+
+    checkConfiguration();
   }
 
   @Override
