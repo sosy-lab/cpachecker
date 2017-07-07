@@ -43,9 +43,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -61,18 +59,16 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
-  private final BlockPartitioning partitioning;
+  private final AbstractBAMCPA bamcpa;
   private final BAMDataManager data;
   private final ARGPath path;
   private final StatTimer removeCachedSubtreeTimer;
-  private final LogManager logger;
 
   public BAMReachedSet(AbstractBAMCPA cpa, ARGReachedSet pMainReachedSet, ARGPath pPath,
       StatTimer pRemoveCachedSubtreeTimer) {
     super(pMainReachedSet);
-    this.partitioning = cpa.getBlockPartitioning();
+    this.bamcpa = cpa;
     this.data = cpa.getData();
-    this.logger = cpa.getLogger();
     this.path = pPath;
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
 
@@ -117,7 +113,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 //        : "at least the main-function should be open at the target-state";
     // TODO add element's block, if necessary?
 
-    logger.log(Level.FINEST, "Path across blocks:\n" +
+    bamcpa.getLogger().log(Level.FINEST, "Path across blocks:\n" +
         dumpPath(path.asStatesList(), blockInitAndExitStates, false));
 
     if (delegate.asReachedSet().contains(cutPointAsArgState)) {
@@ -127,25 +123,32 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
     } else {
       assert !relevantCallStates.isEmpty();
+      final BackwardARGState lastRelevantNode = Iterables.getLast(relevantCallStates);
 
       // handle reached-sets from most inner reached-set to most-outer reached-set
-      BackwardARGState tmp = cutState;
+      BackwardARGState currentCutState = cutState;
       for (BackwardARGState callState : Lists.reverse(relevantCallStates)) {
 
-        logger.logf(Level.FINEST, "removing %s from reachedset with root %s", tmp, callState);
+        bamcpa.getLogger().logf(Level.FINEST, "removing %s from reachedset with root %s", currentCutState, callState);
 
         removeCachedSubtreeTimer.start();
 
         handleSubtree(
             callState.getARGState(),
             checkNotNull(blockInitAndExitStates.get(callState)),
-            getReachedState(tmp),
-            (tmp == cutState) ? newPrecisionsLst : Collections.emptyList());
-        tmp = callState;
+            getReachedState(currentCutState),
+            mustUpdatePrecision(lastRelevantNode, cutState, currentCutState) ? newPrecisionsLst : Collections.emptyList());
+
+        currentCutState = callState;
 
         removeCachedSubtreeTimer.stop();
       }
-      delegate.removeSubtree(relevantCallStates.get(0).getARGState());
+
+      if (mustUpdatePrecision(lastRelevantNode, cutState, currentCutState)) {
+        delegate.removeSubtree(relevantCallStates.get(0).getARGState(), pPrecisions, pPrecisionTypes);
+      } else {
+        delegate.removeSubtree(relevantCallStates.get(0).getARGState());
+      }
     }
 
     // post-processing, cleanup data-structures: We remove all states reachable from 'element'.
@@ -155,6 +158,31 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     for (ARGState state : cutState.getSubgraph()) {
       state.removeFromARG();
     }
+  }
+
+  private boolean mustUpdatePrecision(
+      final BackwardARGState lastRelevantNode, final BackwardARGState cutState,
+      final BackwardARGState currentCutState) {
+
+    // special option (mostly for testing)
+    if (bamcpa.getRefinementHeuristics().doPrecisionRefinementForAllStates()) {
+      return true;
+    }
+
+    // last iteration, most inner block for refinement
+    // This heuristics works best on test_locks-examples, otherwise they have exponential blowup.
+    if (bamcpa.getRefinementHeuristics().doPrecisionRefinementForMostInnerBlock()
+        && currentCutState == lastRelevantNode) {
+      return true;
+    }
+
+    // this is the important case: lazy refinement expects a new precision at this place.
+    if (currentCutState == cutState) {
+      return true;
+    }
+
+    // otherwise we do not need to update the precision
+    return false;
   }
 
   private ARGState getReachedState(ARGState state) {
@@ -226,7 +254,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       }
 
       if (data.hasInitialState(state)) {
-        assert partitioning.isCallNode(extractLocation(state))
+        assert bamcpa.getBlockPartitioning().isCallNode(extractLocation(state))
             : "the mapping of initial state to reached-set should only exist for block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
@@ -264,7 +292,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         exitState, reached.getFirstState());
 
     ReachedSet clone = cloneReachedSetPartially(reached, cutState, pPrecisionsLst);
-    Block block = partitioning.getBlockForCallNode(AbstractStates.extractLocation(rootState));
+    Block block = bamcpa.getBlockPartitioning().getBlockForCallNode(AbstractStates.extractLocation(rootState));
 
     data.getCache().remove(clone.getFirstState(), clone.getPrecision(clone.getFirstState()), block);
     data.getCache().put(
@@ -285,7 +313,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       // we use a loop here, because a return-node can be the exit of several blocks at once.
       ARGState tmp = state;
       while (data.hasExpandedState(tmp) && bamCutState != bamState) {
-        assert partitioning.isReturnNode(extractLocation(tmp)) : "the mapping of expanded to reduced state should only exist for block-return-locations";
+        assert bamcpa.getBlockPartitioning().isReturnNode(extractLocation(tmp)) : "the mapping of expanded to reduced state should only exist for block-return-locations";
         // we are leaving a block, remove the start-state from the stack.
         tmp = (ARGState) data.getReducedStateForExpandedState(tmp);
         openCallStates.removeLast();
@@ -301,7 +329,7 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
       }
 
       if (data.hasInitialState(state)) {
-        assert partitioning.isCallNode(extractLocation(state)) : "the mapping of initial state to reached-set should only exist for block-start-locations";
+        assert bamcpa.getBlockPartitioning().isCallNode(extractLocation(state)) : "the mapping of initial state to reached-set should only exist for block-start-locations";
         // we start a new sub-reached-set, add state as start-state of a (possibly) open block.
         // if we are at lastState, we do not want to enter the block
         openCallStates.addLast(bamState);

@@ -69,11 +69,33 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportBlocksPath = Paths.get("block_cfa.dot");
 
-  @Option(secure = true,
-      description = "This flag determines which precisions should be updated during refinement. "
-      + "We can choose between the minimum number of states and all states that are necessary "
-      + "to re-explore the program along the error-path.")
-  private boolean doPrecisionRefinementForAllStates = false;
+  @Options(prefix="cpa.bam.refinementHeuristics")
+  static class RefinementHeuristics {
+
+    @Option(secure = true,
+        description = "Heuristic: This flag determines which precisions should be updated during "
+            + "refinement. We can choose between the minimum number of states and all states that "
+            + "are necessary to re-explore the program along the error-path.")
+    private boolean doPrecisionRefinementForAllStates = false;
+
+    @Option(secure = true,
+        description = "Heuristic: This flag determines which precisions should be updated during "
+            + "refinement. This flag also updates the precision of the most inner block.")
+    private boolean doPrecisionRefinementForMostInnerBlock = false;
+
+    private RefinementHeuristics(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
+
+    boolean doPrecisionRefinementForAllStates() {
+      return doPrecisionRefinementForAllStates;
+    }
+
+    boolean doPrecisionRefinementForMostInnerBlock() {
+      return doPrecisionRefinementForMostInnerBlock;
+    }
+
+  }
 
   @Option(
     secure = true,
@@ -90,6 +112,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   private final BAMCPAStatistics stats;
   private final BAMARGStatistics argStats;
   private final BAMReachedSetExporter exporter;
+  private final RefinementHeuristics refinementHeuristics;
 
   public AbstractBAMCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -117,6 +140,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     argStats = new BAMARGStatistics(pConfig, pLogger, this, pCpa, pSpecification, pCfa);
     exporter = new BAMReachedSetExporter(pConfig, pLogger, this);
     stats = new BAMCPAStatistics(this);
+    refinementHeuristics = new RefinementHeuristics(pConfig);
   }
 
   private BlockPartitioning buildBlockPartitioning(CFA pCfa, Configuration pConfig)
@@ -172,7 +196,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   abstract BAMDataManager getData();
 
-  boolean doPrecisionRefinementForAllStates() {
-    return doPrecisionRefinementForAllStates;
+  RefinementHeuristics getRefinementHeuristics() {
+    return refinementHeuristics;
   }
 }
