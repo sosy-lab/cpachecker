@@ -343,7 +343,7 @@ public class MultiAspectVerification {
   }
 
   public void disableSpecification(ControlAutomatonCPA controlAutomatonCPA,
-      SpecificationKey specificationKey) {
+      SpecificationKey specificationKey) throws CPAException {
     if (specificationKey == null || controlAutomatonCPA == null) {
       // Do nothing.
       return;
@@ -359,6 +359,15 @@ public class MultiAspectVerification {
     default:
       assert false;
       break;
+    }
+    boolean isFinished = true;
+    for (RuleSpecification specification : getAllSpecifications()) {
+      if (specification.getStatus() == SpecificationStatus.CHECKING) {
+        isFinished = false;
+      }
+    }
+    if (isFinished) {
+      throw new CPAException("Stopping verification, since all properties have been already checked");
     }
   }
 
