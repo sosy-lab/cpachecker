@@ -32,6 +32,7 @@
 						if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
 							d3.select("#arg-toolbar").style("visibility", "hidden");
 							d3.selectAll(".arg-graph").style("visibility", "hidden");
+							d3.selectAll(".arg-error-graph").style("visibility", "hidden");
 							if (d3.select("#arg-container").classed("arg-content")) {
 								d3.select("#arg-container").classed("arg-content", false);
 							}
@@ -61,8 +62,13 @@
 							if (!d3.select("#arg-container").classed("arg-content")) {
 								d3.select("#arg-container").classed("arg-content", true);
 							}
-							d3.selectAll(".arg-graph").style("visibility", "visible");
-							$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
+							if ($rootScope.displayedARG.indexOf("error") !== -1) {
+								d3.selectAll(".arg-error-graph").style("visibility", "visible");
+								$("#arg-container").scrollTop(0).scrollLeft(0);
+							} else {
+								d3.selectAll(".arg-graph").style("visibility", "visible");
+								$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
+							}
 						} else {
 							d3.select("#arg-loader").style("display", "inline");
 						}
@@ -83,6 +89,7 @@
 						if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
 							d3.select("#arg-toolbar").style("visibility", "hidden");
 							d3.selectAll(".arg-graph").style("visibility", "hidden");
+							d3.selectAll(".arg-error-graph").style("visibility", "hidden");
 							if (d3.select("#arg-container").classed("arg-content")) {
 								d3.select("#arg-container").classed("arg-content", false);
 							}
@@ -336,18 +343,34 @@
             
 		}]);
 	
-	app.controller('ARGToolbarController', ['$scope',
-		function($scope) {
+	app.controller('ARGToolbarController', ['$rootScope', '$scope',
+		function($rootScope, $scope) {
 			$scope.zoomEnabled = false;
 			$scope.argSelections = ["complete"];
 			if (errorPath !== undefined) {
 				$scope.argSelections.push("error path");
 			}
-			$scope.displayedARG = $scope.argSelections[0];
+			$rootScope.displayedARG = $scope.argSelections[0];
 			$scope.originalTranslations = {};
 			
 			$scope.displayARG = function() {
-				console.log($scope.displayedARG);
+				if ($scope.argSelections.length > 1) {
+					if ($rootScope.displayedARG.indexOf("error") !== -1) {
+						d3.selectAll(".arg-graph").style("display", "none");
+						$("#arg-container").scrollTop(0).scrollLeft(0);
+						if (d3.select(".arg-error-graph").empty()) {
+							argWorker.postMessage({"errorGraph": true});
+						} else {
+							d3.selectAll(".arg-error-graph").style("display", "inline-block").style("visibility", "visible");
+						}
+					} else {
+						if (!d3.select(".arg-error-graph").empty()) {
+							d3.selectAll(".arg-error-graph").style("display", "none");
+						}
+						d3.selectAll(".arg-graph").style("display", "inline-block").style("visibility", "visible");
+						$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
+					}
+				}
 			};
 			
     		$scope.argZoomControl = function() {
@@ -385,6 +408,7 @@
     				return;
     			}
     			d3.selectAll(".arg-graph").remove();
+    			d3.selectAll(".arg-error-graph").remove();
     			if ($scope.zoomEnabled) {
     				$scope.argZoomControl();
     			}
@@ -816,7 +840,7 @@ function init() {
 	 */
 	function argWorker_function() {
 		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
-		var json, nodes, edges, errorPath;
+		var json, nodes, edges, errorPath, errorGraphMap;
 		var graphSplitThreshold = 700;
 		var graphMap = [], graphCounter = 0;
 		self.addEventListener("message", function(m) {
@@ -839,9 +863,23 @@ function init() {
                     graphCounter++;
                 } else {
                     self.postMessage({"status": "done"});
+                    if (errorPath !== undefined) {
+                    	errorGraphMap = [];
+                    	graphCounter = 0;
+                    	prepareErrorGraph();
+                    }
                 }
+			} else if (m.data.errorGraph !== undefined) {
+				if (errorGraphMap.length > 0) {
+					self.postMessage({"graph" : JSON.stringify(errorGraphMap[0]), "id": graphCounter, "errorGraph": true});
+					errorGraphMap.shift();
+					graphCounter++;
+				}
 			} else if (m.data.split !== undefined) {
     			graphSplitThreshold = m.data.split;
+    			if (errorGraphMap !== undefined && errorGraphMap.length > 0) {
+    				errorGraphMap = [];
+    			}
     			buildGraphsAndPrepareResults();
     		}
 		}, false);
@@ -854,6 +892,29 @@ function init() {
 			}			
 		}
 		
+        // After the initial ARG graph has been send to the master script, prepare ARG containing only error path		
+		function prepareErrorGraph() {
+			var errorNodes = [], errorEdges = [];
+			nodes.forEach(function(n) {
+				if (errorPath.includes(n.index)) {
+					errorNodes.push(n);
+				}
+			});
+			edges.forEach(function(e) {
+				if (errorPath.includes(e.source) && errorPath.includes(e.target)) {
+					errorEdges.push(e);
+				}
+			});
+			if (errorNodes.length > graphSplitThreshold) {
+				buildMultipleErrorGraphs(errorNodes, errorEdges);
+			} else {
+				var g = createGraph();
+				setGraphNodes(g, errorNodes);
+				setGraphEdges(g, errorEdges, false);
+				errorGraphMap.push(g);
+			}
+		}
+		
 		function buildSingleGraph() {
 			var g = createGraph();
 			setGraphNodes(g, nodes);
@@ -861,7 +922,11 @@ function init() {
             graphMap.push(g);
 		}
 		
+		// Split the ARG graph honoring the split threshold
 		function buildMultipleGraphs() {
+			nodes.sort(function(firstNode, secondNode) {
+				return firstNode.index - secondNode.index;
+			})
     		var requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
     		var firstGraphBuild = false;
     		var nodesPerGraph = [];
@@ -890,25 +955,78 @@ function init() {
     			});
     			setGraphEdges(graph, graphEdges, true);
     		}
-    		buildCrossgraphEdges();
-		} 
+    		buildCrossgraphEdges(edges, false);
+		}
+		
+		// Split the ARG error graph honoring the split threshold
+        function buildMultipleErrorGraphs(errorNodes, errorEdges) {
+			errorNodes.sort(function(firstNode, secondNode) {
+				return firstNode.index - secondNode.index;
+			})
+            var requiredGraphs = Math.ceil(errorNodes.length/graphSplitThreshold);
+            var firstGraphBuild = false;
+            var nodesPerGraph = [];
+            for (var i = 1; i <= requiredGraphs; i++) {
+                if (!firstGraphBuild) {
+                    nodesPerGraph = errorNodes.slice(0, graphSplitThreshold);
+                    firstGraphBuild = true;
+                } else {
+                    if (nodes[graphSplitThreshold * i - 1] !== undefined) {
+                        nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
+                    } else {
+                        nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1));
+                    }
+                }
+                var graph = createGraph();
+                errorGraphMap.push(graph);
+                setGraphNodes(graph, nodesPerGraph);
+                var nodesIndices = []
+                nodesPerGraph.forEach(function(n) {
+                    nodesIndices.push(n.index);
+                });
+                var graphEdges = errorEdges.filter(function(e) {
+                    if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
+                        return e;
+                    }
+                });
+                setGraphEdges(graph, graphEdges, true);
+            }
+            buildCrossgraphEdges(errorEdges, true);            
+        }
 		
 		// TODO: reverseArrowHead + styles, Covered by label!
 		// Handle graph connecting edges
-    	function buildCrossgraphEdges() {
-    		edges.forEach(function(edge){
-    			var sourceGraph = getGraphForNode(edge.source);
-    			var targetGraph = getGraphForNode(edge.target);
-    			if (sourceGraph < targetGraph) { 
-        			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
-        			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
-        			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
-        			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
-    			} else if (sourceGraph > targetGraph) {
-    				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
-    				graphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
-    				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
-    				graphMap[targetGraph].setEdge(edge.target, "" + edge.target + edge.source + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+    	function buildCrossgraphEdges(edges, errorGraph) {
+    		edges.forEach(function(edge) {
+    			var sourceGraph, targetGraph;
+    			if (errorGraph) {
+    				sourceGraph = getGraphForErrorNode(edge.source);
+    				targetGraph = getGraphForErrorNode(edge.target);
+        			if (sourceGraph < targetGraph) { 
+        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+        				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+        				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+        			} else if (sourceGraph > targetGraph) {
+        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+        				errorGraphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
+        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+        				errorGraphMap[targetGraph].setEdge(edge.target, "" + edge.target + edge.source + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+        			}
+    			} else {
+        			sourceGraph = getGraphForNode(edge.source);
+        			targetGraph = getGraphForNode(edge.target);
+        			if (sourceGraph < targetGraph) { 
+            			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+            			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+            			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+            			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+        			} else if (sourceGraph > targetGraph) {
+        				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+        				graphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
+        				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+        				graphMap[targetGraph].setEdge(edge.target, "" + edge.target + edge.source + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+        			}
     			}
     		});
     	}
@@ -916,6 +1034,13 @@ function init() {
     	// Return the graph in which the nodeNumber is present
     	function getGraphForNode(nodeNumber) {
     		return graphMap.findIndex(function(graph) {
+    			return graph.nodes().includes("" + nodeNumber);
+    		})
+    	}
+    	
+    	// Return the graph in which the nodeNumber is present for an error node
+    	function getGraphForErrorNode(nodeNumber) {
+    		return errorGraphMap.findIndex(function(graph) {
     			return graph.nodes().includes("" + nodeNumber);
     		})
     	}
@@ -932,7 +1057,7 @@ function init() {
     	// Set nodes for the graph contained in the json nodes
     	function setGraphNodes(graph, nodesToSet) {
     		nodesToSet.forEach(function(n) {
-    			if (n.type === "target" && errorPath !== undefined) {
+    			if (n.type === "target" && errorPath !== undefined && !errorPath.includes(n.index)) {
     				errorPath.push(n.index);
     			}
     			graph.setNode(n.index, {
@@ -1017,21 +1142,31 @@ function init() {
 
 	argWorker.addEventListener('message', function(m) {
 		if (m.data.graph !== undefined) {
-			var id = m.data.id;
+			var id = "arg-graph" + m.data.id; 
+			var argClass = "arg-graph";
+			if (m.data.errorGraph !== undefined) {
+				id = "arg-error-graph" + m.data.id;
+				argClass = "arg-error-graph";
+			}
 			var g = createGraph();
 			g = Object.assign(g, JSON.parse(m.data.graph));
-			d3.select("#arg-container").append("div").attr("id", "arg-graph" + id).attr("class", "arg-graph");
-			var svg = d3.select("#arg-graph" + id).append("svg").attr("id", "arg-svg" + id).attr("class", "arg-svg");
+			d3.select("#arg-container").append("div").attr("id", id).attr("class", argClass);
+			var svg = d3.select("#" + id).append("svg").attr("id", "arg-svg" + id).attr("class", "arg-svg");
 			var svgGroup = svg.append("g");
 			render(d3.select("#arg-svg" + id + " g"), g);
 			// Center the graph - calculate svg.attributes
 			svg.attr("height", g.graph().height + constants.margin * 2);
 			svg.attr("width", g.graph().width + constants.margin * 4);
 			svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
+			// FIXME: until https://github.com/cpettitt/dagre-d3/issues/169 is not resolved, label centering like so:
 			d3.selectAll(".arg-node tspan").each(function(d,i) {
 				d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
 			})
-			argWorker.postMessage({"renderer" : "ready"});
+			if (m.data.errorGraph !== undefined) {
+				argWorker.postMessage({"errorGraph": true});
+			} else {
+				argWorker.postMessage({"renderer" : "ready"});
+			}
 		} else if (m.data.status !== undefined) {
 			argLoaderDone = true;
 			d3.select("#arg-loader").attr("display", "none");

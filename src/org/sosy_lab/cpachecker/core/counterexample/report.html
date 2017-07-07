@@ -142,7 +142,7 @@
     <div id="arg-toolbar" ng-controller="ARGToolbarController">
     	<label>Displayed ARG</label>
     	<select class="btn btn-default selectpicker"
-    		ng-options="s as s for s in argSelections" ng-model="displayedARG" ng-change="displayARG()"></select>
+    		ng-options="s as s for s in argSelections" ng-model="$root.displayedARG" ng-change="displayARG()"></select>
     	<label id="arg-zoom-label">Zoom Disabled</label>
 		<span class="button-checkbox">
 			<button class="btn btn-default" id="arg-zoom-button" type="button" data-color="primary"

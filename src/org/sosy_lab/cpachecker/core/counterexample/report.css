@@ -402,7 +402,7 @@ text {
 
 .error-edge path {
 	stroke: red;
-	fill:#ff0000;
+	fill: #ffffff;
 	stroke-width: 1.5px;
 }
 
