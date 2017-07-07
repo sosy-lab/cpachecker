@@ -141,6 +141,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
         "CONDITION and COMBINATION strategy require assumption automaton (condition) and assumption guiding automaton in specification");
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
+    status = status.withPrecise(false);
 
     logger.log(Level.INFO, "Start construction of residual program.");
     cpaAlgorithm.run(pReachedSet);
