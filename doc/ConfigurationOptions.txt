@@ -181,8 +181,7 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
-# After an incomplete analysis constructs a residual program which contains
-# all program paths which are not fully explored
+# Solely construct the residual program for a given condition/assumption.
 analysis.constructResidualProgram = false
 
 # continue analysis after a unsupported code was found on one path
@@ -301,6 +300,10 @@ analysis.traversal.useReverseLoopstack = false
 # reverse postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
+
+# After an incomplete analysis constructs a residual program which contains
+# all program paths which are not fully explored
+analysis.unexploredPathsAsProgram = false
 
 # Do not report unknown if analysis terminated, report true (UNSOUND!).
 analysis.unknownAsTrue = false
@@ -915,11 +918,6 @@ cpa.bam.blockHeuristic.functionPartitioning.minFunctionCalls = 0
 # similar to 'inlining' small functions, when using BAM.
 cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
 
-# This flag determines which precisions should be updated during refinement.
-# We can choose between the minimum number of states and all states that are
-# necessary to re-explore the program along the error-path.
-cpa.bam.doPrecisionRefinementForAllStates = false
-
 # export blocks
 cpa.bam.exportBlocksPath = "block_cfa.dot"
 
@@ -941,6 +939,15 @@ cpa.bam.indexedArgFile = "ARGs/ARG_%d.dot"
 # a coverage and re-use the cached block several times. The value '-1'
 # disables this option.
 cpa.bam.maximalDepthForExplicitRecursion = -1
+
+# Heuristic: This flag determines which precisions should be updated during
+# refinement. We can choose between the minimum number of states and all
+# states that are necessary to re-explore the program along the error-path.
+cpa.bam.refinementHeuristics.doPrecisionRefinementForAllStates = false
+
+# Heuristic: This flag determines which precisions should be updated during
+# refinement. This flag also updates the precision of the most inner block.
+cpa.bam.refinementHeuristics.doPrecisionRefinementForMostInnerBlock = false
 
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
@@ -2822,6 +2829,9 @@ report.export = true
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
 
+# set path to file which contains the condition
+residualprogram.assumptionFile = no default value
+
 # set specification file to automaton which guides analysis along assumption
 # produced by incomplete analysis,e.g.,
 # config/specification/AssumptionGuidingAutomaton.spc, to enable residual
@@ -2831,8 +2841,9 @@ residualprogram.assumptionGuider = no default value
 # write residual program to file
 residualprogram.file = "residualProgram.c"
 
-# write collected assumptions as automaton to file
-residualprogram.slice = true
+# which strategy to use to generate the residual program
+residualprogram.strategy = CONDITION
+  enum:     [SLICING, CONDITION, COMBINATION]
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
