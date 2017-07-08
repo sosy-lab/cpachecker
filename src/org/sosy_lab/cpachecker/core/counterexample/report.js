@@ -158,20 +158,35 @@
         }
 		
         $scope.errPathPrevClicked = function() {
-        	console.log("Prev button clicked");
+        	var selection = d3.select("tr.clickedErrPathElement");
+        	if (!selection.empty()) {
+        		var prevId = parseInt(selection.attr("id").substring("errpath-".length)) - 1;
+        		selection.classed("clickedErrPathElement", false);
+        		d3.select("#errpath-" + prevId).classed("clickedErrPathElement", true);
+        		// TODO: tab logic and element selection
+        	}
         };
         
         $scope.errPathStartClicked = function() {
-        	console.log("Start button clicked");
+        	d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
+        	d3.select("#errpath-0").classed("clickedErrPathElement", true);
+        	// TODO: tab logic and element selection
         };
         
         $scope.errPathNextClicked = function() {
-        	console.log("Next button clicked");
+        	var selection = d3.select("tr.clickedErrPathElement");
+        	if (!selection.empty()) {
+        		var nextId = parseInt(selection.attr("id").substring("errpath-".length)) + 1;
+        		selection.classed("clickedErrPathElement", false);
+        		d3.select("#errpath-" + nextId).classed("clickedErrPathElement", true);
+        		// TODO: tab logic and element selection
+        	}
         };
         
-        $scope.clickedErrpathElement = function($event){
-        	console.log("clicked error path element");
-        	console.log($event);
+        $scope.clickedErrpathElement = function($event) {
+        	d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
+        	d3.select($event.currentTarget.parentNode).classed("clickedErrPathElement", true);
+        	// TODO: tab logic and element selection
         };
 		
 	}]);

@@ -134,7 +134,7 @@ body {
 .markedValueDescElement pre {
     background: linear-gradient(#83d480, #71afff) !important;
 }
-/* was err_table previously */
+
 #err-table td {
     cursor: pointer;
 }
@@ -160,6 +160,10 @@ body {
 
 #err-table tr:nth-child(odd) td pre.prettyprint {
     background-color: #f3f3f3;
+}
+
+#err-table tr.clickedErrPathElement {
+	outline: #df80ff solid 2px;
 }
 
 #externalFiles_section {
