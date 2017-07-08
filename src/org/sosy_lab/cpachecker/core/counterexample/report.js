@@ -126,11 +126,7 @@
                 var errPathElem = errorPath[i];
                 //do not show start, return and blank edges
                 if (errPathElem.desc.substring(0, "Return edge from".length) != "Return edge from" && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
-                    // TODO: is this really needed ? Jump to CFA edge will be done with d3
-                	if (errPathElem.source in cfaJson.functionCallEdges) {
-                        errPathElem.target = cfaJson.functionCallEdges[errPathElem.source][0];
-                    }
-                    var newValues = getValues(errPathElem.val);
+                	var newValues = getValues(errPathElem.val);
                     errPathElem["newValDict"] = newValues;
                     errPathElem["valDict"] = {};
                     errPathElem["valString"] = "";
@@ -560,8 +556,27 @@ function init() {
             combinedNodesLabels = json.combinedNodesLabels;
             mergedNodes = json.mergedNodes;
             functionCallEdges = json.functionCallEdges;
-            if (json.hasOwnProperty("errorPath"))
-                erroPath = json.errorPath;
+            if (json.hasOwnProperty("errorPath")) {
+            	errorPath = [];
+            	prepareCfaErrorPath();
+            }
+        }
+        
+        // Prepare Error Path array to be used in edge class decider
+        function prepareCfaErrorPath() {
+        	var returnedEdges = {};
+        	for (key in functionCallEdges) {
+        		returnedEdges[functionCallEdges[key][1]] = functionCallEdges[key][0]
+        	}
+        	json.errorPath.forEach(function(errPathElem) {
+            	if (errPathElem.source in functionCallEdges) {
+                    errPathElem.target = functionCallEdges[errPathElem.source][0];
+                }
+            	if (errPathElem.target in returnedEdges) {
+            		errorPath.push({"source":returnedEdges[errPathElem.target], "target": errPathElem.target})
+            	}
+            	errorPath.push(errPathElem);
+        	})
         }
         
         function buildGraphsAndPostResults() {
@@ -664,20 +679,20 @@ function init() {
                     if (Object.keys(functionCallEdges).includes("" + source)) {
                         var funcCallNodeId = functionCallEdges["" + source][0];
                         graphMap[sourceGraph].setNode(funcCallNodeId, {label: getNodeLabelFCall(edge.stmt), class: "fcall", id: "cfa-node" + funcCallNodeId, shape: "rect"});
-                        graphMap[sourceGraph].setEdge(source, funcCallNodeId, {label: edge.stmt, class: edge.type, id: "cfa-edge" + source + funcCallNodeId, weight: edgeWeightDecider(edge)});
+                        graphMap[sourceGraph].setEdge(source, funcCallNodeId, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, funcCallNodeId), class: edgeClassDecider(edge, source, funcCallNodeId), id: "cfa-edge" + source + funcCallNodeId, weight: edgeWeightDecider(edge)});
                         graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
                         graphMap[sourceGraph].setEdge(funcCallNodeId, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
                     } else {
                         graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
-                        graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
+                        graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, source, "" + source + target + sourceGraph), class: edgeClassDecider(edge, source, "" + source + target + sourceGraph), style: "stroke-dasharray: 5, 5;"});
                     }
                     graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "D", class: "dummy", id: "node" + source});
-                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
+                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, "" + target + source + targetGraph, target), class: edgeClassDecider(edge, "" + target + source + targetGraph, target), style: "stroke-dasharray: 5, 5;"});
                 } else if(sourceGraph > targetGraph) { 
                     graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
-                    graphMap[sourceGraph].setEdge("" + source + target + sourceGraph, source, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
+                    graphMap[sourceGraph].setEdge("" + source + target + sourceGraph, source, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, "" + source + target + sourceGraph, source), class: edgeClassDecider(edge, "" + source + target + sourceGraph, source), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
                     graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "D", class: "dummy", id: "node" + source});
-                    graphMap[targetGraph].setEdge(target, "" + target + source + targetGraph, {label: source + "->" + target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
+                    graphMap[targetGraph].setEdge(target, "" + target + source + targetGraph, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, target, "" + target + source + targetGraph), class: edgeClassDecider(edge, target, "" + target + source + targetGraph), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
                 }
             });
         }
@@ -763,21 +778,24 @@ function init() {
                             shape : "rect"
                         });
                         graph.setEdge(source, funcCallNodeId, {
-                            label: e.stmt, 
-                            class: e.type, 
+                            label: e.stmt,
+                            labelStyle: labelStyleDecider(e, source, funcCallNodeId),
+                            class: edgeClassDecider(e, source, funcCallNodeId), 
                             id: "cfa-edge"+ source + funcCallNodeId,
                             weight: edgeWeightDecider(e)
                         });
                         graph.setEdge(funcCallNodeId, target, {
                             label: "",
-                            class: e.type, 
+                            labelStyle: labelStyleDecider(e, funcCallNodeId, target),
+                            class: edgeClassDecider(e, funcCallNodeId, target), 
                             id: "cfa-edge"+ funcCallNodeId + target,
                             weight: edgeWeightDecider(e)
                         });                     
                     } else {
                         graph.setEdge(source, target, {
-                            label: e.stmt, 
-                            class: e.type, 
+                            label: e.stmt,
+                            labelStyle: labelStyleDecider(e, source, target),	
+                            class: edgeClassDecider(e, source, target), 
                             id: "cfa-edge"+ source + target,
                             weight: edgeWeightDecider(e)
                         });
@@ -785,6 +803,33 @@ function init() {
                 }
             });
         }
+        
+        // If edge is part of error path, give it a representative class
+    	function edgeClassDecider(edge, source, target) {
+    		if (errorPath === undefined) {
+    			return edge.type;
+    		}
+			var mergedMatch = errorPath.find(function(entry) {
+				return entry.source === source && entry.target === target;
+			})
+ 			var initialMatch = errorPath.find(function(entry) {
+				return entry.source === edge.source && entry.target === edge.target;
+			}) 
+			if (mergedMatch !== undefined || initialMatch !== undefined) {
+				return "error-edge";
+			} else {
+				return edge.type;
+			}
+    	}
+    	
+    	// If edge is part of error path, give its label a representative class
+    	function labelStyleDecider(edge, source, target) {
+    		var edgeClass = edgeClassDecider(edge, source, target);
+    		if (edgeClass.indexOf("error") !== -1) {
+    			return "font-size: 12px; fill: red";
+    		}
+    		return "font-size: 12px";
+    	}
         
         // Check if edge is eligible to place in graph. Same node edge only if it is not combined node
         function checkEligibleEdge(source, target) {
