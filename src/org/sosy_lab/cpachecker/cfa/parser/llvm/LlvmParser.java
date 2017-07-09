@@ -30,6 +30,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.exceptions.LLVMParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -65,6 +66,9 @@ public class LlvmParser implements Parser {
       parseTimer.stop();
     }
 
+    if (llvmModule == null) {
+      throw new LLVMParserException("Error while parsing");
+    }
     // TODO: Handle/show errors in parser
 
     return buildCfa(llvmModule, pFilename);

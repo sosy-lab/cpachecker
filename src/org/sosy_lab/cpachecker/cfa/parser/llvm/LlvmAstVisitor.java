@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import org.llvm.BasicBlock;
+import org.llvm.Function;
 import org.llvm.Module;
 import org.llvm.Value;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -130,11 +131,20 @@ public abstract class LlvmAstVisitor {
   }
 
   private void iterateOverFunctions(final Module pItem) {
-    for (Value func : pItem) {
-      if (func.isDeclaration())
-        continue;
+    Function lastFunc = pItem.getLastFunction().asFunction();
+    Function currFunc = null;
+    do {
+      if (currFunc == null) {
+        currFunc = pItem.getFirstFunction().asFunction();
+      } else {
+        currFunc = currFunc.getNextFunction().asFunction();
+      }
 
-      String funcName = func.getValueName();
+      if (currFunc.isDeclaration()) {
+        continue;
+      }
+
+      String funcName = currFunc.getValueName();
       assert !funcName.isEmpty();
 
       // XXX: may just check for generic intrinsic?
@@ -142,14 +152,14 @@ public abstract class LlvmAstVisitor {
         continue;
 
       // handle the function definition
-      FunctionEntryNode en = visitFunction(func);
+      FunctionEntryNode en = visitFunction(currFunc);
       assert en != null;
       addNode(funcName, en);
 
       // create the basic blocks and instructions of the function.
       // A basic block is mapped to a pair <entry node, exit node>
-      SortedMap<Long, BasicBlockInfo> basicBlocks = new TreeMap<>();
-      CLabelNode entryBB = iterateOverBasicBlocks(func, en, funcName, basicBlocks);
+      SortedMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
+      CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, funcName, basicBlocks);
 
       // add the edge from the entry of the function to the first
       // basic block
@@ -158,10 +168,11 @@ public abstract class LlvmAstVisitor {
                              en, entryBB, "Function start edge"));
 
       // add branching between instructions
-      addJumpsBetweenBasicBlocks(func, basicBlocks);
+      addJumpsBetweenBasicBlocks(currFunc, basicBlocks);
 
       functions.put(funcName, en);
-    }
+
+    } while (!currFunc.equals(lastFunc));
   }
 
   /**
@@ -171,25 +182,25 @@ public abstract class LlvmAstVisitor {
    * passed as an argument. @return the entry basic block
    * (as a CLabelNode).
    */
-  private CLabelNode iterateOverBasicBlocks(final Value pItem,
-                                            FunctionEntryNode entryNode,
-                                            String funcName,
-                                            SortedMap<Long, BasicBlockInfo> basicBlocks) {
-    assert pItem.isFunction();
-    if (pItem.countBasicBlocks() == 0)
+  private CLabelNode iterateOverBasicBlocks(
+      final Function pFunction,
+      final FunctionEntryNode pEntryNode,
+      final String pFuncName,
+      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks
+  ) {
+    if (pFunction.countBasicBlocks() == 0)
       return null;
 
     CLabelNode entryBB = null;
-    org.llvm.Function F = pItem.asFunction();
-    for (BasicBlock BB : F) {
+    for (BasicBlock block : pFunction) {
       // process this basic block
-      CLabelNode label = new CLabelNode(funcName, getBBName(BB));
-      addNode(funcName, label);
+      CLabelNode label = new CLabelNode(pFuncName, getBBName(block));
+      addNode(pFuncName, label);
       if (entryBB == null)
         entryBB = label;
 
-      BasicBlockInfo bbi = handleInstructions(entryNode.getExitNode(), funcName, BB);
-      basicBlocks.put(BB.getAddress(), new BasicBlockInfo(label, bbi.getExitNode()));
+      BasicBlockInfo bbi = handleInstructions(pEntryNode.getExitNode(), pFuncName, block);
+      pBasicBlocks.put(block.hashCode(), new BasicBlockInfo(label, bbi.getExitNode()));
 
       // add an edge from label to the first node
       // of this basic block
@@ -198,35 +209,35 @@ public abstract class LlvmAstVisitor {
 
     }
 
-    assert entryBB != null || basicBlocks.isEmpty();
+    assert entryBB != null || pBasicBlocks.isEmpty();
     return entryBB;
   }
 
   /**
    * Add branching edges between first and last nodes of basic blocks.
    */
-  private void addJumpsBetweenBasicBlocks(final Value pItem,
-                                          SortedMap<Long, BasicBlockInfo> basicBlocks) {
-    assert pItem.isFunction();
-
+  private void addJumpsBetweenBasicBlocks(
+      final Function pFunction,
+      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks
+  ) {
     // for every basic block, get the last instruction and
     // add edges from it to labels where it jumps
-    org.llvm.Function F = pItem.asFunction();
-    for (BasicBlock BB : F) {
-      Value terminatorInst = BB.getLastInstruction();
+    for (BasicBlock bb : pFunction) {
+      Value terminatorInst = bb.getLastInstruction();
       if (terminatorInst == null) {
         continue;
       }
 
       assert terminatorInst.isTerminatorInst();
-      CFANode brNode = basicBlocks.get(BB.getAddress()).getExitNode();
+      assert pBasicBlocks.containsKey(bb.hashCode());
+      CFANode brNode = pBasicBlocks.get(bb.hashCode()).getExitNode();
 
       int succNum = terminatorInst.getNumSuccessors();
       if (succNum == 0) {
         continue;
       } else if (succNum == 1) {
         BasicBlock succ = terminatorInst.getSuccessor(0);
-        CLabelNode label = (CLabelNode)basicBlocks.get(succ.getAddress()).getEntryNode();
+        CLabelNode label = (CLabelNode)pBasicBlocks.get(succ.hashCode()).getEntryNode();
 
         addEdge(new BlankEdge("(goto)", FileLocation.DUMMY,
                               brNode, label, "(goto)"));
@@ -237,15 +248,15 @@ public abstract class LlvmAstVisitor {
       assert succNum == 2;
 
       // get the operands and add branching edges
-      CExpression condition = getBranchCondition(terminatorInst, pItem.getValueName());
+      CExpression condition = getBranchCondition(terminatorInst, pFunction.getValueName());
 
       BasicBlock succ = terminatorInst.getSuccessor(0);
-      CLabelNode label = (CLabelNode)basicBlocks.get(succ.getAddress()).getEntryNode();
+      CLabelNode label = (CLabelNode)pBasicBlocks.get(succ.hashCode()).getEntryNode();
       addEdge(new CAssumeEdge(condition.toASTString(), FileLocation.DUMMY,
                               brNode, label, condition, true));
 
       succ = terminatorInst.getSuccessor(1);
-      label = (CLabelNode)basicBlocks.get(succ.getAddress()).getEntryNode();
+      label = (CLabelNode)pBasicBlocks.get(succ.hashCode()).getEntryNode();
       addEdge(new CAssumeEdge(condition.toASTString(), FileLocation.DUMMY,
                               brNode, label, condition, false));
     }
@@ -340,6 +351,11 @@ public abstract class LlvmAstVisitor {
 
       public CFANode getExitNode() {
           return exitNode;
+      }
+
+      @Override
+      public String toString() {
+        return "BasicBlock " + entryNode.toString() + " -> " + exitNode.toString();
       }
   }
 
