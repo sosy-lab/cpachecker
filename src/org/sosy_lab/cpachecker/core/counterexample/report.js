@@ -213,29 +213,31 @@
             d3.selectAll(".markedValueDescElement").classed("markedValueDescElement", false);
             d3.selectAll(".markedValueElement").classed("markedValueElement", false);
             d3.selectAll(".markedDescElement").classed("markedDescElement", false);
-        	var searchInput = $(".search-input").val();
-        	if (searchInput.trim() != "") {
+        	var searchInput = $(".search-input").val().trim();
+        	if (searchInput != "") {
         		if ($("#optionExactMatch").prop("checked")) {
         			$rootScope.errorPath.forEach(function(it, i) {
-                        if (searchInput in it.newValDict && it.desc.trim() == searchInput) {
+        				var exactMatchInValues = searchInValues(it.newValDict, searchInput, true); 
+                        if (exactMatchInValues && searchInDescription(it.desc.trim(), searchInput)) {
                             $scope.numOfValueMatches++;
                             $scope.numOfDescriptionMatches++;
                             $("#errpath-" + i + " td")[1].classList.add("markedValueDescElement");
-                        } else if (searchInput in it.newValDict) {
+                        } else if (exactMatchInValues) {
                             $scope.numOfValueMatches++;
                             $("#errpath-" + i + " td")[1].classList.add("markedValueElement");
-                        } else if (it.desc.trim() == searchInput) {
+                        } else if (searchInDescription(it.desc.trim(), searchInput)) {
                             $scope.numOfDescriptionMatches++;
                             $("#errpath-" + i + " td")[1].classList.add("markedDescElement");
                         }
         			})
         		} else {
         			$rootScope.errorPath.forEach(function(it, i) {
-        				if (searchInput in it.newValDict && it.desc.indexOf(searchInput) !== -1) {
+        				var matchInValues = searchInValues(it.newValDict, searchInput, false);
+        				if (matchInValues && it.desc.indexOf(searchInput) !== -1) {
 							$scope.numOfValueMatches++;
 							$scope.numOfDescriptionMatches++;
 							$("#errpath-" + i + " td")[1].classList.add("markedValueDescElement");
-        				} else if (searchInput in it.newValDict) {
+        				} else if (matchInValues) {
         					$scope.numOfValueMatches++;
         					$("#errpath-" + i + " td")[1].classList.add("markedValueElement");
         				} else if (it.desc.indexOf(searchInput) !== -1) {
@@ -246,7 +248,34 @@
         		}
         	}
         };
-		
+        
+        // Search for input in the description by using only words. A word is defined by a-zA-Z0-9 and underscore
+        function searchInDescription(desc, searchInput) {
+            var descStatements = desc.split(" ");
+            for (var i = 0; i < descStatements.length; i++) {
+            	if (descStatements[i].replace(/[^\w.]/g, "") === searchInput) {
+                	return true;
+                }
+            }
+            return false;
+        }
+        
+        // Search for input in object, either exact match or a match containing the input
+        function searchInValues(values, searchInput, exact) {
+        	if ($.isEmptyObject(values)) return false;
+        	var match;
+        	if (exact) {
+        		match = Object.keys(values).find(function(v) {
+        			return v === searchInput;
+        		})
+        	} else {
+            	match = Object.keys(values).find(function(v) {
+            		return v.indexOf(searchInput) !== -1;
+            	})
+        	}
+        	if (match) return true;
+        	else return false;
+        }
 	}]);
 	
 	app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function($rootScope, $scope) {
