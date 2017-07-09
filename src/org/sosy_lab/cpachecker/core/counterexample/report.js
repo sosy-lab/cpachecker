@@ -645,7 +645,7 @@ function init() {
                         buildSingleGraph(funcNodes, func);
                     }
                 });
-            }       
+            }
         }
         
         function buildSingleGraph(nodesToSet, funcName) {
@@ -661,7 +661,8 @@ function init() {
             });
             setGraphEdges(g, edgesToSet, false);
             if (funcName === "main") {
-                self.postMessage({"graph" : JSON.stringify(g), "id" : funcName, "func" : funcName});
+                self.postMessage({"graph" : JSON.stringify(g), "id" : funcName + graphCounter, "func" : funcName});
+                graphMap.push(g);
             } else {
                 graphMap.push(g);
             }
@@ -698,7 +699,6 @@ function init() {
             buildCrossgraphEdges(nodesToSet);
             if (funcName === "main") {
                 self.postMessage({"graph" : JSON.stringify(graphMap[0]), "id" : funcName + graphCounter, "func" : funcName});
-                graphMap.shift();
                 graphCounter++;
             }
         }
@@ -1198,6 +1198,11 @@ function init() {
 
 	cfaWorker.addEventListener("message", function(m) {
 		if (m.data.graph !== undefined) {
+			// id was already processed
+			if (!d3.select("#cfa-graph-" + m.data.id).empty()) {
+				cfaWorker.postMessage({"renderer" : "ready"});
+				return;
+			}
 			var id = m.data.id;
 			d3.select("#cfa-container").append("div").attr("id", "cfa-graph-" + id).attr("class", "cfa-graph");
 			var g = createGraph();
@@ -1207,7 +1212,7 @@ function init() {
 			render(d3.select("#cfa-svg-" + id + " g"), g);
 			// Center the graph - calculate svg.attributes
 			svg.attr("height", g.graph().height + constants.margin * 2);
-			svg.attr("width", g.graph().width + constants.margin * 4);
+			svg.attr("width", g.graph().width + constants.margin * 10);
 			svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
 			cfaWorker.postMessage({"renderer" : "ready"});
 		} else if (m.data.status !== undefined) {
@@ -1247,7 +1252,7 @@ function init() {
 			render(d3.select("#arg-svg" + id + " g"), g);
 			// Center the graph - calculate svg.attributes
 			svg.attr("height", g.graph().height + constants.margin * 2);
-			svg.attr("width", g.graph().width + constants.margin * 4);
+			svg.attr("width", g.graph().width + constants.margin * 10);
 			svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
 			// FIXME: until https://github.com/cpettitt/dagre-d3/issues/169 is not resolved, label centering like so:
 			d3.selectAll(".arg-node tspan").each(function(d,i) {
