@@ -50,7 +50,7 @@
 			<attribute name="optional" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="lib/bridj.jar"/>
+	<classpathentry kind="lib" path="lib/jna.jar"/>
 	<classpathentry kind="lib" path="lib/llvm-j.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
