@@ -160,13 +160,14 @@
             }        	
         }
 		
-        $scope.errPathPrevClicked = function() {
+        $scope.errPathPrevClicked = function($event) {
         	var selection = d3.select("tr.clickedErrPathElement");
         	if (!selection.empty()) {
         		var prevId = parseInt(selection.attr("id").substring("errpath-".length)) - 1;
         		selection.classed("clickedErrPathElement", false);
         		d3.select("#errpath-" + prevId).classed("clickedErrPathElement", true);
         		// TODO: tab logic and element selection
+        		var currentTab = $("#report-controller").scope().getTabSet();
         	}
         };
         
@@ -174,15 +175,31 @@
         	d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
         	d3.select("#errpath-0").classed("clickedErrPathElement", true);
         	// TODO: tab logic and element selection
+        	var currentTab = $("#report-controller").scope().getTabSet();
+        	console.log(currentTab)
+    		if (currentTab === 1) {
+    			console.log("CFA tab");
+    		} else if (currentTab === 2) {
+    			console.log("ARG tab");
+    		} else if (currentTab === 3) {
+    			console.log("Source tab")
+    			d3.select(".markedSourceLine").classed("markedSourceLine", false).classed("prettyprint prettyprinted", true);
+    			// have to remove prettyprint and prettyprinted before adding background class -> broken google prettyprint
+    			d3.select("#source-1 td pre.prettyprint").classed("prettyprint prettyprinted", false).classed("markedSourceLine", true);
+    		} else {
+    			// when the current tab is not one of CFA, ARG, source, set the tab to ARG
+    			$("#report-controller").scope().setTab(2);
+    		}
         };
         
-        $scope.errPathNextClicked = function() {
+        $scope.errPathNextClicked = function($event) {
         	var selection = d3.select("tr.clickedErrPathElement");
         	if (!selection.empty()) {
         		var nextId = parseInt(selection.attr("id").substring("errpath-".length)) + 1;
         		selection.classed("clickedErrPathElement", false);
         		d3.select("#errpath-" + nextId).classed("clickedErrPathElement", true);
         		// TODO: tab logic and element selection
+        		var currentTab = $("#report-controller").scope().getTabSet();
         	}
         };
         
@@ -190,7 +207,12 @@
         	d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
         	d3.select($event.currentTarget.parentNode).classed("clickedErrPathElement", true);
         	// TODO: tab logic and element selection
+        	var currentTab = $("#report-controller").scope().getTabSet();
         };
+        
+        function executeActionInCurrentTab() {
+        	var currentTab = $("#report-controller").scope().getTabSet();
+        }
 		
 	}]);
 	

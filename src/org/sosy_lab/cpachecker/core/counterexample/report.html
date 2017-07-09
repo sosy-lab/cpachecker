@@ -42,9 +42,9 @@
   <section id="errorpath_section" ng-controller="ErrorpathController">
 	<header ng-controller="SearchController">
       <div class="btn-group">
-        <button class="btn btn-success" ng-click="errPathPrevClicked()">Prev</button>
+        <button class="btn btn-success" ng-click="errPathPrevClicked($event)">Prev</button>
         <button class="btn btn-warning" ng-click="errPathStartClicked()">Start</button>
-        <button class="btn btn-success" ng-click="errPathNextClicked()">Next</button>
+        <button class="btn btn-success" ng-click="errPathNextClicked($event)">Next</button>
       </div>
       <a tabindex="0" role="button" data-toggle="popover" data-placement="right"
          data-trigger="focus" data-content="{{help_errorpath}}"

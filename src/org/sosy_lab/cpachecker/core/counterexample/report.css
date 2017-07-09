@@ -166,6 +166,10 @@ body {
 	outline: #df80ff solid 2px;
 }
 
+.markedSourceLine {
+    background-color: #df80ff;
+}
+
 #externalFiles_section {
 	float: right;
 	width: 100%;
