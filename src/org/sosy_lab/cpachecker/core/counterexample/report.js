@@ -109,12 +109,18 @@
 	app.controller("ErrorpathController", ['$rootScope', '$scope', function($rootScope, $scope) {
 		$rootScope.errorPath = [];
 		
-		function getValues(val) {
+		function getValues(val, prevValDict) {
             var values = {};
             if(val != "") {
                 var singleStatements = val.split("\n");
                 for (var i = 0; i < singleStatements.length - 1; i++) {
-                    values[singleStatements[i].split("==")[0].trim()] = singleStatements[i].split("==")[1].trim().slice(0,-1);
+                	if (!Object.keys(prevValDict).includes(singleStatements[i].split("==")[0].trim())) {
+                		// previous dictionary does not include the statement
+                		values[singleStatements[i].split("==")[0].trim()] = singleStatements[i].split("==")[1].trim().slice(0,-1);
+                	} else if (prevValDict[singleStatements[i].split("==")[0].trim()] !== singleStatements[i].split("==")[1].trim().slice(0,-1)) {
+                		// statement is included but with different value
+                		values[singleStatements[i].split("==")[0].trim()] = singleStatements[i].split("==")[1].trim().slice(0,-1);
+                	}
                 }
             }
             return values;
@@ -124,34 +130,31 @@
         	var indentationlevel = 0;
             for(var i = 0; i < errorPath.length; i++) {
                 var errPathElem = errorPath[i];
-                //do not show start, return and blank edges
-                if (errPathElem.desc.substring(0, "Return edge from".length) != "Return edge from" && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
-                	var newValues = getValues(errPathElem.val);
-                    errPathElem["newValDict"] = newValues;
+                // do not show start, return and blank edges
+                if (errPathElem.desc.indexOf("Return edge from") === -1 && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
+                	var previousValueDictionary = {};
                     errPathElem["valDict"] = {};
                     errPathElem["valString"] = "";
                     if (i > 0) {
-                        for (key in $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict) {
-                            errPathElem.valDict[key] = $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict[key];
-                        }
+                    	$.extend(errPathElem.valDict, $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict);
+                    	previousValueDictionary = $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict;
                     }
-                    if (newValues != {}) {
-                        for (key in newValues) {
-                            errPathElem.valDict[key] = newValues[key];
-                        }
+                	var newValues = getValues(errPathElem.val, previousValueDictionary);
+                    errPathElem["newValDict"] = newValues;
+                    if (!$.isEmptyObject(newValues)) {
+                    	$.extend(errPathElem.valDict, newValues)
                     }
-                    // if I do it in one of the for-loops before, I get the new values doubled
                     for (key in errPathElem.valDict){
-                        errPathElem.valString = errPathElem.valString + key + ":  " + errPathElem.valDict[key] + "\n";
+                    	errPathElem.valString += key + ":  " + errPathElem.valDict[key] + "\n";
                     }
-                    //add indentation
+                    // add indentation
                     for(var j = 1; j <= indentationlevel; j++) {
                         errPathElem.desc = "   " + errPathElem.desc;
                     }
                     $rootScope.errorPath.push(errPathElem);
-                } else if(errPathElem.desc.substring(0, "Return edge from".length) == "Return edge from"){
+                } else if(errPathElem.desc.indexOf("Return edge from") !== -1) {
                     indentationlevel -= 1;
-                } else if(errPathElem.desc == "Function start dummy edge"){
+                } else if(errPathElem.desc.indexOf("Function start dummy") !== -1) {
                     indentationlevel += 1;
                 }
             }        	
@@ -227,13 +230,12 @@
                         }
         			})
         		} else {
-        			console.log("else")
         			$rootScope.errorPath.forEach(function(it, i) {
-        				if (it.val.indexOf(searchInput) !== -1 && it.desc.indexOf(searchInput) !== -1) {
+        				if (searchInput in it.newValDict && it.desc.indexOf(searchInput) !== -1) {
 							$scope.numOfValueMatches++;
 							$scope.numOfDescriptionMatches++;
 							$("#errpath-" + i + " td")[1].classList.add("markedValueDescElement");
-        				} else if (it.val.indexOf(searchInput) !== -1) {
+        				} else if (searchInput in it.newValDict) {
         					$scope.numOfValueMatches++;
         					$("#errpath-" + i + " td")[1].classList.add("markedValueElement");
         				} else if (it.desc.indexOf(searchInput) !== -1) {
