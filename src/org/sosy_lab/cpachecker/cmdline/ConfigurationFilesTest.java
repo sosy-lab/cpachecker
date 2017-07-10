@@ -75,7 +75,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
@@ -220,7 +220,7 @@ public class ConfigurationFilesTest {
     try (Reader r =
             Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
         Writer w =
-            MoreFiles.openOutputFile(
+            IO.openOutputFile(
                 Paths.get("output/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
@@ -233,14 +233,14 @@ public class ConfigurationFilesTest {
     try (Reader r =
             Files.newBufferedReader(Paths.get("config/specification/AssumptionGuidingAutomaton.spc"));
         Writer w =
-            MoreFiles.openOutputFile(
+            IO.openOutputFile(
                 Paths.get(tempFolder.newFolder("config").getAbsolutePath()+"/specification/AssumptionGuidingAutomaton.spc"), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
     try (Reader r =
         Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
         Writer w =
-            MoreFiles.openOutputFile(
+            IO.openOutputFile(
                 Paths.get(tempFolder.newFolder("output").getAbsolutePath()+"/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
@@ -334,14 +334,14 @@ public class ConfigurationFilesTest {
   private String createEmptyProgram(boolean isJava) throws IOException {
     String program;
     if (isJava) {
-      MoreFiles.writeFile(
+      IO.writeFile(
           tempFolder.newFile("Main.java").toPath(),
           StandardCharsets.US_ASCII,
           "public class Main { public static void main(String... args) {} }");
       program = "Main";
     } else {
       File cFile = tempFolder.newFile("program.i");
-      MoreFiles.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
+      IO.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
       program = cFile.toString();
     }
     return program;

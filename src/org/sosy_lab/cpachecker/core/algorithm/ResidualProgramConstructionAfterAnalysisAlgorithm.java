@@ -45,7 +45,8 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -127,10 +128,10 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
     if (getStrategy() == ResidualGenStrategy.CONDITION
         || getStrategy() == ResidualGenStrategy.COMBINATION) {
       try {
-        assumptionAutomaton = MoreFiles.createTempFile("assumptions", "txt", null);
+        assumptionAutomaton = TempFile.builder().prefix("assumptions").suffix("txt").create();
 
         try (Writer automatonWriter =
-            MoreFiles.openOutputFile(assumptionAutomaton, Charset.defaultCharset())) {
+            IO.openOutputFile(assumptionAutomaton, Charset.defaultCharset())) {
           AssumptionCollectorAlgorithm.writeAutomaton(automatonWriter, argRoot,
               computeRelevantStates(pReachedSet.getWaitlist()),
               Sets.newHashSet(pReachedSet.getWaitlist()), 0, true);

@@ -42,7 +42,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -171,7 +171,7 @@ public class ReportGenerator {
     try (BufferedReader template =
             Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
                 .openBufferedStream();
-        Writer report = MoreFiles.openOutputFile(reportPath, Charsets.UTF_8)) {
+        Writer report = IO.openOutputFile(reportPath, Charsets.UTF_8)) {
 
       String line;
       while (null != (line = template.readLine())) {

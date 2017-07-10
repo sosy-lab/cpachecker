@@ -45,7 +45,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -258,7 +258,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
   protected boolean writeResidualProgram(final ARGState pArgRoot,
       @Nullable final Set<ARGState> pAddPragma) throws InterruptedException {
     logger.log(Level.INFO, "Generate residual program");
-    try (Writer writer = MoreFiles.openOutputFile(residualProgram, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(residualProgram, Charset.defaultCharset())) {
       writer.write(translator.translateARG(pArgRoot, pAddPragma));
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write residual program to file");

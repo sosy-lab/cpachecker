@@ -42,7 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -105,7 +105,7 @@ public class CExpressionInvariantExporter {
       Path trimmedFilename = program.getFileName();
       if (trimmedFilename != null) {
         try (Writer output =
-            MoreFiles.openOutputFile(
+            IO.openOutputFile(
                 prefix.getPath(trimmedFilename.toString()), Charset.defaultCharset())) {
           writeProgramWithInvariants(output, program.toString(), pReachedSet);
         }

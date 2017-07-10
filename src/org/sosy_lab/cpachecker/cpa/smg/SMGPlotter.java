@@ -34,7 +34,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
@@ -165,7 +165,7 @@ public final class SMGPlotter {
     Path outputFile = exportSMGFilePattern.getPath(pId);
     SMGPlotter plotter = new SMGPlotter();
 
-    MoreFiles.writeFile(
+    IO.writeFile(
         outputFile,
         Charset.defaultCharset(),
         plotter.smgAsDot(pSmg, pId, "debug plot", explicitValues));

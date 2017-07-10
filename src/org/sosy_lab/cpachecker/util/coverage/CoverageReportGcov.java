@@ -28,7 +28,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInfo;
 
@@ -83,7 +83,7 @@ class CoverageReportGcov implements CoverageWriter {
       return;
     }
 
-    try (Writer w = MoreFiles.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
 
       for (Map.Entry<String, FileCoverageInformation> entry : pCoverage.entrySet()) {
         String sourcefile = entry.getKey();

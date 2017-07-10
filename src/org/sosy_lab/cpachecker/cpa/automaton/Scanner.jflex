@@ -2,7 +2,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -53,7 +53,7 @@ import java.util.logging.Level;
       return null;
     }
 
-    MoreFiles.checkReadableFile(file);
+    IO.checkReadableFile(file);
     scannedFiles.add(file);
     filesStack.push(file);
     return file;

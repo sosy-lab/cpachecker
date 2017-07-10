@@ -52,7 +52,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -132,7 +132,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
           public void printStatistics(
               PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
             if (exportFile != null) {
-              try (Writer w = MoreFiles.openOutputFile(exportFile, Charset.defaultCharset())) {
+              try (Writer w = IO.openOutputFile(exportFile, Charset.defaultCharset())) {
                 write(pReached, w);
               } catch (IOException e) {
                 logger.logUserException(Level.WARNING, e, "Could not write formulas to file");

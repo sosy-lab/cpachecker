@@ -30,7 +30,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -247,7 +247,7 @@ public final class SMGUtils {
       String location, Path pOutputFile) {
     try {
       String dot = getDot(currentState, location);
-      MoreFiles.writeFile(pOutputFile, Charset.defaultCharset(), dot);
+      IO.writeFile(pOutputFile, Charset.defaultCharset(), dot);
     } catch (IOException e) {
       pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + currentState.getId() + " to file");
     }
