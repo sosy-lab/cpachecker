@@ -35,7 +35,7 @@
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="20.0" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="22.0" conf="runtime->default; contrib->sources"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
@@ -75,7 +75,7 @@
         <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.34" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="20.0" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="22.0" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
