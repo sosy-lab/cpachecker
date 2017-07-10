@@ -167,7 +167,7 @@ body {
 }
 
 .markedSourceLine {
-    background-color: #df80ff;
+    background-color: #df80ff !important;
 }
 
 #externalFiles_section {

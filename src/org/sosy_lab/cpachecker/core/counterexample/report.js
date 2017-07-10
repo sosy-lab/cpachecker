@@ -183,9 +183,9 @@
     			console.log("ARG tab");
     		} else if (currentTab === 3) {
     			console.log("Source tab")
-    			d3.select(".markedSourceLine").classed("markedSourceLine", false).classed("prettyprint prettyprinted", true);
-    			// have to remove prettyprint and prettyprinted before adding background class -> broken google prettyprint
-    			d3.select("#source-1 td pre.prettyprint").classed("prettyprint prettyprinted", false).classed("markedSourceLine", true);
+    			d3.select(".markedSourceLine").classed("markedSourceLine", false);
+    			d3.select("#source-1 td pre.prettyprint").classed("markedSourceLine", true);
+    			$(".sourceContent").scrollTop(0).scrollLeft(0);
     		} else {
     			// when the current tab is not one of CFA, ARG, source, set the tab to ARG
     			$("#report-controller").scope().setTab(2);
@@ -552,6 +552,9 @@ var cfaLoaderDone = false;
 var argLoaderDone = false;
 
 function init() {
+	
+	// Display modal window containing current rendering state
+	$("#myModal").modal("show");
 	
 	// Setup section widths accordingly 
 	if (errorPath === undefined) {
@@ -1298,6 +1301,7 @@ function init() {
 			if (errorPath !== undefined) {
 				d3.selectAll("td.disabled").classed("disabled", false);
 			}
+			$("#myModal").modal("hide");
 		}
 	}, false);
 	
