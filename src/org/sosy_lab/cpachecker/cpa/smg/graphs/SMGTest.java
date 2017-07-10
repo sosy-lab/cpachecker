@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import static com.google.common.truth.Truth.assertThat;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeMap;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,10 +40,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import java.util.HashSet;
-import java.util.Set;
-import java.util.TreeMap;
 
 
 public class SMGTest {
@@ -92,12 +93,7 @@ public class SMGTest {
     smg.addHasValueEdge(hv);
 
     TreeMap<Integer, Integer> nullEdges = smg.getNullEdgesMapOffsetToSizeForObject(obj1);
-    Assert.assertTrue(nullEdges.floorKey(0) == null);
-    Assert.assertTrue(nullEdges.floorKey(24) == null);
-    Assert.assertTrue(nullEdges.floorEntry(32).getValue() == 32);
-    Assert.assertTrue(nullEdges.floorEntry(32).getKey() == 32);
-    Assert.assertTrue(nullEdges.floorEntry(56).getValue() == 32);
-    Assert.assertTrue(nullEdges.floorEntry(56).getKey() == 32);
+    assertThat(nullEdges).containsExactly(32, 32);
   }
 
   @Test
@@ -110,7 +106,7 @@ public class SMGTest {
 
     Set<SMGEdgeHasValue> newHVSet = smg.getHVEdges();
 
-    Assert.assertTrue(hvSet.equals(newHVSet));
+    assertThat(newHVSet).isEqualTo(hvSet);
   }
 
   @Test
@@ -123,17 +119,17 @@ public class SMGTest {
 
     Assert.assertNotNull(nullObject);
     Assert.assertFalse(nullObject.notNull());
-    Assert.assertEquals(1, smg.getObjects().size());
-    Assert.assertTrue(smg.getObjects().contains(nullObject));
+    assertThat(smg.getObjects()).hasSize(1);
+    assertThat(smg.getObjects()).contains(nullObject);
 
-    Assert.assertEquals(1, smg.getValues().size());
-    Assert.assertTrue(smg.getValues().contains(Integer.valueOf(nullAddress)));
+    assertThat(smg.getValues()).hasSize(1);
+    assertThat(smg.getValues()).contains(Integer.valueOf(nullAddress));
 
-    Assert.assertEquals(1, smg.getPTEdgesAsMap().size());
+    assertThat(smg.getPTEdgesAsMap()).hasSize(1);
     SMGObject target_object = smg.getObjectPointedBy(nullAddress);
     Assert.assertEquals(nullObject, target_object);
 
-    Assert.assertEquals(0, smg.getHVEdges().size());
+    assertThat(smg.getHVEdges()).hasSize(0);
 
     //copy constructor
     SMG smg_copy = new SMG(smg);
@@ -149,21 +145,21 @@ public class SMGTest {
 
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
-    Assert.assertEquals(1, smg.getObjects().size());
-    Assert.assertEquals(2, smg_copy.getObjects().size());
-    Assert.assertTrue(smg_copy.getObjects().contains(third_object));
+    assertThat(smg.getObjects()).hasSize(1);
+    assertThat(smg_copy.getObjects()).hasSize(2);
+    assertThat(smg_copy.getObjects()).contains(third_object);
 
-    Assert.assertEquals(1, smg.getValues().size());
-    Assert.assertEquals(2, smg_copy.getValues().size());
-    Assert.assertTrue(smg_copy.getValues().contains(third_value));
+    assertThat(smg.getValues()).hasSize(1);
+    assertThat(smg_copy.getValues()).hasSize(2);
+    assertThat(smg_copy.getValues()).contains(third_value);
 
-    Assert.assertEquals(1, smg.getPTEdges().asSet().size());
-    Assert.assertEquals(2, smg_copy.getPTEdges().asSet().size());
+    assertThat(smg.getPTEdges().asSet()).hasSize(1);
+    assertThat(smg_copy.getPTEdges().asSet()).hasSize(2);
     SMGObject target_object_for_third = smg_copy.getObjectPointedBy(third_value);
     Assert.assertEquals(third_object, target_object_for_third);
 
-    Assert.assertEquals(0, smg.getHVEdges().size());
-    Assert.assertEquals(1, smg_copy.getHVEdges().size());
+    assertThat(smg.getHVEdges()).hasSize(0);
+    assertThat(smg_copy.getHVEdges()).hasSize(1);
   }
 
   @Test
@@ -174,10 +170,10 @@ public class SMGTest {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, smg.getNullValue());
 
     smg.addHasValueEdge(hv);
-    Assert.assertTrue(smg.getHVEdges().contains(hv));
+    assertThat(smg.getHVEdges()).contains(hv);
 
     smg.removeHasValueEdge(hv);
-    Assert.assertFalse(smg.getHVEdges().contains(hv));
+    assertThat(smg.getHVEdges()).doesNotContain(hv);
   }
 
   @Test
@@ -196,12 +192,12 @@ public class SMGTest {
     smg.addHasValueEdge(hv0);
     smg.addHasValueEdge(hv4);
 
-    Assert.assertTrue(smg.getObjects().contains(object));
+    assertThat(smg.getObjects()).contains(object);
     smg.removeObject(object);
-    Assert.assertFalse(smg.getObjects().contains(object));
-    Assert.assertTrue(smg.getHVEdges().contains(hv0));
-    Assert.assertTrue(smg.getHVEdges().contains(hv4));
-    Assert.assertTrue(smg.getPTEdges().asSet().contains(pt));
+    assertThat(smg.getObjects()).doesNotContain(object);
+    assertThat(smg.getHVEdges()).contains(hv0);
+    assertThat(smg.getHVEdges()).contains(hv4);
+    assertThat(smg.getPTEdges().asSet()).contains(pt);
   }
 
   @Test
@@ -220,12 +216,12 @@ public class SMGTest {
     smg.addHasValueEdge(hv0);
     smg.addHasValueEdge(hv4);
 
-    Assert.assertTrue(smg.getObjects().contains(object));
+    assertThat(smg.getObjects()).contains(object);
     smg.removeObjectAndEdges(object);
-    Assert.assertFalse(smg.getObjects().contains(object));
-    Assert.assertFalse(smg.getHVEdges().contains(hv0));
-    Assert.assertFalse(smg.getHVEdges().contains(hv4));
-    Assert.assertFalse(smg.getPTEdges().asSet().contains(pt));
+    assertThat(smg.getObjects()).doesNotContain(object);
+    assertThat(smg.getHVEdges()).doesNotContain(hv0);
+    assertThat(smg.getHVEdges()).doesNotContain(hv4);
+    assertThat(smg.getPTEdges().asSet()).doesNotContain(pt);
   }
 
   @Test
@@ -400,14 +396,14 @@ public class SMGTest {
     set.add(obj2);
     set.add(smg.getNullObject());
 
-    Assert.assertTrue(smg.getObjects().containsAll(set));
+    assertThat(smg.getObjects()).containsAllIn(set);
   }
 
   @Test
   public void getNullObjectTest() {
     SMGObject nullObject = smg.getNullObject();
     Assert.assertFalse(smg.isObjectValid(nullObject));
-    Assert.assertEquals(nullObject.getSize(), 0);
+    assertThat(nullObject.getSize()).isEqualTo(0);
   }
 
   @Test
@@ -417,7 +413,7 @@ public class SMGTest {
     set.add(val2);
     set.add(smg.getNullValue());
 
-    Assert.assertTrue(smg.getValues().containsAll(set));
+    assertThat(smg.getValues()).containsAllIn(set);
   }
 
   @Test
@@ -426,7 +422,7 @@ public class SMGTest {
     set.add(hv2has2at0);
     set.add(hv2has1at4);
 
-    Assert.assertTrue(smg.getHVEdges().containsAll(set));
+    assertThat(smg.getHVEdges()).containsAllIn(set);
   }
 
   @Test
@@ -434,13 +430,13 @@ public class SMGTest {
     HashSet<SMGEdgePointsTo> set = new HashSet<>();
     set.add(pt1to1);
 
-    Assert.assertTrue(smg.getPTEdges().asSet().containsAll(set));
+    assertThat(smg.getPTEdges().asSet()).containsAllIn(set);
   }
 
   @Test
   public void getObjectPointedByTest() {
-    Assert.assertEquals(obj1, smg.getObjectPointedBy(val1));
-    Assert.assertNull(smg.getObjectPointedBy(val2));
+    assertThat(smg.getObjectPointedBy(val1)).isEqualTo(obj1);
+    assertThat(smg.getObjectPointedBy(val2)).isNull();
   }
 
   @Test
