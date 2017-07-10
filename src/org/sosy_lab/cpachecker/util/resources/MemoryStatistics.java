@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.resources;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import java.io.PrintStream;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -31,21 +33,16 @@ import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryType;
 import java.lang.management.MemoryUsage;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
-
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
-
-import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 
 /**
  * This class is a runnable that continuously monitors memory usage.
@@ -258,9 +255,9 @@ public class MemoryStatistics implements Runnable {
    */
   public static void printGcStatistics(PrintStream out) {
     List<GarbageCollectorMXBean> gcBeans = ManagementFactory.getGarbageCollectorMXBeans();
-    Set<String> gcNames = new HashSet<>();
+    Set<String> gcNames = new TreeSet<>();
     long gcTime = 0;
-    int gcCount = 0;
+    long gcCount = 0;
     for (GarbageCollectorMXBean gcBean : gcBeans) {
       gcTime += gcBean.getCollectionTime();
       gcCount += gcBean.getCollectionCount();
