@@ -107,6 +107,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
+@SuppressWarnings("OvershadowingSubclassFields")
 public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
 
   /**
