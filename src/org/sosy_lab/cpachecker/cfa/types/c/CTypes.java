@@ -309,7 +309,11 @@ public final class CTypes {
    * @param pType the {@link CType} to be adjusted, if necessary
    * @return the adjusted version of <code>pType</code>
    */
-  public static CType adjustFunctionOrArrayType(@Nullable CType pType) {
+  public static @Nullable CType adjustFunctionOrArrayType(@Nullable CType pType) {
+    if (pType == null) {
+      return pType;
+    }
+
     if (pType instanceof CArrayType) {
       CType innerType = ((CArrayType) pType).getType();
       CExpression sizeExpression = ((CArrayType) pType).getLength();

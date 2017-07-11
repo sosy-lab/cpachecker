@@ -643,13 +643,13 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visitDefault(CType pT) {
+    public @Nullable Void visitDefault(CType pT) {
       collectedTypes.add(pT);
       return null;
     }
 
     @Override
-    public Void visit(CArrayType pArrayType) {
+    public @Nullable Void visit(CArrayType pArrayType) {
       if (collectedTypes.add(pArrayType)) {
         pArrayType.getType().accept(this);
         if (pArrayType.getLength() != null) {
@@ -660,7 +660,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CCompositeType pCompositeType) {
+    public @Nullable Void visit(CCompositeType pCompositeType) {
       if (collectedTypes.add(pCompositeType)) {
         for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
           member.getType().accept(this);
@@ -670,7 +670,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CElaboratedType pElaboratedType) {
+    public @Nullable Void visit(CElaboratedType pElaboratedType) {
       if (collectedTypes.add(pElaboratedType)) {
         if (pElaboratedType.getRealType() != null) {
           pElaboratedType.getRealType().accept(this);
@@ -680,7 +680,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CFunctionType pFunctionType) {
+    public @Nullable Void visit(CFunctionType pFunctionType) {
       if (collectedTypes.add(pFunctionType)) {
         for (CType parameterType : pFunctionType.getParameters()) {
           parameterType.accept(this);
@@ -690,7 +690,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CPointerType pPointerType) {
+    public @Nullable Void visit(CPointerType pPointerType) {
       if (collectedTypes.add(pPointerType)) {
         pPointerType.getType().accept(this);
       }
@@ -698,7 +698,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CTypedefType pTypedefType) {
+    public @Nullable Void visit(CTypedefType pTypedefType) {
       if (collectedTypes.add(pTypedefType)) {
         pTypedefType.getRealType().accept(this);
       }
@@ -706,7 +706,7 @@ public class CProgramScope implements Scope {
     }
 
     @Override
-    public Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
       if (collectedTypes.add(pCBitFieldType)) {
         pCBitFieldType.getType().accept(this);
       }

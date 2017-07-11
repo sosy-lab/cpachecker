@@ -46,7 +46,7 @@ public class CFunctionType extends AFunctionType implements CType {
 
   private final boolean isConst;
   private final boolean isVolatile;
-  private String name = null;
+  private @Nullable String name = null;
 
   public CFunctionType(
       boolean pConst,

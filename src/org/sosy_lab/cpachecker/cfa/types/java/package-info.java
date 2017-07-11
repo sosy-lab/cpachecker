@@ -21,8 +21,8 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- * Provides classes for Java types.
- * This includes simple and complex types.
- */
+/** Provides classes for Java types. This includes simple and complex types. */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.cfa.types.java;
