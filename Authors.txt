@@ -1,6 +1,6 @@
 Maintainers:
-  Dirk Beyer (since 2007), Simon Fraser University, Canada / University of Passau, Germany
-  Philipp Wendler (since 2009), University of Passau, Germany
+  Dirk Beyer (since 2007), LMU Munich, Germany
+  Philipp Wendler (since 2009), LMU Munich, Germany
 
 Former Maintainers:
   Erkan Keremoglu (2008 - 2011), Simon Fraser University, Canada
@@ -9,13 +9,13 @@ Developers/Contributors:
   Pavel Andrianov (since 2014), Russian Academy of Sciences, Russia
   Henrik Bröcher (since 2016), University of Paderborn, Germany
   Johannes Bürdek (since 2014), University of Darmstadt, Germany
-  Matthias Dangl (since 2012), University of Passau, Germany
+  Matthias Dangl (since 2012), LMU Munich, Germany
   Alexander Driemeyer (since 2012), University of Passau, Germany
-  Karlheinz Friedberger (since 2011), University of Passau, Germany
+  Karlheinz Friedberger (since 2011), LMU Munich, Germany
   Andreas Holzer (since 2008), University of Darmstadt, Germany / TU Vienna, Austria
   Marie-Christine Jakobs (since 2012), University of Paderborn, Germany
   George Karpenkov (since 2014), Verimag, Grenoble
-  Thomas Lemberger (since 2014), University of Passau, Germany
+  Thomas Lemberger (since 2014), LMU Munich, Germany
   Stefan Löwe (since 2010), University of Passau, Germany
   Stephan Lukasczyk (since 2015), University of Passau, Germany
   Mikhail Mandrykin (since 2013), Russian Academy of Sciences, Russia
