@@ -27,7 +27,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -147,6 +149,10 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
         potentialRecursionUpdateStates.clear();
       }
 
+      logger.log(Level.FINEST, "Updating possible recursive states");
+
+      reAddStatesForFixPointIteration(pHeadOfMainFunctionState);
+
       logger.log(Level.FINEST, "Starting recursive analysis of main-block");
 
       resultStates = doRecursiveAnalysis(pHeadOfMainFunctionState, pPrecision, pHeadOfMainFunction);
@@ -178,27 +184,55 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
 
       logger.log(Level.INFO, "fixpoint was not reached, starting new iteration", ++iterationCounter);
 
-      reAddStatesForFixPointIteration();
-
       // continue;
     }
 
     return resultStates;
   }
 
-  /** update waitlists of all reachedsets to re-explore the previously found recursive function-call. */
-  private void reAddStatesForFixPointIteration() {
-    for (final AbstractState recursionUpdateState : potentialRecursionUpdateStates) {
-      for (final ReachedSet reachedSet : data.getCache().getAllCachedReachedStates()) {
-        if (reachedSet.contains(recursionUpdateState)) {
-          logger.log(Level.FINEST, "re-adding state", recursionUpdateState);
-          reachedSet.reAddToWaitlist(recursionUpdateState);
+  /** returns all used call-states in the current analysis from the cache.
+   * (except those where recursion was aborted, because there we do not have an exit-state) */
+  private Collection<AbstractState> getCallStates(AbstractState pHeadOfMainFunctionState) {
+    Collection<AbstractState> finished = new HashSet<>();
+    Deque<AbstractState> waitlist = new ArrayDeque<>();
+    waitlist.push(pHeadOfMainFunctionState);
+    while (!waitlist.isEmpty()) {
+      AbstractState initState = waitlist.pop();
+      if (!finished.add(initState)) {
+        continue;
+      }
+      for (AbstractState child : ((ARGState)initState).getChildren()) {
+        for (AbstractState state : data.getReachedSetForInitialState(initState, data.getReducedStateForExpandedState(child))) {
+          if (data.hasInitialState(state)) {
+            waitlist.add(state);
+          }
         }
-        // else if (pHeadOfMainFunctionState == recursionUpdateState) {
-          // special case: this is the root-state of the whole program, it is in the main-reachedset.
-          // we have no possibility to re-add it,because we do not have access to the main-reachedset.
-          // however we do not need to re-add it, because it is the initial-state of current transfer-relation.
-        // }
+      }
+    }
+    return finished;
+  }
+
+  /** update waitlists of all reachedsets to re-explore the previously found recursive function-call. */
+  private void reAddStatesForFixPointIteration(final AbstractState pHeadOfMainFunctionState) {
+
+    // first get all used callstates (except those where recursion was aborted)
+    Collection<AbstractState> initStates = getCallStates(pHeadOfMainFunctionState);
+
+    // then re-add all states where recursion might have happened, currently simply all states
+    for (AbstractState initState : initStates) {
+      for (AbstractState child : ((ARGState)initState).getChildren()) {
+        ReachedSet rs = data.getReachedSetForInitialState(initState, data.getReducedStateForExpandedState(child));
+        Collection<AbstractState> recursionUpdateStates = new HashSet<>();
+        for (AbstractState state : rs) {
+          if (startNewBlockAnalysis((ARGState)state, AbstractStates.extractLocation(state))) {
+            recursionUpdateStates.add(state);
+          }
+        }
+        logger.log(Level.FINEST, Collections2.transform(recursionUpdateStates,
+            s -> ((ARGState) s).getStateId()));
+        for (final AbstractState state : recursionUpdateStates) {
+          rs.reAddToWaitlist(state);
+        }
       }
     }
   }

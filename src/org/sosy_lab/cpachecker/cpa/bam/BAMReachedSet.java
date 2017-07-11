@@ -28,6 +28,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -144,10 +145,20 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
         removeCachedSubtreeTimer.stop();
       }
 
-      if (mustUpdatePrecision(lastRelevantNode, cutState, currentCutState)) {
-        delegate.removeSubtree(relevantCallStates.get(0).getARGState(), pPrecisions, pPrecisionTypes);
+      final UnmodifiableReachedSet mainReachedSet = delegate.asReachedSet();
+      if (mainReachedSet.getFirstState() == relevantCallStates.get(0).getARGState()
+          && ((ARGState)mainReachedSet.getLastState()).getParents().contains(mainReachedSet.getFirstState())) {
+        // This code is needed for analysis of recursive programs. The main-loop in
+        // {@link BAMTransferRelationWithFixPointForRecursion} uses the complete program as block.
+        // The main-reachedset contains only the root, exit-states and targets.
+        // Instead of removing the root-state, we only remove the target state.
+        delegate.removeSubtree((ARGState)mainReachedSet.getLastState());
       } else {
-        delegate.removeSubtree(relevantCallStates.get(0).getARGState());
+        if (mustUpdatePrecision(lastRelevantNode, cutState, currentCutState)) {
+          delegate.removeSubtree(relevantCallStates.get(0).getARGState(), pPrecisions, pPrecisionTypes);
+        } else {
+          delegate.removeSubtree(relevantCallStates.get(0).getARGState());
+        }
       }
     }
 
@@ -381,6 +392,9 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
 
     ReachedSet clonedReached =
         buildClonedReachedSet(pReached, pPrecisionsLst, keepStates, cloneMapping);
+
+    bamcpa.getLogger().log(Level.ALL, Collections2.transform(cloneMapping.entrySet(),
+        e -> e.getKey().getStateId() + "-" + e.getValue().getStateId()));
 
     assert clonedReached.size() < pReached.size();
     return clonedReached;
