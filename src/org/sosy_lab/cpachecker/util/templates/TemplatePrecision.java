@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.templates;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
+
+import com.google.common.base.Equivalence;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -45,11 +48,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -79,7 +82,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -185,11 +187,10 @@ public class TemplatePrecision implements Precision {
   private final ImmutableSet<ASimpleDeclaration> allVariables;
 
   /**
-   * Mapping from function name to a set of function parameters.
-   * Variables represented parameters should be kept in precision
-   * at the return node in order to compute summaries.
+   * Mapping from function name to a set of function parameters. Variables represented parameters
+   * should be kept in precision at the return node in order to compute summaries.
    */
-  private final ImmutableMap<String, Set<ASimpleDeclaration>> functionParameters;
+  private final ImmutableSetMultimap<String, ASimpleDeclaration> functionParameters;
 
   public TemplatePrecision(
       LogManager pLogger,
@@ -224,15 +225,17 @@ public class TemplatePrecision implements Precision {
     allVariables = ImmutableSet.copyOf(
         cfa.getLiveVariables().get().getAllLiveVariables());
 
-    ImmutableMap.Builder<String, Set<ASimpleDeclaration>> builder = ImmutableMap.builder();
+    ImmutableSetMultimap.Builder<String, ASimpleDeclaration> builder =
+        ImmutableSetMultimap.builder();
     if (includeFunctionParameters) {
       for (FunctionEntryNode node : cfa.getAllFunctionHeads()) {
         CFunctionEntryNode casted = (CFunctionEntryNode) node;
 
-        Set<ASimpleDeclaration> qualifiedNames = casted.getFunctionParameters()
+        casted
+            .getFunctionParameters()
             .stream()
-            .map(p -> p.asVariableDeclaration()).collect(Collectors.toSet());
-        builder.put(node.getFunctionName(), qualifiedNames);
+            .map(p -> p.asVariableDeclaration())
+            .forEach(qualifiedName -> builder.put(node.getFunctionName(), qualifiedName));
       }
     }
     functionParameters = builder.build();
@@ -283,11 +286,12 @@ public class TemplatePrecision implements Precision {
   private Set<Template> generateTemplates(final CFANode node) {
 
     Collection<ASimpleDeclaration> varsForNode = getVarsForNode(node);
-    Set<CIdExpression> vars = varsForNode.stream()
-        .filter(this::shouldProcessVariable)
-        .map(
-            d -> new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) d)
-        ).collect(Collectors.toSet());
+    Set<CIdExpression> vars =
+        varsForNode
+            .stream()
+            .filter(this::shouldProcessVariable)
+            .map(d -> new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) d))
+            .collect(toImmutableSet());
     int maxLength = Math.min(maxExpressionSize, vars.size());
     allowedCoefficients = allowedCoefficients.stream().filter(
         x -> !x.equals(Rational.ZERO)).collect(Collectors.toSet());
@@ -302,88 +306,79 @@ public class TemplatePrecision implements Precision {
     // As a by-product, produces the expressions of all sizes less than
     // {@code maxExpressionSize} as well.
     Set<Set<CIdExpression>> combinations =
-        product.stream().map(HashSet<CIdExpression>::new).collect(Collectors.toSet());
+        product.stream().map(HashSet<CIdExpression>::new).collect(toImmutableSet());
 
     Set<Template> returned = new HashSet<>();
     for (Set<CIdExpression> variables : combinations) {
 
       // For of every variable: instantiate with every coefficient.
       List<List<LinearExpression<CIdExpression>>> out =
-          variables.stream().map(
-              x -> allowedCoefficients.stream().map(
-                  coeff -> LinearExpression.monomial(x, coeff)
-              ).collect(Collectors.toList())
-          ).collect(Collectors.toList());
+          Collections3.transformedImmutableListCopy(
+              variables,
+              x ->
+                  Collections3.transformedImmutableListCopy(
+                      allowedCoefficients, coeff -> LinearExpression.monomial(x, coeff)));
 
       // Convert to a list of all possible linear expressions.
-      List<LinearExpression<CIdExpression>> linearExpressions =
-          Lists.cartesianProduct(out).stream().map(
-              list -> list.stream().reduce(
-                  LinearExpression.empty(), LinearExpression::add)
-          ).collect(Collectors.toList());
+      Stream<LinearExpression<CIdExpression>> linearExpressions =
+          Lists.cartesianProduct(out)
+              .stream()
+              .map(list -> list.stream().reduce(LinearExpression.empty(), LinearExpression::add));
 
-      Set<Template> generated =
-          filterToSameType(
-              filterRedundantExpressions(linearExpressions)
-          ).stream()
-              .filter(t -> !t.isEmpty())
-              .map(Template::of).collect(Collectors.toSet());
-      returned.addAll(generated);
+      filterToSameType(filterRedundantExpressions(linearExpressions))
+          .filter(t -> !t.isEmpty())
+          .map(Template::of)
+          .forEach(returned::add);
     }
 
     if (generateDifferences) {
-      returned.addAll(generateDifferenceTemplates(vars));
+      generateDifferenceTemplates(vars).forEach(returned::add);
     }
 
     return returned;
   }
 
-  private Set<Template> generateDifferenceTemplates(Collection<CIdExpression> vars) {
+  private Stream<Template> generateDifferenceTemplates(Collection<CIdExpression> vars) {
     List<LinearExpression<CIdExpression>> out = new ArrayList<>();
     for (CIdExpression v1 : vars) {
       for (CIdExpression v2 : vars) {
         out.add(LinearExpression.ofVariable(v1).sub(LinearExpression.ofVariable(v2)));
       }
     }
-    out = filterToSameType(out);
-    return out.stream()
-        .filter(t -> !t.isEmpty())
-        .map(t -> Template.of(t))
-        .collect(Collectors.toSet());
+    return filterToSameType(out.stream()).filter(t -> !t.isEmpty()).map(t -> Template.of(t));
   }
 
   /**
-   * Filter out the redundant expressions: that is, expressions already
-   * contained in the list with a multiplier {@code >= 1}.
+   * Filter out the redundant expressions: that is, expressions already contained in the list with a
+   * multiplier {@code >= 1}.
    */
-  private List<LinearExpression<CIdExpression>> filterRedundantExpressions(
-      List<LinearExpression<CIdExpression>> pLinearExpressions
-  ) {
+  private Stream<LinearExpression<CIdExpression>> filterRedundantExpressions(
+      Stream<LinearExpression<CIdExpression>> pLinearExpressions) {
     Predicate<Optional<Rational>> existsAndMoreThanOne =
         (coeff -> coeff.isPresent() && coeff.get().compareTo(Rational.ONE) > 0);
-    return pLinearExpressions.stream().filter(
-            l -> !pLinearExpressions.stream().anyMatch(
-                l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))
-            )
-        ).collect(Collectors.toList());
+    Set<LinearExpression<CIdExpression>> linearExpressions =
+        pLinearExpressions.collect(toImmutableSet());
+    return linearExpressions
+        .stream()
+        .filter(
+            l ->
+                !linearExpressions
+                    .stream()
+                    .anyMatch(l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))));
   }
 
-  /**
-   * Filter out the expressions where not all variables inside have the
-   * same type.
-   */
-  private List<LinearExpression<CIdExpression>> filterToSameType(
-      List<LinearExpression<CIdExpression>> pLinearExpressions
-  ) {
-    Function<CIdExpression, CBasicType> getType =
-        x -> ((CSimpleType)x.getDeclaration().getType()).getType();
-    return pLinearExpressions.stream().filter(
-            expr -> expr.getMap().keySet().stream().allMatch(
-                x -> getType.apply(x).equals(
-                    getType.apply(expr.iterator().next().getKey())
-                )
-            )
-        ).collect(Collectors.toList());
+  /** Filter out the expressions where not all variables inside have the same type. */
+  private Stream<LinearExpression<CIdExpression>> filterToSameType(
+      Stream<LinearExpression<CIdExpression>> pLinearExpressions) {
+    Equivalence<CIdExpression> basicTypeEquivalence =
+        Equivalence.equals()
+            .onResultOf(x -> ((CSimpleType) x.getDeclaration().getType()).getType());
+    return pLinearExpressions.filter(
+        expr ->
+            expr.getMap()
+                .keySet()
+                .stream()
+                .allMatch(basicTypeEquivalence.equivalentTo(expr.iterator().next().getKey())));
   }
 
 
@@ -467,8 +462,7 @@ public class TemplatePrecision implements Precision {
           && !liveVariables.isVariableLive(id.getDeclaration(), node)
 
           // Enforce inclusion of function parameters.
-          && !functionParameters.getOrDefault(node.getFunctionName(), ImmutableSet.of())
-            .contains(id.getDeclaration())) {
+          && !functionParameters.containsEntry(node.getFunctionName(), id.getDeclaration())) {
         return false;
       }
     }
@@ -479,9 +473,7 @@ public class TemplatePrecision implements Precision {
     Set<Template> out = new HashSet<>();
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allEnteringEdges(node)) {
-        out.addAll(
-            extractTemplatesFromEdge(edge).stream().filter(t -> t.size() >= 1)
-                .collect(Collectors.toSet()));
+        extractTemplatesFromEdge(edge).stream().filter(t -> t.size() >= 1).forEach(out::add);
       }
     }
     return out;
@@ -753,8 +745,7 @@ public class TemplatePrecision implements Precision {
     if (varFiltering == VarFilteringStrategy.ALL_LIVE) {
       return Sets.union(
           cfa.getLiveVariables().get().getLiveVariablesForNode(node).toSet(),
-          functionParameters.getOrDefault(node.getFunctionName(), ImmutableSet.of())
-      );
+          functionParameters.get(node.getFunctionName()));
     } else if (varFiltering == VarFilteringStrategy.INTERPOLATION_BASED) {
       return varsInInterpolant.get(node);
     } else {
