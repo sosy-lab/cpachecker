@@ -30,6 +30,7 @@ import static com.google.common.truth.TruthJUnit.assume;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Streams;
 import com.google.common.io.CharStreams;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
@@ -46,8 +47,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -55,7 +54,6 @@ import java.util.logging.LogRecord;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -381,7 +379,7 @@ public class ConfigurationFilesTest {
         }
 
       };
-      logRecords = StreamSupport.stream(Spliterators.spliteratorUnknownSize(logRecordIterator, Spliterator.ORDERED), false);
+      logRecords = Streams.stream(logRecordIterator);
     }
     return logRecords
             .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
