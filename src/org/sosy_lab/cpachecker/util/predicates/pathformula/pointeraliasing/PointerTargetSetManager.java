@@ -523,22 +523,21 @@ class PointerTargetSetManager {
    */
   private BooleanFormula makeValueImportConstraints(final PersistentSortedMap<String, CType> newBases,
       final List<Pair<CCompositeType, String>> sharedFields, final SSAMapBuilder ssa) {
-    BooleanFormula mergeFormula = bfmgr.makeTrue();
+    List<BooleanFormula> constraints = new ArrayList<>();
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey())
           && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
-        final FormulaType<?> baseFormulaType = typeHandler.getFormulaTypeFromCType(
-                                                   CTypeUtils.getBaseType(base.getValue()));
-        mergeFormula = bfmgr.and(mergeFormula, makeValueImportConstraints(formulaManager.makeVariable(baseFormulaType,
-                                                                                          PointerTargetSet.getBaseName(
-                                                                                              base.getKey())),
-                                                                        base.getKey(),
-                                                                        base.getValue(),
-                                                                        sharedFields,
-                                                                        ssa, null));
+        final FormulaType<?> baseFormulaType =
+            typeHandler.getFormulaTypeFromCType(CTypeUtils.getBaseType(base.getValue()));
+        final Formula baseVar =
+            formulaManager.makeVariable(
+                baseFormulaType, PointerTargetSet.getBaseName(base.getKey()));
+        constraints.add(
+            makeValueImportConstraints(
+                baseVar, base.getKey(), base.getValue(), sharedFields, ssa, null));
       }
     }
-    return mergeFormula;
+    return bfmgr.and(constraints);
   }
 
   /**
@@ -562,11 +561,11 @@ class PointerTargetSetManager {
     assert !CTypeUtils.containsArrayOutsideFunctionParameter(variableType)
         : "Array access can't be encoded as a variable";
 
-    BooleanFormula result = bfmgr.makeTrue();
 
     if (variableType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) variableType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+      List<BooleanFormula> constraints = new ArrayList<>();
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
         final int offset = typeHandler.getBitOffset(compositeType, memberName);
@@ -575,24 +574,18 @@ class PointerTargetSetManager {
         if (ssa.getIndex(newPrefix) > 0) {
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberType, memberName);
           sharedFields.add(Pair.of(compositeType, memberName));
-          result = bfmgr.and(
-              result,
+          constraints.add(
               makeValueImportConstraints(
                   formulaManager.makePlus(
-                      address,
-                      formulaManager.makeNumber(
-                          typeHandler.getPointerType(),
-                          offset)
-                  ),
+                      address, formulaManager.makeNumber(typeHandler.getPointerType(), offset)),
                   newPrefix,
                   memberType,
                   sharedFields,
                   ssa,
-                  newRegion
-              )
-          );
+                  newRegion));
         }
       }
+      return bfmgr.and(constraints);
     } else {
       if (ssa.getIndex(variablePrefix) > 0) {
         MemoryRegion newRegion = region;
@@ -600,14 +593,13 @@ class PointerTargetSetManager {
           newRegion = regionMgr.makeMemoryRegion(variableType);
         }
         final FormulaType<?> variableFormulaType = typeHandler.getFormulaTypeFromCType(variableType);
-        result = bfmgr.and(result, formulaManager.makeEqual(makeDereference(variableType, address, ssa, newRegion),
-                                                  formulaManager.makeVariable(variableFormulaType,
-                                                                    variablePrefix,
-                                                                    ssa.getIndex(variablePrefix))));
+        return formulaManager.makeEqual(
+            makeDereference(variableType, address, ssa, newRegion),
+            formulaManager.makeVariable(
+                variableFormulaType, variablePrefix, ssa.getIndex(variablePrefix)));
       }
+      return bfmgr.makeTrue();
     }
-
-    return result;
   }
 
   /**
