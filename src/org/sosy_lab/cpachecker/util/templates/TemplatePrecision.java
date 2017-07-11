@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Equivalence;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -211,7 +210,7 @@ public class TemplatePrecision implements Precision {
     logger = pLogger;
 
     allowedCoefficients =
-        ImmutableSet.copyOf(Sets.filter(allowedCoefficients, Predicates.equalTo(Rational.ZERO)));
+        ImmutableSet.copyOf(Sets.filter(allowedCoefficients, c -> !c.equals(Rational.ZERO)));
 
     if (generateFromAsserts) {
       extractedFromAssertTemplates = ImmutableSet.copyOf(templatesFromAsserts());
