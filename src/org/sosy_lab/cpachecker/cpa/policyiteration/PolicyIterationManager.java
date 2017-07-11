@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.ABSTRACTION_REQUIRED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.BOUND_COMPUTED;
 import static org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationManager.DecompositionStatus.UNBOUNDED;
@@ -1097,9 +1098,10 @@ public class PolicyIterationManager {
     final Set<String> closure = relatedClosure(
         Sets.union(input, supportingLemmas), vars);
 
-    return input.stream().filter(
-        l -> !Sets.intersection(extractFunctionNames(l), closure).isEmpty()
-    ).collect(Collectors.toSet());
+    return input
+        .stream()
+        .filter(l -> !Sets.intersection(extractFunctionNames(l), closure).isEmpty())
+        .collect(toImmutableSet());
   }
 
   /**

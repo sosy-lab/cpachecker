@@ -59,10 +59,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -601,11 +601,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               .generateLoopTransition(ssa, pts, pLocation);
 
       Set<BooleanFormula> lemmas =
-          semiCNFConverter
-              .toLemmasInstantiated(pBlockFormula, fmgr)
-              .stream()
-              .map(s -> fmgr.uninstantiate(s))
-              .collect(Collectors.toSet());
+          Collections3.transformedImmutableSetCopy(
+              semiCNFConverter.toLemmasInstantiated(pBlockFormula, fmgr), fmgr::uninstantiate);
 
       Set<BooleanFormula> inductiveLemmas =
           new InductiveWeakeningManager(config, solver, logger, shutdownNotifier)
@@ -633,11 +630,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       stats.pfKindTime.start();
 
       Set<BooleanFormula> conjuncts =
-          semiCNFConverter
-              .toLemmasInstantiated(pPathFormula, fmgr)
-              .stream()
-              .map(s -> fmgr.uninstantiate(s))
-              .collect(Collectors.toSet());
+          Collections3.transformedImmutableSetCopy(
+              semiCNFConverter.toLemmasInstantiated(pPathFormula, fmgr), fmgr::uninstantiate);
 
       final Map<String, BooleanFormula> formulaToRegion = new HashMap<>();
       StaticCandidateProvider candidateGenerator =

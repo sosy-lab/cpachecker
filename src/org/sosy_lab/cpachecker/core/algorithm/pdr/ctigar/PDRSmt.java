@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -39,7 +41,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -393,7 +394,7 @@ public class PDRSmt {
             .stream()
             .filter(entry -> unsatCore.get().contains(entry.getKey()))
             .map(entry -> entry.getValue())
-            .collect(Collectors.toSet());
+            .collect(toImmutableSet());
 
     BooleanFormula reduced = bfmgr.and(relevantConjuncts);
 
@@ -569,7 +570,7 @@ public class PDRSmt {
         nondetsAsPrimed
             .stream()
             .flatMap(f -> fmgr.extractVariableNames(f).stream())
-            .collect(Collectors.toSet());
+            .collect(toImmutableSet());
 
     BooleanFormula succWithoutNondet =
         fmgr.filterLiterals(pSucc, lit -> !nondetNames.containsAll(fmgr.extractVariableNames(lit)));

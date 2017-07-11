@@ -30,7 +30,7 @@ import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -302,7 +302,7 @@ class PolicyReducer implements Reducer {
   }
 
   private Set<String> getBlockVariables(Block pBlock) {
-    return pBlock.getReferencedVariables().stream()
-        .map(ReferencedVariable::getName).collect(Collectors.toSet());
+    return Collections3.transformedImmutableSetCopy(
+        pBlock.getReferencedVariables(), ReferencedVariable::getName);
   }
 }
