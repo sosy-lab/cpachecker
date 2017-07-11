@@ -27,6 +27,7 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -37,7 +38,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -325,7 +325,8 @@ public class TemplatePrecision implements Precision {
               .stream()
               .map(list -> list.stream().reduce(LinearExpression.empty(), LinearExpression::add));
 
-      filterToSameType(filterRedundantExpressions(linearExpressions))
+      filterRedundantExpressions(linearExpressions)
+          .filter(this::hasSameType)
           .filter(t -> !t.isEmpty())
           .map(Template::of)
           .forEach(returned::add);
@@ -339,13 +340,14 @@ public class TemplatePrecision implements Precision {
   }
 
   private Stream<Template> generateDifferenceTemplates(Collection<CIdExpression> vars) {
-    List<LinearExpression<CIdExpression>> out = new ArrayList<>();
-    for (CIdExpression v1 : vars) {
-      for (CIdExpression v2 : vars) {
-        out.add(LinearExpression.ofVariable(v1).sub(LinearExpression.ofVariable(v2)));
-      }
-    }
-    return filterToSameType(out.stream()).filter(t -> !t.isEmpty()).map(t -> Template.of(t));
+    Collection<LinearExpression<CIdExpression>> varExpression =
+        Collections2.transform(vars, LinearExpression::ofVariable);
+    return varExpression
+        .stream()
+        .flatMap(v1 -> varExpression.stream().map(v2 -> v1.sub(v2)))
+        .filter(this::hasSameType)
+        .filter(t -> !t.isEmpty())
+        .map(t -> Template.of(t));
   }
 
   /**
@@ -367,20 +369,16 @@ public class TemplatePrecision implements Precision {
                     .anyMatch(l2 -> l2 != l && existsAndMoreThanOne.test(l2.divide(l))));
   }
 
-  /** Filter out the expressions where not all variables inside have the same type. */
-  private Stream<LinearExpression<CIdExpression>> filterToSameType(
-      Stream<LinearExpression<CIdExpression>> pLinearExpressions) {
-    Equivalence<CIdExpression> basicTypeEquivalence =
-        Equivalence.equals()
-            .onResultOf(x -> ((CSimpleType) x.getDeclaration().getType()).getType());
-    return pLinearExpressions.filter(
-        expr ->
-            expr.getMap()
-                .keySet()
-                .stream()
-                .allMatch(basicTypeEquivalence.equivalentTo(expr.iterator().next().getKey())));
-  }
+  private static Equivalence<CIdExpression> BASIC_TYPE_EQUIVALENCE =
+      Equivalence.equals().onResultOf(x -> ((CSimpleType) x.getDeclaration().getType()).getType());
 
+  /** Check whether all variables inside a expression have the same type. */
+  private boolean hasSameType(LinearExpression<CIdExpression> expr) {
+    return expr.getMap()
+        .keySet()
+        .stream()
+        .allMatch(BASIC_TYPE_EQUIVALENCE.equivalentTo(expr.iterator().next().getKey()));
+  }
 
   /**
    * Ignore temporary variables and pointers.
