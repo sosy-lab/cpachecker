@@ -27,6 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Equivalence;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -209,6 +210,9 @@ public class TemplatePrecision implements Precision {
     cfa = pCfa;
     logger = pLogger;
 
+    allowedCoefficients =
+        ImmutableSet.copyOf(Sets.filter(allowedCoefficients, Predicates.equalTo(Rational.ZERO)));
+
     if (generateFromAsserts) {
       extractedFromAssertTemplates = ImmutableSet.copyOf(templatesFromAsserts());
     } else {
@@ -294,8 +298,7 @@ public class TemplatePrecision implements Precision {
    */
   private Stream<Template> generateTemplates(final ImmutableSet<CIdExpression> vars) {
     int maxLength = Math.min(maxExpressionSize, vars.size());
-    allowedCoefficients = allowedCoefficients.stream().filter(
-        x -> !x.equals(Rational.ZERO)).collect(Collectors.toSet());
+    assert !allowedCoefficients.contains(Rational.ZERO);
 
     // Copy the {@code vars} multiple times for the cartesian product.
     List<Set<CIdExpression>> lists = Collections.nCopies(maxLength, vars);
