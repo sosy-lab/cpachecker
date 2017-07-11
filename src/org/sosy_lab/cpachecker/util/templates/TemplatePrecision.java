@@ -26,18 +26,16 @@ package org.sosy_lab.cpachecker.util.templates;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Equivalence;
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Streams;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -92,6 +90,11 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
  */
 @Options(prefix = "precision.template", deprecatedPrefix = "cpa.lpi")
 public class TemplatePrecision implements Precision {
+
+  private static final Comparator<Template> TEMPLATE_COMPARATOR =
+      Comparator.<Template>comparingInt((template) -> template.getLinearExpression().size())
+          .thenComparingInt(t -> t.toString().trim().startsWith("-") ? 1 : 0)
+          .thenComparing(Template::toString);
 
   @Option(secure=true, description="Generate templates from assert statements")
   private boolean generateFromAsserts = true;
@@ -182,8 +185,7 @@ public class TemplatePrecision implements Precision {
   /**
    * Cache of generated templates.
    */
-  private final ListMultimap<CFANode, Template> cache =
-      ArrayListMultimap.create();
+  private final Map<CFANode, ImmutableList<Template>> cache = new HashMap<>();
   private final ImmutableSet<ASimpleDeclaration> allVariables;
 
   /**
@@ -245,53 +247,51 @@ public class TemplatePrecision implements Precision {
   /**
    * Get templates associated with the given node.
    */
-  public Collection<Template> getTemplatesForNode(final CFANode node) {
+  public ImmutableList<Template> getTemplatesForNode(final CFANode node) {
     if (cache.containsKey(node)) {
       return cache.get(node);
     }
 
-    Builder<Template> out = ImmutableSet.builder();
-    out.addAll(extractTemplatesForNode(node)::iterator);
-    out.addAll(extraTemplates);
-    out.addAll(extractedFromAssertTemplates);
+    ImmutableSet<CIdExpression> vars =
+        getVarsForNode(node)
+            .stream()
+            .filter(this::shouldProcessVariable)
+            .map(d -> new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) d))
+            .collect(toImmutableSet());
 
-    out.addAll(generateTemplates(node));
-    Set<Template> outBuild = out.build();
+    Stream<Template> out =
+        Streams.concat(
+            extractTemplatesForNode(node),
+            extraTemplates.stream(),
+            extractedFromAssertTemplates.stream(),
+            generateTemplates(vars));
+
+    if (generateDifferences) {
+      out = Stream.concat(out, generateDifferenceTemplates(vars));
+    }
 
     if (varFiltering == VarFilteringStrategy.ONE_LIVE) {
-
       // Filter templates to make sure at least one is alive.
-      outBuild = Sets.filter(outBuild, input -> shouldUseTemplate(input, node));
+      out = out.filter(input -> shouldUseTemplate(input, node));
     }
 
     // Sort.
-    List<Template> sortedTemplates =
-        Ordering.from(
-            Comparator.<Template>comparingInt(
-                (template) -> template.getLinearExpression().size())
-                .thenComparingInt(t -> t.toString().trim().startsWith("-") ? 1 : 0)
-                .thenComparing(Template::toString))
-                .immutableSortedCopy(outBuild);
+    ImmutableList<Template> sortedTemplates =
+        out.unordered()
+            .distinct()
+            .sorted(TEMPLATE_COMPARATOR)
+            .collect(ImmutableList.toImmutableList());
 
-    cache.putAll(node, sortedTemplates);
+    cache.put(node, sortedTemplates);
     return sortedTemplates;
   }
 
 
   /**
-   * Generate all linear expressions of size up to {@code maxExpressionSize}
-   * with coefficients in {@code allowedCoefficients},
-   * over the variables returned by {@link #getVarsForNode(CFANode)}.
+   * Generate all linear expressions of size up to {@code maxExpressionSize} with coefficients in
+   * {@code allowedCoefficients}, over the given variables.
    */
-  private Set<Template> generateTemplates(final CFANode node) {
-
-    Collection<ASimpleDeclaration> varsForNode = getVarsForNode(node);
-    Set<CIdExpression> vars =
-        varsForNode
-            .stream()
-            .filter(this::shouldProcessVariable)
-            .map(d -> new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) d))
-            .collect(toImmutableSet());
+  private Stream<Template> generateTemplates(final ImmutableSet<CIdExpression> vars) {
     int maxLength = Math.min(maxExpressionSize, vars.size());
     allowedCoefficients = allowedCoefficients.stream().filter(
         x -> !x.equals(Rational.ZERO)).collect(Collectors.toSet());
@@ -302,41 +302,33 @@ public class TemplatePrecision implements Precision {
     // All lists of size {@code maxExpressionSize}.
     Set<List<CIdExpression>> product = Sets.cartesianProduct(lists);
 
-    // Eliminate duplicates, and ensure that all combinations are unique.
     // As a by-product, produces the expressions of all sizes less than
     // {@code maxExpressionSize} as well.
-    Set<Set<CIdExpression>> combinations =
-        product.stream().map(HashSet<CIdExpression>::new).collect(toImmutableSet());
-
-    Set<Template> returned = new HashSet<>();
-    for (Set<CIdExpression> variables : combinations) {
-
-      // For of every variable: instantiate with every coefficient.
-      List<List<LinearExpression<CIdExpression>>> out =
-          Collections3.transformedImmutableListCopy(
-              variables,
-              x ->
+    return product
+        .stream()
+        .map(HashSet<CIdExpression>::new)
+        .distinct() // Eliminate duplicates, and ensure that all combinations are unique.
+        .flatMap(
+            variables -> {
+              // For of every variable: instantiate with every coefficient.
+              List<List<LinearExpression<CIdExpression>>> out =
                   Collections3.transformedImmutableListCopy(
-                      allowedCoefficients, coeff -> LinearExpression.monomial(x, coeff)));
+                      variables,
+                      x ->
+                          Collections3.transformedImmutableListCopy(
+                              allowedCoefficients, coeff -> LinearExpression.monomial(x, coeff)));
 
-      // Convert to a list of all possible linear expressions.
-      Stream<LinearExpression<CIdExpression>> linearExpressions =
-          Lists.cartesianProduct(out)
-              .stream()
-              .map(list -> list.stream().reduce(LinearExpression.empty(), LinearExpression::add));
+              // Convert to a list of all possible linear expressions.
+              Stream<LinearExpression<CIdExpression>> linearExpressions =
+                  Lists.cartesianProduct(out)
+                      .stream()
+                      .map(l -> l.stream().reduce(LinearExpression.empty(), LinearExpression::add));
 
-      filterRedundantExpressions(linearExpressions)
-          .filter(this::hasSameType)
-          .filter(t -> !t.isEmpty())
-          .map(Template::of)
-          .forEach(returned::add);
-    }
-
-    if (generateDifferences) {
-      generateDifferenceTemplates(vars).forEach(returned::add);
-    }
-
-    return returned;
+              return filterRedundantExpressions(linearExpressions)
+                  .filter(this::hasSameType)
+                  .filter(t -> !t.isEmpty())
+                  .map(Template::of);
+            });
   }
 
   private Stream<Template> generateDifferenceTemplates(Collection<CIdExpression> vars) {
@@ -347,7 +339,7 @@ public class TemplatePrecision implements Precision {
         .flatMap(v1 -> varExpression.stream().map(v2 -> v1.sub(v2)))
         .filter(this::hasSameType)
         .filter(t -> !t.isEmpty())
-        .map(t -> Template.of(t));
+        .map(Template::of);
   }
 
   /**
@@ -645,7 +637,7 @@ public class TemplatePrecision implements Precision {
     logger.log(Level.FINE, "Got input", usedVars);
     if (returned) {
       // Invalidate the cache.
-      cache.removeAll(pNode);
+      cache.remove(pNode);
     }
     return returned;
   }
