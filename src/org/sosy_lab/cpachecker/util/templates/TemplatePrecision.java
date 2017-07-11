@@ -373,7 +373,8 @@ public class TemplatePrecision implements Precision {
     return expr.getMap()
         .keySet()
         .stream()
-        .allMatch(BASIC_TYPE_EQUIVALENCE.equivalentTo(expr.iterator().next().getKey()));
+        .allMatch(
+            x -> BASIC_TYPE_EQUIVALENCE.equivalent(x, expr.iterator().next().getKey()));
   }
 
   /**
