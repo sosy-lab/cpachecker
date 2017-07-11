@@ -30,7 +30,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -205,13 +204,6 @@ public class BAMDataManagerImpl implements BAMDataManager {
   public void registerInitialState(
       AbstractState initialState, AbstractState exitState, ReachedSet reachedSet) {
     initialStateToReachedSet.put(initialState, exitState, reachedSet);
-  }
-
-  void registerInitialState(
-      AbstractState initialState, Collection<AbstractState> exitStates, ReachedSet reachedSet) {
-    for (AbstractState exitState : exitStates) {
-      registerInitialState(initialState, exitState, reachedSet);
-    }
   }
 
   @Override
