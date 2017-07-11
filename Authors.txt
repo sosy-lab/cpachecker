@@ -13,12 +13,16 @@ Developers/Contributors:
   Alexander Driemeyer (since 2012), University of Passau, Germany
   Karlheinz Friedberger (since 2011), LMU Munich, Germany
   Andreas Holzer (since 2008), University of Darmstadt, Germany / TU Vienna, Austria
+  Dejan Ivanov (since 2017), LMU Munich, Germany
   Marie-Christine Jakobs (since 2012), University of Paderborn, Germany
   George Karpenkov (since 2014), Verimag, Grenoble
+  Alexander Koos (since 2017), LMU Munich, Germany
   Thomas Lemberger (since 2014), LMU Munich, Germany
+  Martin Spießl (since 2017), LMU Munich, Germany
   Stefan Löwe (since 2010), University of Passau, Germany
   Stephan Lukasczyk (since 2015), University of Passau, Germany
   Mikhail Mandrykin (since 2013), Russian Academy of Sciences, Russia
+  Michael Maier (since 2017), LMU Munich, Germany
   Vitaly Mordan (since 2014), Russian Academy of Sciences, Russia
   Vadim Mutilin (since 2012), Russian Academy of Sciences, Russia
   Sebastian Ott (since 2013), University of Passau, Germany
