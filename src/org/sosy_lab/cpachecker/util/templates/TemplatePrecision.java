@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.templates;
 
+import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Equivalence;
@@ -217,7 +218,7 @@ public class TemplatePrecision implements Precision {
         extractedFromAssertTemplates);
 
     if (generateFromStatements) {
-      extractedTemplates = ImmutableSet.copyOf(extractTemplates());
+      extractedTemplates = extractTemplates();
     } else {
       extractedTemplates = ImmutableSet.of();
     }
@@ -390,7 +391,7 @@ public class TemplatePrecision implements Precision {
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
         String statement = edge.getRawStatement();
-        Optional<Template> template = Optional.empty();
+        Optional<LinearExpression<CIdExpression>> template = Optional.empty();
 
         // todo: use the automaton instead to derive the error conditions,
         // do not hardcode the function names.
@@ -417,17 +418,14 @@ public class TemplatePrecision implements Precision {
           template = expressionToSingleTemplate(expression);
         }
 
-        if (template.isPresent()) {
-          Template t = template.get();
-          if (t.getLinearExpression().isEmpty()) {
-            continue;
-          }
-
-          // Add template and its negation.
-          templates.add(t);
-          templates.add(Template.of(t.getLinearExpression().negate()));
-        }
-
+        // Add template and its negation.
+        template
+            .filter(t -> !t.isEmpty())
+            .ifPresent(
+                t -> {
+                  templates.add(Template.of(t));
+                  templates.add(Template.of(t.negate()));
+                });
       }
     }
     return templates;
@@ -459,51 +457,45 @@ public class TemplatePrecision implements Precision {
     return true;
   }
 
-  private Set<Template> extractTemplates() {
-    Set<Template> out = new HashSet<>();
-    for (CFANode node : cfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allEnteringEdges(node)) {
-        extractTemplatesFromEdge(edge).stream().filter(t -> t.size() >= 1).forEach(out::add);
-      }
-    }
-    return out;
+  private ImmutableSet<Template> extractTemplates() {
+    return cfa.getAllNodes()
+        .stream()
+        .flatMap(node -> CFAUtils.allEnteringEdges(node).stream())
+        .flatMap(edge -> extractTemplatesFromEdge(edge).stream())
+        .filter(t -> t.size() >= 1)
+        .map(Template::of)
+        .collect(toImmutableSet());
   }
 
-  private Set<Template> extractTemplatesFromEdge(CFAEdge edge) {
-    Set<Template> out = new HashSet<>();
+  private Collection<LinearExpression<CIdExpression>> extractTemplatesFromEdge(CFAEdge edge) {
     switch (edge.getEdgeType()) {
       case ReturnStatementEdge:
         CReturnStatementEdge e = (CReturnStatementEdge) edge;
         if (e.getExpression().isPresent()) {
-          out.addAll(expressionToTemplate(e.getExpression().get()));
+          return expressionToTemplate(e.getExpression().get());
         }
         break;
       case FunctionCallEdge:
         CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
-        for (CExpression arg : callEdge.getArguments()) {
-          out.addAll(expressionToTemplate(arg));
-        }
-        break;
+        return from(callEdge.getArguments()).transformAndConcat(this::expressionToTemplate).toSet();
       case AssumeEdge:
         CAssumeEdge assumeEdge = (CAssumeEdge) edge;
-        out.addAll(expressionToTemplate(assumeEdge.getExpression()));
-        break;
+        return expressionToTemplate(assumeEdge.getExpression());
       case StatementEdge:
-        out.addAll(extractTemplatesFromStatementEdge((CStatementEdge) edge));
-        break;
+        return extractTemplatesFromStatementEdge((CStatementEdge) edge);
       default:
         // nothing to do here
     }
-    return out;
+    return ImmutableSet.of();
   }
 
-  private Set<Template> extractTemplatesFromStatementEdge(CStatementEdge edge) {
-    Set<Template> out = new HashSet<>();
+  private Collection<LinearExpression<CIdExpression>> extractTemplatesFromStatementEdge(
+      CStatementEdge edge) {
     CStatement statement = edge.getStatement();
     if (statement instanceof CExpressionStatement) {
-      out.addAll(expressionToTemplate(
-          ((CExpressionStatement)statement).getExpression()));
+      return expressionToTemplate(((CExpressionStatement) statement).getExpression());
     } else if (statement instanceof CExpressionAssignmentStatement) {
+      Set<LinearExpression<CIdExpression>> out = new HashSet<>();
       CExpressionAssignmentStatement assignment =
           (CExpressionAssignmentStatement)statement;
       CLeftHandSide lhs =
@@ -515,48 +507,34 @@ public class TemplatePrecision implements Precision {
           return out;
         }
 
-        Template tLhs = Template.of(LinearExpression.ofVariable(id));
-        Optional<Template> x =
-            expressionToSingleTemplate(assignment.getRightHandSide()).flatMap(
-                t -> t.getLinearExpression().isEmpty() ? Optional.empty() : Optional.of(t)
-            );
-        if (x.isPresent()) {
-          Template tX = x.get();
-          out.add(Template.of(tLhs.getLinearExpression().sub(tX.getLinearExpression())));
-        }
+        expressionToSingleTemplate(assignment.getRightHandSide())
+            .ifPresent(t -> out.add(LinearExpression.ofVariable(id).sub(t)));
       }
-    }
-    return out;
-
-  }
-
-  private Set<Template> expressionToTemplate(CExpression expression) {
-    HashSet<Template> out = new HashSet<>(2);
-    Optional<Template> t = expressionToSingleTemplate(expression);
-    if (!t.isPresent()) {
       return out;
     }
-    out.add(t.get());
-    out.add(Template.of(t.get().getLinearExpression().negate()));
-    return out;
+    return ImmutableList.of();
   }
 
-  private Optional<Template> expressionToSingleTemplate(CExpression expression) {
-    return recExpressionToTemplate(expression).flatMap(
-        t -> t.getLinearExpression().isEmpty() ?
-             Optional.empty() : Optional.of(t)
-    );
+  private Collection<LinearExpression<CIdExpression>> expressionToTemplate(CExpression expression) {
+    Optional<LinearExpression<CIdExpression>> t = expressionToSingleTemplate(expression);
+    return t.isPresent() ? ImmutableList.of(t.get(), t.get().negate()) : ImmutableList.of();
   }
 
-  private Optional<Template> recExpressionToTemplate(CExpression expression) {
+  private Optional<LinearExpression<CIdExpression>> expressionToSingleTemplate(
+      CExpression expression) {
+    return recExpressionToTemplate(expression).filter(t -> !t.isEmpty());
+  }
+
+  private Optional<LinearExpression<CIdExpression>> recExpressionToTemplate(
+      CExpression expression) {
     if (expression instanceof CBinaryExpression) {
       CBinaryExpression binaryExpression = (CBinaryExpression)expression;
       CExpression operand1 = binaryExpression.getOperand1();
       CExpression operand2 = binaryExpression.getOperand2();
 
       BinaryOperator operator = binaryExpression.getOperator();
-      Optional<Template> templateA = recExpressionToTemplate(operand1);
-      Optional<Template> templateB = recExpressionToTemplate(operand2);
+      Optional<LinearExpression<CIdExpression>> templateA = recExpressionToTemplate(operand1);
+      Optional<LinearExpression<CIdExpression>> templateB = recExpressionToTemplate(operand2);
 
       // Special handling for constants and multiplication.
       if (operator == BinaryOperator.MULTIPLY
@@ -582,16 +560,16 @@ public class TemplatePrecision implements Precision {
       // Otherwise just add/subtract templates.
       if (templateA.isPresent() && templateB.isPresent()
           && binaryExpression.getCalculationType() instanceof CSimpleType) {
-        LinearExpression<CIdExpression> a = templateA.get().getLinearExpression();
-        LinearExpression<CIdExpression> b = templateB.get().getLinearExpression();
+        LinearExpression<CIdExpression> a = templateA.get();
+        LinearExpression<CIdExpression> b = templateB.get();
 
         // Calculation type is the casting of both types to a suitable "upper"
         // type.
-        Template t;
+        LinearExpression<CIdExpression> t;
         if (operator == BinaryOperator.PLUS) {
-          t = Template.of(a.add(b));
+          t = a.add(b);
         } else {
-          t = Template.of(a.sub(b));
+          t = a.sub(b);
         }
         return Optional.of(t);
       } else {
@@ -599,20 +577,20 @@ public class TemplatePrecision implements Precision {
       }
     } else if (expression instanceof CLiteralExpression
         && expression.getExpressionType() instanceof CSimpleType) {
-      return Optional.of(Template.of(LinearExpression.empty()));
+      return Optional.of(LinearExpression.empty());
     } else if (expression instanceof CIdExpression
         && expression.getExpressionType() instanceof CSimpleType) {
       CIdExpression idExpression = (CIdExpression)expression;
-      return Optional.of(Template.of(LinearExpression.ofVariable(idExpression)));
+      return Optional.of(LinearExpression.ofVariable(idExpression));
     } else {
       return Optional.empty();
     }
   }
 
-  private Template useCoeff(
-      CIntegerLiteralExpression literal, Template other) {
+  private LinearExpression<CIdExpression> useCoeff(
+      CIntegerLiteralExpression literal, LinearExpression<CIdExpression> other) {
     Rational coeff = Rational.ofBigInteger(literal.getValue());
-    return Template.of(other.getLinearExpression().multByConst(coeff));
+    return other.multByConst(coeff);
   }
 
   public void addGeneratedTemplates(Set<Template> templates) {
@@ -666,7 +644,7 @@ public class TemplatePrecision implements Precision {
         logger.log(Level.INFO, "Template Refinement: Generating templates from all program "
             + "statements.");
         generateFromStatements = true;
-        extractedTemplates = ImmutableSet.copyOf(extractTemplates());
+        extractedTemplates = extractTemplates();
         return true;
       }
 
