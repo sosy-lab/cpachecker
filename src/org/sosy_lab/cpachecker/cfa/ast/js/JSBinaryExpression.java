@@ -93,22 +93,29 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
   }
 
   public static enum BinaryOperator implements ABinaryOperator {
-    MULTIPLY("*"),
+    AND("&"),
+    CONDITIONAL_AND("&&"),
+    CONDITIONAL_OR("||"),
     DIVIDE("/"),
-    MODULO("%"),
-    PLUS("+"),
-    MINUS("-"),
-    SHIFT_LEFT("<<"),
-    SHIFT_RIGHT(">>"),
-    LESS_THAN("<"),
-    GREATER_THAN(">"),
-    LESS_EQUAL("<="),
-    GREATER_EQUAL(">="),
-    BINARY_AND("&"),
-    BINARY_XOR("^"),
-    BINARY_OR("|"),
     EQUALS("=="),
+    EQUAL_EQUAL_EQUAL("==="),
+    GREATER(">"),
+    GREATER_EQUALS(">="),
+    IN("in"),
+    INSTANCEOF("instanceof"),
+    LEFT_SHIFT("<<"),
+    LESS("<"),
+    LESS_EQUALS("<="),
+    MINUS("-"),
+    NOT_EQUAL_EQUAL("!=="),
     NOT_EQUALS("!="),
+    OR("|"),
+    PLUS("+"),
+    REMAINDER("%"),
+    RIGHT_SHIFT_SIGNED(">>"),
+    RIGHT_SHIFT_UNSIGNED(">>>"),
+    TIMES("*"),
+    XOR("^"),
     ;
 
     private final String op;
@@ -125,22 +132,29 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
 
     public boolean isLogicalOperator() {
       switch (this) {
-        case MULTIPLY:
+        case AND:
         case DIVIDE:
-        case MODULO:
-        case PLUS:
+        case LEFT_SHIFT:
         case MINUS:
-        case SHIFT_LEFT:
-        case SHIFT_RIGHT:
-        case BINARY_AND:
-        case BINARY_OR:
-        case BINARY_XOR:
+        case OR:
+        case PLUS:
+        case REMAINDER:
+        case RIGHT_SHIFT_SIGNED:
+        case RIGHT_SHIFT_UNSIGNED:
+        case TIMES:
+        case XOR:
           return false;
-        case LESS_EQUAL:
-        case LESS_THAN:
-        case GREATER_EQUAL:
-        case GREATER_THAN:
+        case CONDITIONAL_AND:
+        case CONDITIONAL_OR:
         case EQUALS:
+        case EQUAL_EQUAL_EQUAL:
+        case GREATER:
+        case GREATER_EQUALS:
+        case IN:
+        case INSTANCEOF:
+        case LESS:
+        case LESS_EQUALS:
+        case NOT_EQUAL_EQUAL:
         case NOT_EQUALS:
           return true;
         default:
@@ -151,18 +165,22 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
     public BinaryOperator getOppositLogicalOperator() {
       assert isLogicalOperator();
       switch (this) {
-        case LESS_EQUAL:
-          return GREATER_THAN;
-        case LESS_THAN:
-          return GREATER_EQUAL;
-        case GREATER_EQUAL:
-          return LESS_THAN;
-        case GREATER_THAN:
-          return LESS_EQUAL;
+        case LESS_EQUALS:
+          return GREATER;
+        case LESS:
+          return GREATER_EQUALS;
+        case GREATER_EQUALS:
+          return LESS;
+        case GREATER:
+          return LESS_EQUALS;
         case EQUALS:
           return NOT_EQUALS;
         case NOT_EQUALS:
           return EQUALS;
+        case EQUAL_EQUAL_EQUAL:
+          return NOT_EQUAL_EQUAL;
+        case NOT_EQUAL_EQUAL:
+          return EQUAL_EQUAL_EQUAL;
         default:
           return this;
       }
