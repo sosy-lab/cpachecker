@@ -23,9 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -122,8 +120,8 @@ public class RCNFManagerTest extends SolverBasedTest0{
   @Test
   public void testExplicitExpansion() throws Exception {
     BooleanFormula input = bfmgr.or(
-        bfmgr.and(ImmutableList.of(v("a"), v("b"), v("c"))),
-        bfmgr.and(ImmutableList.of(v("d"), v("e"), v("f")))
+        bfmgr.and(v("a"), v("b"), v("c")),
+        bfmgr.and(v("d"), v("e"), v("f"))
     );
     BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(input, mgrView));
     assertThatFormula(converted).isEquivalentTo(input);
