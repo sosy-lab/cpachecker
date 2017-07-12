@@ -24,6 +24,17 @@
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.llvm.Module;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -61,6 +72,7 @@ public class LlvmParser implements Parser {
     Module llvmModule;
     parseTimer.start();
     try {
+      addLlvmLookupDirs();
       llvmModule = Module.parseIR(pFilename);
     } finally {
       parseTimer.stop();
@@ -72,6 +84,46 @@ public class LlvmParser implements Parser {
     // TODO: Handle/show errors in parser
 
     return buildCfa(llvmModule, pFilename);
+  }
+
+  private void addLlvmLookupDirs() {
+    List<Path> libDirs = new ArrayList<>(3);
+    try {
+      String encodedBasePath =
+          LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+      String decodedBasePath = URLDecoder.decode(encodedBasePath, "UTF-8");
+
+      // If cpachecker.jar is used, decodedBasePath will look similar to CPACHECKER/cpachecker.jar .
+      // If the compiled class files are used outside of a jar, decodedBasePath will look similar to
+      // CPACHECKER/bin .
+      // In both cases, we strip the last part to get the CPAchecker base directory.
+      Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
+      Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
+      libDirs.add(runtimeLibDir);
+
+      String osName = System.getProperty("os.name");
+      String osArch = System.getProperty("os.arch");
+      Predicate<Path> isRelevantDir = new FitsMachine(osName, osArch);
+      Path nativeDir = Paths.get(cpacheckerDir.toString(), "lib", "native");
+
+      List<Path> nativeLibCandidates = Files.walk(nativeDir, 1, FileVisitOption.FOLLOW_LINKS)
+          .filter(isRelevantDir)
+          .collect(Collectors.toList());
+      libDirs.addAll(nativeLibCandidates);
+
+
+    } catch (UnsupportedEncodingException e) {
+      throw new AssertionError(e);
+    } catch (IOException e) {
+      logger.log(Level.INFO,
+          "IOException occurred, but trying to continue. Message: %s", e.getMessage());
+      // Ignore and try to resolve libraries with existing directories
+    }
+
+    for (Path p : libDirs) {
+      logger.log(Level.FINE, "Adding llvm shared library lookup dir: %s", p);
+    }
+    Module.addLibraryLookupPaths(libDirs);
   }
 
   private ParseResult buildCfa(final Module pModule, final String pFilename) {
@@ -94,4 +146,37 @@ public class LlvmParser implements Parser {
     return cfaCreationTimer;
   }
 
+  private static class FitsMachine implements Predicate<Path> {
+
+    private final String os;
+    private final String arch;
+
+    public FitsMachine(final String pOs, final String pArchitecture) {
+      String canonicOsName = pOs.toLowerCase();
+      if (canonicOsName.contains("mac")) {
+        os = "mac";
+      } else if (canonicOsName.contains("win")) {
+        os = "win";
+      } else if (canonicOsName.contains("bsd")) {
+        os = "bsd";
+      } else {
+        assert canonicOsName.contains("linux");
+        os = "linux";
+      }
+
+      if (pArchitecture.contains("32")) {
+        arch = "32";
+      } else {
+        assert pArchitecture.contains("64");
+        arch = "64";
+      }
+    }
+
+    @Override
+    public boolean test(final Path pPath) {
+      final int lastDirIndex = pPath.getNameCount() - 1;
+      final String relevantDirName = pPath.getName(lastDirIndex).toString();
+      return relevantDirName.contains(os) && relevantDirName.contains(arch);
+    }
+  }
 }
