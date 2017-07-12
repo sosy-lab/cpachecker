@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -131,7 +132,7 @@ public class CFunctionPointerResolver {
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
-  private final ImmutableSetMultimap<String, String> candidateFunctionsForField;
+  private @Nullable final ImmutableSetMultimap<String, String> candidateFunctionsForField;
 
   private final BiPredicate<CFunctionCall, CFunctionType> matchingFunctionCall;
 

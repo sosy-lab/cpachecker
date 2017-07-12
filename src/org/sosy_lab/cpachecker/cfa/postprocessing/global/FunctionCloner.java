@@ -32,6 +32,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -333,7 +334,7 @@ class FunctionCloner implements CFAVisitor {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends AAstNode> T cloneAst(final T ast) {
+  private @Nullable <T extends AAstNode> T cloneAst(final T ast) {
 
     if (ast == null) {
       return null;
@@ -479,7 +480,7 @@ class FunctionCloner implements CFAVisitor {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends Type> T cloneType(T type) {
+  private @Nullable <T extends Type> T cloneType(T type) {
 
     if (type == null) {
       return null;
