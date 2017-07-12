@@ -28,9 +28,11 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.eclipse.wst.jsdt.core.IJavaScriptProject;
 import org.eclipse.wst.jsdt.core.dom.AST;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.ASTParser;
+import org.eclipse.wst.jsdt.internal.core.JavaProject;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
@@ -57,6 +59,10 @@ class EclipseJavaScriptParser implements Parser {
     logger = pLogger;
   }
 
+  private IJavaScriptProject createProject() {
+    return new JavaProject(new DummyProject(), null);
+  }
+
   @Override
   public ParseResult parseFile(String filename)
       throws ParserException, IOException, InterruptedException {
@@ -64,8 +70,11 @@ class EclipseJavaScriptParser implements Parser {
     parseTimer.start();
     try {
       final String source = MoreFiles.toString(file, encoding);
+      parser.setProject(createProject()); // required to resolve bindings
       parser.setUnitName(file.normalize().toString());
       parser.setSource(source.toCharArray());
+      parser.setResolveBindings(true);
+      parser.setBindingsRecovery(true);
       return buildCFA(parser.createAST(null), new Scope(filename));
     } catch (IOException e) {
       throw new JSParserException(e);
