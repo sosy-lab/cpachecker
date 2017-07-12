@@ -27,16 +27,14 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -107,23 +105,22 @@ public class CExpressionInvariantExporter {
         try (Writer output =
             IO.openOutputFile(
                 prefix.getPath(trimmedFilename.toString()), Charset.defaultCharset())) {
-          writeProgramWithInvariants(output, program.toString(), pReachedSet);
+          writeProgramWithInvariants(output, program, pReachedSet);
         }
       }
     }
   }
 
   private void writeProgramWithInvariants(
-      Appendable out, String filename, UnmodifiableReachedSet pReachedSet)
+      Appendable out, Path filename, UnmodifiableReachedSet pReachedSet)
       throws IOException, InterruptedException {
 
-    Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename);
+    Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename.toString());
 
-    try (Stream<String> lines = Files.lines(Paths.get(filename))) {
-      int lineNo = 0;
-      Iterator<String> it = lines.iterator();
-      while (it.hasNext()) {
-        String line = it.next();
+    int lineNo = 0;
+    String line;
+    try (BufferedReader reader = Files.newBufferedReader(filename)) {
+      while ((line = reader.readLine()) != null) {
         Optional<String> invariant = getInvariantForLine(lineNo, reporting);
         if (invariant.isPresent()) {
           out.append("__VERIFIER_assume(")
