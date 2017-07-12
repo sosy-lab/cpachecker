@@ -1044,8 +1044,7 @@ public class PolicyIterationManager {
     }
 
     // One unbounded => all unbounded (sign is taken into account).
-    if (policyBounds.stream().filter(policyBound -> policyBound == null)
-        .iterator().hasNext()) {
+    if (policyBounds.contains(null)) {
       return Pair.of(UNBOUNDED, null);
     }
 
