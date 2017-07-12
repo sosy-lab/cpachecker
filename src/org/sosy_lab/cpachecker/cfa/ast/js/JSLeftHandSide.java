@@ -28,4 +28,9 @@ import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 public interface JSLeftHandSide extends JSExpression, ALeftHandSide {
 
   public <R, X extends Exception> R accept(JSLeftHandSideVisitor<R, X> v) throws X;
+
+  @Override
+  default <R, X extends Exception> R accept(final JSExpressionVisitor<R, X> pV) throws X {
+    return accept((JSLeftHandSideVisitor<R, X>) pV);
+  }
 }
