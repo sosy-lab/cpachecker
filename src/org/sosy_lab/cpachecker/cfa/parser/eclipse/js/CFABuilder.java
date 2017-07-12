@@ -23,108 +23,43 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.SortedSetMultimap;
-import com.google.common.collect.TreeMultimap;
 import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import org.eclipse.wst.jsdt.core.dom.ASTVisitor;
-import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
-import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
-import org.sosy_lab.cpachecker.util.Pair;
 
 class CFABuilder extends ASTVisitor {
   private final Scope scope;
   private final LogManager logger;
   private final ASTConverter astConverter;
+  private CFAFunctionBuilder builder;
 
-  private SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
-  private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
-  private final List<Pair<ADeclaration, String>> globalDeclarations = Lists.newArrayList();
-
-  final String functionName = "main";
-  final JSFunctionDeclaration functionDeclaration =
-      new JSFunctionDeclaration(
-          FileLocation.DUMMY,
-          new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
-          functionName,
-          Collections.emptyList());
-  final FunctionExitNode exitNode = new FunctionExitNode(functionName);
-  final JSFunctionEntryNode entryNode =
-      new JSFunctionEntryNode(FileLocation.DUMMY, functionDeclaration, exitNode, Optional.empty());
-
-  private CFANode prevNode = entryNode;
-
-  CFABuilder(Scope pScope, LogManager pLogger) {
+  CFABuilder(final Scope pScope, final LogManager pLogger) {
     scope = pScope;
     logger = pLogger;
     astConverter = new ASTConverter(scope, logger);
   }
 
   @Override
-  public boolean visit(VariableDeclarationStatement node) {
-    @SuppressWarnings("unchecked")
-    final List<VariableDeclarationFragment> variableDeclarationFragments = node.fragments();
-    for (VariableDeclarationFragment variableDeclarationFragment : variableDeclarationFragments) {
-      final CFANode nextNode = new CFANode(functionName);
-      cfaNodes.put(functionName, nextNode);
-
-      addEdge(prevNode, nextNode, variableDeclarationFragment);
-
-      prevNode = nextNode;
-    }
-    return super.visit(node);
+  public boolean visit(final JavaScriptUnit node) {
+    final String functionName = "main";
+    final JSFunctionDeclaration functionDeclaration =
+        new JSFunctionDeclaration(
+            FileLocation.DUMMY,
+            new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
+            functionName,
+            Collections.emptyList());
+    builder = new CFAFunctionBuilder(functionDeclaration, scope, logger, astConverter);
+    node.accept(builder);
+    return false;
   }
 
-  private void addEdge(
-      final CFANode pPredecessor,
-      final CFANode pSuccessor,
-      final VariableDeclarationFragment pVariableDeclarationFragment) {
-    final JSVariableDeclaration variableDeclaration =
-        astConverter.convert(pVariableDeclarationFragment);
-    CFACreationUtils.addEdgeToCFA(
-        new JSDeclarationEdge(
-            variableDeclaration.toASTString(),
-            astConverter.getFileLocation(pVariableDeclarationFragment),
-            pPredecessor,
-            pSuccessor,
-            variableDeclaration),
-        logger);
-  }
-
-  public ParseResult createCFA() {
-    // add dummy edge from previous node to exit node
-    CFACreationUtils.addEdgeToCFA(
-        new BlankEdge("", FileLocation.DUMMY, prevNode, exitNode, "end of file"), logger);
-
-
-    exitNode.setEntryNode(entryNode);
-    cfas.put(functionName, entryNode);
-    cfaNodes.put(functionName, entryNode);
-    cfaNodes.put(functionName, exitNode);
-    return new ParseResult(
-        cfas,
-        cfaNodes,
-        globalDeclarations,
-        Language.JAVASCRIPT);
+  ParseResult createCFA() {
+    return builder.createCFA();
   }
 }
