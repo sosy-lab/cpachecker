@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 import java.util.logging.Level;
 import org.llvm.Module;
 import org.sosy_lab.common.NativeLibraries;
@@ -130,39 +129,5 @@ public class LlvmParser implements Parser {
   @Override
   public Timer getCFAConstructionTime() {
     return cfaCreationTimer;
-  }
-
-  private static class FitsMachine implements Predicate<Path> {
-
-    private final String os;
-    private final String arch;
-
-    public FitsMachine(final String pOs, final String pArchitecture) {
-      String canonicOsName = pOs.toLowerCase();
-      if (canonicOsName.contains("mac")) {
-        os = "mac";
-      } else if (canonicOsName.contains("win")) {
-        os = "win";
-      } else if (canonicOsName.contains("bsd")) {
-        os = "bsd";
-      } else {
-        assert canonicOsName.contains("linux");
-        os = "linux";
-      }
-
-      if (pArchitecture.contains("32")) {
-        arch = "32";
-      } else {
-        assert pArchitecture.contains("64");
-        arch = "64";
-      }
-    }
-
-    @Override
-    public boolean test(final Path pPath) {
-      final int lastDirIndex = pPath.getNameCount() - 1;
-      final String relevantDirName = pPath.getName(lastDirIndex).toString();
-      return relevantDirName.contains(os) && relevantDirName.contains(arch);
-    }
   }
 }
