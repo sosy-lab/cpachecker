@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -48,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -162,13 +160,12 @@ public class CExpressionInvariantExporter {
       if (loc != null && loc.getNumEnteringEdges() > 0) {
         CFAEdge edge = loc.getEnteringEdge(0);
         FileLocation location = edge.getFileLocation();
-        FluentIterable<FormulaReportingState> reporting =
-            AbstractStates.asIterable(state).filter(FormulaReportingState.class);
 
-        if (location.getFileName().equals(filename) && !reporting.isEmpty()) {
-          BooleanFormula reported = bfmgr.and(
-              reporting.transform(s -> s.getFormulaApproximation(fmgr)).toList());
-          byState.put(location.getStartingLineInOrigin(), reported);
+        if (location.getFileName().equals(filename)) {
+          BooleanFormula reported = AbstractStates.extractReportedFormulas(fmgr, state);
+          if (!bfmgr.isTrue(reported)) {
+            byState.put(location.getStartingLineInOrigin(), reported);
+          }
         }
       }
     }

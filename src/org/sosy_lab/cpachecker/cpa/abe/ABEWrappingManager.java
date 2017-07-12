@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
@@ -309,9 +308,6 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
   }
 
   private BooleanFormula extractFormula(AbstractState pFormulaState) {
-    return bfmgr.and(
-        AbstractStates.asIterable(pFormulaState)
-            .filter(FormulaReportingState.class)
-            .transform(s -> s.getFormulaApproximation(fmgr)).toList());
+    return AbstractStates.extractReportedFormulas(fmgr, pFormulaState);
   }
 }
