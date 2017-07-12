@@ -30,6 +30,7 @@ import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
 import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
+import org.eclipse.wst.jsdt.core.dom.NullLiteral;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
@@ -40,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
@@ -103,6 +105,8 @@ class ASTConverter {
       return convert((NumberLiteral) pExpression);
     } else if (pExpression instanceof BooleanLiteral) {
       return convert((BooleanLiteral) pExpression);
+    } else if (pExpression instanceof NullLiteral) {
+      return convert((NullLiteral) pExpression);
     }
     throw new CFAGenerationRuntimeException(
         "Unknown kind of expression (not handled yet).", pExpression);
@@ -126,6 +130,10 @@ class ASTConverter {
     return numberToken.contains(".")
       ? new JSFloatLiteralExpression(fileLocation, new BigDecimal(numberToken))
       : new JSIntegerLiteralExpression(fileLocation, new BigInteger(numberToken));
+  }
+
+  public JSNullLiteralExpression convert(final NullLiteral pNullLiteral) {
+    return new JSNullLiteralExpression(getFileLocation(pNullLiteral));
   }
 
 }
