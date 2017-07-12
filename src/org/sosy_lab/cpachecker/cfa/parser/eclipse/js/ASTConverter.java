@@ -117,7 +117,8 @@ class ASTConverter {
       throw new CFAGenerationRuntimeException("The expression to convert is null");
     }
     throw new CFAGenerationRuntimeException(
-        "Unknown kind of expression (not handled yet).", pExpression);
+        "Unknown kind of expression (not handled yet): " + pExpression.getClass().getSimpleName(),
+        pExpression);
   }
 
   public JSStringLiteralExpression convert(final StringLiteral pStringLiteral) {
