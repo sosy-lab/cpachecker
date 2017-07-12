@@ -54,11 +54,7 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
 
   @Override
   public String toASTString() {
-    if (getOperator() == UnaryOperator.SIZEOF) {
-      return getOperator().getOperator() + "(" + getOperand().toASTString() + ")";
-    } else {
-      return getOperator().getOperator() + getOperand().toParenthesizedASTString();
-    }
+    return getOperator().getOperator() + getOperand().toParenthesizedASTString();
   }
 
   @Override
@@ -72,11 +68,12 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
   }
 
   public static enum UnaryOperator implements AUnaryOperator {
+    INCREMENT("++"),
+    DECREMENT("--"),
+    PLUS("+"),
     MINUS("-"),
-    AMPER("&"),
-    TILDE("~"),
-    SIZEOF("sizeof"),
-    ALIGNOF("__alignof__"),
+    COMPLEMENT("~"),
+    NOT("!"),
     ;
 
     private final String mOp;
