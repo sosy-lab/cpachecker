@@ -34,6 +34,7 @@ import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.NullLiteral;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
+import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.UndefinedLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
@@ -107,7 +109,9 @@ class ASTConverter {
   }
 
   public JSExpression convert(final Expression pExpression) {
-    if (pExpression instanceof InfixExpression) {
+    if (pExpression instanceof SimpleName) {
+      return convert((SimpleName) pExpression);
+    } else if (pExpression instanceof InfixExpression) {
       return convert((InfixExpression) pExpression);
     } else if (pExpression instanceof PrefixExpression) {
       return convert((PrefixExpression) pExpression);
@@ -245,4 +249,9 @@ class ASTConverter {
         "Unknown kind of binary operator (not handled yet): " + pOperator.toString());
   }
 
+  private JSIdExpression convert(final SimpleName pSimpleName) {
+    // TODO determine declaration node
+    return new JSIdExpression(
+        getFileLocation(pSimpleName), JSAnyType.ANY, pSimpleName.getIdentifier(),null);
+  }
 }
