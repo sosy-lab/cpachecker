@@ -38,6 +38,7 @@ import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.UndefinedLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.wst.jsdt.internal.core.dom.binding.VariableBinding;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
@@ -250,8 +251,15 @@ class ASTConverter {
   }
 
   private JSIdExpression convert(final SimpleName pSimpleName) {
-    // TODO determine declaration node
+    final VariableBinding variableBinding = (VariableBinding) pSimpleName.resolveBinding();
+    assert variableBinding != null;
+    final JSVariableDeclaration variableDeclaration =
+        convert(
+            (VariableDeclarationFragment) variableBinding.getDeclaration().getNode().getParent());
     return new JSIdExpression(
-        getFileLocation(pSimpleName), JSAnyType.ANY, pSimpleName.getIdentifier(),null);
+        getFileLocation(pSimpleName),
+        JSAnyType.ANY,
+        pSimpleName.getIdentifier(),
+        variableDeclaration);
   }
 }
