@@ -123,9 +123,7 @@ class ASTConverter {
 
   public JSStringLiteralExpression convert(final StringLiteral pStringLiteral) {
     return new JSStringLiteralExpression(
-        getFileLocation(pStringLiteral),
-        JSAnyType.ANY,
-        pStringLiteral.getEscapedValue());
+        getFileLocation(pStringLiteral), JSAnyType.ANY, pStringLiteral.getEscapedValue());
   }
 
   public JSBooleanLiteralExpression convert(final BooleanLiteral pBooleanLiteral) {
@@ -137,8 +135,8 @@ class ASTConverter {
     final String numberToken = pNumberLiteral.getToken();
     final FileLocation fileLocation = getFileLocation(pNumberLiteral);
     return numberToken.contains(".")
-      ? new JSFloatLiteralExpression(fileLocation, new BigDecimal(numberToken))
-      : new JSIntegerLiteralExpression(fileLocation, new BigInteger(numberToken));
+        ? new JSFloatLiteralExpression(fileLocation, new BigDecimal(numberToken))
+        : new JSIntegerLiteralExpression(fileLocation, new BigInteger(numberToken));
   }
 
   public JSNullLiteralExpression convert(final NullLiteral pNullLiteral) {
