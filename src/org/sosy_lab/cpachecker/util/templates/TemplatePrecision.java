@@ -28,12 +28,12 @@ import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.base.Equivalence;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
@@ -603,11 +603,8 @@ public class TemplatePrecision implements Precision {
   public boolean injectPrecisionFromInterpolant(CFANode pNode, Set<String> usedVars) {
     LiveVariables liveVars = cfa.getLiveVariables().get();
 
-    FluentIterable<ASimpleDeclaration> liveAtLocation = liveVars.getAllLiveVariables();
-    Map<String, ASimpleDeclaration> map = new HashMap<>();
-    for (ASimpleDeclaration decl : liveAtLocation) {
-      map.put(decl.getQualifiedName(), decl);
-    }
+    Map<String, ASimpleDeclaration> map =
+        Maps.uniqueIndex(liveVars.getAllLiveVariables(), ASimpleDeclaration::getQualifiedName);
 
     List<ASimpleDeclaration> out = usedVars.stream()
         .filter(v -> map.containsKey(v))
