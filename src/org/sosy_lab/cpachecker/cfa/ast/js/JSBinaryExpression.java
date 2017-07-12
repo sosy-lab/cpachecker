@@ -92,7 +92,7 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
     return (BinaryOperator) super.getOperator();
   }
 
-  public static enum BinaryOperator implements ABinaryOperator {
+  public enum BinaryOperator implements ABinaryOperator {
     AND("&"),
     CONDITIONAL_AND("&&"),
     CONDITIONAL_OR("||"),
@@ -120,7 +120,7 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
 
     private final String op;
 
-    private BinaryOperator(final String pOp) {
+    BinaryOperator(final String pOp) {
       op = pOp;
     }
 
