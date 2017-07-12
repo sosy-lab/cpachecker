@@ -58,12 +58,12 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
   }
 
   @Override
-  public <R, X extends Exception> R accept(JSExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(final JSExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public <R, X extends Exception> R accept(JSAstNodeVisitor<R, X> pV) throws X {
+  public <R, X extends Exception> R accept(final JSAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
 
@@ -78,7 +78,7 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
 
     private final String mOp;
 
-    private UnaryOperator(String pOp) {
+    private UnaryOperator(final String pOp) {
       mOp = pOp;
     }
 
@@ -91,13 +91,13 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
+    final int prime = 31;
+    final int result = 7;
     return prime * result + super.hashCode();
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
