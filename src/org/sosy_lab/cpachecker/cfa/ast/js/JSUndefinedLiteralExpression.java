@@ -58,8 +58,8 @@ public final class JSUndefinedLiteralExpression extends ALiteralExpression
 
   @Override
   public int hashCode() {
-    int prime = 31;
-    int result = 7;
+    final int prime = 31;
+    final int result = 7;
     return prime * result + super.hashCode();
   }
 
