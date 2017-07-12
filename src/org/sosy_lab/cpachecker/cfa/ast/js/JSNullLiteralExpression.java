@@ -65,6 +65,6 @@ public final class JSNullLiteralExpression extends ALiteralExpression
 
   @Override
   public boolean equals(final Object obj) {
-    return this == obj || obj instanceof JSNullLiteralExpression && super.equals(obj);
+    return this == obj || (obj instanceof JSNullLiteralExpression && super.equals(obj));
   }
 }
