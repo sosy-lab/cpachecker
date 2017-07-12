@@ -111,6 +111,10 @@ class ASTConverter {
       return convert((NullLiteral) pExpression);
     } else if (pExpression instanceof UndefinedLiteral) {
       return convert((UndefinedLiteral) pExpression);
+    } else if (pExpression == null) {
+      // This might be caused by a bug in the eclipse parser,
+      // for example: https://bugs.eclipse.org/bugs/show_bug.cgi?id=518324
+      throw new CFAGenerationRuntimeException("The expression to convert is null");
     }
     throw new CFAGenerationRuntimeException(
         "Unknown kind of expression (not handled yet).", pExpression);
