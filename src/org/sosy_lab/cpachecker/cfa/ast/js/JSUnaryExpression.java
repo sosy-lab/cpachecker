@@ -67,7 +67,7 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
     return pV.visit(this);
   }
 
-  public static enum UnaryOperator implements AUnaryOperator {
+  public enum UnaryOperator implements AUnaryOperator {
     INCREMENT("++"),
     DECREMENT("--"),
     PLUS("+"),
@@ -78,7 +78,7 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
 
     private final String mOp;
 
-    private UnaryOperator(final String pOp) {
+    UnaryOperator(final String pOp) {
       mOp = pOp;
     }
 
