@@ -29,16 +29,18 @@ import java.util.logging.Level;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
 import org.eclipse.wst.jsdt.core.dom.Expression;
+import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.NullLiteral;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
-import org.eclipse.wst.jsdt.core.dom.PrefixExpression.Operator;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.UndefinedLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
@@ -105,7 +107,9 @@ class ASTConverter {
   }
 
   public JSExpression convert(final Expression pExpression) {
-    if (pExpression instanceof PrefixExpression) {
+    if (pExpression instanceof InfixExpression) {
+      return convert((InfixExpression) pExpression);
+    } else if (pExpression instanceof PrefixExpression) {
       return convert((PrefixExpression) pExpression);
     } else if (pExpression instanceof StringLiteral) {
       return convert((StringLiteral) pExpression);
@@ -161,22 +165,84 @@ class ASTConverter {
         convert(pPrefixExpression.getOperator()));
   }
 
-  private UnaryOperator convert(final Operator pOperator) {
-    if (Operator.INCREMENT == pOperator) {
+  private UnaryOperator convert(final PrefixExpression.Operator pOperator) {
+    if (PrefixExpression.Operator.INCREMENT == pOperator) {
       return UnaryOperator.INCREMENT;
-    } else if (Operator.DECREMENT == pOperator) {
+    } else if (PrefixExpression.Operator.DECREMENT == pOperator) {
       return UnaryOperator.DECREMENT;
-    } else if (Operator.PLUS == pOperator) {
+    } else if (PrefixExpression.Operator.PLUS == pOperator) {
       return UnaryOperator.PLUS;
-    } else if (Operator.MINUS == pOperator) {
+    } else if (PrefixExpression.Operator.MINUS == pOperator) {
       return UnaryOperator.MINUS;
-    } else if (Operator.COMPLEMENT == pOperator) {
+    } else if (PrefixExpression.Operator.COMPLEMENT == pOperator) {
       return UnaryOperator.COMPLEMENT;
-    } else if (Operator.NOT == pOperator) {
+    } else if (PrefixExpression.Operator.NOT == pOperator) {
       return UnaryOperator.NOT;
     }
     throw new CFAGenerationRuntimeException(
         "Unknown kind of unary operator (not handled yet): " + pOperator.toString());
+  }
+
+  public JSBinaryExpression convert(final InfixExpression pInfixExpression) {
+    return new JSBinaryExpression(
+        getFileLocation(pInfixExpression),
+        JSAnyType.ANY,
+        JSAnyType.ANY,
+        convert(pInfixExpression.getLeftOperand()),
+        convert(pInfixExpression.getRightOperand()),
+        convert(pInfixExpression.getOperator()));
+  }
+
+  public BinaryOperator convert(final InfixExpression.Operator pOperator) {
+    if (InfixExpression.Operator.AND == pOperator) {
+      return BinaryOperator.AND;
+    } else if (InfixExpression.Operator.CONDITIONAL_AND == pOperator) {
+      return BinaryOperator.CONDITIONAL_AND;
+    } else if (InfixExpression.Operator.CONDITIONAL_OR == pOperator) {
+      return BinaryOperator.CONDITIONAL_OR;
+    } else if (InfixExpression.Operator.DIVIDE == pOperator) {
+      return BinaryOperator.DIVIDE;
+    } else if (InfixExpression.Operator.EQUALS == pOperator) {
+      return BinaryOperator.EQUALS;
+    } else if (InfixExpression.Operator.EQUAL_EQUAL_EQUAL == pOperator) {
+      return BinaryOperator.EQUAL_EQUAL_EQUAL;
+    } else if (InfixExpression.Operator.GREATER == pOperator) {
+      return BinaryOperator.GREATER;
+    } else if (InfixExpression.Operator.GREATER_EQUALS == pOperator) {
+      return BinaryOperator.GREATER_EQUALS;
+    } else if (InfixExpression.Operator.IN == pOperator) {
+      return BinaryOperator.IN;
+    } else if (InfixExpression.Operator.INSTANCEOF == pOperator) {
+      return BinaryOperator.INSTANCEOF;
+    } else if (InfixExpression.Operator.LEFT_SHIFT == pOperator) {
+      return BinaryOperator.LEFT_SHIFT;
+    } else if (InfixExpression.Operator.LESS == pOperator) {
+      return BinaryOperator.LESS;
+    } else if (InfixExpression.Operator.LESS_EQUALS == pOperator) {
+      return BinaryOperator.LESS_EQUALS;
+    } else if (InfixExpression.Operator.MINUS == pOperator) {
+      return BinaryOperator.MINUS;
+    } else if (InfixExpression.Operator.NOT_EQUAL_EQUAL == pOperator) {
+      return BinaryOperator.NOT_EQUAL_EQUAL;
+    } else if (InfixExpression.Operator.NOT_EQUALS == pOperator) {
+      return BinaryOperator.NOT_EQUALS;
+    } else if (InfixExpression.Operator.OR == pOperator) {
+      return BinaryOperator.OR;
+    } else if (InfixExpression.Operator.PLUS == pOperator) {
+      return BinaryOperator.PLUS;
+    } else if (InfixExpression.Operator.REMAINDER == pOperator) {
+      return BinaryOperator.REMAINDER;
+    } else if (InfixExpression.Operator.RIGHT_SHIFT_SIGNED == pOperator) {
+      return BinaryOperator.RIGHT_SHIFT_SIGNED;
+    } else if (InfixExpression.Operator.RIGHT_SHIFT_UNSIGNED == pOperator) {
+      return BinaryOperator.RIGHT_SHIFT_UNSIGNED;
+    } else if (InfixExpression.Operator.TIMES == pOperator) {
+      return BinaryOperator.TIMES;
+    } else if (InfixExpression.Operator.XOR == pOperator) {
+      return BinaryOperator.XOR;
+    }
+    throw new CFAGenerationRuntimeException(
+        "Unknown kind of binary operator (not handled yet): " + pOperator.toString());
   }
 
 }
