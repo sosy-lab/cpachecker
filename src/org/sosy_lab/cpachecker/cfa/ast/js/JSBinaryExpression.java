@@ -44,12 +44,12 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
   }
 
   @Override
-  public <R, X extends Exception> R accept(JSExpressionVisitor<R, X> v) throws X {
+  public <R, X extends Exception> R accept(final JSExpressionVisitor<R, X> v) throws X {
     return v.visit(this);
   }
 
   @Override
-  public <R, X extends Exception> R accept(JSAstNodeVisitor<R, X> pV) throws X {
+  public <R, X extends Exception> R accept(final JSAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
 
@@ -120,7 +120,7 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
 
     private final String op;
 
-    private BinaryOperator(String pOp) {
+    private BinaryOperator(final String pOp) {
       op = pOp;
     }
 
@@ -196,7 +196,7 @@ public class JSBinaryExpression extends ABinaryExpression implements JSExpressio
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public boolean equals(final Object obj) {
     if (this == obj) {
       return true;
     }
