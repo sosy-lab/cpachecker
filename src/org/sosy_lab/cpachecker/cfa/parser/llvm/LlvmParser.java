@@ -36,6 +36,7 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.llvm.Module;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -89,35 +90,23 @@ public class LlvmParser implements Parser {
   private void addLlvmLookupDirs() {
     List<Path> libDirs = new ArrayList<>(3);
     try {
-      String encodedBasePath =
-          LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-      String decodedBasePath = URLDecoder.decode(encodedBasePath, "UTF-8");
+      Path nativeDir = NativeLibraries.getNativeLibraryPath();
+      libDirs.add(nativeDir);
 
       // If cpachecker.jar is used, decodedBasePath will look similar to CPACHECKER/cpachecker.jar .
       // If the compiled class files are used outside of a jar, decodedBasePath will look similar to
       // CPACHECKER/bin .
       // In both cases, we strip the last part to get the CPAchecker base directory.
+      String encodedBasePath =
+          LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+      String decodedBasePath = URLDecoder.decode(encodedBasePath, "UTF-8");
+
       Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
       Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
       libDirs.add(runtimeLibDir);
 
-      String osName = System.getProperty("os.name");
-      String osArch = System.getProperty("os.arch");
-      Predicate<Path> isRelevantDir = new FitsMachine(osName, osArch);
-      Path nativeDir = Paths.get(cpacheckerDir.toString(), "lib", "native");
-
-      List<Path> nativeLibCandidates = Files.walk(nativeDir, 1, FileVisitOption.FOLLOW_LINKS)
-          .filter(isRelevantDir)
-          .collect(Collectors.toList());
-      libDirs.addAll(nativeLibCandidates);
-
-
     } catch (UnsupportedEncodingException e) {
       throw new AssertionError(e);
-    } catch (IOException e) {
-      logger.log(Level.INFO,
-          "IOException occurred, but trying to continue. Message: %s", e.getMessage());
-      // Ignore and try to resolve libraries with existing directories
     }
 
     for (Path p : libDirs) {
