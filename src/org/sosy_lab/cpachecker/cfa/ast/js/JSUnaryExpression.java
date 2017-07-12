@@ -98,14 +98,7 @@ public class JSUnaryExpression extends AUnaryExpression implements JSExpression 
 
   @Override
   public boolean equals(final Object obj) {
-    if (this == obj) {
-      return true;
-    }
+    return this == obj || (obj instanceof JSUnaryExpression && super.equals(obj));
 
-    if (!(obj instanceof JSUnaryExpression)) {
-      return false;
-    }
-
-    return super.equals(obj);
   }
 }
