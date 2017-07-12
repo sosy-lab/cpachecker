@@ -33,6 +33,7 @@ import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.NullLiteral;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
+import org.eclipse.wst.jsdt.core.dom.UndefinedLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
@@ -107,6 +109,8 @@ class ASTConverter {
       return convert((BooleanLiteral) pExpression);
     } else if (pExpression instanceof NullLiteral) {
       return convert((NullLiteral) pExpression);
+    } else if (pExpression instanceof UndefinedLiteral) {
+      return convert((UndefinedLiteral) pExpression);
     }
     throw new CFAGenerationRuntimeException(
         "Unknown kind of expression (not handled yet).", pExpression);
@@ -134,6 +138,10 @@ class ASTConverter {
 
   public JSNullLiteralExpression convert(final NullLiteral pNullLiteral) {
     return new JSNullLiteralExpression(getFileLocation(pNullLiteral));
+  }
+
+  public JSUndefinedLiteralExpression convert(final UndefinedLiteral pUndefinedLiteral) {
+    return new JSUndefinedLiteralExpression(getFileLocation(pUndefinedLiteral));
   }
 
 }
