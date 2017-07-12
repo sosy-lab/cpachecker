@@ -32,6 +32,8 @@ import org.eclipse.wst.jsdt.core.dom.Expression;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.NullLiteral;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
+import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
+import org.eclipse.wst.jsdt.core.dom.PrefixExpression.Operator;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.UndefinedLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
@@ -44,6 +46,8 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
@@ -101,7 +105,9 @@ class ASTConverter {
   }
 
   public JSExpression convert(final Expression pExpression) {
-    if (pExpression instanceof StringLiteral) {
+    if (pExpression instanceof PrefixExpression) {
+      return convert((PrefixExpression) pExpression);
+    } else if (pExpression instanceof StringLiteral) {
       return convert((StringLiteral) pExpression);
     } else if (pExpression instanceof NumberLiteral) {
       return convert((NumberLiteral) pExpression);
@@ -145,6 +151,32 @@ class ASTConverter {
 
   public JSUndefinedLiteralExpression convert(final UndefinedLiteral pUndefinedLiteral) {
     return new JSUndefinedLiteralExpression(getFileLocation(pUndefinedLiteral));
+  }
+
+  public JSUnaryExpression convert(final PrefixExpression pPrefixExpression) {
+    return new JSUnaryExpression(
+        getFileLocation(pPrefixExpression),
+        JSAnyType.ANY,
+        convert(pPrefixExpression.getOperand()),
+        convert(pPrefixExpression.getOperator()));
+  }
+
+  private UnaryOperator convert(final Operator pOperator) {
+    if (Operator.INCREMENT == pOperator) {
+      return UnaryOperator.INCREMENT;
+    } else if (Operator.DECREMENT == pOperator) {
+      return UnaryOperator.DECREMENT;
+    } else if (Operator.PLUS == pOperator) {
+      return UnaryOperator.PLUS;
+    } else if (Operator.MINUS == pOperator) {
+      return UnaryOperator.MINUS;
+    } else if (Operator.COMPLEMENT == pOperator) {
+      return UnaryOperator.COMPLEMENT;
+    } else if (Operator.NOT == pOperator) {
+      return UnaryOperator.NOT;
+    }
+    throw new CFAGenerationRuntimeException(
+        "Unknown kind of unary operator (not handled yet): " + pOperator.toString());
   }
 
 }
