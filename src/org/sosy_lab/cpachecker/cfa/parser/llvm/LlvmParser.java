@@ -98,8 +98,10 @@ public class LlvmParser implements Parser {
       String decodedBasePath = URLDecoder.decode(encodedBasePath, "UTF-8");
 
       Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
-      Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
-      libDirs.add(runtimeLibDir);
+      if (cpacheckerDir != null) {
+        Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
+        libDirs.add(runtimeLibDir);
+      }
 
     } catch (UnsupportedEncodingException e) {
       throw new AssertionError(e);
