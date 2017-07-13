@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import java.io.PrintStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -237,7 +238,13 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
   public UsageState reduce(final AbstractState wrappedState) {
     LockState rootLockState = AbstractStates.extractStateByType(this, LockState.class);
     LockState reducedLockState = AbstractStates.extractStateByType(wrappedState, LockState.class);
-    List<LockEffect> difference = reducedLockState.getDifference(rootLockState);
+    List<LockEffect> difference;
+    if (rootLockState == null && reducedLockState == null) {
+      //No LockCPA
+      difference = Collections.emptyList();
+    } else {
+      difference = reducedLockState.getDifference(rootLockState);
+    }
 
     return new UsageState(wrappedState, new HashMap<>(), recentUsages.clone(),
         this.globalContainer, true, functionContainer.clone(difference), this.stats);
