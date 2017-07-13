@@ -19,16 +19,11 @@
 	            "<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
 	            "- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)</p>";
 				$scope.tab = 1;
-				$scope.cfaLoaderDone = cfaLoaderDone;
-				$scope.argLoaderDone = argLoaderDone;
 				$scope.$on("ChangeTab", function(event, tabIndex) {
 					$scope.setTab(tabIndex);
 				});
 				$scope.setTab = function(tabIndex) {
 					if (tabIndex === 1) {
-						if (d3.select("#arg-loader").style("display") !== "none") {
-							d3.select("#arg-loader").style("display", "none");
-						}
 						if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
 							d3.select("#arg-toolbar").style("visibility", "hidden");
 							d3.selectAll(".arg-graph").style("visibility", "hidden");
@@ -37,54 +32,37 @@
 								d3.select("#arg-container").classed("arg-content", false);
 							}
 						}
-						if (cfaLoaderDone) {
-							d3.select("#cfa-toolbar").style("visibility", "visible");
-							if (!d3.select("#cfa-container").classed("cfa-content")) {
-								d3.select("#cfa-container").classed("cfa-content", true);
-							}
-							d3.selectAll(".cfa-graph").style("visibility", "visible");
-						} else {
-							d3.select("#cfa-loader").style("display", "inline");
+						d3.select("#cfa-toolbar").style("visibility", "visible");
+						if (!d3.select("#cfa-container").classed("cfa-content")) {
+							d3.select("#cfa-container").classed("cfa-content", true);
 						}
+						d3.selectAll(".cfa-graph").style("visibility", "visible");
 					} else if (tabIndex === 2) {
-						if (d3.select("#cfa-loader").style("display") !== "none") {
-							d3.select("#cfa-loader").style("display", "none");
-						}
 						if (d3.select("#cfa-toolbar").style("visibility") !== "hidden") {
 							d3.select("#cfa-toolbar").style("visibility", "hidden");
 							d3.selectAll(".cfa-graph").style("visibility", "hidden");
 							if (d3.select("#cfa-container").classed("cfa-content")) {
 								d3.select("#cfa-container").classed("cfa-content", false);
-							}							
+							}
 						}
-						if (argLoaderDone) {
-							d3.select("#arg-toolbar").style("visibility", "visible");
-							if (!d3.select("#arg-container").classed("arg-content")) {
-								d3.select("#arg-container").classed("arg-content", true);
-							}
-							if ($rootScope.displayedARG.indexOf("error") !== -1) {
-								d3.selectAll(".arg-error-graph").style("visibility", "visible");
-								$("#arg-container").scrollTop(0).scrollLeft(0);
-							} else {
-								d3.selectAll(".arg-graph").style("visibility", "visible");
-								$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
-							}
+						d3.select("#arg-toolbar").style("visibility", "visible");
+						if (!d3.select("#arg-container").classed("arg-content")) {
+							d3.select("#arg-container").classed("arg-content", true);
+						}
+						if ($rootScope.displayedARG.indexOf("error") !== -1) {
+							d3.selectAll(".arg-error-graph").style("visibility", "visible");
+							$("#arg-container").scrollTop(0).scrollLeft(0);
 						} else {
-							d3.select("#arg-loader").style("display", "inline");
+							d3.selectAll(".arg-graph").style("visibility", "visible");
+							$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
 						}
 					} else {
-						if (d3.select("#cfa-loader").style("display") !== "none") {
-							d3.select("#cfa-loader").style("display", "none");
-						}
 						if (d3.select("#cfa-toolbar").style("visibility") !== "hidden") {
 							d3.select("#cfa-toolbar").style("visibility", "hidden");
 							d3.selectAll(".cfa-graph").style("visibility", "hidden");
 							if (d3.select("#cfa-container").classed("cfa-content")) {
 								d3.select("#cfa-container").classed("cfa-content", false);
 							}							
-						}						
-						if (d3.select("#arg-loader").style("display") !== "none") {
-							d3.select("#arg-loader").style("display", "none");
 						}
 						if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
 							d3.select("#arg-toolbar").style("visibility", "hidden");
@@ -385,9 +363,17 @@
     				$scope.zoomControl();
     			}
     			$scope.selectedCFAFunction = $scope.functions[0];
-    			d3.select("#cfa-toolbar").style("visibility", "hidden");
-    			cfaLoaderDone = false;
-    			d3.select("#cfa-loader").style("display", "inline");
+    			cfaSplit = true;
+    			var graphCount = 0;
+    			cfaJson.functionNames.forEach(function(f) {
+    				var fNodes = cfaJson.nodes.filter(function(n) {
+    					return n.func === f;
+    				})
+    				graphCount += Math.ceil(fNodes.length/input);
+    			});
+    			$("#cfa-modal").text("0/" + graphCount);
+    			graphCount = null;
+    			$("#renderStateModal").modal("show");
     			if (cfaWorker === undefined) {
     				cfaWorker = new Worker(URL.createObjectURL(new Blob(["("+cfaWorker_function.toString()+")()"], {type: "text/javascript"})));
     			}
@@ -476,8 +462,10 @@
     			if ($scope.zoomEnabled) {
     				$scope.argZoomControl();
     			}
-    			d3.select("#arg-toolbar").style("visibility", "hidden");
-    			d3.select("#arg-loader").style("display", "inline");
+    			var graphCount = Math.ceil(argJson.nodes.length/input);
+    			$("#arg-modal").text("0/" + graphCount);
+    			graphCount = null;
+    			$("#renderStateModal").modal("show");
     			if (argWorker === undefined) {
     				argWorker = new Worker(URL.createObjectURL(new Blob(["("+argWorker_function.toString()+")()"], {type: "text/javascript"})));
     			}
@@ -548,13 +536,26 @@ const constants = {
 	margin : 20,
 }
 var cfaWorker, argWorker;
-var cfaLoaderDone = false;
-var argLoaderDone = false;
+var cfaSplit = false;
 
 function init() {
 	
+	// Calculate total count of graphs to display in modal
+	var argTotalGraphCount = Math.ceil(argJson.nodes.length/graphSplitThreshold);
+	$("#arg-modal").text("0/" + argTotalGraphCount);
+	argTotalGraphCount = null;
+	var cfaTotalGraphCount = 0;
+	cfaJson.functionNames.forEach(function(f) {
+		var fNodes = cfaJson.nodes.filter(function(n) {
+			return n.func === f;
+		})
+		cfaTotalGraphCount += Math.ceil(fNodes.length/graphSplitThreshold);
+	});
+	$("#cfa-modal").text("0/" + cfaTotalGraphCount);
+	cfaTotalGraphCount = null;
+	
 	// Display modal window containing current rendering state
-	$("#myModal").modal("show");
+	$("#renderStateModal").modal("show");
 	
 	// Setup section widths accordingly 
 	if (errorPath === undefined) {
@@ -1239,18 +1240,19 @@ function init() {
 			svg.attr("height", g.graph().height + constants.margin * 2);
 			svg.attr("width", g.graph().width + constants.margin * 10);
 			svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
+			$("#cfa-modal").text(parseInt($("#cfa-modal").text().split("/")[0]) + 1 + "/" + $("#cfa-modal").text().split("/")[1]);
 			cfaWorker.postMessage({"renderer" : "ready"});
 		} else if (m.data.status !== undefined) {
-			cfaLoaderDone = true;
-			d3.select("#cfa-loader").style("display", "none");
-			if($("#report-controller").scope().getTabSet() === 1) {
-				d3.select("#cfa-toolbar").style("visibility", "visible");
-				d3.select("#cfa-container").classed("cfa-content", true);
-				d3.selectAll(".cfa-graph").style("visibility", "visible");
-			}
 			addEventsToNodes(); // TODO: CFA specific!
 			addEventsToEdges();
-			argWorker.postMessage({"renderer" : "ready"});
+			d3.select("#cfa-toolbar").style("visibility", "visible");
+			d3.select("#cfa-container").classed("cfa-content", true);
+			d3.selectAll(".cfa-graph").style("visibility", "visible");
+			if (cfaSplit) {
+				$("#renderStateModal").modal("hide");
+			} else {
+				argWorker.postMessage({"renderer" : "ready"});
+			}
 		}
 	}, false);
 	
@@ -1268,6 +1270,8 @@ function init() {
 			if (m.data.errorGraph !== undefined) {
 				id = "arg-error-graph" + m.data.id;
 				argClass = "arg-error-graph";
+				d3.select("#arg-modal-error").style("display", "inline");
+				$("#renderStateModal").modal("show");
 			}
 			var g = createGraph();
 			g = Object.assign(g, JSON.parse(m.data.graph));
@@ -1284,24 +1288,25 @@ function init() {
 				d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
 			})
 			if (m.data.errorGraph !== undefined) {
+				$("#renderStateModal").modal("hide");
 				argWorker.postMessage({"errorGraph": true});
 			} else {
+				$("#arg-modal").text(parseInt($("#arg-modal").text().split("/")[0]) + 1 + "/" + $("#arg-modal").text().split("/")[1]);
 				argWorker.postMessage({"renderer" : "ready"});
 			}
 		} else if (m.data.status !== undefined) {
-			argLoaderDone = true;
-			d3.select("#arg-loader").attr("display", "none");
 			if ($("#report-controller").scope().getTabSet() === 2) {
 				d3.select("#arg-toolbar").style("visibility", "visible");
 				d3.select("#arg-container").classed("arg-content", true);
 				d3.selectAll(".arg-graph").style("visibility", "visible");
+				$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
 			}
 			addEventsToNodes(); // TODO: ARG specific!
 			addEventsToEdges();
 			if (errorPath !== undefined) {
 				d3.selectAll("td.disabled").classed("disabled", false);
 			}
-			$("#myModal").modal("hide");
+			$("#renderStateModal").modal("hide");
 		}
 	}, false);
 	

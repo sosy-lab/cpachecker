@@ -38,14 +38,16 @@
 		</span>
 	</header>
 	
-	<div class="modal fade" id="myModal" role="dialog">
+	<div class="modal fade" id="renderStateModal" role="dialog">
 		<div class="modal-dialog">
       		<div class="modal-content">
         		<div class="modal-header">
-          			<h4 class="modal-title">Modal Header</h4>
+          			<h4 class="modal-title">Graphs Rendering Progress</h4>
         		</div>
         		<div class="modal-body">
-          			<p>Some text in the modal.</p>
+          			<p class="loader">Rendered CFA graphs &nbsp; <span id="cfa-modal"></span></p>
+          			<p class="loader">Rendered ARG graphs &nbsp; <span id="arg-modal"></span></p>
+          			<p id="arg-modal-error" class="loader" style="display: none;"> Render ARG Error Graph </p>
         		</div>
       		</div>
     	</div>
@@ -129,7 +131,6 @@
       </ul>
     </nav>
     
-	<span id="cfa-loader" class="loader">Rendering CFA Graphs ...</span>
     <div id="cfa-toolbar" ng-controller="CFAToolbarController">
 		<label>Displayed CFA</label>
 		<select class="btn btn-default selectpicker"
@@ -152,7 +153,6 @@
          ng-controller="CFAController">      
     </div>
     
-    <span id="arg-loader" class="loader">Rendering ARG Graphs ...</span>
     <div id="arg-toolbar" ng-controller="ARGToolbarController">
     	<label>Displayed ARG</label>
     	<select class="btn btn-default selectpicker"

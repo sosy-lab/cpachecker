@@ -288,22 +288,11 @@ div pre {
 	visibility: hidden;
 }
 
-#cfa-loader {
-	margin-top: 20px;
-	margin-left: 100px;
+.loader {
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
 	font-size: 20px;
 	font-style: italic;
 	color: #663399;
-}
-
-#arg-loader {
-	margin-left: 100px;
-	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
-	font-size: 20px;
-	font-style: italic;
-	color: #663399;
-	display: none;
 }
 
 #cfa-toolbar {
