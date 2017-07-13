@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.lock.LockTransferRelation;
@@ -230,6 +231,12 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private Element printEdge(GraphMlBuilder builder, CFAEdge edge) {
+
+    if (isThreadCreateFunction(edge)) {
+      CFunctionSummaryEdge sEdge = ((CFunctionCallEdge)edge).getSummaryEdge();
+      Element result = printEdge(builder, sEdge);
+      builder.addDataElementChild(result, KeyDef.CREATETHREAD, Integer.toString(threadIterator.next()));
+    }
     return printEdge(builder, edge, getCurrentId(), getNextId());
   }
 
@@ -246,7 +253,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private void dumpCommonInfoForEdge(GraphMlBuilder builder, Element result, CFAEdge pEdge) {
-
     if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
       FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
       builder.addDataElementChild(result, KeyDef.FUNCTIONENTRY, in.getFunctionName());
@@ -274,12 +280,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     }
 
     builder.addDataElementChild(result, KeyDef.THREADID, Integer.toString(threadIterator.getCurrentThread()));
-    if (pEdge instanceof CFunctionCallEdge) {
-      CFunctionCall fCall = ((CFunctionCallEdge)pEdge).getSummaryEdge().getExpression();
-      if (fCall instanceof CThreadCreateStatement) {
-        builder.addDataElementChild(result, KeyDef.CREATETHREAD, Integer.toString(threadIterator.next()));
-      }
-    }
   }
 
   private Iterator<CFAEdge> getIterator(List<CFAEdge> path) {
@@ -288,4 +288,14 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
         .iterator();
   }
 
+  private boolean isThreadCreateFunction(CFAEdge pEdge) {
+    if (pEdge instanceof CFunctionCallEdge) {
+      CFunctionSummaryEdge sEdge = ((CFunctionCallEdge)pEdge).getSummaryEdge();
+      CFunctionCall fCall = sEdge.getExpression();
+      if (fCall instanceof CThreadCreateStatement) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
