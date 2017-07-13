@@ -136,7 +136,7 @@
 		<select class="btn btn-default selectpicker"
 			ng-options="f as f for f in functions" ng-model="selectedCFAFunction" ng-change="setCFAFunction()">
 		</select>
-		<label id="cfa-zoom-label">Zoom Disabled</label>
+		<label id="cfa-zoom-label">Mouse Wheel Scroll</label>
 		<span class="button-checkbox">
 			<button class="btn btn-default" id="cfa-zoom-button" type="button" data-color="primary"
 				ng-click="zoomControl()">
@@ -157,7 +157,7 @@
     	<label>Displayed ARG</label>
     	<select class="btn btn-default selectpicker"
     		ng-options="s as s for s in argSelections" ng-model="$root.displayedARG" ng-change="displayARG()"></select>
-    	<label id="arg-zoom-label">Zoom Disabled</label>
+    	<label id="arg-zoom-label">Mouse Wheel Scroll</label>
 		<span class="button-checkbox">
 			<button class="btn btn-default" id="arg-zoom-button" type="button" data-color="primary"
 				ng-click="argZoomControl()">

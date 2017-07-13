@@ -144,30 +144,14 @@
         		var prevId = parseInt(selection.attr("id").substring("errpath-".length)) - 1;
         		selection.classed("clickedErrPathElement", false);
         		d3.select("#errpath-" + prevId).classed("clickedErrPathElement", true);
-        		// TODO: tab logic and element selection
-        		var currentTab = $("#report-controller").scope().getTabSet();
+        		markErrorPathElementInTab("Prev", prevId);
         	}
         };
         
         $scope.errPathStartClicked = function() {
         	d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
         	d3.select("#errpath-0").classed("clickedErrPathElement", true);
-        	// TODO: tab logic and element selection
-        	var currentTab = $("#report-controller").scope().getTabSet();
-        	console.log(currentTab)
-    		if (currentTab === 1) {
-    			console.log("CFA tab");
-    		} else if (currentTab === 2) {
-    			console.log("ARG tab");
-    		} else if (currentTab === 3) {
-    			console.log("Source tab")
-    			d3.select(".markedSourceLine").classed("markedSourceLine", false);
-    			d3.select("#source-1 td pre.prettyprint").classed("markedSourceLine", true);
-    			$(".sourceContent").scrollTop(0).scrollLeft(0);
-    		} else {
-    			// when the current tab is not one of CFA, ARG, source, set the tab to ARG
-    			$("#report-controller").scope().setTab(2);
-    		}
+        	markErrorPathElementInTab("Start", null);
         };
         
         $scope.errPathNextClicked = function($event) {
@@ -176,20 +160,85 @@
         		var nextId = parseInt(selection.attr("id").substring("errpath-".length)) + 1;
         		selection.classed("clickedErrPathElement", false);
         		d3.select("#errpath-" + nextId).classed("clickedErrPathElement", true);
-        		// TODO: tab logic and element selection
-        		var currentTab = $("#report-controller").scope().getTabSet();
+        		markErrorPathElementInTab("Next", nextId);
         	}
         };
         
         $scope.clickedErrpathElement = function($event) {
         	d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
-        	d3.select($event.currentTarget.parentNode).classed("clickedErrPathElement", true);
-        	// TODO: tab logic and element selection
-        	var currentTab = $("#report-controller").scope().getTabSet();
+        	var clickedElement = d3.select($event.currentTarget.parentNode);
+        	clickedElement.classed("clickedErrPathElement", true);
+        	markErrorPathElementInTab("", clickedElement.attr("id"));
         };
         
-        function executeActionInCurrentTab() {
+        function markErrorPathElementInTab(buttonId, elementIndex) {
         	var currentTab = $("#report-controller").scope().getTabSet();
+        	// when the current tab is not one of CFA, ARG, source, set the tab to ARG
+        	if (buttonId === "") {
+        		handleErrorPathElemClick(currentTab);
+        	} else if (buttonId === "Start") {
+        		handleStartButtonClick(currentTab);
+        	} else if (buttonId === "Prev") {
+        		handlePrevButtonClick(currentTab);
+        	} else { // "Next"
+        		handleNextButtonClick(currentTab);
+        	}
+        }
+        
+        function handleErrorPathElemClick(currentTab) {
+    		if (currentTab === 1) {
+    			
+    		} else if (currentTab === 2) {
+    			
+    		} else if (currentTab === 3) {
+    			
+    		} else {
+    			$("#report-controller").scope().setTab(2);
+    			handleErrorPathElemClick(2);
+    		}
+        }
+        
+        function handleStartButtonClick(currentTab) {
+        	var errPathElem = $rootScope.errorPath[0];
+    		if (currentTab === 1) {
+    			d3.select("#cfa-edge" + errPathElem.source + errPathElem.target);
+    			// .parentNode.classed("", true)
+    		} else if (currentTab === 2) {
+    			
+    		} else if (currentTab === 3) {
+    			d3.select(".markedSourceLine").classed("markedSourceLine", false);
+    			d3.select("#source-1 td pre.prettyprint").classed("markedSourceLine", true);
+    			$(".sourceContent").scrollTop(0).scrollLeft(0);
+    		} else {
+    			$("#report-controller").scope().setTab(2);
+    			handleStartButtonClick(2);
+    		}
+        }
+        
+        function handlePrevButtonClick(currentTab) {
+    		if (currentTab === 1) {
+    			
+    		} else if (currentTab === 2) {
+    			
+    		} else if (currentTab === 3) {
+    			
+    		} else {
+    			$("#report-controller").scope().setTab(2);
+    			handlePrevButtonClick(2);
+    		}
+        }
+        
+        function handleNextButtonClick(currentTab) {
+    		if (currentTab === 1) {
+    			
+    		} else if (currentTab === 2) {
+    			
+    		} else if (currentTab === 3) {
+    			
+    		} else {
+    			$("#report-controller").scope().setTab(2);
+    			handleNextButtonClick(2);
+    		}
         }
 		
 	}]);
@@ -298,7 +347,6 @@
 			}
 			$scope.selectedCFAFunction = $scope.functions[0];
     		$scope.zoomEnabled = false;
-    		$scope.originalTranslations = {};
     	
     		$scope.setCFAFunction = function() {
     			$("#cfa-container").scrollTop(0).scrollLeft(0);
@@ -328,20 +376,17 @@
     			if ($scope.zoomEnabled) {
     				$scope.zoomEnabled = false;
     				d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
-    				d3.select("#cfa-zoom-label").text(" Zoom Disabled ");
+    				d3.select("#cfa-zoom-label").text(" Mouse Wheel Scroll ");
     				// revert zoom and remove listeners
     				d3.selectAll(".cfa-svg").each(function(d, i) {
-    					var zoom = d3.behavior.zoom().on("zoom", null).on("wheel.zoom", null);
-    					d3.select(this).call(zoom);
-    					d3.select(this.firstChild).attr("transform", $scope.originalTranslations[i]);
+    					d3.select(this).on("zoom", null).on("wheel.zoom", null);
     				});
     			} else {
     				$scope.zoomEnabled = true;
     				d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
-    				d3.select("#cfa-zoom-label").text(" Zoom Enabled ");
+    				d3.select("#cfa-zoom-label").text(" Mouse Wheel Zoom ");
     				d3.selectAll(".cfa-svg").each(function(d, i) {
     					var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
-    					$scope.originalTranslations[i] = svgGroup.attr("transform");
     					var zoom = d3.behavior.zoom().on("zoom", function() {
     						svgGroup.attr("transform", "translate("
     								+ d3.event.translate + ")" + "scale("
@@ -401,7 +446,6 @@
 				$scope.argSelections.push("error path");
 			}
 			$rootScope.displayedARG = $scope.argSelections[0];
-			$scope.originalTranslations = {};
 			
 			$scope.displayARG = function() {
 				if ($scope.argSelections.length > 1) {
@@ -427,20 +471,17 @@
     			if ($scope.zoomEnabled) {
     				$scope.zoomEnabled = false;
     				d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
-    				d3.select("#arg-zoom-label").text(" Zoom Disabled ");
+    				d3.select("#arg-zoom-label").text(" Mouse Wheel Scroll ");
     				// revert zoom and remove listeners
     				d3.selectAll(".arg-svg").each(function(d, i) {
-    					var zoom = d3.behavior.zoom().on("zoom", null).on("wheel.zoom", null);
-    					d3.select(this).call(zoom);
-    					d3.select(this.firstChild).attr("transform", $scope.originalTranslations[i]);
+    					d3.select(this).on("zoom", null).on("wheel.zoom", null);
     				});
     			} else {
     				$scope.zoomEnabled = true;
     				d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
-    				d3.select("#arg-zoom-label").text(" Zoom Enabled ");
+    				d3.select("#arg-zoom-label").text(" Mouse Wheel Zoom ");
     				d3.selectAll(".arg-svg").each(function(d, i) {
     					var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
-    					$scope.originalTranslations[i] = svgGroup.attr("transform");
     					var zoom = d3.behavior.zoom().on("zoom", function() {
     						svgGroup.attr("transform", "translate("
     								+ d3.event.translate + ")" + "scale("
