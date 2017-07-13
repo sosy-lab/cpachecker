@@ -141,10 +141,9 @@ public class CLangSMG extends SMG {
   }
 
   public void addElementToCurrentChain(Object elem) {
-    // Avoid to add Null element
     if (elem instanceof SMGValue) {
       SMGValue smgValue = (SMGValue) elem;
-      if (smgValue.getAsLong() == 0) {
+      if (smgValue.isUnknown() || smgValue.getAsLong() == 0) {
         return;
       }
     }
