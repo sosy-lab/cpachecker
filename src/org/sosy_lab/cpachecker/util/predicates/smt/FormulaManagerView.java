@@ -938,6 +938,8 @@ public class FormulaManagerView {
   private static final String INDEX_SEPARATOR = "@";
 
   static String makeName(String name, int idx) {
+    assert !name.contains(INDEX_SEPARATOR)
+        : "Instantiating already instantiated variable " + name + " with index " + idx;
     if (idx < 0) {
       return name;
     }
