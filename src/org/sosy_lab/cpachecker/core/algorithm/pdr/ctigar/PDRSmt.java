@@ -567,11 +567,10 @@ public class PDRSmt {
     pConcrProver.pop();
 
     Set<Formula> nondetVars = nondetVarsOfConnectingBlock(pPredLoc, pSuccLoc);
-    List<Formula> nondetsAsPrimed =
-        fmgr.instantiate(nondetVars, transition.getPrimedContext().getSsa());
     Set<String> nondetNames =
-        nondetsAsPrimed
+        nondetVars
             .stream()
+            .map(f -> fmgr.instantiate(f, transition.getPrimedContext().getSsa()))
             .flatMap(f -> fmgr.extractVariableNames(f).stream())
             .collect(toImmutableSet());
 

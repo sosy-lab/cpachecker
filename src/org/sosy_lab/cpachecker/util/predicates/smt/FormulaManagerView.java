@@ -27,7 +27,6 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -42,7 +41,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -917,14 +915,6 @@ public class FormulaManagerView {
 
   public BooleanFormula parse(String pS) throws IllegalArgumentException {
     return manager.parse(pS);
-  }
-
-  /**
-   * Instantiate a list (!! guarantees to keep the ordering) of formulas.
-   *  @see #instantiate(Formula, SSAMap)
-   */
-  public <F extends Formula> List<F> instantiate(Collection<F> pFormulas, final SSAMap pSsa) {
-    return transformedImmutableListCopy(pFormulas, f -> instantiate(f, pSsa));
   }
 
   public Set<String> instantiate(Iterable<String> pVariableNames, final SSAMap pSsa) {
