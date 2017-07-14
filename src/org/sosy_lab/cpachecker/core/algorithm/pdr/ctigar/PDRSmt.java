@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm.pdr.ctigar;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -469,10 +468,14 @@ public class PDRSmt {
       BooleanFormula current = conjIterator.next();
 
       // Remove conjunct from formula
-      Set<BooleanFormula> conjunctsWithoutCurrent =
-          Sets.filter(remainingConjuncts, bf -> !bf.equals(current));
       BooleanFormula formulaWithoutCurrent =
-          PDRUtils.asUnprimed(bfmgr.and(conjunctsWithoutCurrent), fmgr, transition);
+          PDRUtils.asUnprimed(
+              remainingConjuncts
+                  .stream()
+                  .filter(bf -> !bf.equals(current))
+                  .collect(bfmgr.toConjunction()),
+              fmgr,
+              transition);
 
       // If removal makes states initial, continue with next conjunct.
       if (isInitial(formulaWithoutCurrent)) {
