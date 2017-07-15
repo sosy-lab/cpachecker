@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -917,13 +916,6 @@ public class FormulaManagerView {
     return manager.parse(pS);
   }
 
-  public Set<String> instantiate(Iterable<String> pVariableNames, final SSAMap pSsa) {
-    return from(pVariableNames).transform(pArg0 -> {
-      Pair<String, OptionalInt> parsedVar = parseName(pArg0);
-      return makeName(parsedVar.getFirst(), pSsa.getIndex(parsedVar.getFirst()));
-    }).toSet();
-  }
-
   // the character for separating name and index of a value
   private static final String INDEX_SEPARATOR = "@";
 
@@ -982,6 +974,14 @@ public class FormulaManagerView {
     } else {
       throw new IllegalArgumentException("Not an instantiated variable nor constant: " + name);
     }
+  }
+
+  /**
+   * Add SSA indices to a single variable name. Typically it is not necessary and not recommended to
+   * use this method, prefer more high-level methods like {@link #instantiate(Formula, SSAMap)}.
+   */
+  public static String instantiateVariableName(String pVar, SSAMap pSsa) {
+    return makeName(pVar, pSsa.getIndex(pVar));
   }
 
   /**

@@ -254,15 +254,14 @@ public class PolicyInterpolationRefiner implements Refiner {
    * @return All instantiated variables mentioned in templates associated with {@code pState}.
    */
   private Set<String> getRelevantInstantiatedVars(PolicyAbstractedState pState) {
-    Set<String> usedVars =
-        pState
-            .getAbstraction()
-            .keySet()
-            .stream()
-            .flatMap(t -> t.getLinearExpression().getMap().keySet().stream())
-            .map(id -> id.getDeclaration().getQualifiedName())
-            .collect(toImmutableSet());
-    return fmgr.instantiate(usedVars, pState.getSSA());
+    return pState
+        .getAbstraction()
+        .keySet()
+        .stream()
+        .flatMap(t -> t.getLinearExpression().getMap().keySet().stream())
+        .map(id -> id.getDeclaration().getQualifiedName())
+        .map(var -> FormulaManagerView.instantiateVariableName(var, pState.getSSA()))
+        .collect(toImmutableSet());
   }
 
 
