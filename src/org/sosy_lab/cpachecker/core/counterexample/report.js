@@ -168,77 +168,148 @@
         	d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
         	var clickedElement = d3.select($event.currentTarget.parentNode);
         	clickedElement.classed("clickedErrPathElement", true);
-        	markErrorPathElementInTab("", clickedElement.attr("id"));
+        	markErrorPathElementInTab("", clickedElement.attr("id").substring("errpath-".length));
         };
         
-        function markErrorPathElementInTab(buttonId, elementIndex) {
+        function markErrorPathElementInTab(buttonId, selectedErrPathElemId) {
+        	if ($rootScope.errorPath[selectedErrPathElemId] === undefined) {
+        		return;
+        	}
         	var currentTab = $("#report-controller").scope().getTabSet();
         	// when the current tab is not one of CFA, ARG, source, set the tab to ARG
         	if (buttonId === "") {
-        		handleErrorPathElemClick(currentTab);
+        		handleErrorPathElemClick(currentTab, selectedErrPathElemId);
         	} else if (buttonId === "Start") {
         		handleStartButtonClick(currentTab);
         	} else if (buttonId === "Prev") {
-        		handlePrevButtonClick(currentTab);
+        		handlePrevButtonClick(currentTab, selectedErrPathElemId);
         	} else { // "Next"
-        		handleNextButtonClick(currentTab);
+        		handleNextButtonClick(currentTab, selectedErrPathElemId);
         	}
         }
         
-        function handleErrorPathElemClick(currentTab) {
+        function handleErrorPathElemClick(currentTab, errPathElemIndex) {
     		if (currentTab === 1) {
-    			
+    			markCfaEdge($rootScope.errorPath[errPathElemIndex]);
     		} else if (currentTab === 2) {
-    			
+    			markArgNode($rootScope.errorPath[errPathElemIndex]);
     		} else if (currentTab === 3) {
-    			
+    			markSourceLine($rootScope.errorPath[errPathElemIndex]);
     		} else {
     			$("#report-controller").scope().setTab(2);
-    			handleErrorPathElemClick(2);
+    			markArgNode($rootScope.errorPath[errPathElemIndex]);
     		}
         }
         
         function handleStartButtonClick(currentTab) {
-        	var errPathElem = $rootScope.errorPath[0];
     		if (currentTab === 1) {
-    			d3.select("#cfa-edge" + errPathElem.source + errPathElem.target);
-    			// .parentNode.classed("", true)
+    			markCfaEdge($rootScope.errorPath[0]);
     		} else if (currentTab === 2) {
-    			
+    			markArgNode($rootScope.errorPath[0]);
     		} else if (currentTab === 3) {
-    			d3.select(".markedSourceLine").classed("markedSourceLine", false);
-    			d3.select("#source-1 td pre.prettyprint").classed("markedSourceLine", true);
-    			$(".sourceContent").scrollTop(0).scrollLeft(0);
+    			markSourceLine($rootScope.errorPath[0]);
     		} else {
     			$("#report-controller").scope().setTab(2);
-    			handleStartButtonClick(2);
+    			markArgNode($rootScope.errorPath[0]);
     		}
         }
         
-        function handlePrevButtonClick(currentTab) {
+        function handlePrevButtonClick(currentTab, elementId) {
     		if (currentTab === 1) {
-    			
+    			markCfaEdge($rootScope.errorPath[elementId]);
     		} else if (currentTab === 2) {
-    			
+    			markArgNode($rootScope.errorPath[elementId]);
     		} else if (currentTab === 3) {
-    			
+    			markSourceLine($rootScope.errorPath[elementId]);
     		} else {
     			$("#report-controller").scope().setTab(2);
-    			handlePrevButtonClick(2);
+    			markArgNode($rootScope.errorPath[elementId]);
     		}
         }
         
-        function handleNextButtonClick(currentTab) {
+        function handleNextButtonClick(currentTab, elementId) {
     		if (currentTab === 1) {
-    			
+    			markCfaEdge($rootScope.errorPath[elementId]);
     		} else if (currentTab === 2) {
-    			
+    			markArgNode($rootScope.errorPath[elementId]);
     		} else if (currentTab === 3) {
-    			
+    			markSourceLine($rootScope.errorPath[elementId]);
     		} else {
     			$("#report-controller").scope().setTab(2);
-    			handleNextButtonClick(2);
+    			markArgNode($rootScope.errorPath[elementId]);
     		}
+        }
+        
+        function markCfaEdge(errPathEntry) {
+        	var actualSourceAndTarget = getActualSourceAndTarget(errPathEntry);
+        	if ($.isEmptyObject(actualSourceAndTarget)) return;
+			if (!d3.select(".marked-cfa-edge").empty()) {
+				d3.select(".marked-cfa-edge").classed("marked-cfa-edge", false);
+			}
+			var selection = d3.select("#cfa-edge" + actualSourceAndTarget.source + actualSourceAndTarget.target);
+			selection.classed("marked-cfa-edge", true);
+			var boundingRect = selection.node().getBoundingClientRect();
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 200);
+        }
+        
+        function getActualSourceAndTarget(element) {
+        	var result = {};
+            if (!cfaJson.mergedNodes.includes(element.source) && !cfaJson.mergedNodes.includes(element.target)) {
+                result["source"] = element.source;
+                result["target"] = element.target;
+            } else if (!cfaJson.mergedNodes.includes(element.source) && cfaJson.mergedNodes.includes(element.target)) {
+            	result["source"] = element.source;
+            	result["target"] = getMergingNode(element.target);
+            } else if (cfaJson.mergedNodes.includes(element.source) && !cfaJson.mergedNodes.includes(element.target)) {
+            	result["source"] = getMergingNode(element.source);
+            	result["target"] = element.target;
+            }
+            if (Object.keys(cfaJson.functionCallEdges).includes("" + result["source"])) {
+            	result["target"] = cfaJson.functionCallEdges["" + result["source"]][0];
+            }
+            // Ensure empty object is returned if source = target (edge non existent)
+            if (result["source"] === result["target"]) {
+            	delete result["source"];
+            	delete result["target"];
+            }
+            return result;
+        }
+        
+        // Retrieve the node in which this node was merged
+        function getMergingNode(index) {
+            var result = "";
+            Object.keys(cfaJson.inversedCombinedNodes).some(function(key){
+                if (key.includes(index)) {
+                    result = cfaJson.inversedCombinedNodes[key];
+                    return result;
+                }
+            })
+            return result;
+        }
+        
+        function markArgNode(errPathEntry) {
+        	if (errPathEntry.argelem === undefined) {
+        		return;
+        	}
+			if (!d3.select(".marked-arg-node").empty()) {
+				d3.select(".marked-arg-node").classed("marked-arg-node", false);
+			}
+			var selection = d3.select("#arg-node" + errPathEntry.argelem);
+			selection.classed("marked-arg-node", true);
+			var boundingRect = selection.node().getBoundingClientRect();
+			$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 200);
+        }
+        
+        function markSourceLine(errPathEntry) {
+        	if (!d3.select(".marked-source-line").empty()) {
+        		d3.select(".marked-source-line").classed("marked-source-line", false);
+        	}
+        	if (errPathEntry.line === 0) {
+        		errPathEntry.line = 1;
+        	}
+			var selection = d3.select("#source-" + errPathEntry.line + " td pre.prettyprint");
+			selection.classed("marked-source-line", true);
+			$(".sourceContent").scrollTop(selection.node().getBoundingClientRect().top + $(".sourceContent").scrollTop() - 200);
         }
 		
 	}]);

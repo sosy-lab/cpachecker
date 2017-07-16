@@ -166,8 +166,17 @@ body {
 	outline: #df80ff solid 2px;
 }
 
-.markedSourceLine {
+.marked-source-line {
     background-color: #df80ff !important;
+}
+
+.marked-cfa-edge path {
+	stroke: #8B008B !important;
+	stroke-width: 3px !important;
+}
+
+.marked-arg-node > rect {
+	outline: #8B008B solid thick !important;
 }
 
 #externalFiles_section {
