@@ -596,9 +596,6 @@
 	
 	app.controller('ARGController', ['$rootScope', '$scope',
 		function($rootScope, $scope) {
-			$scope.printIt = function(value) {
-				console.log(value);
-			}
 		}]);	
 
 	app.controller('SourceController', [ '$rootScope', '$scope', '$location',
@@ -863,7 +860,7 @@ function init() {
                 if (sourceGraph < targetGraph) {
                     if (Object.keys(functionCallEdges).includes("" + source)) {
                         var funcCallNodeId = functionCallEdges["" + source][0];
-                        graphMap[sourceGraph].setNode(funcCallNodeId, {label: getNodeLabelFCall(edge.stmt), class: "fcall", id: "cfa-node" + funcCallNodeId, shape: "rect"});
+                        graphMap[sourceGraph].setNode(funcCallNodeId, {label: getNodeLabelFCall(edge.stmt), class: "cfa-node fcall", id: "cfa-node" + funcCallNodeId, shape: "rect"});
                         graphMap[sourceGraph].setEdge(source, funcCallNodeId, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, funcCallNodeId), class: edgeClassDecider(edge, source, funcCallNodeId), id: "cfa-edge" + source + funcCallNodeId, weight: edgeWeightDecider(edge)});
                         graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "dummy", id: "node" + target});
                         graphMap[sourceGraph].setEdge(funcCallNodeId, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
@@ -904,7 +901,7 @@ function init() {
                 if (!mergedNodes.includes(n.index)) {
                     graph.setNode(n.index, {
                         label : setNodeLabel(n),
-                        class : "cfa-node " + n.type,
+                        class : "cfa-node",
                         id : "cfa-node" + n.index,
                         shape : nodeShapeDecider(n)
                     });
@@ -961,7 +958,7 @@ function init() {
                         var funcCallNodeId = functionCallEdges["" + source][0];
                         graph.setNode(funcCallNodeId, {
                             label : getNodeLabelFCall(e.stmt),
-                            class : "fcall",
+                            class : "cfa-node fcall",
                             id : "cfa-node" + funcCallNodeId,
                             shape : "rect"
                         });
@@ -1360,7 +1357,7 @@ function init() {
 			$("#cfa-modal").text(parseInt($("#cfa-modal").text().split("/")[0]) + 1 + "/" + $("#cfa-modal").text().split("/")[1]);
 			cfaWorker.postMessage({"renderer" : "ready"});
 		} else if (m.data.status !== undefined) {
-			addEventsToNodes(); // TODO: CFA specific!
+			addEventsToCfaNodes(); // TODO: CFA specific!
 			addEventsToEdges();
 			d3.select("#cfa-toolbar").style("visibility", "visible");
 			d3.select("#cfa-container").classed("cfa-content", true);
@@ -1446,14 +1443,26 @@ function init() {
 		return g;
 	}
 	
+	// Add desired event to CFA nodes
+	function addEventsToCfaNodes() {
+		d3.selectAll(".cfa-node").on("mouseover", function(d) { showInfoBoxNode(d3.event, d); })
+			.on("mouseout", function() { hideInfoBoxNode(); });
+		d3.selectAll(".fcall").on("dblclick", function(d) {
+			$("#cfa-toolbar").scope().selectedCFAFunction = d3.select("#cfa-node" + d + " text").text();
+			$("#cfa-toolbar").scope().setCFAFunction();
+			// FIXME: Broken angular js, does not update selected option even thou it is double binded
+			d3.select("#cfa-toolbar [label=" + d3.select("#cfa-node" + d + " text").text() + "]").attr("selected", "selected");
+		})
+	}
+	
 	// Add desired events to the nodes
 	function addEventsToNodes() {
-		d3.selectAll("svg g.node").on("mouseover", function(d){showInfoBoxNode(d3.event, d);})
-			.on("mouseout", function(){hideInfoBoxNode();})
-			.on("click", function(d) {
-				var scope = angular.element($("#arg-container")).scope();
-				scope.$apply(function(){scope.printIt(d)})
-			})
+		d3.selectAll(".arg-node").on("mouseover", function(d){ showInfoBoxNode(d3.event, d); })
+			.on("mouseout", function(){ hideInfoBoxNode(); })
+//			.on("click", function(d) {
+//				var scope = angular.element($("#arg-container")).scope();
+//				scope.$apply(function(){scope.printIt(d)})
+//			})
 		// TODO: node.on("click") needed?
 	}
 
@@ -1462,7 +1471,7 @@ function init() {
 		d3.selectAll("svg g.edgePath").on("mouseover", function(d){showInfoBoxEdge(d3.event, d);})
 			.on("mouseout", function(){hideInfoBoxEdge();})
 		// TODO: edge.on("click")
-	}	
+	}
 	
 	// on mouse over display info box for node
 	function showInfoBoxNode(e, nodeIndex) {
