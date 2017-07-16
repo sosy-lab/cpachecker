@@ -151,7 +151,7 @@
         $scope.errPathStartClicked = function() {
         	d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
         	d3.select("#errpath-0").classed("clickedErrPathElement", true);
-        	markErrorPathElementInTab("Start", null);
+        	markErrorPathElementInTab("Start", 0);
         };
         
         $scope.errPathNextClicked = function($event) {
@@ -249,7 +249,7 @@
 			var selection = d3.select("#cfa-edge" + actualSourceAndTarget.source + actualSourceAndTarget.target);
 			selection.classed("marked-cfa-edge", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 200);
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
         }
         
         function getActualSourceAndTarget(element) {
@@ -297,7 +297,7 @@
 			var selection = d3.select("#arg-node" + errPathEntry.argelem);
 			selection.classed("marked-arg-node", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 200);
+			$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 280);
         }
         
         function markSourceLine(errPathEntry) {
@@ -420,7 +420,6 @@
     		$scope.zoomEnabled = false;
     	
     		$scope.setCFAFunction = function() {
-    			$("#cfa-container").scrollTop(0).scrollLeft(0);
     			if ($scope.zoomEnabled) {
     				$scope.zoomControl();
     			}
@@ -437,6 +436,8 @@
     				});
     				d3.selectAll(".cfa-svg-" + $scope.selectedCFAFunction).attr("display", "inline-block");
     			}
+    			var firstElRect = d3.select("[display=inline-block] .cfa-node:nth-child(2)").node().getBoundingClientRect();
+    			$("#cfa-container").scrollTop(firstElRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(firstElRect.left + $("#cfa-container").scrollLeft() - 280);
     		};
         
     		$scope.cfaFunctionIsSet = function(value){
