@@ -980,7 +980,7 @@ function init() {
                         graph.setEdge(source, target, {
                             label: e.stmt,
                             labelStyle: labelStyleDecider(e, source, target),
-                            lineInterpolate: "cardinal",
+                            lineInterpolate: "basis",
                             class: edgeClassDecider(e, source, target), 
                             id: "cfa-edge"+ source + target,
                             weight: edgeWeightDecider(e)
@@ -1304,7 +1304,7 @@ function init() {
         		if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
             		graph.setEdge(e.source, e.target, {
             			label: e.label,
-            			lineInterpolate: "cardinal",
+            			lineInterpolate: "basis",
             			class: edgeClassDecider(e),
             			id: "arg-edge"+ e.source + e.target,
             			weight: edgeWeightDecider(e)
