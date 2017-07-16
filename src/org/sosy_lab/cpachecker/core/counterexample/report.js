@@ -843,7 +843,6 @@ function init() {
             }
         }
         
-        // TODO: reverseArrowHead + styles
         // Handle Edges that connect Graphs
         function buildCrossgraphEdges(crossGraphNodes) {
             var nodesIndices = [];
@@ -866,18 +865,18 @@ function init() {
                         var funcCallNodeId = functionCallEdges["" + source][0];
                         graphMap[sourceGraph].setNode(funcCallNodeId, {label: getNodeLabelFCall(edge.stmt), class: "fcall", id: "cfa-node" + funcCallNodeId, shape: "rect"});
                         graphMap[sourceGraph].setEdge(source, funcCallNodeId, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, funcCallNodeId), class: edgeClassDecider(edge, source, funcCallNodeId), id: "cfa-edge" + source + funcCallNodeId, weight: edgeWeightDecider(edge)});
-                        graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
+                        graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "dummy", id: "node" + target});
                         graphMap[sourceGraph].setEdge(funcCallNodeId, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
                     } else {
-                        graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
+                        graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "dummy", id: "node" + target});
                         graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, source, "" + source + target + sourceGraph), class: edgeClassDecider(edge, source, "" + source + target + sourceGraph), style: "stroke-dasharray: 5, 5;"});
                     }
-                    graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "D", class: "dummy", id: "node" + source});
+                    graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy", id: "node" + source});
                     graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, "" + target + source + targetGraph, target), class: edgeClassDecider(edge, "" + target + source + targetGraph, target), style: "stroke-dasharray: 5, 5;"});
                 } else if(sourceGraph > targetGraph) { 
-                    graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "D", class: "dummy", id: "node" + target});
+                    graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "dummy", id: "node" + target});
                     graphMap[sourceGraph].setEdge("" + source + target + sourceGraph, source, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, "" + source + target + sourceGraph, source), class: edgeClassDecider(edge, "" + source + target + sourceGraph, source), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
-                    graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "D", class: "dummy", id: "node" + source});
+                    graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy", id: "node" + source});
                     graphMap[targetGraph].setEdge(target, "" + target + source + targetGraph, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, target, "" + target + source + targetGraph), class: edgeClassDecider(edge, target, "" + target + source + targetGraph), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
                 }
             });
@@ -1229,7 +1228,6 @@ function init() {
             buildCrossgraphEdges(errorEdges, true);            
         }
 		
-		// TODO: reverseArrowHead + styles, Covered by label!
 		// Handle graph connecting edges
     	function buildCrossgraphEdges(edges, errorGraph) {
     		edges.forEach(function(edge) {
@@ -1238,28 +1236,28 @@ function init() {
     				sourceGraph = getGraphForErrorNode(edge.source);
     				targetGraph = getGraphForErrorNode(edge.target);
         			if (sourceGraph < targetGraph) { 
-        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "dummy", id: "node" + edge.target});
         				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
-        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy", id: "node" + edge.source});
         				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
         			} else if (sourceGraph > targetGraph) {
-        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "dummy", id: "node" + edge.target});
         				errorGraphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
-        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy", id: "node" + edge.source});
         				errorGraphMap[targetGraph].setEdge(edge.target, "" + edge.target + edge.source + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
         			}
     			} else {
         			sourceGraph = getGraphForNode(edge.source);
         			targetGraph = getGraphForNode(edge.target);
         			if (sourceGraph < targetGraph) { 
-            			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+            			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "dummy", id: "node" + edge.target});
             			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
-            			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+            			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy", id: "node" + edge.source});
             			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
         			} else if (sourceGraph > targetGraph) {
-        				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "D", class: "dummy", id: "node" + edge.target});
+        				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "dummy", id: "node" + edge.target});
         				graphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
-        				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "D", class: "dummy", id: "node" + edge.source});
+        				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy", id: "node" + edge.source});
         				graphMap[targetGraph].setEdge(edge.target, "" + edge.target + edge.source + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
         			}
     			}
