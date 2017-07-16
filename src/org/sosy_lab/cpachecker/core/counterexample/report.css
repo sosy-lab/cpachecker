@@ -356,9 +356,9 @@ input[type=text] {
 }
 
 text {
-	font-weight: 300;
+	font-weight: bold;
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
-	font-size: 14px;
+	font-size: 12px;
 }
 
 .arg-node.target > rect {
@@ -388,20 +388,26 @@ text {
 	stroke-width: 1.5px;
 }
 
+.cfa-node circle {
+	stroke: #999;
+	fill: #fff;
+	stroke-width: 1.5px;
+}
+
+.cfa-node polygon {
+	stroke: #999;
+	fill: #fff;
+	stroke-width: 1.5px;
+}
+
 .fcall rect {
 	stroke: #999;
 	fill: #fff;
 	stroke-width: 1.5px;
 }
 
-.node polygon {
-	stroke: #999;
-	fill: #fff;
-	stroke-width: 1.5px;
-}
-
 .edgePath path {
-	stroke: blue;
+	stroke: #A9A9A9;
 	fill: #ffffff;
 	stroke-width: 1.5px;
 }
@@ -412,12 +418,8 @@ text {
 	stroke-width: 1.5px;
 }
 
-.edge-loop path {
-	stroke: red;
-}
-
-.edge-high-level path {
-	stroke: gray;
+.dummy rect {
+	display: none;
 }
 
 #infoBoxNode, #infoBoxEdge {

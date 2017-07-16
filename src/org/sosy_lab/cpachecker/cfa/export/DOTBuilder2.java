@@ -382,6 +382,7 @@ public final class DOTBuilder2 {
       jnode.put("rpid", node.getReversePostorderId());
       jnode.put("func", node.getFunctionName());
       jnode.put("type", determineNodeType(node.describeFileLocation()));
+      jnode.put("loop", node.isLoopStart());
 
       nodes.put(node.getNodeNumber(), jnode);
 

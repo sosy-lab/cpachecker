@@ -12,12 +12,13 @@
 			function($rootScope, $scope) {
 				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
 				$scope.help_content = "<p>I am currently being developed</p>";
-		        $scope.help_errorpath = "<p>The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA)</p>\n" +
-	            "<p><b>-V-</b> Click to show all initialized variables and their values at that point</p>\n" +
-	            "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab)</p>\n" +
+		        $scope.help_errorpath = "<p>The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA) or 'node by node' (ARG)</p>\n" +
+	            "<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point</p>\n" +
+	            "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab).\n If non of the mentioned tabs is currently set, the ARG tab will be selected.</p>\n" +
 	            "<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>\n" +
 	            "<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
-	            "- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)</p>";
+	            "- You can search for value-assignments (variable names or their value) - it will highlight only where a variable has been initialized or where it has changed its value (matches appear green)\n" + 
+	            "- An 'exact matches' search will look for a variable declarator matching exactly the provided text considering both, edge descriptions and value assignments</p>";
 				$scope.tab = 1;
 				$scope.$on("ChangeTab", function(event, tabIndex) {
 					$scope.setTab(tabIndex);
@@ -922,10 +923,13 @@ function init() {
         
         // Decide the shape of the nodes based on type
         function nodeShapeDecider(n) {
-            if (n.type === constants.entryNode)
-                return "diamond";
-            else
-                return "rect";
+        	if (n.loop) {
+        		return "diamond";
+        	} else if (Object.keys(combinedNodes).includes("" + n.index)) {
+        		return "rect";
+        	} else {
+        		return "circle";
+        	}
         }
         
         // Round the corners of rectangle shaped nodes
@@ -979,7 +983,8 @@ function init() {
                     } else {
                         graph.setEdge(source, target, {
                             label: e.stmt,
-                            labelStyle: labelStyleDecider(e, source, target),	
+                            labelStyle: labelStyleDecider(e, source, target),
+                            lineInterpolate: "cardinal",
                             class: edgeClassDecider(e, source, target), 
                             id: "cfa-edge"+ source + target,
                             weight: edgeWeightDecider(e)
@@ -1304,6 +1309,7 @@ function init() {
         		if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
             		graph.setEdge(e.source, e.target, {
             			label: e.label,
+            			lineInterpolate: "cardinal",
             			class: edgeClassDecider(e),
             			id: "arg-edge"+ e.source + e.target,
             			weight: edgeWeightDecider(e)
