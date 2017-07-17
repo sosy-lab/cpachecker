@@ -30,6 +30,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedListMultimap;
@@ -61,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm.CPAAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Exitable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -69,7 +71,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
-import org.sosy_lab.cpachecker.cpa.usage.UsageState.UsageExitableState;
+import org.sosy_lab.cpachecker.cpa.usage.UsageState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -577,16 +579,26 @@ public class BAMTransferRelation implements TransferRelation {
       // in case of recursion, the block-exit-nodes might also appear in the middle of the block,
       // but the middle states have children, the exit-states have not.
       returnStates = new ArrayList<>();
-      for (AbstractState returnState :
-          AbstractStates.filterLocations(reached, innerSubtree.getReturnNodes())) {
+      FluentIterable<AbstractState> blockExitStates =
+          AbstractStates.filterLocations(reached, innerSubtree.getReturnNodes());
+      for (AbstractState returnState : blockExitStates) {
         if (((ARGState)returnState).getChildren().isEmpty()) {
           returnStates.add(returnState);
         }
       }
-      Set<AbstractState> exitableStates = from(reached).filter(s ->
-           AbstractStates.extractStateByType(s, UsageExitableState.class) != null).toSet();
+      Set<AbstractState> exitableStates = from(reached)
+          .filter(s -> s instanceof Exitable)
+          .filter(s -> ((Exitable)s).isExitState())
+          .toSet();
       for (AbstractState returnState : exitableStates) {
         returnStates.add(returnState);
+      }
+      if (blockExitStates.isEmpty()) {
+        //infinite loop
+        AbstractState randomState = reached.getLastState();
+        if (updateExitState(randomState)) {
+          returnStates.add(randomState);
+        }
       }
     }
 
@@ -676,5 +688,16 @@ public class BAMTransferRelation implements TransferRelation {
 
   public Multimap<AbstractState, AbstractState> getMapFromReducedToExpand() {
     return multiReducedToExpand;
+  }
+
+  private boolean updateExitState(AbstractState state) {
+    UsageState usageState = UsageState.get(state);
+    if (usageState != null) {
+      usageState.asExitable();
+      assert ((Exitable)state).isExitState();
+      return true;
+    } else {
+      return false;
+    }
   }
 }

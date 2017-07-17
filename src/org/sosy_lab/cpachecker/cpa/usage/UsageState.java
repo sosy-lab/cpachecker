@@ -36,8 +36,6 @@ import java.util.Objects;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Exitable;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
@@ -52,9 +50,9 @@ import org.sosy_lab.cpachecker.util.identifiers.Identifiers;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 /**
- * Represents one abstract state of the UsageStatistics CPA.
+ * Represents one abstract state of the Usage CPA.
  */
-public class UsageState extends AbstractSingleWrapperState implements Targetable {
+public class UsageState extends AbstractSingleWrapperState {
   /* Boilerplate code to avoid serializing this class */
 
   private static final long serialVersionUID = -898577877284268426L;
@@ -64,6 +62,8 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
   private final FunctionContainer functionContainer;
   private final StateStatistics stats;
 
+  private boolean isExitState;
+
   private final Map<AbstractIdentifier, AbstractIdentifier> variableBindingRelation;
 
   private UsageState(final AbstractState pWrappedElement
@@ -72,7 +72,8 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
       , final UsageContainer pContainer
       , final boolean pCloned
       , final FunctionContainer pFuncContainer
-      , final StateStatistics pStats) {
+      , final StateStatistics pStats
+      , boolean exit) {
     super(pWrappedElement);
     variableBindingRelation = pVarBind;
     recentUsages = pRecentUsages;
@@ -80,24 +81,19 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     isStorageCloned = pCloned;
     functionContainer = pFuncContainer;
     stats = pStats;
+    isExitState = exit;
   }
 
   public static UsageState createInitialState(final AbstractState pWrappedElement
       , final UsageContainer pContainer) {
     FunctionContainer initialContainer = FunctionContainer.createInitialContainer();
     return new UsageState(pWrappedElement, new HashMap<>(), new TemporaryUsageStorage(),
-        pContainer, true, initialContainer, new StateStatistics(initialContainer.getStatistics()));
+        pContainer, true, initialContainer, new StateStatistics(initialContainer.getStatistics()), false);
   }
 
   private UsageState(final AbstractState pWrappedElement, final UsageState state) {
     this(pWrappedElement, new HashMap<>(state.variableBindingRelation), state.recentUsages,
-        state.globalContainer, false, state.functionContainer, state.stats);
-  }
-
-  private UsageState(final AbstractState pWrappedElement, final UsageContainer pContainer,
-      final StateStatistics pStats, final FunctionContainer pFuncContainer) {
-    this(pWrappedElement, new HashMap<>(), new TemporaryUsageStorage(),
-        pContainer, true, pFuncContainer, pStats);
+        state.globalContainer, false, state.functionContainer, state.stats, state.isExitState);
   }
 
   public boolean containsLinks(final AbstractIdentifier id) {
@@ -247,7 +243,7 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     }
 
     return new UsageState(wrappedState, new HashMap<>(), recentUsages.clone(),
-        this.globalContainer, true, functionContainer.clone(difference), this.stats);
+        this.globalContainer, true, functionContainer.clone(difference), this.stats, this.isExitState);
   }
 
   public UsageContainer getContainer() {
@@ -270,15 +266,21 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     globalContainer.addNewUsagesIfNecessary(functionContainer);
   }
 
-  public UsageState asExitable() {
-    return new UsageExitableState(this);
+  public void asExitable() {
+    //return new UsageExitableState(this);
+    isExitState = true;
   }
 
   public StateStatistics getStatistics() {
     return stats;
   }
 
-  public class UsageExitableState extends UsageState implements Exitable {
+  @Override
+  public boolean isExitState() {
+    return isExitState;
+  }
+
+  /*public class UsageExitableState extends UsageState {
 
     private static final long serialVersionUID = 1957118246209506994L;
 
@@ -299,7 +301,11 @@ public class UsageState extends AbstractSingleWrapperState implements Targetable
     public UsageExitableState reduce(final AbstractState wrapped) {
       return new UsageExitableState(wrapped, this);
     }
-  }
+
+    public boolean isExitable() {
+      return true;
+    }
+  }*/
 
   public static class StateStatistics {
     private Timer expandTimer = new Timer();

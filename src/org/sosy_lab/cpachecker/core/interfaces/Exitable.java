@@ -25,5 +25,5 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 
 public interface Exitable {
-
+  default public boolean isExitState() { return false; }
 }

@@ -27,10 +27,8 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Exitable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.cpa.usage.UsageState.UsageExitableState;
 
 public class UsageReducer implements Reducer {
   private final Reducer wrappedReducer;
@@ -55,7 +53,7 @@ public class UsageReducer implements Reducer {
     UsageState funRootState = (UsageState)pRootElement;
     UsageState funReducedState = (UsageState)pReducedElement;
     AbstractState exp;
-    if (!(funReducedState instanceof UsageExitableState)) {
+    if (!funReducedState.isExitState()) {
       exp = wrappedReducer.getVariableExpandedState(funRootState.getWrappedState(), pReducedContext, outerSubtree, funReducedState.getWrappedState());
     } else {
       //Predicate analysis can not expand a random state - only abstract ones,
@@ -64,8 +62,8 @@ public class UsageReducer implements Reducer {
     }
     UsageState result = funRootState.clone(exp);
     result.joinContainerFrom(funReducedState);
-    if (funReducedState instanceof Exitable) {
-      return result.asExitable();
+    if (funReducedState.isExitState()) {
+      result.asExitable();
     }
     return result;
   }
@@ -88,8 +86,8 @@ public class UsageReducer implements Reducer {
 
     UsageState result = funRootState.clone(exp);
     result.joinContainerFrom(funReducedState);
-    if (funReducedState instanceof Exitable) {
-      return result.asExitable();
+    if (funReducedState.isExitState()) {
+      result.asExitable();
     }
     return result;
   }

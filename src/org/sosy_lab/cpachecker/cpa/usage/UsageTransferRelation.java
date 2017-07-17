@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Exitable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -160,8 +159,9 @@ public class UsageTransferRelation implements TransferRelation {
     statistics.transferRelationTimer.start();
     Collection<AbstractState> result = new ArrayList<>();
     CFAEdge currentEdge = pCfaEdge;
+    UsageState oldState = (UsageState) pState;
 
-    if (pState instanceof Exitable) {
+    if (oldState.isExitState()) {
       statistics.transferRelationTimer.stop();
       return Collections.emptySet();
     }
@@ -185,7 +185,6 @@ public class UsageTransferRelation implements TransferRelation {
       }
     }
 
-    UsageState oldState = (UsageState) pState;
     AbstractState oldWrappedState = oldState.getWrappedState();
     newState = oldState.clone();
     precision = (UsagePrecision)pPrecision;
@@ -337,7 +336,7 @@ public class UsageTransferRelation implements TransferRelation {
       }
 
     } else if (abortfunctions.contains(functionCallName)) {
-      newState = newState.asExitable();
+      newState.asExitable();
     } else {
       fcExpression.getParameterExpressions().forEach(p -> visitStatement(p, Access.READ));
     }

@@ -31,22 +31,21 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
-
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.Exitable;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-
 public class CompositeState
-    implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable, Serializable,
+    implements AbstractWrapperState, Targetable, Exitable, Partitionable, PseudoPartitionable, Serializable,
         Graphable {
   private static final long serialVersionUID = -5143296331663510680L;
   private final ImmutableList<AbstractState> states;
@@ -66,6 +65,16 @@ public class CompositeState
   public boolean isTarget() {
     for (AbstractState element : states) {
       if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public boolean isExitState() {
+    for (AbstractState element : states) {
+      if ((element instanceof Exitable) && ((Exitable)element).isExitState()) {
         return true;
       }
     }

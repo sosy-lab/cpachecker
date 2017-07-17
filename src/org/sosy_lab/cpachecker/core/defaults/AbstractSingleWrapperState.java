@@ -27,25 +27,23 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-
+import java.io.Serializable;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
+import org.sosy_lab.cpachecker.core.interfaces.Exitable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-
-import java.io.Serializable;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 /**
  * Base class for AbstractStates which wrap the abstract state of exactly
  * one CPA.
  */
 public abstract class AbstractSingleWrapperState
-    implements AbstractWrapperState, Targetable, Partitionable, PseudoPartitionable, Serializable {
+    implements AbstractWrapperState, Targetable, Exitable, Partitionable, PseudoPartitionable, Serializable {
 
   private static final long serialVersionUID = -332757795984736107L;
 
@@ -69,6 +67,15 @@ public abstract class AbstractSingleWrapperState
   public boolean isTarget() {
     if (wrappedState instanceof Targetable) {
       return ((Targetable)wrappedState).isTarget();
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public boolean isExitState() {
+    if (wrappedState instanceof Exitable) {
+      return ((Exitable)wrappedState).isExitState();
     } else {
       return false;
     }
