@@ -105,6 +105,10 @@ public class ThreadLabel implements Comparable<ThreadLabel> {
     return status == LabelStatus.PARENT_THREAD;
   }
 
+  public boolean isCreatedThread() {
+    return status == LabelStatus.CREATED_THREAD;
+  }
+
   public ThreadLabel toSelfParallelLabel() {
     return new ThreadLabel(threadName, varName, LabelStatus.SELF_PARALLEL_THREAD);
   }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.thread;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
@@ -124,6 +125,16 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
     callstack = c;
     threadSet = ImmutableList.copyOf(Tset);
     removedSet = Rset == null ? null : ImmutableList.copyOf(Rset);
+  }
+
+  public String getCurrentThreadName() {
+    //Info method, in difficult cases may be wrong
+    Optional<ThreadLabel> createdThread = from(threadSet).firstMatch(l -> l.isCreatedThread());
+    if (createdThread.isPresent()) {
+      return createdThread.get().getName();
+    } else {
+      return "";
+    }
   }
 
   @Override
