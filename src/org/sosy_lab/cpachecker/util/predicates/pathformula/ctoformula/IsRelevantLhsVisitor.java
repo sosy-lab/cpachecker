@@ -83,6 +83,9 @@ public class IsRelevantLhsVisitor extends DefaultCExpressionVisitor<Boolean, Run
     if (!e.getFieldOwner().accept(this)) {
       return false;
     }
+    if (havocAbstraction && e.isPointerDereference()) {
+      return false;
+    }
     CType fieldOwnerType = e.getFieldOwner().getExpressionType().getCanonicalType();
     if (fieldOwnerType instanceof CPointerType) {
       fieldOwnerType = ((CPointerType) fieldOwnerType).getType();
