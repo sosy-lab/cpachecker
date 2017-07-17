@@ -86,7 +86,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     public Integer next() {
       int nextThread = currentThread + 1;
       while (usedThreadIds.contains(nextThread)) {
-        nextThread = currentThread + 1;
+        nextThread++;
       }
       currentThread = nextThread;
       usedThreadIds.add(Integer.valueOf(nextThread));
@@ -127,9 +127,11 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     List<CFAEdge> firstPath, secondPath;
 
     firstPath = getPath(firstUsage);
+    if (firstPath == null) {
+      return;
+    }
     secondPath = getPath(secondUsage);
-
-    if (firstPath == null || secondPath == null) {
+    if (secondPath == null) {
       return;
     }
     try {
