@@ -339,7 +339,8 @@ public class BDDVectorCExpressionVisitor
       case AMPER: // valid expression, but it's a pointer value
         // TODO Not precise enough
         return getSizeof(unaryOperand.getExpressionType());
-      case TILDE:
+      case TILDE: // ~X == (X===0)
+        return bvmgr.makeBinaryEqual(bvmgr.makeNumber(BigInteger.ZERO, value.length), value);
       default:
         // TODO handle unimplemented operators
         return null;
