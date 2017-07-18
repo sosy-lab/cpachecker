@@ -24,10 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import com.google.common.collect.ImmutableList;
-
+import java.math.BigInteger;
+import java.util.Collection;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -35,8 +39,7 @@ import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
-import java.math.BigInteger;
-
+@RunWith(Parameterized.class)
 public class BitvectorManagerTest {
 
   private LogManager logger;
@@ -46,8 +49,28 @@ public class BitvectorManagerTest {
   private Region[] zero;
   private Region[] one;
   private Region[] two;
+  private Region[] n5;
+  private Region[] n7;
   private Region[] n15;
+  private Region[] n16;
+  private Region[] neg1;
+  private Region[] neg3;
+  private Region[] neg5;
+  private Region[] neg25;
+  private Region[] neg35;
 
+  private ImmutableList<Region[]> numbers;
+
+  private int bitsize;
+
+  @Parameters
+  public static Collection<Integer> bitsize() {
+    return ImmutableList.of(4, 5, 6, 8, 10, 12, 16, 32);
+  }
+
+  public BitvectorManagerTest(int pBitsize) {
+    bitsize = pBitsize;
+  }
 
   @Before
   public void init() throws InvalidConfigurationException {
@@ -57,10 +80,20 @@ public class BitvectorManagerTest {
     rmgr = new BDDManagerFactory(config, logger).createRegionManager();
     bvmgr = new BitvectorManager(rmgr);
 
-    zero = bvmgr.makeNumber(BigInteger.ZERO, 4);
-    one = bvmgr.makeNumber(BigInteger.ONE, 4);
-    two = bvmgr.makeNumber(BigInteger.valueOf(2), 4);
-    n15 = bvmgr.makeNumber(BigInteger.valueOf(15), 4);
+    zero = bvmgr.makeNumber(BigInteger.ZERO, bitsize);
+    one = bvmgr.makeNumber(BigInteger.ONE, bitsize);
+    two = bvmgr.makeNumber(BigInteger.valueOf(2), bitsize);
+    n5 = bvmgr.makeNumber(BigInteger.valueOf(5), bitsize);
+    n7 = bvmgr.makeNumber(BigInteger.valueOf(7), bitsize);
+    n15 = bvmgr.makeNumber(BigInteger.valueOf(15), bitsize);
+    n16 = bvmgr.makeNumber(BigInteger.valueOf(16), bitsize);
+    neg1 = bvmgr.makeNumber(BigInteger.valueOf(-1), bitsize);
+    neg3 = bvmgr.makeNumber(BigInteger.valueOf(-3), bitsize);
+    neg5 = bvmgr.makeNumber(BigInteger.valueOf(-5), bitsize);
+    neg25 = bvmgr.makeNumber(BigInteger.valueOf(-25), bitsize);
+    neg35 = bvmgr.makeNumber(BigInteger.valueOf(-35), bitsize);
+
+    numbers = ImmutableList.of(zero, one, two, n5, n7, n15, n16, neg1, neg3, neg5, neg25, neg35);
   }
 
   private void assertIsTrue(Region r) {
@@ -69,7 +102,6 @@ public class BitvectorManagerTest {
 
   private void assertIsFalse(Region r) {
     Assert.assertTrue(r.isFalse());
-
   }
 
   private void assertEqual(Region[] r1, Region[] r2) {
@@ -89,13 +121,13 @@ public class BitvectorManagerTest {
   @Test
   public void selfTest() {
     assertDistinct(zero, one);
-    assertDistinct(n15, one);
+    assertDistinct(neg1, one);
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < bitsize; i++) {
       assertIsFalse(zero[i]);
     }
     assertIsTrue(one[0]);
-    for (int i = 1; i < 4; i++) {
+    for (int i = 1; i < bitsize; i++) {
       assertIsFalse(one[i]);
     }
   }
@@ -107,41 +139,28 @@ public class BitvectorManagerTest {
 
   @Test
   public void addsub() {
-    assertEqual(zero, bvmgr.makeAdd(zero, zero));
     assertEqual(one, bvmgr.makeAdd(zero, one));
     assertEqual(two, bvmgr.makeAdd(one, one));
-    assertEqual(two, bvmgr.makeAdd(two, zero));
+    assertEqual(two, bvmgr.makeSub(neg3, neg5));
+    assertEqual(neg5, bvmgr.makeSub(neg3, two));
 
-    assertEqual(one, bvmgr.makeSub(one, zero));
-    assertEqual(two, bvmgr.makeSub(two, zero));
-    assertEqual(n15, bvmgr.makeSub(n15, zero));
-
-    assertEqual(zero, bvmgr.makeSub(zero, zero));
-    assertEqual(zero, bvmgr.makeSub(one, one));
-    assertEqual(zero, bvmgr.makeSub(n15, n15));
-
-    assertEqual(two, bvmgr.makeSub(two, zero));
-    assertEqual(n15, bvmgr.makeSub(n15, zero));
-
-    for (Region[] n : ImmutableList.of(zero, one, two, n15)) {
-      assertEqual(zero, bvmgr.makeSub(bvmgr.makeAdd(zero, n), n));
-      assertEqual(one, bvmgr.makeSub(bvmgr.makeAdd(one, n), n));
-      assertEqual(n15, bvmgr.makeSub(bvmgr.makeAdd(n15, n), n));
-
-      assertEqual(zero, bvmgr.makeSub(bvmgr.makeAdd(zero, n), n));
-      assertEqual(one, bvmgr.makeSub(bvmgr.makeAdd(one, n), n));
-      assertEqual(n15, bvmgr.makeSub(bvmgr.makeAdd(n15, n), n));
-
-      assertEqual(zero, bvmgr.makeAdd(bvmgr.makeSub(zero, n), n));
-      assertEqual(one, bvmgr.makeAdd(bvmgr.makeSub(one, n), n));
-      assertEqual(n15, bvmgr.makeAdd(bvmgr.makeSub(n15, n), n));
+    for (Region[] m : numbers) {
+      assertEqual(m, bvmgr.makeAdd(m, zero));
+      assertEqual(zero, bvmgr.makeSub(m, m));
+      for (Region[] n : numbers) {
+        assertEqual(m, bvmgr.makeSub(bvmgr.makeAdd(m, n), n));
+        assertEqual(m, bvmgr.makeSub(bvmgr.makeAdd(n, m), n));
+        assertEqual(m, bvmgr.makeAdd(bvmgr.makeSub(m, n), n));
+        assertEqual(m, bvmgr.makeAdd(n, bvmgr.makeSub(m, n)));
+      }
     }
   }
 
   @Test
   public void bool() {
-    assertIsFalse(bvmgr.makeNot(one));
-    assertIsFalse(bvmgr.makeNot(two));
+    for (Region[] n : ImmutableList.of(one, two, n15, neg1, neg3, neg5)) {
+      assertIsFalse(bvmgr.makeNot(n));
+    }
     assertIsTrue(bvmgr.makeNot(zero));
 
     assertEqual(zero, bvmgr.makeBinaryAnd(one, two));
@@ -157,66 +176,82 @@ public class BitvectorManagerTest {
     assertEqual(bvmgr.makeXor(one, zero), one);
   }
 
+  /** compares operands modulo 16 */
+  private void assertEqualwithLen4(Region[] a, Region[] b) {
+    assertEqual(bvmgr.toBitsize(4, true, a), bvmgr.toBitsize(4, true, b));
+  }
+
   @Test
   public void signedLen4() {
-    assertEqual(zero, bvmgr.makeAdd(n15, one));
-    assertEqual(one, bvmgr.makeAdd(n15, two));
+    assert bitsize >= 4 : "test is designed for a minimal bitsize of 4";
 
-    assertEqual(n15, bvmgr.makeSub(zero, one));
-    assertEqual(n15, bvmgr.makeSub(one, two));
+    assertEqualwithLen4(zero, bvmgr.makeAdd(neg1, one));
+    assertEqualwithLen4(one, bvmgr.makeAdd(neg1, two));
+
+    assertEqualwithLen4(neg1, bvmgr.makeSub(zero, one));
+    assertEqualwithLen4(neg1, bvmgr.makeSub(one, two));
+
+    assertEqualwithLen4(neg1, n15);
 
     Region[] sum = one;
     for (int i = 0; i < 4; i++) {
       sum = bvmgr.makeAdd(sum, sum);
     }
-    assertEqual(zero, sum); // 0 == 16 == 1*2*2*2*2
+    assertEqualwithLen4(zero, sum); // 0 == 16 == 1*2*2*2*2 modulo 16
   }
 
   @Test
   public void lessSigned() {
+    for (Region[] n : numbers) {
+      assertIsFalse(bvmgr.makeLess(n, n, true));
+    }
+
     assertIsFalse(bvmgr.makeLess(one, zero, true));
     assertIsTrue(bvmgr.makeLess(zero, one, true));
-    assertIsFalse(bvmgr.makeLess(zero, zero, true));
-    assertIsFalse(bvmgr.makeLess(two, two, true));
 
-    assertIsTrue(bvmgr.makeLess(n15, zero, true));
-    assertIsFalse(bvmgr.makeLess(zero, n15, true));
-    assertIsFalse(bvmgr.makeLess(n15, n15, true));
+    assertIsTrue(bvmgr.makeLess(neg1, zero, true));
+    assertIsFalse(bvmgr.makeLess(zero, neg1, true));
   }
 
   @Test
   public void lessUnsigned() {
+    for (Region[] n : numbers) {
+      assertIsFalse(bvmgr.makeLess(n, n, false));
+    }
+
     assertIsFalse(bvmgr.makeLess(one, zero, false));
     assertIsTrue(bvmgr.makeLess(zero, one, false));
-    assertIsFalse(bvmgr.makeLess(zero, zero, false));
-    assertIsFalse(bvmgr.makeLess(two, two, false));
+    assertIsTrue(bvmgr.makeLess(zero, two, false));
+    assertIsTrue(bvmgr.makeLess(zero, n5, false));
+    assertIsTrue(bvmgr.makeLess(zero, n7, false));
 
-    assertIsFalse(bvmgr.makeLess(n15, zero, false));
-    assertIsTrue(bvmgr.makeLess(zero, n15, false));
-    assertIsFalse(bvmgr.makeLess(n15, n15, false));
+    assertIsFalse(bvmgr.makeLess(neg1, zero, false));
+    assertIsTrue(bvmgr.makeLess(zero, neg1, false));
   }
 
   @Test
   public void lessOrEqualSigned() {
+    for (Region[] n : numbers) {
+      assertIsTrue(bvmgr.makeLessOrEqual(n, n, true));
+    }
+
     assertIsFalse(bvmgr.makeLessOrEqual(one, zero, true));
     assertIsTrue(bvmgr.makeLessOrEqual(zero, one, true));
-    assertIsTrue(bvmgr.makeLessOrEqual(zero, zero, true));
-    assertIsTrue(bvmgr.makeLessOrEqual(two, two, true));
 
-    assertIsTrue(bvmgr.makeLessOrEqual(n15, zero, true));
-    assertIsFalse(bvmgr.makeLessOrEqual(zero, n15, true));
-    assertIsTrue(bvmgr.makeLessOrEqual(n15, n15, true));
+    assertIsTrue(bvmgr.makeLessOrEqual(neg1, zero, true));
+    assertIsFalse(bvmgr.makeLessOrEqual(zero, neg1, true));
   }
 
   @Test
   public void lessOrEqualUnsigned() {
+    for (Region[] n : numbers) {
+      assertIsTrue(bvmgr.makeLessOrEqual(n, n, false));
+    }
+
     assertIsFalse(bvmgr.makeLessOrEqual(one, zero, false));
     assertIsTrue(bvmgr.makeLessOrEqual(zero, one, false));
-    assertIsTrue(bvmgr.makeLessOrEqual(zero, zero, false));
-    assertIsTrue(bvmgr.makeLessOrEqual(two, two, false));
 
-    assertIsFalse(bvmgr.makeLessOrEqual(n15, zero, false));
-    assertIsTrue(bvmgr.makeLessOrEqual(zero, n15, false));
-    assertIsTrue(bvmgr.makeLessOrEqual(n15, n15, false));
+    assertIsFalse(bvmgr.makeLessOrEqual(neg1, zero, false));
+    assertIsTrue(bvmgr.makeLessOrEqual(zero, neg1, false));
   }
 }
