@@ -106,7 +106,7 @@ public class BitvectorManagerTest {
 
   private void assertEqual(Region[] r1, Region[] r2) {
     Assert.assertTrue(r1.length == r2.length);
-    Assert.assertArrayEquals(r1, r2);
+    Assert.assertArrayEquals(toString(r1) + " != " + toString(r2), r1, r2);
   }
 
   private void assertDistinct(Region[] r1, Region[] r2) {
@@ -253,5 +253,14 @@ public class BitvectorManagerTest {
 
     assertIsFalse(bvmgr.makeLessOrEqual(neg1, zero, false));
     assertIsTrue(bvmgr.makeLessOrEqual(zero, neg1, false));
+  }
+
+  private static String toString(Region[] r) {
+    StringBuilder str = new StringBuilder("[ ");
+    for (int i = r.length - 1; i >= 0; i--) {
+      Region bit = r[i];
+      str.append(bit.isFalse() ? "0" : (bit.isTrue() ? "1" : bit));
+    }
+    return str.append(" ]").toString();
   }
 }
