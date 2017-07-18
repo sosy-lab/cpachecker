@@ -60,6 +60,7 @@ public class BitvectorManagerTest {
   private Region[] neg35;
 
   private ImmutableList<Region[]> numbers;
+  private ImmutableList<Region[]> numbersNotZero;
 
   private int bitsize;
 
@@ -94,6 +95,7 @@ public class BitvectorManagerTest {
     neg35 = bvmgr.makeNumber(BigInteger.valueOf(-35), bitsize);
 
     numbers = ImmutableList.of(zero, one, two, n5, n7, n15, n16, neg1, neg3, neg5, neg25, neg35);
+    numbersNotZero = ImmutableList.of(one, two, n5, n7, n15, neg1, neg3, neg5);
   }
 
   private void assertIsTrue(Region r) {
@@ -158,7 +160,7 @@ public class BitvectorManagerTest {
 
   @Test
   public void bool() {
-    for (Region[] n : ImmutableList.of(one, two, n15, neg1, neg3, neg5)) {
+    for (Region[] n : ImmutableList.of(one, two, n5, n7, n15, neg1, neg3, neg5)) {
       assertIsFalse(bvmgr.makeNot(n));
     }
     assertIsTrue(bvmgr.makeNot(zero));
@@ -308,10 +310,95 @@ public class BitvectorManagerTest {
     assertEqual(n15, bvmgr.makeMult(neg3, neg5));
     assertEqual(n15, bvmgr.makeMult(neg5, neg3));
 
-    assertEqual(bvmgr.makeMult(bvmgr.makeSub(zero, one), neg25), bvmgr.makeMult(neg5, neg5));
+    assertEqual(bvmgr.makeMult(neg1, neg25), bvmgr.makeMult(neg5, neg5));
 
     assertEqual(neg35, bvmgr.makeMult(neg5, n7));
     assertEqual(neg35, bvmgr.makeMult(n7, neg5));
+  }
+
+  @Test
+  public void divSigned() {
+    for (Region[] n : numbersNotZero) {
+      assertEqual(zero, bvmgr.makeDiv(zero, n, true));
+      assertEqual(n, bvmgr.makeDiv(n, one, true));
+      assertEqual(bvmgr.makeMult(neg1, n), bvmgr.makeDiv(n, neg1, true));
+    }
+
+    assertEqual(zero, bvmgr.makeDiv(two, neg3, true));
+    assertEqual(neg1, bvmgr.makeDiv(bvmgr.makeAdd(two, two), neg3, true));
+    assertEqual(zero, bvmgr.makeDiv(bvmgr.makeAdd(two, two), neg5, true));
+    assertEqual(two, bvmgr.makeDiv(bvmgr.makeAdd(two, two), two, true));
+    if (bitsize > 6) {
+      assertEqual(neg3, bvmgr.makeDiv(n15, neg5, true));
+      assertEqual(neg5, bvmgr.makeDiv(n15, neg3, true));
+      assertEqual(neg5, bvmgr.makeDiv(neg25, n5, true));
+      assertEqual(n5, bvmgr.makeDiv(neg25, neg5, true));
+      assertEqual(n7, bvmgr.makeDiv(neg35, neg5, true));
+    }
+  }
+
+  @Test
+  public void divUnsigned() {
+    for (Region[] n : numbersNotZero) {
+      assertEqual(zero, bvmgr.makeDiv(zero, n, false));
+      assertEqual(n, bvmgr.makeDiv(n, one, false));
+    }
+
+    assertEqual(zero, bvmgr.makeDiv(two, neg3, false));
+    assertEqual(zero, bvmgr.makeDiv(bvmgr.makeAdd(two, two), neg5, false));
+    assertEqual(two, bvmgr.makeDiv(bvmgr.makeAdd(two, two), two, false));
+  }
+
+  /** check some special values that are more or less undefined by the C99 standard. */
+  @Test
+  public void divModSpecial() {
+    assertEqual(neg1, bvmgr.makeDiv(n5, zero, false));
+    assertEqual(neg1, bvmgr.makeDiv(n5, zero, true));
+    assertEqual(n5, bvmgr.makeMod(n5, zero, false));
+    assertEqual(n5, bvmgr.makeMod(n5, zero, true));
+
+    assertEqual(neg1, bvmgr.makeDiv(neg5, zero, false));
+    assertEqual(one, bvmgr.makeDiv(neg5, zero, true));
+    assertEqual(neg5, bvmgr.makeMod(neg5, zero, false));
+    assertEqual(neg5, bvmgr.makeMod(neg5, zero, true));
+
+    final Region[] big = bvmgr.makeNumber(1 << (bitsize - 1), bitsize);
+
+    assertEqual(neg1, bvmgr.makeDiv(big, zero, false));
+    assertEqual(one, bvmgr.makeDiv(big, zero, true));
+    assertEqual(big, bvmgr.makeMod(big, zero, false));
+    assertEqual(big, bvmgr.makeMod(big, zero, true));
+
+    assertEqual(zero, bvmgr.makeDiv(big, neg1, false));
+    assertEqual(big, bvmgr.makeDiv(big, neg1, true));
+    assertEqual(big, bvmgr.makeMod(big, neg1, false));
+    assertEqual(zero, bvmgr.makeMod(big, neg1, true));
+  }
+
+  @Test
+  public void modSigned() {
+    for (Region[] n : numbersNotZero) {
+      assertEqual(zero, bvmgr.makeMod(n, n, true));
+      assertEqual(zero, bvmgr.makeMod(zero, n, true));
+      assertEqual(zero, bvmgr.makeMod(n, one, true));
+    }
+    if (bitsize > 6) {
+      assertEqual(zero, bvmgr.makeMod(neg25, n5, true));
+      assertEqual(zero, bvmgr.makeMod(neg35, n5, true));
+      assertEqual(zero, bvmgr.makeMod(neg25, neg5, true));
+      assertEqual(zero, bvmgr.makeMod(neg35, neg5, true));
+    }
+  }
+
+  @Test
+  public void modUnsigned() {
+    for (Region[] n : numbersNotZero) {
+      assertEqual(zero, bvmgr.makeMod(n, n, false));
+      assertEqual(zero, bvmgr.makeMod(zero, n, false));
+      assertEqual(zero, bvmgr.makeMod(n, one, false));
+    }
+
+    assertEqual(zero, bvmgr.makeMod(bvmgr.makeAdd(two, two), two, false));
   }
 
   private static String toString(Region[] r) {

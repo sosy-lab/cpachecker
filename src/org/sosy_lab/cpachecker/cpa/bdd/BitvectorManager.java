@@ -27,6 +27,7 @@ import com.google.common.math.IntMath;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.Arrays;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
@@ -339,6 +340,96 @@ public class BitvectorManager {
     }
 
     return result;
+  }
+
+  /**
+   * returns the quotient of r1 and r2, rounded towards zero.
+   *
+   * Info:
+   * - division by zero returns 0001 if signed or positive else 1111 (undefined by C99 standard).
+   * - signed MIN_INT divided by -1 returns MIN_INT.
+   */
+  public Region[] makeDiv(final Region[] r1, final Region[] r2, final boolean signed) {
+    return makeDivMod(r1, r2, signed).getFirst();
+  }
+
+  /**
+   * returns the remainder of r1 and r2, with same sign as r1.
+   *
+   * Info:
+   * - modulo by zero returns r1 for signed and unsigned input (undefined by C99 standard).
+   * - signed MIN_INT modulo -1 returns zero.
+   */
+  public Region[] makeMod(final Region[] r1, final Region[] r2, final boolean signed) {
+    return makeDivMod(r1, r2, signed).getSecond();
+  }
+
+  private Pair<Region[], Region[]> makeDivMod(
+      final Region[] r1, final Region[] r2, final boolean signed) {
+    if (signed) {
+      final int bitsize = getBitSize(r1, r2);
+      final Region isDividendNegative = r1[bitsize - 1];
+      final Region isDivisorNegative = r2[bitsize - 1];
+
+      // make positive unsigned numbers
+      Region[] unsignedR1 = negateIf(isDividendNegative, r1);
+      Region[] unsignedR2 = negateIf(isDivisorNegative, r2);
+
+      Pair<Region[], Region[]> divMod = makeDivModUnsigned(unsignedR1, unsignedR2);
+
+      // make signed numbers
+      // C99: quotient is negative if exactly one of the operands is negative
+      Region[] quotient =
+          negateIf(rmgr.makeUnequal(isDividendNegative, isDivisorNegative), divMod.getFirst());
+      // C99: remainder has same sign as dividend
+      Region[] remainder = negateIf(isDividendNegative, divMod.getSecond());
+
+      return Pair.of(quotient, remainder);
+    } else {
+      return makeDivModUnsigned(r1, r2);
+    }
+  }
+
+  private Region[] negateIf(Region condition, Region[] r) {
+    final int bitsize = r.length;
+    final Region[] zero = makeNumber(0, bitsize);
+    Region[] neg = makeSub(zero, r);
+    Region[] result = new Region[bitsize];
+    for (int i = 0; i < bitsize; i++) {
+      result[i] = rmgr.makeIte(condition, neg[i], r[i]);
+    }
+    return result;
+  }
+
+  /** compute the quotient and remainder for two unsinged bit-vectors. */
+  private Pair<Region[], Region[]> makeDivModUnsigned(final Region[] r1, final Region[] r2) {
+    final int bitsize = getBitSize(r1, r2);
+
+    Region[] resultDiv = new Region[bitsize];
+    Region[] rest = new Region[bitsize];
+    Arrays.fill(rest, rmgr.makeFalse());
+
+    for (int pos = bitsize - 1; pos >= 0; pos--) {
+      // first update rest by adding right-most bit
+      Region[] shiftedRest = new Region[bitsize];
+      shiftedRest[0] = r1[pos];
+      for (int i = 1; i < bitsize; i++) {
+        shiftedRest[i] = rest[i - 1];
+      }
+
+      // then calculate new rest
+      Region less = makeLessOrEqual(r2, shiftedRest, false);
+      Region[] sub = makeSub(shiftedRest, r2);
+
+      Region[] tmp = new Region[bitsize];
+      for (int i = 0; i < bitsize; i++) {
+        tmp[i] = rmgr.makeIte(less, sub[i], shiftedRest[i]);
+      }
+      resultDiv[pos] = less;
+      rest = tmp;
+    }
+
+    return Pair.of(resultDiv, rest);
   }
 
   public Region[] wrapLast(final Region r, final int size) {
