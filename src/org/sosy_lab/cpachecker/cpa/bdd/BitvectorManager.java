@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
+import com.google.common.math.IntMath;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.Arrays;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -232,6 +234,64 @@ public class BitvectorManager {
     }
 
     return less;
+  }
+
+  /** 101101 << 011 --> 101000,
+   *
+   * We only use the lower bits of r2, thus r2 can be shorter than r1.
+   * We use r2 like a positive unsigned bit-vector. */
+  public Region[] makeShiftLeft(final Region[] r1, final Region[] r2) {
+    final int bitsize = r1.length;
+    final int shiftsize = IntMath.log2(bitsize, RoundingMode.FLOOR) + 1;
+
+    Region[] result = r1;
+    for (int pos = 0; pos < shiftsize; pos++) {
+      int shift = 1 << pos;
+      Region bit = r2[pos];
+      Region[] tmp = new Region[bitsize];
+
+      // fill lower bits
+      for (int i = 0; i < shift; i++) {
+        tmp[i] = rmgr.makeIte(bit, rmgr.makeFalse(), result[i]);
+      }
+      // fill higher bits
+      for (int i = shift; i < bitsize; i++) {
+        tmp[i] = rmgr.makeIte(bit, result[i - shift], result[i]);
+      }
+
+      result = tmp;
+    }
+
+    return result;
+  }
+
+  /** 101101 >> 011 --> signed ? 000101 : 111101,
+  *
+  * We only use the lower bits of r2, thus r2 can be shorter than r1.
+  * We use r2 like a positive unsigned bit-vector. */
+  public Region[] makeShiftRight(final Region[] r1, final Region[] r2, final boolean signed) {
+    final int bitsize = r1.length;
+    final int shiftsize = IntMath.log2(bitsize, RoundingMode.FLOOR) + 1;
+
+    Region[] result = r1;
+    for (int pos = 0; pos < shiftsize; pos++) {
+      int shift = 1 << pos;
+      Region bit = r2[pos];
+      Region[] tmp = new Region[bitsize];
+
+      // fill higher bits
+      for (int i = bitsize - 1; i >= bitsize - shift; i--) {
+        tmp[i] = rmgr.makeIte(bit, signed ? result[bitsize - 1] : rmgr.makeFalse(), result[i]);
+      }
+      // fill lower bits
+      for (int i = bitsize - shift - 1; i >= 0; i--) {
+        tmp[i] = rmgr.makeIte(bit, result[i + shift], result[i]);
+      }
+
+      result = tmp;
+    }
+
+    return result;
   }
 
   /**

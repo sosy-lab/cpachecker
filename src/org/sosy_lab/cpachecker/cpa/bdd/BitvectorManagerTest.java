@@ -256,6 +256,45 @@ public class BitvectorManagerTest {
   }
 
   @Test
+  public void shiftLeft() {
+    for (Region[] n : numbers) {
+      assertEqual(n, bvmgr.makeShiftLeft(n, zero));
+      assertEqual(zero, bvmgr.makeShiftLeft(zero, n));
+      Region[] twice = bvmgr.makeAdd(n, n);
+      assertEqual(twice, bvmgr.makeShiftLeft(n, one));
+      assertEqual(bvmgr.makeAdd(twice, twice), bvmgr.makeShiftLeft(n, two));
+    }
+
+    assertEqual(n16, bvmgr.makeShiftLeft(one, bvmgr.makeAdd(two, two)));
+  }
+
+  @Test
+  public void shiftRightUnsigned() {
+    for (Region[] n : numbers) {
+      assertEqual(n, bvmgr.makeShiftRight(n, zero, false));
+      assertEqual(zero, bvmgr.makeShiftRight(zero, n, false));
+    }
+
+    assertEqual(one, bvmgr.makeShiftRight(two, one, false));
+    assertEqual(one, bvmgr.makeShiftRight(n5, two, false));
+    assertEqual(one, bvmgr.makeShiftRight(n7, two, false));
+  }
+
+  @Test
+  public void shiftRightSigned() {
+    for (Region[] n : numbers) {
+      assertEqual(n, bvmgr.makeShiftRight(n, zero, true));
+      assertEqual(zero, bvmgr.makeShiftRight(zero, n, true));
+      Region[] minus1 = bvmgr.makeSub(zero, one);
+      assertEqual(minus1, bvmgr.makeShiftRight(minus1, n, true));
+    }
+
+    assertEqual(one, bvmgr.makeShiftRight(two, one, true));
+    assertEqual(one, bvmgr.makeShiftRight(n5, two, true));
+    assertEqual(one, bvmgr.makeShiftRight(n7, two, true));
+  }
+
+  @Test
   public void mult() {
     for (Region[] n : numbers) {
       assertEqual(zero, bvmgr.makeMult(n, zero));
