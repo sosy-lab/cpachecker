@@ -255,6 +255,26 @@ public class BitvectorManagerTest {
     assertIsTrue(bvmgr.makeLessOrEqual(zero, neg1, false));
   }
 
+  @Test
+  public void mult() {
+    for (Region[] n : numbers) {
+      assertEqual(zero, bvmgr.makeMult(n, zero));
+      assertEqual(zero, bvmgr.makeMult(zero, n));
+      assertEqual(n, bvmgr.makeMult(n, one));
+      assertEqual(n, bvmgr.makeMult(one, n));
+    }
+
+    assertEqual(n16, bvmgr.makeMult(bvmgr.makeMult(two, two), bvmgr.makeMult(two, two)));
+
+    assertEqual(n15, bvmgr.makeMult(neg3, neg5));
+    assertEqual(n15, bvmgr.makeMult(neg5, neg3));
+
+    assertEqual(bvmgr.makeMult(bvmgr.makeSub(zero, one), neg25), bvmgr.makeMult(neg5, neg5));
+
+    assertEqual(neg35, bvmgr.makeMult(neg5, n7));
+    assertEqual(neg35, bvmgr.makeMult(n7, neg5));
+  }
+
   private static String toString(Region[] r) {
     StringBuilder str = new StringBuilder("[ ");
     for (int i = r.length - 1; i >= 0; i--) {

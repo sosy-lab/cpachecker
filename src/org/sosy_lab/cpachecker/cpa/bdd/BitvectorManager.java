@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.bdd;
 
 import java.math.BigInteger;
-
+import java.util.Arrays;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 
@@ -175,6 +175,9 @@ public class BitvectorManager {
   public Region[] makeSub(Region[] r1, Region[] r2) {
     int bitsize = getBitSize(r1, r2);
 
+    // build the binary complement of the second operand (+5:0101 --> -5:1011) with two steps:
+    //   1) invert all bits: 0101<==>0000 --> 1010
+    //   2) add '1' by setting carrier to 'true'
     Region[] r2tmp = makeBinaryEqual(r2, makeNumber(BigInteger.ZERO, bitsize));
     Region carrier = rmgr.makeTrue();
     return fullAdder(r1, r2tmp, carrier);
@@ -229,6 +232,53 @@ public class BitvectorManager {
     }
 
     return less;
+  }
+
+  /**
+   * Simple multiplier circuit, 1101 * 0101 --> 0001, for -3*5 --> -15.
+   * Requires same input length and returns same output length.
+   *
+   * Strategy:
+   * The multiplication of AAAA (r1) and BBBB (r2) is done in a matrix.
+   * Upper- and lower-case C (line) is the multiplication of bits from A and B.
+   * Upper- and lower-case D (result) is the sum of rows.
+   * Lower-case c and d will be ignored and will not even be computed.
+   *
+   * <pre>
+   * AAAA x BBBB
+   * -----------
+   *        CCCC
+   *       cCCC
+   *      ccCC
+   *     cccC
+   * -----------
+   *    ddddDDDD
+   * </pre>
+   *
+   * Warning: depending on variable ordering, this operation can be exponentially expensive!
+   */
+  public Region[] makeMult(final Region[] r1, final Region[] r2) {
+    final int bitsize = getBitSize(r1, r2);
+
+    Region[] result = new Region[bitsize];
+    Arrays.fill(result, rmgr.makeFalse());
+
+    for (int row = 0; row < bitsize; row++) {
+
+      Region[] line = new Region[bitsize];
+      // left lower triangle
+      for (int i = 0; i < row; i++) {
+        line[i] = rmgr.makeFalse();
+      }
+      // multiplication of bits
+      for (int i = row; i < bitsize; i++) {
+        line[i] = rmgr.makeAnd(r1[row], r2[i - row]);
+      }
+
+      result = makeAdd(result, line);
+    }
+
+    return result;
   }
 
   public Region[] wrapLast(final Region r, final int size) {
