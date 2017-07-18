@@ -137,7 +137,7 @@ public class BDDVectorCExpressionVisitor
       case BINARY_OR:
       case BINARY_XOR: {
 
-        result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator);
+        result = arithmeticOperation(lVal, rVal, bvmgr, binaryOperator, calculationType);
         result = castCValue(result, binaryExpr.getExpressionType(), bvmgr, machineModel);
 
         break;
@@ -176,8 +176,17 @@ public class BDDVectorCExpressionVisitor
     return result;
   }
 
-  private static Region[] arithmeticOperation(final Region[] l, final Region[] r, final BitvectorManager bvmgr,
-                                              final BinaryOperator op) {
+  private static Region[] arithmeticOperation(
+      final Region[] l,
+      final Region[] r,
+      final BitvectorManager bvmgr,
+      final BinaryOperator op,
+      final CType calculationType) {
+
+    boolean signed = true;
+    if (calculationType instanceof CSimpleType) {
+      signed = !((CSimpleType) calculationType).isUnsigned();
+    }
 
     switch (op) {
       case PLUS:
@@ -185,16 +194,21 @@ public class BDDVectorCExpressionVisitor
       case MINUS:
         return bvmgr.makeSub(l, r);
       case DIVIDE:
+        // this would be working for constant numbers (2/3, x/3),
+        // however timeout for variables (a/b -> exponential bdd-size).
+        return bvmgr.makeDiv(l, r, signed);
       case MODULO:
+        // this would be working for constant numbers (2%3, x%3),
+        // however timeout for variables (a%b -> exponential bdd-size).
+        return bvmgr.makeMod(l, r, signed);
       case MULTIPLY:
-        // TODO implement multiplier circuit for Regions/BDDs?
-        // this would be working for constant numbers (2*3), however timeout for variables (a*b -> exponential bdd-size).
-        return null;
+        // this should be working for constant numbers (2*3, x*3),
+        // however timeout for variables (a*b -> exponential bdd-size).
+        return bvmgr.makeMult(l, r);
       case SHIFT_LEFT:
+        return bvmgr.makeShiftLeft(l, r);
       case SHIFT_RIGHT:
-        // TODO implement shift circuit? this should be easier than multiplier,
-        // because 'r' is smaller (max 64 for longlong), so many positions can be ignored
-        return null;
+        return bvmgr.makeShiftRight(l, r, signed);
       case BINARY_AND:
         return bvmgr.makeBinaryAnd(l, r);
       case BINARY_OR:
