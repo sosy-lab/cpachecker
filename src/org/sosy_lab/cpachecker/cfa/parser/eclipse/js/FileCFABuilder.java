@@ -33,13 +33,13 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
-class CFABuilder extends ASTVisitor {
+class FileCFABuilder extends ASTVisitor {
   private final Scope scope;
   private final LogManager logger;
   private final ASTConverter astConverter;
   private CFAFunctionBuilder builder;
 
-  CFABuilder(final Scope pScope, final LogManager pLogger) {
+  FileCFABuilder(final Scope pScope, final LogManager pLogger) {
     scope = pScope;
     logger = pLogger;
     astConverter = new ASTConverter(scope, logger);

@@ -101,7 +101,7 @@ class EclipseJavaScriptParser implements Parser {
   private ParseResult buildCFA(ASTNode ast, Scope pScope) throws JSParserException {
     cfaTimer.start();
 
-    CFABuilder builder = new CFABuilder(pScope, logger);
+    FileCFABuilder builder = new FileCFABuilder(pScope, logger);
     try {
       ast.accept(builder);
       return builder.createCFA();
