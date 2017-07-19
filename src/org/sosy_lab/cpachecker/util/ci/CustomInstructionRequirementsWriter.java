@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -88,8 +88,7 @@ public class CustomInstructionRequirementsWriter {
     Pair<List<String>, String> fakeSMTDesc = pACI.getFakeSMTDescription();
     List<String> set = removeDuplicates(convertedRequirements.getFirst().getFirst(), convertedRequirements.getSecond().getFirst(), fakeSMTDesc.getFirst());
 
-    try (Writer br =
-        MoreFiles.openOutputFile(fileTemplate.getFreshPath(), Charset.defaultCharset())) {
+    try (Writer br = IO.openOutputFile(fileTemplate.getFreshPath(), Charset.defaultCharset())) {
       for (String element : set) {
         br.write(element);
         br.write("\n");

@@ -27,26 +27,22 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.io.IOException;
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class PointerTargetSet implements Serializable {
@@ -284,26 +280,17 @@ public final class PointerTargetSet implements Serializable {
       List<Pair<String, DeferredAllocation>> deferredAllocations =
           Lists.newArrayList(pts.deferredAllocations);
       this.deferredAllocations = deferredAllocations;
-      Map<String, List<PointerTarget>> targets =
-          Maps.newHashMapWithExpectedSize(pts.targets.size());
-      for(Entry<String, PersistentList<PointerTarget>> entry : pts.targets.entrySet()) {
-        targets.put(entry.getKey(), new ArrayList<>(entry.getValue()));
-      }
-      this.targets = targets;
+      this.targets = new HashMap<>(Maps.transformValues(pts.targets, Lists::newArrayList));
     }
 
     private Object readResolve() {
-      Map<String, PersistentList<PointerTarget>> targets =
-          Maps.newHashMapWithExpectedSize(this.targets.size());
-      for (Entry<String, List<PointerTarget>> entry : this.targets.entrySet()) {
-        targets.put(entry.getKey(), PersistentLinkedList.copyOf(entry.getValue()));
-      }
       return new PointerTargetSet(
           bases,
           lastBase,
           fields,
           PersistentLinkedList.copyOf(deferredAllocations),
-          PathCopyingPersistentTreeMap.copyOf(targets));
+          PathCopyingPersistentTreeMap.copyOf(
+              Maps.transformValues(this.targets, PersistentLinkedList::copyOf)));
     }
   }
 }

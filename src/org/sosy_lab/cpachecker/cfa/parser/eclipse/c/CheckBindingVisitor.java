@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -60,9 +60,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
-
-import com.google.common.collect.Sets;
 
 /**
  * This class can traverse through an AST and log a warning for all undefined
@@ -177,6 +178,16 @@ class CheckBindingVisitor implements CRightHandSideVisitor<Void, CFAGenerationRu
   public Void visit(CFunctionCallExpression e) {
     if (e.getFunctionNameExpression() instanceof CIdExpression) {
       CIdExpression f = (CIdExpression) e.getFunctionNameExpression();
+      CType expressionType = f.getExpressionType().getCanonicalType();
+      assert expressionType instanceof CFunctionType
+              || (expressionType instanceof CPointerType
+                  && ((CPointerType) expressionType).getType() instanceof CFunctionType)
+          : "Invalid function call: Type of expression "
+              + f.getName()
+              + " in line "
+              + e.getFileLocation().getEndingLineNumber()
+              + " is not a valid function type (neither a plain function nor a function-pointer).";
+
       if (f.getDeclaration() == null) {
         if (!BuiltinFunctions.isBuiltinFunction(f.getName()) // GCC builtin functions
             && printedWarnings.add(f.getName())) {

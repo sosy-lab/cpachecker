@@ -32,25 +32,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
-
-import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.Optionals;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
-import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -66,8 +50,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.JSON;
+import org.sosy_lab.common.Optionals;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
+import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 @Options
 public class ReportGenerator {
@@ -129,14 +127,14 @@ public class ReportGenerator {
       return false;
     }
 
-    Iterable<CounterexampleInfo> counterExamples =
+    FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
             from(pReached)
                 .filter(IS_TARGET_STATE)
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 
-    if (!counterExamples.iterator().hasNext()) {
+    if (counterExamples.isEmpty()) {
       if (reportFile != null) {
         DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
         fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
@@ -171,7 +169,7 @@ public class ReportGenerator {
     try (BufferedReader template =
             Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
                 .openBufferedStream();
-        Writer report = MoreFiles.openOutputFile(reportPath, Charsets.UTF_8)) {
+        Writer report = IO.openOutputFile(reportPath, Charsets.UTF_8)) {
 
       String line;
       while (null != (line = template.readLine())) {

@@ -23,26 +23,23 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -50,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -105,25 +101,24 @@ public class CExpressionInvariantExporter {
       Path trimmedFilename = program.getFileName();
       if (trimmedFilename != null) {
         try (Writer output =
-            MoreFiles.openOutputFile(
+            IO.openOutputFile(
                 prefix.getPath(trimmedFilename.toString()), Charset.defaultCharset())) {
-          writeProgramWithInvariants(output, program.toString(), pReachedSet);
+          writeProgramWithInvariants(output, program, pReachedSet);
         }
       }
     }
   }
 
   private void writeProgramWithInvariants(
-      Appendable out, String filename, UnmodifiableReachedSet pReachedSet)
+      Appendable out, Path filename, UnmodifiableReachedSet pReachedSet)
       throws IOException, InterruptedException {
 
-    Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename);
+    Map<Integer, BooleanFormula> reporting = getInvariantsForFile(pReachedSet, filename.toString());
 
-    try (Stream<String> lines = Files.lines(Paths.get(filename))) {
-      int lineNo = 0;
-      Iterator<String> it = lines.iterator();
-      while (it.hasNext()) {
-        String line = it.next();
+    int lineNo = 0;
+    String line;
+    try (BufferedReader reader = Files.newBufferedReader(filename)) {
+      while ((line = reader.readLine()) != null) {
         Optional<String> invariant = getInvariantForLine(lineNo, reporting);
         if (invariant.isPresent()) {
           out.append("__VERIFIER_assume(")
@@ -165,13 +160,12 @@ public class CExpressionInvariantExporter {
       if (loc != null && loc.getNumEnteringEdges() > 0) {
         CFAEdge edge = loc.getEnteringEdge(0);
         FileLocation location = edge.getFileLocation();
-        FluentIterable<FormulaReportingState> reporting =
-            AbstractStates.asIterable(state).filter(FormulaReportingState.class);
 
-        if (location.getFileName().equals(filename) && !reporting.isEmpty()) {
-          BooleanFormula reported = bfmgr.and(
-              reporting.transform(s -> s.getFormulaApproximation(fmgr)).toList());
-          byState.put(location.getStartingLineInOrigin(), reported);
+        if (location.getFileName().equals(filename)) {
+          BooleanFormula reported = AbstractStates.extractReportedFormulas(fmgr, state);
+          if (!bfmgr.isTrue(reported)) {
+            byState.put(location.getStartingLineInOrigin(), reported);
+          }
         }
       }
     }

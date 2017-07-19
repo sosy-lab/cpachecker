@@ -28,7 +28,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -89,7 +89,7 @@ public class AssumptionAutomatonGenerator {
   public void writeAutomaton(final ARGState root, final List<ARGState> incompleteNodes) throws CPAException {
     assert(notCovered(incompleteNodes));
 
-    try (Writer w = MoreFiles.openOutputFile(assumptionsFile, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(assumptionsFile, Charset.defaultCharset())) {
       logger.log(Level.FINEST, "Write assumption automaton to file ", assumptionsFile);
       AssumptionCollectorAlgorithm.writeAutomaton(w, root, getAllAncestorsFor(incompleteNodes),
           new HashSet<AbstractState>(incompleteNodes), 0, true);

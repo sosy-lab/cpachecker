@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -349,10 +349,10 @@ public class CEXExporter {
 
       try {
         if (!pCompress) {
-          MoreFiles.writeFile(file, Charset.defaultCharset(), content);
+          IO.writeFile(file, Charset.defaultCharset(), content);
         } else {
           file = file.resolveSibling(file.getFileName() + ".gz");
-          MoreFiles.writeGZIPFile(file, Charset.defaultCharset(), content);
+          IO.writeGZIPFile(file, Charset.defaultCharset(), content);
         }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,

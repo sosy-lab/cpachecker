@@ -23,21 +23,21 @@
  */
 package org.sosy_lab.cpachecker.util.blocking;
 
-import static org.junit.Assert.*;
+import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import com.google.common.io.CharStreams;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
-import com.google.common.io.CharStreams;
 
 @SuppressWarnings("unused")
 public class BlockedCFAReducerTest {
@@ -56,7 +56,7 @@ public class BlockedCFAReducerTest {
     } catch (IOException e) {
       throw new AssertionError(e);
     }
-    assertTrue(sb.length() == 0);
+    assertThat(sb.toString()).isEmpty();
   }
 
   @Test
@@ -78,7 +78,7 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n4, n5);
     funct.addEdge(n5, exitNode);
 
-    assertEquals(reducer.applySequenceRule(funct), true);
+    assertTrue(reducer.applySequenceRule(funct));
     assertEquals(2, funct.getNumOfActiveNodes());
 
   }

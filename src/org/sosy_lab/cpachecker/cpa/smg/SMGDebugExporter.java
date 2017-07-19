@@ -30,7 +30,7 @@ public class SMGDebugExporter {
 //
 //    try {
 //      String dot = state.toDot(name, name);
-//      MoreFiles.writeFile(path, Charset.defaultCharset(), dot);
+//      IO.writeFile(path, Charset.defaultCharset(), dot);
 //    } catch (IOException e) {
 //
 //    }

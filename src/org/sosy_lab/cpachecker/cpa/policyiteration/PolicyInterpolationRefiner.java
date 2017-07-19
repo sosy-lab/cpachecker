@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 
+import static com.google.common.collect.ImmutableSet.toImmutableSet;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -35,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -253,11 +254,14 @@ public class PolicyInterpolationRefiner implements Refiner {
    * @return All instantiated variables mentioned in templates associated with {@code pState}.
    */
   private Set<String> getRelevantInstantiatedVars(PolicyAbstractedState pState) {
-    Set<String> usedVars = pState.getAbstraction().keySet().stream()
+    return pState
+        .getAbstraction()
+        .keySet()
+        .stream()
         .flatMap(t -> t.getLinearExpression().getMap().keySet().stream())
         .map(id -> id.getDeclaration().getQualifiedName())
-        .collect(Collectors.toSet());
-    return fmgr.instantiate(usedVars, pState.getSSA());
+        .map(var -> FormulaManagerView.instantiateVariableName(var, pState.getSSA()))
+        .collect(toImmutableSet());
   }
 
 

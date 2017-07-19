@@ -34,7 +34,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -249,7 +249,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S>
     result.append("}");
 
     try {
-      MoreFiles.writeFile(
+      IO.writeFile(
           file.getPath(refinementCounter, interpolationCounter), Charset.defaultCharset(), result);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write interpolation tree to file");

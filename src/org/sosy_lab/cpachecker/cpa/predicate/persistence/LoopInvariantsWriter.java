@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -102,7 +102,7 @@ public class LoopInvariantsWriter {
       return;
     }
 
-    try (Writer writer = MoreFiles.openOutputFile(invariantsFile, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(invariantsFile, Charset.defaultCharset())) {
       for (CFANode loc :
           from(cfa.getAllLoopHeads().get())
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
@@ -132,8 +132,7 @@ public class LoopInvariantsWriter {
     Set<String> uniqueDefs = new HashSet<>();
     StringBuilder asserts = new StringBuilder();
 
-    try (Writer writer =
-        MoreFiles.openOutputFile(invariantPrecisionsFile, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(invariantPrecisionsFile, Charset.defaultCharset())) {
       for (CFANode loc :
           from(cfa.getAllLoopHeads().get())
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {

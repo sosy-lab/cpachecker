@@ -22,7 +22,10 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Post-processing for the CFA that merges all loops into a large single loop,
- * introducing a separate variable that tracks the program counter.
+ * Post-processing for the CFA that merges all loops into a large single loop, introducing a
+ * separate variable that tracks the program counter.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;

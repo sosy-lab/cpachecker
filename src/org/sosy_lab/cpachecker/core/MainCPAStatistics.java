@@ -61,7 +61,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -326,7 +326,7 @@ class MainCPAStatistics implements Statistics {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (exportReachedSet && pOutputFile != null) {
-      try (Writer w = MoreFiles.openOutputFile(pOutputFile, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(pOutputFile, Charset.defaultCharset())) {
 
         if (writeDotFormat) {
 

@@ -133,12 +133,14 @@ public final class CEnumType implements CComplexType {
     private static final long serialVersionUID = -2526725372840523651L;
 
     private final @Nullable Long  value;
-    private CEnumType             enumType;
+    private @Nullable CEnumType enumType;
     private final String         qualifiedName;
 
-    public CEnumerator(final FileLocation pFileLocation,
-                          final String pName, final String pQualifiedName,
-        final Long pValue) {
+    public CEnumerator(
+        final FileLocation pFileLocation,
+        final String pName,
+        final String pQualifiedName,
+        final @Nullable Long pValue) {
       super(pFileLocation, CNumericTypes.SIGNED_INT, pName);
 
       checkNotNull(pName);

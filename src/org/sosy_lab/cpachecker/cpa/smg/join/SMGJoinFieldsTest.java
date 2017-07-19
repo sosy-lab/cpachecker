@@ -23,8 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.collect.Iterables;
+import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.collect.Iterables;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,11 +45,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 
 public class SMGJoinFieldsTest {
@@ -110,7 +110,7 @@ public class SMGJoinFieldsTest {
 
     SMGJoinFields join = new SMGJoinFields(smg1, smg2, obj1, obj2);
 
-    Assert.assertEquals(join.getStatus(), SMGJoinStatus.INCOMPARABLE);
+    assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
 
     Map<Integer, Pair<Integer, Integer>> fieldMap1 = new HashMap<>();
     Map<Integer, Pair<Integer, Integer>> fieldMap2 = new HashMap<>();
@@ -136,13 +136,13 @@ public class SMGJoinFieldsTest {
     SMGEdgeHasValueFilter filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
     Set<SMGEdgeHasValue> edges = pSmg.getHVEdges(filterOnSMG);
 
-    Assert.assertTrue(edges.size() == pFieldMap.keySet().size());
+    assertThat(edges).hasSize(pFieldMap.keySet().size());
 
     for (SMGEdgeHasValue edge : edges) {
 
       int offset = edge.getOffset();
 
-      Assert.assertTrue(pFieldMap.containsKey(offset));
+      assertThat(pFieldMap).containsKey(offset);
 
       int value = edge.getValue();
       int length = edge.getSizeInBits(MachineModel.LINUX64);
@@ -151,8 +151,10 @@ public class SMGJoinFieldsTest {
       int eValue = expectedValueAndLength.getFirst();
       int eLength = expectedValueAndLength.getSecond();
 
-      Assert.assertTrue(eValue == value || eValue == -1);
-      Assert.assertTrue(eLength == length);
+      if (eValue != -1) {
+        assertThat(value).isEqualTo(eValue);
+      }
+      assertThat(length).isEqualTo(eLength);
     }
   }
 
@@ -176,10 +178,10 @@ public class SMGJoinFieldsTest {
     smg1.addHasValueEdge(obj2hv2at0);
 
     Set<SMGEdgeHasValue> hvSet = SMGJoinFields.getHVSetWithoutNullValuesOnObject(smg1, obj1);
-    Assert.assertTrue(hvSet.contains(obj1hv1at0));
-    Assert.assertTrue(hvSet.contains(obj2hv2at0));
-    Assert.assertTrue(hvSet.contains(obj2hv0at4));
-    Assert.assertEquals(3, hvSet.size());
+    assertThat(hvSet).contains(obj1hv1at0);
+    assertThat(hvSet).contains(obj2hv2at0);
+    assertThat(hvSet).contains(obj2hv0at4);
+    assertThat(hvSet).hasSize(3);
   }
 
   @Test
@@ -198,18 +200,18 @@ public class SMGJoinFieldsTest {
     smg2.addHasValueEdge(nonPointer);
 
     Set<SMGEdgeHasValue> hvSet = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
-    Assert.assertEquals(0, hvSet.size());
+    assertThat(hvSet).hasSize(0);
 
     smg2.addPointsToEdge(new SMGEdgePointsTo(value2, obj2, 0));
 
     hvSet = SMGJoinFields.getHVSetOfMissingNullValues(smg1, smg2, obj1, obj2);
-    Assert.assertEquals(1, hvSet.size());
+    assertThat(hvSet).hasSize(1);
 
     SMGEdgeHasValue newHv = Iterables.getOnlyElement(hvSet);
-    Assert.assertEquals(smg1.getNullValue(), newHv.getValue());
-    Assert.assertSame(obj1, newHv.getObject());
-    Assert.assertEquals(32, newHv.getSizeInBits(MachineModel.LINUX64));
-    Assert.assertEquals(16, newHv.getOffset());
+    assertThat(newHv.getValue()).isEqualTo(smg1.getNullValue());
+    assertThat(newHv.getObject()).isSameAs(obj1);
+    assertThat(newHv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
+    assertThat(newHv.getOffset()).isEqualTo(16);
     Assert.assertTrue(newHv.isCompatibleField(nonPointer));
   }
 
@@ -232,15 +234,15 @@ public class SMGJoinFieldsTest {
     smg2.addHasValueEdge(smg2at8);
 
     Set<SMGEdgeHasValue> hvSet = SMGJoinFields.getHVSetOfCommonNullValues(smg1, smg2, obj1, obj1);
-    Assert.assertEquals(2, hvSet.size());
+    assertThat(hvSet).hasSize(2);
     for (SMGEdgeHasValue hv : hvSet) {
-      Assert.assertEquals(hv.getValue(), smg1.getNullValue());
-      Assert.assertSame(hv.getObject(), obj1);
-      Assert.assertTrue(hv.getOffset() == 112 || hv.getOffset() == 144);
+      assertThat(hv.getValue()).isEqualTo(smg1.getNullValue());
+      assertThat(hv.getObject()).isSameAs(obj1);
+      assertThat(hv.getOffset()).isAnyOf(112, 144);
       if (hv.getOffset() == 112) {
-        Assert.assertTrue(hv.getSizeInBits(MachineModel.LINUX64) == 16);
+        assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(16);
       } else {
-        Assert.assertTrue(hv.getSizeInBits(MachineModel.LINUX64) == 32);
+        assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(32);
       }
     }
   }
@@ -286,10 +288,10 @@ public class SMGJoinFieldsTest {
     smg2.addHasValueEdge(hv666for4at28in2);
 
     Set<SMGEdgeHasValue> compSet1 = SMGJoinFields.getCompatibleHVEdgeSet(smg1, smg2, obj, obj);
-    Assert.assertEquals(4, compSet1.size());
+    assertThat(compSet1).hasSize(4);
 
     Set<SMGEdgeHasValue> compSet2 = SMGJoinFields.getCompatibleHVEdgeSet(smg2, smg1, obj, obj);
-    Assert.assertEquals(4, compSet2.size());
+    assertThat(compSet2).hasSize(4);
   }
 
   @Test
@@ -313,7 +315,7 @@ public class SMGJoinFieldsTest {
     smg2.addObject(object);
 
     Set<SMGEdgeHasValue> hvSet = SMGJoinFields.mergeNonNullHasValueEdges(smg1, smg2, object, object);
-    Assert.assertEquals(2, hvSet.size());
+    assertThat(hvSet).hasSize(2);
 
     boolean seenZero = false;
     boolean seenTwo = false;
@@ -325,9 +327,9 @@ public class SMGJoinFieldsTest {
       } else if (edge.getOffset() == 16) {
         seenTwo = true;
       }
-      Assert.assertTrue(edge.getOffset() == 0 || edge.getOffset() == 16);
-      Assert.assertTrue(mockType4b.equals(edge.getType()));
-      Assert.assertFalse(values.contains(Integer.valueOf(edge.getValue())));
+      assertThat(edge.getOffset()).isAnyOf(0, 16);
+      assertThat(edge.getType()).isEqualTo(mockType4b);
+      assertThat(values).doesNotContain(Integer.valueOf(edge.getValue()));
       values.add(Integer.valueOf(edge.getValue()));
     }
     Assert.assertTrue(seenZero);
@@ -336,7 +338,7 @@ public class SMGJoinFieldsTest {
     smg2.addValue(value1);
     smg2.addHasValueEdge(smg1_4bFrom0ToV1);
     hvSet = SMGJoinFields.mergeNonNullHasValueEdges(smg1, smg2, object, object);
-    Assert.assertEquals(1, hvSet.size());
+    assertThat(hvSet).hasSize(1);
   }
 
   @Test
@@ -354,13 +356,13 @@ public class SMGJoinFieldsTest {
     SMG resultSMG = jf.getSMG2();
 
     Set<SMGEdgeHasValue> edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
-    Assert.assertTrue(edges.size() > 0);
+    assertThat(edges.size()).isGreaterThan(0);
 
     jf = new SMGJoinFields(new SMG(smg2), new SMG(smg1), obj2, obj1);
     resultSMG = jf.getSMG1();
 
     edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
-    Assert.assertTrue(edges.size() > 0);
+    assertThat(edges.size()).isGreaterThan(0);
   }
 
   @Test

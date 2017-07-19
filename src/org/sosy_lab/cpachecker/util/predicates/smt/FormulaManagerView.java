@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
@@ -42,7 +40,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,7 +60,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
@@ -335,7 +332,7 @@ public class FormulaManagerView {
   public void dumpFormulaToFile(BooleanFormula f, Path outputFile) {
     if (outputFile != null) {
       try {
-        MoreFiles.writeFile(outputFile, Charset.defaultCharset(), this.dumpFormula(f));
+        IO.writeFile(outputFile, Charset.defaultCharset(), this.dumpFormula(f));
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
       }
@@ -919,25 +916,12 @@ public class FormulaManagerView {
     return manager.parse(pS);
   }
 
-  /**
-   * Instantiate a list (!! guarantees to keep the ordering) of formulas.
-   *  @see #instantiate(Formula, SSAMap)
-   */
-  public <F extends Formula> List<F> instantiate(Collection<F> pFormulas, final SSAMap pSsa) {
-    return transformedImmutableListCopy(pFormulas, f -> instantiate(f, pSsa));
-  }
-
-  public Set<String> instantiate(Iterable<String> pVariableNames, final SSAMap pSsa) {
-    return from(pVariableNames).transform(pArg0 -> {
-      Pair<String, OptionalInt> parsedVar = parseName(pArg0);
-      return makeName(parsedVar.getFirst(), pSsa.getIndex(parsedVar.getFirst()));
-    }).toSet();
-  }
-
   // the character for separating name and index of a value
   private static final String INDEX_SEPARATOR = "@";
 
   static String makeName(String name, int idx) {
+    assert !name.contains(INDEX_SEPARATOR)
+        : "Instantiating already instantiated variable " + name + " with index " + idx;
     if (idx < 0) {
       return name;
     }
@@ -990,6 +974,14 @@ public class FormulaManagerView {
     } else {
       throw new IllegalArgumentException("Not an instantiated variable nor constant: " + name);
     }
+  }
+
+  /**
+   * Add SSA indices to a single variable name. Typically it is not necessary and not recommended to
+   * use this method, prefer more high-level methods like {@link #instantiate(Formula, SSAMap)}.
+   */
+  public static String instantiateVariableName(String pVar, SSAMap pSsa) {
+    return makeName(pVar, pSsa.getIndex(pVar));
   }
 
   /**

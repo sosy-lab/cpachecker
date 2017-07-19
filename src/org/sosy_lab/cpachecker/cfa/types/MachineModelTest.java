@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static org.junit.Assert.assertEquals;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -36,6 +36,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 @RunWith(Parameterized.class)
+@SuppressFBWarnings(
+  value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
+  justification = "Fields are filled by parameterization of JUnit"
+)
 public class MachineModelTest {
 
   @Parameters(name="{4}: {0}")

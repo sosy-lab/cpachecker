@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
+@SuppressWarnings("serial")
 public interface CType extends Type {
 
   public boolean isConst();
@@ -60,4 +61,59 @@ public interface CType extends Type {
   public CType getCanonicalType();
 
   public CType getCanonicalType(boolean forceConst, boolean forceVolatile);
+
+  /**
+   * Implements assignment compatibility for simple assignments (=)
+   * as described in the constraints of C-Standard §6.5.16.1 (1).
+   * <p>
+   * Currently the fifth of those constraints is not considered,
+   * since a {@link CType} does not expose if it is a null pointer
+   * constant.
+   * <p>
+   * Do not override this method. If you find some condition that
+   * is not met by this implementation yet but required for
+   * compliance with the standard, just add the necessary condition
+   * to this code.
+   *
+   * @param pType the {@link CType} to check, if it can be assigned to <b><code>this</code></b>
+   * @return if pType can be assigned to <b><code>this</code></b>
+   */
+  default boolean canBeAssignedFrom(CType pType) {
+    CType leftHandSide = this.getCanonicalType();
+    CType rightHandSide = pType.getCanonicalType();
+
+    // Cf. C-Standard §6.5.16.1 (1), first and last constraint of the list.
+    // The {@link CSimpleType}s are corresponding to the arithmetic types
+    // described in the standard (§6.2.5).
+    if (leftHandSide instanceof CSimpleType) {
+      if ((((CSimpleType) leftHandSide).getType().equals(CBasicType.BOOL) && rightHandSide instanceof CPointerType)
+          || rightHandSide instanceof CSimpleType) {
+        return true;
+      }
+    }
+
+    // Cf. C-Standard §6.5.16.1 (1), second constraint.
+    if (leftHandSide instanceof CCompositeType && rightHandSide instanceof CCompositeType) {
+      CType plainCompositeLeft = CTypes.copyDequalified(leftHandSide);
+      CType plainCompositeRight = CTypes.copyDequalified(rightHandSide);
+
+      return CTypes.areTypesCompatible(plainCompositeLeft, plainCompositeRight);
+    }
+
+    if (rightHandSide instanceof CPointerType && leftHandSide instanceof CPointerType) {
+      CPointerType pointerLeft = (CPointerType) leftHandSide;
+      CPointerType pointerRight = (CPointerType) rightHandSide;
+      CType leftPointedToType = pointerLeft.getType();
+      CType rightPointedToType = pointerRight.getType();
+
+      // Cf. C-Standard §6.5.16.1 (1), third and forth constraint.
+      return pointerLeft.isConst() == pointerRight.isConst() && pointerLeft.isVolatile() == pointerRight.isVolatile()
+          && ((leftPointedToType instanceof CVoidType && !(rightPointedToType instanceof CVoidType))
+              || (rightPointedToType instanceof CVoidType && !(leftPointedToType instanceof CVoidType))
+              || CTypes.areTypesCompatible(leftHandSide, rightHandSide));
+    }
+
+    // default case
+    return false;
+  }
 }

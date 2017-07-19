@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -238,7 +238,7 @@ public class SMGPathInterpolator {
     Path path = exportPath.getPath(pInterpolationId, "interpolationPath.txt");
 
     try {
-      MoreFiles.writeFile(path, Charset.defaultCharset(), interpolationPath.toString());
+      IO.writeFile(path, Charset.defaultCharset(), interpolationPath.toString());
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e,
           "Failed to write interpolation path to path " + path.toString());

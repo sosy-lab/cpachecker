@@ -38,6 +38,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
+import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -75,7 +76,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -612,13 +613,13 @@ public class AutomatonGraphmlParser {
       result.add(automaton);
 
       if (automatonDumpFile != null) {
-        try (Writer w = MoreFiles.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
+        try (Writer w = IO.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
           automaton.writeDotFile(w);
         } catch (IOException e) {
           // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
         }
         Path automatonFile = automatonDumpFile.resolveSibling(automatonDumpFile.getFileName() + ".spc");
-        try (Writer w = MoreFiles.openOutputFile(automatonFile, Charset.defaultCharset())) {
+        try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
           w.write(automaton.toString());
         } catch (IOException e) {
           // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");

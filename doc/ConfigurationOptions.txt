@@ -181,8 +181,7 @@ analysis.checkProof = false
 # use assumption collecting algorithm
 analysis.collectAssumptions = false
 
-# After an incomplete analysis constructs a residual program which contains
-# all program paths which are not fully explored
+# Solely construct the residual program for a given condition/assumption.
 analysis.constructResidualProgram = false
 
 # continue analysis after a unsupported code was found on one path
@@ -301,6 +300,10 @@ analysis.traversal.useReverseLoopstack = false
 # reverse postorder id. The secondary strategy is selected with
 # 'analysis.traversal.order'.
 analysis.traversal.useReversePostorder = false
+
+# After an incomplete analysis constructs a residual program which contains
+# all program paths which are not fully explored
+analysis.unexploredPathsAsProgram = false
 
 # Do not report unknown if analysis terminated, report true (UNSOUND!).
 analysis.unknownAsTrue = false
@@ -2822,6 +2825,9 @@ report.export = true
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
 
+# set path to file which contains the condition
+residualprogram.assumptionFile = no default value
+
 # set specification file to automaton which guides analysis along assumption
 # produced by incomplete analysis,e.g.,
 # config/specification/AssumptionGuidingAutomaton.spc, to enable residual
@@ -2831,8 +2837,9 @@ residualprogram.assumptionGuider = no default value
 # write residual program to file
 residualprogram.file = "residualProgram.c"
 
-# write collected assumptions as automaton to file
-residualprogram.slice = true
+# which strategy to use to generate the residual program
+residualprogram.strategy = CONDITION
+  enum:     [SLICING, CONDITION, COMBINATION]
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration

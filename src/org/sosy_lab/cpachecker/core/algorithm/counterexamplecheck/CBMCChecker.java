@@ -45,8 +45,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.MoreFiles.DeleteOnCloseFile;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -111,7 +112,8 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
       // This temp file will be automatically deleted when the try block terminates.
       // Suffix .i tells CBMC to not call the pre-processor on this file.
-      try (DeleteOnCloseFile tempFile = MoreFiles.createTempFile("path", ".i")) {
+      try (DeleteOnCloseFile tempFile =
+          TempFile.builder().prefix("path").suffix(".i").createDeleteOnClose()) {
         return checkCounterexample(pRootState, pErrorPathStates, tempFile.toPath());
 
       } catch (IOException e) {
@@ -127,7 +129,7 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
     Appender pathProgram = PathToCTranslator.translatePaths(pRootState, pErrorPathStates);
 
     // write program to disk
-    try (Writer w = MoreFiles.openOutputFile(cFile, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(cFile, Charset.defaultCharset())) {
       pathProgram.appendTo(w);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed("Could not write path program to file " + e.getMessage(), e);

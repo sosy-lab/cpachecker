@@ -25,7 +25,9 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.util.List;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -45,9 +47,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
-
-import java.util.List;
-import java.util.Set;
 
 /**
  * Helper class that collects all functions referenced by some CFAEdges,
@@ -129,7 +128,7 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
   private static class CollectFunctionsVisitorWithFieldMatching extends CollectFunctionsVisitor {
 
     private final Multimap<String, String> functionToFieldMatching = HashMultimap.create();
-    private String lastFunction;
+    private @Nullable String lastFunction;
 
     public CollectFunctionsVisitorWithFieldMatching(Set<String> collectedFuncs) {
       super(collectedFuncs);
@@ -145,7 +144,7 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
     }
 
     @Override
-    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
+    public @Nullable Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
       int num = collectedFunctions.size();
       pIastExpressionAssignmentStatement.getLeftHandSide().accept(this);
       pIastExpressionAssignmentStatement.getRightHandSide().accept(this);
