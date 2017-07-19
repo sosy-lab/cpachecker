@@ -32,6 +32,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -167,13 +168,16 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
         w.getForkedChild().setForkCompleted();
       }
     }
-
+    // save root of the ARG BEFORE slicing. After slicing, there might be
+    // several root states, but we need the true root state for recalculateReachedSet()!
+    Set<ARGState> rootStates = ARGUtils.getRootStates(pReached.asReachedSet());
+    assert rootStates.size() == 1;
     sliceEdges(changedElements);
 
     // We do not have a tree, so this does not make sense anymore:
     //pReached.removeInfeasiblePartofARG(infeasiblePartOfART);
     // Instead we use a different method:
-    pReached.recalculateReachedSet();
+    pReached.recalculateReachedSet(rootStates.iterator().next());
 
     stats.argUpdate.stop();
 

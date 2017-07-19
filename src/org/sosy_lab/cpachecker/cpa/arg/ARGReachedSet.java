@@ -45,7 +45,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -114,15 +113,13 @@ public class ARGReachedSet {
   }
 
   /**
-   * for the case that the ARG is not a tree!
+   * for the case that the ARG is not a tree, recalculate the ReachedSet
+   * by calculating the states reachable from the rootState.
+   * States which have become unreachable get properly detached
    */
-  public void recalculateReachedSet() {
-    Set<ARGState> rootStates = ARGUtils.getRootStates(mReached);
-    // TODO: make this more robust, filtering for stateId==0 might fail eventually
-    rootStates = new HashSet<>(rootStates.stream().filter(x -> x.getStateId()==0).limit(1).collect(Collectors.toList()));
-    assert rootStates.size()==1;
-    Deque<ARGState> toVisit = new ArrayDeque<>(rootStates);
-    toVisit.addAll(rootStates);
+  public void recalculateReachedSet(ARGState rootState) {
+    Deque<ARGState> toVisit = new ArrayDeque<>();
+    toVisit.add(rootState);
     Set<ARGState> reached = new HashSet<>();
     while (!toVisit.isEmpty()) {
       ARGState currentElement = toVisit.removeFirst();
@@ -133,18 +130,16 @@ public class ARGReachedSet {
         toVisit.addAll(notYetReached);
       }
     }
-    List<AbstractState> toRemove = new ArrayList<>(2);
+    List<ARGState> toRemove = new ArrayList<>(2);
     for (AbstractState inOldReached : mReached) {
       if (!reached.contains(inOldReached)) {
-        toRemove.add(inOldReached);
-      }
-    }
-    for (AbstractState inNewReached : reached) {
-      if (!mReached.contains(inNewReached)) {
-        throw new RuntimeException("UNEXPECTED");
+        toRemove.add((ARGState) inOldReached);
       }
     }
     mReached.removeAll(toRemove);
+    for (ARGState state :  toRemove) {
+      state.detachFromARG();
+    }
   }
 
   /**
