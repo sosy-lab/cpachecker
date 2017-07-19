@@ -25,11 +25,14 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -37,12 +40,21 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * the formulas have to be generated on the fly.
  * Intended for use with {@link SlicingAbstractionsStrategy}
  */
+@Options(prefix = "cpa.predicate.refinement")
 public class GraphBlockFormulaStrategy extends BlockFormulaStrategy {
 
-  PathFormulaManager pfmgr;
+  @Option(
+      secure = true,
+      description = "Enable/Disable adding partial state invariants into the PathFormulas"
+    )
+  private boolean includePartialInvariants = true;
 
-  public GraphBlockFormulaStrategy(PathFormulaManager pPfmgr) {
+  private PathFormulaManager pfmgr;
+  private Solver solver;
+
+  public GraphBlockFormulaStrategy(Solver solver, PathFormulaManager pPfmgr) {
     this.pfmgr = pPfmgr;
+    this.solver = solver;
   }
 
   @Override
@@ -64,7 +76,15 @@ public class GraphBlockFormulaStrategy extends BlockFormulaStrategy {
       CFAEdge edge = parent.getEdgeToChild(child);
 
       //calculate the PathFormula from parent to child with the right SSA indices (from previousPathFormula):
-      PathFormula newPathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(previousPathFormula), edge);
+      PathFormula newPathFormula;
+      if (includePartialInvariants) {
+        BooleanFormula partialInvariant = PredicateAbstractState.getPredicateState(parent).getAbstractionFormula().asFormula();
+        partialInvariant = solver.getFormulaManager().instantiate(partialInvariant,previousPathFormula.getSsa());
+        newPathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(previousPathFormula),partialInvariant);
+        newPathFormula = pfmgr.makeAnd(newPathFormula, edge);
+      } else {
+        newPathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(previousPathFormula),edge);
+      }
 
       // update lists:
       pathFormulas.add(newPathFormula);
