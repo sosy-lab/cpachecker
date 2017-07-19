@@ -535,5 +535,6 @@ public class ARGReachedSet {
 
   public void addForkedState(ARGState forkedState, ARGState originalState) {
     mReached.add(forkedState, mReached.getPrecision(originalState));
+    mReached.removeOnlyFromWaitlist(forkedState);
   }
 }
