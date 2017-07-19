@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -280,19 +281,26 @@ public class PathChecker {
    * @return a boolean that is true if the transition is infeasible
    * @throws SolverException theorem prover was unable to decide
    * @throws InterruptedException theorem prover was interrupted
+   * @throws CPATransferException PathFormulaManager failed to add edge to formula
    */
-  public boolean isInfeasibleEdge(ARGState parent, ARGState child) throws SolverException, InterruptedException {
+  public boolean isInfeasibleEdge(ARGState parent, ARGState child) throws SolverException, InterruptedException, CPATransferException {
 
-    BooleanFormula parentStateFormula = getPredicateState(parent).getAbstractionFormula().asInstantiatedFormula();
-    // BlockFormula of child should give us the desired edgeFormula
-    // Maybe this needs adaption for cases other than SBE:
-    BooleanFormula edgeFormula = getPredicateState(child).getAbstractionFormula().getBlockFormula().getFormula();
-    BooleanFormula childStateFormula = getPredicateState(child).getAbstractionFormula().asInstantiatedFormula();
+    SSAMap initSSA = SSAMap.emptySSAMap().withDefault(1);
+    BooleanFormula initFormula = getPredicateState(parent).getAbstractionFormula().asFormula();
+    BooleanFormula instatiatedInitFormula = solver.getFormulaManager().instantiate(initFormula,initSSA);
+    PointerTargetSet initTargetSet = PointerTargetSet.emptyPointerTargetSet();
+    PathFormula pathFormula = new PathFormula(instatiatedInitFormula, initSSA, initTargetSet, 0);
 
-    PathFormula pathFormula = pmgr.makeEmptyPathFormula();
-    pathFormula = pmgr.makeAnd(pathFormula,parentStateFormula);
-    pathFormula = pmgr.makeAnd(pathFormula,edgeFormula);
-    pathFormula = pmgr.makeAnd(pathFormula, childStateFormula);
+    //This assertion can fail if cpa.composite.aggregateBasicBlocks = true:
+    assert parent.getEdgeToChild(child) != null;
+    pathFormula = pmgr.makeAnd(pathFormula, parent.getEdgeToChild(child));
+
+    SSAMap endSSA = pathFormula.getSsa();
+    BooleanFormula endFormula = getPredicateState(child).getAbstractionFormula().asFormula();
+    BooleanFormula instantiatedEndFormula = solver.getFormulaManager().instantiate(endFormula,endSSA);
+
+    pathFormula = pmgr.makeAnd(pathFormula,instantiatedEndFormula);
+
     BooleanFormula formula = pathFormula.getFormula();
     try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(formula);
