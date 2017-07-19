@@ -209,9 +209,9 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   ParseResult createCFA() {
-    // add dummy edge from previous node to exit node
+    // TODO do not add this edge if return has been called
     CFACreationUtils.addEdgeToCFA(
-        new BlankEdge("", FileLocation.DUMMY, prevNode, exitNode, "end of file"), logger);
+        new BlankEdge("", FileLocation.DUMMY, prevNode, exitNode, "default return"), logger);
     return new ParseResult(cfas, cfaNodes, globalDeclarations, Language.JAVASCRIPT);
   }
 }
