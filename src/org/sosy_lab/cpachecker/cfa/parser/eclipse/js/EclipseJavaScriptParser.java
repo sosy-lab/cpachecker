@@ -32,6 +32,7 @@ import org.eclipse.wst.jsdt.core.IJavaScriptProject;
 import org.eclipse.wst.jsdt.core.dom.AST;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.ASTParser;
+import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.internal.core.JavaProject;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.MoreFiles;
@@ -103,8 +104,8 @@ class EclipseJavaScriptParser implements Parser {
 
     FileCFABuilder builder = new FileCFABuilder(pScope, logger);
     try {
-      ast.accept(builder);
-      return builder.createCFA();
+      builder.append((JavaScriptUnit) ast);
+      return builder.getBuilder().getParseResult();
     } finally {
       cfaTimer.stop();
     }

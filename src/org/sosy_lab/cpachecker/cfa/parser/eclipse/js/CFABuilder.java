@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 class CFABuilder {
   private final LogManager logger;
@@ -47,6 +49,16 @@ class CFABuilder {
   CFABuilder(
       final LogManager pLogger,
       final ASTConverter pAstConverter,
+      final JSFunctionEntryNode pEntryNode) {
+    this(pLogger, pAstConverter, pEntryNode.getFunctionName(), (CFANode) pEntryNode);
+    parseResult.getFunctions().put(functionName, pEntryNode);
+    parseResult.getCFANodes().put(functionName, pEntryNode);
+    parseResult.getCFANodes().put(functionName, pEntryNode.getExitNode());
+  }
+
+  CFABuilder(
+      final LogManager pLogger,
+      final ASTConverter pAstConverter,
       final String pFunctionName,
       final CFANode pEntryNode) {
     logger = pLogger;
@@ -56,6 +68,7 @@ class CFABuilder {
     parseResult =
         new ParseResult(
             new TreeMap<>(), TreeMultimap.create(), Lists.newArrayList(), Language.JAVASCRIPT);
+    parseResult.getCFANodes().put(functionName, pEntryNode);
   }
 
   public CFABuilder append(final CFABuilder builder) {
@@ -64,12 +77,19 @@ class CFABuilder {
     parseResult.getCFANodes().putAll(builderParseResult.getCFANodes());
     parseResult.getGlobalDeclarations().addAll(builderParseResult.getGlobalDeclarations());
 
-    exitNode = builder.exitNode;
+    if (!(builder.exitNode instanceof FunctionExitNode)) {
+      exitNode = builder.exitNode;
+    }
     return this;
   }
 
   public CFABuilder appendEdge(final BiFunction<CFANode, CFANode, AbstractCFAEdge> createEdge) {
-    final CFANode nextNode = createNode();
+    return appendEdge(new CFANode(functionName), createEdge);
+  }
+
+  public CFABuilder appendEdge(
+      final CFANode nextNode, final BiFunction<CFANode, CFANode, AbstractCFAEdge> createEdge) {
+    parseResult.getCFANodes().put(functionName, exitNode);
     final AbstractCFAEdge edge = createEdge.apply(exitNode, nextNode);
     exitNode = nextNode;
     CFACreationUtils.addEdgeToCFA(edge, logger);
@@ -92,5 +112,9 @@ class CFABuilder {
 
   public CFANode getExitNode() {
     return exitNode;
+  }
+
+  public LogManager getLogger() {
+    return logger;
   }
 }

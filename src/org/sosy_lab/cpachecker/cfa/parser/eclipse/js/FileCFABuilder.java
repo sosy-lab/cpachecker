@@ -24,42 +24,49 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import java.util.Collections;
-import org.eclipse.wst.jsdt.core.dom.ASTVisitor;
+import java.util.Optional;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
-class FileCFABuilder extends ASTVisitor {
-  private final Scope scope;
-  private final LogManager logger;
-  private final ASTConverter astConverter;
-  private CFAFunctionBuilder builder;
+class FileCFABuilder {
+  private static final String functionName = "main";
+
+  private final CFABuilder builder;
+  private final StatementCFABuilder statementBuilder;
+  private final FunctionExitNode exitNode;
 
   FileCFABuilder(final Scope pScope, final LogManager pLogger) {
-    scope = pScope;
-    logger = pLogger;
-    astConverter = new ASTConverter(scope, logger);
-  }
-
-  @Override
-  public boolean visit(final JavaScriptUnit node) {
-    final String functionName = "main";
     final JSFunctionDeclaration functionDeclaration =
         new JSFunctionDeclaration(
             FileLocation.DUMMY,
             new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
             functionName,
             Collections.emptyList());
-    builder = new CFAFunctionBuilder(functionDeclaration, scope, logger, astConverter);
-    node.accept(builder);
-    return false;
+    exitNode = new FunctionExitNode(functionName);
+    final JSFunctionEntryNode entryNode =
+        new JSFunctionEntryNode(
+            FileLocation.DUMMY, functionDeclaration, exitNode, Optional.empty());
+    exitNode.setEntryNode(entryNode);
+    builder = new CFABuilder(pLogger, new ASTConverter(pScope, pLogger), entryNode);
+    statementBuilder = new StatementCFABuilder(builder);
   }
 
-  ParseResult createCFA() {
-    return builder.createCFA();
+  public void append(final JavaScriptUnit unit) {
+    unit.accept(statementBuilder);
+    builder.appendEdge(
+        exitNode,
+        (pPredecessor, pSuccessor) ->
+            new BlankEdge("", FileLocation.DUMMY, pPredecessor, pSuccessor, "File end dummy edge"));
+  }
+
+  public CFABuilder getBuilder() {
+    return builder;
   }
 }

@@ -60,4 +60,8 @@ class FunctionInvocationCFABuilder {
                 pPredecessor,
                 pSuccessor));
   }
+
+  public CFABuilder getBuilder() {
+    return builder;
+  }
 }

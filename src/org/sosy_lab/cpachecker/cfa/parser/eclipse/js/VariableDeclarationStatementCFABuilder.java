@@ -58,4 +58,8 @@ class VariableDeclarationStatementCFABuilder {
                 pSuccessor,
                 variableDeclaration));
   }
+
+  public CFABuilder getBuilder() {
+    return builder;
+  }
 }
