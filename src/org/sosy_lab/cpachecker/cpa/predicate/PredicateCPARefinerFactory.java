@@ -59,6 +59,9 @@ public class PredicateCPARefinerFactory {
   @Option(secure = true, description = "slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
 
+  @Option(secure = true, name="graphblockformulastrategy", description = "BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)")
+  private boolean graphBlockFormulaStrategy = false;
+
   @Option(
     secure = true,
     description = "use heuristic to extract predicates from the CFA statically on first refinement"
@@ -160,7 +163,13 @@ public class PredicateCPARefinerFactory {
       }
       bfs = blockFormulaStrategy;
     } else {
-      bfs = sliceBlockFormulas ? new BlockFormulaSlicer(pfmgr) : new BlockFormulaStrategy();
+      if (sliceBlockFormulas) {
+        bfs = new BlockFormulaSlicer(pfmgr);
+      } else if (graphBlockFormulaStrategy) {
+        bfs = new GraphBlockFormulaStrategy(pfmgr);
+      } else {
+        bfs = new BlockFormulaStrategy();
+      }
     }
 
     ARGBasedRefiner refiner =
