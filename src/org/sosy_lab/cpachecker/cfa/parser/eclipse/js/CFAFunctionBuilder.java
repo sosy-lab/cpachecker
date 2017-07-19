@@ -32,16 +32,20 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import org.eclipse.wst.jsdt.core.dom.ASTVisitor;
+import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
-import org.eclipse.wst.jsdt.core.dom.SimpleName;
+import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.wst.jsdt.internal.core.dom.binding.FunctionBinding;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -50,8 +54,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
-import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 import org.sosy_lab.cpachecker.util.Pair;
 
 class CFAFunctionBuilder extends ASTVisitor {
@@ -106,23 +110,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       final ASTConverter pAstConverter) {
     this(
         pFunctionDeclaration,
-        convertFunctionDeclaration(pFunctionDeclaration, pAstConverter),
+        pAstConverter.convert(pFunctionDeclaration),
         pScope,
         pLogger,
         pAstConverter);
-  }
-
-  private static String getFunctionName(final FunctionDeclaration node) {
-    return ((SimpleName) node.getMethodName()).getIdentifier();
-  }
-
-  private static JSFunctionDeclaration convertFunctionDeclaration(
-      final FunctionDeclaration node, final ASTConverter astConverter) {
-    return new JSFunctionDeclaration(
-        astConverter.getFileLocation(node),
-        new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
-        getFunctionName(node),
-        Collections.emptyList());
   }
 
   /**
@@ -151,6 +142,38 @@ class CFAFunctionBuilder extends ASTVisitor {
     cfaNodes.putAll(innerFunctionBuilderCFA.getCFANodes());
     globalDeclarations.addAll(innerFunctionBuilderCFA.getGlobalDeclarations());
     return false;
+  }
+
+  @Override
+  public boolean visit(final ExpressionStatement node) {
+    return super.visit(node);
+  }
+
+  @Override
+  public boolean visit(final FunctionInvocation node) {
+    final JSFunctionCallStatement functionCallStatement =
+        new JSFunctionCallStatement(
+            astConverter.getFileLocation(node),
+            new JSFunctionCallExpression(
+                astConverter.getFileLocation(node),
+                JSAnyType.ANY,
+                astConverter.convert(node.getName()),
+                Collections.emptyList(),
+                astConverter.convert((FunctionBinding) node.getName().resolveBinding())));
+
+    final CFANode nextNode = new CFANode(functionName);
+    cfaNodes.put(functionName, nextNode);
+    CFACreationUtils.addEdgeToCFA(
+        new JSStatementEdge(
+            functionCallStatement.toASTString(),
+            functionCallStatement,
+            astConverter.getFileLocation(node),
+            prevNode,
+            nextNode),
+        logger);
+    prevNode = nextNode;
+
+    return super.visit(node);
   }
 
   @Override

@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.logging.Level;
 import org.eclipse.wst.jsdt.core.dom.ASTNode;
 import org.eclipse.wst.jsdt.core.dom.BooleanLiteral;
 import org.eclipse.wst.jsdt.core.dom.Expression;
+import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
+import org.eclipse.wst.jsdt.core.dom.IBinding;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.NullLiteral;
@@ -38,6 +41,7 @@ import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
 import org.eclipse.wst.jsdt.core.dom.UndefinedLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
+import org.eclipse.wst.jsdt.internal.core.dom.binding.FunctionBinding;
 import org.eclipse.wst.jsdt.internal.core.dom.binding.VariableBinding;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -46,16 +50,19 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSNullLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
+import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
 class ASTConverter {
 
@@ -251,15 +258,39 @@ class ASTConverter {
   }
 
   private JSIdExpression convert(final SimpleName pSimpleName) {
-    final VariableBinding variableBinding = (VariableBinding) pSimpleName.resolveBinding();
-    assert variableBinding != null;
-    final JSVariableDeclaration variableDeclaration =
-        convert(
-            (VariableDeclarationFragment) variableBinding.getDeclaration().getNode().getParent());
+    final IBinding binding = pSimpleName.resolveBinding();
+    assert binding != null;
     return new JSIdExpression(
-        getFileLocation(pSimpleName),
-        JSAnyType.ANY,
-        pSimpleName.getIdentifier(),
-        variableDeclaration);
+        getFileLocation(pSimpleName), JSAnyType.ANY, pSimpleName.getIdentifier(), convert(binding));
+  }
+
+  public JSSimpleDeclaration convert(final IBinding pBinding) {
+    if (pBinding instanceof VariableBinding) {
+      return convert((VariableBinding) pBinding);
+    } else if (pBinding instanceof FunctionBinding) {
+      return convert((FunctionBinding) pBinding);
+    }
+    throw new CFAGenerationRuntimeException(
+        "Unknown kind of binding (not handled yet): " + pBinding.toString());
+  }
+
+  public JSVariableDeclaration convert(final VariableBinding pBinding) {
+    return convert((VariableDeclarationFragment) pBinding.getDeclaration().getNode().getParent());
+  }
+
+  public JSFunctionDeclaration convert(final FunctionBinding pBinding) {
+    return convert((FunctionDeclaration) pBinding.getDeclaration().getNode().getParent());
+  }
+
+  public JSFunctionDeclaration convert(final FunctionDeclaration pDeclaration) {
+    return new JSFunctionDeclaration(
+        getFileLocation(pDeclaration),
+        new JSFunctionType(JSAnyType.ANY, Collections.emptyList()),
+        getFunctionName(pDeclaration),
+        Collections.emptyList());
+  }
+
+  public static String getFunctionName(final FunctionDeclaration node) {
+    return ((SimpleName) node.getMethodName()).getIdentifier();
   }
 }

@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -67,13 +68,15 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This class takes several CFAs (each for a single function) and combines them
@@ -242,6 +245,26 @@ public class CFASecondPassBuilder {
           (JMethodEntryNode)fDefNode, (JMethodOrConstructorInvocation) functionCall, (JMethodSummaryEdge) calltoReturnEdge);
       break;
 
+    case JAVASCRIPT:
+      calltoReturnEdge =
+          new JSFunctionSummaryEdge(
+              edge.getRawStatement(),
+              fileLocation,
+              predecessorNode,
+              successorNode,
+              (JSFunctionCall) functionCall,
+              (JSFunctionEntryNode) fDefNode);
+
+      callEdge =
+          new JSFunctionCallEdge(
+              edge.getRawStatement(),
+              fileLocation,
+              predecessorNode,
+              (JSFunctionEntryNode) fDefNode,
+              (JSFunctionCall) functionCall,
+              (JSFunctionSummaryEdge) calltoReturnEdge);
+      break;
+
     default:
       throw new AssertionError();
     }
@@ -270,6 +293,11 @@ public class CFASecondPassBuilder {
       case JAVA:
         returnEdge = new JMethodReturnEdge(fileLocation, fExitNode, successorNode, (JMethodSummaryEdge) calltoReturnEdge);
         break;
+      case JAVASCRIPT:
+        returnEdge =
+            new JSFunctionReturnEdge(
+                fileLocation, fExitNode, successorNode, (JSFunctionSummaryEdge) calltoReturnEdge);
+          break;
       default:
         throw new AssertionError();
       }
