@@ -40,6 +40,7 @@ import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.wst.jsdt.internal.core.dom.binding.FunctionBinding;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -93,6 +94,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     cfas.put(functionName, entryNode);
     cfaNodes.put(functionName, entryNode);
     cfaNodes.put(functionName, exitNode);
+    addFunctionEntryNode();
   }
 
   CFAFunctionBuilder(
@@ -114,6 +116,20 @@ class CFAFunctionBuilder extends ASTVisitor {
         pScope,
         pLogger,
         pAstConverter);
+  }
+
+  /**
+   * Add a dummy edge to allow a function call as first statement. Without this edge {@link
+   * CFASecondPassBuilder#insertCallEdgesRecursively()} would consider the function call as
+   * unreachable.
+   */
+  private void addFunctionEntryNode() {
+    final CFANode nextNode = new CFANode(functionName);
+    cfaNodes.put(functionName, nextNode);
+    CFACreationUtils.addEdgeToCFA(
+        new BlankEdge("", FileLocation.DUMMY, prevNode, nextNode, "Function start dummy edge"),
+        logger);
+    prevNode = nextNode;
   }
 
   /**
