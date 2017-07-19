@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
-import org.sosy_lab.cpachecker.cpa.arg.ForceMerge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -371,9 +370,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
               shutdownNotifier.shutdownIfNecessary();
               AbstractState mergedState =
                   mergeOperator.merge(successor, reachedState, successorPrecision);
-
-              if ((mergedState instanceof ForceMerge && ((ForceMerge) mergedState).shouldMerge()) ||
-                  !mergedState.equals(reachedState)) {
+              if (!mergedState.equals(reachedState)) {
                 logger.log(Level.FINER, "Successor was merged with state from reached set");
                 logger.log(
                     Level.ALL, "Merged", successor, "\nand", reachedState, "\n-->", mergedState);

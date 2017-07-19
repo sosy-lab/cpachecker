@@ -46,7 +46,6 @@ public class ARGMergeLocationBased implements MergeOperator {
     if (cfaNode1.equals(cfaNode2) && pState1 != pState2) {
       ARGState mergedElement = (ARGState) pState2;
       ARGState argElement1 = (ARGState) pState1;
-      mergedElement.setForceMerge();
 
       // replace argElement1 with it
       for (ARGState parentOfElement1 : argElement1.getParents()) {

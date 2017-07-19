@@ -54,7 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ARGState extends AbstractSingleWrapperState
-    implements Comparable<ARGState>, Graphable, Splitable, ForceMerge {
+    implements Comparable<ARGState>, Graphable, Splitable{
 
   private static final long serialVersionUID = 2608287648397165040L;
 
@@ -84,24 +84,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
-  private boolean forceMerge = false;
-
   private boolean forkCompleted = false;
-
-  @Override
-  public void setForceMerge() {
-    forceMerge = true;
-  }
-
-  @Override
-  public boolean shouldMerge() {
-      if (forceMerge) {
-        forceMerge = false;
-        return true;
-      } else {
-        return false;
-      }
-  }
 
   public ARGState(@Nullable AbstractState pWrappedState, @Nullable ARGState pParentElement) {
     super(pWrappedState);
