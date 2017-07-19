@@ -32,7 +32,6 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import org.eclipse.wst.jsdt.core.dom.ASTVisitor;
-import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
@@ -189,18 +188,19 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   @Override
   public boolean visit(final VariableDeclarationStatement node) {
-    @SuppressWarnings("unchecked")
-    final List<VariableDeclarationFragment> variableDeclarationFragments = node.fragments();
-    for (final VariableDeclarationFragment variableDeclarationFragment :
-        variableDeclarationFragments) {
-      final CFANode nextNode = new CFANode(functionName);
-      cfaNodes.put(functionName, nextNode);
+    final CFABuilder builder = new CFABuilder(logger, astConverter, functionName, prevNode);
+    final VariableDeclarationStatementCFABuilder varBuilder =
+        new VariableDeclarationStatementCFABuilder(builder);
+    varBuilder.append(node);
 
-      addEdge(prevNode, nextNode, variableDeclarationFragment);
+    final ParseResult builderParseResult = builder.getParseResult();
+    cfas.putAll(builderParseResult.getFunctions());
+    cfaNodes.putAll(builderParseResult.getCFANodes());
+    globalDeclarations.addAll(builderParseResult.getGlobalDeclarations());
 
-      prevNode = nextNode;
-    }
-    return super.visit(node);
+    prevNode = builder.getExitNode();
+
+    return false;
   }
 
   private void addEdge(
