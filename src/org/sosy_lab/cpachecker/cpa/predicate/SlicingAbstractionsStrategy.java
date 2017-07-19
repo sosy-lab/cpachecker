@@ -91,7 +91,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
   // (we sometimes needs this to refer to the previous block).
   private AbstractionFormula lastAbstraction = null;
 
-  protected SlicingAbstractionsStrategy(final Configuration config, final Solver pSolver,
+  public SlicingAbstractionsStrategy(final Configuration config, final Solver pSolver,
       final PredicateAbstractionManager pPredAbsMgr, final PathChecker pPathChecker) throws InvalidConfigurationException {
     super(pSolver);
 

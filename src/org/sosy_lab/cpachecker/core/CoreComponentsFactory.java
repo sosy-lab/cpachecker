@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithmWithARGReplay;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.SlicingAbstractionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -115,6 +116,10 @@ public class CoreComponentsFactory {
   @Option(secure=true, name="algorithm.impact",
       description="Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
+
+  @Option(secure=true, name="algorithm.slicing",
+      description="Use slicing algorithm for slicing abstractions")
+  private boolean useSlicingAlgorithm = false;
 
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
@@ -288,6 +293,9 @@ public class CoreComponentsFactory {
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
+
+    } else if (useSlicingAlgorithm) {
+      algorithm = new SlicingAbstractionsAlgorithm(config, logger, shutdownNotifier, cpa);
 
     } else if (useRestartAlgorithmWithARGReplay) {
       algorithm =
