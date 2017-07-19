@@ -71,11 +71,15 @@ class CFABuilder {
     parseResult.getCFANodes().put(functionName, pEntryNode);
   }
 
+  public void addParseResult(final ParseResult pParseResult) {
+    // TODO move to ParseResult?
+    parseResult.getFunctions().putAll(pParseResult.getFunctions());
+    parseResult.getCFANodes().putAll(pParseResult.getCFANodes());
+    parseResult.getGlobalDeclarations().addAll(pParseResult.getGlobalDeclarations());
+  }
+
   public CFABuilder append(final CFABuilder builder) {
-    final ParseResult builderParseResult = builder.getParseResult();
-    parseResult.getFunctions().putAll(builderParseResult.getFunctions());
-    parseResult.getCFANodes().putAll(builderParseResult.getCFANodes());
-    parseResult.getGlobalDeclarations().addAll(builderParseResult.getGlobalDeclarations());
+    addParseResult(builder.getParseResult());
 
     if (!(builder.exitNode instanceof FunctionExitNode)) {
       exitNode = builder.exitNode;
@@ -116,5 +120,9 @@ class CFABuilder {
 
   public LogManager getLogger() {
     return logger;
+  }
+
+  public String getFunctionName() {
+    return functionName;
   }
 }

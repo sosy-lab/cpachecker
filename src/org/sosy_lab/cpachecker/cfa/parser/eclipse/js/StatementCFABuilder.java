@@ -24,9 +24,10 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import org.eclipse.wst.jsdt.core.dom.ASTVisitor;
-import org.eclipse.wst.jsdt.core.dom.Block;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
+import org.eclipse.wst.jsdt.core.dom.IfStatement;
+import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 
 class StatementCFABuilder extends ASTVisitor {
@@ -37,8 +38,8 @@ class StatementCFABuilder extends ASTVisitor {
     builder = pBuilder;
   }
 
-  public void append(final Block pBlockStatement) {
-    pBlockStatement.accept(this);
+  public void append(final Statement pStatement) {
+    pStatement.accept(this);
   }
 
   @Override
@@ -60,11 +61,23 @@ class StatementCFABuilder extends ASTVisitor {
   }
 
   @Override
+  public boolean visit(final IfStatement statement) {
+    final IfStatementCFABuilder statementCFABuilder = new IfStatementCFABuilder(builder);
+    statementCFABuilder.append(statement);
+    builder.append(statementCFABuilder.getBuilder());
+    return false;
+  }
+
+  @Override
   public boolean visit(final VariableDeclarationStatement statement) {
     final VariableDeclarationStatementCFABuilder statementCFABuilder =
         new VariableDeclarationStatementCFABuilder(builder);
     statementCFABuilder.append(statement);
     builder.append(statementCFABuilder.getBuilder());
     return false;
+  }
+
+  public CFABuilder getBuilder() {
+    return builder;
   }
 }
