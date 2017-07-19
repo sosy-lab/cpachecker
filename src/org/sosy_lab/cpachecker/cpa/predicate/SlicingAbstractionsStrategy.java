@@ -43,6 +43,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -198,49 +200,46 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
         .collect(Collectors.toList());
     allChangedStates.addAll(pChangedElements);
 
-    for (ARGState parent : allChangedStates) {
-      List<ARGState> toRemove = new ArrayList<>(2);
-      for (ARGState child: parent.getChildren()) {
-        boolean infeasible = false;
-        boolean unknown = false;
-        try {
-          infeasible = this.pathChecker.isInfeasibleEdge(parent,child);
-        } catch (Exception e){
-           unknown = true;
-        }
-        if (infeasible) {
-          toRemove.add(child);
+    for (ARGState currentState : allChangedStates) {
+      List<Pair<ARGState, ARGState>> infeasibleEdges = new ArrayList<>();
+
+      // Check all transitions from currentState to its children:
+      for (ARGState child: currentState.getChildren()) {
+        if (isInfeasibleEdge(currentState,child)) {
+          infeasibleEdges.add(Pair.of(currentState,child));
         }
       }
-      for (ARGState child : toRemove) {
+
+      // Check all transitions from parents of currentState to currentState:
+      for (ARGState parent: currentState.getParents()) {
+        if (allChangedStates.contains(parent)) {
+          // we already checked for this edge above!
+          continue;
+        }
+        if (isInfeasibleEdge(parent,currentState)) {
+          infeasibleEdges.add(Pair.of(parent,currentState));
+        }
+      }
+
+      // Remove the edges that have been found to be infeasible:
+      for (Pair<ARGState,ARGState> statePair : infeasibleEdges) {
+        ARGState parent = statePair.getFirst();
+        ARGState child = statePair.getSecond();
         child.removeParent(parent);
         assert !child.getParents().contains(parent);
         assert !parent.getChildren().contains(child);
       }
     }
+  }
 
-    //TODO: This is mostly the same as the block above -> refactor
-    for (ARGState asChild : allChangedStates) {
-      List<ARGState> toRemove = new ArrayList<>(2);
-      for (ARGState parent: asChild.getParents()) {
-        boolean infeasible = false;
-        boolean unknown = false;
-        try {
-          infeasible = this.pathChecker.isInfeasibleEdge(parent,asChild);
-        } catch (Exception e){
-           unknown = true;
-        }
-        if (infeasible) {
-          toRemove.add(parent);
-        }
-      }
-      for (ARGState parent : toRemove) {
-        asChild.removeParent(parent);
-        assert !asChild.getParents().contains(parent);
-        assert !parent.getChildren().contains(asChild);
-      }
+  private boolean isInfeasibleEdge(ARGState parent, ARGState child) {
+    boolean infeasible = false;
+    try {
+      infeasible = this.pathChecker.isInfeasibleEdge(parent,child);
+    } catch (SolverException|InterruptedException|CPATransferException  e){
+      // TODO: What should we do here?
     }
-
+    return infeasible;
   }
 
   @Override
