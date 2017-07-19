@@ -127,18 +127,13 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     // we only split if the state has actually changed
     ARGState newState;
     if (stateChanged) {
-      //splitting the state (could lead to OperationNotSupportedException):
+      //splitting the state:
       newState = s.forkWithReplacements(Collections.singleton(copiedPredicateState));
 
       //Now we strengthen the splitted state with negated interpolant:
       BooleanFormula negatedItp = bfmgr.not(itp);
       impact.strengthenStateWithInterpolant(negatedItp,newState,lastAbstraction);
     }
-
-    String name = String.format("cpalgo%04d.dot", ARGUtils.iterationCount);
-    String label = "In Refinement";
-    ARGUtils.savePlot(name, ARGUtils.allARGStates,label);
-    ARGUtils.iterationCount += 1;
 
     // Get the abstraction formula of the current state
     // (whether changed or not) to have it ready for the next call to this method).
