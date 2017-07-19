@@ -30,7 +30,8 @@ import org.eclipse.wst.jsdt.core.dom.IfStatement;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 
-class StatementCFABuilder extends ASTVisitor {
+class StatementCFABuilder extends ASTVisitor
+    implements CFABuilderWrapperOfType<StatementCFABuilder> {
 
   private final CFABuilder builder;
 
@@ -38,8 +39,9 @@ class StatementCFABuilder extends ASTVisitor {
     builder = pBuilder;
   }
 
-  public void append(final Statement pStatement) {
+  public StatementCFABuilder append(final Statement pStatement) {
     pStatement.accept(this);
+    return this;
   }
 
   @Override
@@ -77,6 +79,7 @@ class StatementCFABuilder extends ASTVisitor {
     return false;
   }
 
+  @Override
   public CFABuilder getBuilder() {
     return builder;
   }

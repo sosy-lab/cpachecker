@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 
-class IfStatementCFABuilder {
+class IfStatementCFABuilder implements CFABuilderWrapperOfType<IfStatementCFABuilder> {
 
   private final CFABuilder builder;
 
@@ -68,11 +68,12 @@ class IfStatementCFABuilder {
     } else {
       builder.append(
           buildConditionBranch(
-              false,
-              condition,
-              elseStatement,
-              "end else of node " + conditionNodeDescription,
-              exitNode));
+                  false,
+                  condition,
+                  elseStatement,
+                  "end else of node " + conditionNodeDescription,
+                  exitNode)
+              .getBuilder());
     }
   }
 
@@ -87,21 +88,18 @@ class IfStatementCFABuilder {
    * @param pExitNode The node after the if-statement, where then- and else-branch flow together.
    * @return The builder that contains the parse result of the branch.
    */
-  private CFABuilder buildConditionBranch(
+  private StatementCFABuilder buildConditionBranch(
       final boolean pTruthAssumption,
       final JSExpression pCondition,
       final Statement pStatement,
       final String pExitEdgeDescription,
       final CFANode pExitNode) {
-    final StatementCFABuilder statementBuilder =
-        new StatementCFABuilder(
+    return new StatementCFABuilder(
             new CFABuilder(
                 builder.getLogger(),
                 builder.getAstConverter(),
                 builder.getFunctionName(),
-                builder.getExitNode()));
-    statementBuilder
-        .getBuilder()
+                builder.getExitNode()))
         .appendEdge(
             (pPredecessor, pSuccessor) ->
                 new JSAssumeEdge(
@@ -110,18 +108,16 @@ class IfStatementCFABuilder {
                     pPredecessor,
                     pSuccessor,
                     pCondition,
-                    pTruthAssumption));
-    statementBuilder.append(pStatement);
-    statementBuilder
-        .getBuilder()
+                    pTruthAssumption))
+        .append(pStatement)
         .appendEdge(
             pExitNode,
             (pPredecessor, pSuccessor) ->
                 new BlankEdge(
                     "", FileLocation.DUMMY, pPredecessor, pSuccessor, pExitEdgeDescription));
-    return statementBuilder.getBuilder();
   }
 
+  @Override
   public CFABuilder getBuilder() {
     return builder;
   }

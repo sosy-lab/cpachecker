@@ -71,11 +71,12 @@ class CFABuilder {
     parseResult.getCFANodes().put(functionName, pEntryNode);
   }
 
-  public void addParseResult(final ParseResult pParseResult) {
+  public CFABuilder addParseResult(final ParseResult pParseResult) {
     // TODO move to ParseResult?
     parseResult.getFunctions().putAll(pParseResult.getFunctions());
     parseResult.getCFANodes().putAll(pParseResult.getCFANodes());
     parseResult.getGlobalDeclarations().addAll(pParseResult.getGlobalDeclarations());
+    return this;
   }
 
   public CFABuilder append(final CFABuilder builder) {
