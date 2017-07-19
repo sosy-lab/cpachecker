@@ -185,22 +185,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     return false;
   }
 
-  private void addEdge(
-      final CFANode pPredecessor,
-      final CFANode pSuccessor,
-      final VariableDeclarationFragment pVariableDeclarationFragment) {
-    final JSVariableDeclaration variableDeclaration =
-        astConverter.convert(pVariableDeclarationFragment);
-    CFACreationUtils.addEdgeToCFA(
-        new JSDeclarationEdge(
-            variableDeclaration.toASTString(),
-            astConverter.getFileLocation(pVariableDeclarationFragment),
-            pPredecessor,
-            pSuccessor,
-            variableDeclaration),
-        logger);
-  }
-
   ParseResult createCFA() {
     // TODO do not add this edge if return has been called
     CFACreationUtils.addEdgeToCFA(
