@@ -161,11 +161,6 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   @Override
-  public boolean visit(final ExpressionStatement node) {
-    return super.visit(node);
-  }
-
-  @Override
   public boolean visit(final FunctionInvocation node) {
     final JSFunctionCallStatement functionCallStatement =
         new JSFunctionCallStatement(
