@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
 import org.eclipse.wst.jsdt.core.dom.IfStatement;
+import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -41,48 +42,84 @@ class IfStatementCFABuilder {
   public void append(final IfStatement node) {
     final String conditionNodeDescription = builder.getExitNode().toString();
     final CFANode exitNode = builder.createNode();
-    final ASTConverter converter = builder.getAstConverter();
-    final JSExpression condition = converter.convert(node.getExpression());
+    final JSExpression condition = builder.getAstConverter().convert(node.getExpression());
 
-    final StatementCFABuilder thenStatementBuilder =
+    builder.addParseResult(
+        buildConditionBranch(
+                true,
+                condition,
+                node.getThenStatement(),
+                "end if of node " + conditionNodeDescription,
+                exitNode)
+            .getParseResult());
+
+    final Statement elseStatement = node.getElseStatement();
+    if (elseStatement == null) {
+      builder.appendEdge(
+          exitNode,
+          (pPredecessor, pSuccessor) ->
+              new JSAssumeEdge(
+                  condition.toASTString(),
+                  condition.getFileLocation(),
+                  pPredecessor,
+                  pSuccessor,
+                  condition,
+                  false));
+    } else {
+      builder.append(
+          buildConditionBranch(
+              false,
+              condition,
+              elseStatement,
+              "end else of node " + conditionNodeDescription,
+              exitNode));
+    }
+  }
+
+  /**
+   * Build CFA of then- or else-branch.
+   *
+   * @param pTruthAssumption <code>true</code> if then-branch is built and <code>false</code> if
+   *     else-branch is built.
+   * @param pCondition The condition of the if-statement.
+   * @param pStatement The then- or else-statement.
+   * @param pExitEdgeDescription The description of the edge that will point to the exit node.
+   * @param pExitNode The node after the if-statement, where then- and else-branch flow together.
+   * @return The builder that contains the parse result of the branch.
+   */
+  private CFABuilder buildConditionBranch(
+      final boolean pTruthAssumption,
+      final JSExpression pCondition,
+      final Statement pStatement,
+      final String pExitEdgeDescription,
+      final CFANode pExitNode) {
+    final StatementCFABuilder statementBuilder =
         new StatementCFABuilder(
             new CFABuilder(
-                builder.getLogger(), converter, builder.getFunctionName(), builder.getExitNode()));
-    thenStatementBuilder
+                builder.getLogger(),
+                builder.getAstConverter(),
+                builder.getFunctionName(),
+                builder.getExitNode()));
+    statementBuilder
         .getBuilder()
         .appendEdge(
             (pPredecessor, pSuccessor) ->
                 new JSAssumeEdge(
-                    condition.toASTString(),
-                    condition.getFileLocation(),
+                    pCondition.toASTString(),
+                    pCondition.getFileLocation(),
                     pPredecessor,
                     pSuccessor,
-                    condition,
-                    true));
-    thenStatementBuilder.append(node.getThenStatement());
-    thenStatementBuilder
+                    pCondition,
+                    pTruthAssumption));
+    statementBuilder.append(pStatement);
+    statementBuilder
         .getBuilder()
         .appendEdge(
-            exitNode,
+            pExitNode,
             (pPredecessor, pSuccessor) ->
                 new BlankEdge(
-                    "",
-                    FileLocation.DUMMY,
-                    pPredecessor,
-                    pSuccessor,
-                    "end if of node " + conditionNodeDescription));
-    builder.addParseResult(thenStatementBuilder.getBuilder().getParseResult());
-
-    builder.appendEdge(
-        exitNode,
-        (pPredecessor, pSuccessor) ->
-            new JSAssumeEdge(
-                condition.toASTString(),
-                condition.getFileLocation(),
-                pPredecessor,
-                pSuccessor,
-                condition,
-                false));
+                    "", FileLocation.DUMMY, pPredecessor, pSuccessor, pExitEdgeDescription));
+    return statementBuilder.getBuilder();
   }
 
   public CFABuilder getBuilder() {
