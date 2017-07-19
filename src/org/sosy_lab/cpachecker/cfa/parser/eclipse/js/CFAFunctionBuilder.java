@@ -59,7 +59,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final LogManager logger;
   private final ASTConverter astConverter;
 
-  private SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
+  private final SortedMap<String, FunctionEntryNode> cfas = new TreeMap<>();
   private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<Pair<ADeclaration, String>> globalDeclarations = Lists.newArrayList();
 
@@ -67,19 +67,23 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final String functionName;
   private final FunctionExitNode exitNode;
 
+  private final FunctionDeclaration functionDeclaration;
+
   CFAFunctionBuilder(
-      final JSFunctionDeclaration functionDeclaration,
+      final FunctionDeclaration pFunctionDeclaration,
+      final JSFunctionDeclaration pJSFunctionDeclaration,
       final Scope pScope,
       final LogManager pLogger,
       final ASTConverter pAstConverter) {
-    functionName = functionDeclaration.getName();
+    functionDeclaration = pFunctionDeclaration;
+    functionName = pJSFunctionDeclaration.getName();
     scope = pScope;
     logger = pLogger;
     astConverter = pAstConverter;
     exitNode = new FunctionExitNode(functionName);
     final JSFunctionEntryNode entryNode =
         new JSFunctionEntryNode(
-            FileLocation.DUMMY, functionDeclaration, exitNode, Optional.empty());
+            FileLocation.DUMMY, pJSFunctionDeclaration, exitNode, Optional.empty());
     prevNode = entryNode;
     exitNode.setEntryNode(entryNode);
     cfas.put(functionName, entryNode);
@@ -88,11 +92,24 @@ class CFAFunctionBuilder extends ASTVisitor {
   }
 
   CFAFunctionBuilder(
-      final FunctionDeclaration node,
+      final JSFunctionDeclaration pJSFunctionDeclaration,
       final Scope pScope,
       final LogManager pLogger,
       final ASTConverter pAstConverter) {
-    this(convertFunctionDeclaration(node, pAstConverter), pScope, pLogger, pAstConverter);
+    this(null, pJSFunctionDeclaration, pScope, pLogger, pAstConverter);
+  }
+
+  CFAFunctionBuilder(
+      final FunctionDeclaration pFunctionDeclaration,
+      final Scope pScope,
+      final LogManager pLogger,
+      final ASTConverter pAstConverter) {
+    this(
+        pFunctionDeclaration,
+        convertFunctionDeclaration(pFunctionDeclaration, pAstConverter),
+        pScope,
+        pLogger,
+        pAstConverter);
   }
 
   private static String getFunctionName(final FunctionDeclaration node) {
@@ -108,8 +125,31 @@ class CFAFunctionBuilder extends ASTVisitor {
         Collections.emptyList());
   }
 
+  /**
+   * Process the passed function declaration. If the same function declaration is passed that has
+   * been passed to the constructor, its children will be visited by this builder. If another
+   * function declaration is passed then it is handled as a function declaration within the function
+   * declaration that has been passed to the constructor.
+   *
+   * @param node The function declaration that has been passed to the constructor or a function
+   *     declaration within the function declaration that has been passed to the constructor. You
+   *     must not pass the function declaration of this builder. Pass it only to the constructor.
+   * @return Only visit the children of the passed function declaration node if it is the same that
+   *     has been passed to the constructor. Otherwise (i.e. a nested function declaration is
+   *     passed), a new local builder is created for this function declaration that handles them.
+   */
   @Override
   public boolean visit(final FunctionDeclaration node) {
+    if (node.equals(functionDeclaration)) {
+      return true;
+    }
+    final CFAFunctionBuilder innerFunctionBuilder =
+        new CFAFunctionBuilder(node, scope, logger, astConverter);
+    node.accept(innerFunctionBuilder);
+    final ParseResult innerFunctionBuilderCFA = innerFunctionBuilder.createCFA();
+    cfas.putAll(innerFunctionBuilderCFA.getFunctions());
+    cfaNodes.putAll(innerFunctionBuilderCFA.getCFANodes());
+    globalDeclarations.addAll(innerFunctionBuilderCFA.getGlobalDeclarations());
     return false;
   }
 
