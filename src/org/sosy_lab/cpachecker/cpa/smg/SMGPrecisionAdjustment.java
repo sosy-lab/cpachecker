@@ -85,8 +85,6 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
   }
 
-
-
   @Override
   public Optional<PrecisionAdjustmentResult> prec(AbstractState pState, Precision pPrecision,
       UnmodifiableReachedSet pStates, Function<AbstractState, AbstractState> pStateProjection, AbstractState pFullState)

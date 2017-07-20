@@ -128,11 +128,6 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   public SMGTransferRelationKind kind;
 
-  /**
-   * name for the special variable used as container for return values of functions
-   */
-  public static final String FUNCTION_RETURN_VAR = "___cpa_temp_result_var_";
-
   public final SMGBuiltins builtins;
 
   @Override

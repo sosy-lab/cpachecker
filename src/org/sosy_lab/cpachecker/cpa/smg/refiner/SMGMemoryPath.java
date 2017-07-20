@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -108,14 +108,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((functionName == null) ? 0 : functionName.hashCode());
-    result = prime * result + (globalStart ? 1231 : 1237);
-    result = prime * result + ((pathOffsets == null) ? 0 : pathOffsets.hashCode());
-    result = prime * result + ((variableName == null) ? 0 : variableName.hashCode());
-    result = prime * result + ((locationOnStack == null) ? 0 : locationOnStack.hashCode());
-    return result;
+    return Objects.hashCode(globalStart, locationOnStack, functionName, pathOffsets, variableName);
   }
 
   @Override
@@ -123,45 +116,15 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof SMGMemoryPath)) {
       return false;
     }
     SMGMemoryPath other = (SMGMemoryPath) obj;
-    if (locationOnStack == null) {
-      if (other.locationOnStack != null) {
-        return false;
-      }
-    } else if (!locationOnStack.equals(other.locationOnStack)) {
-      return false;
-    }
-    if (functionName == null) {
-      if (other.functionName != null) {
-        return false;
-      }
-    } else if (!functionName.equals(other.functionName)) {
-      return false;
-    }
-    if (globalStart != other.globalStart) {
-      return false;
-    }
-    if (pathOffsets == null) {
-      if (other.pathOffsets != null) {
-        return false;
-      }
-    } else if (!pathOffsets.equals(other.pathOffsets)) {
-      return false;
-    }
-    if (variableName == null) {
-      if (other.variableName != null) {
-        return false;
-      }
-    } else if (!variableName.equals(other.variableName)) {
-      return false;
-    }
-    return true;
+    return globalStart != other.globalStart
+        && Objects.equal(locationOnStack, other.locationOnStack)
+        && Objects.equal(functionName, other.functionName)
+        && Objects.equal(pathOffsets, other.pathOffsets)
+        && Objects.equal(variableName, other.variableName);
   }
 
   public static SMGMemoryPath valueOf(String pVariableName, String pFunctionName,
@@ -169,8 +132,7 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
     return new SMGMemoryPath(pVariableName, pFunctionName, pPathOffset, pLocationOnStack);
   }
 
-  public static SMGMemoryPath valueOf(String pVariableName,
-      Integer pPathOffset) {
+  public static SMGMemoryPath valueOf(String pVariableName, Integer pPathOffset) {
     return new SMGMemoryPath(pVariableName, pPathOffset);
   }
 

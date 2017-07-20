@@ -74,21 +74,9 @@ public class SMGStateTest {
     smg1.addStackFrame(functionDeclaration3);
 
     SMGValueFactory.prepareForTest();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
+    for (int i = 0; i < 15; i++) {
+      SMGValueFactory.getNewValue();
+    }
 
     SMGRegion l1 = new SMGRegion(96, "l1");
     SMGRegion l2 = new SMGRegion(96, "l2");
@@ -173,21 +161,9 @@ public class SMGStateTest {
   public void materialiseTest() throws SMGInconsistentException {
 
     SMGValueFactory.prepareForTest();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
+    for (int i = 0; i < 15; i++) {
+      SMGValueFactory.getNewValue();
+    }
 
     CLangSMG heap = new CLangSMG(MachineModel.LINUX32);
 
