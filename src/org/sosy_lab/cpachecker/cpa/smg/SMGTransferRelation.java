@@ -97,13 +97,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.AssumeVisitor;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressAndState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGExplicitValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.AssumeVisitor;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.LValueAssignmentVisitor;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.SMGAddressAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.SMGAddressValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.SMGExplicitValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.SMGValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -1963,19 +1964,19 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     @Override
-    protected org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.PointerVisitor getPointerVisitor(
+    public org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.PointerVisitor getPointerVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
       return new PointerAddressVisitor(pCfaEdge, pNewState);
     }
 
     @Override
-    protected org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.ExpressionValueVisitor getExpressionValueVisitor(
+    public org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.ExpressionValueVisitor getExpressionValueVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
       return new ExpressionValueVisitor(pCfaEdge, pNewState);
     }
 
     @Override
-    public org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.LValueAssignmentVisitor getLValueAssignmentVisitor(
+    public org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.LValueAssignmentVisitor getLValueAssignmentVisitor(
         CFAEdge pCfaEdge, SMGState pNewState) {
       return new LValueAssignmentVisitor(pCfaEdge, pNewState);
     }

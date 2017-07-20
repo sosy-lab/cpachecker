@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg;
+package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
@@ -75,6 +75,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
@@ -338,7 +341,7 @@ public class SMGExpressionEvaluator {
     return new SMGField(smgValue, resultType);
   }
 
-  boolean isStructOrUnionType(CType rValueType) {
+  public boolean isStructOrUnionType(CType rValueType) {
 
     if (rValueType instanceof CElaboratedType) {
       CElaboratedType type = (CElaboratedType) rValueType;
@@ -365,7 +368,7 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  protected List<SMGExplicitValueAndState> evaluateExplicitValue(SMGState smgState,
+  public List<SMGExplicitValueAndState> evaluateExplicitValue(SMGState smgState,
       CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
 
     List<SMGExplicitValueAndState> result = new ArrayList<>();
@@ -431,7 +434,7 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  protected SMGValueAndStateList evaluateExpressionValue(SMGState smgState, CFAEdge cfaEdge,
+  public SMGValueAndStateList evaluateExpressionValue(SMGState smgState, CFAEdge cfaEdge,
       CRightHandSide rValue) throws CPATransferException {
 
     CType expressionType = getRealExpressionType(rValue);
@@ -483,7 +486,7 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  protected SMGAddressValueAndStateList evaluateAddress(SMGState pState, CFAEdge cfaEdge, CRightHandSide rValue)
+  public SMGAddressValueAndStateList evaluateAddress(SMGState pState, CFAEdge cfaEdge, CRightHandSide rValue)
       throws CPATransferException {
 
     CType expressionType = getRealExpressionType(rValue);
@@ -640,7 +643,7 @@ public class SMGExpressionEvaluator {
    * pointer addresses that point to the null object represent
    * also the explicit value of the pointer.
    */
-  class PointerVisitor extends ExpressionValueVisitor {
+  public class PointerVisitor extends ExpressionValueVisitor {
 
     public PointerVisitor(CFAEdge pEdge, SMGState pSmgState) {
       super(pEdge, pSmgState);
@@ -1140,7 +1143,7 @@ public class SMGExpressionEvaluator {
     return addressValues;
   }
 
-  SMGAddressValueAndStateList createAddress(SMGState pSmgState, SMGObject pTarget,
+  protected SMGAddressValueAndStateList createAddress(SMGState pSmgState, SMGObject pTarget,
       SMGExplicitValue pOffset) throws SMGInconsistentException {
 
     SMGAddressValueAndStateList addressValueAndStates = getAddress(pSmgState, pTarget, pOffset);
@@ -1317,7 +1320,7 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  class AssumeVisitor extends ExpressionValueVisitor {
+  public class AssumeVisitor extends ExpressionValueVisitor {
     private Map<SMGState,BinaryRelationResult> relations = new HashMap<>();
 
     public AssumeVisitor(CFAEdge pEdge, SMGState pSmgState) {
@@ -1647,7 +1650,7 @@ public class SMGExpressionEvaluator {
    * The value represents a symbolic value of the SMG.
    *
    */
-  class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAndStateList, CPATransferException>
+  public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAndStateList, CPATransferException>
     implements CRightHandSideVisitor<SMGValueAndStateList, CPATransferException> {
 
     protected final CFAEdge cfaEdge;
@@ -2060,7 +2063,7 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
+  public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     private final CFAEdge edge;
 
@@ -2256,23 +2259,23 @@ public class SMGExpressionEvaluator {
     return SMGValueAndState.of(smgState);
   }
 
-  protected StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  public StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new StructAndUnionVisitor(pCfaEdge, pNewState);
   }
 
-  protected ArrayVisitor getArrayVisitor(CFAEdge pCfaEdge, SMGState pSmgState) {
+  public ArrayVisitor getArrayVisitor(CFAEdge pCfaEdge, SMGState pSmgState) {
     return new ArrayVisitor(pCfaEdge, pSmgState);
   }
 
-  protected PointerVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  public PointerVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new PointerVisitor(pCfaEdge, pNewState);
   }
 
-  protected AssumeVisitor getAssumeVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  public AssumeVisitor getAssumeVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new AssumeVisitor(pCfaEdge, pNewState);
   }
 
-  protected ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+  public ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
     return new ExpressionValueVisitor(pCfaEdge, pNewState);
   }
 
