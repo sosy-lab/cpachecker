@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -54,6 +51,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
@@ -837,238 +840,6 @@ public class SMGExpressionEvaluator {
     return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
   }
 
-  public static class SMGAddressValueAndState extends SMGValueAndState {
 
-    private SMGAddressValueAndState(SMGState pState, SMGAddressValue pValue) {
-      super(pState, pValue);
-    }
-
-    public SMGAddressAndState asSMGAddressAndState() {
-      return SMGAddressAndState.of(getSmgState(), getObject().getAddress());
-    }
-
-    @Override
-    public SMGAddressValue getObject() {
-      return (SMGAddressValue) super.getObject();
-    }
-
-    public static SMGAddressValueAndState of(SMGState pState, SMGAddressValue pValue) {
-      return new SMGAddressValueAndState(pState, pValue);
-    }
-
-    public static SMGAddressValueAndState of(SMGState pState) {
-      return new SMGAddressValueAndState(pState, SMGUnknownValue.getInstance());
-    }
-  }
-
-  public static class SMGAddressAndState extends SMGAbstractObjectAndState<SMGAddress> {
-
-    private SMGAddressAndState(SMGState pState, SMGAddress pAddress) {
-      super(pState, pAddress);
-    }
-
-    public static List<SMGAddressAndState> listOf(SMGState pInitialSmgState, SMGAddress pValueOf) {
-      return ImmutableList.of(of(pInitialSmgState, pValueOf));
-    }
-
-    public static List<SMGAddressAndState> listOf(SMGState pInitialSmgState) {
-      return ImmutableList.of(of(pInitialSmgState));
-    }
-
-    public static SMGAddressAndState of(SMGState pState) {
-      return new SMGAddressAndState(pState, SMGAddress.getUnknownInstance());
-    }
-
-    public static SMGAddressAndState of(SMGState pState, SMGAddress pAddress) {
-      return new SMGAddressAndState(pState, pAddress);
-    }
-  }
-
-  public static class SMGValueAndStateList {
-
-    private final List<? extends SMGValueAndState> valueAndStateList;
-
-    public SMGValueAndStateList(List<? extends SMGValueAndState> list) {
-      valueAndStateList = ImmutableList.copyOf(list);
-    }
-
-    public SMGValueAndStateList(SMGValueAndState pE) {
-      valueAndStateList = ImmutableList.of(pE);
-    }
-
-    public int size() {
-      return valueAndStateList.size();
-    }
-
-    @Override
-    public String toString() {
-      return valueAndStateList.toString();
-    }
-
-    @Override
-    public boolean equals(Object pObj) {
-      return valueAndStateList.equals(pObj);
-    }
-
-    @Override
-    public int hashCode() {
-      return valueAndStateList.hashCode();
-    }
-
-    public List<? extends SMGValueAndState> getValueAndStateList() {
-      return valueAndStateList;
-    }
-
-    public static SMGValueAndStateList of(SMGValueAndState pE) {
-      return new SMGValueAndStateList(pE);
-    }
-
-    public static SMGValueAndStateList of(SMGState smgState) {
-      return of(SMGValueAndState.of(smgState));
-    }
-
-    public static SMGValueAndStateList of(SMGState smgState, SMGSymbolicValue val) {
-      return of(SMGValueAndState.of(smgState, val));
-    }
-
-    public static SMGValueAndStateList copyOf(List<SMGValueAndState> pE) {
-      return new SMGValueAndStateList(pE);
-    }
-
-    public List<SMGState> asSMGStateList() {
-
-      return FluentIterable.from(valueAndStateList).transform(new Function<SMGValueAndState, SMGState>() {
-
-        @Override
-        public SMGState apply(SMGValueAndState valueAndState) {
-
-          return valueAndState.getSmgState();
-        }
-      }).toList();
-    }
-
-    public static SMGValueAndStateList copyOfUnknownValue(List<SMGState> pNewStates) {
-
-      List<SMGValueAndState> result = new ArrayList<>(pNewStates.size());
-
-      for (SMGState state : pNewStates) {
-        result.add(SMGValueAndState.of(state));
-      }
-
-      return copyOf(result);
-    }
-  }
-
-  public static class SMGAddressValueAndStateList extends SMGValueAndStateList {
-
-
-    private SMGAddressValueAndStateList(List<SMGAddressValueAndState> pList) {
-      super(ImmutableList.copyOf(pList));
-    }
-
-    public List<SMGAddressAndState> asAddressAndStateList() {
-
-
-      return FluentIterable.from(getValueAndStateList())
-          .transform(new Function<SMGValueAndState, SMGAddressAndState>() {
-
-            @Override
-            public SMGAddressAndState apply(SMGValueAndState valueAndState) {
-
-              SMGAddressValueAndState addressValueAndState = (SMGAddressValueAndState) valueAndState;
-
-
-              SMGAddressValue addressValue = addressValueAndState.getObject();
-              SMGState newState = addressValueAndState.getSmgState();
-
-              if (addressValue.isUnknown()) {
-                return SMGAddressAndState.of(newState);
-              }
-
-              return SMGAddressAndState.of(newState, addressValue.getAddress());
-            }
-          }).toList();
-    }
-
-    private SMGAddressValueAndStateList(SMGAddressValueAndState pE) {
-      super(pE);
-    }
-
-    public List<SMGAddressValueAndState> asAddressValueAndStateList() {
-      return FluentIterable.from(getValueAndStateList()).transform(new Function<SMGValueAndState, SMGAddressValueAndState>() {
-
-            @Override
-            public SMGAddressValueAndState apply(SMGValueAndState pE) {
-              return (SMGAddressValueAndState) pE;
-            }
-
-          }).toList();
-    }
-
-    public static SMGAddressValueAndStateList of(SMGAddressValueAndState pE) {
-      return new SMGAddressValueAndStateList(pE);
-    }
-
-    public static SMGAddressValueAndStateList of(SMGState smgState) {
-      return of(SMGAddressValueAndState.of(smgState));
-    }
-
-    public static SMGAddressValueAndStateList copyOfAddressValueList(List<SMGAddressValueAndState> pList) {
-      return new SMGAddressValueAndStateList(pList);
-    }
-  }
-
-  public static class SMGValueAndState extends SMGAbstractObjectAndState<SMGSymbolicValue> {
-
-    private SMGValueAndState(SMGState pState, SMGSymbolicValue pValue) {
-      super(pState, pValue);
-    }
-
-    public static SMGValueAndState of(SMGState pState) {
-      return new SMGValueAndState(pState, SMGUnknownValue.getInstance());
-    }
-
-    public static SMGValueAndState of(SMGState pState, SMGSymbolicValue pValue) {
-      return new SMGValueAndState(pState, pValue);
-    }
-  }
-
-  public static class SMGExplicitValueAndState extends SMGAbstractObjectAndState<SMGExplicitValue> {
-
-    private SMGExplicitValueAndState(SMGState pState, SMGExplicitValue pValue) {
-      super(pState, pValue);
-    }
-
-    public static SMGExplicitValueAndState of(SMGState pState) {
-      return new SMGExplicitValueAndState(pState, SMGUnknownValue.getInstance());
-    }
-
-    public static SMGExplicitValueAndState of(SMGState pState, SMGExplicitValue pValue) {
-      return new SMGExplicitValueAndState(pState, pValue);
-    }
-  }
-
-  public abstract static class SMGAbstractObjectAndState<T> {
-    private final SMGState smgState;
-    private final T object;
-
-    private SMGAbstractObjectAndState(SMGState pState, T pValue) {
-      smgState = pState;
-      object = pValue;
-    }
-
-    public T getObject() {
-      return object;
-    }
-
-    public SMGState getSmgState() {
-      return smgState;
-    }
-
-    @Override
-    public String toString() {
-      return object.toString() + " StateId: " + smgState.getId();
-    }
-  }
 
 }
