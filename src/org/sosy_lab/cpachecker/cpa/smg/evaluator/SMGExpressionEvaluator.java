@@ -104,8 +104,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
  */
 public class SMGExpressionEvaluator {
 
-  private final LogManagerWithoutDuplicates logger;
-  private final MachineModel machineModel;
+  protected final LogManagerWithoutDuplicates logger;
+  protected final MachineModel machineModel;
 
   public SMGExpressionEvaluator(LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel) {
     logger = pLogger;

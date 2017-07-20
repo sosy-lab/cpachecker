@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-class SMGBuiltins {
+public class SMGBuiltins {
 
   private final SMGTransferRelation smgTransferRelation;
 
@@ -481,7 +481,7 @@ class SMGBuiltins {
   }
 
   private static final String NONDET_PREFIX = "__VERIFIER_nondet_";
-  boolean isNondetBuiltin(String pFunctionName) {
+  public boolean isNondetBuiltin(String pFunctionName) {
     return pFunctionName.startsWith(NONDET_PREFIX) || pFunctionName.equals("nondet_int");
   }
 
