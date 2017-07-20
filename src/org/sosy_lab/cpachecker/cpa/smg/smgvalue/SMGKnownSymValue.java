@@ -42,25 +42,11 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGSymbolicValue 
   }
 
   public static SMGKnownSymValue valueOf(int pValue) {
-
-    if (pValue == 0) {
-      return ZERO;
-    } else if (pValue == 1) {
-      return ONE;
-    } else {
-      return new SMGKnownSymValue(BigInteger.valueOf(pValue));
-    }
+    return new SMGKnownSymValue(BigInteger.valueOf(pValue));
   }
 
   public static SMGKnownSymValue valueOf(long pValue) {
-
-    if (pValue == 0) {
-      return ZERO;
-    } else if (pValue == 1) {
-      return ONE;
-    } else {
-      return new SMGKnownSymValue(BigInteger.valueOf(pValue));
-    }
+    return new SMGKnownSymValue(BigInteger.valueOf(pValue));
   }
 
   public static SMGKnownSymValue valueOf(BigInteger pValue) {
@@ -78,20 +64,6 @@ public class SMGKnownSymValue extends SMGKnownValue implements SMGSymbolicValue 
 
   @Override
   public final boolean equals(Object pObj) {
-
-    if (!(pObj instanceof SMGKnownSymValue)) {
-      return false;
-    }
-
-    return super.equals(pObj);
-  }
-
-  @Override
-  public final int hashCode() {
-    int result = 17;
-
-    result = 31 * result + super.hashCode();
-
-    return result;
+    return pObj instanceof SMGKnownSymValue && super.equals(pObj);
   }
 }

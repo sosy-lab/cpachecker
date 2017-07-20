@@ -75,7 +75,7 @@ public final class SMGKnownAddVal extends SMGKnownSymValue implements SMGAddress
 
   @Override
   public String toString() {
-    return "Value: " + super.toString() + " " + address.toString();
+    return "Value: " + super.toString() + " " + address;
   }
 
   @Override

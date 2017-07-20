@@ -37,38 +37,14 @@ public abstract class SMGKnownValue {
     value = pValue;
   }
 
-  private SMGKnownValue(long pValue) {
-    value = BigInteger.valueOf(pValue);
-  }
-
-  private SMGKnownValue(int pValue) {
-    value = BigInteger.valueOf(pValue);
-  }
-
   @Override
   public boolean equals(Object pObj) {
-
-    if (this == pObj) {
-      return true;
-    }
-
-    if (!(pObj instanceof SMGKnownValue)) {
-      return false;
-    }
-
-    SMGKnownValue otherValue = (SMGKnownValue) pObj;
-
-    return value.equals(otherValue.value);
+    return pObj instanceof SMGKnownValue && value.equals(((SMGKnownValue) pObj).value);
   }
 
   @Override
   public int hashCode() {
-
-    int result = 5;
-
-    int c = value.hashCode();
-
-    return result * 31 + c;
+    return value.hashCode();
   }
 
   public final BigInteger getValue() {
@@ -92,3 +68,4 @@ public abstract class SMGKnownValue {
     return false;
   }
 }
+

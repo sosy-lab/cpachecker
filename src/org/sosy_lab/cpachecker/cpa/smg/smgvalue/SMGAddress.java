@@ -30,24 +30,19 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 /** A class to represent an Address. This class is mainly used to store Address Information. */
 public class SMGAddress {
 
-  public static final SMGAddress UNKNOWN = new SMGAddress();
-
-  protected SMGAddress(SMGObject pObject, SMGExplicitValue pOffset) {
-    checkNotNull(pOffset);
-    object = pObject;
-    offset = pOffset;
-  }
-
-  private SMGAddress() {
-    object = null;
-    offset = SMGUnknownValue.getInstance();
-  }
+  public static final SMGAddress UNKNOWN = new SMGAddress(null, SMGUnknownValue.getInstance());
 
   /** The SMGObject representing the Memory this address belongs to. */
   private final SMGObject object;
 
   /** The offset relative to the beginning of object in byte. */
   private final SMGExplicitValue offset;
+
+  protected SMGAddress(SMGObject pObject, SMGExplicitValue pOffset) {
+    checkNotNull(pOffset);
+    object = pObject;
+    offset = pOffset;
+  }
 
   public final boolean isUnknown() {
     return object == null || offset.isUnknown();
@@ -86,7 +81,7 @@ public class SMGAddress {
       return "Unkown";
     }
 
-    return "Object: " + object.toString() + " Offset: " + offset.toString();
+    return "Object: " + object + " Offset: " + offset;
   }
 
   public static SMGAddress valueOf(SMGObject pObj, int pOffset) {
@@ -97,3 +92,4 @@ public class SMGAddress {
     return UNKNOWN;
   }
 }
+

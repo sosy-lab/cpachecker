@@ -44,9 +44,4 @@ class SMGKnownAddress extends SMGAddress {
   public SMGKnownExpValue getOffset() {
     return (SMGKnownExpValue) super.getOffset();
   }
-
-  @Override
-  public SMGObject getObject() {
-    return super.getObject();
-  }
 }

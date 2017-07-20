@@ -39,21 +39,7 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
 
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof SMGKnownExpValue)) {
-      return false;
-    }
-
-    return super.equals(pObj);
-  }
-
-  @Override
-  public int hashCode() {
-
-    int result = 5;
-
-    result = 31 * result + super.hashCode();
-
-    return result;
+    return pObj instanceof SMGKnownExpValue && super.equals(pObj);
   }
 
   @Override
@@ -142,25 +128,11 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
   }
 
   public static SMGKnownExpValue valueOf(int pValue) {
-
-    if (pValue == 0) {
-      return ZERO;
-    } else if (pValue == 1) {
-      return ONE;
-    } else {
-      return new SMGKnownExpValue(BigInteger.valueOf(pValue));
-    }
+    return new SMGKnownExpValue(BigInteger.valueOf(pValue));
   }
 
   public static SMGKnownExpValue valueOf(long pValue) {
-
-    if (pValue == 0) {
-      return ZERO;
-    } else if (pValue == 1) {
-      return ONE;
-    } else {
-      return new SMGKnownExpValue(BigInteger.valueOf(pValue));
-    }
+    return new SMGKnownExpValue(BigInteger.valueOf(pValue));
   }
 
   public static SMGKnownExpValue valueOf(BigInteger pValue) {
@@ -176,3 +148,4 @@ public final class SMGKnownExpValue extends SMGKnownValue implements SMGExplicit
     }
   }
 }
+
