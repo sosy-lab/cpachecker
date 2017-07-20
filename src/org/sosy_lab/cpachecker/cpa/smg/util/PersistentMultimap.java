@@ -87,12 +87,8 @@ public class PersistentMultimap<K, V> {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof PersistentMultimap)) {
-      return false;
-    }
-    @SuppressWarnings("unchecked")
-    PersistentMultimap<K,V> other = (PersistentMultimap<K,V>)o;
-    return delegate.equals(other.delegate);
+    return o instanceof PersistentMultimap
+        && delegate.equals(((PersistentMultimap<?,?>)o).delegate);
   }
 
   @Override

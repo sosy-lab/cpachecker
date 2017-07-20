@@ -374,10 +374,12 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       val2 = pVal2;
     }
 
+    @SuppressWarnings("unused")
     public boolean isTrue() {
       return isTrue;
     }
 
+    @SuppressWarnings("unused")
     public boolean isFalse() {
       return isFalse;
     }

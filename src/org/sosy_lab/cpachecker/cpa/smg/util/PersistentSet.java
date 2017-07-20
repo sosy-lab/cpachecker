@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Iterator;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -42,6 +43,7 @@ public class PersistentSet<K> implements Iterable<K> {
     return new PersistentSet<K>(PathCopyingPersistentTreeMap.of());
   }
 
+  @SuppressFBWarnings
   public PersistentSet<K> addAndCopy(K key) {
     return new PersistentSet<>(delegate.putAndCopy(key, null));
   }
