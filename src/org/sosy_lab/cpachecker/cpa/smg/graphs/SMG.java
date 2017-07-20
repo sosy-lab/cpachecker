@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
@@ -64,11 +65,6 @@ public class SMG {
   private final MachineModel machine_model;
 
   /**
-   * A special object representing NULL
-   */
-  private final static SMGObject nullObject = SMGObject.getNullObject();
-
-  /**
    * An address of the special object representing null
    */
   private final static int nullAddress = 0;
@@ -82,13 +78,13 @@ public class SMG {
    *
    */
   public SMG(final MachineModel pMachineModel) {
-    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
+    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, SMGNullObject.INSTANCE, 0);
 
     hv_edges = new SMGHasValueEdgeSet();
     pt_edges = new SMGPointsToMap();
 
-    addObject(nullObject);
-    object_validity.put(nullObject, false);
+    addObject(SMGNullObject.INSTANCE);
+    object_validity.put(SMGNullObject.INSTANCE, false);
 
     addValue(nullAddress);
     addPointsToEdge(nullPointer);
@@ -202,7 +198,7 @@ public class SMG {
    */
   final public void removeObjectAndEdges(final SMGObject pObj) {
 
-    assert pObj.notNull();
+    assert pObj != SMGNullObject.INSTANCE;
 
     removeObject(pObj);
     hv_edges.removeAllEdgesOfObject(pObj);
@@ -390,7 +386,7 @@ public class SMG {
    * @return An object guaranteed to be the only NULL object in the SMG
    */
   final public SMGObject getNullObject() {
-    return SMG.nullObject;
+    return SMGNullObject.INSTANCE;
   }
 
   /**
@@ -687,7 +683,7 @@ public class SMG {
     neq.clear();
     pathPredicate.clear();
     addValue(nullAddress);
-    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, nullObject, 0);
+    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, SMGNullObject.INSTANCE, 0);
     addPointsToEdge(nullPointer);
   }
 
@@ -696,7 +692,7 @@ public class SMG {
     object_validity.clear();
 
     /*May not clear null objects*/
-    addObject(nullObject);
-    object_validity.put(nullObject, false);
+    addObject(SMGNullObject.INSTANCE);
+    object_validity.put(SMGNullObject.INSTANCE, false);
   }
 }

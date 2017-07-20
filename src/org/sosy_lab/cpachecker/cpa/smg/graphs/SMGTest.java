@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -118,7 +119,7 @@ public class SMGTest {
 
 
     Assert.assertNotNull(nullObject);
-    Assert.assertFalse(nullObject.notNull());
+    Assert.assertTrue(nullObject == SMGNullObject.INSTANCE);
     assertThat(smg.getObjects()).hasSize(1);
     assertThat(smg.getObjects()).contains(nullObject);
 

@@ -37,6 +37,7 @@ import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -120,7 +121,7 @@ public final class SMGPlotter {
 
     @Override
     public void visit (SMGObject pObject) {
-      if (pObject.notNull()) {
+      if (pObject != SMGNullObject.INSTANCE) {
         pObject.accept(this);
       } else {
         node = new SMGObjectNode("NULL");
@@ -197,7 +198,7 @@ public final class SMGPlotter {
         visitor.visit(heapObject);
         objectIndex.put(heapObject, visitor.getNode());
       }
-      if (heapObject.notNull()) {
+      if (heapObject != SMGNullObject.INSTANCE) {
         sb.append(newLineWithOffset(objectIndex.get(heapObject).getDefinition()));
       }
     }

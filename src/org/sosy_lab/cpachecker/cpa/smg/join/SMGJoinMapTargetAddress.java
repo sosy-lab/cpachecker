@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 
@@ -52,7 +53,7 @@ final class SMGJoinMapTargetAddress {
     // TODO: Ugly, refactor
     SMGEdgePointsTo pt = pSMG1.getPointer(pAddress1);
     SMGEdgePointsTo pt2 = pSMG2.getPointer(pAddress2);
-    if (pt.getObject().notNull()) {
+    if (pt.getObject() != SMGNullObject.INSTANCE) {
       target = pMapping1.get(pt.getObject());
     }
 

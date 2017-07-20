@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,50 +23,47 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
+public final class SMGNullObject extends SMGObject {
 
-public class DummyAbstraction extends SMGObject implements SMGAbstractObject {
+  public static final SMGNullObject INSTANCE = new SMGNullObject();
 
-  public DummyAbstraction(SMGObject pPrototype) {
-    super(pPrototype);
+  private SMGNullObject() {
+    super(0, "NULL", SMGObjectKind.NULL);
   }
 
   @Override
-  public boolean matchGenericShape(SMGAbstractObject pOther) {
-    return pOther instanceof DummyAbstraction;
-  }
-
-  @Override
-  public boolean matchSpecificShape(SMGAbstractObject pOther) {
-    return true;
-  }
-
-  @Override
-  public boolean isAbstract() {
-    return true;
+  public String toString() {
+    return "NULL";
   }
 
   @Override
   public SMGObject copy() {
-    return new DummyAbstraction(this);
+    return this;
   }
 
   @Override
-  public SMGObject copy(int pNewLevel) {
-    return copy();
+  public SMGObject copy(int level) {
+    return this;
   }
 
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
+    /*There is no object that can replace the null object in an smg.*/
+    return false;
+  }
+
+  @Override
+  public boolean isAbstract() {
     return false;
   }
 
   @Override
   public void accept(SMGObjectVisitor pVisitor) {
-    throw new UnsupportedOperationException("Dummy does not support visitors"); // TODO why not?
+    throw new UnsupportedOperationException("NULL does not support visitors"); // TODO why not?
   }
 
   @Override
   public SMGObject join(SMGObject pOther, int pDestLevel) {
-    throw new UnsupportedOperationException("Dummy does not join"); // TODO why not?
+    throw new UnsupportedOperationException("NULL does not join"); // TODO why not?
   }
 }

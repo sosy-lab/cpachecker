@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
@@ -367,7 +368,7 @@ public class SMGExpressionEvaluator {
       if (symbolicValue instanceof SMGAddressValue) {
         SMGAddressValue address = (SMGAddressValue) symbolicValue;
 
-        if (address.getObject() == SMGObject.getNullObject()) { return SMGExplicitValueAndState.of(newState,
+        if (address.getObject() == SMGNullObject.INSTANCE) { return SMGExplicitValueAndState.of(newState,
             SMGKnownExpValue.valueOf(address.getOffset().getAsLong() / machineModel.getSizeofCharInBits())); }
       }
     }
@@ -777,7 +778,7 @@ public class SMGExpressionEvaluator {
 
     if(pTarget instanceof SMGRegion) {
       regionTarget = (SMGRegion) pTarget;
-    } else if(pTarget == SMGObject.getNullObject()) {
+    } else if (pTarget == SMGNullObject.INSTANCE) {
       SMGAddressValueAndState result = SMGAddressValueAndState.of(pSmgState, SMGKnownAddVal.valueOf(0, pTarget, pOffset.getAsInt()));
       return SMGAddressValueAndStateList.of(result);
     } else {
