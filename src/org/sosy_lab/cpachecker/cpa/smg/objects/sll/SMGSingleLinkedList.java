@@ -143,11 +143,6 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
   }
 
   @Override
-  public SMGObject copy() {
-    return new SMGSingleLinkedList(this);
-  }
-
-  @Override
   public SMGObject copy(int pNewLevel) {
     return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minimumLength, pNewLevel);
   }

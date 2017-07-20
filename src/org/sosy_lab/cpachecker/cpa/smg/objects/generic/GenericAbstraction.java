@@ -131,11 +131,6 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   }
 
   @Override
-  public SMGObject copy() {
-    return new GenericAbstraction(getSize(), getLabel(), materlisationStepMap, abstractToConcretePointerMap);
-  }
-
-  @Override
   public SMGObject copy(int pNewLevel) {
     return new GenericAbstraction(getSize(), getLabel(), materlisationStepMap, abstractToConcretePointerMap, pNewLevel);
   }

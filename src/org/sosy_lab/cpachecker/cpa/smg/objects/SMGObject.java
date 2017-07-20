@@ -60,8 +60,6 @@ public abstract class SMGObject {
     id = pId;
   }
 
-  public abstract SMGObject copy();
-
   public abstract SMGObject copy(int pNewLevel);
 
   public String getLabel() {

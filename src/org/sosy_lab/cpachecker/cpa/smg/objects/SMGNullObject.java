@@ -37,11 +37,6 @@ public final class SMGNullObject extends SMGObject {
   }
 
   @Override
-  public SMGObject copy() {
-    return this;
-  }
-
-  @Override
   public SMGObject copy(int level) {
     return this;
   }

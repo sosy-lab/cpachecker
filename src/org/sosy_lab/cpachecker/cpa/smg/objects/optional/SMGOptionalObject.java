@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
  */
 public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
 
-  int id = SMGValueFactory.getNewValue();
+  private final int id = SMGValueFactory.getNewValue();
 
   public SMGOptionalObject(int pSize) {
     super(pSize, "1/0", SMGObjectKind.OPTIONAL);
@@ -61,11 +61,6 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
   @Override
   public boolean matchSpecificShape(SMGAbstractObject pOther) {
     return matchGenericShape(pOther) && getSize() == ((SMGObject) pOther).getSize();
-  }
-
-  @Override
-  public SMGObject copy() {
-    return new SMGOptionalObject(getSize(), getLevel());
   }
 
   @Override

@@ -46,28 +46,6 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
     return "REGION("+ getLabel() + ", " + getSize() + "b)\n" + "level=" + getLevel();
   }
 
-  public boolean propertiesEqual(SMGRegion pOther) {
-    if (this == pOther) {
-      return true;
-    }
-    if (pOther == null) {
-      return false;
-    }
-
-    if (getLabel() == null) {
-      if (pOther.getLabel() != null) {
-        return false;
-      }
-    } else if (!getLabel().equals(pOther.getLabel())) {
-      return false;
-    }
-
-    if (getSize() != pOther.getSize()) {
-      return false;
-    }
-    return true;
-  }
-
   @Override
   public boolean isAbstract() {
     return false;
@@ -94,11 +72,6 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
   @Override
   public SMGRegion createConcreteObject(Map<Integer, Integer> pAbstractToConcretePointerMap) {
     return new SMGRegion(getSize(), getLabel() + " ID " + SMGValueFactory.getNewValue());
-  }
-
-  @Override
-  public SMGObject copy() {
-    return new SMGRegion(this);
   }
 
   @Override

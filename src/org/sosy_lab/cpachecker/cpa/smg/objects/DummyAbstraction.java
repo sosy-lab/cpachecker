@@ -46,13 +46,8 @@ public class DummyAbstraction extends SMGObject implements SMGAbstractObject {
   }
 
   @Override
-  public SMGObject copy() {
-    return new DummyAbstraction(this);
-  }
-
-  @Override
   public SMGObject copy(int pNewLevel) {
-    return copy();
+    return new DummyAbstraction(this);
   }
 
   @Override

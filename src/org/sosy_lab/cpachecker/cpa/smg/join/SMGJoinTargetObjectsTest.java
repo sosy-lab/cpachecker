@@ -77,7 +77,8 @@ public class SMGJoinTargetObjectsTest {
     Assert.assertSame(jto.getMapping1().get(obj1), jto.getMapping2().get(obj2));
     //TODO investigate why they should not be the same, regions are immutable
     //Assert.assertNotSame(jto.getMapping1().get(obj1), obj1);
-    Assert.assertTrue(((SMGRegion)jto.getMapping1().get(obj1)).propertiesEqual((SMGRegion)obj1));
+    Assert.assertEquals(((SMGRegion)jto.getMapping1().get(obj1)).getLabel(), ((SMGRegion)obj1).getLabel());
+    Assert.assertEquals(((SMGRegion)jto.getMapping1().get(obj1)).getSize(), ((SMGRegion)obj1).getSize());
   }
 
   @Test
