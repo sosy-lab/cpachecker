@@ -27,7 +27,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,6 +34,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -54,8 +55,8 @@ public class SMG {
   private Set<Integer> values = new HashSet<>();
   private SMGHasValueEdges hv_edges;
   private SMGPointsToEdges pt_edges;
-  private Map<SMGObject, Boolean> object_validity = new HashMap<>();
-  private Map<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity = new HashMap<>();
+  private PersistentMap<SMGObject, Boolean> object_validity;
+  private PersistentMap<SMGObject, SMG.ExternalObjectFlag> objectAllocationIdentity;
   private NeqRelation neq = new NeqRelation();
 
   private PredRelation pathPredicate = new PredRelation();
@@ -82,9 +83,11 @@ public class SMG {
 
     hv_edges = new SMGHasValueEdgeSet();
     pt_edges = new SMGPointsToMap();
+    object_validity = PathCopyingPersistentTreeMap.of();
+    objectAllocationIdentity = PathCopyingPersistentTreeMap.of();
 
     addObject(SMGNullObject.INSTANCE);
-    object_validity.put(SMGNullObject.INSTANCE, false);
+    object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
 
     addValue(nullAddress);
     addPointsToEdge(nullPointer);
@@ -106,8 +109,8 @@ public class SMG {
     neq.putAll(pHeap.neq);
     pathPredicate.putAll(pHeap.pathPredicate);
     errorPredicate.putAll(pHeap.errorPredicate);
-    object_validity.putAll(pHeap.object_validity);
-    objectAllocationIdentity.putAll(pHeap.objectAllocationIdentity);
+    object_validity = pHeap.object_validity;
+    objectAllocationIdentity = pHeap.objectAllocationIdentity;
     objects.addAll(pHeap.objects);
     values.addAll(pHeap.values);
   }
@@ -185,8 +188,8 @@ public class SMG {
   @VisibleForTesting
   final public void removeObject(final SMGObject pObj) {
     objects.remove(pObj);
-    object_validity.remove(pObj);
-    objectAllocationIdentity.remove(pObj);
+    object_validity = object_validity.removeAndCopy(pObj);
+    objectAllocationIdentity = objectAllocationIdentity.removeAndCopy(pObj);
   }
 
   /**
@@ -216,8 +219,8 @@ public class SMG {
    */
   final public void addObject(final SMGObject pObj, final boolean pValidity, final boolean pExternal) {
     objects.add(pObj);
-    object_validity.put(pObj, pValidity);
-    objectAllocationIdentity.put(pObj, new ExternalObjectFlag(pExternal));
+    object_validity = object_validity.putAndCopy(pObj, pValidity);
+    objectAllocationIdentity = objectAllocationIdentity.putAndCopy(pObj, new ExternalObjectFlag(pExternal));
   }
 
   /**
@@ -292,7 +295,7 @@ public class SMG {
       throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
     }
 
-    object_validity.put(pObject, pValidity);
+    object_validity = object_validity.putAndCopy(pObject, pValidity);
   }
 
   /**
@@ -310,7 +313,7 @@ public class SMG {
       throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
     }
 
-    objectAllocationIdentity.put(pObject, new ExternalObjectFlag(pExternal));
+    objectAllocationIdentity = objectAllocationIdentity.putAndCopy(pObject, new ExternalObjectFlag(pExternal));
   }
 
   /**
@@ -693,10 +696,10 @@ public class SMG {
 
   public void clearObjects() {
     objects.clear();
-    object_validity.clear();
+    object_validity = PathCopyingPersistentTreeMap.of();
 
     /*May not clear null objects*/
     addObject(SMGNullObject.INSTANCE);
-    object_validity.put(SMGNullObject.INSTANCE, false);
+    object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
   }
 }
