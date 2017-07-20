@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,118 +23,45 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
-import com.google.common.collect.Iterables;
-import java.util.Map.Entry;
 import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 
 /**
  * This class tracks Pairs of Integers. Implemented as an immutable map.
  * The Multimap is used as Bi-Map, i.e. for each pair (K,V) there exists also a pair (V,K).
- * For memory-reasons we only store one of the Pairs and check for both if needed.
  */
 final class NeqRelation {
 
-  private final PersistentMap<Integer, ImmutableSet<Integer>> smgValues;
+  private final PersistentMultimap<Integer, Integer> smgValues;
 
   public NeqRelation() {
-    smgValues = PathCopyingPersistentTreeMap.of();
+    smgValues = PersistentMultimap.of();
   }
 
-  private NeqRelation(PersistentMap<Integer, ImmutableSet<Integer>> pMap) {
+  private NeqRelation(PersistentMultimap<Integer, Integer> pMap) {
     smgValues = pMap;
   }
 
   public Set<Integer> getNeqsForValue(Integer pV) {
-    Set<Integer> neqs = smgValues.get(pV);
-    Builder<Integer> builder = ImmutableSet.builder();
-    if (neqs != null) {
-      builder.addAll(neqs);
-    }
-    // add backwards mappings
-    for (Entry<Integer, ImmutableSet<Integer>> e : smgValues.entrySet()) {
-      if (e.getValue().contains(pV)) {
-        builder.add(e.getKey());
-      }
-    }
-    return builder.build();
+    return smgValues.get(pV);
   }
 
   public NeqRelation addRelationAndCopy(Integer pOne, Integer pTwo) {
-
-    // swap if A>B
-    if (pOne.compareTo(pTwo) > 0) {
-      Integer tmp = pOne;
-      pOne = pTwo;
-      pTwo = tmp;
-    }
-
-    ImmutableSet<Integer> set = smgValues.get(pOne);
-    if (set == null) {
-      set = ImmutableSet.of(pTwo);
-    } else {
-      set = ImmutableSet.<Integer>builder().addAll(set).add(pTwo).build();
-    }
-
-    return new NeqRelation(smgValues.putAndCopy(pOne, set));
+    return new NeqRelation(smgValues.putAndCopy(pOne, pTwo).putAndCopy(pTwo, pOne));
   }
 
   public NeqRelation removeRelationAndCopy(Integer pOne, Integer pTwo) {
-
-    // swap if A>B
-    if (pOne.compareTo(pTwo) > 0) {
-      Integer tmp = pOne;
-      pOne = pTwo;
-      pTwo = tmp;
-    }
-
-    ImmutableSet<Integer> set = smgValues.get(pOne);
-    if (set == null || !set.contains(pTwo)) {
-      return this;
-    }
-
-    final Integer pTwoFinal = pTwo;
-    set = ImmutableSet.<Integer>builder().addAll(Iterables.filter(set, i -> !i.equals(pTwoFinal))).build();
-    if (set.isEmpty()) {
-      return new NeqRelation(smgValues.removeAndCopy(pOne));
-    } else {
-      return new NeqRelation(smgValues.putAndCopy(pOne, set));
-    }
+    return new NeqRelation(smgValues.removeAndCopy(pOne, pTwo).removeAndCopy(pTwo, pOne));
   }
 
   public boolean neq_exists(Integer pOne, Integer pTwo) {
-
-    // swap if A>B
-    if (pOne.compareTo(pTwo) > 0) {
-      Integer tmp = pOne;
-      pOne = pTwo;
-      pTwo = tmp;
-    }
-
-    Set<Integer> set = smgValues.get(pOne);
-    return set != null && set.contains(pTwo);
+    return smgValues.get(pOne).contains(pTwo);
   }
 
   public NeqRelation removeValueAndCopy(Integer pOne) {
-    // first delete forward matches
-    PersistentMap<Integer, ImmutableSet<Integer>> newSet = smgValues.removeAndCopy(pOne);
-
-    // then handle backwards matches
-    for (Entry<Integer, ImmutableSet<Integer>> e : smgValues.entrySet()) {
-      if (e.getKey().compareTo(pOne) > 0) {
-        break;
-      }
-      if (e.getValue().contains(pOne)) {
-        ImmutableSet<Integer> cp = ImmutableSet.copyOf(Iterables.filter(e.getValue(), i -> !i.equals(pOne)));
-        if (cp.isEmpty()) {
-          newSet = newSet.removeAndCopy(e.getKey());
-        } else {
-          newSet = newSet.putAndCopy(e.getKey(), cp);
-        }
-      }
+    PersistentMultimap<Integer, Integer> newSet = smgValues.removeAndCopy(pOne);
+    for (Integer pTwo : smgValues.get(pOne)) {
+      newSet = newSet.removeAndCopy(pTwo, pOne);
     }
     return new NeqRelation(newSet);
   }

@@ -24,24 +24,20 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSet.Builder;
-import com.google.common.collect.Iterables;
-import java.util.Set;
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 
 public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
-  private final PersistentMap<SMGObject, ImmutableSet<SMGEdgeHasValue>> map;
+  private final PersistentMultimap<SMGObject, SMGEdgeHasValue> map;
 
   public SMGHasValueEdgeSet() {
-    map = PathCopyingPersistentTreeMap.of();
+    map = PersistentMultimap.of();
   }
 
-  private SMGHasValueEdgeSet(PersistentMap<SMGObject, ImmutableSet<SMGEdgeHasValue>> pMap) {
+  private SMGHasValueEdgeSet(PersistentMultimap<SMGObject, SMGEdgeHasValue> pMap) {
     map = pMap;
   }
 
@@ -52,40 +48,23 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
   @Override
   public SMGHasValueEdgeSet addEdgeAndCopy(SMGEdgeHasValue pEdge) {
-    SMGObject obj = pEdge.getObject();
-    // there is no PersistentMultiMap, we have to copy the entry.
-    Builder<SMGEdgeHasValue> builder = ImmutableSet.builder();
-    Set<SMGEdgeHasValue> oldEdges = map.get(obj);
-    if (oldEdges != null) {
-      builder.addAll(oldEdges);
-    }
-    builder.add(pEdge);
-    return new SMGHasValueEdgeSet(map.putAndCopy(obj, builder.build()));
+    return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), pEdge));
   }
 
   @Override
   public SMGHasValueEdgeSet removeEdgeAndCopy(SMGEdgeHasValue pEdge) {
-    SMGObject obj = pEdge.getObject();
-    Set<SMGEdgeHasValue> oldEdges = map.get(obj);
-    if (oldEdges != null && oldEdges.contains(pEdge)) {
-      // there is no PersistentMultiMap, we have to copy the entry.
-      Builder<SMGEdgeHasValue> builder = ImmutableSet.builder();
-      builder.addAll(Iterables.filter(oldEdges, e -> !e.equals(pEdge)));
-      ImmutableSet<SMGEdgeHasValue> newEdges = builder.build();
-      if (newEdges.isEmpty()) {
-        return new SMGHasValueEdgeSet(map.removeAndCopy(obj));
-      } else {
-        return new SMGHasValueEdgeSet(map.putAndCopy(obj, newEdges));
-      }
-    } else {
-      // element not found
+    PersistentMultimap<SMGObject, SMGEdgeHasValue> updated =
+        map.removeAndCopy(pEdge.getObject(), pEdge);
+    if (map == updated) {
       return this;
+    } else {
+      return new SMGHasValueEdgeSet(updated);
     }
   }
 
   @Override
   public ImmutableSet<SMGEdgeHasValue> getHvEdges() {
-    return ImmutableSet.copyOf(Iterables.concat(map.values()));
+    return map.values();
   }
 
   @Override
@@ -95,8 +74,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
   @Override
   public ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
-    ImmutableSet<SMGEdgeHasValue> set = map.get(pObject);
-    return set == null ? ImmutableSet.of() : set;
+    return map.get(pObject);
   }
 
   @Override
@@ -106,9 +84,6 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
   @Override
   public boolean equals(Object pObj) {
-    if (this == pObj) {
-      return true;
-    }
     if (pObj instanceof SMGHasValueEdgeSet) {
       SMGHasValueEdgeSet other = (SMGHasValueEdgeSet) pObj;
       return map.equals(other.map);
