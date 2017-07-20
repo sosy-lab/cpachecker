@@ -112,22 +112,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final LogManager logger;
   private final SMGOptions options;
 
-  private void issueMemoryLeakMessage() {
-    issueMemoryError("Memory leak found", false);
-  }
-
-  private void issueInvalidReadMessage() {
-    issueMemoryError("Invalid read found", true);
-  }
-
-  private void issueInvalidWriteMessage() {
-    issueMemoryError("Invalid write found", true);
-  }
-
-  private void issueInvalidFreeMessage() {
-    issueMemoryError("Invalid free found", true);
-  }
-
   private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
     if (options.isMemoryErrorTarget()) {
       logger.log(Level.FINE, pMessage);
@@ -1533,28 +1517,28 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       case HAS_LEAKS:
         if (heap.hasMemoryLeaks()) {
           //TODO: Give more information
-          issueMemoryLeakMessage();
+          issueMemoryError("Memory leak found", false);
           return true;
         }
         return false;
       case HAS_INVALID_WRITES:
         if (invalidWrite) {
           //TODO: Give more information
-          issueInvalidWriteMessage();
+          issueMemoryError("Invalid write found", true);
           return true;
         }
         return false;
       case HAS_INVALID_READS:
         if (invalidRead) {
           //TODO: Give more information
-          issueInvalidReadMessage();
+          issueMemoryError("Invalid read found", true);
           return true;
         }
         return false;
       case HAS_INVALID_FREES:
         if (invalidFree) {
           //TODO: Give more information
-          issueInvalidFreeMessage();
+          issueMemoryError("Invalid free found", true);
           return true;
         }
         return false;
