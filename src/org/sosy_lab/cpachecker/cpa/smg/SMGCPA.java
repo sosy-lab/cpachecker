@@ -163,10 +163,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   }
 
   public SMGState getInitialState(CFANode pNode) {
-    SMGState initState = new SMGState(logger, machineModel,
-        options.isMemoryErrorTarget(), options.unknownOnUndefined(),
-        options.getRuntimeCheck(), options.getExternalAllocationSize(),
-        options.trackPredicates(), options.isHeapAbstractionEnabled());
+    SMGState initState = new SMGState(logger, machineModel, options);
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
