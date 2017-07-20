@@ -26,8 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -66,44 +64,9 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     return AutomaticCPAFactory.forType(SMGCPA.class);
   }
 
-  @Option(secure=true, name = "exportSMG.file", description = "Filename format for SMG graph dumps")
-  @FileOption(Type.OUTPUT_FILE)
-  private PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg/smg-%s.dot");
-
-  @Option(secure=true, toUppercase=true, name = "exportSMGwhen", description = "Describes when SMG graphs should be dumped.")
-  private SMGExportLevel exportSMG = SMGExportLevel.NEVER;
-
-  public static enum SMGExportLevel {NEVER, LEAF, INTERESTING, EVERY}
-
-  @Option(secure = true, description = "with this option enabled, heap abstraction will be enabled.")
-  private boolean enableHeapAbstraction = false;
-
-  @Option(secure=true, name="runtimeCheck", description = "Sets the level of runtime checking: NONE, HALF, FULL")
-  private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
-
-  @Option(secure=true, name="memoryErrors", description = "Determines if memory errors are target states")
-  private boolean memoryErrors = true;
-
-  @Option(secure=true, name="unknownOnUndefined", description = "Emit messages when we encounter non-target undefined behavior")
-  private boolean unknownOnUndefined = true;
-
   @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "NEVER", "END_BLOCK"},
       description="which stop operator to use for the SMGCPA")
   private String stopType = "SEP";
-
-  @Option(secure = true, name = "externalAllocationSize", description = "Default size of externally allocated memory")
-  private int externalAllocationSize = Integer.MAX_VALUE;
-
-  @Option(secure = true, name = "trackPredicates", description = "Enable track predicates on SMG state")
-  private boolean trackPredicates = false;
-
-  public int getExternalAllocationSize() {
-    return externalAllocationSize;
-  }
-
-  public boolean getTrackPredicates() {
-    return trackPredicates;
-  }
 
   private final TransferRelation transferRelation;
 
@@ -133,7 +96,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     shutdownNotifier = pShutdownNotifier;
 
     options = new SMGOptions(config);
-    exportOptions = new SMGExportDotOption(exportSMGFilePattern, exportSMG);
+    exportOptions = new SMGExportDotOption(options.getExportSMGFilePattern(), options.getExportSMGLevel());
 
     assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, machineModel);
 
@@ -141,7 +104,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     pConfig.inject(blockOperator);
     blockOperator.setCFA(cfa);
 
-    precision = SMGPrecision.createStaticPrecision(enableHeapAbstraction, logger, blockOperator);
+    precision = SMGPrecision.createStaticPrecision(options.isHeapAbstractionEnabled(), logger, blockOperator);
 
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
     transferRelation =
@@ -161,10 +124,6 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   public MachineModel getMachineModel() {
     return machineModel;
-  }
-
-  public SMGExportLevel getExportSMGLevel() {
-    return exportSMG;
   }
 
   public SMGOptions getOptions() {
@@ -204,8 +163,10 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   }
 
   public SMGState getInitialState(CFANode pNode) {
-    SMGState initState = new SMGState(logger, machineModel, memoryErrors, unknownOnUndefined,
-        runtimeCheck, externalAllocationSize, trackPredicates, enableHeapAbstraction);
+    SMGState initState = new SMGState(logger, machineModel,
+        options.isMemoryErrorTarget(), options.unknownOnUndefined(),
+        options.getRuntimeCheck(), options.getExternalAllocationSize(),
+        options.trackPredicates(), options.isHeapAbstractionEnabled());
 
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
@@ -263,10 +224,6 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   public SMGPredicateManager getPredicateManager() {
     return smgPredicateManager;
-  }
-
-  public boolean isHeapAbstractionEnabled() {
-    return enableHeapAbstraction;
   }
 
   public BlockOperator getBlockOperator() {

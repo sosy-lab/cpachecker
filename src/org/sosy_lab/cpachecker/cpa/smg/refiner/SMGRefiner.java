@@ -144,7 +144,7 @@ public class SMGRefiner implements Refiner {
         new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
 
     interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger,
-        pCfa, smgCpa.getTrackPredicates(), smgCpa.getExternalAllocationSize());
+        pCfa, smgCpa.getOptions().trackPredicates(), smgCpa.getOptions().getExternalAllocationSize());
 
     SMGStrongestPostOperator strongestPostOpForInterpolation =
         SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(pLogger, pCfa,
@@ -160,7 +160,8 @@ public class SMGRefiner implements Refiner {
 
     interpolator =
         new SMGPathInterpolator(smgCpa.getShutdownNotifier(), interpolantManager,
-            edgeInterpolator, logger, exportInterpolantSMGs, smgCpa.getExportSMGLevel(), checkerForInterpolation);
+            edgeInterpolator, logger, exportInterpolantSMGs,
+            smgCpa.getOptions().getExportSMGLevel(), checkerForInterpolation);
 
     shutdownNotifier = pShutdownNotifier;
   }

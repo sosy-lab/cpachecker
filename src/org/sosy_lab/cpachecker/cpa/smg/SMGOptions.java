@@ -25,9 +25,12 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 
 @Options(prefix = "cpa.smg")
 public class SMGOptions {
@@ -114,6 +117,57 @@ public class SMGOptions {
       description = "Functions which indicate on external allocated memory")
   private ImmutableSet<String> externalAllocationFunction = ImmutableSet.of("ext_allocation");
 
+  @Option(
+      secure = true,
+      name = "externalAllocationSize",
+      description = "Default size of externally allocated memory")
+  private int externalAllocationSize = Integer.MAX_VALUE;
+
+  @Option(
+      secure = true,
+      name = "trackPredicates",
+      description = "Enable track predicates on SMG state")
+  private boolean trackPredicates = false;
+
+  @Option(
+      secure = true,
+      description = "with this option enabled, heap abstraction will be enabled.")
+  private boolean enableHeapAbstraction = false;
+
+  @Option(
+      secure = true,
+      name = "memoryErrors",
+      description = "Determines if memory errors are target states")
+  private boolean memoryErrors = true;
+
+  @Option(
+      secure = true,
+      name = "unknownOnUndefined",
+      description = "Emit messages when we encounter non-target undefined behavior")
+  private boolean unknownOnUndefined = true;
+
+  @Option(
+      secure = true,
+      name = "runtimeCheck",
+      description = "Sets the level of runtime checking: NONE, HALF, FULL")
+  private SMGRuntimeCheck runtimeCheck = SMGRuntimeCheck.NONE;
+
+  @Option(
+      secure = true,
+      name = "exportSMG.file",
+      description = "Filename format for SMG graph dumps")
+  @FileOption(Type.OUTPUT_FILE)
+  private PathTemplate exportSMGFilePattern = PathTemplate.ofFormatString("smg/smg-%s.dot");
+
+  @Option(
+      secure = true,
+      toUppercase = true,
+      name = "exportSMGwhen",
+      description = "Describes when SMG graphs should be dumped.")
+  private SMGExportLevel exportSMG = SMGExportLevel.NEVER;
+
+  public static enum SMGExportLevel {NEVER, LEAF, INTERESTING, EVERY}
+
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
@@ -172,5 +226,37 @@ public class SMGOptions {
 
   public ImmutableSet<String> getExternalAllocationFunction() {
     return externalAllocationFunction;
+  }
+
+  public int getExternalAllocationSize() {
+    return externalAllocationSize;
+  }
+
+  public boolean trackPredicates() {
+    return trackPredicates;
+  }
+
+  public boolean isHeapAbstractionEnabled() {
+    return enableHeapAbstraction;
+  }
+
+  public boolean isMemoryErrorTarget() {
+    return memoryErrors;
+  }
+
+  public boolean unknownOnUndefined() {
+    return unknownOnUndefined;
+  }
+
+  public SMGRuntimeCheck getRuntimeCheck() {
+    return runtimeCheck;
+  }
+
+  public PathTemplate getExportSMGFilePattern() {
+    return exportSMGFilePattern;
+  }
+
+  public SMGExportLevel getExportSMGLevel() {
+    return exportSMG;
   }
 }
