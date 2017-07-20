@@ -2024,16 +2024,14 @@ cpa.slicing.weakeningStrategy = CEX
 cpa.smg.GCCZeroLengthArray = false
 
 # Array allocation functions
-cpa.smg.arrayAllocationFunctions = {
-      "calloc"}
+cpa.smg.arrayAllocationFunctions = {"calloc"}
 
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
 
 # Deallocation functions
-cpa.smg.deallocationFunctions = {
-      "free"}
+cpa.smg.deallocationFunctions = {"free"}
 
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg.enableHeapAbstraction = false
@@ -2049,8 +2047,7 @@ cpa.smg.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
 
 # Functions which indicate on external allocated memory
-cpa.smg.externalAllocationFunction = {
-      "ext_allocation"}
+cpa.smg.externalAllocationFunction = {"ext_allocation"}
 
 # Default size of externally allocated memory
 cpa.smg.externalAllocationSize = Integer.MAX_VALUE
@@ -2067,8 +2064,7 @@ cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE]
 
 # Memory allocation functions
-cpa.smg.memoryAllocationFunctions = {
-      "malloc"}
+cpa.smg.memoryAllocationFunctions = {"malloc"}
 
 # Size parameter of memory allocation functions
 cpa.smg.memoryAllocationFunctionsSizeParameter = 0
@@ -2117,8 +2113,7 @@ cpa.smg.unknownOnUndefined = true
 cpa.smg.verifyPredicates = false
 
 # Allocation functions which set memory to zero
-cpa.smg.zeroingMemoryAllocation = {
-      "calloc"}
+cpa.smg.zeroingMemoryAllocation = {"calloc"}
 
 # set this to true when you only want to do a code analysis. If StatisticsCPA
 # is combined with other CPAs to do queries use false.

@@ -117,6 +117,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   private final CFA cfa;
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
+  private final SMGOptions options;
   private final SMGExportDotOption exportOptions;
 
   private SMGPrecision precision;
@@ -131,6 +132,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
+    options = new SMGOptions(config);
     exportOptions = new SMGExportDotOption(exportSMGFilePattern, exportSMG);
 
     assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, machineModel);
@@ -143,8 +145,8 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
     transferRelation =
-        SMGTransferRelation.createTransferRelation(config, logger, machineModel,
-            exportOptions, smgPredicateManager, blockOperator);
+        SMGTransferRelation.createTransferRelation(logger, machineModel,
+            exportOptions, smgPredicateManager, blockOperator, options);
   }
 
   public void setTransferRelationToRefinment(PathTemplate pNewPathTemplate) {
@@ -165,8 +167,8 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     return exportSMG;
   }
 
-  public PathTemplate getExportSMGFilePattern() {
-    return exportSMGFilePattern;
+  public SMGOptions getOptions() {
+    return options;
   }
 
   @Override

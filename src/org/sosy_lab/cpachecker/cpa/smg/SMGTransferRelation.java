@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,10 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -111,54 +106,13 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-
-@Options(prefix = "cpa.smg")
 public class SMGTransferRelation extends SingleEdgeTransferRelation {
-
-  @Option(secure=true, description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
-  private boolean checkForMemLeaksAtEveryFrameDrop = true;
-
-  @Option(secure=true, description = "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main")
-  private boolean handleNonFreedMemoryInMainAsMemLeak = false;
-
-  @Option(secure=true, name="enableMallocFail", description = "If this Option is enabled, failure of malloc" + "is simulated")
-  private boolean enableMallocFailure = true;
-
-  @Option(secure=true, toUppercase=true, name="handleUnknownFunctions", description = "Sets how unknown functions are handled.")
-  public UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
-
-  @Option(secure=true, toUppercase=true, name="GCCZeroLengthArray", description = "Enable GCC extension 'Arrays of Length Zero'.")
-  private boolean GCCZeroLengthArray = false;
-
-  public static enum UnknownFunctionHandling {STRICT, ASSUME_SAFE}
-
-  @Option(secure=true, name="guessSizeOfUnknownMemorySize", description = "Size of memory that cannot be calculated will be guessed.") boolean guessSizeOfUnknownMemorySize = false;
-
-  @Option(secure=true, name="memoryAllocationFunctions", description = "Memory allocation functions") ImmutableSet<String> memoryAllocationFunctions = ImmutableSet.of(
-      "malloc");
-
-  @Option(secure=true, name="memoryAllocationFunctionsSizeParameter", description = "Size parameter of memory allocation functions") int memoryAllocationFunctionsSizeParameter = 0;
-
-  @Option(secure=true, name="arrayAllocationFunctions", description = "Array allocation functions") ImmutableSet<String> arrayAllocationFunctions = ImmutableSet.of(
-      "calloc");
-
-  @Option(secure=true, name="memoryArrayAllocationFunctionsNumParameter", description = "Position of number of element parameter for array allocation functions") int memoryArrayAllocationFunctionsNumParameter = 0;
-
-  @Option(secure=true, name="memoryArrayAllocationFunctionsElemSizeParameter", description = "Position of element size parameter for array allocation functions") int memoryArrayAllocationFunctionsElemSizeParameter = 1;
-
-  @Option(secure=true, name="zeroingMemoryAllocation", description = "Allocation functions which set memory to zero") ImmutableSet<String> zeroingMemoryAllocation = ImmutableSet.of(
-      "calloc");
-
-  @Option(secure=true, name="deallocationFunctions", description = "Deallocation functions") ImmutableSet<String> deallocationFunctions = ImmutableSet.of(
-      "free");
-
-  @Option(secure = true, name="externalAllocationFunction", description = "Functions which indicate on external allocated memory") ImmutableSet<String> externalAllocationFunction = ImmutableSet.of(
-      "ext_allocation");
 
   final LogManagerWithoutDuplicates logger;
   final MachineModel machineModel;
   private final AtomicInteger id_counter;
 
+  final SMGOptions options;
   final SMGExportDotOption exportSMGOptions;
 
   final SMGRightHandSideEvaluator expressionEvaluator;
@@ -188,50 +142,44 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return getAbstractSuccessorsForEdge((SMGState) state, cfaEdge);
   }
 
-  private SMGTransferRelation(Configuration config, LogManager pLogger,
+  private SMGTransferRelation(LogManager pLogger,
       MachineModel pMachineModel, SMGExportDotOption pExportOptions, SMGTransferRelationKind pKind,
-      SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator)
-      throws InvalidConfigurationException {
-    config.inject(this);
+      SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator, SMGOptions pOptions) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
-    expressionEvaluator = new SMGRightHandSideEvaluator(this, logger, machineModel);
+    expressionEvaluator = new SMGRightHandSideEvaluator(this, logger, machineModel, pOptions);
     id_counter = new AtomicInteger(0);
     smgPredicateManager = pSMGPredicateManager;
     blockOperator = pBlockOperator;
+    options = pOptions;
     exportSMGOptions = pExportOptions;
     kind = pKind;
     builtins = new SMGBuiltins(this);
   }
 
-  public static SMGTransferRelation createTransferRelationForCEX(Configuration config,
+  public static SMGTransferRelation createTransferRelationForCEX(
       LogManager pLogger, MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
-      BlockOperator pBlockOperator) throws InvalidConfigurationException {
-    SMGTransferRelation result =
-        new SMGTransferRelation(config, pLogger, pMachineModel,
+      BlockOperator pBlockOperator, SMGOptions pOptions) {
+    return new SMGTransferRelation( pLogger, pMachineModel,
             SMGExportDotOption.getNoExportInstance(), SMGTransferRelationKind.STATIC,
-            pSMGPredicateManager, pBlockOperator);
-    return result;
+            pSMGPredicateManager, pBlockOperator, pOptions);
   }
 
-  public static SMGTransferRelation createTransferRelation(Configuration config, LogManager pLogger,
+  public static SMGTransferRelation createTransferRelation(LogManager pLogger,
       MachineModel pMachineModel, SMGExportDotOption pExportOptions,
       SMGPredicateManager pSMGPredicateManager,
-      BlockOperator pBlockOperator)
-      throws InvalidConfigurationException {
-    return new SMGTransferRelation(config, pLogger, pMachineModel, pExportOptions,
-        SMGTransferRelationKind.STATIC, pSMGPredicateManager, pBlockOperator);
+      BlockOperator pBlockOperator, SMGOptions pOptions) {
+    return new SMGTransferRelation( pLogger, pMachineModel, pExportOptions,
+        SMGTransferRelationKind.STATIC, pSMGPredicateManager, pBlockOperator, pOptions);
   }
 
-  public static SMGTransferRelation createTransferRelationForInterpolation(Configuration config,
+  public static SMGTransferRelation createTransferRelationForInterpolation(
       LogManager pLogger,
       MachineModel pMachineModel, SMGPredicateManager pSMGPredicateManager,
-      BlockOperator pBlockOperator) throws InvalidConfigurationException {
-    SMGTransferRelation result =
-        new SMGTransferRelation(config, pLogger, pMachineModel,
+      BlockOperator pBlockOperator, SMGOptions pOptions) {
+    return new SMGTransferRelation(pLogger, pMachineModel,
             SMGExportDotOption.getNoExportInstance(), SMGTransferRelationKind.REFINEMENT,
-            pSMGPredicateManager, pBlockOperator);
-    return result;
+            pSMGPredicateManager, pBlockOperator, pOptions);
   }
 
   private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
@@ -274,7 +222,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     case FunctionReturnEdge:
       CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
       successors = handleFunctionReturn(smgState, functionReturnEdge);
-      if (checkForMemLeaksAtEveryFrameDrop) {
+      if (options.isCheckForMemLeaksAtEveryFrameDrop()) {
         for (SMGState successor : successors) {
           String name = String.format("%03d-%03d-%03d", successor.getPredecessorId(), successor.getId(), id_counter.getAndIncrement());
           SMGUtils.plotWhenConfigured("beforePrune" + name, successor, cfaEdge.getDescription(), logger,
@@ -301,7 +249,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         // TODO: Handle leaks at any program exit point (abort, etc.)
 
         for (SMGState successor : successors) {
-          if (handleNonFreedMemoryInMainAsMemLeak) {
+          if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
             successor.dropStackFrame();
           }
           successor.pruneUnreachable();
@@ -797,13 +745,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         }
 
       } else {
-        switch (handleUnknownFunctions) {
+        switch (options.getHandleUnknownFunctions()) {
         case STRICT:
           throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
         case ASSUME_SAFE:
           return ImmutableList.of(pState);
         default:
-          throw new AssertionError("Unhandled enum value in switch: " + handleUnknownFunctions);
+          throw new AssertionError("Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
         }
       }
     } else {
@@ -1026,7 +974,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
     // If Assignment contained malloc, handle possible fail with
     // alternate State (don't create state if not enabled)
-    if (possibleMallocFail && enableMallocFailure) {
+    if (possibleMallocFail && options.isEnableMallocFailure()) {
       possibleMallocFail = false;
       SMGState otherState = new SMGState(state, blockOperator, cfaEdge.getSuccessor());
       CType rValueType = expressionEvaluator.getRealExpressionType(rValue);
@@ -1353,7 +1301,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       List<SMGState> result = new ArrayList<>(newStates.size());
 
       for (SMGState newState : newStates) {
-        if (!GCCZeroLengthArray || pLValueType.getLength() != null) {
+        if (!options.isGCCZeroLengthArray() || pLValueType.getLength() != null) {
           int sizeOfType = expressionEvaluator.getBitSizeof(pEdge, pLValueType, pNewState);
 
           int offset = pOffset + listCounter * sizeOfElementType;

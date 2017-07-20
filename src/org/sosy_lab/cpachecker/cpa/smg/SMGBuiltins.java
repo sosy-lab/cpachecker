@@ -56,12 +56,14 @@ public class SMGBuiltins {
   private final MachineModel machineModel;
   private final LogManager logger;
   private final SMGExportDotOption exportSMGOptions;
+  private final SMGOptions options;
 
   SMGBuiltins(SMGTransferRelation pSmgTransferRelation) {
     smgTransferRelation = pSmgTransferRelation;
     machineModel = pSmgTransferRelation.machineModel;
     logger = pSmgTransferRelation.logger;
     exportSMGOptions = pSmgTransferRelation.exportSMGOptions;
+    options = pSmgTransferRelation.options;
   }
 
   private static final int MEMSET_BUFFER_PARAMETER = 0;
@@ -257,7 +259,7 @@ public class SMGBuiltins {
 
     if (sizeValue.isUnknown()) {
 
-      if (smgTransferRelation.guessSizeOfUnknownMemorySize) {
+      if (options.isGuessSizeOfUnknownMemorySize()) {
         SMGExplicitValueAndState forcedValueAndState =
             smgTransferRelation.expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
         currentState = forcedValueAndState.getSmgState();
@@ -310,17 +312,17 @@ public class SMGBuiltins {
 
     String functionName = functionCall.getFunctionNameExpression().toASTString();
 
-    if (smgTransferRelation.arrayAllocationFunctions.contains(functionName)) {
+    if (options.getArrayAllocationFunctions().contains(functionName)) {
 
       List<SMGExplicitValueAndState> result = new ArrayList<>(4);
 
       List<SMGExplicitValueAndState> numValueAndStates =
-          getAllocateFunctionParameter(smgTransferRelation.memoryArrayAllocationFunctionsNumParameter,
+          getAllocateFunctionParameter(options.getMemoryArrayAllocationFunctionsNumParameter(),
               functionCall, pState, cfaEdge);
 
       for (SMGExplicitValueAndState numValueAndState : numValueAndStates) {
         List<SMGExplicitValueAndState> elemSizeValueAndStates =
-            getAllocateFunctionParameter(smgTransferRelation.memoryArrayAllocationFunctionsElemSizeParameter,
+            getAllocateFunctionParameter(options.getMemoryArrayAllocationFunctionsElemSizeParameter(),
                 functionCall, numValueAndState.getSmgState(), cfaEdge);
 
         for (SMGExplicitValueAndState elemSizeValueAndState : elemSizeValueAndStates) {
@@ -332,7 +334,7 @@ public class SMGBuiltins {
 
       return result;
     } else {
-      return getAllocateFunctionParameter(smgTransferRelation.memoryAllocationFunctionsSizeParameter,
+      return getAllocateFunctionParameter(options.getMemoryAllocationFunctionsSizeParameter(),
           functionCall, pState, cfaEdge);
     }
   }
@@ -359,7 +361,7 @@ public class SMGBuiltins {
 
       if (value.isUnknown()) {
 
-        if (smgTransferRelation.guessSizeOfUnknownMemorySize) {
+        if (options.isGuessSizeOfUnknownMemorySize()) {
           currentState = valueAndState.getSmgState();
           SMGExplicitValueAndState forcedValueAndState = smgTransferRelation.expressionEvaluator.forceExplicitValue(currentState, cfaEdge, sizeExpr);
 
@@ -422,7 +424,7 @@ public class SMGBuiltins {
       SMGAddressValue new_address = currentState.addNewHeapAllocation(size * machineModel.getSizeofCharInBits(),
           allocation_label);
 
-      if (smgTransferRelation.zeroingMemoryAllocation.contains(functionName)) {
+      if (options.getZeroingMemoryAllocation().contains(functionName)) {
         currentState = smgTransferRelation.writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size * smgTransferRelation.machineModel.getSizeofCharInBits()),
             SMGKnownSymValue.ZERO, cfaEdge);
       }
@@ -486,15 +488,16 @@ public class SMGBuiltins {
   }
 
   public boolean isConfigurableAllocationFunction(String functionName) {
-    return smgTransferRelation.memoryAllocationFunctions.contains(functionName) || smgTransferRelation.arrayAllocationFunctions.contains(functionName);
+    return options.getMemoryAllocationFunctions().contains(functionName)
+        || options.getArrayAllocationFunctions().contains(functionName);
   }
 
   public boolean isDeallocationFunction(String functionName) {
-    return smgTransferRelation.deallocationFunctions.contains(functionName);
+    return options.getDeallocationFunctions().contains(functionName);
   }
 
   public boolean isExternalAllocationFunction(String functionName) {
-    return smgTransferRelation.externalAllocationFunction.contains(functionName);
+    return options.getExternalAllocationFunction().contains(functionName);
   }
 
   public SMGAddressValueAndStateList evaluateMemcpy(CFunctionCallExpression pFunctionCall,

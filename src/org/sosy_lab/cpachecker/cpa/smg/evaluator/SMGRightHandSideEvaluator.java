@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
@@ -81,11 +82,14 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   private final SMGTransferRelation smgTransferRelation;
   private final SMGBuiltins builtins;
+  private final SMGOptions options;
 
-  public SMGRightHandSideEvaluator(SMGTransferRelation pSmgTransferRelation, LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel) {
+  public SMGRightHandSideEvaluator(SMGTransferRelation pSmgTransferRelation,
+      LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel, SMGOptions pOptions) {
     super(pLogger, pMachineModel);
     smgTransferRelation = pSmgTransferRelation;
     builtins = pSmgTransferRelation.builtins;
+    options = pOptions;
   }
 
   public SMGExplicitValueAndState forceExplicitValue(SMGState smgState,
@@ -455,13 +459,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
           }
         }
       } else {
-        switch (smgTransferRelation.handleUnknownFunctions) {
+        switch (options.getHandleUnknownFunctions()) {
         case STRICT:
           throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
         case ASSUME_SAFE:
           return SMGValueAndStateList.of(getInitialSmgState());
         default:
-          throw new AssertionError("Unhandled enum value in switch: " + smgTransferRelation.handleUnknownFunctions);
+          throw new AssertionError("Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
         }
       }
 
@@ -621,14 +625,14 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
           }
         }
       } else {
-        switch (smgTransferRelation.handleUnknownFunctions) {
+        switch (options.getHandleUnknownFunctions()) {
         case STRICT:
           throw new CPATransferException(
               "Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
         case ASSUME_SAFE:
           return SMGAddressValueAndStateList.of(getInitialSmgState());
         default:
-          throw new AssertionError("Unhandled enum value in switch: " + smgTransferRelation.handleUnknownFunctions);
+          throw new AssertionError("Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
         }
       }
     }
