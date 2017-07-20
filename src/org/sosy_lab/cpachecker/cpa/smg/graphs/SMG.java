@@ -102,7 +102,7 @@ public class SMG {
   public SMG(final SMG pHeap) {
     machine_model = pHeap.machine_model;
     hv_edges = pHeap.hv_edges;
-    pt_edges = pHeap.pt_edges.copy();
+    pt_edges = pHeap.pt_edges;
     neq.putAll(pHeap.neq);
     pathPredicate.putAll(pHeap.pathPredicate);
     errorPredicate.putAll(pHeap.errorPredicate);
@@ -202,7 +202,7 @@ public class SMG {
 
     removeObject(pObj);
     hv_edges = hv_edges.removeAllEdgesOfObjectAndCopy(pObj);
-    pt_edges.removeAllEdgesOfObject(pObj);
+    pt_edges = pt_edges.removeAllEdgesOfObjectAndCopy(pObj);
   }
 
   /**
@@ -239,7 +239,7 @@ public class SMG {
    * @param pEdge Points-To edge to add.
    */
   final public void addPointsToEdge(SMGEdgePointsTo pEdge) {
-    pt_edges.add(pEdge);
+    pt_edges = pt_edges.addAndCopy(pEdge);
   }
 
   /**
@@ -274,7 +274,7 @@ public class SMG {
   final public void removePointsToEdge(int pValue) {
     assert pValue != 0;
 
-    pt_edges.removeEdgeWithValue(pValue);
+    pt_edges = pt_edges.removeEdgeWithValueAndCopy(pValue);
   }
 
   /**
@@ -683,7 +683,7 @@ public class SMG {
   protected void clearValuesHvePte() {
     values.clear();
     hv_edges = new SMGHasValueEdgeSet();
-    pt_edges.clear();
+    pt_edges = new SMGPointsToMap();
     neq.clear();
     pathPredicate.clear();
     addValue(nullAddress);

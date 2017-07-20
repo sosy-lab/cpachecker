@@ -23,35 +23,36 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-import java.util.Map;
-import java.util.Set;
-
+/** An immutable collection of points-to-edges. */
 public interface SMGPointsToEdges {
 
-  public SMGPointsToEdges copy();
+  // Modifying methods
 
-  public void add(SMGEdgePointsTo pEdge);
+  public SMGPointsToEdges addAndCopy(SMGEdgePointsTo pEdge);
 
-  public void remove(SMGEdgePointsTo pEdge);
+  public SMGPointsToEdges removeAndCopy(SMGEdgePointsTo pEdge);
 
-  public void removeAllEdgesOfObject(SMGObject pObj);
+  public SMGPointsToEdges removeAllEdgesOfObjectAndCopy(SMGObject pObj);
 
-  public void removeEdgeWithValue(int pValue);
+  public SMGPointsToEdges removeEdgeWithValueAndCopy(int pValue);
 
-  public Map<Integer, SMGEdgePointsTo> asMap();
+  // Querying methods
 
   public boolean containsEdgeWithValue(Integer pValue);
 
   public SMGEdgePointsTo getEdgeWithValue(Integer pValue);
 
-  public void clear();
-
   public Set<SMGEdgePointsTo> filter(SMGEdgePointsToFilter pFilter);
 
-  public Set<SMGEdgePointsTo> asSet();
+  public ImmutableSet<SMGEdgePointsTo> asSet();
+
+  public ImmutableMap<Integer, SMGEdgePointsTo> asMap();
 
 }
