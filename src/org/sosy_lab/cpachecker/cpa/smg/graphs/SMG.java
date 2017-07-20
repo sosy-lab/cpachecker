@@ -101,7 +101,7 @@ public class SMG {
    */
   public SMG(final SMG pHeap) {
     machine_model = pHeap.machine_model;
-    hv_edges = pHeap.hv_edges.copy();
+    hv_edges = pHeap.hv_edges;
     pt_edges = pHeap.pt_edges.copy();
     neq.putAll(pHeap.neq);
     pathPredicate.putAll(pHeap.pathPredicate);
@@ -201,7 +201,7 @@ public class SMG {
     assert pObj != SMGNullObject.INSTANCE;
 
     removeObject(pObj);
-    hv_edges.removeAllEdgesOfObject(pObj);
+    hv_edges = hv_edges.removeAllEdgesOfObjectAndCopy(pObj);
     pt_edges.removeAllEdgesOfObject(pObj);
   }
 
@@ -250,7 +250,7 @@ public class SMG {
    * @param pEdge Has-Value edge to add
    */
   final public void addHasValueEdge(SMGEdgeHasValue pEdge) {
-    hv_edges.addEdge(pEdge);
+    hv_edges = hv_edges.addEdgeAndCopy(pEdge);
   }
 
   /**
@@ -261,7 +261,7 @@ public class SMG {
    * @param pEdge Has-Value edge to remove
    */
   final public void removeHasValueEdge(SMGEdgeHasValue pEdge) {
-    hv_edges.removeEdge(pEdge);
+    hv_edges = hv_edges.removeEdgeAndCopy(pEdge);
   }
 
   /**
@@ -320,7 +320,11 @@ public class SMG {
    * Keeps consistency: no
    */
   public void replaceHVSet(Set<SMGEdgeHasValue> pNewHV) {
-    hv_edges.replaceHvEdges(pNewHV);
+    SMGHasValueEdges tmp = new SMGHasValueEdgeSet();
+    for (SMGEdgeHasValue edge : pNewHV) {
+      tmp = tmp.addEdgeAndCopy(edge);
+    }
+    hv_edges = tmp;
   }
 
   /**
@@ -649,8 +653,8 @@ public class SMG {
     for (SMGEdgeHasValue old_hve : old_hv_edges) {
       SMGEdgeHasValue newHvEdge =
           new SMGEdgeHasValue(old_hve.getType(), old_hve.getOffset(), old_hve.getObject(), pV1);
-      hv_edges.removeEdge(old_hve);
-      hv_edges.addEdge(newHvEdge);
+      hv_edges = hv_edges.removeEdgeAndCopy(old_hve);
+      hv_edges = hv_edges.addEdgeAndCopy(newHvEdge);
     }
 
     // TODO: Handle PT Edges: I'm not entirely sure how they should be handled
@@ -678,7 +682,7 @@ public class SMG {
 
   protected void clearValuesHvePte() {
     values.clear();
-    hv_edges.clear();
+    hv_edges = new SMGHasValueEdgeSet();
     pt_edges.clear();
     neq.clear();
     pathPredicate.clear();

@@ -23,11 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
-
-import java.io.Serializable;
-import java.util.Comparator;
-
-public abstract class SMGObject {
+public abstract class SMGObject implements Comparable<SMGObject> {
 
   private final int size;
   private final String label;
@@ -104,13 +100,8 @@ public abstract class SMGObject {
     return id;
   }
 
-  public static class SMGObjectComparator implements Serializable, Comparator<SMGObject> {
-
-    private static final long serialVersionUID = 1L;
-
-    @Override
-    public int compare(SMGObject o1, SMGObject o2) {
-      return Integer.compare(o1.getId(), o2.getId());
-    }
+  @Override
+  public int compareTo(SMGObject o) {
+    return Integer.compare(getId(), o.getId());
   }
 }
