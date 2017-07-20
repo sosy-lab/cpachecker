@@ -91,15 +91,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public static final String HAS_INVALID_WRITES = "has-invalid-writes";
   public static final String HAS_LEAKS = "has-leaks";
 
-  private final AtomicInteger id_counter;
+  private static final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
 
-  private final BiMap<SMGKnownSymValue, SMGKnownExpValue> explicitValues = HashBiMap.create();
-  private final CLangSMG heap;
-  private final LogManager logger;
+  // use 'id' and 'precessorId' only for debugging or logging, never for important stuff!
+  // TODO remove to avoid problems?
+  private static final AtomicInteger id_counter = new AtomicInteger(0);
   private final int predecessorId;
   private final int id;
 
-  private final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
+  private final BiMap<SMGKnownSymValue, SMGKnownExpValue> explicitValues = HashBiMap.create();
+  private final CLangSMG heap;
 
   private final boolean blockEnded;
 
@@ -108,6 +109,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final boolean invalidRead;
   private final boolean invalidFree;
 
+  private final LogManager logger;
   private final SMGOptions options;
 
   private void issueMemoryLeakMessage() {
@@ -149,7 +151,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pLogger;
     options = pOptions;
 
-    id_counter = new AtomicInteger(0);
     predecessorId = id_counter.getAndIncrement();
     id = id_counter.getAndIncrement();
 
@@ -160,12 +161,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public SMGState(LogManager pLogger, SMGOptions pOptions, CLangSMG pHeap,
-      AtomicInteger pId, int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues) {
+      int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues) {
     // merge
     options = pOptions;
     heap = pHeap;
     logger = pLogger;
-    id_counter = pId;
     predecessorId = pPredId;
     id = id_counter.getAndIncrement();
     invalidFree = false;
@@ -188,7 +188,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
     id = id_counter.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
     invalidFree = pOriginalState.invalidFree;
@@ -210,7 +209,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
     id = id_counter.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
     invalidFree = pOriginalState.invalidFree;
@@ -224,7 +222,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
     id = id_counter.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
     blockEnded = pOriginalState.blockEnded;
@@ -260,7 +257,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
     id = id_counter.getAndIncrement();
     explicitValues.putAll(pCombinedMap);
     invalidFree = pOriginalState.invalidFree;
@@ -1467,7 +1463,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         mergedExplicitValues.put(entry.getKey(), entry.getValue());
       }
 
-      return new SMGState(logger, options, destHeap, id_counter, predecessorId, mergedExplicitValues);
+      return new SMGState(logger, options, destHeap, predecessorId, mergedExplicitValues);
     } else {
       return reachedState;
     }

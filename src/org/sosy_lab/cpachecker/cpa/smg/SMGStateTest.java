@@ -27,7 +27,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -142,7 +141,8 @@ public class SMGStateTest {
     smg1.setValidity(l4, true);
     smg1.setValidity(l5, true);
 
-    SMGState smg1State = new SMGState(logger, new SMGOptions(Configuration.defaultConfiguration()), smg1, new AtomicInteger(1), 0, HashBiMap.create());
+    SMGState smg1State = new SMGState(
+        logger, new SMGOptions(Configuration.defaultConfiguration()), smg1, 0, HashBiMap.create());
 
     SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, 5);
@@ -243,7 +243,8 @@ public class SMGStateTest {
    heap.setValidity(l4, true);
    heap.setValidity(l5, true);
 
-    SMGState smg1State = new SMGState(logger, new SMGOptions(Configuration.defaultConfiguration()), heap, new AtomicInteger(1), 0, HashBiMap.create());
+    SMGState smg1State = new SMGState(logger, new SMGOptions(
+        Configuration.defaultConfiguration()), heap, 0, HashBiMap.create());
 
     smg1State.addStackFrame(functionDeclaration3);
     SMGObject head = smg1State.addGlobalVariable(64, "head");
