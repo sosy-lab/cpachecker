@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
-
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -38,12 +38,10 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
-
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
 
 public final class SMGIntersectStates {
 

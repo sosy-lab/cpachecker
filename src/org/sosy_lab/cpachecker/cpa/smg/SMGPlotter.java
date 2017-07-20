@@ -36,8 +36,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
@@ -45,6 +43,8 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
 
 public final class SMGPlotter {
   private static final class SMGObjectNode {
