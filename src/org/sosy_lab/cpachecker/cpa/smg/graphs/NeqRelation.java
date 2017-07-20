@@ -23,27 +23,139 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.SetMultimap;
-
-import java.util.Collections;
-import java.util.List;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.Iterables;
+import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 
+/**
+ * This class tracks Pairs of Integers. Implemented as an immutable map.
+ * The Multimap is used as Bi-Map, i.e. for each pair (K,V) there exists also a pair (V,K).
+ * For memory-reasons we only store one of the Pairs and check for both if needed.
+ */
 final class NeqRelation {
 
-  /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also
-   * inserted as pair (V,K). We avoid self-references like (A,A). */
-  private final SetMultimap<Integer, Integer> smgValues = HashMultimap.create();
+  private final PersistentMap<Integer, ImmutableSet<Integer>> smgValues;
+
+  public NeqRelation() {
+    smgValues = PathCopyingPersistentTreeMap.of();
+  }
+
+  private NeqRelation(PersistentMap<Integer, ImmutableSet<Integer>> pMap) {
+    smgValues = pMap;
+  }
+
+  public Set<Integer> getNeqsForValue(Integer pV) {
+    Set<Integer> neqs = smgValues.get(pV);
+    Builder<Integer> builder = ImmutableSet.builder();
+    if (neqs != null) {
+      builder.addAll(neqs);
+    }
+    // add backwards mappings
+    for (Entry<Integer, ImmutableSet<Integer>> e : smgValues.entrySet()) {
+      if (e.getValue().contains(pV)) {
+        builder.add(e.getKey());
+      }
+    }
+    return builder.build();
+  }
+
+  public NeqRelation addRelationAndCopy(Integer pOne, Integer pTwo) {
+
+    // swap if A>B
+    if (pOne.compareTo(pTwo) > 0) {
+      Integer tmp = pOne;
+      pOne = pTwo;
+      pTwo = tmp;
+    }
+
+    ImmutableSet<Integer> set = smgValues.get(pOne);
+    if (set == null) {
+      set = ImmutableSet.of(pTwo);
+    } else {
+      set = ImmutableSet.<Integer>builder().addAll(set).add(pTwo).build();
+    }
+
+    return new NeqRelation(smgValues.putAndCopy(pOne, set));
+  }
+
+  public NeqRelation removeRelationAndCopy(Integer pOne, Integer pTwo) {
+
+    // swap if A>B
+    if (pOne.compareTo(pTwo) > 0) {
+      Integer tmp = pOne;
+      pOne = pTwo;
+      pTwo = tmp;
+    }
+
+    ImmutableSet<Integer> set = smgValues.get(pOne);
+    if (set == null || !set.contains(pTwo)) {
+      return this;
+    }
+
+    final Integer pTwoFinal = pTwo;
+    set = ImmutableSet.<Integer>builder().addAll(Iterables.filter(set, i -> !i.equals(pTwoFinal))).build();
+    if (set.isEmpty()) {
+      return new NeqRelation(smgValues.removeAndCopy(pOne));
+    } else {
+      return new NeqRelation(smgValues.putAndCopy(pOne, set));
+    }
+  }
+
+  public boolean neq_exists(Integer pOne, Integer pTwo) {
+
+    // swap if A>B
+    if (pOne.compareTo(pTwo) > 0) {
+      Integer tmp = pOne;
+      pOne = pTwo;
+      pTwo = tmp;
+    }
+
+    Set<Integer> set = smgValues.get(pOne);
+    return set != null && set.contains(pTwo);
+  }
+
+  public NeqRelation removeValueAndCopy(Integer pOne) {
+    // first delete forward matches
+    PersistentMap<Integer, ImmutableSet<Integer>> newSet = smgValues.removeAndCopy(pOne);
+
+    // then handle backwards matches
+    for (Entry<Integer, ImmutableSet<Integer>> e : smgValues.entrySet()) {
+      if (e.getKey().compareTo(pOne) > 0) {
+        break;
+      }
+      if (e.getValue().contains(pOne)) {
+        ImmutableSet<Integer> cp = ImmutableSet.copyOf(Iterables.filter(e.getValue(), i -> !i.equals(pOne)));
+        if (cp.isEmpty()) {
+          newSet = newSet.removeAndCopy(e.getKey());
+        } else {
+          newSet = newSet.putAndCopy(e.getKey(), cp);
+        }
+      }
+    }
+    return new NeqRelation(newSet);
+  }
+
+  /** transform all relations from (A->C) towards (A->B) and delete C */
+  public NeqRelation mergeValuesAndCopy(Integer pB, Integer pC) {
+    NeqRelation result = removeValueAndCopy(pC);
+    for (Integer value : getNeqsForValue(pC)) {
+      result = result.addRelationAndCopy(pB, value);
+    }
+    return result;
+  }
+
+  @Override
+  public String toString() {
+    return "neq_rel=" + smgValues.toString();
+  }
 
   @Override
   public int hashCode() {
     return smgValues.hashCode();
-  }
-
-  public Set<Integer> getNeqsForValue(Integer pV) {
-    return Collections.unmodifiableSet(smgValues.get(pV));
   }
 
   @Override
@@ -53,54 +165,5 @@ final class NeqRelation {
     }
     NeqRelation other = (NeqRelation) obj;
     return other.smgValues != null && smgValues.equals(other.smgValues);
-  }
-
-  public void add_relation(Integer pOne, Integer pTwo) {
-
-    // we do not want self-references
-    if(pOne.intValue() == pTwo.intValue()) {
-      return;
-    }
-
-    smgValues.put(pOne, pTwo);
-    smgValues.put(pTwo, pOne);
-  }
-
-  public void putAll(NeqRelation pNeq) {
-    smgValues.putAll(pNeq.smgValues);
-  }
-
-  public void remove_relation(Integer pOne, Integer pTwo) {
-    smgValues.remove(pOne, pTwo);
-    smgValues.remove(pTwo, pOne);
-  }
-
-  public boolean neq_exists(Integer pOne, Integer pTwo) {
-    return smgValues.containsEntry(pOne, pTwo);
-  }
-
-  public void removeValue(Integer pOne) {
-    for (Integer other : smgValues.get(pOne)) {
-      smgValues.get(other).remove(pOne);
-    }
-    smgValues.removeAll(pOne);
-  }
-
-  /** transform all relations from (A->C) towards (A->B) and delete C */
-  public void mergeValues(Integer pB, Integer pC) {
-    List<Integer> values = ImmutableList.copyOf(smgValues.get(pC));
-    removeValue(pC);
-    for (Integer value : values) {
-      add_relation(pB, value);
-    }
-  }
-
-  @Override
-  public String toString() {
-    return "neq_rel=" + smgValues.toString();
-  }
-
-  public void clear() {
-    smgValues.clear();
   }
 }

@@ -106,7 +106,7 @@ public class SMG {
     machine_model = pHeap.machine_model;
     hv_edges = pHeap.hv_edges;
     pt_edges = pHeap.pt_edges;
-    neq.putAll(pHeap.neq);
+    neq = pHeap.neq;
     pathPredicate.putAll(pHeap.pathPredicate);
     errorPredicate.putAll(pHeap.errorPredicate);
     object_validity = pHeap.object_validity;
@@ -173,7 +173,7 @@ public class SMG {
     assert pValue != 0;
 
     values.remove(pValue);
-    neq.removeValue(pValue);
+    neq = neq.removeValueAndCopy(pValue);
     pathPredicate.removeValue(pValue);
     errorPredicate.removeValue(pValue);
   }
@@ -335,7 +335,7 @@ public class SMG {
    * Keeps consistency: no
    */
   public void addNeqRelation(Integer pV1, Integer pV2) {
-    neq.add_relation(pV1, pV2);
+    neq = neq.addRelationAndCopy(pV1, pV2);
   }
 
   /**
@@ -647,7 +647,7 @@ public class SMG {
       pV2 = tmp;
     }
 
-    neq.mergeValues(pV1, pV2);
+    neq = neq.mergeValuesAndCopy(pV1, pV2);
     pathPredicate.mergeValues(pV1, pV2);
 
     removeValue(pV2);
@@ -687,7 +687,7 @@ public class SMG {
     values.clear();
     hv_edges = new SMGHasValueEdgeSet();
     pt_edges = new SMGPointsToMap();
-    neq.clear();
+    neq = new NeqRelation();
     pathPredicate.clear();
     addValue(nullAddress);
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, SMGNullObject.INSTANCE, 0);
