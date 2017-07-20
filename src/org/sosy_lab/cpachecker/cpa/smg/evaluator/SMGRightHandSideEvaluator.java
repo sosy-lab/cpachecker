@@ -94,7 +94,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CFAEdge pCfaEdge, CRightHandSide rVal)
       throws UnrecognizedCCodeException {
 
-    ForceExplicitValueVisitor v = new ForceExplicitValueVisitor(smgState,
+    ForceExplicitValueVisitor v = new ForceExplicitValueVisitor(this, smgState,
         null, machineModel, logger, pCfaEdge);
 
     Value val = rVal.accept(v);
@@ -256,7 +256,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
         rSymValue = SMGKnownSymValue.valueOf(SMGValueFactory.getNewValue());
 
-        SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
+        LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
 
         List<SMGAddressAndState> addressOfFields = lValue.accept(visitor);
 
@@ -321,7 +321,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         return; // no further explicit Information can be derived
       }
 
-      SMGExpressionEvaluator.LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
+      LValueAssignmentVisitor visitor = getLValueAssignmentVisitor(edge, assignableState);
 
       List<SMGAddressAndState> addressOfFields = lValue.accept(visitor);
 
@@ -361,10 +361,10 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
   }
 
-  private class LValueAssignmentVisitor extends SMGExpressionEvaluator.LValueAssignmentVisitor {
+  private class RHSLValueAssignmentVisitor extends LValueAssignmentVisitor {
 
-    public LValueAssignmentVisitor(CFAEdge pEdge, SMGState pSmgState) {
-      super(pEdge, pSmgState);
+    public RHSLValueAssignmentVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+      super(pSmgExpressionEvaluator, pEdge, pSmgState);
     }
 
     @Override
@@ -410,12 +410,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
   }
 
-  private class ExpressionValueVisitor extends SMGExpressionEvaluator.ExpressionValueVisitor {
+  private class RHSExpressionValueVisitor extends ExpressionValueVisitor {
 
     private final SMGBuiltins builtins;
 
-    public ExpressionValueVisitor(CFAEdge pEdge, SMGState pSmgState, SMGBuiltins pBuiltins) {
-      super(pEdge, pSmgState);
+    public RHSExpressionValueVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator,
+        CFAEdge pEdge, SMGState pSmgState, SMGBuiltins pBuiltins) {
+      super(pSmgExpressionEvaluator, pEdge, pSmgState);
       builtins = pBuiltins;
     }
 
@@ -475,13 +476,14 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   }
 
   private class ForceExplicitValueVisitor extends
-      SMGExpressionEvaluator.ExplicitValueVisitor {
+      ExplicitValueVisitor {
 
     private final SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(2);
 
-    public ForceExplicitValueVisitor(SMGState pSmgState, String pFunctionName, MachineModel pMachineModel,
+    public ForceExplicitValueVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator,
+        SMGState pSmgState, String pFunctionName, MachineModel pMachineModel,
         LogManagerWithoutDuplicates pLogger, CFAEdge pEdge) {
-      super(pSmgState, pFunctionName, pMachineModel, pLogger, pEdge);
+      super(pSmgExpressionEvaluator, pSmgState, pFunctionName, pMachineModel, pLogger, pEdge);
     }
 
     @Override
@@ -567,12 +569,12 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
   }
 
-  private class PointerAddressVisitor extends SMGExpressionEvaluator.PointerVisitor {
+  private class PointerAddressVisitor extends PointerVisitor {
 
     private final SMGBuiltins builtins;
 
-    public PointerAddressVisitor(CFAEdge pEdge, SMGState pSmgState, SMGBuiltins pBuiltins) {
-      super(pEdge, pSmgState);
+    public PointerAddressVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState, SMGBuiltins pBuiltins) {
+      super(pSmgExpressionEvaluator, pEdge, pSmgState);
       builtins = pBuiltins;
     }
 
@@ -642,9 +644,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
   }
 
-  private class CSizeOfVisitor extends SMGExpressionEvaluator.CSizeOfVisitor {
+  private class RHSCSizeOfVisitor extends CSizeOfVisitor {
 
-    public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
+    public RHSCSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState,
         LogManagerWithoutDuplicates pLogger, Optional<CExpression> pExpression) {
       super(pModel, pEdge, pState, pLogger, pExpression);
     }
@@ -660,26 +662,26 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   }
 
   @Override
-  public org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.PointerVisitor getPointerVisitor(
+  public org.sosy_lab.cpachecker.cpa.smg.evaluator.PointerVisitor getPointerVisitor(
       CFAEdge pCfaEdge, SMGState pNewState) {
-    return new PointerAddressVisitor(pCfaEdge, pNewState, smgTransferRelation.builtins);
+    return new PointerAddressVisitor(this, pCfaEdge, pNewState, smgTransferRelation.builtins);
   }
 
   @Override
-  public org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.ExpressionValueVisitor getExpressionValueVisitor(
+  public org.sosy_lab.cpachecker.cpa.smg.evaluator.ExpressionValueVisitor getExpressionValueVisitor(
       CFAEdge pCfaEdge, SMGState pNewState) {
-    return new ExpressionValueVisitor(pCfaEdge, pNewState, smgTransferRelation.builtins);
+    return new RHSExpressionValueVisitor(this, pCfaEdge, pNewState, smgTransferRelation.builtins);
   }
 
   @Override
-  public org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.LValueAssignmentVisitor getLValueAssignmentVisitor(
+  public org.sosy_lab.cpachecker.cpa.smg.evaluator.LValueAssignmentVisitor getLValueAssignmentVisitor(
       CFAEdge pCfaEdge, SMGState pNewState) {
-    return new LValueAssignmentVisitor(pCfaEdge, pNewState);
+    return new RHSLValueAssignmentVisitor(this, pCfaEdge, pNewState);
   }
 
   @Override
-  protected CSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
-    return new CSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
+  protected RHSCSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
+    return new RHSCSizeOfVisitor(machineModel, pEdge, pState, logger, pExpression);
   }
 
   @Override
