@@ -85,8 +85,8 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
   }
 
   @Override
-  public void accept(SMGObjectVisitor visitor) {
-    visitor.visit(this);
+  public <T> T accept(SMGObjectVisitor<T> visitor) {
+    return visitor.visit(this);
   }
 
   @Override

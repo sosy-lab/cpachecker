@@ -61,7 +61,7 @@ public class DummyAbstraction extends SMGObject implements SMGAbstractObject {
   }
 
   @Override
-  public void accept(SMGObjectVisitor pVisitor) {
+  public <T> T accept(SMGObjectVisitor<T> pVisitor) {
     throw new UnsupportedOperationException("Dummy does not support visitors"); // TODO why not?
   }
 

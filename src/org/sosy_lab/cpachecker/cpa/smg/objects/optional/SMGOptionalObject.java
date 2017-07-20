@@ -85,8 +85,8 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
   }
 
   @Override
-  public void accept(SMGObjectVisitor pVisitor) {
-    pVisitor.visit(this);
+  public <T> T accept(SMGObjectVisitor<T> visitor) {
+    return visitor.visit(this);
   }
 
   @Override

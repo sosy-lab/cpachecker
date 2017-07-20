@@ -74,7 +74,7 @@ public abstract class SMGObject {
 
   public abstract boolean isAbstract();
 
-  public abstract void accept(SMGObjectVisitor visitor);
+  public abstract <T> T accept(SMGObjectVisitor<T> visitor);
 
   /**
    * Compares objects and determines, if this object is more general than given object.

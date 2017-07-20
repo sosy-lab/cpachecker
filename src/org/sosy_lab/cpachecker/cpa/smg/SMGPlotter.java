@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
@@ -72,12 +73,18 @@ public final class SMGPlotter {
     }
   }
 
-  private static final class SMGNodeDotVisitor implements SMGObjectVisitor {
-    final private CLangSMG smg;
-    private SMGObjectNode node = null;
+  private static final class SMGNodeDotVisitor implements SMGObjectVisitor<SMGObjectNode> {
+
+    private final CLangSMG smg;
+
 
     public SMGNodeDotVisitor(CLangSMG pSmg) {
       smg = pSmg;
+    }
+
+    private SMGObjectNode defaultNode(String label, SMGObject obj) {
+      String color = smg.isObjectValid(obj) ? "blue" : "red";
+      return new SMGObjectNode(label, defaultDefinition(color, "rectangle", "dashed", obj));
     }
 
     private String defaultDefinition(String pColor, String pShape, String pStyle, SMGObject pObject) {
@@ -85,78 +92,51 @@ public final class SMGPlotter {
     }
 
     @Override
-    public void visit(SMGRegion pRegion) {
-      String shape = "rectangle";
+    public SMGObjectNode visit(SMGRegion pRegion) {
       String color;
       String style;
       if (smg.isObjectValid(pRegion)) {
+        style = "solid";
         if (smg.isObjectExternallyAllocated(pRegion)) {
-          color = "green"; style = "solid";
+          color = "green";
         } else {
-          color = "black"; style = "solid";
+          color = "black";
         }
       } else {
+        style = "dotted";
         if (smg.isObjectExternallyAllocated(pRegion)) {
-          color = "green"; style = "dotted";
+          color = "green";
         } else {
-          color = "red"; style = "dotted";
+          color = "red";
         }
       }
 
-      node = new SMGObjectNode("region", defaultDefinition(color, shape, style, pRegion));
+      return new SMGObjectNode("region", defaultDefinition(color, "rectangle", style, pRegion));
     }
 
     @Override
-    public void visit(SMGSingleLinkedList pSll) {
-      String shape = "rectangle";
-      String color = "blue";
-
-      if (! smg.isObjectValid(pSll)) {
-        color="red";
-      }
-
-      String style = "dashed";
-      node = new SMGObjectNode("sll", defaultDefinition(color, shape, style, pSll));
+    public SMGObjectNode visit(SMGSingleLinkedList sll) {
+      return defaultNode("sll", sll);
     }
 
     @Override
-    public void visit (SMGObject pObject) {
-      if (pObject != SMGNullObject.INSTANCE) {
-        pObject.accept(this);
-      } else {
-        node = new SMGObjectNode("NULL");
-      }
-    }
-
-    public SMGObjectNode getNode() {
-      return node;
+    public SMGObjectNode visit(SMGDoublyLinkedList dll) {
+      return defaultNode("dll", dll);
     }
 
     @Override
-    public void visit(SMGDoublyLinkedList dll) {
-      String shape = "rectangle";
-      String color = "blue";
-
-      if (! smg.isObjectValid(dll)) {
-        color="red";
-      }
-
-      String style = "dashed";
-      node = new SMGObjectNode("dll", defaultDefinition(color, shape, style, dll));
-
+    public SMGObjectNode visit(SMGOptionalObject opt) {
+      return defaultNode("opt", opt);
     }
 
     @Override
-    public void visit(SMGOptionalObject opt) {
-      String shape = "rectangle";
-      String color = "blue";
+    public SMGObjectNode visit(GenericAbstraction obj) {
+      return defaultNode("abstraction", obj);
+    }
 
-      if (! smg.isObjectValid(opt)) {
-        color="red";
-      }
-
-      String style = "dashed";
-      node = new SMGObjectNode("opt", defaultDefinition(color, shape, style, opt));
+    @Override
+    public SMGObjectNode visit(SMGNullObject pObject) {
+      return new SMGObjectNode("NULL");
     }
   }
 
@@ -195,8 +175,7 @@ public final class SMGPlotter {
 
     for (SMGObject heapObject : smg.getHeapObjects()) {
       if (! objectIndex.containsKey(heapObject)) {
-        visitor.visit(heapObject);
-        objectIndex.put(heapObject, visitor.getNode());
+        objectIndex.put(heapObject, heapObject.accept(visitor));
       }
       if (heapObject != SMGNullObject.INSTANCE) {
         sb.append(newLineWithOffset(objectIndex.get(heapObject).getDefinition()));

@@ -58,8 +58,8 @@ public final class SMGNullObject extends SMGObject {
   }
 
   @Override
-  public void accept(SMGObjectVisitor pVisitor) {
-    throw new UnsupportedOperationException("NULL does not support visitors"); // TODO why not?
+  public <T> T accept(SMGObjectVisitor<T> visitor) {
+    return visitor.visit(this);
   }
 
   @Override
