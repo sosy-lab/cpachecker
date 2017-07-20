@@ -26,7 +26,22 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -41,23 +56,8 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 /**
  * Extending SMG with notions specific for programs in C language:
@@ -77,12 +77,12 @@ public class CLangSMG extends SMG {
   /**
    * A container for objects allocated on heap
    */
-  final private Set<SMGObject> heap_objects = new HashSet<>();
+  private PersistentSet<SMGObject> heap_objects;
 
   /**
    * A container for global objects
    */
-  final private Map<String, SMGRegion> global_objects = new HashMap<>();
+  private PersistentMap<String, SMGRegion> global_objects;
 
   /**
    * A flag signifying the edge leading to this state caused memory to be leaked
@@ -120,7 +120,9 @@ public class CLangSMG extends SMG {
    */
   public CLangSMG(MachineModel pMachineModel) {
     super(pMachineModel);
-    heap_objects.add(getNullObject());
+    global_objects = PathCopyingPersistentTreeMap.of();
+    heap_objects = PersistentSet.of();
+    heap_objects = heap_objects.addAndCopy(getNullObject());
   }
 
   /**
@@ -138,8 +140,8 @@ public class CLangSMG extends SMG {
       stack_objects.add(new_frame);
     }
 
-    heap_objects.addAll(pHeap.heap_objects);
-    global_objects.putAll(pHeap.global_objects);
+    heap_objects = pHeap.heap_objects;
+    global_objects = pHeap.global_objects;
     has_leaks = pHeap.has_leaks;
   }
 
@@ -157,7 +159,7 @@ public class CLangSMG extends SMG {
     if (CLangSMG.performChecks() && heap_objects.contains(pObject)) {
       throw new IllegalArgumentException("Heap object already in the SMG: [" + pObject + "]");
     }
-    heap_objects.add(pObject);
+    heap_objects = heap_objects.addAndCopy(pObject);
     addObject(pObject);
   }
 
@@ -185,7 +187,7 @@ public class CLangSMG extends SMG {
       throw new IllegalArgumentException("Global object with label [" + pObject.getLabel() + "] already in the SMG");
     }
 
-    global_objects.put(pObject.getLabel(), pObject);
+    global_objects = global_objects.putAndCopy(pObject.getLabel(), pObject);
     super.addObject(pObject);
   }
 
@@ -333,8 +335,7 @@ public class CLangSMG extends SMG {
           setMemoryLeak();
         }
         removeObjectAndEdges(stray_object);
-        heap_objects.remove(stray_object);
-
+        heap_objects = heap_objects.removeAndCopy(stray_object);
       }
     }
 
@@ -430,7 +431,7 @@ public class CLangSMG extends SMG {
    * @return Unmodifiable view of the set of the heap objects
    */
   public Set<SMGObject> getHeapObjects() {
-    return Collections.unmodifiableSet(heap_objects);
+    return heap_objects.asSet();
   }
 
   /**
@@ -452,7 +453,7 @@ public class CLangSMG extends SMG {
    * @return Unmodifiable map from variable names to global objects.
    */
   public Map<String, SMGRegion> getGlobalObjects() {
-    return Collections.unmodifiableMap(global_objects);
+    return global_objects;
   }
 
   /**
@@ -499,7 +500,7 @@ public class CLangSMG extends SMG {
   }
 
   final public void removeHeapObjectAndEdges(SMGObject pObject) {
-    heap_objects.remove(pObject);
+    heap_objects = heap_objects.removeAndCopy(pObject);
     removeObjectAndEdges(pObject);
   }
 
@@ -882,8 +883,8 @@ public class CLangSMG extends SMG {
 
   @Override
   public void clearObjects() {
-    global_objects.clear();
-    heap_objects.clear();
+    global_objects = PathCopyingPersistentTreeMap.of();
+    heap_objects = PersistentSet.of();
     super.clearObjects();
 
     for (CLangStackFrame frame : stack_objects) {
@@ -895,7 +896,7 @@ public class CLangSMG extends SMG {
     }
 
     /*May not remove null object.*/
-    heap_objects.add(getNullObject());
+    heap_objects = heap_objects.addAndCopy(getNullObject());
   }
 
   public Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {
@@ -999,7 +1000,7 @@ public class CLangSMG extends SMG {
     }
 
     SMGObject obj = global_objects.get(pVariable);
-    global_objects.remove(pVariable);
+    global_objects = global_objects.removeAndCopy(pVariable);
 
     removeObjectAndEdges(obj);
   }
@@ -1125,7 +1126,7 @@ public class CLangSMG extends SMG {
       CLangStackFrame frame = getFrame(pMemoryLocation);
       frame.addStackVariable(pMemoryLocation.getIdentifier(), pRegion);
     } else {
-      global_objects.put(pRegion.getLabel(), pRegion);
+      global_objects = global_objects.putAndCopy(pRegion.getLabel(), pRegion);
     }
 
     addObject(pRegion, pInfo.isValid(), pInfo.isExternal());

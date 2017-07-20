@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,7 +27,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -49,10 +48,11 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class SMG {
-  private Set<SMGObject> objects = new HashSet<>();
-  private Set<Integer> values = new HashSet<>();
+  private PersistentSet<SMGObject> objects;
+  private PersistentSet<Integer> values;
   private SMGHasValueEdges hv_edges;
   private SMGPointsToEdges pt_edges;
   private PersistentMap<SMGObject, Boolean> object_validity;
@@ -81,6 +81,8 @@ public class SMG {
   public SMG(final MachineModel pMachineModel) {
     SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, SMGNullObject.INSTANCE, 0);
 
+    objects = PersistentSet.of();
+    values = PersistentSet.of();
     hv_edges = new SMGHasValueEdgeSet();
     pt_edges = new SMGPointsToMap();
     object_validity = PathCopyingPersistentTreeMap.of();
@@ -111,8 +113,8 @@ public class SMG {
     errorPredicate.putAll(pHeap.errorPredicate);
     object_validity = pHeap.object_validity;
     objectAllocationIdentity = pHeap.objectAllocationIdentity;
-    objects.addAll(pHeap.objects);
-    values.addAll(pHeap.values);
+    objects = pHeap.objects;
+    values = pHeap.values;
   }
 
   @Override
@@ -172,7 +174,7 @@ public class SMG {
 
     assert pValue != 0;
 
-    values.remove(pValue);
+    values = values.removeAndCopy(pValue);
     neq = neq.removeValueAndCopy(pValue);
     pathPredicate.removeValue(pValue);
     errorPredicate.removeValue(pValue);
@@ -187,7 +189,7 @@ public class SMG {
    */
   @VisibleForTesting
   final public void removeObject(final SMGObject pObj) {
-    objects.remove(pObj);
+    objects = objects.removeAndCopy(pObj);
     object_validity = object_validity.removeAndCopy(pObj);
     objectAllocationIdentity = objectAllocationIdentity.removeAndCopy(pObj);
   }
@@ -218,7 +220,7 @@ public class SMG {
    *
    */
   final public void addObject(final SMGObject pObj, final boolean pValidity, final boolean pExternal) {
-    objects.add(pObj);
+    objects = objects.addAndCopy(pObj);
     object_validity = object_validity.putAndCopy(pObj, pValidity);
     objectAllocationIdentity = objectAllocationIdentity.putAndCopy(pObj, new ExternalObjectFlag(pExternal));
   }
@@ -231,7 +233,7 @@ public class SMG {
    * @param pValue  Value to add.
    */
   final public void addValue(Integer pValue) {
-    values.add(pValue);
+    values = values.addAndCopy(pValue);
   }
 
   /**
@@ -433,7 +435,7 @@ public class SMG {
    * @return Unmodifiable view on values set.
    */
   final public Set<Integer> getValues() {
-    return Collections.unmodifiableSet(values);
+    return values.asSet();
   }
 
   /**
@@ -441,7 +443,7 @@ public class SMG {
    * @return Unmodifiable view on objects set.
    */
   final public Set<SMGObject> getObjects() {
-    return Collections.unmodifiableSet(objects);
+    return objects.asSet();
   }
 
   /**
@@ -684,7 +686,7 @@ public class SMG {
   }
 
   protected void clearValuesHvePte() {
-    values.clear();
+    values = PersistentSet.of();
     hv_edges = new SMGHasValueEdgeSet();
     pt_edges = new SMGPointsToMap();
     neq = new NeqRelation();
@@ -695,7 +697,7 @@ public class SMG {
   }
 
   public void clearObjects() {
-    objects.clear();
+    objects = PersistentSet.of();
     object_validity = PathCopyingPersistentTreeMap.of();
 
     /*May not clear null objects*/
