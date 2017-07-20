@@ -81,14 +81,12 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   private final SMGTransferRelation smgTransferRelation;
-  private final SMGBuiltins builtins;
   private final SMGOptions options;
 
   public SMGRightHandSideEvaluator(SMGTransferRelation pSmgTransferRelation,
       LogManagerWithoutDuplicates pLogger, MachineModel pMachineModel, SMGOptions pOptions) {
     super(pLogger, pMachineModel);
     smgTransferRelation = pSmgTransferRelation;
-    builtins = pSmgTransferRelation.builtins;
     options = pOptions;
   }
 
@@ -414,8 +412,11 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   private class ExpressionValueVisitor extends SMGExpressionEvaluator.ExpressionValueVisitor {
 
-    public ExpressionValueVisitor(CFAEdge pEdge, SMGState pSmgState) {
+    private final SMGBuiltins builtins;
+
+    public ExpressionValueVisitor(CFAEdge pEdge, SMGState pSmgState, SMGBuiltins pBuiltins) {
       super(pEdge, pSmgState);
+      builtins = pBuiltins;
     }
 
     @Override
@@ -568,8 +569,11 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
 
   private class PointerAddressVisitor extends SMGExpressionEvaluator.PointerVisitor {
 
-    public PointerAddressVisitor(CFAEdge pEdge, SMGState pSmgState) {
+    private final SMGBuiltins builtins;
+
+    public PointerAddressVisitor(CFAEdge pEdge, SMGState pSmgState, SMGBuiltins pBuiltins) {
       super(pEdge, pSmgState);
+      builtins = pBuiltins;
     }
 
     @Override
@@ -658,13 +662,13 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   @Override
   public org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.PointerVisitor getPointerVisitor(
       CFAEdge pCfaEdge, SMGState pNewState) {
-    return new PointerAddressVisitor(pCfaEdge, pNewState);
+    return new PointerAddressVisitor(pCfaEdge, pNewState, smgTransferRelation.builtins);
   }
 
   @Override
   public org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator.ExpressionValueVisitor getExpressionValueVisitor(
       CFAEdge pCfaEdge, SMGState pNewState) {
-    return new ExpressionValueVisitor(pCfaEdge, pNewState);
+    return new ExpressionValueVisitor(pCfaEdge, pNewState, smgTransferRelation.builtins);
   }
 
   @Override
