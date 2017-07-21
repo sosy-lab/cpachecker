@@ -234,7 +234,7 @@ analysis.memorizeReachedAfterRestart = false
 analysis.partitionInitialStates = false
 
 # A String, denoting the programs to be analyzed
-analysis.programNames = no default value
+analysis.programNames = []
 
 # which reached set implementation to use?
 # NORMAL: just a simple set

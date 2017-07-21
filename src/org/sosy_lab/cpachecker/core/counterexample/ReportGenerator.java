@@ -33,6 +33,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
@@ -46,7 +47,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -73,19 +73,11 @@ public class ReportGenerator {
   private static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
-  private static final Splitter COMMA_SPLITTER = Splitter.on(',').trimResults();
 
   private static final String HTML_TEMPLATE = "report-template.html";
 
   private final Configuration config;
   private final LogManager logger;
-
-  @Option(
-    secure = true,
-    name = "analysis.programNames",
-    description = "A String, denoting the programs to be analyzed"
-  )
-  private String programs;
 
   @Option(
     secure = true,
@@ -107,15 +99,19 @@ public class ReportGenerator {
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
   private final @Nullable Path logFile;
-  private final List<String> sourceFiles;
+  private final ImmutableList<String> sourceFiles;
 
-  public ReportGenerator(Configuration pConfig, LogManager pLogger, @Nullable Path pLogFile)
+  public ReportGenerator(
+      Configuration pConfig,
+      LogManager pLogger,
+      @Nullable Path pLogFile,
+      ImmutableList<String> pSourceFiles)
       throws InvalidConfigurationException {
     config = checkNotNull(pConfig);
     logger = checkNotNull(pLogger);
     logFile = pLogFile;
     config.inject(this);
-    sourceFiles = COMMA_SPLITTER.splitToList(programs);
+    sourceFiles = pSourceFiles;
   }
 
   public boolean generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {

@@ -151,7 +151,8 @@ public class CPAMain {
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
-      reportGenerator = new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile());
+      reportGenerator =
+          new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile(), options.programs);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(ERROR_EXIT_CODE);
@@ -239,7 +240,7 @@ public class CPAMain {
       //required=true, NOT required because we want to give a nicer user message ourselves
       description = "A String, denoting the programs to be analyzed"
     )
-    private List<String> programs = ImmutableList.of();
+    private ImmutableList<String> programs = ImmutableList.of();
 
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
