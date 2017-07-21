@@ -24,6 +24,7 @@
 					$scope.setTab(tabIndex);
 				});
 				$scope.setTab = function(tabIndex) {
+					$scope.tab = tabIndex;
 					if (tabIndex === 1) {
 						if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
 							d3.select("#arg-toolbar").style("visibility", "hidden");
@@ -74,7 +75,6 @@
 							}
 						}						
 					}
-					$scope.tab = tabIndex;
 				};
 				$scope.tabIsSet = function(tabIndex) {
 					return $scope.tab === tabIndex;
@@ -247,7 +247,7 @@
 			if (!d3.select(".marked-cfa-edge").empty()) {
 				d3.select(".marked-cfa-edge").classed("marked-cfa-edge", false);
 			}
-			var selection = d3.select("#cfa-edge" + actualSourceAndTarget.source + actualSourceAndTarget.target);
+			var selection = d3.select("#cfa-edge_" + actualSourceAndTarget.source + "-" + actualSourceAndTarget.target);
 			selection.classed("marked-cfa-edge", true);
 			var boundingRect = selection.node().getBoundingClientRect();
 			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
@@ -424,7 +424,7 @@
     			if ($scope.zoomEnabled) {
     				$scope.zoomControl();
     			}
-    			// FIXME: two-way binding still does not update the view
+    			// FIXME: two-way binding does not update the selected option
     			d3.selectAll("#cfa-toolbar option").attr("selected", null).attr("disabled", null);
     			d3.select("#cfa-toolbar [label=" + $scope.selectedCFAFunction + "]").attr("selected", "selected").attr("disabled", true);
     			if ($scope.selectedCFAFunction === "all") {
@@ -709,15 +709,16 @@ function init() {
                 extractVariables();
                 buildGraphsAndPostResults();
             } else if (m.data.renderer !== undefined) {
-                if (graphMap.length > 0) {
+                if (graphMap[graphCounter] !== undefined) {
                     var node = nodes.find(function(n) {
-                        return n.index === parseInt(graphMap[0].nodes()[0]);
+                        return n.index === parseInt(graphMap[graphCounter].nodes()[0]);
                     });
-                    self.postMessage({"graph" : JSON.stringify(graphMap[0]), "id" : node.func + graphCounter, "func" : node.func});
-                    graphMap.shift();
+                    self.postMessage({"graph" : JSON.stringify(graphMap[graphCounter]), "id" : node.func + graphCounter, "func" : node.func});
                     graphCounter++;
                 } else {
                     self.postMessage({"status": "done"});
+                    graphMap = [];
+                    graphCounter = 0;
                 }
             } else if (m.data.split !== undefined) {
                 graphSplitThreshold = m.data.split;
@@ -834,7 +835,7 @@ function init() {
             }
             buildCrossgraphEdges(nodesToSet);
             if (funcName === "main") {
-                self.postMessage({"graph" : JSON.stringify(graphMap[0]), "id" : funcName + graphCounter, "func" : funcName});
+                self.postMessage({"graph" : JSON.stringify(graphMap[graphCounter]), "id" : funcName + graphCounter, "func" : funcName});
                 graphCounter++;
             }
         }
@@ -860,18 +861,18 @@ function init() {
                     if (Object.keys(functionCallEdges).includes("" + source)) {
                         var funcCallNodeId = functionCallEdges["" + source][0];
                         graphMap[sourceGraph].setNode(funcCallNodeId, {label: getNodeLabelFCall(edge.stmt), class: "cfa-node fcall", id: "cfa-node" + funcCallNodeId, shape: "rect"});
-                        graphMap[sourceGraph].setEdge(source, funcCallNodeId, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, funcCallNodeId), class: edgeClassDecider(edge, source, funcCallNodeId), id: "cfa-edge" + source + funcCallNodeId, weight: edgeWeightDecider(edge)});
+                        graphMap[sourceGraph].setEdge(source, funcCallNodeId, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, funcCallNodeId), class: edgeClassDecider(edge, source, funcCallNodeId), id: "cfa-edge_" + source + "-" + funcCallNodeId, weight: edgeWeightDecider(edge)});
                         graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "dummy", id: "node" + target});
                         graphMap[sourceGraph].setEdge(funcCallNodeId, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
                     } else {
                         graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "dummy", id: "node" + target});
-                        graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, source, "" + source + target + sourceGraph), class: edgeClassDecider(edge, source, "" + source + target + sourceGraph), style: "stroke-dasharray: 5, 5;"});
+                        graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, "" + source + target + sourceGraph), id: "cfa-edge_" + source + "-" + target, class: edgeClassDecider(edge, source, "" + source + target + sourceGraph), style: "stroke-dasharray: 5, 5;"});
                     }
                     graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy", id: "node" + source});
                     graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, "" + target + source + targetGraph, target), class: edgeClassDecider(edge, "" + target + source + targetGraph, target), style: "stroke-dasharray: 5, 5;"});
-                } else if(sourceGraph > targetGraph) { 
+                } else if (sourceGraph > targetGraph) {
                     graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "dummy", id: "node" + target});
-                    graphMap[sourceGraph].setEdge("" + source + target + sourceGraph, source, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, "" + source + target + sourceGraph, source), class: edgeClassDecider(edge, "" + source + target + sourceGraph, source), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
+                    graphMap[sourceGraph].setEdge("" + source + target + sourceGraph, source, {label: edge.stmt, labelStyle: labelStyleDecider(edge, "" + source + target + sourceGraph, source), id:"cfa-edge_" + source + "-" + target, class: edgeClassDecider(edge, "" + source + target + sourceGraph, source), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
                     graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy", id: "node" + source});
                     graphMap[targetGraph].setEdge(target, "" + target + source + targetGraph, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, target, "" + target + source + targetGraph), class: edgeClassDecider(edge, target, "" + target + source + targetGraph), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
                 }
@@ -966,14 +967,14 @@ function init() {
                             label: e.stmt,
                             labelStyle: labelStyleDecider(e, source, funcCallNodeId),
                             class: edgeClassDecider(e, source, funcCallNodeId), 
-                            id: "cfa-edge"+ source + funcCallNodeId,
+                            id: "cfa-edge_"+ source + "-" + funcCallNodeId,
                             weight: edgeWeightDecider(e)
                         });
                         graph.setEdge(funcCallNodeId, target, {
                             label: "",
                             labelStyle: labelStyleDecider(e, funcCallNodeId, target),
                             class: edgeClassDecider(e, funcCallNodeId, target), 
-                            id: "cfa-edge"+ funcCallNodeId + target,
+                            id: "cfa-edge_"+ funcCallNodeId + "-" + target,
                             weight: edgeWeightDecider(e)
                         });                     
                     } else {
@@ -982,7 +983,7 @@ function init() {
                             labelStyle: labelStyleDecider(e, source, target),
                             lineInterpolate: "basis",
                             class: edgeClassDecider(e, source, target), 
-                            id: "cfa-edge"+ source + target,
+                            id: "cfa-edge_"+ source + "-" + target,
                             weight: edgeWeightDecider(e)
                         });
                     }
@@ -993,7 +994,7 @@ function init() {
         // If edge is part of error path, give it a representative class
     	function edgeClassDecider(edge, source, target) {
     		if (errorPath === undefined) {
-    			return edge.type;
+    			return "cfa-edge";
     		}
 			var mergedMatch = errorPath.find(function(entry) {
 				return entry.source === source && entry.target === target;
@@ -1002,9 +1003,9 @@ function init() {
 				return entry.source === edge.source && entry.target === edge.target;
 			}) 
 			if (mergedMatch !== undefined || initialMatch !== undefined) {
-				return "error-edge";
+				return "cfa-edge error-edge";
 			} else {
-				return edge.type;
+				return "cfa-edge";
 			}
     	}
     	
@@ -1357,8 +1358,7 @@ function init() {
 			$("#cfa-modal").text(parseInt($("#cfa-modal").text().split("/")[0]) + 1 + "/" + $("#cfa-modal").text().split("/")[1]);
 			cfaWorker.postMessage({"renderer" : "ready"});
 		} else if (m.data.status !== undefined) {
-			addEventsToCfaNodes(); // TODO: CFA specific!
-			addEventsToEdges();
+			addEventsToCfa();
 			d3.select("#cfa-toolbar").style("visibility", "visible");
 			d3.select("#cfa-container").classed("cfa-content", true);
 			d3.selectAll(".cfa-graph").style("visibility", "visible");
@@ -1415,8 +1415,7 @@ function init() {
 				d3.selectAll(".arg-graph").style("visibility", "visible");
 				$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
 			}
-			addEventsToNodes(); // TODO: ARG specific!
-			addEventsToEdges();
+			addEventsToArg();
 			if (errorPath !== undefined) {
 				d3.selectAll("td.disabled").classed("disabled", false);
 			}
@@ -1443,18 +1442,59 @@ function init() {
 		return g;
 	}
 	
-	// Add desired events to CFA nodes
-	function addEventsToCfaNodes() {
+	// Add desired events to CFA nodes and edges
+	function addEventsToCfa() {
 		d3.selectAll(".cfa-node").on("mouseover", function(d) { showInfoBoxNode(d3.event, d); })
 			.on("mouseout", function() { hideInfoBoxNode(); });
 		d3.selectAll(".fcall").on("dblclick", function(d) {
 			$("#cfa-toolbar").scope().selectedCFAFunction = d3.select("#cfa-node" + d + " text").text();
 			$("#cfa-toolbar").scope().setCFAFunction();
 		})
+		d3.selectAll(".cfa-edge")
+			.on("mouseover", function(d) { d3.select(this).select("path").style("stroke-width", "3px"); showInfoBoxEdge(d3.event, d); })
+			.on("mouseout", function() { d3.select(this).select("path").style("stroke-width", "1.5px"); hideInfoBoxEdge(); })
+			.on("dblclick", function(d) {
+				var edge = findCfaEdge(d);
+				if (edge === undefined) { // this occurs for edges between graphs - splitting edges
+					var thisEdgeData = d3.select(this).attr("id").split("_")[1];
+					edge = findCfaEdge({ v: thisEdgeData.split("-")[0], w: thisEdgeData.split("-")[1]})
+				}
+				$("#set-tab-3").click();
+				var line = edge.line;
+				if (line === 0) {
+					line = 1;
+				}
+				d3.select(".marked-source-line").classed("marked-source-line", false);
+				var selection = d3.select("#source-" + line + " td pre.prettyprint");
+				selection.classed("marked-source-line", true);
+				$(".sourceContent").scrollTop(selection.node().getBoundingClientRect().top + $(".sourceContent").scrollTop() - 200);
+		});
 	}
 	
-	// Add desired events to the nodes
-	function addEventsToNodes() {
+	// Find and return the actual edge element from cfaJson.edges array by considering funcCallEdges and combinedNodes
+	function findCfaEdge(eventElement) {
+		var source = parseInt(eventElement.v);
+		var target = parseInt(eventElement.w);
+		if (source > 100000) {
+			source = Object.keys(cfaJson.functionCallEdges).find(function(key) {
+				if (cfaJson.functionCallEdges[key].includes(source)) {
+					return key;
+				}
+			});
+		}
+		if (target > 100000) {
+			target = cfaJson.functionCallEdges[eventElement.v][1];
+		}
+		if (source in cfaJson.combinedNodes) {
+			source = cfaJson.combinedNodes[source][cfaJson.combinedNodes[source].length -1];
+		}
+		return cfaJson.edges.find(function(e) {
+			return e.source === parseInt(source) && e.target === target;
+		})
+	}
+	
+	// Add desired events to ARG the nodes
+	function addEventsToArg() {
 		d3.selectAll(".arg-node").on("mouseover", function(d){ showInfoBoxNode(d3.event, d); })
 			.on("mouseout", function(){ hideInfoBoxNode(); })
 //			.on("click", function(d) {
