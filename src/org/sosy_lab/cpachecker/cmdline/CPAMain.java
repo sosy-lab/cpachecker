@@ -31,6 +31,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -238,7 +239,7 @@ public class CPAMain {
       //required=true, NOT required because we want to give a nicer user message ourselves
       description = "A String, denoting the programs to be analyzed"
     )
-    private @Nullable List<String> programs;
+    private List<String> programs = ImmutableList.of();
 
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
