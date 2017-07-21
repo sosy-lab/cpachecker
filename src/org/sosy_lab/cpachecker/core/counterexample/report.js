@@ -424,6 +424,9 @@
     			if ($scope.zoomEnabled) {
     				$scope.zoomControl();
     			}
+    			// FIXME: two-way binding still does not update the view
+    			d3.selectAll("#cfa-toolbar option").attr("selected", null).attr("disabled", null);
+    			d3.select("#cfa-toolbar [label=" + $scope.selectedCFAFunction + "]").attr("selected", "selected").attr("disabled", true);
     			if ($scope.selectedCFAFunction === "all") {
     				functions.forEach(function(func) {
     					d3.selectAll(".cfa-svg-" + func).attr("display", "inline-block");
@@ -449,7 +452,6 @@
     			if ($scope.zoomEnabled) {
     				$scope.zoomEnabled = false;
     				d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
-    				d3.select("#cfa-zoom-label").text(" Mouse Wheel Scroll ");
     				// revert zoom and remove listeners
     				d3.selectAll(".cfa-svg").each(function(d, i) {
     					d3.select(this).on("zoom", null).on("wheel.zoom", null);
@@ -457,7 +459,6 @@
     			} else {
     				$scope.zoomEnabled = true;
     				d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
-    				d3.select("#cfa-zoom-label").text(" Mouse Wheel Zoom ");
     				d3.selectAll(".cfa-svg").each(function(d, i) {
     					var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
     					var zoom = d3.behavior.zoom().on("zoom", function() {
@@ -544,7 +545,6 @@
     			if ($scope.zoomEnabled) {
     				$scope.zoomEnabled = false;
     				d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
-    				d3.select("#arg-zoom-label").text(" Mouse Wheel Scroll ");
     				// revert zoom and remove listeners
     				d3.selectAll(".arg-svg").each(function(d, i) {
     					d3.select(this).on("zoom", null).on("wheel.zoom", null);
@@ -552,7 +552,6 @@
     			} else {
     				$scope.zoomEnabled = true;
     				d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-ok'></i>");
-    				d3.select("#arg-zoom-label").text(" Mouse Wheel Zoom ");
     				d3.selectAll(".arg-svg").each(function(d, i) {
     					var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
     					var zoom = d3.behavior.zoom().on("zoom", function() {
@@ -901,6 +900,7 @@ function init() {
                 if (!mergedNodes.includes(n.index)) {
                     graph.setNode(n.index, {
                         label : setNodeLabel(n),
+                        labelStyle: "font-family: 'Courier New', Courier, monospace",
                         class : "cfa-node",
                         id : "cfa-node" + n.index,
                         shape : nodeShapeDecider(n)
@@ -1443,15 +1443,13 @@ function init() {
 		return g;
 	}
 	
-	// Add desired event to CFA nodes
+	// Add desired events to CFA nodes
 	function addEventsToCfaNodes() {
 		d3.selectAll(".cfa-node").on("mouseover", function(d) { showInfoBoxNode(d3.event, d); })
 			.on("mouseout", function() { hideInfoBoxNode(); });
 		d3.selectAll(".fcall").on("dblclick", function(d) {
 			$("#cfa-toolbar").scope().selectedCFAFunction = d3.select("#cfa-node" + d + " text").text();
 			$("#cfa-toolbar").scope().setCFAFunction();
-			// FIXME: Broken angular js, does not update selected option even thou it is double binded
-			d3.select("#cfa-toolbar [label=" + d3.select("#cfa-node" + d + " text").text() + "]").attr("selected", "selected");
 		})
 	}
 	
