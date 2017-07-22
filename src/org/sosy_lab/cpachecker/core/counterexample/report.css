@@ -175,6 +175,10 @@ body {
 	stroke-width: 3px !important;
 }
 
+.marked-cfa-node > rect {
+	outline: #8B008B solid thick !important;
+}
+
 .marked-arg-node > rect {
 	outline: #8B008B solid thick !important;
 }
@@ -398,6 +402,12 @@ text {
 	stroke: #999;
 	fill: #fff;
 	stroke-width: 1.5px;
+}
+
+.cfa-dummy rect {
+	fill: #fff;
+	stroke: #c0c0c0;
+	stroke-width: 0.5px;
 }
 
 .fcall rect {

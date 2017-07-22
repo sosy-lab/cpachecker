@@ -244,9 +244,17 @@
         function markCfaEdge(errPathEntry) {
         	var actualSourceAndTarget = getActualSourceAndTarget(errPathEntry);
         	if ($.isEmptyObject(actualSourceAndTarget)) return;
+        	if (actualSourceAndTarget.target === undefined) {
+        		var selection = d3.select("#cfa-node" + actualSourceAndTarget.source);
+    			selection.classed("marked-cfa-node", true);
+    			var boundingRect = selection.node().getBoundingClientRect();
+    			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
+        		return;
+        	}
 			if (!d3.select(".marked-cfa-edge").empty()) {
 				d3.select(".marked-cfa-edge").classed("marked-cfa-edge", false);
 			}
+			d3.selectAll(".marked-cfa-node").classed("marked-cfa-node", false);
 			var selection = d3.select("#cfa-edge_" + actualSourceAndTarget.source + "-" + actualSourceAndTarget.target);
 			selection.classed("marked-cfa-edge", true);
 			var boundingRect = selection.node().getBoundingClientRect();
@@ -255,6 +263,14 @@
         
         function getActualSourceAndTarget(element) {
         	var result = {};
+        	if (cfaJson.mergedNodes.includes(element.source) && cfaJson.mergedNodes.includes(element.target)) {
+        		result["source"] = getMergingNode(element.source);
+        		return result;
+        	}
+        	if (element.source in cfaJson.combinedNodes) {
+        		result["source"] = element.source;
+        		return result;
+        	}
             if (!cfaJson.mergedNodes.includes(element.source) && !cfaJson.mergedNodes.includes(element.target)) {
                 result["source"] = element.source;
                 result["target"] = element.target;
@@ -862,19 +878,19 @@ function init() {
                         var funcCallNodeId = functionCallEdges["" + source][0];
                         graphMap[sourceGraph].setNode(funcCallNodeId, {label: getNodeLabelFCall(edge.stmt), class: "cfa-node fcall", id: "cfa-node" + funcCallNodeId, shape: "rect"});
                         graphMap[sourceGraph].setEdge(source, funcCallNodeId, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, funcCallNodeId), class: edgeClassDecider(edge, source, funcCallNodeId), id: "cfa-edge_" + source + "-" + funcCallNodeId, weight: edgeWeightDecider(edge)});
-                        graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "dummy", id: "node" + target});
+                        graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "cfa-dummy", id: "dummy-" + target, shape: "rect"});
                         graphMap[sourceGraph].setEdge(funcCallNodeId, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
                     } else {
-                        graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "dummy", id: "node" + target});
+                        graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "cfa-dummy", id: "dummy-" + target, shape: "rect"});
                         graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, "" + source + target + sourceGraph), id: "cfa-edge_" + source + "-" + target, class: edgeClassDecider(edge, source, "" + source + target + sourceGraph), style: "stroke-dasharray: 5, 5;"});
                     }
-                    graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy", id: "node" + source});
-                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, "" + target + source + targetGraph, target), class: edgeClassDecider(edge, "" + target + source + targetGraph, target), style: "stroke-dasharray: 5, 5;"});
+                    graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy"});
+                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: "split edge", labelStyle: "font-size: 12px;", id: "cfa-split-edge_"+ source + "-" + target , class: "cfa-split-edge", style: "stroke-dasharray: 5, 5;"});
                 } else if (sourceGraph > targetGraph) {
-                    graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "dummy", id: "node" + target});
-                    graphMap[sourceGraph].setEdge("" + source + target + sourceGraph, source, {label: edge.stmt, labelStyle: labelStyleDecider(edge, "" + source + target + sourceGraph, source), id:"cfa-edge_" + source + "-" + target, class: edgeClassDecider(edge, "" + source + target + sourceGraph, source), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
+                    graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "cfa-dummy", id: "dummy-" + target});
+                    graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: edge.stmt, labelStyle: labelStyleDecider(edge, "" + source + target + sourceGraph, source), id:"cfa-edge_" + source + "-" + target, class: edgeClassDecider(edge, "" + source + target + sourceGraph, source), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
                     graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy", id: "node" + source});
-                    graphMap[targetGraph].setEdge(target, "" + target + source + targetGraph, {label: source + "->" + target, labelStyle: labelStyleDecider(edge, target, "" + target + source + targetGraph), class: edgeClassDecider(edge, target, "" + target + source + targetGraph), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
+                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: "split edge", labelStyle: "font-size: 12px;", id:"cfa-split-edge_" + source + "-" + target, class: "cfa-split-edge", arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
                 }
             });
         }
@@ -1444,16 +1460,33 @@ function init() {
 	
 	// Add desired events to CFA nodes and edges
 	function addEventsToCfa() {
-		d3.selectAll(".cfa-node").on("mouseover", function(d) { showInfoBoxNode(d3.event, d); })
-			.on("mouseout", function() { hideInfoBoxNode(); });
+		d3.selectAll(".cfa-node").on("mouseover", function(d) { 
+				showInfoBoxNode(d3.event, d); 
+			}).on("mouseout", function() { 
+				hideInfoBoxNode(); 
+		});
 		d3.selectAll(".fcall").on("dblclick", function(d) {
 			$("#cfa-toolbar").scope().selectedCFAFunction = d3.select("#cfa-node" + d + " text").text();
 			$("#cfa-toolbar").scope().setCFAFunction();
+		});
+		d3.selectAll(".cfa-dummy").on("mouseover", function(d) {
+			showInfoBoxNode(d3.event, d);
+		}).on("mouseout", function() {
+			hideInfoBoxNode();
+		}).on("dblclick", function() {
+			var selection = d3.select("#cfa-node" + d3.select(this).attr("id").split("-")[1]);
+			selection.classed("marked-cfa-node", true);
+			var boundingRect = selection.node().getBoundingClientRect();
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
 		})
 		d3.selectAll(".cfa-edge")
-			.on("mouseover", function(d) { d3.select(this).select("path").style("stroke-width", "3px"); showInfoBoxEdge(d3.event, d); })
-			.on("mouseout", function() { d3.select(this).select("path").style("stroke-width", "1.5px"); hideInfoBoxEdge(); })
-			.on("dblclick", function(d) {
+			.on("mouseover", function(d) { 
+				d3.select(this).select("path").style("stroke-width", "3px"); 
+				showInfoBoxEdge(d3.event, d); 
+			}).on("mouseout", function() { 
+				d3.select(this).select("path").style("stroke-width", "1.5px"); 
+				hideInfoBoxEdge(); 
+			}).on("dblclick", function(d) {
 				var edge = findCfaEdge(d);
 				if (edge === undefined) { // this occurs for edges between graphs - splitting edges
 					var thisEdgeData = d3.select(this).attr("id").split("_")[1];
@@ -1469,6 +1502,20 @@ function init() {
 				selection.classed("marked-source-line", true);
 				$(".sourceContent").scrollTop(selection.node().getBoundingClientRect().top + $(".sourceContent").scrollTop() - 200);
 		});
+		d3.selectAll(".cfa-split-edge")
+			.on("mouseover", function(d) { 
+				d3.select(this).select("path").style("stroke-width", "3px"); 
+				showInfoBoxEdge(d3.event, d);
+			}).on("mouseout", function() { 
+			d3.select(this).select("path").style("stroke-width", "1.5px"); 
+			hideInfoBoxEdge(); 
+			}).on("dblclick", function() {
+				var edgeSourceTarget = d3.select(this).attr("id").split("_")[1];
+				var selection = d3.select("#cfa-edge_" + edgeSourceTarget.split("-")[0] + "-" + edgeSourceTarget.split("-")[1]);
+				selection.classed("marked-cfa-edge", true);
+				var boundingRect = selection.node().getBoundingClientRect();
+				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
+			})
 	}
 	
 	// Find and return the actual edge element from cfaJson.edges array by considering funcCallEdges and combinedNodes
