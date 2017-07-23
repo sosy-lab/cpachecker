@@ -1330,11 +1330,12 @@ function init() {
         	});
     	}
     	
+    	// Set class for passed edge
     	function edgeClassDecider(edge) {
     		if (errorPath !== undefined && errorPath.includes(edge.source) && errorPath.includes(edge.target)) {
-    			return "error-edge";
+    			return "arg-edge error-edge";
     		} else {
-    			return edge.type;
+    			return "arg-edge";
     		}
     	}
     	
@@ -1542,20 +1543,24 @@ function init() {
 	
 	// Add desired events to ARG the nodes
 	function addEventsToArg() {
-		d3.selectAll(".arg-node").on("mouseover", function(d){ showInfoBoxNode(d3.event, d); })
-			.on("mouseout", function(){ hideInfoBoxNode(); })
-//			.on("click", function(d) {
-//				var scope = angular.element($("#arg-container")).scope();
-//				scope.$apply(function(){scope.printIt(d)})
-//			})
-		// TODO: node.on("click") needed?
-	}
-
-	// Add desired events to edge
-	function addEventsToEdges() {
-		d3.selectAll("svg g.edgePath").on("mouseover", function(d){showInfoBoxEdge(d3.event, d);})
-			.on("mouseout", function(){hideInfoBoxEdge();})
-		// TODO: edge.on("click")
+		d3.selectAll(".arg-node")
+			.on("mouseover", function(d) { 
+				showInfoBoxNode(d3.event, d); 
+			}).on("mouseout", function() { 
+				hideInfoBoxNode(); 
+			}).on("dblclick", function() {
+				$("#set-tab-1").click();
+				var selection = d3.select("#cfa-node" + d3.select(this).select("tspan").text().split("N")[1]);
+				selection.classed("marked-cfa-node", true);
+				var boundingRect = selection.node().getBoundingClientRect();
+				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
+			});
+		d3.selectAll(".arg-edge")
+			.on("mouseover", function(d) {
+				showInfoBoxEdge(d3.event, d);
+			}).on("mouseout", function() {
+				hideInfoBoxEdge();
+			});
 	}
 	
 	// on mouse over display info box for node

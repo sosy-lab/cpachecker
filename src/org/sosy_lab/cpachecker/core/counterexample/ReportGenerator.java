@@ -529,7 +529,7 @@ public class ReportGenerator {
             int childStateId = child.getStateId();
             // Covered state is not contained in the reached set
             if (child.isCovered()) {
-              createCoveredArgNode(childStateId, child, child.toDOTLabel());
+              createCoveredArgNode(childStateId, child, child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2));
               createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
             }
             createArgEdge(parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
