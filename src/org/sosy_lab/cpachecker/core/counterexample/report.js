@@ -549,11 +549,6 @@
     		}
 	}]);
 	
-	app.controller('CFAController', ['$rootScope', '$scope',
-		function($rootScope, $scope) {
-            
-		}]);
-	
 	app.controller('ARGToolbarController', ['$rootScope', '$scope',
 		function($rootScope, $scope) {
 			$scope.zoomEnabled = false;
@@ -634,10 +629,6 @@
     			return true;
     		}    		
 	}]);
-	
-	app.controller('ARGController', ['$rootScope', '$scope',
-		function($rootScope, $scope) {
-		}]);	
 
 	app.controller('SourceController', [ '$rootScope', '$scope', '$location',
 			'$anchorScroll',
@@ -671,22 +662,7 @@ var graphSplitThreshold = 700;
 var zoomEnabled = false;
 // A Dagre D3 Renderer
 var render = new dagreD3.render();
-// TODO: different edge weights based on type?
-const constants = {
-	blankEdge : "BlankEdge",
-	assumeEdge : "AssumeEdge",
-	statementEdge : "StatementEdge",
-	declarationEdge : "DeclarationEdge",
-	returnStatementEdge : "ReturnStatementEdge",
-	functionCallEdge : "FunctionCallEdge",
-	functionReturnEdge : "FunctionReturnEdge",
-	callToReturnEdge : "CallToReturnEdge",
-	entryNode : "entry",
-	exitNode : "exit",
-	afterNode : "after",
-	beforeNode : "before",
-	margin : 20,
-}
+const margin = 20;
 var cfaWorker, argWorker;
 var cfaSplit = false;
 
@@ -728,22 +704,7 @@ function init() {
         var graphSplitThreshold = 700; // default value
         var graphMap = [];
         var graphCounter = 0;
-        // TODO: different edge weights based on type?
-        const constants = {
-            blankEdge : "BlankEdge",
-            assumeEdge : "AssumeEdge",
-            statementEdge : "StatementEdge",
-            declarationEdge : "DeclarationEdge",
-            returnStatementEdge : "ReturnStatementEdge",
-            functionCallEdge : "FunctionCallEdge",
-            functionReturnEdge : "FunctionReturnEdge",
-            callToReturnEdge : "CallToReturnEdge",
-            entryNode : "entry",
-            exitNode : "exit",
-            afterNode : "after",
-            beforeNode : "before",
-            margin : 20,
-        }
+        
         // The first posted message will include the cfaJson
         self.addEventListener('message', function(m) {
             if (m.data.json !== undefined) {
@@ -1403,9 +1364,9 @@ function init() {
 			var svgGroup = svg.append("g");
 			render(d3.select("#cfa-svg-" + id + " g"), g);
 			// Center the graph - calculate svg.attributes
-			svg.attr("height", g.graph().height + constants.margin * 2);
-			svg.attr("width", g.graph().width + constants.margin * 10);
-			svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
+			svg.attr("height", g.graph().height + margin * 2);
+			svg.attr("width", g.graph().width + margin * 10);
+			svgGroup.attr("transform", "translate(" + margin * 2 + ", " + margin + ")");
 			$("#cfa-modal").text(parseInt($("#cfa-modal").text().split("/")[0]) + 1 + "/" + $("#cfa-modal").text().split("/")[1]);
 			cfaWorker.postMessage({"renderer" : "ready"});
 		} else if (m.data.status !== undefined) {
@@ -1445,9 +1406,9 @@ function init() {
 			var svgGroup = svg.append("g");
 			render(d3.select("#arg-svg" + id + " g"), g);
 			// Center the graph - calculate svg.attributes
-			svg.attr("height", g.graph().height + constants.margin * 2);
-			svg.attr("width", g.graph().width + constants.margin * 10);
-			svgGroup.attr("transform", "translate(" + constants.margin * 2 + ", " + constants.margin + ")");
+			svg.attr("height", g.graph().height + margin * 2);
+			svg.attr("width", g.graph().width + margin * 10);
+			svgGroup.attr("transform", "translate(" + margin * 2 + ", " + margin + ")");
 			// FIXME: until https://github.com/cpettitt/dagre-d3/issues/169 is not resolved, label centering like so:
 			d3.selectAll(".arg-node tspan").each(function(d,i) {
 				d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
