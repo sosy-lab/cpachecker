@@ -53,10 +53,15 @@
 						}
 						if ($rootScope.displayedARG.indexOf("error") !== -1) {
 							d3.selectAll(".arg-error-graph").style("visibility", "visible");
-							$("#arg-container").scrollTop(0).scrollLeft(0);
+							if ($("#arg-container").scrollTop() === 0) {
+								$("#arg-container").scrollTop(0).scrollLeft(0);
+							}
 						} else {
 							d3.selectAll(".arg-graph").style("visibility", "visible");
-							$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
+							if ($("#arg-container").scrollTop() === 0) {
+								var boundingRect = d3.select(".arg-node").node().getBoundingClientRect();
+								$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 500);
+							}
 						}
 					} else {
 						if (d3.select("#cfa-toolbar").style("visibility") !== "hidden") {
@@ -954,7 +959,6 @@ function init() {
         }
         
         // Set the edges for a single graph while considering merged nodes and edges between them
-        // TODO: different arrowhead for different type + class function AND errorPath
         function setGraphEdges(graph, edgesToSet, multigraph) {
             edgesToSet.forEach(function(e) {
                 var source, target;
@@ -1250,29 +1254,29 @@ function init() {
     				sourceGraph = getGraphForErrorNode(edge.source);
     				targetGraph = getGraphForErrorNode(edge.target);
         			if (sourceGraph < targetGraph) { 
-        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "dummy", id: "node" + edge.target});
-        				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
-        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy", id: "node" + edge.source});
-        				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
+        				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
+        				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
         			} else if (sourceGraph > targetGraph) {
-        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "dummy", id: "node" + edge.target});
-        				errorGraphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
-        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy", id: "node" + edge.source});
-        				errorGraphMap[targetGraph].setEdge(edge.target, "" + edge.target + edge.source + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
+        				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
+        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
+        				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
         			}
     			} else {
         			sourceGraph = getGraphForNode(edge.source);
         			targetGraph = getGraphForNode(edge.target);
         			if (sourceGraph < targetGraph) { 
-            			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "dummy", id: "node" + edge.target});
-            			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
-            			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy", id: "node" + edge.source});
-            			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: edge.source + "->" + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+            			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
+            			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+            			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
+            			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
         			} else if (sourceGraph > targetGraph) {
-        				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "dummy", id: "node" + edge.target});
-        				graphMap[sourceGraph].setEdge("" + edge.source + edge.target + sourceGraph, edge.source, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
-        				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy", id: "node" + edge.source});
-        				graphMap[targetGraph].setEdge(edge.target, "" + edge.target + edge.source + targetGraph, {label: edge.source + "->" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+        				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
+        				graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
+        				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
+        				graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
         			}
     			}
     		});
@@ -1462,18 +1466,26 @@ function init() {
 	// Add desired events to CFA nodes and edges
 	function addEventsToCfa() {
 		d3.selectAll(".cfa-node").on("mouseover", function(d) { 
-				showInfoBoxNode(d3.event, d); 
-			}).on("mouseout", function() { 
-				hideInfoBoxNode(); 
+			var message;
+			if (d in cfaJson.combinedNodes) {
+				message = "type: combining node <br>";
+			} else if (parseInt(d) > 100000) {
+				message = "type: function call node <br>" + "dblclick: Select function";
+			} else {
+				message = "type: normal element";
+			}
+			showToolTipBox(d3.event, message); 
+		}).on("mouseout", function() { 
+			hideToolTipBox(); 
 		});
 		d3.selectAll(".fcall").on("dblclick", function(d) {
 			$("#cfa-toolbar").scope().selectedCFAFunction = d3.select("#cfa-node" + d + " text").text();
 			$("#cfa-toolbar").scope().setCFAFunction();
 		});
 		d3.selectAll(".cfa-dummy").on("mouseover", function(d) {
-			showInfoBoxNode(d3.event, d);
+			showToolTipBox(d3.event, "type: placeholder <br> dblclick: jump to Target node");
 		}).on("mouseout", function() {
-			hideInfoBoxNode();
+			hideToolTipBox();
 		}).on("dblclick", function() {
 			var selection = d3.select("#cfa-node" + d3.select(this).attr("id").split("-")[1]);
 			selection.classed("marked-cfa-node", true);
@@ -1482,11 +1494,11 @@ function init() {
 		})
 		d3.selectAll(".cfa-edge")
 			.on("mouseover", function(d) { 
-				d3.select(this).select("path").style("stroke-width", "3px"); 
-				showInfoBoxEdge(d3.event, d); 
+				d3.select(this).select("path").style("stroke-width", "3px");
+				showToolTipBox(d3.event, "dblclick: jump to Source line"); 
 			}).on("mouseout", function() { 
-				d3.select(this).select("path").style("stroke-width", "1.5px"); 
-				hideInfoBoxEdge(); 
+				d3.select(this).select("path").style("stroke-width", "1.5px");
+				hideToolTipBox(); 
 			}).on("dblclick", function(d) {
 				var edge = findCfaEdge(d);
 				if (edge === undefined) { // this occurs for edges between graphs - splitting edges
@@ -1505,11 +1517,11 @@ function init() {
 		});
 		d3.selectAll(".cfa-split-edge")
 			.on("mouseover", function(d) { 
-				d3.select(this).select("path").style("stroke-width", "3px"); 
-				showInfoBoxEdge(d3.event, d);
+				d3.select(this).select("path").style("stroke-width", "3px");
+				showToolTipBox(d3.event, "type: place holder <br> dblclick: jump to Original edge");
 			}).on("mouseout", function() { 
 			d3.select(this).select("path").style("stroke-width", "1.5px"); 
-			hideInfoBoxEdge(); 
+				hideToolTipBox();
 			}).on("dblclick", function() {
 				var edgeSourceTarget = d3.select(this).attr("id").split("_")[1];
 				var selection = d3.select("#cfa-edge_" + edgeSourceTarget.split("-")[0] + "-" + edgeSourceTarget.split("-")[1]);
@@ -1544,10 +1556,18 @@ function init() {
 	// Add desired events to ARG the nodes
 	function addEventsToArg() {
 		d3.selectAll(".arg-node")
-			.on("mouseover", function(d) { 
-				showInfoBoxNode(d3.event, d); 
+			.on("mouseover", function(d) {
+				var node = argJson.nodes.find(function(it) {
+					return it.index === parseInt(d);
+				})
+				var message = "function: " + node.func + "<br>";
+				if (node.type) {
+					message += "type: " + node.type + "<br>";
+				}
+				message += "dblclick: jump to CFA node";
+				showToolTipBox(d3.event, message); 
 			}).on("mouseout", function() { 
-				hideInfoBoxNode(); 
+				hideToolTipBox(); 
 			}).on("dblclick", function() {
 				$("#set-tab-1").click();
 				var selection = d3.select("#cfa-node" + d3.select(this).select("tspan").text().split("N")[1]);
@@ -1555,56 +1575,65 @@ function init() {
 				var boundingRect = selection.node().getBoundingClientRect();
 				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
 			});
+		d3.selectAll(".arg-dummy")
+			.on("mouseover", function(d) {
+				showToolTipBox(d3.event, "type: placeholder <br> dblclick: jump to Target node");
+			}).on("mouseout", function() {
+				hideToolTipBox();
+			}).on("dblclick", function() {
+				var selection = d3.select("#arg-node" + d3.select(this).attr("id").split("-")[1]);
+				selection.classed("marked-arg-node", true);
+				var boundingRect = selection.node().getBoundingClientRect();
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 280);
+			});
 		d3.selectAll(".arg-edge")
 			.on("mouseover", function(d) {
-				showInfoBoxEdge(d3.event, d);
+				d3.select(this).select("path").style("stroke-width", "3px");
+				var edge = argJson.edges.find(function(it) {
+					return it.source === parseInt(d.v) && it.target === parseInt(d.w);
+				})
+				if (edge) {
+					showToolTipBox(d3.event, "type: " + edge.type);
+				} else {
+					showToolTipBox(d3.event, "type: graph connecting edge")
+				}
 			}).on("mouseout", function() {
-				hideInfoBoxEdge();
+				d3.select(this).select("path").style("stroke-width", "1.5px");
+				hideToolTipBox();
+			});
+		d3.selectAll(".arg-split-edge")
+			.on("mouseover", function(d) { 
+				d3.select(this).select("path").style("stroke-width", "3px");
+				showToolTipBox(d3.event, "type: place holder <br> dblclick: jump to Original edge");
+			}).on("mouseout", function() { 
+				d3.select(this).select("path").style("stroke-width", "1.5px"); 
+				hideToolTipBox();
+			}).on("dblclick", function() {
+				var edgeSourceTarget = d3.select(this).attr("id").split("_")[1];
+				var selection = d3.select("#arg-edge" + edgeSourceTarget.split("-")[0] + edgeSourceTarget.split("-")[1]);
+				selection.classed("marked-arg-edge", true);
+				var boundingRect = selection.node().getBoundingClientRect();
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 280);
 			});
 	}
 	
-	// on mouse over display info box for node
-	function showInfoBoxNode(e, nodeIndex) {
+	// On mouse over display tool tip box
+	function showToolTipBox(e, displayInfo) {
 		var offsetX = 20;
 		var offsetY = 0;
 		var positionX = e.pageX;
 		var positionY = e.pageY;
-//		var node = nodes.find(function(n) {return n.index == nodeIndex;});
-//		var displayInfo = "function: " + node.func + "<br/>" + "type: " + node.type;
-		var displayInfo = "Tooltip tbd";
-		d3.select("#boxContentNode").html("<p>" + displayInfo + "</p>");
-		d3.select("#infoBoxNode").style("left", function() {
+		d3.select("#boxContent").html("<p>" + displayInfo + "</p>");
+		d3.select("#infoBox").style("left", function() {
 			return positionX + offsetX + "px";
 		}).style("top", function() {
 			return positionY + offsetY + "px";
 		}).style("visibility", "visible");
 	}
 
-	// on mouse out hide the info box for node
-	function hideInfoBoxNode() {
-		d3.select("#infoBoxNode").style("visibility", "hidden");
+	// On mouse out hide the tool tip box
+	function hideToolTipBox() {
+		d3.select("#infoBox").style("visibility", "hidden");
 	}
 
-	// on mouse over display info box for edge
-	function showInfoBoxEdge(e, edgeIndex) {
-		var offsetX = 20;
-		var offsetY = 0;
-		var positionX = e.pageX;
-		var positionY = e.pageY;
-		// line, file, stmt, type
-//		var edge = edges.find(function(e){return e.source == edgeIndex.v && e.target == edgeIndex.w;});
-//		var displayInfo = "line: " + edge.line+ "<br/>" + "file: " + edge.file + "<br/>" + "stmt: " + edge.stmt + "<br/>" + "type: " + edge.type;
-		var displayInfo = "Tooltip tbd";
-		d3.select("#boxContentEdge").html("<p>" + displayInfo + "</p>");
-		d3.select("#infoBoxEdge").style("left", function() {
-			return positionX + offsetX + "px";
-		}).style("top", function() {
-			return positionY + offsetY + "px";
-		}).style("visibility", "visible");
-	}
-
-	// on mouse out hide info box for edge
-	function hideInfoBoxEdge() {
-		d3.select("#infoBoxEdge").style("visibility", "hidden");
-	}		
 }

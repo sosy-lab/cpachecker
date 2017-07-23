@@ -170,7 +170,7 @@ body {
     background-color: #df80ff !important;
 }
 
-.marked-cfa-edge path {
+.marked-cfa-edge, .marked-arg-edge path {
 	stroke: #8B008B !important;
 	stroke-width: 3px !important;
 }
@@ -413,7 +413,7 @@ text {
 	stroke-width: 1.5px;
 }
 
-.cfa-dummy rect {
+.cfa-dummy, .arg-dummy rect {
 	fill: #fff;
 	stroke: #c0c0c0;
 	stroke-width: 0.5px;
@@ -441,7 +441,7 @@ text {
 	display: none;
 }
 
-#infoBoxNode, #infoBoxEdge {
+#infoBox {
 	visibility: hidden;
 	position: absolute;
 	top: 10px;
@@ -449,14 +449,14 @@ text {
 	z-index: 1;
 	width: 200px;
 	background-color: #FDFEFF;
-	border: 2px solid blue;
+	border: 2px solid #000080;
 }
 
 #insideBox {
-	padding: 15px;
+	padding: 10px;
 }
 
-#boxContentNode, #boxContentEdge {
+#boxContent {
 	font-family: Verdana, Arial, Helvetica, sans-serif;
 	font-size: 12px;
 	color: black;
