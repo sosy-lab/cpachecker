@@ -11,7 +11,28 @@
 	app.controller('ReportController', [ '$rootScope', '$scope',
 			function($rootScope, $scope) {
 				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
-				$scope.help_content = "<p>I am currently being developed</p>";
+				$scope.help_content = "<p><b>CFA</b> (Control Flow Automaton) shows the control flow of the program. <br> For each function in the source code one CFA graph is created. <br>" + 
+				"Initially all CFA's are displayed below one another beginning with the CFA for the main function.</p>" + "<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
+				"<p>&#9675; &nbsp; normal element</p>" +
+				"<p>&#9634; &nbsp; combined normal elements</p>" +
+				"<p>&#9645; &nbsp; function node</p>" +
+				"<p>&#9671; &nbsp; loop head</p>" +
+				"<p>- doubleclick on a function node to select the CFA for this function</p>" +
+				"<p>- doubleclick on edges to jump to the relating line in the Source tab</p>" +
+				"<p>- use the Displayed CFA select box to display only the CFA for the desired function </p>" +
+				"<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
+				"<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
+				"<p><b>ARG</b> (Abstract Reachability Graph) shows the explored abstract state space</p>" +
+				"<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
+	            "<p><span style=\"background-color:green;\">&#9645;</span> covered state</p>" +
+	            "<p><span style=\"background-color:orange;\">&#9645;</span> not yet processed state</p>" +
+	            "<p><span style=\"background-color:cornflowerblue;\">&#9645;</span> important state (depending on used analysis)</p>" +
+	            "<p><span style=\"background-color:red;\">&#9645;</span> target state</p>" +
+	            "<p>- doubleclick on node to jump to relating node in CFA</p>" +
+	            "<p>- use the Displayed ARG select box to select between the complete ARG and ARG containing only the error path (only in case an error was found) </p>" +
+	            "<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
+	            "<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
+	            "<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target <br> -- doubleclick on 'split edge' to jump to initial edge </p>";
 		        $scope.help_errorpath = "<p>The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA) or 'node by node' (ARG)</p>\n" +
 	            "<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point</p>\n" +
 	            "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab).\n If non of the mentioned tabs is currently set, the ARG tab will be selected.</p>\n" +
@@ -882,7 +903,7 @@ function init() {
                     if (Object.keys(functionCallEdges).includes("" + source)) {
                         var funcCallNodeId = functionCallEdges["" + source][0];
                         graphMap[sourceGraph].setNode(funcCallNodeId, {label: getNodeLabelFCall(edge.stmt), class: "cfa-node fcall", id: "cfa-node" + funcCallNodeId, shape: "rect"});
-                        graphMap[sourceGraph].setEdge(source, funcCallNodeId, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, funcCallNodeId), class: edgeClassDecider(edge, source, funcCallNodeId), id: "cfa-edge_" + source + "-" + funcCallNodeId, weight: edgeWeightDecider(edge)});
+                        graphMap[sourceGraph].setEdge(source, funcCallNodeId, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, funcCallNodeId), class: edgeClassDecider(edge, source, funcCallNodeId), id: "cfa-edge_" + source + "-" + funcCallNodeId});
                         graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "cfa-dummy", id: "dummy-" + target, shape: "rect"});
                         graphMap[sourceGraph].setEdge(funcCallNodeId, "" + source + target + sourceGraph, {label: source + "->" + target, style: "stroke-dasharray: 5, 5;"});
                     } else {
@@ -988,14 +1009,14 @@ function init() {
                             labelStyle: labelStyleDecider(e, source, funcCallNodeId),
                             class: edgeClassDecider(e, source, funcCallNodeId), 
                             id: "cfa-edge_"+ source + "-" + funcCallNodeId,
-                            weight: edgeWeightDecider(e)
+                            weight: edgeWeightDecider(source, target)
                         });
                         graph.setEdge(funcCallNodeId, target, {
                             label: "",
                             labelStyle: labelStyleDecider(e, funcCallNodeId, target),
                             class: edgeClassDecider(e, funcCallNodeId, target), 
                             id: "cfa-edge_"+ funcCallNodeId + "-" + target,
-                            weight: edgeWeightDecider(e)
+                            weight: edgeWeightDecider(source, target)
                         });                     
                     } else {
                         graph.setEdge(source, target, {
@@ -1004,7 +1025,7 @@ function init() {
                             lineInterpolate: "basis",
                             class: edgeClassDecider(e, source, target), 
                             id: "cfa-edge_"+ source + "-" + target,
-                            weight: edgeWeightDecider(e)
+                            weight: edgeWeightDecider(source, target)
                         });
                     }
                 }
@@ -1066,11 +1087,20 @@ function init() {
         }
         
         // Decide the weight for the edges based on type
-        function edgeWeightDecider(edge) {
-            if (edge.source === edge.target)
-                return 2;
-            else
-                return 1;
+        function edgeWeightDecider(source, target) {
+        	var sourceNode = nodes.find(function(it) {
+        		return it.index === source;
+        	})
+        	var targetNode = nodes.find(function(it) {
+        		return it.index === target;
+        	})
+            if (source === target) {
+            	return 2;
+            } else if (sourceNode.rpid < targetNode.rpid) {
+            	return 0;
+            } else {
+            	return 1;
+            }
         }
         
         // Get node label for functionCall node by providing the edge statement
@@ -1439,6 +1469,10 @@ function init() {
 			addEventsToArg();
 			if (errorPath !== undefined) {
 				d3.selectAll("td.disabled").classed("disabled", false);
+				if (!d3.select(".make-pretty").classed("prettyprint")) {
+					d3.selectAll(".make-pretty").classed("prettyprint", true);
+					PR.prettyPrint();
+				}
 			}
 			$("#renderStateModal").modal("hide");
 		}
