@@ -614,7 +614,9 @@ public class ReportGenerator {
     StringBuilder edgeLabel = new StringBuilder();
     if (edges.isEmpty()) {
       edgeLabel.append("dummy edge");
+      argEdge.put("type", "dummy type");
     } else {
+      argEdge.put("type", edges.get(0).getEdgeType().toString());
       if (edges.size() > 1) {
         edgeLabel.append("Lines ");
         edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
@@ -642,7 +644,6 @@ public class ReportGenerator {
       argEdge.put("file", edges.get(0).getFileLocation().getFileName());
     }
     argEdge.put("label", edgeLabel.toString());
-    argEdge.put("type", edges.get(0).getEdgeType().toString());
     argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
   }
 
