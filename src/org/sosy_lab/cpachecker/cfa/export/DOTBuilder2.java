@@ -46,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -123,10 +122,6 @@ public final class DOTBuilder2 {
     JSON.writeJSONString(dotter.mergedNodes, out);
   }
 
-  public void writeInversedComboNodes(Writer out) throws IOException {
-    JSON.writeJSONString(dotter.inverseComboNodes, out);
-  }
-
   private static String getEdgeText(CFAEdge edge) {
     //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
     //future updates of dotty may make this obsolete.
@@ -144,7 +139,6 @@ public final class DOTBuilder2 {
   private static class DOTViewBuilder extends DefaultCFAVisitor {
     // global state for all functions
     private final Map<Integer, List<Integer>> comboNodes = new HashMap<>();
-    private Map<List<Integer>, Integer> inverseComboNodes = new HashMap<>();
     private final Map<Integer, String> comboNodesLabels = new HashMap<>();
     private final List<Integer> mergedNodes = new ArrayList<>();
     private final Map<Integer, List<Integer>> virtFuncCallEdges = new HashMap<>();
@@ -246,23 +240,12 @@ public final class DOTBuilder2 {
         }
 
       }
-      buildInverseComboNodes();
       for (CFAEdge edge : edges.values()) {
         if (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge) {
            int from = edge.getPredecessor().getNodeNumber();
            int to = edge.getSuccessor().getNodeNumber();
            virtFuncCallEdges.put(from, Lists.newArrayList(++virtFuncCallNodeIdCounter, to));
         }
-      }
-    }
-
-    private void buildInverseComboNodes() {
-      if (!comboNodes.isEmpty()) {
-        inverseComboNodes =
-            comboNodes
-                .entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
       }
     }
 

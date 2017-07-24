@@ -322,14 +322,16 @@
         // Retrieve the node in which this node was merged
         function getMergingNode(index) {
             var result = "";
-            Object.keys(cfaJson.inversedCombinedNodes).some(function(key){
-                if (key.includes(index)) {
-                    result = cfaJson.inversedCombinedNodes[key];
+            Object.keys(cfaJson.combinedNodes).some(function(key) {
+                if (cfaJson.combinedNodes[key].includes(index)) {
+                    result = key;
                     return result;
                 }
             })
             return result;
         }
+        
+
         
         function markArgNode(errPathEntry) {
         	if (errPathEntry.argelem === undefined) {
@@ -707,7 +709,7 @@ function init() {
 	 */
     function cfaWorker_function() {
         self.importScripts("https://www.sosy-lab.org/lib/d3js/3.5.17/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.4.17/dagre-d3.min.js");
-        var json, nodes, mainNodes, edges, functions, combinedNodes, inversedCombinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
+        var json, nodes, mainNodes, edges, functions, combinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
         var graphSplitThreshold = 700; // default value
         var graphMap = [];
         var graphCounter = 0;
@@ -745,7 +747,6 @@ function init() {
             edges = json.edges;
             functions = json.functionNames;
             combinedNodes = json.combinedNodes;
-            inversedCombinedNodes = json.inversedCombinedNodes;
             combinedNodesLabels = json.combinedNodesLabels;
             mergedNodes = json.mergedNodes;
             functionCallEdges = json.functionCallEdges;
@@ -1045,13 +1046,13 @@ function init() {
         // Retrieve the node in which this node was merged
         function getMergingNode(index) {
             var result = "";
-            Object.keys(inversedCombinedNodes).some(function(key){
-                if (key.includes(index)) {
-                    result = inversedCombinedNodes[key];
+            Object.keys(combinedNodes).some(function(key) {
+                if (combinedNodes[key].includes(index)) {
+                    result = key;
                     return result;
                 }
             })
-            return result;
+            return parseInt(result);
         }
         
         // Decide the weight for the edges based on type

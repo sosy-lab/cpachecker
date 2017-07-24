@@ -239,8 +239,6 @@ public class ReportGenerator {
       writer.write(",\n");
       insertCombinedNodesData(writer, dotBuilder);
       writer.write(",\n");
-      insertInversedCombinedNodesData(writer, dotBuilder);
-      writer.write(",\n");
       insertCombinedNodesLabelsData(writer, dotBuilder);
       writer.write(",\n");
       insertMergedNodesListData(writer, dotBuilder);
@@ -422,16 +420,6 @@ public class ReportGenerator {
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of combined nodes failed.");
-    }
-  }
-
-  private void insertInversedCombinedNodesData(Writer writer, DOTBuilder2 dotBuilder) {
-    try {
-      writer.write("\"inversedCombinedNodes\":");
-      dotBuilder.writeInversedComboNodes(writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING, e, "Could not create report: Insertion of inversed combined nodes failed.");
     }
   }
 
