@@ -47,6 +47,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -63,9 +65,13 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options
 public class ReportGenerator {
@@ -74,7 +80,9 @@ public class ReportGenerator {
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
 
-  private static final String HTML_TEMPLATE = "report-template.html";
+  private static final String HTML_TEMPLATE = "report.html";
+  private static final String CSS_TEMPLATE = "report.css";
+  private static final String JS_TEMPLATE = "report.js";
 
   private final Configuration config;
   private final LogManager logger;
@@ -100,6 +108,8 @@ public class ReportGenerator {
 
   private final @Nullable Path logFile;
   private final ImmutableList<String> sourceFiles;
+  private final Map<Integer, Object> argNodes;
+  private final Map<String, Object> argEdges;
 
   public ReportGenerator(
       Configuration pConfig,
@@ -112,6 +122,8 @@ public class ReportGenerator {
     logFile = pLogFile;
     config.inject(this);
     sourceFiles = pSourceFiles;
+    argNodes = new HashMap<>();
+    argEdges = new HashMap<>();
   }
 
   public boolean generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
@@ -122,6 +134,8 @@ public class ReportGenerator {
     if (!generateReport) {
       return false;
     }
+
+    buildArgGraphData(pReached);
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
@@ -162,83 +176,161 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       String statistics) {
 
-    try (BufferedReader template =
+    try (BufferedReader reader =
             Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
                 .openBufferedStream();
-        Writer report = IO.openOutputFile(reportPath, Charsets.UTF_8)) {
+        Writer writer = IO.openOutputFile(reportPath, Charsets.UTF_8)) {
 
       String line;
-      while (null != (line = template.readLine())) {
+      while (null != (line = reader.readLine())) {
         if (line.contains("CONFIGURATION")) {
-          insertConfiguration(report);
+          insertConfiguration(writer);
+        } else if (line.contains("REPORT_CSS")) {
+          insertCss(writer);
+        } else if (line.contains("REPORT_JS")) {
+          insertJs(writer, cfa, dotBuilder, counterExample);
         } else if (line.contains("STATISTICS")) {
-          insertStatistics(report, statistics);
+          insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
-          insertSources(report);
+          insertSources(writer);
         } else if (line.contains("LOG")) {
-          insertLog(report);
-        } else if (line.contains("ERRORPATH") && counterExample != null) {
-          insertErrorPathData(counterExample, report);
-        } else if (line.contains("FUNCTIONS")) {
-          insertFunctionNames(report, cfa);
-        } else if (line.contains("SOURCE_FILE_NAMES")) {
-          insertSourceFileNames(report);
-        } else if (line.contains("COMBINEDNODES")) {
-          insertCombinedNodesData(report, dotBuilder);
-        } else if (line.contains("CFAINFO")) {
-          insertCfaInfoData(report, dotBuilder);
-        } else if (line.contains("FCALLEDGES")) {
-          insertFCallEdges(report, dotBuilder);
+          insertLog(writer);
         } else if (line.contains("REPORT_NAME")) {
-          insertReportName(counterExample, report);
+          insertReportName(counterExample, writer);
         } else if (line.contains("METATAGS")) {
-          insertMetaTags(report);
+          insertMetaTags(writer);
         } else if (line.contains("GENERATED")) {
-          insertDateAndVersion(report);
+          insertDateAndVersion(writer);
         } else {
-          report.write(line + "\n");
+          writer.write(line + "\n");
         }
       }
-
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Processing of HTML template failed.");
     }
   }
 
-  private void insertMetaTags(Writer report) throws IOException {
-    report.write("<meta name='generator'"
-        + " content='CPAchecker " + CPAchecker.getCPAcheckerVersion() + "'>");
-  }
-
-  private void insertDateAndVersion(Writer report) throws IOException {
-    String generated =
-        String.format(
-            "Generated on %s by CPAchecker %s",
-            new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()),
-            CPAchecker.getCPAcheckerVersion());
-    report.write(generated);
-  }
-
-  private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer report) throws IOException {
-    if (counterExample == null) {
-      report.write(sourceFiles.get(0));
-
-    } else {
-      String title = String.format(
-          "%s (Counterexample %s)",
-          sourceFiles.get(0),
-          counterExample.getUniqueId());
-      report.write(title);
+  private void insertJs(
+      Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample)
+      throws IOException {
+    try (BufferedReader reader =
+        Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
+            .openBufferedStream(); ) {
+      String line;
+      while (null != (line = reader.readLine())) {
+        if (line.contains("CFA_JSON_INPUT")) {
+          insertCfaJson(writer, cfa, dotBuilder, counterExample);
+        } else if (line.contains("ARG_JSON_INPUT")) {
+          insertArgJson(writer);
+        } else if (line.contains("SOURCE_FILES")) {
+          insertSourceFileNames(writer);
+        } else {
+          writer.write(line + "\n");
+        }
+      }
     }
   }
 
-  private void insertStatistics(Writer report, String statistics) throws IOException {
-    int iterator = 0;
+  private void insertCfaJson(
+      Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample) {
+    try {
+      writer.write("var cfaJson = {\n");
+      insertFunctionNames(writer, cfa);
+      writer.write(",\n");
+      insertFCallEdges(writer, dotBuilder);
+      writer.write(",\n");
+      insertCombinedNodesData(writer, dotBuilder);
+      writer.write(",\n");
+      insertInversedCombinedNodesData(writer, dotBuilder);
+      writer.write(",\n");
+      insertCombinedNodesLabelsData(writer, dotBuilder);
+      writer.write(",\n");
+      insertMergedNodesListData(writer, dotBuilder);
+      writer.write(",\n");
+      if (counterExample != null) {
+        insertErrorPathData(counterExample, writer);
+      }
+      dotBuilder.writeCfaInfo(writer);
+      writer.write("\n}\n");
+    } catch (IOException e) {
+      logger.logUserException(WARNING, e, "Could not create report: Inserting CFA Json failed.");
+    }
+  }
+
+  private void insertArgJson(Writer writer) {
+    try {
+      writer.write("var argJson = {\n");
+      writer.write("\"nodes\":");
+      JSON.writeJSONString(argNodes.values(), writer);
+      writer.write(",\n\"edges\":");
+      JSON.writeJSONString(argEdges.values(), writer);
+      writer.write("\n}\n");
+    } catch (IOException e) {
+      logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
+    }
+  }
+
+  private void insertCss(Writer writer) throws IOException {
+    try (BufferedReader reader =
+        Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
+            .openBufferedStream(); ) {
+      writer.write("<style>" + "\n");
+      String line;
+      while (null != (line = reader.readLine())) {
+        writer.write(line + "\n");
+      }
+      writer.write("</style>");
+    }
+  }
+
+  private void insertMetaTags(Writer writer) {
+    try {
+      writer.write(
+          "<meta name='generator'"
+              + " content='CPAchecker "
+              + CPAchecker.getCPAcheckerVersion()
+              + "'>\n");
+    } catch (IOException e) {
+      logger.logUserException(WARNING, e, "Could not create report: Inserting metatags failed.");
+    }
+  }
+
+  private void insertDateAndVersion(Writer writer) {
+    try {
+      String generated =
+          String.format(
+              "Generated on %s by CPAchecker %s",
+              new SimpleDateFormat(DATE_TIME_FORMAT).format(new Date()),
+              CPAchecker.getCPAcheckerVersion());
+      writer.write(generated);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Inserting date and version failed.");
+    }
+  }
+
+  private void insertReportName(@Nullable CounterexampleInfo counterExample, Writer writer) {
+    try {
+      if (counterExample == null) {
+        writer.write(sourceFiles.get(0));
+      } else {
+        String title =
+            String.format(
+                "%s (Counterexample %s)", sourceFiles.get(0), counterExample.getUniqueId());
+        writer.write(title);
+      }
+    } catch (IOException e) {
+      logger.logUserException(WARNING, e, "Could not create report: Inserting report name failed.");
+    }
+  }
+
+  private void insertStatistics(Writer writer, String statistics) throws IOException {
+    int counter = 0;
     for (String line : LINE_SPLITTER.split(statistics)) {
-      line = "<pre id=\"statistics-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
-      report.write(line);
-      iterator++;
+      line = "<pre id=\"statistics-" + counter + "\">" + htmlEscape(line) + "</pre>\n";
+      writer.write(line);
+      counter++;
     }
   }
 
@@ -250,25 +342,22 @@ public class ReportGenerator {
     }
   }
 
-  private void insertSource(Path sourcePath, Writer report, int sourceFileNumber)
+  private void insertSource(Path sourcePath, Writer writer, int sourceFileNumber)
       throws IOException {
-
     if (isReadable(sourcePath)) {
       int lineNumber = 1;
       try (BufferedReader source =
           new BufferedReader(
               new InputStreamReader(
                   new FileInputStream(sourcePath.toFile()), Charset.defaultCharset()))) {
-
-        report.write(
+        writer.write(
             "<div class=\"sourceContent content\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
                 + ")\">\n<table>\n");
-
         String line;
         while (null != (line = source.readLine())) {
           line = "<td><pre class=\"prettyprint\">" + htmlEscape(line) + "  </pre></td>";
-          report.write(
+          writer.write(
               "<tr id=\"source-"
                   + lineNumber
                   + "\"><td><pre>"
@@ -278,96 +367,120 @@ public class ReportGenerator {
                   + "</tr>\n");
           lineNumber++;
         }
-
-        report.write("</table></div>\n");
-
+        writer.write("</table></div>\n");
       } catch (IOException e) {
         logger.logUserException(
             WARNING, e, "Could not create report: Inserting source code failed.");
       }
-
     } else {
-      report.write("<p>No Source-File available</p>");
+      writer.write("<p>No Source-File available</p>");
     }
   }
 
-
-  private void insertConfiguration(Writer report) throws IOException {
-
+  private void insertConfiguration(Writer writer) throws IOException {
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
-
     int iterator = 0;
     for (String line : lines) {
       line = "<pre id=\"config-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
-      report.write(line);
+      writer.write(line);
       iterator++;
     }
   }
 
-  private void insertLog(Writer bufferedWriter) throws IOException {
-    if (logFile != null && Files.isReadable(logFile)) {
-      try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
-
-        int iterator = 0;
+  private void insertLog(Writer writer) {
+    try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
+      if (logFile != null && Files.isReadable(logFile)) {
+        int counter = 0;
         String line;
         while (null != (line = log.readLine())) {
-          line = "<pre id=\"log-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
-          bufferedWriter.write(line);
-          iterator++;
+          line = "<pre id=\"log-" + counter + "\">" + htmlEscape(line) + "</pre>\n";
+          writer.write(line);
+          counter++;
         }
-
-      } catch (IOException e) {
-        logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
-      }
-
     } else {
-      bufferedWriter.write("<p>No Log-File available</p>");
+        writer.write("<p>No Log-File available</p>");
+      }
+    } catch (IOException e) {
+      logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
     }
   }
 
-  private void insertFCallEdges(Writer report, DOTBuilder2 dotBuilder) throws IOException {
-    report.write("var fCallEdges = ");
-    dotBuilder.writeFunctionCallEdges(report);
-    report.write(";\n");
-  }
-
-  private void insertCombinedNodesData(Writer report, DOTBuilder2 dotBuilder) throws IOException {
-    report.write("var combinedNodes = ");
-    dotBuilder.writeCombinedNodes(report);
-    report.write(";\n");
-  }
-
-  private void insertCfaInfoData(Writer report, DOTBuilder2 dotBuilder) throws IOException {
-    report.write("var cfaInfo = ");
-    dotBuilder.writeCfaInfo(report);
-    report.write(";\n");
-  }
-
-  private void insertErrorPathData(CounterexampleInfo counterExample, Writer report)
-      throws IOException {
-    report.write("var errorPathData = ");
-    counterExample.toJSON(report);
-    report.write(";\n");
-  }
-
-  private void insertFunctionNames(Writer report, CFA cfa) {
+  private void insertFCallEdges(Writer writer, DOTBuilder2 dotBuilder) {
     try {
-      report.write("var functions = ");
-      JSON.writeJSONString(cfa.getAllFunctionNames(), report);
-      report.write(";\n");
+      writer.write("\"functionCallEdges\":");
+      dotBuilder.writeFunctionCallEdges(writer);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Insertion of function call edges failed.");
+    }
+  }
 
+  private void insertCombinedNodesData(Writer writer, DOTBuilder2 dotBuilder) {
+    try {
+      writer.write("\"combinedNodes\":");
+      dotBuilder.writeCombinedNodes(writer);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Insertion of combined nodes failed.");
+    }
+  }
+
+  private void insertInversedCombinedNodesData(Writer writer, DOTBuilder2 dotBuilder) {
+    try {
+      writer.write("\"inversedCombinedNodes\":");
+      dotBuilder.writeInversedComboNodes(writer);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Insertion of inversed combined nodes failed.");
+    }
+  }
+
+  private void insertCombinedNodesLabelsData(Writer writer, DOTBuilder2 dotBuilder) {
+    try {
+      writer.write("\"combinedNodesLabels\":");
+      dotBuilder.writeCombinedNodesLabels(writer);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Insertion of combined nodes labels failed.");
+    }
+  }
+
+  private void insertMergedNodesListData(Writer writer, DOTBuilder2 dotBuilder) {
+    try {
+      writer.write("\"mergedNodes\":");
+      dotBuilder.writeMergedNodesList(writer);
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Insertion of merged nodes failed.");
+    }
+  }
+
+  private void insertErrorPathData(CounterexampleInfo counterExample, Writer writer) {
+    try {
+      writer.write("\"errorPath\":");
+      counterExample.toJSON(writer);
+      writer.write(",\n");
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create report: Insertion of counter example failed.");
+    }
+  }
+
+  private void insertFunctionNames(Writer writer, CFA cfa) {
+    try {
+      writer.write("\"functionNames\":");
+      JSON.writeJSONString(cfa.getAllFunctionNames(), writer);
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of function names failed.");
     }
   }
 
-  private void insertSourceFileNames(Writer report) {
-    try{
-      report.write("var sourceFiles = ");
-      JSON.writeJSONString(sourceFiles, report);
-      report.write(";\n");
-
+  private void insertSourceFileNames(Writer writer) {
+    try {
+      writer.write("var sourceFiles = ");
+      JSON.writeJSONString(sourceFiles, writer);
+      writer.write(";\n");
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of source file names failed.");
@@ -394,5 +507,157 @@ public class ReportGenerator {
 
     m.appendTail(sb);
     return sb.toString();
+  }
+
+  private void buildArgGraphData(UnmodifiableReachedSet reached) {
+    reached
+        .asCollection()
+        .forEach(
+            entry -> {
+              int parentStateId = ((ARGState) entry).getStateId();
+              for (CFANode node : AbstractStates.extractLocations(entry)) {
+                if (!argNodes.containsKey(parentStateId)) {
+                  if (((ARGState) entry).toDOTLabel().length() > 0) {
+                    createArgNode(parentStateId, node, (ARGState) entry);
+                  } else {
+                    createArgNode(parentStateId, node, (ARGState) entry);
+                  }
+                }
+                if (!((ARGState) entry).getChildren().isEmpty()) {
+                  for (ARGState child : ((ARGState) entry).getChildren()) {
+                    int childStateId = child.getStateId();
+                    // Covered state is not contained in the reached set
+                    if (child.isCovered()) {
+                      createCoveredArgNode(
+                          childStateId,
+                          child,
+                          child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2));
+                      createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
+                    }
+                    createArgEdge(
+                        parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
+                  }
+                }
+              }
+            });
+  }
+
+  private void createArgNode(int parentStateId, CFANode node, ARGState argState) {
+    String dotLabel = "";
+    if (argState.toDOTLabel().length() > 0) {
+      dotLabel = argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2);
+    } else {
+      dotLabel = argState.toDOTLabel();
+    }
+    Map<String, Object> argNode = new HashMap<>();
+    argNode.put("index", parentStateId);
+    argNode.put("func", node.getFunctionName());
+    argNode.put(
+        "label",
+        parentStateId
+            + " @ "
+            + node.toString()
+            + "\n"
+            + node.getFunctionName()
+            + nodeTypeInNodeLabel(node)
+            + dotLabel);
+    argNode.put("type", determineNodeType(argState));
+    argNodes.put(parentStateId, argNode);
+  }
+
+  private String determineNodeType(ARGState argState) {
+    if (argState.isTarget()) {
+      return "target";
+    }
+    if (!argState.wasExpanded()) {
+      return "not-expanded";
+    }
+    if (argState.shouldBeHighlighted()) {
+      return "highlighted";
+    }
+    return "";
+  }
+
+  private void createCoveredArgNode(int childStateId, ARGState child, String dotLabel) {
+    Map<String, Object> nodeData = new HashMap<>();
+    for (CFANode coveredNode : AbstractStates.extractLocations(child)) {
+      if (!argNodes.containsKey(childStateId)) {
+        nodeData.put("index", childStateId);
+        nodeData.put("func", coveredNode.getFunctionName());
+        nodeData.put(
+            "label",
+            childStateId
+                + " @ "
+                + coveredNode.toString()
+                + "\n"
+                + coveredNode.getFunctionName()
+                + nodeTypeInNodeLabel(coveredNode)
+                + dotLabel);
+        nodeData.put("type", "covered");
+        argNodes.put(childStateId, nodeData);
+      }
+    }
+  }
+
+  private void createCoveredArgEdge(int parentStateId, int coveringStateId) {
+    Map<String, Object> coveredEdge = new HashMap<>();
+    coveredEdge.put("source", parentStateId);
+    coveredEdge.put("target", coveringStateId);
+    coveredEdge.put("label", "covered by");
+    coveredEdge.put("type", "covered");
+    argEdges.put("" + coveringStateId + "->" + parentStateId, coveredEdge);
+  }
+
+  private void createArgEdge(int parentStateId, int childStateId, List<CFAEdge> edges) {
+    Map<String, Object> argEdge = new HashMap<>();
+    argEdge.put("source", parentStateId);
+    argEdge.put("target", childStateId);
+    String edgeLabel = "";
+    if (edges.isEmpty()) {
+      edgeLabel += "dummy edge";
+    } else {
+      if (edges.size() > 1) {
+        edgeLabel +=
+            "Lines "
+                + edges.get(0).getFileLocation().getStartingLineInOrigin()
+                + " - "
+                + edges.get(edges.size() - 1).getFileLocation().getStartingLineInOrigin()
+                + ":";
+        argEdge.put("lines", edgeLabel.substring(6));
+      } else {
+        edgeLabel += "Line " + edges.get(0).getFileLocation().getStartingLineInOrigin() + "";
+        argEdge.put("line", edgeLabel.substring(5));
+      }
+      for (CFAEdge edge : edges) {
+        if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+          edgeLabel +=
+              "\n" + getEdgeText(edge).split(":")[0] + "\n" + getEdgeText(edge).split(":")[1];
+        } else {
+          edgeLabel += "\n" + getEdgeText(edge);
+        }
+      }
+      argEdge.put("file", edges.get(0).getFileLocation().getFileName());
+    }
+    argEdge.put("label", edgeLabel);
+    argEdge.put("type", edges.get(0).getEdgeType().toString());
+    argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
+  }
+
+  // Add the node type (if it is entry or exit) to the node label
+  private String nodeTypeInNodeLabel(CFANode node) {
+    String result = node.describeFileLocation().split(" ")[0];
+    if (result.equalsIgnoreCase("entry") || result.equalsIgnoreCase("exit")) {
+      return " " + result + "\n";
+    }
+    return "\n";
+  }
+
+  // Similar to the getEdgeText method in DOTBuilder2
+  private static String getEdgeText(CFAEdge edge) {
+    return edge.getDescription()
+        .replaceAll("\\\"", "\\\\\\\"")
+        .replaceAll("\n", " ")
+        .replaceAll("\\s+", " ")
+        .replaceAll(" ;", ";");
   }
 }

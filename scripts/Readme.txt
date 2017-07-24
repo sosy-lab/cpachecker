@@ -3,8 +3,6 @@ Supplied Scripts:
 - cpa.bat: to start CPAchecker on Windows
 - cpa.sh: to start CPAchecker on Linux and similar platforms
           (see README.txt)
-- report-generator.py: for building an interactive HTML report of a CPAchecker run
-                       (see doc/BuildReport.txt)
 
 Benchmarking Scripts:
 (extension of BenchExec, c.f. https://github.com/dbeyer/benchexec)

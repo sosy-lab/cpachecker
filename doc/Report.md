@@ -1,35 +1,5 @@
-CPAchecker Report Generator
----------------------------
-
-The report generator can be used to compile an interactive analysis report of a CPAchecker run.
-The report is in HTML format and works best in Firefox,
-mainly because of problems accessing local resources via Javascript in other browsers.
-If the file is hosted on a server, Google Chrome/Chromium should also work with some quirks
-(the focused SVG element does not scroll into view).
-
-
-Generate a Report
----------------------
-
-1. Make sure `dot` from the [graphviz](http://www.graphviz.org) package is on your `$PATH`.
-   For Ubuntu: `sudo apt-get install graphviz`
-
-2. It's best to clear the output directory of CPAchecker,
-   so that old files won't get mixed up with the new files.
-
-3. Run CPAchecker as usual (make sure to not use `-noout`):
-
-4. After CPAchecker has completed, generate the report with
-   `scripts/report-generator.py`.
-   If you use non-default output file paths and names for CPAchecker,
-   specify the path to the config with `--config`.
-   If dot takes too much time for generating the ARG,
-   press Ctrl+C to cancel this step
-   (you will not be able to see the ARG in the browser in this case).
-
-5. The report should automatically open in your default browser,
-   otherwise open the file mentioned in the output of the script.
-
+CPAchecker Analysis Report
+--------------------------
 
 Quick Reference to use the report
 ---------------------------------

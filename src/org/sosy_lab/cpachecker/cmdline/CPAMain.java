@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static java.util.logging.Level.WARNING;
 import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
@@ -42,7 +41,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringWriter;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -601,33 +599,8 @@ public class CPAMain {
 
     // export report
     if (mResult.getResult() != Result.NOT_YET_STARTED) {
-       boolean generated =
-          reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
-
-      if (generated) {
-        try {
-          Path pathToReportGenerator = getPathToReportGenerator();
-          if (pathToReportGenerator != null) {
-            stream.println("Run " + pathToReportGenerator + " to show graphical report.");
-          }
-        } catch (SecurityException | URISyntaxException e) {
-          logManager.logUserException(WARNING, e, "Could not find script for generating report.");
-        }
-      }
+      reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
     }
-  }
-
-  private static @Nullable Path getPathToReportGenerator() throws URISyntaxException {
-    Path curDir = Paths.get("").toAbsolutePath();
-    Path codeDir =
-        Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-
-    Path reportGenerator =
-        curDir.relativize(codeDir.resolveSibling("scripts").resolve("report-generator.py"));
-    if (Files.isExecutable(reportGenerator)) {
-      return reportGenerator;
-    }
-    return null;
   }
 
   @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",

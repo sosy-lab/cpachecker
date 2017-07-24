@@ -27,14 +27,26 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder.ListMultimapBuilder;
 import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,17 +59,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * Generates one DOT file per function for the report.
@@ -100,7 +101,10 @@ public final class DOTBuilder2 {
   }
 
   public void writeCfaInfo(Writer out) throws IOException {
-    JSON.writeJSONString(jsoner.getJSON(), out);
+    out.write("\"nodes\":");
+    JSON.writeJSONString(jsoner.getNodes(), out);
+    out.write(",\n\"edges\":");
+    JSON.writeJSONString(jsoner.getEdges(), out);
   }
 
   public void writeFunctionCallEdges(Writer out) throws IOException {
@@ -108,7 +112,19 @@ public final class DOTBuilder2 {
   }
 
   public  void writeCombinedNodes(Writer out) throws IOException {
-    JSON.writeJSONString(dotter.node2combo, out);
+    JSON.writeJSONString(dotter.comboNodes, out);
+  }
+
+  public void writeCombinedNodesLabels(Writer out) throws IOException {
+    JSON.writeJSONString(dotter.comboNodesLabels, out);
+  }
+
+  public void writeMergedNodesList(Writer out) throws IOException {
+    JSON.writeJSONString(dotter.mergedNodes, out);
+  }
+
+  public void writeInversedComboNodes(Writer out) throws IOException {
+    JSON.writeJSONString(dotter.inverseComboNodes, out);
   }
 
   private static String getEdgeText(CFAEdge edge) {
@@ -127,7 +143,10 @@ public final class DOTBuilder2 {
    */
   private static class DOTViewBuilder extends DefaultCFAVisitor {
     // global state for all functions
-    private final Map<Integer, Integer> node2combo = new HashMap<>();
+    private final Map<Integer, List<Integer>> comboNodes = new HashMap<>();
+    private Map<List<Integer>, Integer> inverseComboNodes = new HashMap<>();
+    private final Map<Integer, String> comboNodesLabels = new HashMap<>();
+    private final List<Integer> mergedNodes = new ArrayList<>();
     private final Map<Integer, List<Integer>> virtFuncCallEdges = new HashMap<>();
     private int virtFuncCallNodeIdCounter = 100000;
 
@@ -194,14 +213,40 @@ public final class DOTBuilder2 {
           nodes.put(funcname, combo.get(0).getSuccessor());
 
         } else {
+          Map<Integer, Integer> node2combo = new HashMap<>();
           for (CFAEdge edge : combo) {
             CFAEdge first = combo.get(0);
             int firstNo = first.getPredecessor().getNodeNumber();
             node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
+            node2combo.forEach(
+                (k, v) -> {
+                  if (comboNodes.containsKey(v)) {
+                    if (!comboNodes.get(v).contains(k)) {
+                      comboNodes.get(v).add(k);
+                      comboNodesLabels.put(
+                          v, comboNodesLabels.get(v) + "\n" + k + " " + edge.getDescription());
+                    }
+                  } else {
+                    List<Integer> nodesCombined = new ArrayList<>();
+                    nodesCombined.add(k);
+                    comboNodes.put(v, nodesCombined);
+                    comboNodesLabels.put(v, k + " " + edge.getDescription());
+                  }
+                });
           }
+          comboNodes.forEach(
+              (k, v) -> {
+                if (v.contains(k)) {
+                  v.remove(k);
+                }
+                if (!mergedNodes.containsAll(v)) {
+                  mergedNodes.addAll(v);
+                }
+              });
         }
-      }
 
+      }
+      buildInverseComboNodes();
       for (CFAEdge edge : edges.values()) {
         if (edge.getEdgeType() == CFAEdgeType.CallToReturnEdge) {
            int from = edge.getPredecessor().getNodeNumber();
@@ -209,6 +254,14 @@ public final class DOTBuilder2 {
            virtFuncCallEdges.put(from, Lists.newArrayList(++virtFuncCallNodeIdCounter, to));
         }
       }
+    }
+
+    private void buildInverseComboNodes() {
+      inverseComboNodes =
+          comboNodes
+              .entrySet()
+              .stream()
+              .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     }
 
     void writeFunctionFile(String funcname, Path outdir) throws IOException {
@@ -323,14 +376,18 @@ public final class DOTBuilder2 {
    * output information about CFA nodes and edges as JSON
    */
   private static class CFAJSONBuilder extends DefaultCFAVisitor {
-    private final Map<Object, Object> nodes = new HashMap<>();
-    private final Map<Object, Object> edges = new HashMap<>();
+    private final Map<Integer, Object> nodes = new HashMap<>();
+    private final Map<String, Object> edges = new HashMap<>();
 
     @Override
     public TraversalProcess visitNode(CFANode node) {
       Map<String, Object> jnode = new HashMap<>();
-      jnode.put("no", node.getNodeNumber());
+      jnode.put("index", node.getNodeNumber());
+      jnode.put("rpid", node.getReversePostorderId());
       jnode.put("func", node.getFunctionName());
+      jnode.put("type", determineNodeType(node.describeFileLocation()));
+      jnode.put("loop", node.isLoopStart());
+
       nodes.put(node.getNodeNumber(), jnode);
 
       return TraversalProcess.CONTINUE;
@@ -353,11 +410,18 @@ public final class DOTBuilder2 {
       return TraversalProcess.CONTINUE;
     }
 
-    Map<String, Object> getJSON() {
-      Map<String, Object> obj = new HashMap<>();
-      obj.put("nodes", nodes);
-      obj.put("edges", edges);
-      return obj;
+    private String determineNodeType(String nodeFileLocation) {
+      String[] result = nodeFileLocation.split(" ");
+      return result[0];
     }
+
+    Collection<Object> getNodes() {
+      return nodes.values();
+    }
+
+    Collection<Object> getEdges() {
+      return edges.values();
+    }
+
   }
 }
