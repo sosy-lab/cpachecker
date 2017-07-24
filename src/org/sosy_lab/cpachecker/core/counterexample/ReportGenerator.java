@@ -126,16 +126,14 @@ public class ReportGenerator {
     argEdges = new HashMap<>();
   }
 
-  public boolean generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
+  public void generate(CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
     checkNotNull(pCfa);
     checkNotNull(pReached);
     checkNotNull(pStatistics);
 
-    if (!generateReport) {
-      return false;
+    if (!generateReport || (reportFile == null && counterExampleFiles == null)) {
+      return;
     }
-
-    buildArgGraphData(pReached);
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
@@ -144,17 +142,19 @@ public class ReportGenerator {
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 
+    if (counterExamples.isEmpty() ? (reportFile == null) : (counterExampleFiles == null)) {
+      return;
+    }
+
+    buildArgGraphData(pReached);
+    DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
+
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
-        DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
         fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
-        return true;
-      } else {
-        return false;
       }
 
-    } else if (counterExampleFiles != null) {
-      DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
+    } else {
       for (CounterexampleInfo counterExample : counterExamples) {
         fillOutTemplate(
             counterExample,
@@ -163,9 +163,6 @@ public class ReportGenerator {
             dotBuilder,
             pStatistics);
       }
-      return true;
-    } else {
-      return false;
     }
   }
 
