@@ -1404,18 +1404,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /**
-   * Computes the join of this abstract State and the reached abstract State.
-   *
-   * @param reachedState the abstract state this state will be joined to.
-   * @return the join of the two states.
-   */
-  @Override
-  public SMGState join(SMGState reachedState) {
-    // Not necessary if merge_SEP or SMGMerge and stop_SEP is used.
-    throw new UnsupportedOperationException();
-  }
-
-  /**
    * Computes the join of this abstract State and the reached abstract State,
    * or returns the reached state, if no join is defined.
    *
@@ -1423,7 +1411,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @return the join of the two states or reached state.
    * @throws SMGInconsistentException inconsistent smgs while
    */
-  public SMGState joinSMG(SMGState reachedState) throws SMGInconsistentException {
+  @Override
+  public SMGState join(SMGState reachedState) throws SMGInconsistentException {
     // Not necessary if merge_SEP and stop_SEP is used.
 
     SMGJoin join = new SMGJoin(this.heap, reachedState.heap, this, reachedState);

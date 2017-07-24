@@ -2078,6 +2078,10 @@ cpa.smg.memoryArrayAllocationFunctionsNumParameter = 0
 # Determines if memory errors are target states
 cpa.smg.memoryErrors = true
 
+# which merge operator to use for the SMGCPA
+cpa.smg.merge = "SEP"
+  allowed values: [SEP, JOIN]
+
 # export interpolant smgs for every path interpolation to this path template
 cpa.smg.refinement.exportInterpolantSMGs = "smg/interpolation-%d/%s"
 

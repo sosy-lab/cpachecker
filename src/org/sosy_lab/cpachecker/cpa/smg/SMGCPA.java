@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
+import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
@@ -67,6 +68,10 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "NEVER", "END_BLOCK"},
       description="which stop operator to use for the SMGCPA")
   private String stopType = "SEP";
+
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
+      description="which merge operator to use for the SMGCPA")
+  private String mergeType = "SEP";
 
   private final TransferRelation transferRelation;
 
@@ -142,7 +147,14 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return MergeSepOperator.getInstance();
+    switch (mergeType) {
+      case "SEP":
+        return MergeSepOperator.getInstance();
+      case "JOIN":
+        return new MergeJoinOperator(getAbstractDomain());
+      default:
+        throw new AssertionError("unknown mergetype for SMGCPA");
+    }
   }
 
   @Override
@@ -152,8 +164,10 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
         return new SMGStopOperator(getAbstractDomain());
       case "NEVER":
         return new StopNeverOperator();
-      default:
+      case "SEP":
         return new StopSepOperator(getAbstractDomain());
+      default:
+        throw new AssertionError("unknown stoptype for SMGCPA");
     }
   }
 
