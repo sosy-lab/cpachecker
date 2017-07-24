@@ -257,12 +257,15 @@ public class ReportGenerator {
 
   private void insertArgJson(Writer writer) {
     try {
-      writer.write("var argJson = {\n");
-      writer.write("\"nodes\":");
-      JSON.writeJSONString(argNodes.values(), writer);
-      writer.write(",\n\"edges\":");
-      JSON.writeJSONString(argEdges.values(), writer);
-      writer.write("\n}\n");
+      writer.write("var argJson = {");
+      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+        writer.write("\n\"nodes\":");
+        JSON.writeJSONString(argNodes.values(), writer);
+        writer.write(",\n\"edges\":");
+        JSON.writeJSONString(argEdges.values(), writer);
+        writer.write("\n");
+      }
+      writer.write("}\n");
     } catch (IOException e) {
       logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
     }
@@ -506,38 +509,41 @@ public class ReportGenerator {
     return sb.toString();
   }
 
+  // Build ARG data only if the reached states are ARGStates
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
-    reached
-        .asCollection()
-        .forEach(
-            entry -> {
-              int parentStateId = ((ARGState) entry).getStateId();
-              for (CFANode node : AbstractStates.extractLocations(entry)) {
-                if (!argNodes.containsKey(parentStateId)) {
-                  if (((ARGState) entry).toDOTLabel().length() > 0) {
-                    createArgNode(parentStateId, node, (ARGState) entry);
-                  } else {
-                    createArgNode(parentStateId, node, (ARGState) entry);
-                  }
-                }
-                if (!((ARGState) entry).getChildren().isEmpty()) {
-                  for (ARGState child : ((ARGState) entry).getChildren()) {
-                    int childStateId = child.getStateId();
-                    // Covered state is not contained in the reached set
-                    if (child.isCovered()) {
-                      String label = child.toDOTLabel().length() > 2 ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2) : "";
-                      createCoveredArgNode(
-                          childStateId,
-                          child,
-                          label);
-                      createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
-                    }
-                    createArgEdge(
-                        parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
-                  }
+    if (reached.getFirstState() instanceof ARGState) {
+      reached
+      .asCollection()
+      .forEach(
+          entry -> {
+            int parentStateId = ((ARGState) entry).getStateId();
+            for (CFANode node : AbstractStates.extractLocations(entry)) {
+              if (!argNodes.containsKey(parentStateId)) {
+                if (((ARGState) entry).toDOTLabel().length() > 0) {
+                  createArgNode(parentStateId, node, (ARGState) entry);
+                } else {
+                  createArgNode(parentStateId, node, (ARGState) entry);
                 }
               }
-            });
+              if (!((ARGState) entry).getChildren().isEmpty()) {
+                for (ARGState child : ((ARGState) entry).getChildren()) {
+                  int childStateId = child.getStateId();
+                  // Covered state is not contained in the reached set
+                  if (child.isCovered()) {
+                    String label = child.toDOTLabel().length() > 2 ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2) : "";
+                    createCoveredArgNode(
+                        childStateId,
+                        child,
+                        label);
+                    createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
+                  }
+                  createArgEdge(
+                      parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
+                }
+              }
+            }
+          });
+    }
   }
 
   private void createArgNode(int parentStateId, CFANode node, ARGState argState) {
