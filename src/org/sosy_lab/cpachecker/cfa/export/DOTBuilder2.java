@@ -212,7 +212,7 @@ public final class DOTBuilder2 {
           nodes.put(funcname, combo.get(0).getPredecessor());
           nodes.put(funcname, combo.get(0).getSuccessor());
 
-        } else {
+        } else if (combo.size() > 1){
           Map<Integer, Integer> node2combo = new HashMap<>();
           for (CFAEdge edge : combo) {
             CFAEdge first = combo.get(0);
@@ -257,11 +257,13 @@ public final class DOTBuilder2 {
     }
 
     private void buildInverseComboNodes() {
-      inverseComboNodes =
-          comboNodes
-              .entrySet()
-              .stream()
-              .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+      if (!comboNodes.isEmpty()) {
+        inverseComboNodes =
+            comboNodes
+                .entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
+      }
     }
 
     void writeFunctionFile(String funcname, Path outdir) throws IOException {

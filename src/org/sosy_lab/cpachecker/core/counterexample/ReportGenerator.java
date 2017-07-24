@@ -525,10 +525,11 @@ public class ReportGenerator {
                     int childStateId = child.getStateId();
                     // Covered state is not contained in the reached set
                     if (child.isCovered()) {
+                      String label = child.toDOTLabel().length() > 2 ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2) : "";
                       createCoveredArgNode(
                           childStateId,
                           child,
-                          child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2));
+                          label);
                       createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
                     }
                     createArgEdge(
@@ -540,12 +541,7 @@ public class ReportGenerator {
   }
 
   private void createArgNode(int parentStateId, CFANode node, ARGState argState) {
-    String dotLabel = "";
-    if (argState.toDOTLabel().length() > 0) {
-      dotLabel = argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2);
-    } else {
-      dotLabel = argState.toDOTLabel();
-    }
+    String dotLabel = argState.toDOTLabel().length() > 2 ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2) : "";
     Map<String, Object> argNode = new HashMap<>();
     argNode.put("index", parentStateId);
     argNode.put("func", node.getFunctionName());
@@ -609,33 +605,37 @@ public class ReportGenerator {
     Map<String, Object> argEdge = new HashMap<>();
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
-    String edgeLabel = "";
+    StringBuilder edgeLabel = new StringBuilder();
     if (edges.isEmpty()) {
-      edgeLabel += "dummy edge";
+      edgeLabel.append("dummy edge");
     } else {
       if (edges.size() > 1) {
-        edgeLabel +=
-            "Lines "
-                + edges.get(0).getFileLocation().getStartingLineInOrigin()
-                + " - "
-                + edges.get(edges.size() - 1).getFileLocation().getStartingLineInOrigin()
-                + ":";
+        edgeLabel.append("Lines ");
+        edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(" - ");
+        edgeLabel.append(edges.get(edges.size() - 1).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(":");
         argEdge.put("lines", edgeLabel.substring(6));
       } else {
-        edgeLabel += "Line " + edges.get(0).getFileLocation().getStartingLineInOrigin() + "";
+        edgeLabel.append("Line ");
+        edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append("");
         argEdge.put("line", edgeLabel.substring(5));
       }
       for (CFAEdge edge : edges) {
         if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-          edgeLabel +=
-              "\n" + getEdgeText(edge).split(":")[0] + "\n" + getEdgeText(edge).split(":")[1];
+          edgeLabel.append("\n");
+          edgeLabel.append(getEdgeText(edge).split(":")[0]);
+          edgeLabel.append("\n");
+          edgeLabel.append(getEdgeText(edge).split(":")[1]);
         } else {
-          edgeLabel += "\n" + getEdgeText(edge);
+          edgeLabel.append("\n");
+          edgeLabel.append(getEdgeText(edge));
         }
       }
       argEdge.put("file", edges.get(0).getFileLocation().getFileName());
     }
-    argEdge.put("label", edgeLabel);
+    argEdge.put("label", edgeLabel.toString());
     argEdge.put("type", edges.get(0).getEdgeType().toString());
     argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
   }
