@@ -68,7 +68,8 @@ public class SMG {
   /**
    * An address of the special object representing null
    */
-  private final static int nullAddress = 0;
+  public final static int NULL_ADDRESS = 0;
+  private final static SMGEdgePointsTo NULL_POINTER = new SMGEdgePointsTo(NULL_ADDRESS, SMGNullObject.INSTANCE, 0);
 
   /**
    * Constructor.
@@ -79,8 +80,6 @@ public class SMG {
    *
    */
   public SMG(final MachineModel pMachineModel) {
-    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, SMGNullObject.INSTANCE, 0);
-
     objects = PersistentSet.of();
     values = PersistentSet.of();
     hv_edges = new SMGHasValueEdgeSet();
@@ -91,8 +90,8 @@ public class SMG {
     addObject(SMGNullObject.INSTANCE);
     object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
 
-    addValue(nullAddress);
-    addPointsToEdge(nullPointer);
+    addValue(NULL_ADDRESS);
+    addPointsToEdge(NULL_POINTER);
 
     machine_model = pMachineModel;
   }
@@ -391,22 +390,6 @@ public class SMG {
   /* ********************************************* */
 
   /**
-   * Getter for obtaining designated NULL object. Constant.
-   * @return An object guaranteed to be the only NULL object in the SMG
-   */
-  final public SMGObject getNullObject() {
-    return SMGNullObject.INSTANCE;
-  }
-
-  /**
-   * Getter for obtaining designated zero value. Constant.
-   * @return A value guaranteed to be the only zero value in the SMG
-   */
-  final public int getNullValue() {
-    return SMG.nullAddress;
-  }
-
-  /**
    * Getter for obtaining string representation of values set. Constant.
    * @return String representation of values set
    */
@@ -558,7 +541,7 @@ public class SMG {
    */
   public TreeMap<Integer, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
     Set<SMGEdgeHasValue> edges = hv_edges.getEdgesForObject(pObj);
-    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterHavingValue(getNullValue());
+    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterHavingValue(SMG.NULL_ADDRESS);
     edges = objectFilter.filterSet(edges);
 
     TreeMultimap<Integer, Integer> offsetToSize = TreeMultimap.create();
@@ -643,7 +626,7 @@ public class SMG {
       return;
     }
 
-    if (pV2 == nullAddress) {
+    if (pV2 == NULL_ADDRESS) {
       int tmp = pV1;
       pV1 = pV2;
       pV2 = tmp;
@@ -691,9 +674,8 @@ public class SMG {
     pt_edges = new SMGPointsToMap();
     neq = new NeqRelation();
     pathPredicate.clear();
-    addValue(nullAddress);
-    SMGEdgePointsTo nullPointer = new SMGEdgePointsTo(nullAddress, SMGNullObject.INSTANCE, 0);
-    addPointsToEdge(nullPointer);
+    addValue(NULL_ADDRESS);
+    addPointsToEdge(NULL_POINTER);
   }
 
   public void clearObjects() {

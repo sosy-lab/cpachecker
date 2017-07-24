@@ -37,6 +37,7 @@ import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
@@ -185,14 +186,14 @@ public final class SMGPlotter {
     addGlobalObjectSubgraph(smg, sb);
 
     for (int value : smg.getValues()) {
-      if (value != smg.getNullValue()) {
+      if (value != SMG.NULL_ADDRESS) {
         sb.append(newLineWithOffset(smgValueAsDot(value, explicitValues)));
       }
     }
 
     Set<Integer> processed = new HashSet<>();
     for (Integer value : smg.getValues()) {
-      if (value != smg.getNullValue()) {
+      if (value != SMG.NULL_ADDRESS) {
         for (Integer neqValue : smg.getNeqsForValue(value)) {
           if (! processed.contains(neqValue)) {
             sb.append(newLineWithOffset(neqRelationAsDot(value, neqValue)));
@@ -207,7 +208,7 @@ public final class SMGPlotter {
     }
 
     for (SMGEdgePointsTo edge : smg.getPTEdgesAsSet()) {
-      if (edge.getValue() != smg.getNullValue()) {
+      if (edge.getValue() != SMG.NULL_ADDRESS) {
         sb.append(newLineWithOffset(smgPTEdgeAsDot(edge)));
       }
     }

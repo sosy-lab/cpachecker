@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGNodeMapping;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
@@ -55,8 +56,8 @@ public final class SMGIntersectStates {
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
     SMGNodeMapping mapping2 = new SMGNodeMapping();
-    mapping1.map(pSmgState1.getNullObject(), destSMG.getNullObject());
-    mapping2.map(pSmgState2.getNullObject(), destSMG.getNullObject());
+    mapping1.map(pSmgState1.getNullObject(), SMGNullObject.INSTANCE);
+    mapping2.map(pSmgState2.getNullObject(), SMGNullObject.INSTANCE);
 
     Map<String, SMGRegion> globals_in_smg1 = pHeap1.getGlobalObjects();
     Deque<CLangStackFrame> stack_in_smg1 = pHeap1.getStackFrames();

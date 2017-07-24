@@ -93,7 +93,7 @@ class SMGJoinFields {
 
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
-    filterForSMG1.filterNotHavingValue(pSMG1.getNullValue());
+    filterForSMG1.filterNotHavingValue(SMG.NULL_ADDRESS);
 
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
       filterForSMG2.filterAtOffset(edge.getOffset());
@@ -132,10 +132,10 @@ class SMGJoinFields {
     Set<SMGEdgeHasValue> retset = new HashSet<>();
 
     SMGEdgeHasValueFilter nonNullPtrInSmg2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
-    nonNullPtrInSmg2.filterNotHavingValue(pSMG2.getNullValue());
+    nonNullPtrInSmg2.filterNotHavingValue(SMG.NULL_ADDRESS);
 
     SMGEdgeHasValueFilter nonNullPtrInSmg1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
-    nonNullPtrInSmg1.filterNotHavingValue(pSMG1.getNullValue());
+    nonNullPtrInSmg1.filterNotHavingValue(SMG.NULL_ADDRESS);
 
     for (SMGEdgeHasValue edge : pSMG2.getHVEdges(nonNullPtrInSmg2)) {
       if (! pSMG2.isPointer(edge.getValue())) {
@@ -154,7 +154,7 @@ class SMGJoinFields {
 
         Entry<Integer, Integer> floorEntry = newNullEdgesOffsetToSize.floorEntry(min);
         if (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= max ) {
-          retset.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj1, pSMG1.getNullValue()));
+          retset.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj1, SMG.NULL_ADDRESS));
         }
       }
     }
@@ -165,7 +165,7 @@ class SMGJoinFields {
       Integer> next, SMGObject pObj1, SMG pSMG1) {
     int resultOffset = Integer.max(first.getKey(), next.getKey());
     int resultSize = Integer.min(first.getValue() + first.getKey(), next.getValue() + next.getKey()) - resultOffset;
-    return new SMGEdgeHasValue(resultSize, resultOffset, pObj1, pSMG1.getNullValue());
+    return new SMGEdgeHasValue(resultSize, resultOffset, pObj1, SMG.NULL_ADDRESS);
   }
 
   static public Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
@@ -195,7 +195,7 @@ class SMGJoinFields {
     retset.addAll(pSMG.getHVEdges());
 
     SMGEdgeHasValueFilter nullValueFilter = SMGEdgeHasValueFilter.objectFilter(pObj);
-    nullValueFilter.filterHavingValue(pSMG.getNullValue());
+    nullValueFilter.filterHavingValue(SMG.NULL_ADDRESS);
 
     retset.removeAll(pSMG.getHVEdges(nullValueFilter));
 
@@ -229,8 +229,8 @@ class SMGJoinFields {
   }
 
   public static void checkResultConsistency(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) throws SMGInconsistentException {
-    SMGEdgeHasValueFilter nullEdges1 = SMGEdgeHasValueFilter.objectFilter(pObj1).filterHavingValue(pSMG1.getNullValue());
-    SMGEdgeHasValueFilter nullEdges2 = SMGEdgeHasValueFilter.objectFilter(pObj2).filterHavingValue(pSMG2.getNullValue());
+    SMGEdgeHasValueFilter nullEdges1 = SMGEdgeHasValueFilter.objectFilter(pObj1).filterHavingValue(SMG.NULL_ADDRESS);
+    SMGEdgeHasValueFilter nullEdges2 = SMGEdgeHasValueFilter.objectFilter(pObj2).filterHavingValue(SMG.NULL_ADDRESS);
     TreeMap<Integer, Integer> nullEdgesInSMG1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
     TreeMap<Integer, Integer> nullEdgesInSMG2 = pSMG2.getNullEdgesMapOffsetToSizeForObject(pObj2);
 

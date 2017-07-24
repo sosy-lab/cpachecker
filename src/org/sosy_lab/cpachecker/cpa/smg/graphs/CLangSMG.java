@@ -122,7 +122,7 @@ public class CLangSMG extends SMG {
     super(pMachineModel);
     global_objects = PathCopyingPersistentTreeMap.of();
     heap_objects = PersistentSet.of();
-    heap_objects = heap_objects.addAndCopy(getNullObject());
+    heap_objects = heap_objects.addAndCopy(SMGNullObject.INSTANCE);
   }
 
   /**
@@ -341,7 +341,7 @@ public class CLangSMG extends SMG {
 
     Set<Integer> stray_values = new HashSet<>(Sets.difference(getValues(), seen_values));
     for (Integer stray_value : stray_values) {
-      if (stray_value != getNullValue()) {
+      if (stray_value != SMG.NULL_ADDRESS) {
         // Here, we can't just remove stray value, we also have to remove the points-to edge
         if (isPointer(stray_value)) {
           removePointsToEdge(stray_value);
@@ -896,7 +896,7 @@ public class CLangSMG extends SMG {
     }
 
     /*May not remove null object.*/
-    heap_objects = heap_objects.addAndCopy(getNullObject());
+    heap_objects = heap_objects.addAndCopy(SMGNullObject.INSTANCE);
   }
 
   public Map<SMGObject, SMGMemoryPath> getHeapObjectMemoryPaths() {

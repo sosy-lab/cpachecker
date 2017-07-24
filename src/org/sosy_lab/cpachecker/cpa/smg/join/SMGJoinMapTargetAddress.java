@@ -48,7 +48,7 @@ final class SMGJoinMapTargetAddress {
     smg = destSMG;
     mapping1 = pMapping1;
     mapping2 = pMapping2;
-    SMGObject target = destSMG.getNullObject();
+    SMGObject target = SMGNullObject.INSTANCE;
 
     // TODO: Ugly, refactor
     SMGEdgePointsTo pt = pSMG1.getPointer(pAddress1);

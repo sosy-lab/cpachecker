@@ -90,7 +90,7 @@ public class SMGTest {
   public void getNullBytesForObjectTest() {
     SMG smg = getNewSMG64();
     smg.addObject(obj1);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, smg.getNullValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, SMG.NULL_ADDRESS);
     smg.addHasValueEdge(hv);
 
     TreeMap<Integer, Integer> nullEdges = smg.getNullEdgesMapOffsetToSizeForObject(obj1);
@@ -114,8 +114,8 @@ public class SMGTest {
   public void SMGConstructorTest() {
     SMG smg = getNewSMG64();
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
-    SMGObject nullObject = smg.getNullObject();
-    int nullAddress = smg.getNullValue();
+    SMGObject nullObject = SMGNullObject.INSTANCE;
+    int nullAddress = SMG.NULL_ADDRESS;
 
 
     Assert.assertNotNull(nullObject);
@@ -168,7 +168,7 @@ public class SMGTest {
     SMG smg = getNewSMG64();
     SMGObject object = new SMGRegion(32, "object");
 
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, smg.getNullValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, SMG.NULL_ADDRESS);
 
     smg.addHasValueEdge(hv);
     assertThat(smg.getHVEdges()).contains(hv);
@@ -227,7 +227,7 @@ public class SMGTest {
 
   @Test
   public void validityTest() {
-    Assert.assertFalse(smg.isObjectValid(smg.getNullObject()));
+    Assert.assertFalse(smg.isObjectValid(SMGNullObject.INSTANCE));
     Assert.assertTrue(smg.isObjectValid(obj1));
     Assert.assertTrue(smg.isObjectValid(obj2));
 
@@ -238,16 +238,16 @@ public class SMGTest {
     smg.setValidity(obj1, false);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
-    Assert.assertFalse(smg.isObjectValid(smg.getNullObject()));
+    Assert.assertFalse(smg.isObjectValid(SMGNullObject.INSTANCE));
     Assert.assertFalse(smg.isObjectValid(obj1));
     Assert.assertTrue(smg.isObjectValid(obj2));
-    Assert.assertFalse(smg_copy.isObjectValid(smg_copy.getNullObject()));
+    Assert.assertFalse(smg_copy.isObjectValid(SMGNullObject.INSTANCE));
     Assert.assertTrue(smg_copy.isObjectValid(obj1));
     Assert.assertTrue(smg_copy.isObjectValid(obj2));
 
     smg.setValidity(obj2, false);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
-    Assert.assertFalse(smg_copy.isObjectValid(smg_copy.getNullObject()));
+    Assert.assertFalse(smg_copy.isObjectValid(SMGNullObject.INSTANCE));
     Assert.assertTrue(smg_copy.isObjectValid(obj1));
     Assert.assertTrue(smg_copy.isObjectValid(obj2));
   }
@@ -255,7 +255,7 @@ public class SMGTest {
   @Test
   public void consistencyViolationValidNullTest() {
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
-    smg.setValidity(smg.getNullObject(), true);
+    smg.setValidity(SMGNullObject.INSTANCE, true);
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 
@@ -395,14 +395,14 @@ public class SMGTest {
     HashSet<SMGObject> set = new HashSet<>();
     set.add(obj1);
     set.add(obj2);
-    set.add(smg.getNullObject());
+    set.add(SMGNullObject.INSTANCE);
 
     assertThat(smg.getObjects()).containsAllIn(set);
   }
 
   @Test
   public void getNullObjectTest() {
-    SMGObject nullObject = smg.getNullObject();
+    SMGObject nullObject = SMGNullObject.INSTANCE;
     Assert.assertFalse(smg.isObjectValid(nullObject));
     assertThat(nullObject.getSize()).isEqualTo(0);
   }
@@ -412,7 +412,7 @@ public class SMGTest {
     HashSet<Integer> set = new HashSet<>();
     set.add(val1);
     set.add(val2);
-    set.add(smg.getNullValue());
+    set.add(SMG.NULL_ADDRESS);
 
     assertThat(smg.getValues()).containsAllIn(set);
   }
