@@ -24,20 +24,18 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 class SMGJoinFields {
   private final SMG newSMG1;
@@ -162,7 +160,7 @@ class SMGJoinFields {
   }
 
   static private SMGEdgeHasValue getNullEdgesIntersection(Entry<Integer, Integer> first, Entry<Integer,
-      Integer> next, SMGObject pObj1, SMG pSMG1) {
+      Integer> next, SMGObject pObj1) {
     int resultOffset = Integer.max(first.getKey(), next.getKey());
     int resultSize = Integer.min(first.getValue() + first.getKey(), next.getValue() + next.getKey()) - resultOffset;
     return new SMGEdgeHasValue(resultSize, resultOffset, pObj1, SMG.NULL_ADDRESS);
@@ -176,14 +174,14 @@ class SMGJoinFields {
       NavigableMap<Integer, Integer> subMap =
           map2.subMap(entry1.getKey(), true, entry1.getKey() + entry1.getValue(), false);
       for (Entry<Integer, Integer> entry2 : subMap.entrySet()) {
-        retset.add(getNullEdgesIntersection(entry1, entry2, pObj1, pSMG1));
+        retset.add(getNullEdgesIntersection(entry1, entry2, pObj1));
       }
     }
     for (Entry<Integer, Integer> entry2 : map2.entrySet()) {
       NavigableMap<Integer, Integer> subMap =
           map1.subMap(entry2.getKey(), false, entry2.getKey() + entry2.getValue(), false);
       for (Entry<Integer, Integer> entry1 : subMap.entrySet()) {
-        retset.add(getNullEdgesIntersection(entry2, entry1, pObj1, pSMG1));
+        retset.add(getNullEdgesIntersection(entry2, entry1, pObj1));
       }
     }
 
