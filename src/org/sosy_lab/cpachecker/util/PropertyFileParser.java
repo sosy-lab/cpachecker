@@ -126,7 +126,7 @@ public class PropertyFileParser {
       Matcher matcherReachability = REACHABILITY_PROPERTY_PATTERN.matcher(matcher.group(2));
       if (matcherReachability.matches()) {
         String propertyName = matcherReachability.group(1);
-        AnalysisNotifier.getInstance().onPropertyParse(propertyName);
+        AnalysisNotifier.getInstance().onPropertyParse(propertyName, propertyFile.toString());
         return PropertyType.REACHABILITY.withFunctionEntry(entryFunction);
       }
       throw new InvalidPropertyFileException(String.format(

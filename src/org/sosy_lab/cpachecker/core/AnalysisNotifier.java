@@ -27,7 +27,9 @@ import java.io.PrintStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -45,7 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class AnalysisNotifier {
   private AnalysisNotifier() {
     listeners = new ArrayList<>();
-    properties = new ArrayList<>();
+    properties = new HashMap<>();
   }
 
   private static AnalysisNotifier singleton;
@@ -60,15 +62,15 @@ public class AnalysisNotifier {
 
   private boolean isEnabled = false;
   private List<AnalysisListener> listeners;
-  private List<String> properties; // These properties are obtained from *.prp files.
+  private Map<String, String> properties; // These properties are obtained from *.prp files.
 
   public void register(AnalysisListener listener) {
     isEnabled=true;
     listeners.add(listener);
   }
 
-  public void onPropertyParse(String pPropertyName) {
-    properties.add(pPropertyName);
+  public void onPropertyParse(String errorFunction, String propertyName) {
+    properties.put(errorFunction, propertyName);
   }
 
   public boolean isAddExistedAutomaton() {
@@ -80,8 +82,9 @@ public class AnalysisNotifier {
     automatonDescription = "CONTROL AUTOMATON MAV_ERROR_FUNCTIONS\n" +
         "INITIAL STATE Init;\n" +
         "STATE USEFIRST Init:\n";
-    for (String propertyName : properties) {
-      automatonDescription += "  MATCH {" + propertyName + "()} -> ERROR(\"" + propertyName + "\");\n";
+    for (String errorFunction : properties.keySet()) {
+      String propertyName = properties.get(errorFunction);
+      automatonDescription += "  MATCH {" + errorFunction + "()} -> ERROR(\"" + propertyName + "\");\n";
     }
     automatonDescription += "END AUTOMATON\n";
     Reader reader = new StringReader(automatonDescription);

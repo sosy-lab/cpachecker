@@ -421,7 +421,7 @@ class CmdLineArguments {
         } catch (InvalidPropertyFileException e) {
           throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
         }
-        putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
+        putIfNotDifferent(options, "analysis.entryFunction", parser.getEntryFunction());
 
         // set the file from where to read the specification automaton
         Set<SpecificationProperty> properties = parser.getProperties();
