@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.util;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Iterables;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -76,8 +77,16 @@ public class PersistentMultimap<K, V> {
     return set == null ? ImmutableSet.of() : set;
   }
 
+  public boolean contains(K key, V value) {
+    return delegate.containsKey(key) && delegate.get(key).contains(value);
+  }
+
   public ImmutableSet<V> values() {
     return ImmutableSet.copyOf(Iterables.concat(delegate.values()));
+  }
+
+  public int size() {
+    return delegate.size();
   }
 
   @Override
@@ -94,5 +103,9 @@ public class PersistentMultimap<K, V> {
   @Override
   public String toString() {
     return delegate.toString();
+  }
+
+  public Set<Entry<K, ImmutableSet<V>>> entries() {
+    return delegate.entrySet();
   }
 }
