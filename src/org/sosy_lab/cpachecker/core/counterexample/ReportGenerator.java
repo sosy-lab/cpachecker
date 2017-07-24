@@ -384,9 +384,9 @@ public class ReportGenerator {
     }
   }
 
-  private void insertLog(Writer writer) {
+  private void insertLog(Writer writer) throws IOException {
+    if (logFile != null && Files.isReadable(logFile)) {
     try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
-      if (logFile != null && Files.isReadable(logFile)) {
         int counter = 0;
         String line;
         while (null != (line = log.readLine())) {
@@ -394,11 +394,11 @@ public class ReportGenerator {
           writer.write(line);
           counter++;
         }
-    } else {
-        writer.write("<p>No Log-File available</p>");
+      } catch (IOException e) {
+        logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
       }
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
+    } else {
+      writer.write("<p>Log not available</p>");
     }
   }
 
