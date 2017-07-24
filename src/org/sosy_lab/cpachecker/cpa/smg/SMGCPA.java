@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
@@ -176,7 +175,8 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     return new SMGPrecisionAdjustment(logger, exportOptions);
   }
 
-  public SMGState getInitialState(CFANode pNode) {
+  @Override
+  public SMGState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     SMGState initState = new SMGState(logger, machineModel, options);
 
     try {
@@ -196,11 +196,6 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     }
 
     return initState;
-  }
-
-  @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return getInitialState(pNode);
   }
 
   @Override

@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -138,7 +139,7 @@ public class SMGRefiner implements Refiner {
     SMGStrongestPostOperator strongestPostOpForCEX =
         SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pCfa, predicateManager, blockOperator, smgCpa.getOptions());
 
-    SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction());
+    SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
     checker =
         new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
