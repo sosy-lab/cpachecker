@@ -699,7 +699,7 @@ function init() {
 	 * The graph(s) is/are returned to the main script once created
 	 */
     function cfaWorker_function() {
-        self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
+        self.importScripts("https://www.sosy-lab.org/lib/d3js/3.5.17/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.4.17/dagre-d3.min.js");
         var json, nodes, mainNodes, edges, functions, combinedNodes, inversedCombinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
         var graphSplitThreshold = 700; // default value
         var graphMap = [];
@@ -1082,7 +1082,7 @@ function init() {
 	 * Once the graph(s) is/are created they are returned to the main script. 
 	 */
 	function argWorker_function() {
-		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
+		self.importScripts("https://www.sosy-lab.org/lib/d3js/3.5.17/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.4.17/dagre-d3.min.js");
 		var json, nodes, edges, errorPath, errorGraphMap;
 		var graphSplitThreshold = 700;
 		var graphMap = [], graphCounter = 0;
