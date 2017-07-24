@@ -126,7 +126,7 @@ public class SMGTest {
     assertThat(smg.getValues()).hasSize(1);
     assertThat(smg.getValues()).contains(Integer.valueOf(nullAddress));
 
-    assertThat(smg.getPTEdgesAsMap()).hasSize(1);
+    assertThat(smg.getPTEdges().asMap()).hasSize(1);
     SMGObject target_object = smg.getObjectPointedBy(nullAddress);
     Assert.assertEquals(nullObject, target_object);
 

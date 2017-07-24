@@ -367,9 +367,13 @@ public class CLangSMG extends SMG {
    */
   @Override
   public String toString() {
-    return "CLangSMG [\n stack_objects=" + stack_objects + "\n heap_objects=" + heap_objects + "\n global_objects="
-        + global_objects + "\n " + valuesToString() + "\n " + ptToString() + "\n " + hvToString()
-        + "\n" + getMapOfMemoryLocationsWithValue().toString() + "\n]";
+    return "CLangSMG [\n stack_objects=" + stack_objects
+        + "\n heap_objects=" + heap_objects
+        + "\n global_objects=" + global_objects
+        + "\n values=" + getValues()
+        + "\n pointsTo=" + getPTEdges()
+        + "\n hasValue=" + getHVEdges()
+        + "\n" + getMapOfMemoryLocationsWithValue() + "\n]";
   }
 
   private Map<MemoryLocation, Integer> getMapOfMemoryLocationsWithValue() {

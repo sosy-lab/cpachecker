@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
@@ -390,30 +389,6 @@ public class SMG {
   /* ********************************************* */
 
   /**
-   * Getter for obtaining string representation of values set. Constant.
-   * @return String representation of values set
-   */
-  final public String valuesToString() {
-    return "values=" + values.toString();
-  }
-
-  /**
-   * Getter for obtaining string representation of has-value edges set. Constant.
-   * @return String representation of has-value edges set
-   */
-  final public String hvToString() {
-    return "hasValue=" + hv_edges.toString();
-  }
-
-  /**
-   * Getter for obtaining string representation of points-to edges set. Constant.
-   * @return String representation of points-to edges set
-   */
-  final public String ptToString() {
-    return "pointsTo=" + pt_edges.toString();
-  }
-
-  /**
    * Getter for obtaining unmodifiable view on values set. Constant.
    * @return Unmodifiable view on values set.
    */
@@ -451,20 +426,8 @@ public class SMG {
     return ImmutableSet.copyOf(pt_edges.filter(pFilter));
   }
 
-  protected SMGPointsToEdges getPTEdges() {
+  public SMGPointsToEdges getPTEdges() {
     return pt_edges;
-  }
-
-  /**
-   * Getter for obtaining unmodifiable view on Points-To edges set. Constant.
-   * @return Unmodifiable view on Points-To edges set.
-   */
-  final public Map<Integer, SMGEdgePointsTo> getPTEdgesAsMap() {
-    return pt_edges.asMap();
-  }
-
-  final public Set<SMGEdgePointsTo> getPTEdgesAsSet() {
-    return pt_edges.asSet();
   }
 
   /**
