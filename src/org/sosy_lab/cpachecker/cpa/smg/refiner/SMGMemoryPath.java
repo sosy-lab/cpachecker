@@ -142,56 +142,13 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
 
   @Override
   public int compareTo(SMGMemoryPath other) {
-    int result = 0;
-
-    if (startsWithGlobalVariable()) {
-      if (other.startsWithGlobalVariable()) {
-        result = 0;
-      } else {
-        result = 1;
-      }
-    } else {
-      if (other.startsWithGlobalVariable()) {
-        result = -1;
-      } else {
-        result = ComparisonChain.start().compare(functionName, other.functionName).result();
-      }
-    }
-
-    if (result != 0) {
-      return result;
-    }
-
-    result = ComparisonChain.start()
-        .compare(variableName, other.variableName)
-        .compare(locationOnStack, other.locationOnStack, Ordering.<Integer> natural().nullsFirst())
-        .result();
-
-    if (result != 0) {
-      return result;
-    }
-
-    for (int i = 0; i < pathOffsets.size() && i < other.pathOffsets.size(); i++) {
-      int offset = pathOffsets.get(i);
-      int otherOffset = other.pathOffsets.get(i);
-
-      result = ComparisonChain.start()
-          .compare(offset, otherOffset, Ordering.<Integer> natural().nullsFirst())
-          .result();
-
-      if (result != 0) {
-        return result;
-      }
-    }
-
-    if (pathOffsets.size() < other.pathOffsets.size()) {
-      return -1;
-    }
-
-    if (pathOffsets.size() > other.pathOffsets.size()) {
-      return 1;
-    }
-
-    return result;
+    return ComparisonChain.start()
+      .compareFalseFirst(startsWithGlobalVariable(), other.startsWithGlobalVariable())
+      .compare(functionName, other.functionName)
+      .compare(variableName, other.variableName)
+      .compare(locationOnStack, other.locationOnStack, Ordering.natural().nullsFirst())
+      .compare(pathOffsets, other.pathOffsets, Ordering.natural().lexicographical())
+      .compare(pathOffsets.size(), other.pathOffsets.size())
+      .result();
   }
 }
