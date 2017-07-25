@@ -24,10 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Ordering;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -220,7 +218,7 @@ public class SMGInterpolant {
     return new SMGPrecisionIncrement(memoryPaths, blocks, stackVariables);
   }
 
-  public static class SMGPrecisionIncrement implements Comparable<SMGPrecisionIncrement> {
+  public static class SMGPrecisionIncrement {
 
     private final List<SMGMemoryPath> pathsToTrack;
     private final List<SMGAbstractionBlock> abstractionBlock;
@@ -263,15 +261,6 @@ public class SMGInterpolant {
       return Objects.equal(abstractionBlock, other.abstractionBlock)
           && Objects.equal(pathsToTrack, other.pathsToTrack)
           && Objects.equal(stackVariablesToTrack, other.stackVariablesToTrack);
-    }
-
-    @Override
-    public int compareTo(SMGPrecisionIncrement other) {
-      return ComparisonChain.start()
-          .compare(pathsToTrack, other.pathsToTrack, Ordering.natural().lexicographical())
-          .compare(abstractionBlock, other.abstractionBlock, Ordering.natural().lexicographical())
-          .compare(stackVariablesToTrack, other.stackVariablesToTrack, Ordering.natural().lexicographical())
-          .result();
     }
 
     @Override

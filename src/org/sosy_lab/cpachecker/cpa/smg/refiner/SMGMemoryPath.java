@@ -24,13 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Ordering;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
+public class SMGMemoryPath {
 
   private final String variableName;
   private final String functionName;
@@ -138,17 +136,5 @@ public class SMGMemoryPath implements Comparable<SMGMemoryPath> {
 
   public static SMGMemoryPath valueOf(SMGMemoryPath pParent, Integer pOffset) {
     return new SMGMemoryPath(pParent, pOffset);
-  }
-
-  @Override
-  public int compareTo(SMGMemoryPath other) {
-    return ComparisonChain.start()
-      .compareFalseFirst(startsWithGlobalVariable(), other.startsWithGlobalVariable())
-      .compare(functionName, other.functionName)
-      .compare(variableName, other.variableName)
-      .compare(locationOnStack, other.locationOnStack, Ordering.natural().nullsFirst())
-      .compare(pathOffsets, other.pathOffsets, Ordering.natural().lexicographical())
-      .compare(pathOffsets.size(), other.pathOffsets.size())
-      .result();
   }
 }
