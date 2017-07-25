@@ -39,23 +39,18 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 class RHSPointerAddressVisitor extends PointerVisitor {
 
   private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
-  private final SMGBuiltins builtins;
 
-  public RHSPointerAddressVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState, SMGBuiltins pBuiltins) {
-    super(pSmgExpressionEvaluator, pEdge, pSmgState);
+  public RHSPointerAddressVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+    super(pSmgRightHandSideEvaluator, pEdge, pSmgState);
     smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
-    builtins = pBuiltins;
   }
 
   @Override
   protected SMGAddressValueAndStateList createAddressOfFunction(CIdExpression pIdFunctionExpression)
       throws SMGInconsistentException {
     SMGState state = getInitialSmgState();
-
     CFunctionDeclaration functionDcl = (CFunctionDeclaration) pIdFunctionExpression.getDeclaration();
-
-    SMGObject functionObject =
-        state.getObjectForFunction(functionDcl);
+    SMGObject functionObject = state.getObjectForFunction(functionDcl);
 
     if (functionObject == null) {
       functionObject = state.createObjectForFunction(functionDcl);
@@ -70,6 +65,7 @@ class RHSPointerAddressVisitor extends PointerVisitor {
     CExpression fileNameExpression = pIastFunctionCallExpression.getFunctionNameExpression();
     String functionName = fileNameExpression.toASTString();
 
+    SMGBuiltins builtins = smgRightHandSideEvaluator.smgTransferRelation.builtins;
     if (builtins.isABuiltIn(functionName)) {
       if (builtins.isConfigurableAllocationFunction(functionName)) {
         smgRightHandSideEvaluator.smgTransferRelation.possibleMallocFail = true;

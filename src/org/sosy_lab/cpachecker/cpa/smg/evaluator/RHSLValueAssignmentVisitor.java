@@ -25,10 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -37,52 +33,20 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 class RHSLValueAssignmentVisitor extends LValueAssignmentVisitor {
 
-  private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
-
-  public RHSLValueAssignmentVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+  public RHSLValueAssignmentVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     super(pSmgExpressionEvaluator, pEdge, pSmgState);
-    smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
-  }
-
-  @Override
-  public List<SMGAddressAndState> visit(CIdExpression variableName) throws CPATransferException {
-    smgRightHandSideEvaluator.data.getLogger().log(Level.ALL, ">>> Handling statement: variable assignment");
-
-    // a = ...
-    return super.visit(variableName);
   }
 
   @Override
   public List<SMGAddressAndState> visit(CPointerExpression pLValue)
       throws CPATransferException {
-    smgRightHandSideEvaluator.data.getLogger().log(Level.ALL, ">>> Handling statement: assignment to dereferenced pointer");
-
-    List<SMGAddressAndState> addresses = super.visit(pLValue);
-
-    List<SMGAddressAndState> results = new ArrayList<>(addresses.size());
-
-    for (SMGAddressAndState address : addresses) {
+    List<SMGAddressAndState> results = new ArrayList<>();
+    for (SMGAddressAndState address : super.visit(pLValue)) {
       if (address.getObject().isUnknown()) {
-        SMGState newState = address.getSmgState().setUnknownDereference();
-        results.add(SMGAddressAndState.of(newState));
-      } else {
-        results.add(address);
+        address = SMGAddressAndState.of(address.getSmgState().setUnknownDereference());
       }
+      results.add(address);
     }
     return results;
-  }
-
-  @Override
-  public List<SMGAddressAndState> visit(CFieldReference lValue) throws CPATransferException {
-    smgRightHandSideEvaluator.data.getLogger().log(Level.ALL, ">>> Handling statement: assignment to field reference");
-
-    return super.visit(lValue);
-  }
-
-  @Override
-  public List<SMGAddressAndState> visit(CArraySubscriptExpression lValue) throws CPATransferException {
-    smgRightHandSideEvaluator.data.getLogger().log(Level.ALL, ">>> Handling statement: assignment to array Cell");
-
-    return super.visit(lValue);
   }
 }

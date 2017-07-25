@@ -860,8 +860,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       CFAEdge pCfaEdge, SMGSymbolicValue value, CRightHandSide pRValue)
           throws CPATransferException {
 
-    SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger,
-        machineModel);
+    SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
 
     List<SMGExplicitValueAndState> expValueAndStates = expEvaluator.evaluateExplicitValue(pNewState, pCfaEdge, pRValue);
     List<Pair<SMGState, SMGKnownSymValue>> result = new ArrayList<>(expValueAndStates.size());

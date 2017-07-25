@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -36,9 +37,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
@@ -227,7 +227,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
 
   private void deriveFurtherInformation(CLeftHandSide lValue) throws CPATransferException {
 
-    if (truthValue == true) {
+    if (truthValue) {
       return; // no further explicit Information can be derived
     }
 
@@ -261,10 +261,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     // is this correct for e.g. [!a != !(void*)(int)(!b)] !?!?!
 
     if (expression instanceof CCastExpression) {
-      CCastExpression exp = (CCastExpression) expression;
-      expression = exp.getOperand();
-
-      expression = unwrap(expression);
+      expression = unwrap(((CCastExpression) expression).getOperand());
     }
 
     return expression;

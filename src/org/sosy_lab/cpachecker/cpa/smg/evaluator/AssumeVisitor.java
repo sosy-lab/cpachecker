@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class AssumeVisitor extends ExpressionValueVisitor {
+
   private Map<SMGState,BinaryRelationResult> relations = new HashMap<>();
 
   public AssumeVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
@@ -147,8 +148,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     boolean isTrue = false;
     boolean isFalse = true;
 
-    // there can be more precise comparsion when pointer point to the
-    // same object.
+    // there can be more precise comparison when pointer point to the same object.
     if (object1 == object2) {
       int offset1 = pV1.getOffset().getAsInt();
       int offset2 = pV2.getOffset().getAsInt();

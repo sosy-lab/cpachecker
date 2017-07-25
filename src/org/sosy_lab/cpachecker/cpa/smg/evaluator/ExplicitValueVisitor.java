@@ -111,10 +111,10 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     Value value = super.visit(binaryExp);
 
-    if (value.isUnknown() && isPointerComparison(binaryExp)) {
+    if (value.isUnknown() && binaryExp.getOperator().isLogicalOperator()) {
       /* We may be able to get an explicit Value from pointer comaprisons. */
 
-      SMGValueAndStateList symValueAndStates = null;
+      SMGValueAndStateList symValueAndStates;
 
       try {
         symValueAndStates = smgExpressionEvaluator.evaluateAssumptionValue(smgState, edge, binaryExp);
@@ -125,7 +125,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
         throw e2;
       }
 
-      SMGValueAndState symValueAndState = null;
+      SMGValueAndState symValueAndState;
 
       if (symValueAndStates.size() > 0) {
         symValueAndState = symValueAndStates.getValueAndStateList().get(0);
@@ -150,22 +150,6 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     return value;
   }
 
-  private boolean isPointerComparison(CBinaryExpression pE) {
-
-    switch (pE.getOperator()) {
-    case EQUALS:
-    case LESS_EQUAL:
-    case GREATER_EQUAL:
-    case GREATER_THAN:
-    case LESS_THAN:
-    case NOT_EQUALS:
-      //TODO Check, if one of the two operand types is expressed as pointer, e.g. pointer, struct, array, etc
-      return true;
-      default :
-        return false;
-    }
-  }
-
   @Override
   protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
       throws UnrecognizedCCodeException {
@@ -175,8 +159,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   private Value evaluateLeftHandSideExpression(CLeftHandSide leftHandSide)
       throws UnrecognizedCCodeException {
 
-    SMGValueAndStateList valueAndStates = null;
-
+    SMGValueAndStateList valueAndStates;
     try {
       valueAndStates = smgExpressionEvaluator.evaluateExpressionValue(smgState, edge, leftHandSide);
     } catch (CPATransferException e) {
@@ -186,8 +169,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       throw e2;
     }
 
-    SMGValueAndState valueAndState = null;
-
+    SMGValueAndState valueAndState;
     if (valueAndStates.size() > 0) {
       valueAndState = valueAndStates.getValueAndStateList().get(0);
     } else {
@@ -202,7 +184,6 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     smgState = valueAndState.getSmgState();
 
     SMGExplicitValue expValue = getExplicitValue(value);
-
     if (expValue.isUnknown()) {
       return UnknownValue.getInstance();
     } else {
@@ -230,5 +211,4 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       throws UnrecognizedCCodeException {
     return evaluateLeftHandSideExpression(pLValue);
   }
-
 }

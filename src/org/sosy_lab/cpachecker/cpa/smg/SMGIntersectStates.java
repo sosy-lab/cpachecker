@@ -56,8 +56,8 @@ public final class SMGIntersectStates {
 
     SMGNodeMapping mapping1 = new SMGNodeMapping();
     SMGNodeMapping mapping2 = new SMGNodeMapping();
-    mapping1.map(pSmgState1.getNullObject(), SMGNullObject.INSTANCE);
-    mapping2.map(pSmgState2.getNullObject(), SMGNullObject.INSTANCE);
+    mapping1.map(SMGNullObject.INSTANCE, SMGNullObject.INSTANCE);
+    mapping2.map(SMGNullObject.INSTANCE, SMGNullObject.INSTANCE);
 
     Map<String, SMGRegion> globals_in_smg1 = pHeap1.getGlobalObjects();
     Deque<CLangStackFrame> stack_in_smg1 = pHeap1.getStackFrames();

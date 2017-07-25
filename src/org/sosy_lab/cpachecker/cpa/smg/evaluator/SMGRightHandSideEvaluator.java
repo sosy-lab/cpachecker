@@ -118,33 +118,27 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
   }
 
   @Override
-  public PointerVisitor getPointerVisitor(
-      CFAEdge pCfaEdge, SMGState pNewState) {
-    return new RHSPointerAddressVisitor(this, this, pCfaEdge, pNewState, smgTransferRelation.builtins);
+  public PointerVisitor getPointerVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+    return new RHSPointerAddressVisitor(this, pCfaEdge, pNewState);
   }
 
   @Override
-  public ExpressionValueVisitor getExpressionValueVisitor(
-      CFAEdge pCfaEdge, SMGState pNewState) {
-    return new RHSExpressionValueVisitor(this, this, pCfaEdge, pNewState, smgTransferRelation.builtins);
+  public ExpressionValueVisitor getExpressionValueVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+    return new RHSExpressionValueVisitor(this, pCfaEdge, pNewState);
   }
 
   @Override
-  public LValueAssignmentVisitor getLValueAssignmentVisitor(
-      CFAEdge pCfaEdge, SMGState pNewState) {
-    return new RHSLValueAssignmentVisitor(this, this, pCfaEdge, pNewState);
+  public LValueAssignmentVisitor getLValueAssignmentVisitor(CFAEdge pCfaEdge, SMGState pNewState) {
+    return new RHSLValueAssignmentVisitor(this, pCfaEdge, pNewState);
   }
 
   @Override
   protected RHSCSizeOfVisitor getSizeOfVisitor(CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
-    return new RHSCSizeOfVisitor(this, machineModel, pEdge, pState, logger, pExpression);
+    return new RHSCSizeOfVisitor(this, pEdge, pState, pExpression);
   }
 
   @Override
-  protected SMGValueAndState handleUnknownDereference(SMGState pSmgState,
-      CFAEdge pEdge) {
-
-    SMGState newState = pSmgState.setUnknownDereference();
-    return super.handleUnknownDereference(newState, pEdge);
+  protected SMGValueAndState handleUnknownDereference(SMGState pSmgState, CFAEdge pEdge) {
+    return super.handleUnknownDereference(pSmgState.setUnknownDereference(), pEdge);
   }
 }

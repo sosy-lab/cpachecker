@@ -24,10 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import java.util.Optional;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelationKind;
@@ -36,9 +34,9 @@ class RHSCSizeOfVisitor extends CSizeOfVisitor {
 
   private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
 
-  public RHSCSizeOfVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, MachineModel pModel, CFAEdge pEdge, SMGState pState,
-      LogManagerWithoutDuplicates pLogger, Optional<CExpression> pExpression) {
-    super(pModel, pEdge, pState, pLogger, pExpression);
+  public RHSCSizeOfVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator,
+      CFAEdge pEdge, SMGState pState, Optional<CExpression> pExpression) {
+    super(pSmgRightHandSideEvaluator, pEdge, pState, pExpression);
     smgRightHandSideEvaluator = pSmgRightHandSideEvaluator;
   }
 

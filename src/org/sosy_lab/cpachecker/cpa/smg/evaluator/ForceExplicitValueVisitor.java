@@ -44,11 +44,10 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
-class ForceExplicitValueVisitor extends
-    ExplicitValueVisitor {
+class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
   private final SMGRightHandSideEvaluator smgRightHandSideEvaluator;
-  private final SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(2);
+  private final static SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(2);
 
   public ForceExplicitValueVisitor(SMGRightHandSideEvaluator pSmgRightHandSideEvaluator, SMGExpressionEvaluator pSmgExpressionEvaluator,
       SMGState pSmgState, String pFunctionName, MachineModel pMachineModel,
@@ -61,25 +60,31 @@ class ForceExplicitValueVisitor extends
   protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
       throws UnrecognizedCCodeException {
     Value result = super.evaluateCArraySubscriptExpression(pLValue);
-
-    if (result.isUnknown()) {
-      return guessLHS(pLValue);
-    } else {
-      return result;
-    }
+    return returnValueOrGuess(result, pLValue);
   }
 
   @Override
   protected Value evaluateCIdExpression(CIdExpression pCIdExpression)
       throws UnrecognizedCCodeException {
-
     Value result = super.evaluateCIdExpression(pCIdExpression);
+    return returnValueOrGuess(result, pCIdExpression);
+  }
 
-    if (result.isUnknown()) {
-      return guessLHS(pCIdExpression);
-    } else {
-      return result;
-    }
+  @Override
+  protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+    Value result = super.evaluateCFieldReference(pLValue);
+    return returnValueOrGuess(result, pLValue);
+  }
+
+  @Override
+  protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
+      throws UnrecognizedCCodeException {
+    Value result = super.evaluateCPointerExpression(pCPointerExpression);
+    return returnValueOrGuess(result, pCPointerExpression);
+  }
+
+  private Value returnValueOrGuess(Value value, CLeftHandSide exp) throws UnrecognizedCCodeException {
+    return value.isUnknown() ? guessLHS(exp) : value;
   }
 
   private Value guessLHS(CLeftHandSide exp)
@@ -88,14 +93,16 @@ class ForceExplicitValueVisitor extends
     SMGValueAndState symbolicValueAndState;
 
     try {
-      SMGValueAndStateList symbolicValueAndStates = smgRightHandSideEvaluator.evaluateExpressionValue(getNewState(),
-          getEdge(), exp);
+      SMGValueAndStateList symbolicValueAndStates =
+          smgRightHandSideEvaluator.evaluateExpressionValue(getNewState(), getEdge(), exp);
 
-      if(symbolicValueAndStates.size() != 1) {
-        throw new SMGInconsistentException("Found abstraction where non should exist,due to the expression " + exp.toASTString() + "already being evaluated once in this transferrelation step.");
-      } else {
-        symbolicValueAndState = symbolicValueAndStates.getValueAndStateList().get(0);
+      if (symbolicValueAndStates.size() != 1) {
+        throw new SMGInconsistentException(
+            "Found abstraction where non should exist, due to the expression " + exp.toASTString()
+                + " already being evaluated once in this transfer-relation step.");
       }
+
+      symbolicValueAndState = symbolicValueAndStates.getValueAndStateList().get(0);
 
     } catch (CPATransferException e) {
       UnrecognizedCCodeException e2 = new UnrecognizedCCodeException(
@@ -114,28 +121,5 @@ class ForceExplicitValueVisitor extends
     getNewState().putExplicit((SMGKnownSymValue) value, GUESS);
 
     return new NumericValue(GUESS.getValue());
-  }
-
-  @Override
-  protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
-    Value result = super.evaluateCFieldReference(pLValue);
-
-    if (result.isUnknown()) {
-      return guessLHS(pLValue);
-    } else {
-      return result;
-    }
-  }
-
-  @Override
-  protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
-      throws UnrecognizedCCodeException {
-    Value result = super.evaluateCPointerExpression(pCPointerExpression);
-
-    if (result.isUnknown()) {
-      return guessLHS(pCPointerExpression);
-    } else {
-      return result;
-    }
   }
 }

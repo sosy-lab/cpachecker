@@ -62,7 +62,6 @@ public abstract class SMGAbstractObjectAndState<T> {
     return object.toString() + " StateId: " + smgState.getId();
   }
 
-
   public static class SMGAddressValueAndState extends SMGValueAndState {
 
     private SMGAddressValueAndState(SMGState pState, SMGAddressValue pValue) {
@@ -171,7 +170,6 @@ public abstract class SMGAbstractObjectAndState<T> {
   }
 
   public static class SMGAddressValueAndStateList extends SMGValueAndStateList {
-
 
     private SMGAddressValueAndStateList(List<SMGAddressValueAndState> pList) {
       super(ImmutableList.copyOf(pList));
