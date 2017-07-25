@@ -448,8 +448,9 @@ text {
 	stroke-width: 1.5px;
 }
 
+/* if we have display: none here Firefox cannot render the edges connecting to the dummy nodes */
 .dummy rect {
-	display: none;
+	visibility: hidden;
 }
 
 #infoBox {
