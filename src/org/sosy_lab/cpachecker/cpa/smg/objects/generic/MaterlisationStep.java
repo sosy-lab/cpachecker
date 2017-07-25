@@ -23,11 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -36,12 +40,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import com.google.common.base.Function;
-import java.util.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 
 
 public class MaterlisationStep {
@@ -300,27 +298,9 @@ public class MaterlisationStep {
     pAbstractObjectToPointersMap.get(objectTemplate).put(abstractValue, value);
   }
 
-  public Set<SMGObjectTemplate> getEntryRegions() {
-
-    Set<SMGObjectTemplate> entryRegions;
-
-    entryRegions =
-        FluentIterable.from(targetAdressTemplateOfPointer).filter(
-            new Predicate<SMGEdgePointsToTemplate>() {
-
-              @Override
-              public boolean apply(SMGEdgePointsToTemplate edge) {
-                return edge.getObjectTemplate() instanceof SMGRegion;
-              }
-            }).transform(new Function<SMGEdgePointsToTemplate, SMGObjectTemplate>() {
-
-              @Override
-              public SMGObjectTemplate apply(SMGEdgePointsToTemplate edge) {
-                return edge.getObjectTemplate();
-              }
-            }).toSet();
-
-    return entryRegions;
+  public Set<SMGRegion> getEntryRegions() {
+    return FluentIterable.from(targetAdressTemplateOfPointer)
+        .transform(edge -> edge.getObjectTemplate()).filter(SMGRegion.class).toSet();
   }
 
   public Set<SMGEdgePointsToTemplate> getPointerToThisTemplate(SMGObjectTemplate pTemplate) {

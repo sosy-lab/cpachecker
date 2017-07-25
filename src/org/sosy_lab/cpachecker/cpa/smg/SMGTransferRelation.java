@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1005,8 +1005,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       }
     }
 
-    List<SMGState> newStates = handleInitializerForDeclaration(pState, newObject, pVarDecl, pEdge);
-    return newStates;
+    return handleInitializerForDeclaration(pState, newObject, pVarDecl, pEdge);
   }
 
   private List<SMGState> handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
@@ -1227,9 +1226,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
         offset = offset + machineModel.getBitSizeof(memberType);
 
-        List<? extends Pair<SMGState, Integer>> newStatesAndOffset =
-            FluentIterable.from(pNewStates).transform(new ListToListOfPairFunction<SMGState, Integer>(offset))
-                .toList();
+        final int currentOffset = offset;
+        List<Pair<SMGState, Integer>> newStatesAndOffset =
+            Lists.transform(pNewStates, s -> Pair.of(s, currentOffset));
 
         resultOffsetAndStates.addAll(newStatesAndOffset);
       }
@@ -1238,27 +1237,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       listCounter++;
     }
 
-    return FluentIterable.from(offsetAndStates).transform(new Function<Pair<SMGState, Integer>, SMGState>() {
-
-      @Override
-      public SMGState apply(Pair<SMGState, Integer> pInput) {
-        return pInput.getFirst();
-      }
-    }).toList();
-  }
-
-  private static class ListToListOfPairFunction<F, T> implements Function<F, Pair<F, T>> {
-
-    private final T constant;
-
-    public ListToListOfPairFunction(T pConstant) {
-      constant = pConstant;
-    }
-
-    @Override
-    public Pair<F, T> apply(F listElements) {
-      return Pair.of(listElements, constant);
-    }
+    return Lists.transform(offsetAndStates, Pair::getFirst);
   }
 
   private List<SMGState> handleInitializerList(
