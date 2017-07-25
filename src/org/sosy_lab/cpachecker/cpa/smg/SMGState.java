@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -82,7 +81,6 @@ import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
@@ -190,7 +188,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pOriginalState Original state. Will be the predecessor of the
    * new state
    */
-  public SMGState(SMGState pOriginalState, BlockOperator pBlockOperator, CFANode pCurrentLocation) {
+  public SMGState(SMGState pOriginalState, boolean pBlockEnded) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
     options = pOriginalState.options;
@@ -200,7 +198,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
-    blockEnded = pBlockOperator.isBlockEnd(pCurrentLocation, 0);
+    blockEnded = pBlockEnded;
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
