@@ -377,11 +377,10 @@ public class CLangSMG extends SMG {
   }
 
   private Map<MemoryLocation, Integer> getMapOfMemoryLocationsWithValue() {
-
-    Set<MemoryLocation> memlocs = getMemoryLocations();
     Map<MemoryLocation, Integer> result = new HashMap<>();
 
-    for (MemoryLocation memloc : memlocs) {
+    for (SMGEdgeHasValue hvedge : getHVEdges()) {
+      MemoryLocation memloc = resolveMemLoc(hvedge);
       Set<SMGEdgeHasValue> edge = getHVEdgeFromMemoryLocation(memloc);
 
       if (!edge.isEmpty()) {
@@ -541,9 +540,7 @@ public class CLangSMG extends SMG {
     }
 
     // Remember, edges may overlap with different types
-    Set<SMGEdgeHasValue> edgesToForget = getHVEdges(filter);
-
-    return edgesToForget;
+    return getHVEdges(filter);
   }
 
   @Nullable
@@ -706,17 +703,6 @@ public class CLangSMG extends SMG {
     }
 
     throw new AssertionError("No stack frame " + pFunctionName + " exists.");
-  }
-
-  public Set<MemoryLocation> getMemoryLocations() {
-
-    Set<MemoryLocation> result = new HashSet<>();
-
-    for (SMGEdgeHasValue hvedge : getHVEdges()) {
-      result.add(resolveMemLoc(hvedge));
-    }
-
-    return result;
   }
 
   private MemoryLocation resolveMemLoc(SMGEdgeHasValue hvEdge) {
