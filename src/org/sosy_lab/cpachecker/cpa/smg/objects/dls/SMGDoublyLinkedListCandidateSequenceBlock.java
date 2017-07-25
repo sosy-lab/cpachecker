@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListCandidateSequenceBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
 public class SMGDoublyLinkedListCandidateSequenceBlock
