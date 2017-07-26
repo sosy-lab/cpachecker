@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
@@ -361,7 +362,7 @@ public final class DOTBuilder2 {
       jnode.put("index", node.getNodeNumber());
       jnode.put("rpid", node.getReversePostorderId());
       jnode.put("func", node.getFunctionName());
-      jnode.put("type", determineNodeType(node.describeFileLocation()));
+      jnode.put("type", determineNodeType(node));
       jnode.put("loop", node.isLoopStart());
 
       nodes.put(node.getNodeNumber(), jnode);
@@ -386,9 +387,13 @@ public final class DOTBuilder2 {
       return TraversalProcess.CONTINUE;
     }
 
-    private String determineNodeType(String nodeFileLocation) {
-      String[] result = nodeFileLocation.split(" ");
-      return result[0];
+    private String determineNodeType(CFANode node) {
+      if (node instanceof FunctionEntryNode) {
+        return "entry";
+      } else if (node instanceof FunctionExitNode) {
+        return "exit";
+      }
+      return "";
     }
 
     Collection<Object> getNodes() {

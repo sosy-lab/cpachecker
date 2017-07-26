@@ -65,6 +65,8 @@ import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -516,6 +518,7 @@ public class ReportGenerator {
             + "\n"
             + node.getFunctionName()
             + nodeTypeInNodeLabel(node)
+            + "\n"
             + dotLabel);
     argNode.put("type", determineNodeType(argState));
     argNodes.put(parentStateId, argNode);
@@ -606,11 +609,12 @@ public class ReportGenerator {
 
   // Add the node type (if it is entry or exit) to the node label
   private String nodeTypeInNodeLabel(CFANode node) {
-    String result = node.describeFileLocation().split(" ")[0];
-    if (result.equalsIgnoreCase("entry") || result.equalsIgnoreCase("exit")) {
-      return " " + result + "\n";
+    if (node instanceof FunctionEntryNode) {
+      return " entry";
+    } else if (node instanceof FunctionExitNode) {
+      return " exit";
     }
-    return "\n";
+    return "";
   }
 
   // Similar to the getEdgeText method in DOTBuilder2
