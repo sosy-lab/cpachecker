@@ -33,6 +33,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder.ListMultimapBuilder;
 import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
+import com.google.common.html.HtmlEscapers;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -332,10 +333,7 @@ public final class DOTBuilder2 {
           sb.append("<tr><td align=\"right\">");
           sb.append("" + edge.getPredecessor().getNodeNumber());
           sb.append("</td><td align=\"left\">");
-          sb.append("" + getEdgeText(edge)
-                            .replaceAll("&", "&amp;")
-                            .replaceAll("<", "&lt;")
-                            .replaceAll(">", "&gt;")
+          sb.append(HtmlEscapers.htmlEscaper().escape(getEdgeText(edge))
                             .replaceAll("\\|", "&#124;")
                             .replaceAll("\\{", "&#123;")
                             .replaceAll("\\}", "&#125;"));
