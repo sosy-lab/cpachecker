@@ -25,11 +25,13 @@ package org.sosy_lab.cpachecker.cfa.export;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import java.util.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
-
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -38,10 +40,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Class for generating a DOT file from a CFA.
@@ -186,6 +184,8 @@ public final class DOTBuilder {
   }
 
   public static String escapeGraphvizLabel(String input, String newlineReplacement) {
+    //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
+    //future updates of dotty may make this obsolete.
     return input.replaceAll("\\Q\\\"\\E", "\\ \"")
         .replaceAll("\\\"", "\\\\\\\"")
         .replaceAll("\n", newlineReplacement);
