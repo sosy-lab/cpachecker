@@ -333,10 +333,10 @@ public final class DOTBuilder2 {
           sb.append("" + edge.getPredecessor().getNodeNumber());
           sb.append("</td><td align=\"left\">");
           sb.append("" + getEdgeText(edge)
-                            .replaceAll("\\|", "&#124;")
                             .replaceAll("&", "&amp;")
                             .replaceAll("<", "&lt;")
                             .replaceAll(">", "&gt;")
+                            .replaceAll("\\|", "&#124;")
                             .replaceAll("\\{", "&#123;")
                             .replaceAll("\\}", "&#125;"));
           sb.append("</td></tr>");
