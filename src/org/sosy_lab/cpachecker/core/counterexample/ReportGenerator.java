@@ -270,16 +270,10 @@ public class ReportGenerator {
   }
 
   private void insertCss(Writer writer) throws IOException {
-    try (BufferedReader reader =
-        Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
-            .openBufferedStream(); ) {
-      writer.write("<style>" + "\n");
-      String line;
-      while (null != (line = reader.readLine())) {
-        writer.write(line + "\n");
-      }
-      writer.write("</style>");
-    }
+    writer.write("<style>" + "\n");
+    Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
+        .copyTo(writer);
+    writer.write("</style>");
   }
 
   private void insertMetaTags(Writer writer) {
