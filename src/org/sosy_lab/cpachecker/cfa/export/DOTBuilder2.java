@@ -202,26 +202,21 @@ public final class DOTBuilder2 {
           nodes.put(funcname, combo.get(0).getSuccessor());
 
         } else if (combo.size() > 1){
-          Map<Integer, Integer> node2combo = new HashMap<>();
           for (CFAEdge edge : combo) {
             CFAEdge first = combo.get(0);
             int firstNo = first.getPredecessor().getNodeNumber();
-            node2combo.put(edge.getPredecessor().getNodeNumber(), firstNo);
-            node2combo.forEach(
-                (k, v) -> {
-                  if (comboNodes.containsKey(v)) {
-                    if (!comboNodes.get(v).contains(k)) {
-                      comboNodes.get(v).add(k);
-                      comboNodesLabels.put(
-                          v, comboNodesLabels.get(v) + "\n" + k + " " + edge.getDescription());
-                    }
-                  } else {
-                    List<Integer> nodesCombined = new ArrayList<>();
-                    nodesCombined.add(k);
-                    comboNodes.put(v, nodesCombined);
-                    comboNodesLabels.put(v, k + " " + edge.getDescription());
-                  }
-                });
+            if (comboNodes.containsKey(firstNo)) {
+              if (!comboNodes.get(firstNo).contains(edge.getPredecessor().getNodeNumber())) {
+                comboNodes.get(firstNo).add(edge.getPredecessor().getNodeNumber());
+                comboNodesLabels.put(
+                    firstNo, comboNodesLabels.get(firstNo) + "\n" + edge.getPredecessor().getNodeNumber() + " " + edge.getDescription());
+              }
+            } else {
+              List<Integer> nodesCombined = new ArrayList<>();
+              nodesCombined.add(edge.getPredecessor().getNodeNumber());
+              comboNodes.put(firstNo, nodesCombined);
+              comboNodesLabels.put(firstNo, edge.getPredecessor().getNodeNumber() + " " + edge.getDescription());
+            }
           }
           comboNodes.forEach(
               (k, v) -> {
