@@ -82,4 +82,27 @@ public class VariableDeclarationStatementCFABuilderTest {
         .isEqualTo(new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.valueOf(42)));
     Truth.assertThat(declarationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
   }
+
+  @Test
+  public final void testMultiVariableDeclaration() throws ParserException {
+    final JavaScriptUnit ast = createAST("var x = 123, y = 456");
+    new VariableDeclarationStatementCFABuilder(builder)
+        .append((VariableDeclarationStatement) ast.statements().get(0));
+    final JSDeclarationEdge xDeclarationEdge = (JSDeclarationEdge) entryNode.getLeavingEdge(0);
+    final JSVariableDeclaration xVariableDeclaration =
+        (JSVariableDeclaration) xDeclarationEdge.getDeclaration();
+    Truth.assertThat(xVariableDeclaration.getName()).isEqualTo("x");
+    Truth.assertThat(
+            ((JSInitializerExpression) xVariableDeclaration.getInitializer()).getExpression())
+        .isEqualTo(new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.valueOf(123)));
+    final JSDeclarationEdge yDeclarationEdge = (JSDeclarationEdge) xDeclarationEdge.getSuccessor
+        ().getLeavingEdge(0);
+    final JSVariableDeclaration yVariableDeclaration =
+        (JSVariableDeclaration) yDeclarationEdge.getDeclaration();
+    Truth.assertThat(yVariableDeclaration.getName()).isEqualTo("y");
+    Truth.assertThat(
+        ((JSInitializerExpression) yVariableDeclaration.getInitializer()).getExpression())
+        .isEqualTo(new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.valueOf(456)));
+    Truth.assertThat(yDeclarationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
+  }
 }
