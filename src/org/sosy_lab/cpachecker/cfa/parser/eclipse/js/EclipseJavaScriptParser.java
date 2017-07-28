@@ -56,7 +56,7 @@ class EclipseJavaScriptParser implements Parser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
-  public EclipseJavaScriptParser(LogManager pLogger) throws InvalidConfigurationException {
+  public EclipseJavaScriptParser(final LogManager pLogger) throws InvalidConfigurationException {
     logger = pLogger;
   }
 
@@ -100,10 +100,10 @@ class EclipseJavaScriptParser implements Parser {
     return cfaTimer;
   }
 
-  private ParseResult buildCFA(ASTNode ast, Scope pScope) throws JSParserException {
+  private ParseResult buildCFA(final ASTNode ast, final Scope pScope) throws JSParserException {
     cfaTimer.start();
 
-    FileCFABuilder builder = new FileCFABuilder(pScope, logger);
+    final FileCFABuilder builder = new FileCFABuilder(pScope, logger);
     try {
       builder.append((JavaScriptUnit) ast);
       return builder.getBuilder().getParseResult();
