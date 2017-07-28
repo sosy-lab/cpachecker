@@ -57,7 +57,7 @@ class FunctionInvocationCFABuilder
             new JSStatementEdge(
                 functionCallStatement.toASTString(),
                 functionCallStatement,
-                astConverter.getFileLocation(node),
+                functionCallStatement.getFileLocation(),
                 pPredecessor,
                 pSuccessor));
     return this;

@@ -55,7 +55,7 @@ class VariableDeclarationStatementCFABuilder
         (pPredecessor, pSuccessor) ->
             new JSDeclarationEdge(
                 variableDeclaration.toASTString(),
-                builder.getAstConverter().getFileLocation(pVariableDeclarationFragment),
+                variableDeclaration.getFileLocation(),
                 pPredecessor,
                 pSuccessor,
                 variableDeclaration));
