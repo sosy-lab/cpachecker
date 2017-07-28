@@ -56,6 +56,8 @@ class EclipseJavaScriptParser implements Parser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaTimer = new Timer();
 
+  @SuppressWarnings("WeakerAccess") // is called by EclipseParsers.getJavaScriptParser using
+  // reflection
   public EclipseJavaScriptParser(final LogManager pLogger) throws InvalidConfigurationException {
     logger = pLogger;
   }
