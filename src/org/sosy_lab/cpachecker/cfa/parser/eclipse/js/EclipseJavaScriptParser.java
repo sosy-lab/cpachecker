@@ -65,28 +65,29 @@ class EclipseJavaScriptParser implements Parser {
   }
 
   @Override
-  public ParseResult parseFile(String filename)
+  public ParseResult parseFile(final String filename)
       throws ParserException, IOException, InterruptedException {
-    Path file = Paths.get(filename);
-    parseTimer.start();
+    final Path file = Paths.get(filename);
     try {
-      final String source = MoreFiles.toString(file, encoding);
-      parser.setProject(createProject()); // required to resolve bindings
-      parser.setUnitName(file.normalize().toString());
-      parser.setSource(source.toCharArray());
-      parser.setResolveBindings(true);
-      parser.setBindingsRecovery(true);
-      return buildCFA(parser.createAST(null), new Scope(filename));
-    } catch (IOException e) {
+      return parseString(file.normalize().toString(), MoreFiles.toString(file, encoding));
+    } catch (final IOException e) {
       throw new JSParserException(e);
-    } finally {
-      parseTimer.stop();
     }
   }
 
   @Override
-  public ParseResult parseString(String filename, String code) throws ParserException {
-    throw new JSParserException("Parsing of string not yet implemented");
+  public ParseResult parseString(final String filename, final String code) throws ParserException {
+    parseTimer.start();
+    try {
+      parser.setProject(createProject()); // required to resolve bindings
+      parser.setUnitName(filename);
+      parser.setSource(code.toCharArray());
+      parser.setResolveBindings(true);
+      parser.setBindingsRecovery(true);
+      return buildCFA(parser.createAST(null), new Scope(filename));
+    } finally {
+      parseTimer.stop();
+    }
   }
 
   @Override
