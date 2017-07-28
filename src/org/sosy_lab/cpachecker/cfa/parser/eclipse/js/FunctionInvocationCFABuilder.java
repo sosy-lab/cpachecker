@@ -31,7 +31,8 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
-class FunctionInvocationCFABuilder {
+class FunctionInvocationCFABuilder
+    implements CFABuilderWrapperOfType<FunctionInvocationCFABuilder> {
 
   private final CFABuilder builder;
 
@@ -39,7 +40,7 @@ class FunctionInvocationCFABuilder {
     builder = pBuilder;
   }
 
-  public void append(final FunctionInvocation node) {
+  public FunctionInvocationCFABuilder append(final FunctionInvocation node) {
     final ASTConverter astConverter = builder.getAstConverter();
     final JSFunctionCallStatement functionCallStatement =
         new JSFunctionCallStatement(
@@ -59,8 +60,10 @@ class FunctionInvocationCFABuilder {
                 astConverter.getFileLocation(node),
                 pPredecessor,
                 pSuccessor));
+    return this;
   }
 
+  @Override
   public CFABuilder getBuilder() {
     return builder;
   }

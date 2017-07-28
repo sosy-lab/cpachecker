@@ -29,7 +29,8 @@ import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 
-class VariableDeclarationStatementCFABuilder {
+class VariableDeclarationStatementCFABuilder
+    implements CFABuilderWrapperOfType<VariableDeclarationStatementCFABuilder> {
 
   private final CFABuilder builder;
 
@@ -37,13 +38,14 @@ class VariableDeclarationStatementCFABuilder {
     builder = pBuilder;
   }
 
-  public void append(final VariableDeclarationStatement node) {
+  public VariableDeclarationStatementCFABuilder append(final VariableDeclarationStatement node) {
     @SuppressWarnings("unchecked")
     final List<VariableDeclarationFragment> variableDeclarationFragments = node.fragments();
     for (final VariableDeclarationFragment variableDeclarationFragment :
         variableDeclarationFragments) {
       append(variableDeclarationFragment);
     }
+    return this;
   }
 
   private void append(final VariableDeclarationFragment pVariableDeclarationFragment) {
@@ -59,6 +61,7 @@ class VariableDeclarationStatementCFABuilder {
                 variableDeclaration));
   }
 
+  @Override
   public CFABuilder getBuilder() {
     return builder;
   }

@@ -32,7 +32,8 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
-class FunctionDeclarationCFABuilder {
+class FunctionDeclarationCFABuilder
+    implements CFABuilderWrapperOfType<FunctionDeclarationCFABuilder> {
 
   private final CFABuilder builder;
 
@@ -40,7 +41,7 @@ class FunctionDeclarationCFABuilder {
     builder = pBuilder;
   }
 
-  public void append(final FunctionDeclaration pFunctionDeclaration) {
+  public FunctionDeclarationCFABuilder append(final FunctionDeclaration pFunctionDeclaration) {
     final ASTConverter astConverter = builder.getAstConverter();
     final JSFunctionDeclaration jsFunctionDeclaration = astConverter.convert(pFunctionDeclaration);
     final String functionName = jsFunctionDeclaration.getName();
@@ -63,6 +64,7 @@ class FunctionDeclarationCFABuilder {
             new BlankEdge("", FileLocation.DUMMY, pPredecessor, pSuccessor, "default return"));
 
     builder.append(functionCFABuilder);
+    return this;
   }
 
   /**
@@ -77,6 +79,7 @@ class FunctionDeclarationCFABuilder {
                 "", FileLocation.DUMMY, pPredecessor, pSuccessor, "Function start dummy edge"));
   }
 
+  @Override
   public CFABuilder getBuilder() {
     return builder;
   }

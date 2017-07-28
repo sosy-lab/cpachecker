@@ -39,7 +39,7 @@ class IfStatementCFABuilder implements CFABuilderWrapperOfType<IfStatementCFABui
     builder = pBuilder;
   }
 
-  public void append(final IfStatement node) {
+  public IfStatementCFABuilder append(final IfStatement node) {
     final String conditionNodeDescription = builder.getExitNode().toString();
     final CFANode exitNode = builder.createNode();
     final JSExpression condition = builder.getAstConverter().convert(node.getExpression());
@@ -75,6 +75,7 @@ class IfStatementCFABuilder implements CFABuilderWrapperOfType<IfStatementCFABui
                   exitNode)
               .getBuilder());
     }
+    return this;
   }
 
   /**

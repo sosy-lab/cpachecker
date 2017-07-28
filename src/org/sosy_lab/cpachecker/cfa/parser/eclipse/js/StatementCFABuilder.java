@@ -46,36 +46,25 @@ class StatementCFABuilder extends ASTVisitor
 
   @Override
   public boolean visit(final FunctionDeclaration statement) {
-    final FunctionDeclarationCFABuilder statementCFABuilder =
-        new FunctionDeclarationCFABuilder(builder);
-    statementCFABuilder.append(statement);
-    builder.append(statementCFABuilder.getBuilder());
+    new FunctionDeclarationCFABuilder(builder).append(statement).appendTo(builder);
     return false;
   }
 
   @Override
   public boolean visit(final FunctionInvocation statement) {
-    final FunctionInvocationCFABuilder statementCFABuilder =
-        new FunctionInvocationCFABuilder(builder);
-    statementCFABuilder.append(statement);
-    builder.append(statementCFABuilder.getBuilder());
+    new FunctionInvocationCFABuilder(builder).append(statement).appendTo(builder);
     return false;
   }
 
   @Override
   public boolean visit(final IfStatement statement) {
-    final IfStatementCFABuilder statementCFABuilder = new IfStatementCFABuilder(builder);
-    statementCFABuilder.append(statement);
-    builder.append(statementCFABuilder.getBuilder());
+    new IfStatementCFABuilder(builder).append(statement).appendTo(builder);
     return false;
   }
 
   @Override
   public boolean visit(final VariableDeclarationStatement statement) {
-    final VariableDeclarationStatementCFABuilder statementCFABuilder =
-        new VariableDeclarationStatementCFABuilder(builder);
-    statementCFABuilder.append(statement);
-    builder.append(statementCFABuilder.getBuilder());
+    new VariableDeclarationStatementCFABuilder(builder).append(statement).appendTo(builder);
     return false;
   }
 

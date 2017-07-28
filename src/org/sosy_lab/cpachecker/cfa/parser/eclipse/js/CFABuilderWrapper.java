@@ -37,6 +37,11 @@ interface CFABuilderWrapper {
     return this;
   }
 
+  default CFABuilderWrapper appendTo(final CFABuilder builder) {
+    builder.append(this.getBuilder());
+    return this;
+  }
+
   default CFABuilderWrapper append(final CFABuilder builder) {
     this.getBuilder().append(builder);
     return this;

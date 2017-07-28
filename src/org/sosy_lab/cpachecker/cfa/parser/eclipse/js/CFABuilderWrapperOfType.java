@@ -38,6 +38,12 @@ interface CFABuilderWrapperOfType<T extends CFABuilderWrapperOfType<T>> extends 
 
   @Override
   @SuppressWarnings("unchecked")
+  default T appendTo(final CFABuilder builder) {
+    return (T) CFABuilderWrapper.super.appendTo(builder);
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
   default T append(final CFABuilder builder) {
     return (T) CFABuilderWrapper.super.append(builder);
   }
