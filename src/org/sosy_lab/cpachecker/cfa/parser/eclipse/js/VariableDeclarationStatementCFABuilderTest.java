@@ -73,6 +73,7 @@ public class VariableDeclarationStatementCFABuilderTest {
     final JavaScriptUnit ast = createAST("var x = 42");
     final String expectedVariableName = "x";
     final int expectedVariableValue = 42;
+    // expected CFA: entryNode -{var x = 42}-> ()
 
     new VariableDeclarationStatementCFABuilder(builder)
         .append((VariableDeclarationStatement) ast.statements().get(0));
@@ -94,6 +95,7 @@ public class VariableDeclarationStatementCFABuilderTest {
     final int expectedFirstVariableValue = 123;
     final String expectedSecondVariableName = "y";
     final int expectedSecondVariableValue = 456;
+    // expected CFA: entryNode -{var x = 123}-> () -{var y = 456}-> ()
 
     new VariableDeclarationStatementCFABuilder(builder)
         .append((VariableDeclarationStatement) ast.statements().get(0));
