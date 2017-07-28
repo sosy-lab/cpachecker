@@ -49,8 +49,6 @@ class EclipseJavaScriptParser implements Parser {
   //      description="use the following encoding for java files")
   private Charset encoding = StandardCharsets.UTF_8;
 
-  private final ASTParser parser = ASTParser.newParser(AST.JLS3);
-
   private final LogManager logger;
 
   private final Timer parseTimer = new Timer();
@@ -81,15 +79,20 @@ class EclipseJavaScriptParser implements Parser {
   public ParseResult parseString(final String filename, final String code) throws ParserException {
     parseTimer.start();
     try {
-      parser.setProject(createProject()); // required to resolve bindings
-      parser.setUnitName(filename);
-      parser.setSource(code.toCharArray());
-      parser.setResolveBindings(true);
-      parser.setBindingsRecovery(true);
-      return buildCFA(parser.createAST(null), new Scope(filename));
+      return buildCFA(createAST(filename, code), new Scope(filename));
     } finally {
       parseTimer.stop();
     }
+  }
+
+  ASTNode createAST(final String filename, final String code) {
+    final ASTParser parser = ASTParser.newParser(AST.JLS3);
+    parser.setProject(createProject()); // required to resolve bindings
+    parser.setUnitName(filename);
+    parser.setSource(code.toCharArray());
+    parser.setResolveBindings(true);
+    parser.setBindingsRecovery(true);
+    return parser.createAST(null);
   }
 
   @Override
