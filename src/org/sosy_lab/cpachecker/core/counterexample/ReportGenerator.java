@@ -39,6 +39,7 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -147,13 +148,15 @@ public class ReportGenerator {
 
     buildArgGraphData(pReached);
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
-
+    PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
         fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
+        console.println("Graphical representation included in the \"" + reportFile.getFileName() + "\" file.");
       }
 
     } else {
+      StringBuilder counterExFiles = new StringBuilder();
       for (CounterexampleInfo counterExample : counterExamples) {
         fillOutTemplate(
             counterExample,
@@ -161,7 +164,14 @@ public class ReportGenerator {
             pCfa,
             dotBuilder,
             pStatistics);
+        counterExFiles.append("\"");
+        counterExFiles.append(counterExampleFiles.getPath(counterExample.getUniqueId()).getFileName());
+        counterExFiles.append("\"");
+        counterExFiles.append(" ");
       }
+      String info = counterExamples.size() > 1 ? "files." : "file.";
+      counterExFiles.append(info);
+      console.println("Graphical representation included in the " + counterExFiles.toString());
     }
   }
 
