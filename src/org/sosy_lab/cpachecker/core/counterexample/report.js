@@ -331,8 +331,6 @@
             return result;
         }
         
-
-        
         function markArgNode(errPathEntry) {
         	if (errPathEntry.argelem === undefined) {
         		return;
@@ -340,10 +338,15 @@
 			if (!d3.select(".marked-arg-node").empty()) {
 				d3.select(".marked-arg-node").classed("marked-arg-node", false);
 			}
-			var selection = d3.select("#arg-node" + errPathEntry.argelem);
+			var idToSelect;
+			if (d3.select("#arg-graph0").style("display") !== "none")
+				idToSelect = "#arg-node";
+			else
+				idToSelect = "#arg-error-node";
+			var selection = d3.select(idToSelect + errPathEntry.argelem);
 			selection.classed("marked-arg-node", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 280);
+			$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 300);
         }
         
         function markSourceLine(errPathEntry) {
@@ -1315,10 +1318,17 @@ function init() {
         			graph.setNode(n.index, {
         				label : n.label,
         				class : "arg-node " + n.type,
-        				id : "arg-node" + n.index
+        				id : nodeIdDecider(n)
         			});
         		});
         	}
+
+            function nodeIdDecider(node) {
+                if (errorGraphMap === undefined)
+                    return "arg-node" + node.index;
+                else 
+                    return "arg-error-node" + node.index;
+            }
         	
         	// Set the graph edges 
         	function setGraphEdges(graph, edgesToSet, multigraph) {
@@ -1434,6 +1444,7 @@ function init() {
 					d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
 				})
 				if (m.data.errorGraph !== undefined) {
+					addEventsToArg();
 					$("#renderStateModal").modal("hide");
 					argWorker.postMessage({"errorGraph": true});
 				} else {
@@ -1589,7 +1600,7 @@ function init() {
 				var selection = d3.select("#cfa-node" + d3.select(this).select("tspan").text().split("N")[1]);
 				selection.classed("marked-cfa-node", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
+				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 400);
 			});
 		d3.selectAll(".arg-dummy")
 			.on("mouseover", function(d) {
@@ -1600,7 +1611,7 @@ function init() {
 				var selection = d3.select("#arg-node" + d3.select(this).attr("id").split("-")[1]);
 				selection.classed("marked-arg-node", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 280);
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 400);
 			});
 		d3.selectAll(".arg-edge")
 			.on("mouseover", function(d) {

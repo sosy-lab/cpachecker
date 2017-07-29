@@ -67,5 +67,3 @@ Known Problems
      Workaround: After changing the tab on the right, click the selected item in the error path window again.
 
   - When selecting the ARG tab the root element is sometimes not focused correctly. You need to scroll a bit to the left or to the right to view the whole node.
-
-  - Walking along the error path when ARG tab is active and only the *error path* ARG is displayed does not mark the graph element.
