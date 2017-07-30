@@ -1514,10 +1514,13 @@ function init() {
 		}).on("mouseout", function() {
 			hideToolTipBox();
 		}).on("dblclick", function() {
+			if (!d3.select(".marked-cfa-node").empty()) {
+				d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
+			}
 			var selection = d3.select("#cfa-node" + d3.select(this).attr("id").split("-")[1]);
 			selection.classed("marked-cfa-node", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container").scrollLeft());
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
 		})
 		d3.selectAll(".cfa-edge")
 			.on("mouseover", function(d) { 
@@ -1537,7 +1540,9 @@ function init() {
 				if (line === 0) {
 					line = 1;
 				}
-				d3.select(".marked-source-line").classed("marked-source-line", false);
+				if (!d3.select(".marked-source-line").empty()) {
+					d3.select(".marked-source-line").classed("marked-source-line", false);
+				}
 				var selection = d3.select("#source-" + line + " td pre.prettyprint");
 				selection.classed("marked-source-line", true);
 				$(".sourceContent").scrollTop(selection.node().getBoundingClientRect().top + $(".sourceContent").scrollTop() - 200);
@@ -1551,10 +1556,13 @@ function init() {
 				hideToolTipBox();
 			}).on("dblclick", function() {
 				var edgeSourceTarget = d3.select(this).attr("id").split("_")[1];
+				if (!d3.select(".marked-cfa-edge").empty()) {
+					d3.select(".marked-cfa-edge").classed("marked-cfa-edge", false);
+				}
 				var selection = d3.select("#cfa-edge_" + edgeSourceTarget.split("-")[0] + "-" + edgeSourceTarget.split("-")[1]);
 				selection.classed("marked-cfa-edge", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container").scrollLeft());
+				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
 			})
 	}
 	
@@ -1597,10 +1605,13 @@ function init() {
 				hideToolTipBox(); 
 			}).on("dblclick", function() {
 				$("#set-tab-1").click();
+				if (!d3.select(".marked-cfa-node").empty()) {
+					d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
+				}
 				var selection = d3.select("#cfa-node" + d3.select(this).select("tspan").text().split("N")[1]);
 				selection.classed("marked-cfa-node", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container").scrollLeft());
+				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
 			});
 		d3.selectAll(".arg-dummy")
 			.on("mouseover", function(d) {
@@ -1608,10 +1619,16 @@ function init() {
 			}).on("mouseout", function() {
 				hideToolTipBox();
 			}).on("dblclick", function() {
+				if (!d3.select(".marked-arg-node").empty()) {
+					d3.select(".marked-arg-node").classed("marked-arg-node", false);
+				}
 				var selection = d3.select("#arg-node" + d3.select(this).attr("id").split("-")[1]);
 				selection.classed("marked-arg-node", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#arg-container").style("width").split("px")[0] - $("#arg-container").scrollLeft());
+				console.log(boundingRect);
+				console.log(d3.select("#arg-container").style("width").split("px")[0]);
+				console.log($("#arg-container").scrollLeft());
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft());
 			});
 		d3.selectAll(".arg-edge")
 			.on("mouseover", function(d) {
@@ -1637,10 +1654,13 @@ function init() {
 				hideToolTipBox();
 			}).on("dblclick", function() {
 				var edgeSourceTarget = d3.select(this).attr("id").split("_")[1];
+				if (!d3.select(".marked-arg-edge").empty()) {
+					d3.select(".marked-arg-edge").classed("marked-arg-edge", false);
+				}
 				var selection = d3.select("#arg-edge" + edgeSourceTarget.split("-")[0] + edgeSourceTarget.split("-")[1]);
 				selection.classed("marked-arg-edge", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#arg-container").style("width").split("px")[0] - $("#arg-container").scrollLeft());
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft());
 			});
 	}
 	
