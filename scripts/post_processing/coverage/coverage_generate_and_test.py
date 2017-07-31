@@ -276,13 +276,12 @@ def create_arg_parser():
         help=("Directory where traces sampling the execution space are "
               "located. If the option -only_collect_coverage is not "
               "present, then this directory must not exist, since it will "
-              "be created and used as to store the executions."))
+              "be created and used to store the executions."))
     parser.add_argument(
         "-cex_count",
         type=int,
-        help="Only applicable (and required) when -only_collect_coverage"
-        "is not present.\n"
-        "Number of traces to be generated.""")
+        help="Only applicable (and required) when -only_collect_coverage "
+        "is not present. Indicates the number of traces to be generated.""")
     parser.add_argument(
         "-only_collect_coverage",
         action='store_true',
@@ -304,15 +303,23 @@ def create_arg_parser():
         help=("Only applicable when -only_collect_coverage is not present.\n"
               "CPAchecker specification file: We sample the execution space by "
               "repeatedly calling CPAchecker, if a specification violation was "
-              "found it will be collected separately."))
+              "found, we will produce an error message for the executions "
+              "generated to be manually inspected."))
     parser.add_argument(
         "-spec_error_message",
+        required=True,
         action='append',
         help=("Only applicable when -only_collect_coverage is not present.\n"
               "This string will be used to determine whether a specification "
               "violation was found while attempting to sample the execution "
               "space. This string must exactly match a string printed to "
-              "standard output when -spec is violated."))
+              "standard output when -spec is violated. "
+              "This argument can be repeated: '"
+              "-spec_error_message m1 -spec_error_message m2'. "
+              "If either m1 or m2 match a string printed to standard "
+              "output while generating a specific execution, it will "
+              "be considered a specification violation and "
+              "produce an error message."))
 
 
     parser.add_argument(
@@ -337,7 +344,7 @@ def check_args(args, logger):
             sys.exit(0)
         if os.path.exists(args.cex_dir):
             logger.error((
-                'Invalid option: when using -only_collect_coverage, the '
+                'Invalid option: when not using -only_collect_coverage, the '
                 'directory -cex_dir (' + args.cex_dir + ') must not '
                 'exist. The directory will be created by this script '
                 'and will contain the generated executions.'))
@@ -357,6 +364,9 @@ def check_args(args, logger):
 
 def main(argv, logger):
     parser = create_arg_parser()
+    if len(argv)==0:
+        parser.print_help()
+        sys.exit(1)
     args = parser.parse_args(argv)
     if args.debug:
         logger.setLevel(logging.DEBUG)
