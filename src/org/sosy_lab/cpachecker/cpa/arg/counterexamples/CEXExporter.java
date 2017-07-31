@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
@@ -256,8 +257,11 @@ public class CEXExporter {
 
       String LINEDATA = "DA:";
       try (Writer w = IO.openOutputFile(coveragePrefixTemplate.getPath(counterexample.getUniqueId()), Charset.defaultCharset())) {
-        for (Integer line : visitedLinesPrefix.keySet()) {
-          w.append(LINEDATA + line + "," + visitedLinesPrefix.get(line) + "\n");
+        for (Entry<Integer, Integer> entry : visitedLinesPrefix.entrySet()) {
+          w.append(
+              LINEDATA +
+              String.valueOf(entry.getKey()) + "," +
+              String.valueOf(entry.getValue()) + "\n");
         }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
