@@ -23,53 +23,63 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import org.eclipse.wst.jsdt.core.dom.ASTVisitor;
-import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
-import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
+import org.eclipse.wst.jsdt.core.dom.Block;
+import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
+import org.eclipse.wst.jsdt.core.dom.FunctionDeclarationStatement;
 import org.eclipse.wst.jsdt.core.dom.IfStatement;
 import org.eclipse.wst.jsdt.core.dom.Statement;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 
-class StatementCFABuilder extends ASTVisitor
-    implements CFABuilderWrapperOfType<StatementCFABuilder> {
 
-  private final CFABuilder builder;
+class StatementCFABuilder implements StatementAppendable {
 
-  StatementCFABuilder(final CFABuilder pBuilder) {
-    builder = pBuilder;
+  private BlockStatementAppendable blockStatementAppendable;
+  private ExpressionStatementAppendable expressionStatementAppendable;
+  private IfStatementAppendable ifStatementAppendable;
+  private VariableDeclarationStatementAppendable variableDeclarationStatementAppendable;
+  private FunctionDeclarationStatementAppendable functionDeclarationStatementAppendable;
+
+  void setBlockStatementAppendable(final BlockStatementAppendable pBlockStatementAppendable) {
+    blockStatementAppendable = pBlockStatementAppendable;
   }
 
-  public StatementCFABuilder append(final Statement pStatement) {
-    pStatement.accept(this);
-    return this;
+  void setExpressionStatementAppendable(
+      final ExpressionStatementAppendable pExpressionStatementAppendable) {
+    expressionStatementAppendable = pExpressionStatementAppendable;
   }
 
-  @Override
-  public boolean visit(final FunctionDeclaration statement) {
-    new FunctionDeclarationCFABuilder(builder).append(statement).appendTo(builder);
-    return false;
+  void setIfStatementAppendable(final IfStatementAppendable pIfStatementAppendable) {
+    ifStatementAppendable = pIfStatementAppendable;
   }
 
-  @Override
-  public boolean visit(final FunctionInvocation statement) {
-    new FunctionInvocationCFABuilder(builder).append(statement).appendTo(builder);
-    return false;
+  void setVariableDeclarationStatementAppendable(
+      final VariableDeclarationStatementAppendable pVariableDeclarationStatementAppendable) {
+    variableDeclarationStatementAppendable = pVariableDeclarationStatementAppendable;
   }
 
-  @Override
-  public boolean visit(final IfStatement statement) {
-    new IfStatementCFABuilder(builder).append(statement).appendTo(builder);
-    return false;
-  }
-
-  @Override
-  public boolean visit(final VariableDeclarationStatement statement) {
-    new VariableDeclarationStatementCFABuilder(builder).append(statement).appendTo(builder);
-    return false;
+  void setFunctionDeclarationStatementAppendable(
+      final FunctionDeclarationStatementAppendable pFunctionDeclarationStatementAppendable) {
+    functionDeclarationStatementAppendable = pFunctionDeclarationStatementAppendable;
   }
 
   @Override
-  public CFABuilder getBuilder() {
-    return builder;
+  public void append(final JavaScriptCFABuilder pBuilder, final Statement pStatement) {
+    if (pStatement instanceof Block) {
+      blockStatementAppendable.append(pBuilder, (Block) pStatement);
+    } else if (pStatement instanceof FunctionDeclarationStatement) {
+      functionDeclarationStatementAppendable.append(
+          pBuilder, (FunctionDeclarationStatement) pStatement);
+    } else if (pStatement instanceof ExpressionStatement) {
+      expressionStatementAppendable.append(pBuilder, (ExpressionStatement) pStatement);
+    } else if (pStatement instanceof IfStatement) {
+      ifStatementAppendable.append(pBuilder, (IfStatement) pStatement);
+    } else if (pStatement instanceof VariableDeclarationStatement) {
+      variableDeclarationStatementAppendable.append(
+          pBuilder, (VariableDeclarationStatement) pStatement);
+    } else {
+      throw new CFAGenerationRuntimeException(
+          "Unknown kind of statement (not handled yet): " + pStatement.getClass().getName(),
+          pStatement);
+    }
   }
 }

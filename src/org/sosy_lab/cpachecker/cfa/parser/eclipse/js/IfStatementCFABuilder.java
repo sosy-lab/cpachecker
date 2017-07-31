@@ -31,21 +31,17 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 
-class IfStatementCFABuilder implements CFABuilderWrapperOfType<IfStatementCFABuilder> {
+class IfStatementCFABuilder implements IfStatementAppendable {
 
-  private final CFABuilder builder;
-
-  IfStatementCFABuilder(final CFABuilder pBuilder) {
-    builder = pBuilder;
-  }
-
-  public IfStatementCFABuilder append(final IfStatement node) {
+  @Override
+  public void append(final JavaScriptCFABuilder builder, final IfStatement node) {
     final String conditionNodeDescription = builder.getExitNode().toString();
     final CFANode exitNode = builder.createNode();
     final JSExpression condition = builder.getAstConverter().convert(node.getExpression());
 
     builder.addParseResult(
         buildConditionBranch(
+                builder,
                 true,
                 condition,
                 node.getThenStatement(),
@@ -68,6 +64,7 @@ class IfStatementCFABuilder implements CFABuilderWrapperOfType<IfStatementCFABui
     } else {
       builder.append(
           buildConditionBranch(
+                  builder,
                   false,
                   condition,
                   elseStatement,
@@ -75,7 +72,6 @@ class IfStatementCFABuilder implements CFABuilderWrapperOfType<IfStatementCFABui
                   exitNode)
               .getBuilder());
     }
-    return this;
   }
 
   /**
@@ -89,18 +85,15 @@ class IfStatementCFABuilder implements CFABuilderWrapperOfType<IfStatementCFABui
    * @param pExitNode The node after the if-statement, where then- and else-branch flow together.
    * @return The builder that contains the parse result of the branch.
    */
-  private StatementCFABuilder buildConditionBranch(
+  private JavaScriptCFABuilder buildConditionBranch(
+      final JavaScriptCFABuilder builder,
       final boolean pTruthAssumption,
       final JSExpression pCondition,
       final Statement pStatement,
       final String pExitEdgeDescription,
       final CFANode pExitNode) {
-    return new StatementCFABuilder(
-            new CFABuilder(
-                builder.getLogger(),
-                builder.getAstConverter(),
-                builder.getFunctionName(),
-                builder.getExitNode()))
+    return builder
+        .copy()
         .appendEdge(
             (pPredecessor, pSuccessor) ->
                 new JSAssumeEdge(
@@ -118,8 +111,4 @@ class IfStatementCFABuilder implements CFABuilderWrapperOfType<IfStatementCFABui
                     "", FileLocation.DUMMY, pPredecessor, pSuccessor, pExitEdgeDescription));
   }
 
-  @Override
-  public CFABuilder getBuilder() {
-    return builder;
-  }
 }

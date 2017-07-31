@@ -26,33 +26,30 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import java.util.Collections;
 import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.internal.core.dom.binding.FunctionBinding;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSUndefinedLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
-class FunctionInvocationCFABuilder
-    implements CFABuilderWrapperOfType<FunctionInvocationCFABuilder> {
+class FunctionInvocationCFABuilder implements FunctionInvocationAppendable {
 
-  private final CFABuilder builder;
-
-  FunctionInvocationCFABuilder(final CFABuilder pBuilder) {
-    builder = pBuilder;
-  }
-
-  public FunctionInvocationCFABuilder append(final FunctionInvocation node) {
-    final ASTConverter astConverter = builder.getAstConverter();
+  @Override
+  public JSExpression append(final JavaScriptCFABuilder pBuilder, final FunctionInvocation pNode) {
+    final ASTConverter astConverter = pBuilder.getAstConverter();
     final JSFunctionCallStatement functionCallStatement =
         new JSFunctionCallStatement(
-            astConverter.getFileLocation(node),
+            astConverter.getFileLocation(pNode),
             new JSFunctionCallExpression(
-                astConverter.getFileLocation(node),
+                astConverter.getFileLocation(pNode),
                 JSAnyType.ANY,
-                astConverter.convert(node.getName()),
+                astConverter.convert(pNode.getName()),
                 Collections.emptyList(),
-                astConverter.convert((FunctionBinding) node.getName().resolveBinding())));
+                astConverter.convert((FunctionBinding) pNode.getName().resolveBinding())));
 
-    builder.appendEdge(
+    pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->
             new JSStatementEdge(
                 functionCallStatement.toASTString(),
@@ -60,11 +57,9 @@ class FunctionInvocationCFABuilder
                 functionCallStatement.getFileLocation(),
                 pPredecessor,
                 pSuccessor));
-    return this;
+
+    // TODO create tmp variable for return value of function invocation and return its identifier
+    return new JSUndefinedLiteralExpression(FileLocation.DUMMY);
   }
 
-  @Override
-  public CFABuilder getBuilder() {
-    return builder;
-  }
 }

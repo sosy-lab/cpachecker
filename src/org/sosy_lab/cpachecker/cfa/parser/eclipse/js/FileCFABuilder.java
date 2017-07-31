@@ -29,20 +29,23 @@ import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
 
-class FileCFABuilder {
+class FileCFABuilder implements JavaScriptUnitAppendable {
   private static final String functionName = "main";
 
   private final CFABuilder builder;
-  private final StatementCFABuilder statementBuilder;
   private final FunctionExitNode exitNode;
+  private final JavaScriptUnitAppendable javaScriptUnitAppendable;
 
-  FileCFABuilder(final Scope pScope, final LogManager pLogger) {
+  FileCFABuilder(
+      final Scope pScope,
+      final LogManager pLogger,
+      final JavaScriptUnitAppendable pJavaScriptUnitAppendable) {
+    javaScriptUnitAppendable = pJavaScriptUnitAppendable;
     final JSFunctionDeclaration functionDeclaration =
         new JSFunctionDeclaration(
             FileLocation.DUMMY,
@@ -54,16 +57,13 @@ class FileCFABuilder {
         new JSFunctionEntryNode(
             FileLocation.DUMMY, functionDeclaration, exitNode, Optional.empty());
     exitNode.setEntryNode(entryNode);
-    builder = new CFABuilder(pLogger, new ASTConverter(pScope, pLogger), entryNode);
-    statementBuilder = new StatementCFABuilder(builder);
+    builder = new CFABuilder(pScope, pLogger, new ASTConverter(pScope, pLogger), entryNode);
   }
 
-  public void append(final JavaScriptUnit unit) {
-    unit.accept(statementBuilder);
-    builder.appendEdge(
-        exitNode,
-        (pPredecessor, pSuccessor) ->
-            new BlankEdge("", FileLocation.DUMMY, pPredecessor, pSuccessor, "File end dummy edge"));
+  @Override
+  public void append(final JavaScriptCFABuilder pBuilder, final JavaScriptUnit unit) {
+    javaScriptUnitAppendable.append(pBuilder, unit);
+    pBuilder.appendEdge(exitNode, DummyEdge.withDescription("File end dummy edge"));
   }
 
   public CFABuilder getBuilder() {

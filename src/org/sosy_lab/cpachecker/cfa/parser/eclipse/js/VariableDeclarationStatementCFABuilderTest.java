@@ -30,13 +30,10 @@ import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -44,39 +41,33 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public class VariableDeclarationStatementCFABuilderTest {
 
   private EclipseJavaScriptParser parser;
-  private CFABuilder builder;
+  private JavaScriptCFABuilder builder;
   private CFANode entryNode;
-  private final String filename = "dummy.js";
 
   @Before
   public void init() throws InvalidConfigurationException {
-    final LogManager logger = LogManager.createTestLogManager();
-    parser = new EclipseJavaScriptParser(logger);
-    final String functionName = "dummy";
-    // Make entryNode reachable by adding an entry edge.
-    // Otherwise, the builder can not add edges.
-    final CFANode dummyEntryNode = new CFANode(functionName);
-    entryNode = new CFANode(functionName);
-    CFACreationUtils.addEdgeUnconditionallyToCFA(
-        new BlankEdge("", FileLocation.DUMMY, dummyEntryNode, entryNode, "start dummy edge"));
-    builder =
-        new CFABuilder(
-            logger, new ASTConverter(new Scope(filename), logger), functionName, entryNode);
+    builder = JavaScriptCFABuilderFactory.createTestJavaScriptCFABuilder();
+    parser = new EclipseJavaScriptParser(builder.getLogger());
+    entryNode = builder.getExitNode();
   }
 
   private JavaScriptUnit createAST(final String pCode) {
-    return (JavaScriptUnit) parser.createAST(filename, pCode);
+    return (JavaScriptUnit) parser.createAST(builder.getBuilder().getFilename(), pCode);
+  }
+
+  @SuppressWarnings("unchecked")
+  private VariableDeclarationStatement parseStatement(final String pCode) {
+    return (VariableDeclarationStatement) createAST(pCode).statements().get(0);
   }
 
   @Test
   public final void testSingleVariableDeclaration() throws ParserException {
-    final JavaScriptUnit ast = createAST("var x = 42");
+    final VariableDeclarationStatement variableDeclarationStatement = parseStatement("var x = 42");
     final String expectedVariableName = "x";
     final int expectedVariableValue = 42;
     // expected CFA: entryNode -{var x = 42}-> ()
 
-    new VariableDeclarationStatementCFABuilder(builder)
-        .append((VariableDeclarationStatement) ast.statements().get(0));
+    new VariableDeclarationStatementCFABuilder().append(builder, variableDeclarationStatement);
 
     final JSDeclarationEdge declarationEdge = (JSDeclarationEdge) entryNode.getLeavingEdge(0);
     final JSVariableDeclaration variableDeclaration =
@@ -84,21 +75,23 @@ public class VariableDeclarationStatementCFABuilderTest {
     Truth.assertThat(variableDeclaration.getName()).isEqualTo(expectedVariableName);
     Truth.assertThat(
             ((JSInitializerExpression) variableDeclaration.getInitializer()).getExpression())
-        .isEqualTo(new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.valueOf(expectedVariableValue)));
+        .isEqualTo(
+            new JSIntegerLiteralExpression(
+                FileLocation.DUMMY, BigInteger.valueOf(expectedVariableValue)));
     Truth.assertThat(declarationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
   }
 
   @Test
   public final void testMultiVariableDeclaration() throws ParserException {
-    final JavaScriptUnit ast = createAST("var x = 123, y = 456");
+    final VariableDeclarationStatement variableDeclarationStatement =
+        parseStatement("var x = 123, y = 456");
     final String expectedFirstVariableName = "x";
     final int expectedFirstVariableValue = 123;
     final String expectedSecondVariableName = "y";
     final int expectedSecondVariableValue = 456;
     // expected CFA: entryNode -{var x = 123}-> () -{var y = 456}-> ()
 
-    new VariableDeclarationStatementCFABuilder(builder)
-        .append((VariableDeclarationStatement) ast.statements().get(0));
+    new VariableDeclarationStatementCFABuilder().append(builder, variableDeclarationStatement);
 
     final JSDeclarationEdge xDeclarationEdge = (JSDeclarationEdge) entryNode.getLeavingEdge(0);
     final JSVariableDeclaration xVariableDeclaration =
@@ -106,7 +99,9 @@ public class VariableDeclarationStatementCFABuilderTest {
     Truth.assertThat(xVariableDeclaration.getName()).isEqualTo(expectedFirstVariableName);
     Truth.assertThat(
             ((JSInitializerExpression) xVariableDeclaration.getInitializer()).getExpression())
-        .isEqualTo(new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.valueOf(expectedFirstVariableValue)));
+        .isEqualTo(
+            new JSIntegerLiteralExpression(
+                FileLocation.DUMMY, BigInteger.valueOf(expectedFirstVariableValue)));
 
     final JSDeclarationEdge yDeclarationEdge = (JSDeclarationEdge) xDeclarationEdge.getSuccessor
         ().getLeavingEdge(0);
@@ -114,8 +109,10 @@ public class VariableDeclarationStatementCFABuilderTest {
         (JSVariableDeclaration) yDeclarationEdge.getDeclaration();
     Truth.assertThat(yVariableDeclaration.getName()).isEqualTo(expectedSecondVariableName);
     Truth.assertThat(
-        ((JSInitializerExpression) yVariableDeclaration.getInitializer()).getExpression())
-        .isEqualTo(new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.valueOf(expectedSecondVariableValue)));
+            ((JSInitializerExpression) yVariableDeclaration.getInitializer()).getExpression())
+        .isEqualTo(
+            new JSIntegerLiteralExpression(
+                FileLocation.DUMMY, BigInteger.valueOf(expectedSecondVariableValue)));
     Truth.assertThat(yDeclarationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
   }
 }

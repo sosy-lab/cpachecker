@@ -28,21 +28,15 @@ import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
-class FunctionDeclarationCFABuilder
-    implements CFABuilderWrapperOfType<FunctionDeclarationCFABuilder> {
+class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
 
-  private final CFABuilder builder;
-
-  FunctionDeclarationCFABuilder(final CFABuilder pBuilder) {
-    builder = pBuilder;
-  }
-
-  public FunctionDeclarationCFABuilder append(final FunctionDeclaration pFunctionDeclaration) {
-    final ASTConverter astConverter = builder.getAstConverter();
+  @Override
+  public void append(
+      final JavaScriptCFABuilder pBuilder, final FunctionDeclaration pFunctionDeclaration) {
+    final ASTConverter astConverter = pBuilder.getAstConverter();
     final JSFunctionDeclaration jsFunctionDeclaration = astConverter.convert(pFunctionDeclaration);
     final String functionName = jsFunctionDeclaration.getName();
     final FunctionExitNode exitNode = new FunctionExitNode(functionName);
@@ -50,37 +44,25 @@ class FunctionDeclarationCFABuilder
         new JSFunctionEntryNode(
             FileLocation.DUMMY, jsFunctionDeclaration, exitNode, Optional.empty());
     exitNode.setEntryNode(entryNode);
-    final CFABuilder functionCFABuilder =
-        new CFABuilder(builder.getLogger(), astConverter, entryNode);
+    final JavaScriptCFABuilder functionCFABuilder = pBuilder.copyWith(entryNode);
 
-    addFunctionEntryNode();
+    addFunctionEntryNode(pBuilder);
 
-    final StatementCFABuilder bodyBuilder = new StatementCFABuilder(functionCFABuilder);
-    bodyBuilder.append(pFunctionDeclaration.getBody());
-
-    functionCFABuilder.appendEdge(
-        exitNode,
-        (pPredecessor, pSuccessor) ->
-            new BlankEdge("", FileLocation.DUMMY, pPredecessor, pSuccessor, "default return"));
-
-    builder.append(functionCFABuilder);
-    return this;
+    functionCFABuilder
+        .append(pFunctionDeclaration.getBody())
+        .appendEdge(exitNode, DummyEdge.withDescription("default return"))
+        .appendTo(pBuilder.getBuilder());
   }
 
   /**
    * Add a dummy edge to allow a function call as first statement. Without this edge {@link
    * CFASecondPassBuilder#insertCallEdgesRecursively()} would consider the function call as
    * unreachable.
+   *
+   * @param pBuilder Builder to which the edge is added.
    */
-  private void addFunctionEntryNode() {
-    builder.appendEdge(
-        (pPredecessor, pSuccessor) ->
-            new BlankEdge(
-                "", FileLocation.DUMMY, pPredecessor, pSuccessor, "Function start dummy edge"));
+  private void addFunctionEntryNode(final JavaScriptCFABuilder pBuilder) {
+    pBuilder.appendEdge(DummyEdge.withDescription("Function start dummy edge"));
   }
 
-  @Override
-  public CFABuilder getBuilder() {
-    return builder;
-  }
 }

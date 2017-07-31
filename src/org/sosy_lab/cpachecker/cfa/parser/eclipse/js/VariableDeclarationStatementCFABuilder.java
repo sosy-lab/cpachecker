@@ -29,29 +29,28 @@ import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
 
-class VariableDeclarationStatementCFABuilder
-    implements CFABuilderWrapperOfType<VariableDeclarationStatementCFABuilder> {
+class VariableDeclarationStatementCFABuilder implements VariableDeclarationStatementAppendable {
 
-  private final CFABuilder builder;
-
-  VariableDeclarationStatementCFABuilder(final CFABuilder pBuilder) {
-    builder = pBuilder;
-  }
-
-  public VariableDeclarationStatementCFABuilder append(final VariableDeclarationStatement node) {
+  @Override
+  public void append(
+      final JavaScriptCFABuilder pBuilder,
+      final VariableDeclarationStatement pVariableDeclarationStatement) {
     @SuppressWarnings("unchecked")
-    final List<VariableDeclarationFragment> variableDeclarationFragments = node.fragments();
+    final List<VariableDeclarationFragment> variableDeclarationFragments =
+        pVariableDeclarationStatement.fragments();
     for (final VariableDeclarationFragment variableDeclarationFragment :
         variableDeclarationFragments) {
-      append(variableDeclarationFragment);
+      append(pBuilder, variableDeclarationFragment);
     }
-    return this;
   }
 
-  private void append(final VariableDeclarationFragment pVariableDeclarationFragment) {
+  private void append(
+      final JavaScriptCFABuilder pBuilder,
+      final VariableDeclarationFragment pVariableDeclarationFragment) {
+    // TODO do not use converter
     final JSVariableDeclaration variableDeclaration =
-        builder.getAstConverter().convert(pVariableDeclarationFragment);
-    builder.appendEdge(
+        pBuilder.getAstConverter().convert(pVariableDeclarationFragment);
+    pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->
             new JSDeclarationEdge(
                 variableDeclaration.toASTString(),
@@ -61,8 +60,4 @@ class VariableDeclarationStatementCFABuilder
                 variableDeclaration));
   }
 
-  @Override
-  public CFABuilder getBuilder() {
-    return builder;
-  }
 }

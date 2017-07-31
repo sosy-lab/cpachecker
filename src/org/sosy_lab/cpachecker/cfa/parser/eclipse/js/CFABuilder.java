@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSFunctionEntryNode;
 
 class CFABuilder {
+  private final Scope scope;
   private final LogManager logger;
   private final ASTConverter astConverter;
 
@@ -47,20 +48,23 @@ class CFABuilder {
   private CFANode exitNode;
 
   CFABuilder(
+      final Scope pScope,
       final LogManager pLogger,
       final ASTConverter pAstConverter,
       final JSFunctionEntryNode pEntryNode) {
-    this(pLogger, pAstConverter, pEntryNode.getFunctionName(), (CFANode) pEntryNode);
+    this(pScope, pLogger, pAstConverter, pEntryNode.getFunctionName(), pEntryNode);
     parseResult.getFunctions().put(functionName, pEntryNode);
     parseResult.getCFANodes().put(functionName, pEntryNode);
     parseResult.getCFANodes().put(functionName, pEntryNode.getExitNode());
   }
 
   CFABuilder(
+      final Scope pScope,
       final LogManager pLogger,
       final ASTConverter pAstConverter,
       final String pFunctionName,
       final CFANode pEntryNode) {
+    scope = pScope;
     logger = pLogger;
     astConverter = pAstConverter;
     functionName = pFunctionName;
@@ -126,4 +130,13 @@ class CFABuilder {
   public String getFunctionName() {
     return functionName;
   }
+
+  public Scope getScope() {
+    return scope;
+  }
+
+  public String getFilename() {
+    return getScope().getFileName();
+  }
+
 }
