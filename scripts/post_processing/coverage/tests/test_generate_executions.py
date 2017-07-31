@@ -20,8 +20,8 @@ class TestCoverage(unittest.TestCase):
     cpachecker_root = os.path.join(
         script_path, os.pardir, os.pardir, os.pardir, os.pardir)
     default_spec = os.path.join(
-        cpachecker_root, 'config', 'specification', 'default.spc')
-    default_error_message = 'error label'
+        cpachecker_root, 'config', 'specification', 'ErrorLabel.spc')
+    default_error_message = ["error label"]
     default_timelimit = 10
     temp_folder = os.path.join(script_path, 'temp_folder')
     def setUp(self):
@@ -227,7 +227,13 @@ class TestCoverageAAIsPrefix(TestCoverage):
         self.assertEqual(lines_covered, set([3,4,13]))
         self.assertEqual(lines_to_cover, set([3,4,5,6,7,9,10,13,14,15]))
 
-class TestCoverageIntegration(TestCoverage):
+class TestIntegration(TestCoverage):
+    default_error_message = []
+    for e in TestCoverage.default_error_message:
+        default_error_message.append('-spec_error_message')
+        default_error_message.append('"' + e + '"')
+
+class TestCoverageIntegrationOnlyCollectCoverage(TestIntegration):
     def test(self):
         instance = os.path.join(self.aux_root, 'three_paths.c')
         aa_file = os.path.join(
@@ -238,8 +244,8 @@ class TestCoverageIntegration(TestCoverage):
             '-assumption_automaton_file', aa_file,
             '-cex_dir', specs_dir,
             '-only_collect_coverage',
-            '-spec', self.default_spec,
-            '-spec_error_message', self.default_error_message,
+            '-spec', self.default_spec] + (
+            self.default_error_message) + [
             instance
         ]]
         with patch.object(self.logger, 'info') as mock_info:
@@ -255,6 +261,42 @@ class TestCoverageIntegration(TestCoverage):
                 call('Total lines to cover: 10'),
                 call(''),
                 call('Total lines covered: 5'),
+                call('Total lines to cover: 10')
+            ]
+            self.assertEqual(mock_info.mock_calls, expected_calls)
+
+class TestCoverageIntegrationTimelimitOptional(TestIntegration):
+    def test(self):
+        instance = os.path.join(self.aux_root, 'three_paths.c')
+        aa_file = os.path.join(
+            self.aux_root, 'aa_three_paths_inner_if_both_blocks.spc')
+        non_existent_dir = self.temp_folder
+        argv = [ str(x) for x in [
+            '-assumption_automaton_file', aa_file,
+            '-cex_dir', non_existent_dir,
+            '-spec', self.default_spec] + (
+            self.default_error_message) + [
+            '-cex_count', 10,
+            instance
+        ]]
+        with patch.object(self.logger, 'info') as mock_info:
+            coverage_generate_and_test.main(argv, self.logger)
+            expected_calls =  [
+                call('Generated 3 executions.'),
+                call('Collecting coverage from 3 executions.'),
+                call('Coverage after collecting 1 executions:'),
+                call('Lines covered: 3'),
+                call('Total lines to cover: 10'),
+                call(''),
+                call('Coverage after collecting 2 executions:'),
+                call('Lines covered: 5'),
+                call('Total lines to cover: 10'),
+                call(''),
+                call('Coverage after collecting 3 executions:'),
+                call('Lines covered: 6'),
+                call('Total lines to cover: 10'),
+                call(''),
+                call('Total lines covered: 6'),
                 call('Total lines to cover: 10')
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)

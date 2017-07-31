@@ -72,6 +72,10 @@ def cpachecker_command(
             'counterexample.export.exportCounterexampleCoverage=true',
         '-setprop',
             'cpa.composite.aggregateBasicBlocks=false']
+
+    timelimit_prop = []
+    if timelimit is not None:
+        timelimit_prop = ['-setprop', 'limits.time.cpu='+str(timelimit)+'s']
     return [
         os.path.join(cpachecker_root, 'scripts', 'cpa.sh'),
         '-config' , conf,
@@ -80,8 +84,8 @@ def cpachecker_command(
         ['-heap', heap_size] if heap_size else []) + [
         '-setprop', 'analysis.stopAfterError=false',
         '-setprop', 'analysis.counterexampleLimit='+str(cex_count),
-        '-setprop', 'analysis.traversal.usePostorder=true',
-        '-setprop', 'limits.time.cpu=' + str(int(timelimit)) + 's',
+        '-setprop', 'analysis.traversal.usePostorder=true'] + (
+        timelimit_prop) + [
         '-setprop', 'analysis.traversal.order=DFS',
         '-setprop', 'analysis.traversal.useReversePostorder=false',
         '-setprop', 'analysis.traversal.useCallstack=false' ] + ( 
@@ -112,7 +116,11 @@ def move_execution_spec_files(temp_dir, output_dir):
 def run_command(command, logger):
     logger.debug("Executing:")
     print_command(command, logger)
-    output = check_output(command, stderr=subprocess.STDOUT)
+    try:
+        output = check_output(command, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        logger.error(e.output)
+        raise e
     logger.debug("Finished Executing")
     logger.debug(output)
     return output
@@ -130,8 +138,6 @@ def generate_executions(
     create_temp_dir(temp_dir)
     reach_exit_spec_file = create_spec(spec_folder=temp_dir)
 
-    timelimit = int(timelimit)
-
     specs = [reach_exit_spec_file, spec]
 
     # This configuration seems to produce sufficiently good executions.
@@ -148,7 +154,9 @@ def generate_executions(
 
     try:
         output = run_command(command, logger)
-        bug_found = spec_error_message.encode('utf-8') in output
+        bug_found = False
+        for em in spec_error_message:
+            bug_found = bug_found or em.encode('utf-8') in output
         move_execution_spec_files(temp_dir=temp_dir, output_dir=output_dir)
     finally:
         shutil.rmtree(temp_dir)
@@ -265,16 +273,16 @@ def create_arg_parser():
              File containing an assumption automaton.""")
     parser.add_argument(
         "-cex_dir",
-        default=os.path.relpath(
-            os.path.join(cpachecker_root, 'execution_samples')),
         help=("Directory where traces sampling the execution space are "
-              "located. If the option -only_collect_coverage is also "
+              "located. If the option -only_collect_coverage is not "
               "present, then this directory must not exist, since it will "
               "be created and used as to store the executions."))
     parser.add_argument(
         "-cex_count",
-        help="""Only applicable when -only_collect_coverage is not present.
-             "Number of traces to be generated.""")
+        type=int,
+        help="Only applicable (and required) when -only_collect_coverage"
+        "is not present.\n"
+        "Number of traces to be generated.""")
     parser.add_argument(
         "-only_collect_coverage",
         action='store_true',
@@ -285,6 +293,7 @@ def create_arg_parser():
         help="Verbose output.")
     parser.add_argument(
         "-timelimit",
+        type=int,
         help=("Only applicable when -only_collect_coverage is not present.\n"
               "Time limit in seconds: We sample the execution space by "
               "repeatedly calling CPAchecker, this would be a global time limit "
@@ -298,7 +307,7 @@ def create_arg_parser():
               "found it will be collected separately."))
     parser.add_argument(
         "-spec_error_message",
-        required=True,
+        action='append',
         help=("Only applicable when -only_collect_coverage is not present.\n"
               "This string will be used to determine whether a specification "
               "violation was found while attempting to sample the execution "
@@ -318,9 +327,14 @@ def check_args(args, logger):
     if (args.cex_count or args.timelimit) and (args.only_collect_coverage):
         logger.error((
             'Invalid options: Options -cex_count can only be '
-            'present when -only_collect_coverage is present too.'))
+            'present when -only_collect_coverage is not present.'))
         sys.exit(0)
     if not args.only_collect_coverage:
+        if not args.cex_count:
+            logger.error((
+                'Option -cex_count is required with -only_collect_coverage '
+                'is not present.'))
+            sys.exit(0)
         if os.path.exists(args.cex_dir):
             logger.error((
                 'Invalid option: when using -only_collect_coverage, the '
@@ -372,4 +386,6 @@ if __name__ == "__main__":
     logging.basicConfig()
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
-    main(sys.argv, logger)
+    # Excluding argv[0], otherwise it'll be recognized as the positional
+    # argument.
+    main(sys.argv[1:], logger)
