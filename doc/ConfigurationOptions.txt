@@ -187,6 +187,9 @@ analysis.constructResidualProgram = false
 # continue analysis after a unsupported code was found on one path
 analysis.continueAfterUnsupportedCode = false
 
+# Maximum number of counterexamples to be created.
+analysis.counterexampleLimit = 0
+
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
 
@@ -666,6 +669,9 @@ counterexample.export.enabled = true
 # export counterexample as source file
 counterexample.export.exportAsSource = true
 
+# export coverage information for every witness
+counterexample.export.exportCounterexampleCoverage = false
+
 # export test harness
 counterexample.export.exportHarness = false
 
@@ -700,6 +706,10 @@ counterexample.export.harness = "Counterexample.%d.harness.c"
 # where to dump the counterexample model in case a specification violation is
 # found
 counterexample.export.model = "Counterexample.%d.assignment.txt"
+
+# export counterexample coverage information, considering only spec prefix as
+# covered (up until reaching __FALSE state in Assumption Automaton).
+counterexample.export.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-info"
 
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.
