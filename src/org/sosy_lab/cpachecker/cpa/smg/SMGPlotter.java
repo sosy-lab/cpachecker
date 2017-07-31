@@ -98,18 +98,13 @@ public final class SMGPlotter {
       String style;
       if (smg.isObjectValid(pRegion)) {
         style = "solid";
-        if (smg.isObjectExternallyAllocated(pRegion)) {
-          color = "green";
-        } else {
-          color = "black";
-        }
+        color = "black";
       } else {
         style = "dotted";
-        if (smg.isObjectExternallyAllocated(pRegion)) {
-          color = "green";
-        } else {
-          color = "red";
-        }
+        color = "red";
+      }
+      if (smg.isObjectExternallyAllocated(pRegion)) {
+        color = "green";
       }
 
       return new SMGObjectNode("region", defaultDefinition(color, "rectangle", style, pRegion));

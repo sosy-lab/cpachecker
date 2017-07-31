@@ -72,7 +72,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
       description="which merge operator to use for the SMGCPA")
   private String mergeType = "SEP";
 
-  private final TransferRelation transferRelation;
+  private final SMGTransferRelation transferRelation;
 
   private final SMGPredicateManager smgPredicateManager;
   private final BlockOperator blockOperator;
@@ -117,7 +117,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   }
 
   public void setTransferRelationToRefinment(PathTemplate pNewPathTemplate) {
-    ((SMGTransferRelation) transferRelation).changeKindToRefinment();
+    transferRelation.changeKindToRefinment();
     exportOptions.changeToRefinment(pNewPathTemplate);
   }
 

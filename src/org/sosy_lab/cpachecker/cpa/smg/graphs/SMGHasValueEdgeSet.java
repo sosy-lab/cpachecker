@@ -90,4 +90,9 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     }
     return false;
   }
+
+  @Override
+  public String toString() {
+    return map.toString();
+  }
 }

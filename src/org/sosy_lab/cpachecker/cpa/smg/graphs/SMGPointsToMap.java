@@ -104,4 +104,19 @@ public class SMGPointsToMap implements SMGPointsToEdges {
   public ImmutableMap<Integer, SMGEdgePointsTo> asMap() {
     return ImmutableMap.copyOf(map);
   }
+
+  @Override
+  public boolean equals(Object o) {
+    return o instanceof SMGPointsToMap && map.equals(((SMGPointsToMap)o).map);
+  }
+
+  @Override
+  public int hashCode() {
+    return map.hashCode();
+  }
+
+  @Override
+  public String toString() {
+    return map.toString();
+  }
 }
