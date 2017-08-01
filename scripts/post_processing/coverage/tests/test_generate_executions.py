@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from io import StringIO
 from unittest.mock import MagicMock, call, patch
 
-import scripts.post_processing.coverage.coverage_generate_and_test as coverage_generate_and_test
+import scripts.post_processing.coverage.generate_coverage as generate_coverage
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -30,7 +30,7 @@ class TestCoverage(unittest.TestCase):
         except:
             pass
         self.logger = logging.getLogger(
-            'scripts.coverage.coverage_generate_and_test')
+            'scripts.coverage.generate_coverage')
         self.logger.setLevel(logging.INFO)
     def tearDown(self):
         try:
@@ -46,7 +46,7 @@ class TestGenerateOnlyPossibleExecution(TestGenerateExecutions):
         instance = os.path.join(self.aux_root, 'two_loop_iterations.c')
         cex_count = 2 # Will only produce one, checking the output though.
         with patch.object(self.logger, 'info') as mock_logger:
-            cex_generated = coverage_generate_and_test.generate_executions(
+            cex_generated = generate_coverage.generate_executions(
                 instance=instance,
                 output_dir=self.temp_folder,
                 cex_count=cex_count,
@@ -68,7 +68,7 @@ class TestGenerateExceptionFoundBug(TestGenerateExecutions):
         with patch.object(self.logger, 'error') as mock_logger, \
              patch.object(self.logger, 'info') as mock_info:
             try:
-                coverage_generate_and_test.generate_executions(
+                generate_coverage.generate_executions(
                     instance=instance,
                     output_dir=self.temp_folder,
                     cex_count=cex_count,
@@ -96,7 +96,7 @@ class TestGenerateAllPaths(TestGenerateExecutions):
         instance = os.path.join(self.aux_root, 'three_paths.c')
         cex_count = 10 # There are only 3 paths though, checking the output.
         with patch.object(self.logger, 'info') as mock_info:
-            cex_generated = coverage_generate_and_test.generate_executions(
+            cex_generated = generate_coverage.generate_executions(
                 instance=instance,
                 output_dir=self.temp_folder,
                 cex_count=cex_count,
@@ -121,7 +121,7 @@ class TestDocumentExpectedShortcoming(TestGenerateExecutions):
         instance = os.path.join(self.aux_root, 'one_per_return.c')
         cex_count = 10
         with patch.object(self.logger, 'info') as mock_info:
-            cex_generated = coverage_generate_and_test.generate_executions(
+            cex_generated = generate_coverage.generate_executions(
                 instance=instance,
                 output_dir=self.temp_folder,
                 cex_count=cex_count,
@@ -145,7 +145,7 @@ class TestCoverageAAIsPrefix(TestCoverage):
             self.aux_root, 'cex_three_paths', 'outer_else_block')
         with patch.object(self.logger, 'info') as mock_info:
             lines_covered, lines_to_cover = \
-                coverage_generate_and_test.collect_coverage(
+                generate_coverage.collect_coverage(
                     instance=instance,
                     aa_file=aa_file,
                     specs_dir=specs_dir,
@@ -174,7 +174,7 @@ class TestCoverageTreeAAAnd2Paths(TestCoverage):
             self.aux_root, 'cex_three_paths', 'inner_both_blocks')
         with patch.object(self.logger, 'info') as mock_info:
             lines_covered, lines_to_cover = \
-                coverage_generate_and_test.collect_coverage(
+                generate_coverage.collect_coverage(
                     instance=instance,
                     aa_file=aa_file,
                     specs_dir=specs_dir,
@@ -207,7 +207,7 @@ class TestCoverageAAIsPrefix(TestCoverage):
             self.aux_root, 'cex_three_paths', 'outer_else_block')
         with patch.object(self.logger, 'info') as mock_info:
             lines_covered, lines_to_cover = \
-                coverage_generate_and_test.collect_coverage(
+                generate_coverage.collect_coverage(
                     instance=instance,
                     aa_file=aa_file,
                     specs_dir=specs_dir,
@@ -249,7 +249,7 @@ class TestCoverageIntegrationOnlyCollectCoverage(TestIntegration):
             instance
         ]]
         with patch.object(self.logger, 'info') as mock_info:
-            coverage_generate_and_test.main(argv, self.logger)
+            generate_coverage.main(argv, self.logger)
             expected_calls =  [
                 call('Collecting coverage from 2 executions.'),
                 call('Coverage after collecting 1 executions:'),
@@ -280,7 +280,7 @@ class TestCoverageIntegrationTimelimitOptional(TestIntegration):
             instance
         ]]
         with patch.object(self.logger, 'info') as mock_info:
-            coverage_generate_and_test.main(argv, self.logger)
+            generate_coverage.main(argv, self.logger)
             expected_calls =  [
                 call('Generated 3 executions.'),
                 call('Collecting coverage from 3 executions.'),
