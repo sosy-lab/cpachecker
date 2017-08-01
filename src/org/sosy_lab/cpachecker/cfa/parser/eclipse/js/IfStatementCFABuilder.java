@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.util.function.BiFunction;
 import org.eclipse.wst.jsdt.core.dom.IfStatement;
 import org.eclipse.wst.jsdt.core.dom.Statement;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.js.JSAssumeEdge;
 
@@ -51,16 +51,7 @@ class IfStatementCFABuilder implements IfStatementAppendable {
 
     final Statement elseStatement = node.getElseStatement();
     if (elseStatement == null) {
-      builder.appendEdge(
-          exitNode,
-          (pPredecessor, pSuccessor) ->
-              new JSAssumeEdge(
-                  condition.toASTString(),
-                  condition.getFileLocation(),
-                  pPredecessor,
-                  pSuccessor,
-                  condition,
-                  false));
+      builder.appendEdge(exitNode, assume(condition, false));
     } else {
       builder.append(
           buildConditionBranch(
@@ -94,17 +85,21 @@ class IfStatementCFABuilder implements IfStatementAppendable {
       final CFANode pExitNode) {
     return builder
         .copy()
-        .appendEdge(
-            (pPredecessor, pSuccessor) ->
-                new JSAssumeEdge(
-                    pCondition.toASTString(),
-                    pCondition.getFileLocation(),
-                    pPredecessor,
-                    pSuccessor,
-                    pCondition,
-                    pTruthAssumption))
+        .appendEdge(assume(pCondition, pTruthAssumption))
         .append(pStatement)
         .appendEdge(pExitNode, DummyEdge.withDescription(pExitEdgeDescription));
+  }
+
+  private BiFunction<CFANode, CFANode, AbstractCFAEdge> assume(
+      final JSExpression pCondition, final boolean pTruthAssumption) {
+    return (pPredecessor, pSuccessor) ->
+        new JSAssumeEdge(
+            pCondition.toASTString(),
+            pCondition.getFileLocation(),
+            pPredecessor,
+            pSuccessor,
+            pCondition,
+            pTruthAssumption);
   }
 
 }
