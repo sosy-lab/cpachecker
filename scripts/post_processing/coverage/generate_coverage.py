@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from __future__ import print_function
+
 import argparse
 import errno
 import glob
@@ -13,6 +14,7 @@ import shutil
 import subprocess
 import sys
 from subprocess import check_output
+
 
 class FoundBugException(Exception):
     pass
@@ -374,14 +376,3 @@ def main(argv, logger):
         specs_dir=args.cex_dir,
         heap_size=args.heap,
         logger=logger)
-
-if __name__ == "__main__":
-    if sys.version_info[0] < 3:
-        sys.exit("This script requires Python 3.")
-
-    logging.basicConfig()
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    # Excluding argv[0], otherwise it'll be recognized as the positional
-    # argument.
-    main(sys.argv[1:], logger)

@@ -15,7 +15,7 @@ The script takes as input:
 
 So, for example, the script can be called with the following command-line arguments:
 ```bash
-./scripts/post_processing/coverage/generate_coverage.py \
+./scripts/generate_coverage.py \
     -assumption_automaton_file scripts/post_processing/coverage/tests/aux_files/aa_three_paths_inner_if_both_blocks.spc \
     -spec config/specification/ErrorLabel.spc \
     -cex_count 10 \
