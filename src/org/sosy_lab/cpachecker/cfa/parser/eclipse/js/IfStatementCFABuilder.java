@@ -104,11 +104,7 @@ class IfStatementCFABuilder implements IfStatementAppendable {
                     pCondition,
                     pTruthAssumption))
         .append(pStatement)
-        .appendEdge(
-            pExitNode,
-            (pPredecessor, pSuccessor) ->
-                new BlankEdge(
-                    "", FileLocation.DUMMY, pPredecessor, pSuccessor, pExitEdgeDescription));
+        .appendEdge(pExitNode, DummyEdge.withDescription(pExitEdgeDescription));
   }
 
 }
