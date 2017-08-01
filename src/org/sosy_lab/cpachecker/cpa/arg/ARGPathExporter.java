@@ -154,6 +154,7 @@ public class ARGPathExporter {
           KeyDef.STARTLINE,
           KeyDef.ORIGINFILE,
           KeyDef.OFFSET,
+          KeyDef.ENDOFFSET,
           KeyDef.LINECOLS,
           KeyDef.ASSUMPTIONSCOPE,
           KeyDef.ASSUMPTIONRESULTFUNCTION);
