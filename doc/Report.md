@@ -65,5 +65,3 @@ Known Problems
 
   - When an item is selected in the error path window on the left, only the active tab on the right is updated.
      Workaround: After changing the tab on the right, click the selected item in the error path window again.
-
-  - When selecting the ARG tab the root element is sometimes not focused correctly. You need to scroll a bit to the left or to the right to view the whole node.
