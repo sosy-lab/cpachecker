@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import com.google.common.truth.Truth;
 import java.math.BigInteger;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
+import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,7 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 public class VariableDeclarationStatementCFABuilderTest {
 
   private EclipseJavaScriptParser parser;
-  private JavaScriptCFABuilder builder;
+  private ConfigurableJavaScriptCFABuilder builder;
   private CFANode entryNode;
 
   @Before
@@ -64,8 +65,11 @@ public class VariableDeclarationStatementCFABuilderTest {
   public final void testSingleVariableDeclaration() throws ParserException {
     final VariableDeclarationStatement variableDeclarationStatement = parseStatement("var x = 42");
     final String expectedVariableName = "x";
-    final int expectedVariableValue = 42;
+    final JSIntegerLiteralExpression expectedInitializerExpression =
+        new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.valueOf(42));
     // expected CFA: entryNode -{var x = 42}-> ()
+
+    builder.setExpressionAppendable((pBuilder, pExpression) -> expectedInitializerExpression);
 
     new VariableDeclarationStatementCFABuilder().append(builder, variableDeclarationStatement);
 
@@ -75,9 +79,7 @@ public class VariableDeclarationStatementCFABuilderTest {
     Truth.assertThat(variableDeclaration.getName()).isEqualTo(expectedVariableName);
     Truth.assertThat(
             ((JSInitializerExpression) variableDeclaration.getInitializer()).getExpression())
-        .isEqualTo(
-            new JSIntegerLiteralExpression(
-                FileLocation.DUMMY, BigInteger.valueOf(expectedVariableValue)));
+        .isEqualTo(expectedInitializerExpression);
     Truth.assertThat(declarationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
   }
 
@@ -91,28 +93,35 @@ public class VariableDeclarationStatementCFABuilderTest {
     final int expectedSecondVariableValue = 456;
     // expected CFA: entryNode -{var x = 123}-> () -{var y = 456}-> ()
 
+    // TODO is there a better solution than relying on the ASTConverter.convert implementation?
+    builder.setExpressionAppendable(
+        (pBuilder, pExpression) -> pBuilder.getAstConverter().convert((NumberLiteral) pExpression));
+
     new VariableDeclarationStatementCFABuilder().append(builder, variableDeclarationStatement);
 
     final JSDeclarationEdge xDeclarationEdge = (JSDeclarationEdge) entryNode.getLeavingEdge(0);
     final JSVariableDeclaration xVariableDeclaration =
         (JSVariableDeclaration) xDeclarationEdge.getDeclaration();
     Truth.assertThat(xVariableDeclaration.getName()).isEqualTo(expectedFirstVariableName);
-    Truth.assertThat(
-            ((JSInitializerExpression) xVariableDeclaration.getInitializer()).getExpression())
-        .isEqualTo(
-            new JSIntegerLiteralExpression(
-                FileLocation.DUMMY, BigInteger.valueOf(expectedFirstVariableValue)));
+    Truth.assertThat(getInitializerExpressionValue(xVariableDeclaration))
+        .isEqualTo(BigInteger.valueOf(expectedFirstVariableValue));
 
-    final JSDeclarationEdge yDeclarationEdge = (JSDeclarationEdge) xDeclarationEdge.getSuccessor
-        ().getLeavingEdge(0);
+    final JSDeclarationEdge yDeclarationEdge =
+        (JSDeclarationEdge) xDeclarationEdge.getSuccessor().getLeavingEdge(0);
     final JSVariableDeclaration yVariableDeclaration =
         (JSVariableDeclaration) yDeclarationEdge.getDeclaration();
     Truth.assertThat(yVariableDeclaration.getName()).isEqualTo(expectedSecondVariableName);
-    Truth.assertThat(
-            ((JSInitializerExpression) yVariableDeclaration.getInitializer()).getExpression())
-        .isEqualTo(
-            new JSIntegerLiteralExpression(
-                FileLocation.DUMMY, BigInteger.valueOf(expectedSecondVariableValue)));
+    Truth.assertThat(getInitializerExpressionValue(yVariableDeclaration))
+        .isEqualTo(BigInteger.valueOf(expectedSecondVariableValue));
     Truth.assertThat(yDeclarationEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
+  }
+
+  private BigInteger getInitializerExpressionValue(
+      final JSVariableDeclaration pVariableDeclaration) {
+    final JSInitializerExpression initializer =
+        (JSInitializerExpression) pVariableDeclaration.getInitializer();
+    final JSIntegerLiteralExpression initializerExpression =
+        (JSIntegerLiteralExpression) initializer.getExpression();
+    return initializerExpression.getValue();
   }
 }

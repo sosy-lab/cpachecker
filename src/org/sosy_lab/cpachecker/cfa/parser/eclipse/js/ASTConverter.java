@@ -100,8 +100,8 @@ class ASTConverter {
         javaScriptUnit.getLineNumber(pNode.getLength() + pNode.getStartPosition()));
   }
 
-  // TODO make private, should only be used for resolving variables
-  public JSVariableDeclaration convert(
+  // TODO should only be used for resolving variables (do not create another JSVariableDeclaration)
+  private JSVariableDeclaration convert(
       final VariableDeclarationFragment pVariableDeclarationFragment) {
     final String variableIdentifier = pVariableDeclarationFragment.getName().getIdentifier();
     final Expression initializer = pVariableDeclarationFragment.getInitializer();

@@ -26,8 +26,11 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import java.util.List;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.wst.jsdt.core.dom.VariableDeclarationStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.js.JSDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 class VariableDeclarationStatementCFABuilder implements VariableDeclarationStatementAppendable {
 
@@ -47,9 +50,17 @@ class VariableDeclarationStatementCFABuilder implements VariableDeclarationState
   private void append(
       final JavaScriptCFABuilder pBuilder,
       final VariableDeclarationFragment pVariableDeclarationFragment) {
-    // TODO do not use converter
+    final String variableIdentifier = pVariableDeclarationFragment.getName().getIdentifier();
+    final JSExpression expression = pBuilder.append(pVariableDeclarationFragment.getInitializer());
     final JSVariableDeclaration variableDeclaration =
-        pBuilder.getAstConverter().convert(pVariableDeclarationFragment);
+        new JSVariableDeclaration(
+            pBuilder.getAstConverter().getFileLocation(pVariableDeclarationFragment),
+            false,
+            JSAnyType.ANY,
+            variableIdentifier,
+            variableIdentifier,
+            variableIdentifier,
+            new JSInitializerExpression(expression.getFileLocation(), expression));
     pBuilder.appendEdge(
         (pPredecessor, pSuccessor) ->
             new JSDeclarationEdge(
