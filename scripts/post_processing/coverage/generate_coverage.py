@@ -125,12 +125,18 @@ def run_command(command, logger):
     logger.debug(output)
     return output
 
+def only_generated_successful_executions(output):
+    pattern = r'Verification result: [^(]*\((?P<message>[^)]*)\).*'
+    m = re.search(pattern=pattern, string=str(output))
+    if not m:
+        raise Exception("Failed to parse CPAchecker output.")
+    return m.group('message') == coverage_test_case_message
+
 def generate_executions(
     instance,
     output_dir,
     cex_count,
     spec,
-    spec_error_message,
     heap_size,
     timelimit,
     logger):
@@ -154,9 +160,7 @@ def generate_executions(
 
     try:
         output = run_command(command, logger)
-        bug_found = False
-        for em in spec_error_message:
-            bug_found = bug_found or em.encode('utf-8') in output
+        bug_found = not only_generated_successful_executions(output)
         move_execution_spec_files(temp_dir=temp_dir, output_dir=output_dir)
     finally:
         shutil.rmtree(temp_dir)
@@ -168,7 +172,6 @@ def generate_executions(
         logger.error('Found an assertion violation. '
                      'Inspect counterexamples before collecting a '
                      'coverage measure.')
-        logger.flush()
         raise FoundBugException()
     return cex_generated
 
@@ -305,22 +308,6 @@ def create_arg_parser():
               "repeatedly calling CPAchecker, if a specification violation was "
               "found, we will produce an error message for the executions "
               "generated to be manually inspected."))
-    parser.add_argument(
-        "-spec_error_message",
-        required=True,
-        action='append',
-        help=("Only applicable when -only_collect_coverage is not present.\n"
-              "This string will be used to determine whether a specification "
-              "violation was found while attempting to sample the execution "
-              "space. This string must exactly match a string printed to "
-              "standard output when -spec is violated. "
-              "This argument can be repeated: '"
-              "-spec_error_message m1 -spec_error_message m2'. "
-              "If either m1 or m2 match a string printed to standard "
-              "output while generating a specific execution, it will "
-              "be considered a specification violation and "
-              "produce an error message."))
-
 
     parser.add_argument(
         "-heap", help="Heap size limit to be used by CPAchecker.")
@@ -378,7 +365,6 @@ def main(argv, logger):
             output_dir=args.cex_dir,
             cex_count=args.cex_count,
             spec=args.spec,
-            spec_error_message=args.spec_error_message,
             heap_size=args.heap,
             timelimit=args.timelimit,
             logger=logger)

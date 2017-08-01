@@ -8,8 +8,7 @@ The script generates a number of executions from beginning to end of the program
 
 The script takes as input:
 - An Assumption Automaton (read instructions at the bottom to know how to produce one)
-- The specification that was used for verification. For example: config/specifications/ErrorLabel.spc
-- A string that would be generated if a specification violation was found. For example, config/specifications/ErrorLabel.spc will produce 'error label in ...', so 'error label in' will be generated whenever a specification violation is found. This is used to be able to report whether any specification violations were found when attempting to compute coverage.
+- The specification that was used for verification. For example: `config/specifications/ErrorLabel.spc`. This is used to be able to report whether any specification violations were found when attempting to compute coverage.
 - The number of executions to generate before computing the coverage under-approximation.
 - The directory where to keep the executions produced to compute coverage.
 - Instance under analysis.
@@ -19,7 +18,6 @@ So, for example, the script can be called with the following command-line argume
 ./scripts/post_processing/coverage/generate_coverage.py \
     -assumption_automaton_file scripts/post_processing/coverage/tests/aux_files/aa_three_paths_inner_if_both_blocks.spc \
     -spec config/specification/ErrorLabel.spc \
-    -spec_error_message "error label in" \
     -cex_count 10 \
     -cex_dir execution_samples \
     scripts/post_processing/coverage/tests/aux_files/three_paths.c
