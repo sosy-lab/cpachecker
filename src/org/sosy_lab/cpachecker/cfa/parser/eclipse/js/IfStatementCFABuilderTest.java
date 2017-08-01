@@ -73,12 +73,11 @@ public class IfStatementCFABuilderTest {
     final JSExpression condition =
         new JSIdExpression(
             FileLocation.DUMMY, JSAnyType.ANY, "condition", mock(JSSimpleDeclaration.class));
-    final ASTConverter astConverter = builder.getAstConverter();
-    doReturn(condition).when(astConverter).convert(any(Expression.class));
     final StatementAppendable statementAppendable =
         (builder, pStatement) ->
             builder.appendEdge(DummyEdge.withDescription("dummy statement edge"));
     builder.setStatementAppendable(statementAppendable);
+    builder.setExpressionAppendable((pBuilder, pExpression) -> condition);
 
     new IfStatementCFABuilder().append(builder, ifStatement);
 

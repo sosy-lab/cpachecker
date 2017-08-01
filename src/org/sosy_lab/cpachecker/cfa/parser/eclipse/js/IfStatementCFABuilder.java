@@ -37,7 +37,7 @@ class IfStatementCFABuilder implements IfStatementAppendable {
   public void append(final JavaScriptCFABuilder builder, final IfStatement node) {
     final String conditionNodeDescription = builder.getExitNode().toString();
     final CFANode exitNode = builder.createNode();
-    final JSExpression condition = builder.getAstConverter().convert(node.getExpression());
+    final JSExpression condition = builder.append(node.getExpression());
 
     builder.addParseResult(
         buildConditionBranch(
