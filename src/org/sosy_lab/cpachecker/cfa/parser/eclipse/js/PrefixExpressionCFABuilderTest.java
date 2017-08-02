@@ -26,16 +26,26 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import static org.mockito.Mockito.*;
 
 import com.google.common.truth.Truth;
+import java.math.BigInteger;
 import org.eclipse.wst.jsdt.core.dom.ExpressionStatement;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 public class PrefixExpressionCFABuilderTest {
@@ -64,13 +74,13 @@ public class PrefixExpressionCFABuilderTest {
 
   @Test
   public final void testOperatorsWithoutSideEffect() throws ParserException {
-    testOperatorWithoutSideEffect("!true", UnaryOperator.NOT);
-    testOperatorWithoutSideEffect("+1", UnaryOperator.PLUS);
-    testOperatorWithoutSideEffect("-1", UnaryOperator.MINUS);
-    testOperatorWithoutSideEffect("~1", UnaryOperator.COMPLEMENT);
+    testOperatorsWithoutSideEffect("!true", UnaryOperator.NOT);
+    testOperatorsWithoutSideEffect("+1", UnaryOperator.PLUS);
+    testOperatorsWithoutSideEffect("-1", UnaryOperator.MINUS);
+    testOperatorsWithoutSideEffect("~1", UnaryOperator.COMPLEMENT);
   }
 
-  private void testOperatorWithoutSideEffect(
+  private void testOperatorsWithoutSideEffect(
       final String pPrefixExpressionCode, final UnaryOperator pExpectedUnaryOperator)
       throws ParserException {
     final PrefixExpression prefixExpression = parsePrefixExpression(pPrefixExpressionCode);
@@ -89,4 +99,50 @@ public class PrefixExpressionCFABuilderTest {
     Truth.assertThat(result.getOperator()).isEqualTo(pExpectedUnaryOperator);
     Truth.assertThat(result.getOperand()).isEqualTo(expectedOperand);
   }
+
+  @Test
+  public void testIncrement() throws ParserException {
+    testOperatorWithSideEffect("++x", BinaryOperator.PLUS);
+  }
+
+  @Test
+  public void testDecrement() throws ParserException {
+    testOperatorWithSideEffect("--x", BinaryOperator.MINUS);
+  }
+
+  // shared code for increment and decrement
+  private void testOperatorWithSideEffect(
+      final String pCode, final BinaryOperator pExpectedOperator) throws ParserException {
+    final PrefixExpression prefixExpression = parsePrefixExpression(pCode);
+
+    final JSIdExpression variableId =
+        new JSIdExpression(FileLocation.DUMMY, JSAnyType.ANY, "x", mock(JSSimpleDeclaration.class));
+    builder.setExpressionAppendable(
+        (pBuilder, pExpression) -> {
+          Truth.assertThat(pBuilder).isEqualTo(builder);
+          return variableId;
+        });
+
+    // expected side effect:
+    //    x = x + 1
+    // expected result:
+    //    x
+
+    final JSIdExpression result =
+        (JSIdExpression) new PrefixExpressionCFABuilder().append(builder, prefixExpression);
+
+    Truth.assertThat(result).isNotNull();
+    Truth.assertThat(entryNode.getNumLeavingEdges()).isEqualTo(1);
+    final JSStatementEdge incrementStatementEdge = (JSStatementEdge) entryNode.getLeavingEdge(0);
+    final JSAssignment incrementStatement = (JSAssignment) incrementStatementEdge.getStatement();
+    Truth.assertThat(incrementStatement.getLeftHandSide()).isEqualTo(variableId);
+    final JSBinaryExpression incrementExpression =
+        (JSBinaryExpression) incrementStatement.getRightHandSide();
+    Truth.assertThat(incrementExpression.getOperator()).isEqualTo(pExpectedOperator);
+    Truth.assertThat(incrementExpression.getOperand1()).isEqualTo(variableId);
+    Truth.assertThat(incrementExpression.getOperand2())
+        .isEqualTo(new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE));
+    Truth.assertThat(incrementStatementEdge.getSuccessor().getNumLeavingEdges()).isEqualTo(0);
+  }
+
 }

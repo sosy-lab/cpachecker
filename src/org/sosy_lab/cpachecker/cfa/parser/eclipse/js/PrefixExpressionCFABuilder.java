@@ -23,10 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
+import java.math.BigInteger;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.model.js.JSStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.js.JSAnyType;
 
 class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
@@ -38,6 +46,31 @@ class PrefixExpressionCFABuilder implements PrefixExpressionAppendable {
     final JSExpression operand = pBuilder.append(pPrefixExpression.getOperand());
     final UnaryOperator operator = convert(pPrefixExpression.getOperator());
     switch (operator) {
+      case INCREMENT:
+      case DECREMENT:
+        final BinaryOperator binaryOperator =
+            operator == UnaryOperator.INCREMENT ? BinaryOperator.PLUS : BinaryOperator.MINUS;
+        final JSIdExpression variableToIncrement = (JSIdExpression) operand;
+        final JSExpressionAssignmentStatement incrementStatement =
+            new JSExpressionAssignmentStatement(
+                FileLocation.DUMMY,
+                variableToIncrement,
+                new JSBinaryExpression(
+                    FileLocation.DUMMY,
+                    JSAnyType.ANY,
+                    JSAnyType.ANY,
+                    variableToIncrement,
+                    new JSIntegerLiteralExpression(FileLocation.DUMMY, BigInteger.ONE),
+                    binaryOperator));
+        pBuilder.appendEdge(
+            (pPredecessor, pSuccessor) ->
+                new JSStatementEdge(
+                    incrementStatement.toASTString(),
+                    incrementStatement,
+                    incrementStatement.getFileLocation(),
+                    pPredecessor,
+                    pSuccessor));
+        return variableToIncrement;
       case NOT:
       case PLUS:
       case MINUS:
