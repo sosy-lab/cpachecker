@@ -38,10 +38,16 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 class ExpressionCFABuilder implements ExpressionAppendable {
 
   private FunctionInvocationAppendable functionInvocationAppendable;
+  private PrefixExpressionAppendable prefixExpressionAppendable;
 
   void setFunctionInvocationAppendable(
       final FunctionInvocationAppendable pFunctionInvocationAppendable) {
     functionInvocationAppendable = pFunctionInvocationAppendable;
+  }
+
+  void setPrefixExpressionAppendable(
+      final PrefixExpressionAppendable pPrefixExpressionAppendable) {
+    prefixExpressionAppendable = pPrefixExpressionAppendable;
   }
 
   @Override
@@ -55,7 +61,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
     } else if (pExpression instanceof InfixExpression) {
       return pBuilder.getAstConverter().convert((InfixExpression) pExpression);
     } else if (pExpression instanceof PrefixExpression) {
-      return pBuilder.getAstConverter().convert((PrefixExpression) pExpression);
+      return prefixExpressionAppendable.append(pBuilder, (PrefixExpression) pExpression);
     } else if (pExpression instanceof StringLiteral) {
       return pBuilder.getAstConverter().convert((StringLiteral) pExpression);
     } else if (pExpression instanceof NumberLiteral) {

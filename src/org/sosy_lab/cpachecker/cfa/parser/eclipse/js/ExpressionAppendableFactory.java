@@ -28,6 +28,7 @@ final class ExpressionAppendableFactory {
   static ExpressionAppendable withAllFeatures() {
     final ExpressionCFABuilder builder = new ExpressionCFABuilder();
     builder.setFunctionInvocationAppendable(new FunctionInvocationCFABuilder());
+    builder.setPrefixExpressionAppendable(new PrefixExpressionCFABuilder());
     return builder;
   }
 }

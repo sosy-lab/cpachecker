@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import org.eclipse.wst.jsdt.core.dom.Expression;
+import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
-interface ExpressionAppendable {
-  JSExpression append(JavaScriptCFABuilder pBuilder, Expression pExpression);
+interface PrefixExpressionAppendable {
+  JSExpression append(JavaScriptCFABuilder builder, PrefixExpression pPrefixExpression);
 }
