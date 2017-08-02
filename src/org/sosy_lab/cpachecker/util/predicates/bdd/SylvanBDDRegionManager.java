@@ -34,7 +34,17 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Longs;
-
+import java.io.PrintStream;
+import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import javax.annotation.concurrent.GuardedBy;
+import jsylvan.JSylvan;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -57,20 +67,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
-
-import java.io.PrintStream;
-import java.lang.ref.PhantomReference;
-import java.lang.ref.Reference;
-import java.lang.ref.ReferenceQueue;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-
-import javax.annotation.concurrent.GuardedBy;
-
-import jsylvan.JSylvan;
 
 /**
  * A wrapper for the Sylvan (http://fmt.ewi.utwente.nl/tools/sylvan/) parallel BDD package,
@@ -135,6 +131,7 @@ class SylvanBDDRegionManager implements RegionManager {
             "BDD cleanup thread",
             new Runnable() {
               @Override
+              @SuppressWarnings("GuardedBy") // We just take the reference and not use it here
               public void run() {
                 // We pass all references explicitly to a static method
                 // in order to not leak the reference to the SylvanBDDRegionManager

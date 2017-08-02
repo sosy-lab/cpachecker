@@ -27,18 +27,19 @@ package org.sosy_lab.cpachecker.util.predicates.weakening;
 import static org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY.CEX;
 
 import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -144,21 +145,25 @@ public class InductiveWeakeningManager implements StatisticsProvider {
      )
       throws SolverException, InterruptedException {
 
+    BooleanFormula fromStateLemmasInstantiated =
+        fromStateLemmas
+            .stream()
+            .map(f -> fmgr.instantiate(f, startingSSA))
+            .collect(bfmgr.toConjunction());
+
+    Collection<BooleanFormula> toStateLemmasInstantiated =
+        Collections2.transform(toStateLemmas, f -> fmgr.instantiate(f, transition.getSsa()));
+
     // Mapping from selectors to the items they annotate.
-    final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
-
-    List<BooleanFormula> fromStateLemmasInstantiated =
-        fmgr.instantiate(fromStateLemmas, startingSSA);
-
-    List<BooleanFormula> toStateLemmasInstantiated =
-        fmgr.instantiate(toStateLemmas, transition.getSsa());
-    BooleanFormula toStateLemmasAnnotated = annotateConjunctions(
-        toStateLemmasInstantiated, selectionInfo
-    );
+    final BiMap<BooleanFormula, BooleanFormula> selectionInfo =
+        annotateConjunctions(toStateLemmasInstantiated);
+    BooleanFormula toStateLemmasAnnotated =
+        Collections3.zipMapEntries(selectionInfo, (selector, f) -> bfmgr.or(selector, f))
+            .collect(bfmgr.toConjunction());
 
     final Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
         selectionInfo,
-        bfmgr.and(fromStateLemmasInstantiated),
+        fromStateLemmasInstantiated,
         transition,
         toStateLemmasAnnotated,
         startingSSA,
@@ -189,13 +194,16 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   )
       throws SolverException, InterruptedException {
 
-    // Mapping from selectors to the items they annotate.
-    final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
+    Collection<BooleanFormula> fromStateLemmasInstantiated =
+        Collections2.transform(lemmas, f -> fmgr.instantiate(f, startingSSA));
 
-    List<BooleanFormula> fromStateLemmasInstantiated = fmgr.instantiate(lemmas, startingSSA);
-    BooleanFormula fromStateLemmasAnnotated = annotateConjunctions(
-        fromStateLemmasInstantiated, selectionInfo
-    );
+    // Mapping from selectors to the items they annotate.
+    final BiMap<BooleanFormula, BooleanFormula> selectionInfo =
+        annotateConjunctions(fromStateLemmasInstantiated);
+    BooleanFormula fromStateLemmasAnnotated =
+        Collections3.zipMapEntries(selectionInfo, (selector, f) -> bfmgr.or(selector, f))
+            .collect(bfmgr.toConjunction());
+
     BooleanFormula toStateLemmasAnnotated = fmgr.instantiate(
         fromStateLemmasAnnotated, transition.getSsa());
 
@@ -334,18 +342,16 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     return others;
   }
 
-  BooleanFormula annotateConjunctions(
-      Collection<BooleanFormula> pInput,
-      final Map<BooleanFormula, BooleanFormula> pSelectionVarsInfoToFill) {
+  BiMap<BooleanFormula, BooleanFormula> annotateConjunctions(Collection<BooleanFormula> pInput) {
 
-    Set<BooleanFormula> annotated = new HashSet<>(pInput.size());
+    ImmutableBiMap.Builder<BooleanFormula, BooleanFormula> result = ImmutableBiMap.builder();
     int i = -1;
     for (BooleanFormula f : pInput) {
       BooleanFormula selector = bfmgr.makeVariable(SELECTOR_VAR_TEMPLATE + ++i);
-      pSelectionVarsInfoToFill.put(selector, f);
-      annotated.add(bfmgr.or(selector, f));
+      result.put(selector, f);
     }
-    return bfmgr.and(annotated);
+
+    return result.build();
   }
 
   @Override

@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-import static com.google.common.base.Preconditions.*;
-
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
-import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.HashSet;
+import java.util.Set;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 
 /**
  * Description of a Java class through its properties.
@@ -72,7 +70,7 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
   private final boolean isAbstract;
   private final boolean isStrictFp;
 
-  private final  JClassType superClass;
+  private final @Nullable JClassType superClass;
   private final  Set<JInterfaceType> implementedInterfaces;
   private final  Set<JClassType> directSubClasses = new HashSet<>();
 

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.js;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JSAssumeEdge extends AssumeEdge {
+
+  private static final long serialVersionUID = 708785392078306310L;
 
   public JSAssumeEdge(
       String pRawStatement,

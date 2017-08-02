@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -36,7 +37,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
@@ -143,8 +143,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.EclipseParsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.simplification.ExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.simplification.NonRecursiveExpressionSimplificationVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -1421,7 +1421,8 @@ class ASTConverter {
 
   public CReturnStatement convert(final IASTReturnStatement s) {
     final FileLocation loc = getLocation(s);
-    final Optional<CExpression> returnExp = Optional.ofNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
+    final Optional<CExpression> returnExp =
+        Optional.fromNullable(convertExpressionWithoutSideEffects(s.getReturnValue()));
     final Optional<CVariableDeclaration> returnVariableDeclaration = ((FunctionScope)scope).getReturnVariable();
 
     final Optional<CAssignment> returnAssignment;
@@ -1441,14 +1442,14 @@ class ASTConverter {
         returnAssignment = Optional.<CAssignment>of(
             new CExpressionAssignmentStatement(loc, lhs, rhs));
       } else {
-        returnAssignment = Optional.empty();
+        returnAssignment = Optional.absent();
       }
 
     } else {
       if (returnExp.isPresent()) {
         logger.log(Level.WARNING, loc + ":", "Return statement with expression", returnExp.get(), "in void function.");
       }
-      returnAssignment = Optional.empty();
+      returnAssignment = Optional.absent();
     }
 
     return new CReturnStatement(loc, returnExp, returnAssignment);

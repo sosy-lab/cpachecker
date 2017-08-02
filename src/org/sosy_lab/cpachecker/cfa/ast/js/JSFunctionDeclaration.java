@@ -37,6 +37,8 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSFunctionType;
  */
 public final class JSFunctionDeclaration extends AFunctionDeclaration implements JSDeclaration {
 
+  private static final long serialVersionUID = -6049361884111627710L;
+
   public JSFunctionDeclaration(
       FileLocation pFileLocation,
       JSFunctionType pType,

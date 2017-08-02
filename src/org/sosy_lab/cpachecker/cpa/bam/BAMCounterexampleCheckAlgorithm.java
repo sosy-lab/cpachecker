@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorithm {
 
@@ -53,10 +53,9 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA cfa,
-      String filename)
+      CFA cfa)
       throws InvalidConfigurationException {
-    super(algorithm, pCpa, config, pSpecification, logger, pShutdownNotifier, cfa, filename);
+    super(algorithm, pCpa, config, pSpecification, logger, pShutdownNotifier, cfa);
 
     if (!(pCpa instanceof BAMCPA)) {
       throw new InvalidConfigurationException("BAM CPA needed for BAM counterexample check");
@@ -80,23 +79,14 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
     // compute BAM-reachedset for the reachable states,
     // it contains all error-paths and is sufficient to check counterexample.
     BAMSubgraphComputer graphComputer = new BAMSubgraphComputer(cpa);
-    BackwardARGState rootState =
+    Pair<BackwardARGState, BackwardARGState> rootAndTargetOfSubgraph =
         graphComputer.computeCounterexampleSubgraph(errorState, mainReachedSet);
+    ARGState rootState = rootAndTargetOfSubgraph.getFirst();
+    ARGState target = rootAndTargetOfSubgraph.getSecond();
     Set<ARGState> statesOnErrorPath = rootState.getSubgraph();
-    ARGState target = getErrorStateFromSubgraph(rootState);
 
     assert ((BackwardARGState) target).getARGState() == errorState;
 
     return checker.checkCounterexample(rootState, target, statesOnErrorPath);
-  }
-
-  /** Search the last state in the subgraph. It has to be the error state. */
-  private static ARGState getErrorStateFromSubgraph(ARGState rootState) {
-    ARGState target = rootState;
-    Collection<ARGState> children;
-    while (!(children = target.getChildren()).isEmpty()) {
-      target = children.iterator().next();
-    }
-    return target;
   }
 }

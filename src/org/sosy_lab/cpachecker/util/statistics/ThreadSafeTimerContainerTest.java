@@ -105,7 +105,7 @@ public class ThreadSafeTimerContainerTest {
 
   private void checkIntervalNum(int num) {
     assert_()
-        .withFailureMessage("number of intervals does not match")
+        .withMessage("number of intervals does not match")
         .that(container.getNumberOfIntervals())
         .isEqualTo(num);
   }

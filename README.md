@@ -59,18 +59,23 @@ Verifying a Program with CPAchecker
    all solvers (and other native libraries that are used for specific 
    abstract domains) are available for Windows.
 
-5. Additionally to the console output, there will be several files in the directory output/:
+5. Additionally to the console output,
+   an interactive HTML report is generated in the directory `output/`,
+   either named `Report.html` (for result TRUE) or `Counterexample.*.html` (for result FALSE).
+   Open these files in a browser to view the CPAchecker analysis result
+   (cf. [`doc/Report.md`](doc/Report.md))
+
+There are also additional output files in the directory `output/`:
 
  - `ARG.dot`: Visualization of abstract reachability tree (Graphviz format)
  - `cfa*.dot`: Visualization of control flow automaton (Graphviz format)
  - `reached.dot`: Visualization of control flow automaton with the abstract
     states visualized on top (Graphviz format)
- - `counterexample.msat`: Formula representation of the error path
  - `coverage.info`: Coverage information (similar to those of testing tools) in `Gcov` format
        Use the following command line to generate an HTML report as `output/index.html`:
        `genhtml output/coverage.info --output-directory output --legend`
- - `ErrorPath.*.txt`: A path through the program that leads to an error
- - `ErrorPath.*.assignment.txt`: Assignments for all variables on the error path.
+ - `Counterexample.*.txt`: A path through the program that leads to an error
+ - `Counterexample.*.assignment.txt`: Assignments for all variables on the error path.
  - `predmap.txt`: Predicates used by predicate analysis to prove program safety
  - `reached.txt`: Dump of all reached abstract states
  - `Statistics.txt`: Time statistics (can also be printed to console with `-stats`)
@@ -78,6 +83,3 @@ Verifying a Program with CPAchecker
 Note that not all of these files will be available for all configurations.
 Also some of these files are only produced if an error is found (or vice-versa).
 CPAchecker will overwrite files in this directory!
-A graphical report which can be viewed in a browser can be generated
-from these files by running `scripts/report-generator.py`
-(cf. [`doc/BuildReport.md`](doc/BuildReport.md)).

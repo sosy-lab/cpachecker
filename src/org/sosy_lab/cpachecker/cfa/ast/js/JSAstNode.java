@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 
 public interface JSAstNode extends AAstNode {
 
+  long serialVersionUID = -7774072516575403878L;
+
   public <R, X extends Exception> R accept(JSAstNodeVisitor<R, X> v) throws X;
 
   @Deprecated // Call accept() directly

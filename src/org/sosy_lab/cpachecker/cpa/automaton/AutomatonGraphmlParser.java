@@ -38,6 +38,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
+import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -75,8 +76,9 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
@@ -106,7 +108,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -122,7 +123,6 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
-import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
@@ -187,26 +187,23 @@ public class AutomatonGraphmlParser {
   private Scope scope;
   private final LogManager logger;
   private final Configuration config;
-  private final MachineModel machine;
+  private final CFA cfa;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
   private final Function<AStatement, ExpressionTree<AExpression>> fromStatement;
   private final ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newCachingFactory();
   private final Simplifier<AExpression> simplifier = ExpressionTrees.newSimplifier(factory);
-  private final VerificationTaskMetaData verificationTaskMetaData;
 
-  public AutomatonGraphmlParser(
-      Configuration pConfig, LogManager pLogger, MachineModel pMachine, Scope pScope)
+  public AutomatonGraphmlParser(Configuration pConfig, LogManager pLogger, CFA pCFA, Scope pScope)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
     this.scope = pScope;
-    this.machine = pMachine;
     this.logger = pLogger;
+    this.cfa = pCFA;
     this.config = pConfig;
 
-    binaryExpressionBuilder = new CBinaryExpressionBuilder(machine, logger);
+    binaryExpressionBuilder = new CBinaryExpressionBuilder(pCFA.getMachineModel(), logger);
     fromStatement = pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
-    verificationTaskMetaData = new VerificationTaskMetaData(pConfig, Optional.empty());
   }
 
   /**
@@ -251,7 +248,8 @@ public class AutomatonGraphmlParser {
   private List<Automaton> parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException {
     final CParser cparser =
-        CParser.Factory.getParser(logger, CParser.Factory.getOptions(config), machine);
+        CParser.Factory.getParser(
+            logger, CParser.Factory.getOptions(config), cfa.getMachineModel());
     try {
       // Parse the XML document ----
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -444,7 +442,9 @@ public class AutomatonGraphmlParser {
               GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTION);
           assumptions.addAll(
               CParserUtils.convertStatementsToAssumptions(
-                  parseStatements(transAssumes, assumptionResultFunction, scope, cparser), machine, logger));
+                  parseStatements(transAssumes, assumptionResultFunction, scope, cparser),
+                  cfa.getMachineModel(),
+                  logger));
           if (graphType == WitnessType.CORRECTNESS_WITNESS && !assumptions.isEmpty()) {
             throw new WitnessParseException(
                 "Assumptions are not allowed for correctness witnesses.");
@@ -613,13 +613,13 @@ public class AutomatonGraphmlParser {
       result.add(automaton);
 
       if (automatonDumpFile != null) {
-        try (Writer w = MoreFiles.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
+        try (Writer w = IO.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
           automaton.writeDotFile(w);
         } catch (IOException e) {
           // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
         }
         Path automatonFile = automatonDumpFile.resolveSibling(automatonDumpFile.getFileName() + ".spc");
-        try (Writer w = MoreFiles.openOutputFile(automatonFile, Charset.defaultCharset())) {
+        try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
           w.write(automaton.toString());
         } catch (IOException e) {
           // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
@@ -1031,26 +1031,19 @@ public class AutomatonGraphmlParser {
         logger.log(Level.WARNING, message);
       }
     } else if (checkProgramHash) {
-      if (verificationTaskMetaData.getProgramHashes().isPresent()) {
-        FluentIterable<String> programHash =
-            FluentIterable.from(pProgramHashes).transform(String::toLowerCase);
-        for (String actualProgramHash : verificationTaskMetaData.getProgramHashes().get()) {
-          if (!programHash.contains(actualProgramHash)) {
-            throw new WitnessParseException(
-                "SHA-1 hash value of given verification-task "
-                    + "source-code file ("
-                    + actualProgramHash
-                    + ") "
-                    + "does not match the SHA-1 hash value in the witness. "
-                    + "The witness is likely unrelated to the verification task.");
-          }
+      Set<String> programHash =
+          FluentIterable.from(pProgramHashes).transform(String::toLowerCase).toSet();
+      for (Path programFile : cfa.getFileNames()) {
+        String actualProgramHash = AutomatonGraphmlCommon.computeHash(programFile).toLowerCase();
+        if (!programHash.contains(actualProgramHash)) {
+          throw new WitnessParseException(
+              "SHA-1 hash value of given verification-task "
+                  + "source-code file ("
+                  + actualProgramHash
+                  + ") "
+                  + "does not match the SHA-1 hash value in the witness. "
+                  + "The witness is likely unrelated to the verification task.");
         }
-      } else {
-        logger.log(
-            Level.WARNING,
-            "Could not compute the program SHA-1 hash value, "
-                + "and could therefore not ascertain the validity of the program "
-                + "SHA-1 hash value given by the witness.");
       }
     }
   }
@@ -1067,7 +1060,8 @@ public class AutomatonGraphmlParser {
       } else {
         logger.log(Level.WARNING, message);
       }
-    } else if (!pArchitecture.contains(AutomatonGraphmlCommon.getArchitecture(machine))) {
+    } else if (!pArchitecture.contains(
+        AutomatonGraphmlCommon.getArchitecture(cfa.getMachineModel()))) {
       throw new WitnessParseException(
           "The architecture assumed for the given verification-task differs "
               + " from the architecture assumed by the witness. "
@@ -1321,7 +1315,8 @@ public class AutomatonGraphmlParser {
         // Handle the return statement: Returning 0 means false, 1 means true
         if (leavingEdge instanceof AReturnStatementEdge) {
           AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
-          Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
+          com.google.common.base.Optional<? extends AExpression> optExpression =
+              returnStatementEdge.getExpression();
           assert optExpression.isPresent();
           if (!optExpression.isPresent()) {
             return ExpressionTrees.getTrue();

@@ -23,19 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
 
 /**
  * Represents a C language stack frame
@@ -52,12 +55,13 @@ final public class CLangStackFrame {
    * A mapping from variable names to a set of SMG objects, representing
    * local variables.
    */
-  final HashMap <String, SMGRegion> stack_variables = new HashMap<>();
+  private PersistentMap<String, SMGRegion> stack_variables;
 
   /**
-   * An object to store function return value
+   * An object to store function return value.
+   * The Object is Null if function has Void-type.
    */
-  final SMGRegion returnValueObject;
+  @Nullable private final SMGRegion returnValueObject;
 
   /**
    * Constructor. Creates an empty frame.
@@ -67,6 +71,7 @@ final public class CLangStackFrame {
    * TODO: [PARAMETERS] Create objects for function parameters
    */
   public CLangStackFrame(CFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
+    stack_variables = PathCopyingPersistentTreeMap.of();
     stack_function = pDeclaration;
     CType returnType = pDeclaration.getType().getReturnType().getCanonicalType();
     if (returnType instanceof CVoidType) {
@@ -85,7 +90,7 @@ final public class CLangStackFrame {
    */
   public CLangStackFrame(CLangStackFrame pFrame) {
     stack_function = pFrame.stack_function;
-    stack_variables.putAll(pFrame.stack_variables);
+    stack_variables = pFrame.stack_variables;
     returnValueObject = pFrame.returnValueObject;
   }
 
@@ -100,14 +105,11 @@ final public class CLangStackFrame {
    * @param pObject An object to put into the stack frame
    */
   public void addStackVariable(String pVariableName, SMGRegion pObject) {
-    if (stack_variables.containsKey(pVariableName)) {
-      throw new IllegalArgumentException("Stack frame for function '" +
-                                       stack_function.toASTString() +
-                                       "' already contains a variable '" +
-                                       pVariableName + "'");
-    }
+    Preconditions.checkArgument(!stack_variables.containsKey(pVariableName),
+        "Stack frame for function '%s' already contains a variable '%s'",
+        stack_function.toASTString(), pVariableName);
 
-    stack_variables.put(pVariableName, pObject);
+    stack_variables = stack_variables.putAndCopy(pVariableName, pObject);
   }
 
   /* ********************************************* */
@@ -119,19 +121,14 @@ final public class CLangStackFrame {
    */
   @Override
   public String toString() {
-    StringBuilder to_return = new StringBuilder("<");
-    for (SMGRegion region : stack_variables.values()) {
-      to_return.append(" ").append(region);
-    }
-    to_return.append(" >");
-    return to_return.toString();
+    return "<" + Joiner.on(" ").join(stack_variables.values()) + ">";
   }
 
   public void removeVariable(String pName) {
     if (RETVAL_LABEL.equals(pName)) {
       // Do nothing for the moment
     } else {
-      stack_variables.remove(pName);
+      stack_variables = stack_variables.removeAndCopy(pName);
     }
   }
 
@@ -150,13 +147,11 @@ final public class CLangStackFrame {
     }
 
     SMGRegion to_return = stack_variables.get(pName);
-
     if (to_return == null) {
-      throw new NoSuchElementException("No variable with name '" +
-                                       pName + "' in stack frame for function '" +
-                                       stack_function.toASTString() + "'");
+      throw new NoSuchElementException(String.format(
+          "No variable with name '%s' in stack frame for function '%s'",
+          pName, stack_function.toASTString()));
     }
-
     return to_return;
   }
 
@@ -183,20 +178,19 @@ final public class CLangStackFrame {
    * @return a mapping from variables name to SMGObjects
    */
   public Map<String, SMGRegion> getVariables() {
-    return Collections.unmodifiableMap(stack_variables);
+    return stack_variables;
   }
 
   /**
    * @return a set of all objects: return value object, variables, parameters
    */
   public Set<SMGObject> getAllObjects() {
-    HashSet<SMGObject> retset = new HashSet<>();
+    Builder<SMGObject> retset = ImmutableSet.builder();
     retset.addAll(stack_variables.values());
     if (returnValueObject != null) {
       retset.add(returnValueObject);
     }
-
-    return Collections.unmodifiableSet(retset);
+    return retset.build();
   }
 
   /**
@@ -214,6 +208,6 @@ final public class CLangStackFrame {
   }
 
   public void clearStackVariables() {
-    stack_variables.clear();
+    stack_variables = PathCopyingPersistentTreeMap.of();
   }
 }

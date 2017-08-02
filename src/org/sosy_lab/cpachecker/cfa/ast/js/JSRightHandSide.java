@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 /** Interface for all possible right-hand sides of an assignment. */
 public interface JSRightHandSide extends JSAstNode, ARightHandSide {
 
+  long serialVersionUID = -2745522112521546118L;
+
   public <R, X extends Exception> R accept(JSRightHandSideVisitor<R, X> pV) throws X;
 
   @Override

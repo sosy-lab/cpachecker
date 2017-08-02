@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 public class JSBinaryExpression extends ABinaryExpression implements JSExpression {
 
+  private static final long serialVersionUID = 7759096923080779112L;
   private final JSType calculationType;
 
   public JSBinaryExpression(

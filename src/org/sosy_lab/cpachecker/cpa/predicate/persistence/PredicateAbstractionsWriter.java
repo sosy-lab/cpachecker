@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -97,7 +97,7 @@ public class PredicateAbstractionsWriter {
     Set<ARGState> done = Sets.newHashSet();
 
     // Write abstraction formulas of the abstraction states to the file
-    try (Writer writer = MoreFiles.openOutputFile(abstractionsFile, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(abstractionsFile, Charset.defaultCharset())) {
       while (!worklist.isEmpty()) {
         ARGState state = worklist.pop();
 

@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cpa.abe.ABECPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -99,6 +100,7 @@ public class CPAsTest {
     // Filter CPAs that need child CPAs.
     cpas.remove(ARGCPA.class);
     cpas.remove(BAMCPA.class);
+    cpas.remove(BAMCPAWithoutReachedSetCreation.class);
     cpas.remove(CacheCPA.class);
     cpas.remove(CompositeCPA.class);
     cpas.remove(MonitorCPA.class);
@@ -208,7 +210,7 @@ public class CPAsTest {
     }
     assertThat(joined).named("result of join").isNotNull();
     assert_()
-        .withFailureMessage("Join of same elements is unsound")
+        .withMessage("Join of same elements is unsound")
         .that(isLessOrEqual(initial, joined))
         .isTrue();
   }
@@ -220,7 +222,7 @@ public class CPAsTest {
     AbstractState merged = cpa.getMergeOperator().merge(initial, initial, initialPrec);
     assertThat(merged).named("result of merge").isNotNull();
     assert_()
-        .withFailureMessage("Merging same elements was unsound")
+        .withMessage("Merging same elements was unsound")
         .that(isLessOrEqual(initial, merged))
         .isTrue();
   }
@@ -242,7 +244,7 @@ public class CPAsTest {
     Precision initialPrec = cpa.getInitialPrecision(main, partition);
     Set<AbstractState> reached = ImmutableSet.of(initial);
     assert_()
-        .withFailureMessage("Did not stop on same element")
+        .withMessage("Did not stop on same element")
         .that(cpa.getStopOperator().stop(initial, reached, initialPrec))
         .isTrue();
   }

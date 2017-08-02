@@ -61,7 +61,6 @@ export CLASSPATH="$CLASSPATH:$PATH_TO_CPACHECKER/bin:$PATH_TO_CPACHECKER/cpachec
 # loop over all input parameters and parse them
 declare -a OPTIONS
 JAVA_ASSERTIONS=-ea
-EXEC=exec
 while [ $# -gt 0 ]; do
 
   case $1 in
@@ -80,8 +79,7 @@ while [ $# -gt 0 ]; do
        JAVA_ASSERTIONS=-da
        ;;
    "-generateReport")
-       EXEC=
-       POST_PROCESSING=scripts/report-generator.py
+       echo "Option -generateReport is not necessary anymore. Please open the HTML files produced by CPAchecker in the output directory."
        ;;
    *) # other params are only for CPAchecker
        OPTIONS+=("$1")
@@ -135,7 +133,7 @@ esac
 # - CPAchecker class and options
 # Stack size is set because on some systems it is too small for recursive algorithms and very large programs.
 # PerfDisableSharedMem avoids hsperfdata in /tmp (disable it to connect easily with VisualConsole and Co.).
-$EXEC "$JAVA" \
+exec "$JAVA" \
 	-Xss${JAVA_STACK_SIZE} \
 	-XX:+PerfDisableSharedMem \
 	$JAVA_VM_ARGUMENTS \
@@ -144,5 +142,3 @@ $EXEC "$JAVA" \
 	org.sosy_lab.cpachecker.cmdline.CPAMain \
 	"${OPTIONS[@]}" \
 	$CPACHECKER_ARGUMENTS
-
-$POST_PROCESSING

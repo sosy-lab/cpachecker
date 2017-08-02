@@ -46,17 +46,22 @@ public class DummyAbstraction extends SMGObject implements SMGAbstractObject {
   }
 
   @Override
-  public SMGObject copy() {
-    return new DummyAbstraction(this);
-  }
-
-  @Override
   public SMGObject copy(int pNewLevel) {
-    return copy();
+    return new DummyAbstraction(this);
   }
 
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
     return false;
+  }
+
+  @Override
+  public <T> T accept(SMGObjectVisitor<T> pVisitor) {
+    throw new UnsupportedOperationException("Dummy does not support visitors"); // TODO why not?
+  }
+
+  @Override
+  public SMGObject join(SMGObject pOther, int pDestLevel) {
+    throw new UnsupportedOperationException("Dummy does not join"); // TODO why not?
   }
 }

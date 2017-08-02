@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-
-import javax.annotation.Nullable;
 
 /**
  * Class for expressions that represent names of declared constructs.
@@ -39,6 +38,8 @@ import javax.annotation.Nullable;
 public class JIdExpression extends AIdExpression implements JLeftHandSide {
 
   // TODO refactor to be either abstract or final
+
+  private static final long serialVersionUID = -8692379352848856024L;
 
   public JIdExpression(
       FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {

@@ -113,7 +113,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
-  private static final Set<String> THREAD_FUNCTIONS = ImmutableSet.of(
+  private static final ImmutableSet<String> THREAD_FUNCTIONS = ImmutableSet.of(
       THREAD_START, THREAD_MUTEX_LOCK, THREAD_MUTEX_UNLOCK, THREAD_JOIN, THREAD_EXIT,
       VERIFIER_ATOMIC_BEGIN, VERIFIER_ATOMIC_END);
 

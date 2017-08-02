@@ -71,7 +71,7 @@ class CFABuilder {
     exitNode = pEntryNode;
     parseResult =
         new ParseResult(
-            new TreeMap<>(), TreeMultimap.create(), Lists.newArrayList(), Language.JAVASCRIPT);
+            new TreeMap<>(), TreeMultimap.create(), Lists.newArrayList(), Lists.newArrayList());
     parseResult.getCFANodes().put(functionName, pEntryNode);
   }
 

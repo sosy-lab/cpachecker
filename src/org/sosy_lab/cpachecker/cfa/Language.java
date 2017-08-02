@@ -30,6 +30,7 @@ public enum Language {
   C,
   JAVA,
   JAVASCRIPT,
+  LLVM
   ;
 
   @Override
@@ -41,6 +42,8 @@ public enum Language {
       return "Java";
     case JAVASCRIPT:
       return "JavaScript";
+    case LLVM:
+      return "LLVM IR";
     default:
       throw new AssertionError();
     }

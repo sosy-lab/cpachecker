@@ -26,8 +26,8 @@ package org.sosy_lab.cpachecker.cfa.types;
 import static com.google.common.truth.Truth8.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
-import java.util.List;
 import java.util.OptionalInt;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,6 +42,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 @RunWith(Parameterized.class)
+@SuppressFBWarnings(
+  value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
+  justification = "Fields are filled by parameterization of JUnit"
+)
 public class MachineModelGetOffsetTest {
 
   private final static String TEST_STRUCT = "testStruct";
@@ -55,7 +59,7 @@ public class MachineModelGetOffsetTest {
   public static Object[][] machineModels() {
     // XXX: Note that this only holds as long as
     // the available MachineModels have a Byte-size
-    // of 8 Bits and the used types ('int and 'long long int')
+    // of 8 Bits and the used types ('int' and 'long long int')
     // have the same size in all of them.
     //
     // This premise holds for the currently (May 4th, 2017)
@@ -67,13 +71,14 @@ public class MachineModelGetOffsetTest {
     // LINUX64, you have to either implement the respective scenarios
     // separately or to think of a clever way to determine in-line
     // which expectation to apply.
-    Object[][] types = new Object[][] {
-        // fieldname          // expected offset in bits
-        { FIRST_BITFIELD_12, 0 },
-        { SECOND_BITFIELD_10, 12 },
-        { THIRD_INT, 32 },
-        { LAST_INCOMPLETEARRAY, 64 }
-    };
+    Object[][] types =
+        new Object[][] {
+          // fieldname          // expected offset in bits
+          {FIRST_BITFIELD_12, 0},
+          {SECOND_BITFIELD_10, 12},
+          {THIRD_INT, 32},
+          {LAST_INCOMPLETEARRAY, 64}
+        };
 
     // Create a copy of types for each MachineModel and append the MachineModel instance in each row
     MachineModel[] machineModels = MachineModel.values();
@@ -95,7 +100,7 @@ public class MachineModelGetOffsetTest {
   // of these:
   //    a) (DO NOT) insert a new Member after LAST_INCOMPLETE
   //    b) (DO NOT) insert a new Member before THIRD_INT
-  private static final List<CCompositeTypeMemberDeclaration> FIELDS =
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12),
               FIRST_BITFIELD_12),
@@ -111,7 +116,7 @@ public class MachineModelGetOffsetTest {
           TEST_STRUCT, TEST_STRUCT);
 
 
-  private static final List<CCompositeTypeMemberDeclaration> BOUND_TO_FAIL_FIELDS =
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> BOUND_TO_FAIL_FIELDS =
       ImmutableList.of(
           new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12),
               FIRST_BITFIELD_12),

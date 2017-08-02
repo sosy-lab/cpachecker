@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public class JSExpressionAssignmentStatement extends AExpressionAssignmentStatement
     implements JSAssignment, JSStatement {
 
+  private static final long serialVersionUID = 353763304521447293L;
+
   public JSExpressionAssignmentStatement(
       FileLocation pFileLocation, JSLeftHandSide pLeftHandSide, JSExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);

@@ -27,17 +27,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Strings;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 /**
  *
@@ -60,6 +58,7 @@ public class JMethodDeclaration extends AFunctionDeclaration implements JDeclara
 
   // TODO Type Variables, Exceptions, Annotations
 
+  private static final long serialVersionUID = 2250464052511901845L;
   private final boolean isFinal;
   private final boolean isAbstract;
   private final boolean isStatic;

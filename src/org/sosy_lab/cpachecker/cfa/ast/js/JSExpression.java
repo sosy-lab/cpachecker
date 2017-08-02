@@ -31,6 +31,8 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 /** Interface for side-effect free expressions. */
 public interface JSExpression extends JSRightHandSide, AExpression {
 
+  long serialVersionUID = -5392226590169684927L;
+
   public <R, X extends Exception> R accept(JSExpressionVisitor<R, X> v) throws X;
 
   @Override

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -53,7 +54,7 @@ import org.sosy_lab.cpachecker.util.CBMCExecutor;
 @Options()
 public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
-  private final String fileName;
+  private final Path fileName;
   private final LogManager logger;
   private final Stats stats = new Stats();
 
@@ -81,7 +82,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       description="disable unwinding assertions violation error")
       private boolean noUnwindingAssertions = false;
 
-  public ExternalCBMCAlgorithm(String fileName, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public ExternalCBMCAlgorithm(Path fileName, Configuration config, LogManager logger)
+      throws InvalidConfigurationException {
     this.fileName = fileName;
     this.logger = logger;
     config.inject(this);
@@ -97,7 +99,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      cbmc = new CBMCExecutor(logger, buildCBMCArguments(fileName));
+      cbmc = new CBMCExecutor(logger, buildCBMCArguments());
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {
@@ -138,7 +140,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  private List<String> buildCBMCArguments(String fileName) {
+  private List<String> buildCBMCArguments() {
     List<String> paramsList = new ArrayList<>();
 
     paramsList.add("--function");
@@ -154,7 +156,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       paramsList.add("--no-unwinding-assertions");
     }
 
-    paramsList.add(fileName);
+    paramsList.add(fileName.toString());
     return paramsList;
   }
 

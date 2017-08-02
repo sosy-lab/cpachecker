@@ -210,7 +210,7 @@ public class HarnessExporter {
       codeAppender.append(vector);
     } else {
       logger.log(
-          Level.INFO, "Could not export a test harness, some test-vector values are missing.");
+          Level.WARNING, "Could not export a test harness, some test-vector values are missing.");
     }
   }
 

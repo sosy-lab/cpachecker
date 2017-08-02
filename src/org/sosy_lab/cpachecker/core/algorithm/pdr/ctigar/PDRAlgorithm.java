@@ -43,8 +43,9 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.MoreFiles.DeleteOnCloseFile;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -522,9 +523,11 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
 
     // This temp file will be automatically deleted when the try block terminates.
     try (DeleteOnCloseFile automatonFile =
-        MoreFiles.createTempFile("counterexample-automaton", ".txt")) {
-      try (Writer w =
-          MoreFiles.openOutputFile(automatonFile.toPath(), Charset.defaultCharset()); ) {
+        TempFile.builder()
+            .prefix("counterexample-automaton")
+            .suffix(".txt")
+            .createDeleteOnClose()) {
+      try (Writer w = IO.openOutputFile(automatonFile.toPath(), Charset.defaultCharset())) {
         ARGUtils.producePathAutomaton(w, paths, "ReplayAutomaton", null);
       }
 

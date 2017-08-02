@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ComparisonChain;
 import java.io.Serializable;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -422,11 +425,70 @@ public class IntervalAnalysisState
 
   @Override
   public Comparable<?> getPseudoPartitionKey() {
-    return intervals.size();
+    // The size alone is not sufficient for pseudo-partitioning, if we want to use object-identity
+    // as hashcode. Thus we need a second measurement: the absolute distance of all intervals.
+    // -> if the distance is "smaller" than the other state, we know nothing and have to compare the states.
+    // -> if the distance is "equal", we can compare by "identity".
+    // -> if the distance is "greater", we are "greater" than the other state.
+    // We negate the absolute distance to match the "lessEquals"-specifiction.
+    // Be aware of overflows! -> we use BigInteger, and zero should be a sound value.
+    BigInteger absDistance = BigInteger.ZERO;
+    for (Interval i : intervals.values()) {
+      long high = i.getHigh() == null ? 0 : i.getHigh();
+      long low = i.getLow() == null ? 0 : i.getLow();
+      Preconditions.checkArgument(low <= high, "LOW greater than HIGH:" + i);
+      absDistance = absDistance.add(BigInteger.valueOf(high).subtract(BigInteger.valueOf(low)));
+    }
+    return new IntervalPseudoPartitionKey(intervals.size(), absDistance.negate());
   }
 
   @Override
   public Object getPseudoHashCode() {
     return this;
+  }
+
+  /** Just a pair of values, can be compared alphabetically. */
+  private static final class IntervalPseudoPartitionKey
+      implements Comparable<IntervalPseudoPartitionKey> {
+
+    private final int size;
+    private final BigInteger absoluteDistance;
+
+    public IntervalPseudoPartitionKey(int pSize, BigInteger pAbsoluteDistance) {
+      size = pSize;
+      absoluteDistance = pAbsoluteDistance;
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (this == pObj) {
+        return true;
+      }
+
+      if (!(pObj instanceof IntervalPseudoPartitionKey)) {
+        return false;
+      }
+
+      IntervalPseudoPartitionKey other = (IntervalPseudoPartitionKey) pObj;
+      return size == other.size && absoluteDistance.equals(other.absoluteDistance);
+    }
+
+    @Override
+    public int hashCode() {
+      return 137 * size + absoluteDistance.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return "[" + size + ", " + absoluteDistance + "]";
+    }
+
+    @Override
+    public int compareTo(IntervalPseudoPartitionKey other) {
+      return ComparisonChain.start()
+          .compare(size, other.size)
+          .compare(absoluteDistance, other.absoluteDistance)
+          .result();
+    }
   }
 }

@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 public final class JSFunctionCallStatement extends AFunctionCallStatement
     implements JSStatement, JSFunctionCall {
 
+  private static final long serialVersionUID = 5985718401466994883L;
+
   public JSFunctionCallStatement(
       FileLocation pFileLocation, JSFunctionCallExpression pFunctionCall) {
     super(pFileLocation, pFunctionCall);

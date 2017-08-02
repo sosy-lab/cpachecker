@@ -28,13 +28,21 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withVolatile;
 
 import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
 
 public class CanonicalTypeTest {
 
   private static final CType VOLATILE_CONST_INT =
       withVolatile(withConst(CNumericTypes.INT)).getCanonicalType();
+
+  @Test
+  public void simpleTypeChar() {
+    assertThat(CNumericTypes.CHAR.getCanonicalType()).isNotEqualTo(CNumericTypes.SIGNED_CHAR);
+    assertThat(CNumericTypes.CHAR.getCanonicalType()).isNotEqualTo(CNumericTypes.UNSIGNED_CHAR);
+    assertThat(CNumericTypes.SIGNED_CHAR.getCanonicalType())
+        .isNotEqualTo(CNumericTypes.UNSIGNED_CHAR);
+    assertThat(CNumericTypes.UNSIGNED_CHAR.getCanonicalType()).isNotEqualTo(CNumericTypes.CHAR);
+  }
 
   @Test
   public void simpleTypeInt() {

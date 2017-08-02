@@ -23,9 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -33,15 +39,9 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
 
 
 public class SMGInterpolant {
@@ -162,9 +162,8 @@ public class SMGInterpolant {
   }
 
   public static SMGInterpolant createInitial(LogManager logger, MachineModel model,
-      FunctionEntryNode pMainFunctionNode, boolean pTrackPredicates, int pExternalAllocationSize) {
-    SMGState initState = new SMGState(logger, model, false, false,
-        null, pExternalAllocationSize, pTrackPredicates, false);
+      FunctionEntryNode pMainFunctionNode, SMGOptions options) {
+    SMGState initState = new SMGState(logger, model, options);
 
     CFunctionEntryNode functionNode = (CFunctionEntryNode) pMainFunctionNode;
     try {
@@ -219,7 +218,7 @@ public class SMGInterpolant {
     return new SMGPrecisionIncrement(memoryPaths, blocks, stackVariables);
   }
 
-  public static class SMGPrecisionIncrement implements Comparable<SMGPrecisionIncrement> {
+  public static class SMGPrecisionIncrement {
 
     private final List<SMGMemoryPath> pathsToTrack;
     private final List<SMGAbstractionBlock> abstractionBlock;
@@ -247,13 +246,7 @@ public class SMGInterpolant {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((abstractionBlock == null) ? 0 : abstractionBlock.hashCode());
-      result = prime * result + ((pathsToTrack == null) ? 0 : pathsToTrack.hashCode());
-      result =
-          prime * result + ((stackVariablesToTrack == null) ? 0 : stackVariablesToTrack.hashCode());
-      return result;
+      return Objects.hashCode(abstractionBlock, pathsToTrack, stackVariablesToTrack);
     }
 
     @Override
@@ -261,92 +254,13 @@ public class SMGInterpolant {
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (!(obj instanceof SMGPrecisionIncrement)) {
         return false;
       }
       SMGPrecisionIncrement other = (SMGPrecisionIncrement) obj;
-      if (abstractionBlock == null) {
-        if (other.abstractionBlock != null) {
-          return false;
-        }
-      } else if (!abstractionBlock.equals(other.abstractionBlock)) {
-        return false;
-      }
-      if (pathsToTrack == null) {
-        if (other.pathsToTrack != null) {
-          return false;
-        }
-      } else if (!pathsToTrack.equals(other.pathsToTrack)) {
-        return false;
-      }
-      if (stackVariablesToTrack == null) {
-        if (other.stackVariablesToTrack != null) {
-          return false;
-        }
-      } else if (!stackVariablesToTrack.equals(other.stackVariablesToTrack)) {
-        return false;
-      }
-      return true;
-    }
-
-    @Override
-    public int compareTo(SMGPrecisionIncrement other) {
-
-      for (int i = 0; i < pathsToTrack.size() && i < other.pathsToTrack.size(); i++) {
-        SMGMemoryPath path = pathsToTrack.get(i);
-        SMGMemoryPath otherPath = other.pathsToTrack.get(i);
-
-        int result = path.compareTo(otherPath);
-
-        if (result != 0) {
-          return result;
-        }
-      }
-
-      if (pathsToTrack.size() < other.pathsToTrack.size()) {
-        return -1;
-      } else if (pathsToTrack.size() > other.pathsToTrack.size()) {
-        return 1;
-      }
-
-      for (int i = 0; i < abstractionBlock.size() && i < other.abstractionBlock.size(); i++) {
-        SMGAbstractionBlock offset = abstractionBlock.get(i);
-        SMGAbstractionBlock otherOffset = other.abstractionBlock.get(i);
-
-        int result = offset.compareTo(otherOffset);
-
-        if (result != 0) {
-          return result;
-        }
-      }
-
-      if (abstractionBlock.size() < other.abstractionBlock.size()) {
-        return -1;
-      } else if (abstractionBlock.size() > other.abstractionBlock.size()) {
-        return 1;
-      }
-
-      for (int i = 0; i < stackVariablesToTrack.size() && i < other.stackVariablesToTrack.size(); i++) {
-        MemoryLocation path = stackVariablesToTrack.get(i);
-        MemoryLocation otherPath = other.stackVariablesToTrack.get(i);
-
-        int result = path.compareTo(otherPath);
-
-        if (result != 0) {
-          return result;
-        }
-      }
-
-      if (stackVariablesToTrack.size() < other.stackVariablesToTrack.size()) {
-        return -1;
-      } else if (stackVariablesToTrack.size() > other.stackVariablesToTrack.size()) {
-        return 1;
-      }
-
-      return 0;
+      return Objects.equal(abstractionBlock, other.abstractionBlock)
+          && Objects.equal(pathsToTrack, other.pathsToTrack)
+          && Objects.equal(stackVariablesToTrack, other.stackVariablesToTrack);
     }
 
     @Override

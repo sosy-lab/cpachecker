@@ -2,9 +2,11 @@ package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import apron.Abstract1;
+import apron.Environment;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
+import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -19,11 +21,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
 import org.sosy_lab.cpachecker.util.templates.Template;
-
-import java.util.Map;
-
-import apron.Abstract1;
-import apron.Environment;
 
 public class PolyhedraWideningManagerTest {
 
@@ -72,18 +69,13 @@ public class PolyhedraWideningManagerTest {
     union = abs1.joinCopy(pwm.getManager(), abs2);
 
     Map<Template, Rational> unionMap = pwm.toTemplates(union);
-    assertThat(unionMap.get(Template.of(linX))).isEqualTo(Rational.ONE);
-    assertThat(
-        unionMap.get(Template.of(linX.negate()))).isEqualTo(Rational.ZERO);
-    assertThat(
-        unionMap.get(Template.of(linX.sub(linY)))).isEqualTo(Rational.ZERO);
+    assertThat(unionMap).containsEntry(Template.of(linX), Rational.ONE);
+    assertThat(unionMap).containsEntry(Template.of(linX.negate()), Rational.ZERO);
+    assertThat(unionMap).containsEntry(Template.of(linX.sub(linY)), Rational.ZERO);
 
     widened = abs1.widening(pwm.getManager(), union);
     Map<Template, Rational> widenedMap = pwm.toTemplates(widened);
-
-    assertThat(widenedMap.get(
-        Template.of(linX.sub(linY))
-    )).isEqualTo(Rational.ZERO);
+    assertThat(widenedMap).containsEntry(Template.of(linX.sub(linY)), Rational.ZERO);
   }
 
   private CIdExpression makeVar(String varName, CSimpleType type) {

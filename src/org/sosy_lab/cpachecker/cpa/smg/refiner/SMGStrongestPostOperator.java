@@ -26,24 +26,21 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 
 public class SMGStrongestPostOperator {
@@ -55,9 +52,10 @@ public class SMGStrongestPostOperator {
   }
 
   public static SMGStrongestPostOperator getSMGStrongestPostOperatorForCEX(LogManager pLogger,
-      Configuration pConfig, CFA pCfa, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator) throws InvalidConfigurationException {
+      CFA pCfa, SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator, SMGOptions pOptions) {
     SMGTransferRelation transfer =
-        SMGTransferRelation.createTransferRelationForCEX(pConfig, pLogger, pCfa.getMachineModel(), pSMGPredicateManager, pBlockOperator);
+        SMGTransferRelation.createTransferRelationForCEX(pLogger, pCfa.getMachineModel(),
+            pSMGPredicateManager, pBlockOperator, pOptions);
     return new SMGStrongestPostOperator(transfer);
   }
 
@@ -92,12 +90,12 @@ public class SMGStrongestPostOperator {
   }
 
   public static SMGStrongestPostOperator getSMGStrongestPostOperatorForInterpolation(
-      LogManager pLogger, Configuration pConfig, CFA pCfa, SMGPredicateManager pSMGPredicateManager,
-      BlockOperator pBlockOperator) throws InvalidConfigurationException {
+      LogManager pLogger, CFA pCfa, SMGPredicateManager pSMGPredicateManager,
+      BlockOperator pBlockOperator, SMGOptions pOptions) {
 
     SMGTransferRelation transferRelation = SMGTransferRelation
-        .createTransferRelationForInterpolation(pConfig, pLogger, pCfa.getMachineModel(),
-            pSMGPredicateManager, pBlockOperator);
+        .createTransferRelationForInterpolation(pLogger, pCfa.getMachineModel(),
+            pSMGPredicateManager, pBlockOperator, pOptions);
     return new SMGStrongestPostOperator(transferRelation);
   }
 }

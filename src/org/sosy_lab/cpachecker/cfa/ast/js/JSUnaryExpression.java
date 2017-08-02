@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 public class JSUnaryExpression extends AUnaryExpression implements JSExpression {
 
+  private static final long serialVersionUID = 389961518086326036L;
+
   public JSUnaryExpression(
       final FileLocation pFileLocation,
       final JSType pType,

@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
  * <p>If possible, it saves a reference to the declaration this name references.
  */
 public class JSIdExpression extends AIdExpression implements JSLeftHandSide {
+  private static final long serialVersionUID = -1304384825170453033L;
 
   // TODO refactor to be either abstract or final
 

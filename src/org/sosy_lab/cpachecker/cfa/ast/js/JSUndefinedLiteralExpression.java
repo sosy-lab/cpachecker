@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 public final class JSUndefinedLiteralExpression extends ALiteralExpression
     implements JSLiteralExpression {
 
+  private static final long serialVersionUID = -2230728175867342429L;
+
   public JSUndefinedLiteralExpression(final FileLocation pFileLocation) {
     super(pFileLocation, JSAnyType.ANY);
   }

@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 public final class JSFloatLiteralExpression extends AFloatLiteralExpression
     implements JSLiteralExpression {
 
+  private static final long serialVersionUID = 7556572022019669066L;
+
   public JSFloatLiteralExpression(FileLocation pFileLocation, BigDecimal pValue) {
     super(pFileLocation, JSAnyType.ANY, pValue);
   }

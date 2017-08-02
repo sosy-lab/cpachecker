@@ -27,6 +27,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 import java.util.ArrayList;
@@ -62,7 +63,7 @@ final class SMGConsistencyVerifier {
 
     // Find a null value in values
     for (Integer value: pSmg.getValues()) {
-      if (pSmg.getObjectPointedBy(value) == pSmg.getNullObject()) {
+      if (pSmg.getObjectPointedBy(value) == SMGNullObject.INSTANCE) {
         null_value = value;
         break;
       }
@@ -75,19 +76,19 @@ final class SMGConsistencyVerifier {
     }
 
     // Verify that NULL value returned by getNullValue() points to NULL object
-    if (pSmg.getObjectPointedBy(pSmg.getNullValue()) != pSmg.getNullObject()) {
+    if (pSmg.getObjectPointedBy(SMG.NULL_ADDRESS) != SMGNullObject.INSTANCE) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null value not pointing to null object");
       return false;
     }
 
     // Verify that the value found in values is the one returned by getNullValue()
-    if (pSmg.getNullValue() != null_value) {
+    if (SMG.NULL_ADDRESS != null_value) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null value in values set not returned by getNullValue()");
       return false;
     }
 
     // Verify that NULL object has no value
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pSmg.getNullObject());
+    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(SMGNullObject.INSTANCE);
 
     if (! pSmg.getHVEdges(filter).isEmpty()) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object has some value");
@@ -95,13 +96,13 @@ final class SMGConsistencyVerifier {
     }
 
     // Verify that the NULL object is invalid
-    if (pSmg.isObjectValid(pSmg.getNullObject())) {
+    if (pSmg.isObjectValid(SMGNullObject.INSTANCE)) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object is not invalid");
       return false;
     }
 
     // Verify that the size of the NULL object is zero
-    if (pSmg.getNullObject().getSize() != 0) {
+    if (SMGNullObject.INSTANCE.getSize() != 0) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object does not have zero size");
       return false;
     }

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 public final class JSParameterDeclaration extends AParameterDeclaration
     implements JSSimpleDeclaration {
 
+  private static final long serialVersionUID = 4718050921269110062L;
   private String qualifiedName;
 
   public JSParameterDeclaration(FileLocation pFileLocation, JSType pType, String pName) {

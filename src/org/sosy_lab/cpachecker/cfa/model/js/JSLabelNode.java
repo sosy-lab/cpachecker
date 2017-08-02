@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JSLabelNode extends CFANode {
 
+  private static final long serialVersionUID = 7765773862826667003L;
   private final String label;
 
   public JSLabelNode(String pFunctionName, String pLabel) {

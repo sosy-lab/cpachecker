@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.js.JSStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JSFunctionSummaryStatementEdge extends JSStatementEdge {
+  private static final long serialVersionUID = 3829392474697138611L;
   private final String functionName;
   private final JSFunctionCall fcall;
 

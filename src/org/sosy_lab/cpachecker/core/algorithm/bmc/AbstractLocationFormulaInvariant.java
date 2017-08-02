@@ -26,10 +26,13 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -40,11 +43,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 
 public abstract class AbstractLocationFormulaInvariant implements LocationFormulaInvariant {
@@ -77,9 +75,9 @@ public abstract class AbstractLocationFormulaInvariant implements LocationFormul
       int pDefaultIndex)
       throws CPATransferException, InterruptedException {
     Iterable<AbstractState> locationStates = AbstractStates.filterLocations(pReachedSet, locations);
-    FluentIterable<BooleanFormula> assertions =
-        FluentIterable.from(BMCHelper.assertAt(locationStates, this, pFMGR, pPFMGR, pDefaultIndex));
-    return pFMGR.getBooleanFormulaManager().and(assertions.toList());
+    List<BooleanFormula> assertions =
+        BMCHelper.assertAt(locationStates, this, pFMGR, pPFMGR, pDefaultIndex);
+    return pFMGR.getBooleanFormulaManager().and(assertions);
   }
 
   @Override

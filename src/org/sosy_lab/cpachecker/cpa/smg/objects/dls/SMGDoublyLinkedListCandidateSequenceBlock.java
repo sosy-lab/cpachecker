@@ -23,19 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects.dls;
 
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
-
+import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListCandidateSequenceBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
-
-import java.util.Optional;
 
 public class SMGDoublyLinkedListCandidateSequenceBlock
     implements SMGAbstractionBlock {
@@ -90,13 +86,7 @@ public class SMGDoublyLinkedListCandidateSequenceBlock
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + length;
-    result =
-        prime * result + ((pointerToStartObject == null) ? 0 : pointerToStartObject.hashCode());
-    result = prime * result + ((shape == null) ? 0 : shape.hashCode());
-    return result;
+    return Objects.hash(length, pointerToStartObject, shape);
   }
 
   @Override
@@ -104,50 +94,13 @@ public class SMGDoublyLinkedListCandidateSequenceBlock
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof SMGDoublyLinkedListCandidateSequenceBlock)) {
       return false;
     }
     SMGDoublyLinkedListCandidateSequenceBlock other =
         (SMGDoublyLinkedListCandidateSequenceBlock) obj;
-    if (length != other.length) {
-      return false;
-    }
-    if (pointerToStartObject == null) {
-      if (other.pointerToStartObject != null) {
-        return false;
-      }
-    } else if (!pointerToStartObject.equals(other.pointerToStartObject)) {
-      return false;
-    }
-    if (shape == null) {
-      if (other.shape != null) {
-        return false;
-      }
-    } else if (!shape.equals(other.shape)) {
-      return false;
-    }
-    return true;
+    return length == other.length
+        && Objects.equals(pointerToStartObject, other.pointerToStartObject)
+        && Objects.equals(shape, other.shape);
   }
-
-  @Override
-  public int compareTo(SMGAbstractionBlock other) {
-
-    if(other instanceof SMGSingleLinkedListCandidateSequenceBlock) {
-      return 1;
-    }
-
-    SMGDoublyLinkedListCandidateSequenceBlock otherDoublyLinkedBlock =
-        (SMGDoublyLinkedListCandidateSequenceBlock) other;
-
-    return ComparisonChain.start()
-        .compare(shape, otherDoublyLinkedBlock.shape)
-        .compare(length, otherDoublyLinkedBlock.length, Ordering.<Integer> natural().nullsFirst())
-        .compare(pointerToStartObject, otherDoublyLinkedBlock.pointerToStartObject)
-        .result();
-
-  }
-
 }

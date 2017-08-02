@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 public final class JSIntegerLiteralExpression extends AIntegerLiteralExpression
     implements JSLiteralExpression {
 
+  private static final long serialVersionUID = 4936272205165354497L;
+
   public JSIntegerLiteralExpression(FileLocation pFileLocation, BigInteger pValue) {
     super(pFileLocation, JSAnyType.ANY, pValue);
   }

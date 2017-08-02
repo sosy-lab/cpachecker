@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.js;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class JSReturnStatement extends AbstractReturnStatement implements JSAstNode {
+
+  private static final long serialVersionUID = -7528124015814286869L;
 
   public JSReturnStatement(
       final FileLocation pFileLocation,

@@ -24,18 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects.generic;
 
 import com.google.common.collect.ImmutableMap;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectVisitor;
 
 public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
 
@@ -132,11 +131,6 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   }
 
   @Override
-  public SMGObject copy() {
-    return new GenericAbstraction(getSize(), getLabel(), materlisationStepMap, abstractToConcretePointerMap);
-  }
-
-  @Override
   public SMGObject copy(int pNewLevel) {
     return new GenericAbstraction(getSize(), getLabel(), materlisationStepMap, abstractToConcretePointerMap, pNewLevel);
   }
@@ -144,5 +138,20 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   @Override
   public boolean isMoreGeneral(SMGObject pOther) {
     return false;
+  }
+
+  @Override
+  public <T> T accept(SMGObjectVisitor<T> visitor) {
+    return visitor.visit(this);
+  }
+
+  @Override
+  public SMGObject join(SMGObject pOther, int pDestLevel) {
+    throw new UnsupportedOperationException("GenericAbstraction does not join"); // TODO why not?
+  }
+
+  @Override
+  public boolean isAbstract() {
+    throw new UnsupportedOperationException("GenericAbstraction does not know if it is abstract?"); // TODO why not?
   }
 }

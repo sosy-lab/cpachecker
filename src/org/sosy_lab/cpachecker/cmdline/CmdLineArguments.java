@@ -29,10 +29,7 @@ import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedSet;
-import com.google.common.collect.Iterables;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
@@ -42,31 +39,23 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.OptionCollector;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument0;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.PropertyAddingCmdLineArgument;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.util.PropertyFileParser;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
-import org.sosy_lab.cpachecker.util.PropertyFileParser.PropertyTypeVisitor;
-import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
  * This classes parses the CPAchecker command line arguments. To add a new argument, handle it in
- * {@link #processArguments(String[], Set)} and list it in {@link #printHelp(PrintStream)}.
+ * {@link #processArguments(String[])} and list it in {@link #printHelp(PrintStream)}.
  */
 class CmdLineArguments {
 
@@ -106,20 +95,10 @@ class CmdLineArguments {
   private static final Pattern SPECIFICATION_FILES_PATTERN = DEFAULT_CONFIG_FILES_PATTERN;
   private static final String SPECIFICATION_FILES_TEMPLATE = "config/specification/%s.spc";
 
-  private static final String REACHABILITY_LABEL_SPECIFICATION_FILE = "sv-comp-errorlabel";
-  private static final String REACHABILITY_SPECIFICATION_FILE = "sv-comp-reachability";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_DEREF = "memorysafety-deref";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_FREE = "memorysafety-free";
-  private static final String MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK = "memorysafety-memtrack";
-  private static final String OVERFLOW_SPECIFICATION_FILE = "overflow";
-  private static final String DEADLOCK_SPECIFICATION_FILE = "deadlock";
-
-  private static final Pattern PROPERTY_FILE_PATTERN = Pattern.compile("(.)+\\.prp");
-
   static final String SECURE_MODE_OPTION = "secureMode";
   static final String PRINT_USED_OPTIONS_OPTION = "log.usedOptions.export";
 
-  private static final Collection<CmdLineArgument> CMD_LINE_ARGS =
+  private static final ImmutableSortedSet<CmdLineArgument> CMD_LINE_ARGS =
       ImmutableSortedSet.of(
           new CmdLineArgument0("-stats", "statistics.print", "true")
               .withDescription("collect statistics during the analysis and print them afterwards"),
@@ -152,24 +131,18 @@ class CmdLineArguments {
               .withDescription("set the classpath for the analysis of Java programs"),
           new CmdLineArgument1("-spec", "specification") {
             @Override
-            void handleArg(
-                Map<String, String> properties,
-                Set<SpecificationProperty> pSpecificationProperties,
-                String arg)
+            void handleArg(Map<String, String> properties, String arg)
                 throws InvalidCmdlineArgumentException {
-              String newValue =
-                  handleSpecificationDefinition(properties, pSpecificationProperties, arg);
-              appendOptionValue(properties, getOption(), newValue);
+              if (SPECIFICATION_FILES_PATTERN.matcher(arg).matches()) {
+                arg = resolveSpecificationFileOrExit(arg);
+              }
+              appendOptionValue(properties, getOption(), arg);
             }
           }.withDescription("set the specification for the main analysis"),
           new CmdLineArgument("-cmc") {
 
             @Override
-            void apply0(
-                Map<String, String> properties,
-                Set<SpecificationProperty> pSpecificationProperties,
-                String pCurrentArg,
-                Iterator<String> argsIt)
+            void apply0(Map<String, String> properties, String pCurrentArg, Iterator<String> argsIt)
                 throws InvalidCmdlineArgumentException {
               handleCmc(argsIt, properties);
             }
@@ -177,10 +150,7 @@ class CmdLineArguments {
           new CmdLineArgument1("-cpas") {
 
             @Override
-            void handleArg(
-                Map<String, String> properties,
-                Set<SpecificationProperty> pSpecificationProperties,
-                String arg) {
+            void handleArg(Map<String, String> properties, String arg) {
               properties.put("cpa", CompositeCPA.class.getName());
               properties.put(CompositeCPA.class.getSimpleName() + ".cpas", arg);
             }
@@ -199,10 +169,7 @@ class CmdLineArguments {
           new CmdLineArgument1("-setprop") {
 
             @Override
-            void handleArg(
-                Map<String, String> properties,
-                Set<SpecificationProperty> pSpecificationProperties,
-                String arg)
+            void handleArg(Map<String, String> properties, String arg)
                 throws InvalidCmdlineArgumentException {
               List<String> bits = SETPROP_OPTION_SPLITTER.splitToList(arg);
               if (bits.size() != 2) {
@@ -216,11 +183,7 @@ class CmdLineArguments {
 
             @SuppressFBWarnings("DM_EXIT")
             @Override
-            void apply0(
-                Map<String, String> properties,
-                Set<SpecificationProperty> pSpecificationProperties,
-                String pCurrentArg,
-                Iterator<String> argsIt)
+            void apply0(Map<String, String> properties, String pCurrentArg, Iterator<String> argsIt)
                 throws InvalidCmdlineArgumentException {
               boolean verbose = false;
               if (argsIt.hasNext()) {
@@ -242,10 +205,7 @@ class CmdLineArguments {
             @SuppressFBWarnings("DM_EXIT")
             @Override
             void apply0(
-                Map<String, String> pProperties,
-                Set<SpecificationProperty> pSpecificationProperties,
-                String pCurrentArg,
-                Iterator<String> pArgsIt)
+                Map<String, String> pProperties, String pCurrentArg, Iterator<String> pArgsIt)
                 throws InvalidCmdlineArgumentException {
               printHelp(System.out);
               System.exit(0);
@@ -258,13 +218,10 @@ class CmdLineArguments {
    * <p>In some special cases this method may terminate the VM.
    *
    * @param args commandline arguments
-   * @param pSpecificationProperties a mutable set where specification properties are put into
-   *     during parsing.
    * @return a map with all options found in the command line
    * @throws InvalidCmdlineArgumentException if there is an error in the command line
    */
-  static Map<String, String> processArguments(
-      final String[] args, Set<SpecificationProperty> pSpecificationProperties)
+  static Map<String, String> processArguments(final String[] args)
       throws InvalidCmdlineArgumentException {
     Map<String, String> properties = new HashMap<>();
     List<String> programs = new ArrayList<>();
@@ -275,7 +232,7 @@ class CmdLineArguments {
       String arg = argsIt.next();
       boolean foundMatchingArg = false;
       for (CmdLineArgument cmdLineArg : CMD_LINE_ARGS) {
-        if (cmdLineArg.apply(properties, pSpecificationProperties, arg, argsIt)) {
+        if (cmdLineArg.apply(properties, arg, argsIt)) {
           foundMatchingArg = true;
           break;
         }
@@ -289,7 +246,7 @@ class CmdLineArguments {
 
           if (configFile != null) {
             try {
-              MoreFiles.checkReadableFile(configFile);
+              IO.checkReadableFile(configFile);
               putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, configFile.toString());
             } catch (FileNotFoundException e) {
               ERROR_OUTPUT.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");
@@ -379,17 +336,6 @@ class CmdLineArguments {
     properties.put(key, value);
   }
 
-  private static void putIfNotDifferent(final Map<String, String> properties, final String key, final String value)
-      throws InvalidCmdlineArgumentException {
-
-    if (properties.containsKey(key) && !properties.get(key).equals(value)) {
-      throw new InvalidCmdlineArgumentException("Duplicate option " + key + " specified on command-line, "
-          + "with different values " + properties.get(key) + " and " + value + ".");
-    }
-
-    properties.put(key, value);
-  }
-
   static void appendOptionValue(
       final Map<String, String> options, final String option, String newValue) {
     if (newValue != null) {
@@ -403,54 +349,7 @@ class CmdLineArguments {
     }
   }
 
-  private static String handleSpecificationDefinition(
-      final Map<String, String> options,
-      Set<SpecificationProperty> pSpecificationProperties,
-      String specification)
-      throws InvalidCmdlineArgumentException {
-    // handle normal specification definitions
-    if (SPECIFICATION_FILES_PATTERN.matcher(specification).matches()) {
-      specification = resolveOrExit(specification);
-    }
-
-    // handle property files, as demanded by SV-COMP, which are just mapped to an explicit entry function and
-    // the respective specification definition
-    else if (PROPERTY_FILE_PATTERN.matcher(specification).matches()) {
-      Path propertyFile = Paths.get(specification);
-      if (propertyFile.toFile().exists()) {
-        PropertyFileParser parser = new PropertyFileParser(propertyFile);
-        try {
-          parser.parse();
-        } catch (InvalidPropertyFileException e) {
-          throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
-        }
-        putIfNotExistent(options, "analysis.entryFunction", parser.getEntryFunction());
-
-        // set the file from where to read the specification automaton
-        Iterable<SpecificationProperty> properties =
-            FluentIterable.from(parser.getProperties())
-                .transform(
-                    p ->
-                        new SpecificationProperty(
-                            p.getEntryFunctionName(),
-                            p.getPropertyType(),
-                            p.getPropertyType()
-                                .accept(PropertySpecificationFileVisitor.INSTANCE)
-                                .map(CmdLineArguments::resolveOrExit)));
-        Iterables.addAll(pSpecificationProperties, properties);
-        assert !Iterables.isEmpty(properties);
-
-        specification = getSpecifications(options, properties);
-
-      } else {
-        ERROR_OUTPUT.println("The property file " + specification + " does not exist.");
-        System.exit(ERROR_EXIT_CODE);
-      }
-    }
-    return specification;
-  }
-
-  private static String resolveOrExit(String pSpecification) {
+  static String resolveSpecificationFileOrExit(String pSpecification) {
     Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, pSpecification);
     if (specFile != null) {
       return specFile.toString();
@@ -459,29 +358,6 @@ class CmdLineArguments {
         "Checking for property " + pSpecification + " is currently not supported by CPAchecker.");
     System.exit(ERROR_EXIT_CODE);
     return pSpecification;
-  }
-
-  /**
-   * This method returns all specifications for the given properties. If needed for the analysis,
-   * some options can be set.
-   */
-  private static String getSpecifications(
-      final Map<String, String> options, Iterable<SpecificationProperty> pProperties)
-      throws InvalidCmdlineArgumentException {
-    final List<String> specifications = new ArrayList<>();
-    for (SpecificationProperty specificationProperty : pProperties) {
-      Optional<String> newSpec = specificationProperty.getInternalSpecificationPath();
-      for (Map.Entry<String, String> additionalOptions :
-          specificationProperty
-              .getPropertyType()
-              .accept(PropertyOptionVisitor.INSTANCE)
-              .entrySet()) {
-        putIfNotDifferent(options, additionalOptions.getKey(), additionalOptions.getValue());
-      }
-      assert newSpec != null;
-      newSpec.ifPresent(specifications::add);
-    }
-    return Joiner.on(",").join(specifications);
   }
 
   /**
@@ -525,95 +401,5 @@ class CmdLineArguments {
     }
 
     return null;
-  }
-
-  private static enum PropertyOptionVisitor implements PropertyTypeVisitor<Map<String, String>> {
-    INSTANCE;
-
-    @Override
-    public Map<String, String> visitReachabilityLabel() {
-      return Collections.emptyMap();
-    }
-
-    @Override
-    public Map<String, String> visitReachability() {
-      return Collections.emptyMap();
-    }
-
-    @Override
-    public Map<String, String> visitValidFree() {
-      return ImmutableMap.of("memorysafety.check", "true");
-    }
-
-    @Override
-    public Map<String, String> visitValidDeref() {
-      return ImmutableMap.of("memorysafety.check", "true");
-    }
-
-    @Override
-    public Map<String, String> visitValidMemtrack() {
-      return ImmutableMap.of("memorysafety.check", "true");
-    }
-
-    @Override
-    public Map<String, String> visitOverflow() {
-      return ImmutableMap.of("overflow.check", "true");
-    }
-
-    @Override
-    public Map<String, String> visitDeadlock() {
-      return Collections.emptyMap();
-    }
-
-    @Override
-    public Map<String, String> visitTermination() {
-      return ImmutableMap.of("termination.check", "true");
-    }
-  }
-
-  private static enum PropertySpecificationFileVisitor
-      implements PropertyTypeVisitor<Optional<String>> {
-    INSTANCE;
-
-    @Override
-    public Optional<String> visitReachabilityLabel() {
-      return Optional.of(REACHABILITY_LABEL_SPECIFICATION_FILE);
-    }
-
-    @Override
-    public Optional<String> visitReachability() {
-      return Optional.of(REACHABILITY_SPECIFICATION_FILE);
-    }
-
-    @Override
-    public Optional<String> visitValidFree() {
-      return Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_FREE);
-    }
-
-    @Override
-    public Optional<String> visitValidDeref() {
-      return Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_DEREF);
-    }
-
-    @Override
-    public Optional<String> visitValidMemtrack() {
-      return Optional.of(MEMORYSAFETY_SPECIFICATION_FILE_MEMTRACK);
-    }
-
-    @Override
-    public Optional<String> visitOverflow() {
-      return Optional.of(OVERFLOW_SPECIFICATION_FILE);
-    }
-
-    @Override
-    public Optional<String> visitDeadlock() {
-      return Optional.of(DEADLOCK_SPECIFICATION_FILE);
-    }
-
-    @Override
-    public Optional<String> visitTermination() {
-      return Optional.empty();
-    }
-
   }
 }

@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import com.google.common.base.Optional;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
-
-import java.util.Objects;
-import java.util.Optional;
 
 /**
  * This class makes the return of an object reference to the caller of
@@ -42,6 +41,7 @@ import java.util.Optional;
  */
 public final class JObjectReferenceReturn extends JReturnStatement {
 
+  private static final long serialVersionUID = 8482771117891447280L;
   private final JClassType classReference;
 
   public JObjectReferenceReturn(FileLocation pFileLocation, JClassType pClassReference) {

@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public final class JSInitializerExpression extends AInitializerExpression implements JSInitializer {
 
+  private static final long serialVersionUID = 17138865437267526L;
+
   public JSInitializerExpression(final FileLocation pFileLocation, final JSExpression pExpression) {
     super(pFileLocation, pExpression);
   }

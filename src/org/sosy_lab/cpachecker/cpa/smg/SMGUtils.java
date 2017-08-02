@@ -30,7 +30,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplate;
@@ -247,7 +247,7 @@ public final class SMGUtils {
       String location, Path pOutputFile) {
     try {
       String dot = getDot(currentState, location);
-      MoreFiles.writeFile(pOutputFile, Charset.defaultCharset(), dot);
+      IO.writeFile(pOutputFile, Charset.defaultCharset(), dot);
     } catch (IOException e) {
       pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + currentState.getId() + " to file");
     }

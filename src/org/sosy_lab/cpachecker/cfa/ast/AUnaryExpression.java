@@ -24,11 +24,11 @@
 package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public abstract class AUnaryExpression extends AbstractExpression {
 
+  private static final long serialVersionUID = 8458828004302590886L;
   private final AExpression operand;
   private final AUnaryOperator  operator;
 

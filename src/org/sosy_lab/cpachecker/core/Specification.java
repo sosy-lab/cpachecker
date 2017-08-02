@@ -41,7 +41,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
@@ -81,8 +80,16 @@ public final class Specification {
       return Specification.alwaysSatisfied();
     }
 
-    Scope scope =
-        cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
+    Scope scope;
+    switch (cfa.getLanguage()) {
+      case C:
+        scope = new CProgramScope(cfa, logger);
+        break;
+      default:
+        scope = DummyScope.getInstance();
+        break;
+    }
+
     List<Automaton> allAutomata = new ArrayList<>();
 
     for (Path specFile : specFiles) {
@@ -99,7 +106,7 @@ public final class Specification {
 
       if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
-            new AutomatonGraphmlParser(config, logger, cfa.getMachineModel(), scope);
+            new AutomatonGraphmlParser(config, logger, cfa, scope);
         automata = graphmlParser.parseAutomatonFile(specFile);
 
       } else {

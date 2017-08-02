@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.model.js;
 
 import java.util.List;
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSParameterDeclaration;
@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public class JSFunctionEntryNode extends FunctionEntryNode {
+
+  private static final long serialVersionUID = 5418184531017520116L;
 
   public JSFunctionEntryNode(
       final FileLocation pFileLocation,

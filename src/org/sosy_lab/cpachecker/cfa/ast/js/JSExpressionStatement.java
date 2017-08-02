@@ -28,6 +28,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class JSExpressionStatement extends AExpressionStatement implements JSStatement {
 
+  private static final long serialVersionUID = -1052801272525715294L;
+
   public JSExpressionStatement(final FileLocation pFileLocation, final JSExpression pExpression) {
     super(pFileLocation, pExpression);
   }

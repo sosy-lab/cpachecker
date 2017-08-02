@@ -27,7 +27,7 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.stream.Collectors.toCollection;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-import static org.sosy_lab.common.collect.MoreCollectors.toPersistentLinkedList;
+import static org.sosy_lab.common.collect.PersistentLinkedList.toPersistentLinkedList;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.base.Function;

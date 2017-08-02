@@ -34,7 +34,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -402,7 +402,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
     if (reducedCfaFile != null) {
       Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = reducedProgram.getInlinedCfa();
-      try (Writer w = MoreFiles.openOutputFile(reducedCfaFile, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(reducedCfaFile, Charset.defaultCharset())) {
         printInlinedCfa(inlinedCfa, w);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write the reduced CFA to file");

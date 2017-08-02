@@ -28,7 +28,7 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestResults;
@@ -55,7 +55,7 @@ public class AutomatonTest {
       Path tmpSpc = Paths.get("test/config/automata/tmpSpecification.spc");
       String content = "#include UninitializedVariablesTestAutomaton.txt \n" +
       "#include tmpSpecification.spc \n";
-      MoreFiles.writeFile(tmpSpc, StandardCharsets.US_ASCII, content);
+      IO.writeFile(tmpSpc, StandardCharsets.US_ASCII, content);
       TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
       results.assertIsSafe();
       assertThat(results.getLog()).contains("test/config/automata/tmpSpecification.spc\" was referenced multiple times.");

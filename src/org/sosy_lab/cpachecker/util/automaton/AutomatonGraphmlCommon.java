@@ -26,7 +26,11 @@ package org.sosy_lab.cpachecker.util.automaton;
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.Hashing;
+import com.google.common.io.BaseEncoding;
 import com.google.common.io.CharStreams;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
@@ -45,8 +49,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
@@ -283,6 +286,12 @@ public class AutomatonGraphmlCommon {
     }
   }
 
+  public static String computeHash(Path pPath) throws IOException {
+    @SuppressWarnings("deprecation") // SHA1 is required by witness format
+    HashCode hash = MoreFiles.asByteSource(pPath).hash(Hashing.sha1());
+    return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
+  }
+
   public static class GraphMlBuilder {
 
     private final Document doc;
@@ -291,8 +300,7 @@ public class AutomatonGraphmlCommon {
     public GraphMlBuilder(
         WitnessType pGraphType,
         String pDefaultSourceFileName,
-        Language pLanguage,
-        MachineModel pMachineModel,
+        CFA pCfa,
         VerificationTaskMetaData pVerificationTaskMetaData)
         throws ParserConfigurationException, DOMException, IOException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
@@ -315,7 +323,8 @@ public class AutomatonGraphmlCommon {
       root.appendChild(graph);
       graph.setAttribute("edgedefault", "directed");
       graph.appendChild(createDataElement(KeyDef.WITNESS_TYPE, pGraphType.toString()));
-      graph.appendChild(createDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString()));
+      graph.appendChild(
+          createDataElement(KeyDef.SOURCECODELANGUAGE, pCfa.getLanguage().toString()));
       graph.appendChild(
           createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
 
@@ -326,24 +335,22 @@ public class AutomatonGraphmlCommon {
       for (Path specFile : pVerificationTaskMetaData.getNonPropertySpecificationFiles()) {
         graph.appendChild(
             createDataElement(
-                KeyDef.SPECIFICATION, MoreFiles.toString(specFile, Charsets.UTF_8).trim()));
+                KeyDef.SPECIFICATION,
+                MoreFiles.asCharSource(specFile, Charsets.UTF_8).read().trim()));
       }
-      for (String inputWitnessHash : pVerificationTaskMetaData.getInputWitnessHashes()) {
-        graph.appendChild(createDataElement(KeyDef.INPUTWITNESSHASH, inputWitnessHash));
-      }
-
-      if (pVerificationTaskMetaData.getProgramNames().isPresent()) {
-        for (String programName : pVerificationTaskMetaData.getProgramNames().get()) {
-          graph.appendChild(createDataElement(KeyDef.PROGRAMFILE, programName));
-        }
-      }
-      if (pVerificationTaskMetaData.getProgramHashes().isPresent()) {
-        for (String programHash : pVerificationTaskMetaData.getProgramHashes().get()) {
-          graph.appendChild(createDataElement(KeyDef.PROGRAMHASH, programHash));
-        }
+      for (Path inputWitness : pVerificationTaskMetaData.getInputWitnessFiles()) {
+        graph.appendChild(createDataElement(KeyDef.INPUTWITNESSHASH, computeHash(inputWitness)));
       }
 
-      graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pMachineModel)));
+      for (Path programFile : pCfa.getFileNames()) {
+        graph.appendChild(createDataElement(KeyDef.PROGRAMFILE, programFile.toString()));
+      }
+      for (Path programFile : pCfa.getFileNames()) {
+        graph.appendChild(createDataElement(KeyDef.PROGRAMHASH, computeHash(programFile)));
+      }
+
+      graph.appendChild(
+          createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pCfa.getMachineModel())));
       ZonedDateTime now = ZonedDateTime.now().withNano(0);
       graph.appendChild(
           createDataElement(

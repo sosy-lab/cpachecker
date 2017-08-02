@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
  */
 public final class CComplexTypeDeclaration extends CTypeDeclaration {
 
+  private static final long serialVersionUID = -1789123397167943609L;
+
   public CComplexTypeDeclaration(FileLocation pFileLocation,
       boolean pIsGlobal, CComplexType pType) {
     super(pFileLocation, pIsGlobal, pType, null, null);

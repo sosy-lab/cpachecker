@@ -28,7 +28,8 @@ import com.google.common.truth.Truth;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -237,8 +238,8 @@ public class AppliedCustomInstructionParserTest {
             LogManager.createTestLogManager(),
             cfa);
 
-    Path p = MoreFiles.createTempFile("test_acis", null, null);
-    try (Writer file = MoreFiles.openOutputFile(p, StandardCharsets.US_ASCII)) {
+    Path p = TempFile.builder().prefix("test_acis").create();
+    try (Writer file = IO.openOutputFile(p, StandardCharsets.US_ASCII)) {
       file.append("main\n");
       CFANode node;
       Deque<CFANode> toVisit = new ArrayDeque<>();
@@ -256,7 +257,7 @@ public class AppliedCustomInstructionParserTest {
       file.flush();
     }
 
-    Path signatureFile = MoreFiles.createTempFile("ci_spec", ".txt", null);
+    Path signatureFile = TempFile.builder().prefix("ci_spec").suffix(".txt").create();
     try {
       testParse(p, signatureFile);
     } finally {

@@ -23,13 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.js;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JSDeclarationEdge extends ADeclarationEdge {
+
+  private static final long serialVersionUID = 6319915232080396018L;
 
   public JSDeclarationEdge(
       final String pRawSignature,

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.eclipse.wst.jsdt.core.IJavaScriptProject;
@@ -35,7 +36,6 @@ import org.eclipse.wst.jsdt.core.dom.ASTParser;
 import org.eclipse.wst.jsdt.core.dom.JavaScriptUnit;
 import org.eclipse.wst.jsdt.internal.core.JavaProject;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -69,7 +69,8 @@ class EclipseJavaScriptParser implements Parser {
       throws ParserException, IOException, InterruptedException {
     final Path file = Paths.get(filename);
     try {
-      return parseString(file.normalize().toString(), MoreFiles.toString(file, encoding));
+      return parseString(file.normalize().toString(), com.google.common.io.MoreFiles.asCharSource
+          (file, encoding, new OpenOption[0]).read());
     } catch (final IOException e) {
       throw new JSParserException(e);
     }

@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 
 public interface JSLeftHandSide extends JSExpression, ALeftHandSide {
 
+  long serialVersionUID = 8429072257225804923L;
+
   public <R, X extends Exception> R accept(JSLeftHandSideVisitor<R, X> v) throws X;
 
   @Override

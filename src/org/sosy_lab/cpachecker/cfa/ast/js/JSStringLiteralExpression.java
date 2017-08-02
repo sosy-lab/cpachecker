@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 public final class JSStringLiteralExpression extends AStringLiteralExpression
     implements JSLiteralExpression {
 
+  private static final long serialVersionUID = -8981591181942355152L;
+
   public JSStringLiteralExpression(FileLocation pFileLocation, JSType pType, String pValue) {
     super(pFileLocation, pType, pValue);
   }

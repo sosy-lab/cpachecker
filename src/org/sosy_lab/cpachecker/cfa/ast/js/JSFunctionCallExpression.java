@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.types.js.JSType;
 
 public class JSFunctionCallExpression extends AFunctionCallExpression implements JSRightHandSide {
 
+  private static final long serialVersionUID = 9202497344519251662L;
+
   public JSFunctionCallExpression(
       final FileLocation pFileLocation,
       final JSType pType,

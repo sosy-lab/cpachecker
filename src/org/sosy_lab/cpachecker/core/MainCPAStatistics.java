@@ -61,7 +61,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -128,7 +128,6 @@ class MainCPAStatistics implements Statistics {
   private final Collection<Statistics> subStats;
   private final @Nullable MemoryStatistics memStats;
   private final CoverageReport coverageReport;
-  private final String analyzedFiles;
   private final @Nullable CExpressionInvariantExporter cExpressionInvariantExporter;
   private Thread memStatsThread;
 
@@ -145,12 +144,9 @@ class MainCPAStatistics implements Statistics {
   private @Nullable CFA cfa;
 
   public MainCPAStatistics(
-      Configuration pConfig,
-      LogManager pLogger,
-      String pAnalyzedFiles, ShutdownNotifier pShutdownNotifier)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     logger = pLogger;
-    analyzedFiles = pAnalyzedFiles;
     pConfig.inject(this);
 
     subStats = new ArrayList<>();
@@ -294,9 +290,9 @@ class MainCPAStatistics implements Statistics {
             "Out of memory while generating statistics about final reached set");
       }
 
-      if (cExpressionInvariantExporter != null) {
+      if (cExpressionInvariantExporter != null && cfa != null) {
         try {
-          cExpressionInvariantExporter.exportInvariant(analyzedFiles, reached);
+          cExpressionInvariantExporter.exportInvariant(cfa, reached);
         } catch (IOException e) {
           logger.logUserException(
               Level.WARNING,
@@ -330,7 +326,7 @@ class MainCPAStatistics implements Statistics {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (exportReachedSet && pOutputFile != null) {
-      try (Writer w = MoreFiles.openOutputFile(pOutputFile, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(pOutputFile, Charset.defaultCharset())) {
 
         if (writeDotFormat) {
 

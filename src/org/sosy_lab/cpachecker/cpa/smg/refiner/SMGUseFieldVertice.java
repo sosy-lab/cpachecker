@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.base.Objects;
+
 public class SMGUseFieldVertice implements SMGUseVertice {
 
   private final SMGMemoryPath field;
@@ -49,11 +51,7 @@ public class SMGUseFieldVertice implements SMGUseVertice {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + argPos;
-    result = prime * result + ((field == null) ? 0 : field.hashCode());
-    return result;
+    return Objects.hashCode(argPos, field);
   }
 
   @Override
@@ -61,23 +59,10 @@ public class SMGUseFieldVertice implements SMGUseVertice {
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof SMGUseFieldVertice)) {
       return false;
     }
     SMGUseFieldVertice other = (SMGUseFieldVertice) obj;
-    if (argPos != other.argPos) {
-      return false;
-    }
-    if (field == null) {
-      if (other.field != null) {
-        return false;
-      }
-    } else if (!field.equals(other.field)) {
-      return false;
-    }
-    return true;
+    return argPos == other.argPos && Objects.equal(field, other.field);
   }
 }

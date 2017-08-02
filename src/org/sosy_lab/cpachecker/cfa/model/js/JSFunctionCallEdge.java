@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.model.js;
 
 import java.util.List;
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSFunctionCall;
@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
 public class JSFunctionCallEdge extends FunctionCallEdge {
+
+  private static final long serialVersionUID = -4775422680139424485L;
 
   public JSFunctionCallEdge(
       String pRawStatement,

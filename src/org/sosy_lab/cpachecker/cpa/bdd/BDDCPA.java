@@ -39,7 +39,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -200,7 +200,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
             }
 
             if (dumpfile != null) { // option -noout
-              try (Writer w = MoreFiles.openOutputFile(dumpfile, Charset.defaultCharset())) {
+              try (Writer w = IO.openOutputFile(dumpfile, Charset.defaultCharset())) {
                 w.append("Boolean\n\n");
                 w.append(trackedIntBool.toString());
                 w.append("\n\nIntEq\n\n");

@@ -30,6 +30,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 public class JSFunctionSummaryEdge extends FunctionSummaryEdge {
 
+  private static final long serialVersionUID = -4579082266656619638L;
+
   public JSFunctionSummaryEdge(
       String pRawStatement,
       FileLocation pFileLocation,

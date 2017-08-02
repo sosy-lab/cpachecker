@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.eclipse.wst.jsdt.core.dom.FunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -42,7 +42,7 @@ class FunctionDeclarationCFABuilder implements FunctionDeclarationAppendable {
     final FunctionExitNode exitNode = new FunctionExitNode(functionName);
     final JSFunctionEntryNode entryNode =
         new JSFunctionEntryNode(
-            FileLocation.DUMMY, jsFunctionDeclaration, exitNode, Optional.empty());
+            FileLocation.DUMMY, jsFunctionDeclaration, exitNode, Optional.absent());
     exitNode.setEntryNode(entryNode);
     final JavaScriptCFABuilder functionCFABuilder = pBuilder.copyWith(entryNode);
 

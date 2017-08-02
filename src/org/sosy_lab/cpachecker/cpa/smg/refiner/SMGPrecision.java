@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
-
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -35,11 +38,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Collection;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public abstract class SMGPrecision implements Precision {
 
@@ -66,9 +64,7 @@ public abstract class SMGPrecision implements Precision {
 
   public abstract SMGPrecision join(SMGPrecision pPrecision);
 
-  public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision)
-  {
-
+  public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision) {
     SetMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = ImmutableSetMultimap.of();
     SetMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = ImmutableSetMultimap.of();
     SetMultimap<CFANode, MemoryLocation> emptyStackVariable = ImmutableSetMultimap.of();
@@ -141,46 +137,31 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public Set<SMGMemoryPath> getTrackedMemoryPathsOnNode(CFANode pLocationNode) {
-      if (trackedMemoryPaths.containsKey(pLocationNode)) {
-        return trackedMemoryPaths.get(pLocationNode);
-      } else {
-        return ImmutableSet.of();
-      }
+      return trackedMemoryPaths.get(pLocationNode);
     }
 
     @Override
     public Set<MemoryLocation> getTrackedStackVariablesOnNode(CFANode pCfaNode) {
-      if (trackedStackVariables.containsKey(pCfaNode)) {
-        return trackedStackVariables.get(pCfaNode);
-      } else {
-        return ImmutableSet.of();
-      }
+      return trackedStackVariables.get(pCfaNode);
     }
 
     @Override
     public Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement) {
 
-      SetMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = HashMultimap.create();
-      resultMemoryPaths.putAll(trackedMemoryPaths);
-      SetMultimap<CFANode, MemoryLocation> resultStackVariables = HashMultimap.create();
-      resultStackVariables.putAll(trackedStackVariables);
-      SetMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = HashMultimap.create();
-      resultAbstractionBlocks.putAll(abstractionBlocks);
+      SetMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = HashMultimap.create(trackedMemoryPaths);
+      SetMultimap<CFANode, MemoryLocation> resultStackVariables = HashMultimap.create(trackedStackVariables);
+      SetMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = HashMultimap.create(abstractionBlocks);
 
       for (Entry<CFANode, SMGPrecisionIncrement> entry : pPrecisionIncrement.entrySet()) {
         SMGPrecisionIncrement inc = entry.getValue();
         CFANode cfaNode = entry.getKey();
-        Collection<SMGAbstractionBlock> incAbstractionBlocks = inc.getAbstractionBlock();
-        Collection<SMGMemoryPath> incMemoryPaths = inc.getPathsToTrack();
-        Collection<MemoryLocation> incStackVariables = inc.getStackVariablesToTrack();
-        resultAbstractionBlocks.putAll(cfaNode, incAbstractionBlocks);
-        resultMemoryPaths.putAll(cfaNode, incMemoryPaths);
-        resultStackVariables.putAll(cfaNode, incStackVariables);
+        resultAbstractionBlocks.putAll(cfaNode, inc.getAbstractionBlock());
+        resultMemoryPaths.putAll(cfaNode, inc.getPathsToTrack());
+        resultStackVariables.putAll(cfaNode, inc.getStackVariablesToTrack());
       }
 
       return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), getBlockOperator(),
-          resultMemoryPaths,
-          resultAbstractionBlocks, resultStackVariables);
+          resultMemoryPaths, resultAbstractionBlocks, resultStackVariables);
     }
 
     @Override
@@ -192,14 +173,11 @@ public abstract class SMGPrecision implements Precision {
 
       SMGRefineablePrecision other = (SMGRefineablePrecision) pPrecision;
 
-      SetMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = HashMultimap.create();
-      resultMemoryPaths.putAll(trackedMemoryPaths);
+      SetMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = HashMultimap.create(trackedMemoryPaths);
       resultMemoryPaths.putAll(other.trackedMemoryPaths);
-      SetMultimap<CFANode, MemoryLocation> resultStackVariables = HashMultimap.create();
-      resultStackVariables.putAll(trackedStackVariables);
+      SetMultimap<CFANode, MemoryLocation> resultStackVariables = HashMultimap.create(trackedStackVariables);
       resultStackVariables.putAll(other.trackedStackVariables);
-      SetMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = HashMultimap.create();
-      resultAbstractionBlocks.putAll(abstractionBlocks);
+      SetMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = HashMultimap.create(abstractionBlocks);
       resultAbstractionBlocks.putAll(other.abstractionBlocks);
 
       assert getAbstractionOptions().equals(pPrecision.getAbstractionOptions());
@@ -211,13 +189,7 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public boolean isTracked(SMGMemoryPath pPath, CFANode pCfaNode) {
-
-      if (trackedMemoryPaths.containsKey(pCfaNode)) {
-        Set<SMGMemoryPath> trackedMemPaths = trackedMemoryPaths.get(pCfaNode);
-        return trackedMemPaths.contains(pPath);
-      } else {
-        return false;
-      }
+      return trackedMemoryPaths.get(pCfaNode).contains(pPath);
     }
 
     @Override
@@ -309,36 +281,16 @@ public abstract class SMGPrecision implements Precision {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + (fieldAbstraction ? 1231 : 1237);
-      result = prime * result + (heapAbstraction ? 1231 : 1237);
-      result = prime * result + (stackAbstraction ? 1231 : 1237);
-      return result;
+      return Objects.hashCode(fieldAbstraction, heapAbstraction, stackAbstraction);
     }
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj) {
-        return true;
-      }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
-        return false;
-      }
+      if (!(obj instanceof SMGPrecisionAbstractionOptions)) { return false; }
       SMGPrecisionAbstractionOptions other = (SMGPrecisionAbstractionOptions) obj;
-      if (fieldAbstraction != other.fieldAbstraction) {
-        return false;
-      }
-      if (heapAbstraction != other.heapAbstraction) {
-        return false;
-      }
-      if (stackAbstraction != other.stackAbstraction) {
-        return false;
-      }
-      return true;
+      return fieldAbstraction == other.fieldAbstraction
+          && heapAbstraction == other.heapAbstraction
+          && stackAbstraction != other.stackAbstraction;
     }
 
     @Override

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.js;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 public class JSReturnStatementEdge extends AReturnStatementEdge {
+
+  private static final long serialVersionUID = 5236439106970614426L;
 
   public JSReturnStatementEdge(
       String pRawStatement,

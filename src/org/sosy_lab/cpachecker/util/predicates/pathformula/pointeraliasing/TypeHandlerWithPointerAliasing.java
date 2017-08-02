@@ -166,11 +166,11 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       return; // The type has already been added
     }
 
-    final Integer size = compositeType.accept(sizeofVisitor);
+    final int size = compositeType.accept(sizeofVisitor);
+    final int sizeOfByte = machineModel.getSizeofCharInBits();
 
-    assert size != null : "Can't evaluate size of a composite type: " + compositeType;
-
-    assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+    assert compositeType.getKind() != ComplexTypeKind.ENUM
+        : "Enums are not composite: " + compositeType;
 
     final Multiset<String> members = HashMultiset.create();
     int offset = 0;
@@ -178,7 +178,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     Iterator<CCompositeTypeMemberDeclaration> memberIt = compositeType.getMembers().iterator();
     while (memberIt.hasNext()) {
       final CCompositeTypeMemberDeclaration memberDeclaration = memberIt.next();
-      int bitPreciseOffset = offset * machineModel.getSizeofCharInBits() + bitFieldsSize;
+      int bitPreciseOffset = offset * sizeOfByte + bitFieldsSize;
       members.setCount(memberDeclaration.getName(), bitPreciseOffset);
       final CType memberType = getSimplifiedType(memberDeclaration);
       final CCompositeType memberCompositeType;
@@ -210,7 +210,20 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
           offset += machineModel.getPadding(offset, elementType);
         } else {
           if (memberDeclaration.getType() instanceof CBitFieldType) {
-            bitFieldsSize += ((CBitFieldType) memberDeclaration.getType()).getBitFieldSize();
+            // Cf. implementation of {@link MachineModel#getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(...)}
+            CBitFieldType currentType = (CBitFieldType) memberDeclaration.getType();
+            int memberSize = currentType.getBitFieldSize();
+            CType innerType = currentType.getType();
+
+            if (memberSize == 0) {
+              bitFieldsSize =
+                  machineModel.calculatePaddedBitsize(0, bitFieldsSize, innerType, sizeOfByte);
+            } else {
+              bitFieldsSize =
+                  machineModel.calculateNecessaryBitfieldOffset(
+                      bitFieldsSize, innerType, sizeOfByte, memberSize);
+              bitFieldsSize += memberSize;
+            }
           } else {
             offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
             bitFieldsSize = 0;

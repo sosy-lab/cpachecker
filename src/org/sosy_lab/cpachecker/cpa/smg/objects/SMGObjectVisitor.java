@@ -24,15 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
 import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.objects.generic.GenericAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 
 
-public interface SMGObjectVisitor {
+public interface SMGObjectVisitor<T> {
 
-  public void visit(SMGObject pObject);
-  public void visit(SMGRegion pObject);
-  public void visit(SMGSingleLinkedList pObject);
-  public void visit(SMGDoublyLinkedList pObject);
-  public void visit(SMGOptionalObject pObject);
+  public T visit(SMGNullObject pObject);
+  public T visit(SMGRegion pObject);
+  public T visit(SMGSingleLinkedList pObject);
+  public T visit(SMGDoublyLinkedList pObject);
+  public T visit(SMGOptionalObject pObject);
+  public T visit(GenericAbstraction pObject);
 }
