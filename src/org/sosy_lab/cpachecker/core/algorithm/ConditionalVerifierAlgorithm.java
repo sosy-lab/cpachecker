@@ -68,6 +68,7 @@ public class ConditionalVerifierAlgorithm implements Algorithm {
   private final ShutdownNotifier shutdown;
   private final CFA cfa;
   private final Specification spec;
+  private final Configuration globalConfig;
 
   public ConditionalVerifierAlgorithm(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final Specification pSpecification, final CFA pCfa)
@@ -78,6 +79,8 @@ public class ConditionalVerifierAlgorithm implements Algorithm {
     shutdown = pShutdownNotifier;
     spec = pSpecification;
     cfa = pCfa;
+
+    globalConfig = pConfig;
   }
 
   @Override
@@ -114,7 +117,11 @@ public class ConditionalVerifierAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Build configuration for residual program generation");
     ConfigurationBuilder configBuild = Configuration.builder();
     try {
-      configBuild.loadFromFile(generatorConfig)
+      configBuild.copyFrom(globalConfig)
+                 .clearOption("analysis.asConditionalVerifier")
+                 .clearOption("conditional.verifier.verifierConfig")
+                 .clearOption("conditional.verifier.generatorConfig")
+                 .loadFromFile(generatorConfig)
                  .setOption("residualprogram.file", residualProg);
       Configuration config = configBuild.build();
       shutdown.shutdownIfNecessary();
@@ -164,7 +171,11 @@ public class ConditionalVerifierAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Build configuration for verification");
     ConfigurationBuilder configBuild = Configuration.builder();
     try {
-      configBuild.loadFromFile(verifierConfig)
+      configBuild.copyFrom(globalConfig)
+                 .clearOption("analysis.asConditionalVerifier")
+                 .clearOption("conditional.verifier.verifierConfig")
+                 .clearOption("conditional.verifier.generatorConfig")
+                 .loadFromFile(verifierConfig)
                  .setOption("analysis.entryFunction", pEntryFunctionName)
                  .setOption("parser.usePreprocessor", "true");
       Configuration config = configBuild.build();
