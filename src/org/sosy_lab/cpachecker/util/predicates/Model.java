@@ -46,6 +46,11 @@ import com.google.common.collect.Ordering;
  * {@link org.sosy_lab.cpachecker.core.counterexample.RichModel}.
  */
 public class Model extends ForwardingMap<AssignableTerm, Object> implements Appender {
+  
+  public class Variable {
+
+  }
+
   private final ImmutableMap<AssignableTerm, Object> data;
 
   public Model(Map<AssignableTerm, Object> pData) {

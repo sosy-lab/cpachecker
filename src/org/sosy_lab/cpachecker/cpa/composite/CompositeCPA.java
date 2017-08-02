@@ -128,9 +128,9 @@ public class CompositeCPA implements ConfigurableProgramAnalysis, StatisticsProv
           simplePrec = false;
         }
 
-        if (simplePrec) {
+        //if (simplePrec) {
           precisionAdjustments.add(prec);
-        }
+        //}
 
         MergeOperator merge = sp.getMergeOperator();
         if (merge != MergeSepOperator.getInstance()) {

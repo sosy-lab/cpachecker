@@ -33,24 +33,23 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.common.Appenders.AbstractAppender;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.io.IOException;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-
+import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
+import org.sosy_lab.common.Appenders.AbstractAppender;
+import org.sosy_lab.common.JSON;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * ARGPath contains a non-empty path through the ARG
@@ -78,8 +77,8 @@ public class ARGPath extends AbstractAppender {
   private final List<CFAEdge> edges; // immutable, but may contain null
 
   @SuppressFBWarnings(
-      value="JCIP_FIELD_ISNT_FINAL_IN_IMMUTABLE_CLASS",
-      justification="This variable is only used for caching the full path for later use"
+      value = "JCIP_FIELD_ISNT_FINAL_IN_IMMUTABLE_CLASS",
+      justification = "This variable is only used for caching the full path for later use"
           + " without having to compute it again.")
   private List<CFAEdge> fullPath = null;
 
@@ -92,10 +91,10 @@ public class ARGPath extends AbstractAppender {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     states = ImmutableList.copyOf(pStates);
 
-    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size()-1);
+    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
     for (int i = 0; i < states.size() - 1; i++) {
       ARGState parent = states.get(i);
-      ARGState child = states.get(i+1);
+      ARGState child = states.get(i + 1);
       edgesBuilder.add(parent.getEdgeToChild(child)); // may return null
     }
 
@@ -105,7 +104,8 @@ public class ARGPath extends AbstractAppender {
 
   public ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
-    checkArgument(pStates.size() - 1 == pEdges.size(), "ARGPaths must have one state more than edges");
+    checkArgument(pStates.size() - 1 == pEdges.size(),
+        "ARGPaths must have one state more than edges");
 
     states = ImmutableList.copyOf(pStates);
     edges = Collections.unmodifiableList(new ArrayList<>(pEdges));
@@ -134,9 +134,7 @@ public class ARGPath extends AbstractAppender {
    * using bam) we return an empty list instead.
    */
   public List<CFAEdge> getFullPath() {
-    if (fullPath != null) {
-      return fullPath;
-    }
+    if (fullPath != null) { return fullPath; }
 
     List<CFAEdge> fullPath = new ArrayList<>();
     PathIterator it = pathIterator();
@@ -156,16 +154,15 @@ public class ARGPath extends AbstractAppender {
         CFANode nextNode = extractLocation(succ);
 
         do { // the chain must not be empty
-          if (!(curNode.getNumLeavingEdges() == 1 && curNode.getLeavingSummaryEdge() == null)) {
-            return Collections.emptyList();
-          }
+          if (!(curNode.getNumLeavingEdges() == 1
+              && curNode.getLeavingSummaryEdge() == null)) { return Collections.emptyList(); }
 
           CFAEdge intermediateEdge = curNode.getLeavingEdge(0);
           fullPath.add(intermediateEdge);
           curNode = intermediateEdge.getSuccessor();
         } while (curNode != nextNode);
 
-      // we have a normal connection without hole in the edges
+        // we have a normal connection without hole in the edges
       } else {
         fullPath.add(curOutgoingEdge);
       }
@@ -187,7 +184,7 @@ public class ARGPath extends AbstractAppender {
 
       @Override
       public Pair<ARGState, ARGState> get(int pIndex) {
-        return Pair.of(states.get(pIndex), states.get(pIndex+1));
+        return Pair.of(states.get(pIndex), states.get(pIndex + 1));
       }
 
       @Override
@@ -313,6 +310,7 @@ public class ARGPath extends AbstractAppender {
    * outgoing edge of the last state of a path does not make sense.
    */
   public static abstract class ARGPathBuilder {
+
     List<ARGState> states = new ArrayList<>();
     List<CFAEdge> edges = new ArrayList<>();
 
@@ -339,8 +337,8 @@ public class ARGPath extends AbstractAppender {
      */
     public ARGPathBuilder removeLast() {
       assert !states.isEmpty() && !edges.isEmpty();
-      states.remove(states.size()-1);
-      edges.remove(edges.size()-1);
+      states.remove(states.size() - 1);
+      edges.remove(edges.size() - 1);
       return this;
     }
 
@@ -360,7 +358,7 @@ public class ARGPath extends AbstractAppender {
     public ARGPath build(ARGState pState) {
       states.add(pState);
       ARGPath path = new ARGPath(states, edges);
-      states.remove(states.size()-1);
+      states.remove(states.size() - 1);
       return path;
     }
   }
@@ -375,7 +373,7 @@ public class ARGPath extends AbstractAppender {
     public ARGPath build(ARGState pState) {
       states.add(pState);
       ARGPath path = new ARGPath(Lists.reverse(states), Lists.reverse(edges));
-      states.remove(states.size()-1);
+      states.remove(states.size() - 1);
       return path;
     }
   }
@@ -510,7 +508,7 @@ public class ARGPath extends AbstractAppender {
      */
     public ARGState getNextAbstractState() {
       checkState(pos + 1 < path.states.size());
-      return path.states.get(pos+1);
+      return path.states.get(pos + 1);
     }
 
     /**
@@ -523,7 +521,7 @@ public class ARGPath extends AbstractAppender {
      */
     public ARGState getPreviousAbstractState() {
       checkState(pos - 1 >= 0);
-      return path.states.get(pos-1);
+      return path.states.get(pos - 1);
     }
 
     /**
@@ -548,7 +546,7 @@ public class ARGPath extends AbstractAppender {
      */
     public @Nullable CFAEdge getIncomingEdge() {
       checkState(pos > 0, "First state in ARGPath has no incoming edge.");
-      return path.edges.get(pos-1);
+      return path.edges.get(pos - 1);
     }
 
     /**
@@ -559,7 +557,7 @@ public class ARGPath extends AbstractAppender {
      * @return A {@link CFAEdge} or null, if there is no edge between these two states.
      */
     public @Nullable CFAEdge getOutgoingEdge() {
-      checkState(pos < path.states.size()-1, "Last state in ARGPath has no outgoing edge.");
+      checkState(pos < path.states.size() - 1, "Last state in ARGPath has no outgoing edge.");
       return path.edges.get(pos);
     }
 
@@ -573,7 +571,7 @@ public class ARGPath extends AbstractAppender {
      * @return A non-null {@link ARGPath}
      */
     public ARGPath getPrefixInclusive() {
-      return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
+      return new ARGPath(path.states.subList(0, pos + 1), path.edges.subList(0, pos));
     }
 
     /**
@@ -593,7 +591,7 @@ public class ARGPath extends AbstractAppender {
       checkState(pos > 0, "Exclusive prefix of first state in path would be empty.");
 
       if (pos == 1) {
-        return new ARGPath(path.states.subList(0, pos), Collections.<CFAEdge>emptyList());
+        return new ARGPath(path.states.subList(0, pos), Collections.<CFAEdge> emptyList());
       } else {
         return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos - 1));
       }
@@ -610,7 +608,7 @@ public class ARGPath extends AbstractAppender {
      */
     public ARGPath getSuffixInclusive() {
       int lastPos = path.states.size();
-      return new ARGPath(path.states.subList(pos, lastPos), path.edges.subList(pos, lastPos-1));
+      return new ARGPath(path.states.subList(pos, lastPos), path.edges.subList(pos, lastPos - 1));
     }
 
     /**
@@ -627,9 +625,11 @@ public class ARGPath extends AbstractAppender {
      * @return A non-null {@link ARGPath}
      */
     public ARGPath getSuffixExclusive() {
-      checkState(pos < path.states.size() - 1, "Exclusive suffix of last state in path would be empty.");
+      checkState(pos < path.states.size() - 1,
+          "Exclusive suffix of last state in path would be empty.");
       int lastPos = path.states.size();
-      return new ARGPath(path.states.subList(pos+1, lastPos), path.edges.subList(pos+1, lastPos-1));
+      return new ARGPath(path.states.subList(pos + 1, lastPos),
+          path.edges.subList(pos + 1, lastPos - 1));
     }
   }
 
@@ -658,9 +658,7 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof PathPosition)) {
-        return false;
-      }
+      if (!(pObj instanceof PathPosition)) { return false; }
       PathPosition other = (PathPosition) pObj;
 
       return ((this.pos == other.pos)
@@ -785,9 +783,7 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public boolean equals(Object pObj) {
-      if (!(pObj instanceof FullPathPosition)) {
-        return false;
-      }
+      if (!(pObj instanceof FullPathPosition)) { return false; }
       FullPathPosition other = (FullPathPosition) pObj;
 
       return super.equals(pObj) && other.offset == this.offset;
@@ -822,7 +818,7 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public boolean hasNext() {
-      return pos < path.states.size()-1;
+      return pos < path.states.size() - 1;
     }
 
     @Override
@@ -830,6 +826,7 @@ public class ARGPath extends AbstractAppender {
       return pos > 0;
     }
   }
+
   /**
    * The implementation of PathIterator that iterates
    * in the reverse direction of the analysis.
@@ -841,7 +838,7 @@ public class ARGPath extends AbstractAppender {
     }
 
     private ReversePathIterator(ARGPath pPath) {
-      super(pPath, pPath.states.size()-1);
+      super(pPath, pPath.states.size() - 1);
     }
 
     @Override
@@ -868,6 +865,7 @@ public class ARGPath extends AbstractAppender {
   }
 
   private static abstract class FullPathIterator extends PathIterator {
+
     protected final List<CFAEdge> fullPath;
     protected boolean currentPositionHasState = true;
     protected int overallOffset;
@@ -907,12 +905,12 @@ public class ARGPath extends AbstractAppender {
     @Override
     public @Nullable CFAEdge getIncomingEdge() {
       checkState(pos > 0, "First state in ARGPath has no incoming edge.");
-      return fullPath.get(overallOffset-1);
+      return fullPath.get(overallOffset - 1);
     }
 
     @Override
     public @Nullable CFAEdge getOutgoingEdge() {
-      checkState(pos < path.states.size()-1, "Last state in ARGPath has no outgoing edge.");
+      checkState(pos < path.states.size() - 1, "Last state in ARGPath has no outgoing edge.");
       return fullPath.get(overallOffset);
     }
 
@@ -927,7 +925,7 @@ public class ARGPath extends AbstractAppender {
     public ARGState getPreviousAbstractState() {
       checkState(pos - 1 >= 0);
       if (currentPositionHasState) {
-        return path.states.get(pos-1);
+        return path.states.get(pos - 1);
       } else {
         return path.states.get(pos);
       }
@@ -941,9 +939,9 @@ public class ARGPath extends AbstractAppender {
     @Override
     public ARGPath getPrefixInclusive() {
       if (currentPositionHasState) {
-        return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
+        return new ARGPath(path.states.subList(0, pos + 1), path.edges.subList(0, pos));
       } else {
-        return new ARGPath(path.states.subList(0, pos+2), path.edges.subList(0, pos+1));
+        return new ARGPath(path.states.subList(0, pos + 2), path.edges.subList(0, pos + 1));
       }
     }
 
@@ -960,12 +958,12 @@ public class ARGPath extends AbstractAppender {
           "Exclusive prefix of first state in path would be empty.");
       if (currentPositionHasState) {
         if (pos == 0) {
-          return new ARGPath(path.states.subList(0, pos), Collections.<CFAEdge>emptyList());
+          return new ARGPath(path.states.subList(0, pos), Collections.<CFAEdge> emptyList());
         } else {
           return new ARGPath(path.states.subList(0, pos), path.edges.subList(0, pos - 1));
         }
       } else {
-        return new ARGPath(path.states.subList(0, pos+1), path.edges.subList(0, pos));
+        return new ARGPath(path.states.subList(0, pos + 1), path.edges.subList(0, pos));
       }
     }
   }
@@ -1018,7 +1016,7 @@ public class ARGPath extends AbstractAppender {
 
     @Override
     public boolean hasNext() {
-      return pos < path.states.size()-1;
+      return pos < path.states.size() - 1;
     }
 
     @Override
@@ -1044,7 +1042,7 @@ public class ARGPath extends AbstractAppender {
       // if we are currently on a position with state and we have a real
       // (non-null) edge then we can directly set the parameters without
       // further checking
-      if (path.edges.get(pos-1) != null && currentPositionHasState) {
+      if (path.edges.get(pos - 1) != null && currentPositionHasState) {
         pos--;
         overallOffset--;
         currentPositionHasState = true;
@@ -1053,7 +1051,7 @@ public class ARGPath extends AbstractAppender {
 
         boolean nextPositionHasState = Iterables.contains(
             extractLocations(getPreviousAbstractState()),
-            fullPath.get(overallOffset-1).getPredecessor());
+            fullPath.get(overallOffset - 1).getPredecessor());
 
         if (currentPositionHasState) {
           pos--; // only reduce by one if it was a real node before we are leaving it now
@@ -1098,5 +1096,31 @@ public class ARGPath extends AbstractAppender {
     public boolean hasPrevious() {
       return pos < path.states.size() - 1;
     }
+  }
+
+  public void toJSON(Appendable sb) {
+    List<Map<?, ?>> path = new ArrayList<>(size());
+    for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(states, edges)) {
+      Map<String, Object> elem = new HashMap<>();
+      ARGState argelem = pair.getFirst();
+      CFAEdge edge = pair.getSecond();
+      if (edge == null) {
+        continue; // in this case we do not need the edge
+      }
+      elem.put("argelem", argelem.getStateId());
+      elem.put("source", edge.getPredecessor().getNodeNumber());
+      elem.put("target", edge.getSuccessor().getNodeNumber());
+      elem.put("desc", edge.getDescription().replaceAll("\n", " "));
+      elem.put("val", "");
+      elem.put("line", edge.getFileLocation().getStartingLineNumber());
+      elem.put("file", edge.getFileLocation().getFileName());
+      path.add(elem);
+    }
+    JSON.writeJSONString(path, sb);
+
+  }
+
+  public List<CFAEdge> asEdgesList() {
+    return edges;
   }
 }

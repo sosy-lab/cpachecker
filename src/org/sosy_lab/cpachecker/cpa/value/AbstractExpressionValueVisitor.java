@@ -171,6 +171,10 @@ public abstract class AbstractExpressionValueVisitor
     logger = pLogger;
   }
 
+  public long getSizeof(CType pType) {
+    return machineModel.getSizeof(pType);
+  }
+
   public boolean hasMissingFieldAccessInformation() {
     return missingFieldAccessInformation;
   }

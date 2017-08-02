@@ -59,7 +59,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
   private final ImmutableList<CFAEdgeWithAssumptions> pathWithAssignments;
 
-  private CFAPathWithAssumptions(
+  CFAPathWithAssumptions(
       List<CFAEdgeWithAssumptions> pPathWithAssignments) {
     pathWithAssignments = ImmutableList.copyOf(pPathWithAssignments);
   }

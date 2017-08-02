@@ -24,14 +24,12 @@
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.collect.ImmutableList;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
-
 import java.util.Iterator;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
+import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.ConcreteStatePathNode;
 
 /**
  * This class is used as a path of {@link CFAEdge} cfa edges
@@ -119,6 +117,31 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
     @Override
     public String toString() {
       return "[" + getCfaEdge().toString() + " " + concreteState.toString() + "]";
+    }
+  }
+
+  static final class MultiConcreteState extends ConcreteStatePathNode
+      implements Iterable<SingleConcreteState> {
+
+    private final List<SingleConcreteState> concreteStates;
+
+    public MultiConcreteState(MultiEdge pCfaEdge, List<SingleConcreteState> pConcreteStates) {
+      super(pCfaEdge);
+      concreteStates = ImmutableList.copyOf(pConcreteStates);
+    }
+
+    @Override
+    public MultiEdge getCfaEdge() {
+      return (MultiEdge) super.getCfaEdge();
+    }
+
+    @Override
+    public Iterator<SingleConcreteState> iterator() {
+      return concreteStates.iterator();
+    }
+
+    public SingleConcreteState getLastConcreteState() {
+      return concreteStates.get(concreteStates.size() - 1);
     }
   }
 
