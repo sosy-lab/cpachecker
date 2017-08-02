@@ -166,7 +166,6 @@ public class ConditionalVerifierAlgorithm implements Algorithm {
     try {
       configBuild.loadFromFile(verifierConfig)
                  .setOption("analysis.entryFunction", pEntryFunctionName)
-                 .setOption("analysis.useLoopStructure", "false")
                  .setOption("parser.usePreprocessor", "true");
       Configuration config = configBuild.build();
       shutdown.shutdownIfNecessary();
