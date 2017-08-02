@@ -23,13 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.js;
 
-final class ExpressionAppendableFactory {
+import org.eclipse.wst.jsdt.core.dom.PostfixExpression;
+import org.sosy_lab.cpachecker.cfa.ast.js.JSExpression;
 
-  static ExpressionAppendable withAllFeatures() {
-    final ExpressionCFABuilder builder = new ExpressionCFABuilder();
-    builder.setFunctionInvocationAppendable(new FunctionInvocationCFABuilder());
-    builder.setPrefixExpressionAppendable(new PrefixExpressionCFABuilder());
-    builder.setPostfixExpressionAppendable(new PostfixExpressionCFABuilder());
-    return builder;
-  }
+interface PostfixExpressionAppendable {
+  JSExpression append(JavaScriptCFABuilder builder, PostfixExpression pPostfixExpression);
 }

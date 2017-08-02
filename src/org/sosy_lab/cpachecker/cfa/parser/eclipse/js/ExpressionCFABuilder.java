@@ -29,6 +29,7 @@ import org.eclipse.wst.jsdt.core.dom.FunctionInvocation;
 import org.eclipse.wst.jsdt.core.dom.InfixExpression;
 import org.eclipse.wst.jsdt.core.dom.NullLiteral;
 import org.eclipse.wst.jsdt.core.dom.NumberLiteral;
+import org.eclipse.wst.jsdt.core.dom.PostfixExpression;
 import org.eclipse.wst.jsdt.core.dom.PrefixExpression;
 import org.eclipse.wst.jsdt.core.dom.SimpleName;
 import org.eclipse.wst.jsdt.core.dom.StringLiteral;
@@ -39,6 +40,7 @@ class ExpressionCFABuilder implements ExpressionAppendable {
 
   private FunctionInvocationAppendable functionInvocationAppendable;
   private PrefixExpressionAppendable prefixExpressionAppendable;
+  private PostfixExpressionAppendable postfixExpressionAppendable;
 
   void setFunctionInvocationAppendable(
       final FunctionInvocationAppendable pFunctionInvocationAppendable) {
@@ -48,6 +50,11 @@ class ExpressionCFABuilder implements ExpressionAppendable {
   void setPrefixExpressionAppendable(
       final PrefixExpressionAppendable pPrefixExpressionAppendable) {
     prefixExpressionAppendable = pPrefixExpressionAppendable;
+  }
+
+  void setPostfixExpressionAppendable(
+      final PostfixExpressionAppendable pPostfixExpressionAppendable) {
+    postfixExpressionAppendable = pPostfixExpressionAppendable;
   }
 
   @Override
@@ -62,6 +69,8 @@ class ExpressionCFABuilder implements ExpressionAppendable {
       return pBuilder.getAstConverter().convert((InfixExpression) pExpression);
     } else if (pExpression instanceof PrefixExpression) {
       return prefixExpressionAppendable.append(pBuilder, (PrefixExpression) pExpression);
+    } else if (pExpression instanceof PostfixExpression) {
+      return postfixExpressionAppendable.append(pBuilder, (PostfixExpression) pExpression);
     } else if (pExpression instanceof StringLiteral) {
       return pBuilder.getAstConverter().convert((StringLiteral) pExpression);
     } else if (pExpression instanceof NumberLiteral) {
