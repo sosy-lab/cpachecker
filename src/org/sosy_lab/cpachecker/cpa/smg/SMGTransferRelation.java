@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -75,7 +77,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -106,7 +108,8 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class SMGTransferRelation extends SingleEdgeTransferRelation {
+public class SMGTransferRelation
+    extends ForwardingTransferRelation<Collection<SMGState>, SMGState, Precision> {
 
   private final static AtomicInteger ID_COUNTER = new AtomicInteger(0);
 
@@ -169,98 +172,23 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pState, Precision pPrecision, CFAEdge cfaEdge)
-          throws CPATransferException {
-    SMGState state = (SMGState) pState;
-    logger.log(Level.ALL, "SMG GetSuccessor >>");
-    logger.log(Level.ALL, "Edge:", cfaEdge.getEdgeType());
-    logger.log(Level.ALL, "Code:", cfaEdge.getCode());
-
-    List<SMGState> successors;
-
-    SMGState smgState = state;
-
-    switch (cfaEdge.getEdgeType()) {
-    case DeclarationEdge:
-      successors = handleDeclaration(smgState, (CDeclarationEdge) cfaEdge);
-      break;
-
-    case StatementEdge:
-      successors = handleStatement(smgState, (CStatementEdge) cfaEdge);
-      plotWhenConfigured(successors, cfaEdge.getDescription(), SMGExportLevel.INTERESTING);
-      break;
-
-      // this is an assumption, e.g. if (a == b)
-    case AssumeEdge:
-      CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
-      successors = handleAssumption(smgState, assumeEdge.getExpression(),
-          cfaEdge, assumeEdge.getTruthAssumption(), true);
-      plotWhenConfigured(successors, cfaEdge.getDescription(), SMGExportLevel.INTERESTING);
-      break;
-
-    case FunctionCallEdge:
-      CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) cfaEdge;
-      successors = handleFunctionCall(smgState, functionCallEdge);
-      plotWhenConfigured(successors, cfaEdge.getDescription(), SMGExportLevel.INTERESTING);
-      break;
-
-    // this is a return edge from function, this is different from return statement
-    // of the function. See case for statement edge for details
-    case FunctionReturnEdge:
-      CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge) cfaEdge;
-      successors = handleFunctionReturn(smgState, functionReturnEdge);
-      if (options.isCheckForMemLeaksAtEveryFrameDrop()) {
-        for (SMGState successor : successors) {
-          String name = String.format("%03d-%03d-%03d", successor.getPredecessorId(), successor.getId(), ID_COUNTER.getAndIncrement());
-          SMGUtils.plotWhenConfigured("beforePrune" + name, successor, cfaEdge.getDescription(), logger,
-              SMGExportLevel.INTERESTING, exportSMGOptions);
-          successor.pruneUnreachable();
-        }
-      }
-      plotWhenConfigured(successors, cfaEdge.getDescription(), SMGExportLevel.INTERESTING);
-      break;
-
-    case ReturnStatementEdge:
-      CReturnStatementEdge returnEdge = (CReturnStatementEdge) cfaEdge;
-      // this statement is a function return, e.g. return (a);
-      // note that this is different from return edge
-      // this is a statement edge which leads the function to the
-      // last node of its CFA, where return edge is from that last node
-      // to the return site of the caller function
-      successors = handleExitFromFunction(smgState, returnEdge);
-
-      // if this is the entry function, there is no FunctionReturnEdge
-      // so we have to check for memleaks here
-      if (returnEdge.getSuccessor().getNumLeavingEdges() == 0) {
-        // Ugly, but I do not know how to do better
-        // TODO: Handle leaks at any program exit point (abort, etc.)
-
-        for (SMGState successor : successors) {
-          if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-            successor.dropStackFrame();
-          }
-          successor.pruneUnreachable();
-        }
-      }
-
-      plotWhenConfigured(successors, cfaEdge.getDescription(), SMGExportLevel.INTERESTING);
-      break;
-
-    default:
-      successors = ImmutableList.of(smgState);
-    }
-
+  protected Collection<SMGState> postProcessing(Collection<SMGState> successors, CFAEdge edge) {
+    plotWhenConfigured(successors, edge.getDescription(), SMGExportLevel.INTERESTING);
     for (SMGState smg : successors) {
-      SMGUtils.plotWhenConfigured(getDotExportFileName(smg), smg, cfaEdge.toString(), logger,
-          SMGExportLevel.EVERY, exportSMGOptions);
+      SMGUtils.plotWhenConfigured(
+          getDotExportFileName(smg),
+          smg,
+          edge.toString(),
+          logger,
+          SMGExportLevel.EVERY,
+          exportSMGOptions);
       logger.log(Level.ALL, "state id ", smg.getId(), " -> state id ", state.getId());
     }
-
     return successors;
   }
 
-  private void plotWhenConfigured(List<SMGState> pStates, String pLocation, SMGExportLevel pLevel) {
+  private void plotWhenConfigured(
+      Collection<SMGState> pStates, String pLocation, SMGExportLevel pLevel) {
     for (SMGState state : pStates) {
       SMGUtils.plotWhenConfigured(getDotExportFileName(state), state, pLocation, logger, pLevel,
           exportSMGOptions);
@@ -274,6 +202,37 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return String.format("%03d-%03d-%03d", pState.getPredecessorId(), pState.getId(),
           ID_COUNTER.getAndIncrement());
     }
+  }
+
+  @Override
+  protected Set<SMGState> handleBlankEdge(BlankEdge cfaEdge) {
+    return Collections.singleton(state);
+  }
+
+  @Override
+  protected Collection<SMGState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
+      throws CPATransferException {
+    // this statement is a function return, e.g. return (a);
+    // note that this is different from return edge
+    // this is a statement edge which leads the function to the
+    // last node of its CFA, where return edge is from that last node
+    // to the return site of the caller function
+    Collection<SMGState> successors = handleExitFromFunction(state, returnEdge);
+
+    // if this is the entry function, there is no FunctionReturnEdge
+    // so we have to check for memleaks here
+    if (returnEdge.getSuccessor().getNumLeavingEdges() == 0) {
+      // Ugly, but I do not know how to do better
+      // TODO: Handle leaks at any program exit point (abort, etc.)
+
+      for (SMGState successor : successors) {
+        if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
+          successor.dropStackFrame();
+        }
+        successor.pruneUnreachable();
+      }
+    }
+    return successors;
   }
 
   private List<SMGState> handleExitFromFunction(SMGState smgState,
@@ -300,6 +259,33 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return ImmutableList.of(smgState);
+  }
+
+  @Override
+  protected Collection<SMGState> handleFunctionReturnEdge(
+      CFunctionReturnEdge functionReturnEdge,
+      CFunctionSummaryEdge fnkCall,
+      CFunctionCall summaryExpr,
+      String callerFunctionName)
+      throws CPATransferException {
+    Collection<SMGState> successors = handleFunctionReturn(state, functionReturnEdge);
+    if (options.isCheckForMemLeaksAtEveryFrameDrop()) {
+      for (SMGState successor : successors) {
+        String name =
+            String.format(
+                "%03d-%03d-%03d",
+                successor.getPredecessorId(), successor.getId(), ID_COUNTER.getAndIncrement());
+        SMGUtils.plotWhenConfigured(
+            "beforePrune" + name,
+            successor,
+            functionReturnEdge.getDescription(),
+            logger,
+            SMGExportLevel.INTERESTING,
+            exportSMGOptions);
+        successor.pruneUnreachable();
+      }
+    }
+    return successors;
   }
 
   private List<SMGState> handleFunctionReturn(SMGState smgState,
@@ -380,19 +366,21 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return expressionEvaluator.readValue(smgState, tmpMemory, SMGKnownExpValue.ZERO, type, pCFAEdge).getObject();
   }
 
-  private List<SMGState> handleFunctionCall(SMGState pSmgState, CFunctionCallEdge callEdge)
-      throws CPATransferException, SMGInconsistentException  {
+  @Override
+  protected Collection<SMGState> handleFunctionCallEdge(
+      CFunctionCallEdge callEdge,
+      List<CExpression> arguments,
+      List<CParameterDeclaration> paramDecl,
+      String calledFunctionName)
+      throws CPATransferException, SMGInconsistentException {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
 
     logger.log(Level.ALL, "Handling function call: ", functionEntryNode.getFunctionName());
 
-    SMGState initialNewState = new SMGState(pSmgState, isBlockEnd(callEdge));
+    SMGState initialNewState = new SMGState(state, isBlockEnd(callEdge));
 
     CFunctionDeclaration functionDeclaration = functionEntryNode.getFunctionDefinition();
-
-    List<CParameterDeclaration> paramDecl = functionEntryNode.getFunctionParameters();
-    List<? extends CExpression> arguments = callEdge.getArguments();
 
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       //TODO Parameter with varArgs
@@ -516,6 +504,13 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     return newStates;
+  }
+
+  @Override
+  protected Collection<SMGState> handleAssumption(
+      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+      throws CPATransferException {
+    return handleAssumption(state, expression, cfaEdge, truthAssumption, true);
   }
 
   private List<SMGState> handleAssumption(SMGState pSmgState, CExpression expression, CFAEdge cfaEdge,
@@ -666,22 +661,20 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     default:
       return pExpression;
     }
-
-
   }
 
-  private List<SMGState> handleStatement(SMGState pState, CStatementEdge pCfaEdge) throws CPATransferException {
+  @Override
+  protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
+      throws CPATransferException {
     logger.log(Level.ALL, ">>> Handling statement");
     List<SMGState> newStates = null;
-
-    CStatement cStmt = pCfaEdge.getStatement();
 
     if (cStmt instanceof CAssignment) {
       CAssignment cAssignment = (CAssignment) cStmt;
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
 
-      newStates = handleAssignment(pState, pCfaEdge, lValue, rValue);
+      newStates = handleAssignment(state, pCfaEdge, lValue, rValue);
     } else if (cStmt instanceof CFunctionCallStatement) {
 
       CFunctionCallStatement cFCall = (CFunctionCallStatement) cStmt;
@@ -690,7 +683,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       String functionName = fileNameExpression.toASTString();
 
       if (builtins.isABuiltIn(functionName)) {
-        SMGState newState = new SMGState(pState, isBlockEnd(pCfaEdge));
+        SMGState newState = new SMGState(state, isBlockEnd(pCfaEdge));
         if (builtins.isConfigurableAllocationFunction(functionName)) {
           logger.log(Level.INFO, pCfaEdge.getFileLocation(), ":",
               "Calling ", functionName, " and not using the result, resulting in memory leak.");
@@ -726,8 +719,8 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
           result = builtins.evaluateMemcpy(cFCExpression, newState, pCfaEdge);
           newStates = result.asSMGStateList();
           break;
-        case "printf":
-          return ImmutableList.of(new SMGState(pState, isBlockEnd(pCfaEdge)));
+          case "printf":
+            return ImmutableList.of(new SMGState(state, isBlockEnd(pCfaEdge)));
         default:
           // nothing to do here
         }
@@ -736,14 +729,14 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
         switch (options.getHandleUnknownFunctions()) {
         case STRICT:
           throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
-        case ASSUME_SAFE:
-          return ImmutableList.of(pState);
+          case ASSUME_SAFE:
+            return ImmutableList.of(state);
         default:
           throw new AssertionError("Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
         }
       }
     } else {
-      newStates = ImmutableList.of(pState);
+      newStates = ImmutableList.of(state);
     }
 
     return newStates;
@@ -1000,16 +993,16 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     return handleInitializerForDeclaration(pState, newObject, pVarDecl, pEdge);
   }
 
-  private List<SMGState> handleDeclaration(SMGState smgState, CDeclarationEdge edge) throws CPATransferException {
+  @Override
+  protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
+      throws CPATransferException {
     logger.log(Level.ALL, ">>> Handling declaration");
 
-    CDeclaration cDecl = edge.getDeclaration();
-
     if (!(cDecl instanceof CVariableDeclaration)) {
-      return ImmutableList.of(smgState);
+      return ImmutableList.of(state);
     }
 
-    SMGState newState = new SMGState(smgState, isBlockEnd(edge));
+    SMGState newState = new SMGState(state, isBlockEnd(edge));
 
     List<SMGState> newStates = handleVariableDeclaration(newState, (CVariableDeclaration)cDecl, edge);
 
