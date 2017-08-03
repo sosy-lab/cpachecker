@@ -1931,8 +1931,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getErrorPredicateRelation();
   }
 
-  public void resetErrorRelation() {
-    heap.resetErrorRelation();
+  public SMGState resetErrorRelation() {
+    SMGState newState = new SMGState(this);
+    newState.heap.resetErrorRelation();
+    return newState;
   }
 
   /**
