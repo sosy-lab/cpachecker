@@ -147,7 +147,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsHeapAbstraction) {
 
-      boolean refineablePrecision = pPrecision.usesHeapInterpoaltion();
+      boolean refineablePrecision = pPrecision.usesHeapInterpolation();
       boolean heapAbstractionChange =
           newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node), refineablePrecision);
 

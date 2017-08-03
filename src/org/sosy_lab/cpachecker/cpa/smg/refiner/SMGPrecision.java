@@ -85,7 +85,7 @@ public abstract class SMGPrecision implements Precision {
 
   public abstract Set<MemoryLocation> getTrackedStackVariablesOnNode(CFANode pCfaNode);
 
-  public abstract boolean usesHeapInterpoaltion();
+  public abstract boolean usesHeapInterpolation();
 
   public boolean allowsHeapAbstractionOnNode(CFANode pCfaNode) {
     return options.allowsHeapAbstraction() && blockOperator.isBlockEnd(pCfaNode, threshold);
@@ -131,7 +131,7 @@ public abstract class SMGPrecision implements Precision {
     }
 
     @Override
-    public boolean usesHeapInterpoaltion() {
+    public boolean usesHeapInterpolation() {
       return allowsHeapAbstraction();
     }
 
@@ -213,7 +213,7 @@ public abstract class SMGPrecision implements Precision {
     }
 
     @Override
-    public boolean usesHeapInterpoaltion() {
+    public boolean usesHeapInterpolation() {
       return false;
     }
 
