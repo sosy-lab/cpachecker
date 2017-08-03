@@ -24,10 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.SetMultimap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -36,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -65,9 +63,9 @@ public abstract class SMGPrecision implements Precision {
   public abstract SMGPrecision join(SMGPrecision pPrecision);
 
   public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision) {
-    SetMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = ImmutableSetMultimap.of();
-    SetMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = ImmutableSetMultimap.of();
-    SetMultimap<CFANode, MemoryLocation> emptyStackVariable = ImmutableSetMultimap.of();
+    PersistentMultimap<CFANode, SMGMemoryPath> emptyMemoryPaths = PersistentMultimap.of();
+    PersistentMultimap<CFANode, SMGAbstractionBlock> emptyAbstractionBlocks = PersistentMultimap.of();
+    PersistentMultimap<CFANode, MemoryLocation> emptyStackVariable = PersistentMultimap.of();
 
     return new SMGRefineablePrecision(pPrecision.logger,
         new SMGPrecisionAbstractionOptions(pPrecision.allowsHeapAbstraction(), true, true),
@@ -115,19 +113,19 @@ public abstract class SMGPrecision implements Precision {
 
   private static class SMGRefineablePrecision extends SMGPrecision {
 
-    private final ImmutableSetMultimap<CFANode, SMGMemoryPath> trackedMemoryPaths;
-    private final ImmutableSetMultimap<CFANode, MemoryLocation> trackedStackVariables;
-    private final ImmutableSetMultimap<CFANode, SMGAbstractionBlock> abstractionBlocks;
+    private final PersistentMultimap<CFANode, SMGMemoryPath> trackedMemoryPaths;
+    private final PersistentMultimap<CFANode, MemoryLocation> trackedStackVariables;
+    private final PersistentMultimap<CFANode, SMGAbstractionBlock> abstractionBlocks;
 
     private SMGRefineablePrecision(LogManager pLogger, SMGPrecisionAbstractionOptions pOptions,
         BlockOperator pBlockOperator,
-        SetMultimap<CFANode, SMGMemoryPath> pTrackedMemoryPaths,
-        SetMultimap<CFANode, SMGAbstractionBlock> pAbstractionBlocks,
-        SetMultimap<CFANode, MemoryLocation> pTrackedStackVariables) {
+        PersistentMultimap<CFANode, SMGMemoryPath> pTrackedMemoryPaths,
+        PersistentMultimap<CFANode, SMGAbstractionBlock> pAbstractionBlocks,
+        PersistentMultimap<CFANode, MemoryLocation> pTrackedStackVariables) {
       super(pLogger, pOptions, pBlockOperator);
-      trackedMemoryPaths = ImmutableSetMultimap.copyOf(pTrackedMemoryPaths);
-      abstractionBlocks = ImmutableSetMultimap.copyOf(pAbstractionBlocks);
-      trackedStackVariables = ImmutableSetMultimap.copyOf(pTrackedStackVariables);
+      trackedMemoryPaths = pTrackedMemoryPaths;
+      abstractionBlocks = pAbstractionBlocks;
+      trackedStackVariables = pTrackedStackVariables;
     }
 
     @Override
@@ -148,16 +146,16 @@ public abstract class SMGPrecision implements Precision {
     @Override
     public Precision withIncrement(Map<CFANode, SMGPrecisionIncrement> pPrecisionIncrement) {
 
-      SetMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = HashMultimap.create(trackedMemoryPaths);
-      SetMultimap<CFANode, MemoryLocation> resultStackVariables = HashMultimap.create(trackedStackVariables);
-      SetMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = HashMultimap.create(abstractionBlocks);
+      PersistentMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = trackedMemoryPaths;
+      PersistentMultimap<CFANode, MemoryLocation> resultStackVariables = trackedStackVariables;
+      PersistentMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = abstractionBlocks;
 
       for (Entry<CFANode, SMGPrecisionIncrement> entry : pPrecisionIncrement.entrySet()) {
         SMGPrecisionIncrement inc = entry.getValue();
         CFANode cfaNode = entry.getKey();
-        resultAbstractionBlocks.putAll(cfaNode, inc.getAbstractionBlock());
-        resultMemoryPaths.putAll(cfaNode, inc.getPathsToTrack());
-        resultStackVariables.putAll(cfaNode, inc.getStackVariablesToTrack());
+        resultAbstractionBlocks = resultAbstractionBlocks.putAllAndCopy(cfaNode, inc.getAbstractionBlock());
+        resultMemoryPaths = resultMemoryPaths.putAllAndCopy(cfaNode, inc.getPathsToTrack());
+        resultStackVariables = resultStackVariables.putAllAndCopy(cfaNode, inc.getStackVariablesToTrack());
       }
 
       return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), getBlockOperator(),
@@ -172,19 +170,12 @@ public abstract class SMGPrecision implements Precision {
       }
 
       SMGRefineablePrecision other = (SMGRefineablePrecision) pPrecision;
-
-      SetMultimap<CFANode, SMGMemoryPath> resultMemoryPaths = HashMultimap.create(trackedMemoryPaths);
-      resultMemoryPaths.putAll(other.trackedMemoryPaths);
-      SetMultimap<CFANode, MemoryLocation> resultStackVariables = HashMultimap.create(trackedStackVariables);
-      resultStackVariables.putAll(other.trackedStackVariables);
-      SetMultimap<CFANode, SMGAbstractionBlock> resultAbstractionBlocks = HashMultimap.create(abstractionBlocks);
-      resultAbstractionBlocks.putAll(other.abstractionBlocks);
-
       assert getAbstractionOptions().equals(pPrecision.getAbstractionOptions());
 
       return new SMGRefineablePrecision(getLogger(), getAbstractionOptions(), getBlockOperator(),
-          resultMemoryPaths,
-          resultAbstractionBlocks, resultStackVariables);
+          trackedMemoryPaths.putAllAndCopy(other.trackedMemoryPaths),
+          abstractionBlocks.putAllAndCopy(other.abstractionBlocks),
+          trackedStackVariables.putAllAndCopy(other.trackedStackVariables));
     }
 
     @Override
