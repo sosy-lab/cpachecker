@@ -267,7 +267,7 @@ public class SMGEdgeInterpolator {
   }
 
   private Collection<SMGState> getInitialSuccessor(SMGState pState, CFAEdge pCurrentEdge)
-      throws CPAException, InterruptedException {
+      throws CPAException {
     return getInitialSuccessor(pState, pCurrentEdge, strongPrecision);
   }
 
@@ -282,7 +282,7 @@ public class SMGEdgeInterpolator {
       final SMGState pInitialState,
       final CFAEdge pInitialEdge,
       final SMGPrecision precision
-  ) throws CPAException, InterruptedException {
+  ) throws CPAException {
 
     SMGState oldState = pInitialState;
 
