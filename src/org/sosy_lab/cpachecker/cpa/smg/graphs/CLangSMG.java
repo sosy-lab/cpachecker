@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -1078,12 +1076,8 @@ public class CLangSMG extends SMG {
   }
 
   private CLangStackFrame getFrame(final MemoryLocation pMemoryLocation) {
-
-    Collection<CLangStackFrame> result =
-        Collections2.filter(stack_objects, (CLangStackFrame frame) -> {
-          return frame.getFunctionDeclaration().getName().equals(pMemoryLocation.getFunctionName());
-        });
-    return Iterables.getOnlyElement(result);
+    return Iterables.tryFind(stack_objects,
+        frame -> frame.getFunctionDeclaration().getName().equals(pMemoryLocation.getFunctionName())).get();
   }
 
   public void remember(MemoryLocation pMemoryLocation, SMGRegion pRegion,
