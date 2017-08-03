@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -177,7 +178,7 @@ public class SMGPathInterpolator {
       return;
     }
 
-    List<SMGState> states = pCurrentInterpolant.reconstructStates();
+    Collection<SMGState> states = pCurrentInterpolant.reconstructStates();
 
     int counter = 1;
     for (SMGState state : states) {
@@ -195,7 +196,7 @@ public class SMGPathInterpolator {
       return;
     }
 
-    List<SMGState> states = pFirstInterpolant.reconstructStates();
+    Collection<SMGState> states = pFirstInterpolant.reconstructStates();
 
     int counter = 1;
     for (SMGState state : states) {

@@ -28,7 +28,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -49,13 +54,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
 
 public class SMGFeasibilityChecker {
 
@@ -300,7 +298,7 @@ public class SMGFeasibilityChecker {
     }
   }
 
-  public boolean isFeasible(ARGPath pErrorPath, List<SMGState> pStartingPoints)
+  public boolean isFeasible(ARGPath pErrorPath, Collection<SMGState> pStartingPoints)
       throws CPAException, InterruptedException {
 
     boolean result = true;

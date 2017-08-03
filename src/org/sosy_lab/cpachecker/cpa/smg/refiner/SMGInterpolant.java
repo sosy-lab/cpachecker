@@ -82,11 +82,11 @@ public class SMGInterpolant {
   }
 
   /** return a new instance of each state from the interpolant, if possible. */
-  public Collection<SMGState> reconstructStates() {
+  public Set<SMGState> reconstructStates() {
     if (isFalse()) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
-      return Collections2.transform(smgStates, s -> new SMGState(s));
+      return new HashSet<>(Collections2.transform(smgStates, s -> new SMGState(s)));
     }
   }
 

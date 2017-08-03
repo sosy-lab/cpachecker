@@ -25,7 +25,12 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -48,12 +53,6 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class SMGEdgeInterpolator {
 
@@ -110,7 +109,7 @@ public class SMGEdgeInterpolator {
     // create initial state, based on input interpolant, and create initial successor by consuming
     // the next edge
     CFAEdge currentEdge = pCurrentEdge;
-    List<SMGState> initialStates = pInputInterpolant.reconstructStates();
+    Set<SMGState> initialStates = pInputInterpolant.reconstructStates();
 
     if (currentEdge == null) {
       PathIterator it = pOffset.fullPathIterator();
@@ -129,7 +128,7 @@ public class SMGEdgeInterpolator {
         intermediate = newIntermediate;
         it.advance();
       }
-      initialStates = new ArrayList<>(intermediate);
+      initialStates = new HashSet<>(intermediate);
       currentEdge = it.getOutgoingEdge();
 
       if (initialStates.isEmpty()) {
@@ -139,11 +138,8 @@ public class SMGEdgeInterpolator {
       }
     }
 
-    List<SMGState> successors;
-    Set<SMGAbstractionBlock> abstractionBlocks;
-
-    successors = new ArrayList<>();
-    abstractionBlocks = ImmutableSet.of();
+    Set<SMGState> successors = new HashSet<>();
+    Set<SMGAbstractionBlock> abstractionBlocks = ImmutableSet.of();
 
     for (SMGState state : initialStates) {
       successors.addAll(getInitialSuccessor(state, currentEdge));
@@ -165,9 +161,8 @@ public class SMGEdgeInterpolator {
     // in general, this returned interpolant might be stronger than needed, but only in very rare
     // cases, the weaker interpolant would be different from the input interpolant, so we spare the
     // effort
-
-    boolean noChange = isEqualStates(initialStates, successors) ||
-        isFunctionOrTypeDeclaration(currentEdge);
+    // Implementation detail: we compare 'Sets' for equality!
+    boolean noChange = initialStates.equals(successors) || isFunctionOrTypeDeclaration(currentEdge);
 
     SMGPrecision currentPrecision = SMGCEGARUtils.extractSMGPrecision(pReached, pSuccessorARGstate);
 
@@ -217,27 +212,6 @@ public class SMGEdgeInterpolator {
     }
 
     return resultingInterpolants;
-  }
-
-  private boolean isEqualStates(List<SMGState> pInitialStates, List<SMGState> pSuccessors) {
-
-    boolean stateIsEqual = false;
-
-    for (SMGState initialState : pInitialStates) {
-      for (SMGState succ : pSuccessors) {
-        stateIsEqual = succ.equals(initialState);
-
-        if (stateIsEqual) {
-          break;
-        }
-      }
-
-      if (!stateIsEqual) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   private boolean isFunctionOrTypeDeclaration(CFAEdge pCurrentEdge) {
