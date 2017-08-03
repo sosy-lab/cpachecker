@@ -97,7 +97,7 @@ public class SMGEdgeInterpolator {
     postOperator = pStrongestPostOperator;
     interpolantManager = pInterpolantManager;
 
-    strongPrecision = SMGPrecision.createStaticPrecision(false, pLogger, pBlockOperator);
+    strongPrecision = SMGPrecision.createStaticPrecision(false, pBlockOperator);
     shutdownNotifier = pShutdownNotifier;
     heapAbstractionInterpolator =
         new SMGEdgeHeapAbstractionInterpolator(pLogger, pFeasibilityChecker);

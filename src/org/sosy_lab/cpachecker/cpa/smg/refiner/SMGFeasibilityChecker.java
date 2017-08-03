@@ -70,7 +70,7 @@ public class SMGFeasibilityChecker {
     strongestPostOp = pStrongestPostOp;
     initialState = pInitialState;
     logger = pLogger;
-    precision = SMGPrecision.createStaticPrecision(false, pLogger, pBlockOperator);
+    precision = SMGPrecision.createStaticPrecision(false, pBlockOperator);
     mainFunction = pCfa.getMainFunction();
     automatonCPA = pAutomatonCPA;
   }

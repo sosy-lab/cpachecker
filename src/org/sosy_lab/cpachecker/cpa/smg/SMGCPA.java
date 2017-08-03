@@ -108,7 +108,8 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
     pConfig.inject(blockOperator);
     blockOperator.setCFA(cfa);
 
-    precision = SMGPrecision.createStaticPrecision(options.isHeapAbstractionEnabled(), logger, blockOperator);
+    precision =
+        SMGPrecision.createStaticPrecision(options.isHeapAbstractionEnabled(), blockOperator);
 
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
     transferRelation =
