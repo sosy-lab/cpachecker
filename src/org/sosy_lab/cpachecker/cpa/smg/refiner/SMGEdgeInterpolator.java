@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -103,7 +104,8 @@ public class SMGEdgeInterpolator {
   }
 
   public List<SMGInterpolant> deriveInterpolant(CFAEdge pCurrentEdge,
-      PathPosition pOffset, SMGInterpolant pInputInterpolant, boolean pAllTargets, ARGReachedSet pReached, ARGState pSuccessorARGstate) throws CPAException, InterruptedException {
+      PathPosition pOffset, SMGInterpolant pInputInterpolant, boolean pAllTargets,
+      ARGReachedSet pReached, ARGState pSuccessorARGstate) throws CPAException, InterruptedException {
     numberOfInterpolationQueries = 0;
 
     // create initial state, based on input interpolant, and create initial successor by consuming
@@ -118,11 +120,8 @@ public class SMGEdgeInterpolator {
       while(intermediate.isEmpty() || !it.isPositionWithState()) {
 
         Collection<SMGState> newIntermediate = new ArrayList<>();
-
         for (SMGState state : intermediate) {
-          Collection<SMGState> result =
-              getInitialSuccessor(state, it.getOutgoingEdge());
-          newIntermediate.addAll(result);
+          newIntermediate.addAll(getInitialSuccessor(state, it.getOutgoingEdge()));
         }
 
         intermediate = newIntermediate;
@@ -132,30 +131,18 @@ public class SMGEdgeInterpolator {
       currentEdge = it.getOutgoingEdge();
 
       if (initialStates.isEmpty()) {
-        List<SMGInterpolant> resultingInterpolants = new ArrayList<>(1);
-        resultingInterpolants.add(interpolantManager.getFalseInterpolant());
-        return resultingInterpolants;
+        return Collections.singletonList(interpolantManager.getFalseInterpolant());
       }
     }
 
     Set<SMGState> successors = new HashSet<>();
-    Set<SMGAbstractionBlock> abstractionBlocks = ImmutableSet.of();
-
     for (SMGState state : initialStates) {
       successors.addAll(getInitialSuccessor(state, currentEdge));
     }
 
-    List<SMGInterpolant> resultingInterpolants;
-
     if (successors.isEmpty()) {
-      resultingInterpolants = new ArrayList<>(1);
-      resultingInterpolants.add(interpolantManager.getFalseInterpolant());
-      return resultingInterpolants;
-    } else {
-      resultingInterpolants = new ArrayList<>(successors.size());
+      return Collections.singletonList(interpolantManager.getFalseInterpolant());
     }
-
-    boolean onlySuccessor = successors.size() == 1;
 
     // if initial state and successor are equal, return the input interpolant
     // in general, this returned interpolant might be stronger than needed, but only in very rare
@@ -163,26 +150,22 @@ public class SMGEdgeInterpolator {
     // effort
     // Implementation detail: we compare 'Sets' for equality!
     boolean noChange = initialStates.equals(successors) || isFunctionOrTypeDeclaration(currentEdge);
-
     SMGPrecision currentPrecision = SMGCEGARUtils.extractSMGPrecision(pReached, pSuccessorARGstate);
-
     if (noChange
         && !currentPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
-      resultingInterpolants.add(pInputInterpolant);
-      return resultingInterpolants;
+      return Collections.singletonList(pInputInterpolant);
     }
 
     // if the current edge just changes the names of variables
     // (e.g. function arguments, returned variables)
     // then return the input interpolant with those renamings
+    boolean onlySuccessor = successors.size() == 1;
     if (onlySuccessor && isOnlyVariableRenamingEdge(pCurrentEdge)
         && !currentPrecision.allowsHeapAbstractionOnNode(currentEdge.getPredecessor())) {
-      SMGInterpolant interpolant =
-          interpolantManager.createInterpolant(Iterables.getOnlyElement(successors));
-      resultingInterpolants.add(interpolant);
-      return resultingInterpolants;
+      return Collections.singletonList(interpolantManager.createInterpolant(Iterables.getOnlyElement(successors)));
     }
 
+    List<SMGInterpolant> resultingInterpolants = new ArrayList<>(successors.size());
     ARGPath remainingErrorPath = pOffset.iterator().getSuffixExclusive();
 
     for (SMGState state : successors) {
@@ -195,6 +178,7 @@ public class SMGEdgeInterpolator {
         interpolateFields(state, remainingErrorPath, currentEdge, pAllTargets);
       }
 
+      Set<SMGAbstractionBlock> abstractionBlocks = ImmutableSet.of();
       if (currentPrecision.allowsHeapAbstraction()) {
         SMGState originalState = new SMGState(state);
         SMGHeapAbstractionInterpoaltionResult heapInterpoaltionResult =
