@@ -30,6 +30,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -582,36 +583,42 @@ public class SMGTransferRelation
     return ImmutableList.copyOf(result);
   }
 
-  private CExpression eliminateOuterEquals(CExpression pExpression) {
+  /**
+   * This method simplifies an expression, if possible, else returns it unchanged.
+   * (a==b)==0 --> a!=b.
+   * (a!=b)==0 --> a==b.
+   * (a==b)!=0 --> a==b.
+   * (a!=b)!=0 --> a!=b.
+   */
+  // TODO implement as CFA-preprocessing?
+  private static CExpression eliminateOuterEquals(CExpression pExpression) {
 
     if (!(pExpression instanceof CBinaryExpression)) {
       return pExpression;
     }
 
     CBinaryExpression binExp = (CBinaryExpression) pExpression;
-
     CExpression op1 = binExp.getOperand1();
     CExpression op2 = binExp.getOperand2();
     BinaryOperator op = binExp.getOperator();
 
-    if (!(op1 instanceof CBinaryExpression && op2 instanceof CIntegerLiteralExpression && op == BinaryOperator.EQUALS)) {
+    if (!(op1 instanceof CBinaryExpression
+        && op2 instanceof CIntegerLiteralExpression
+        && ((CIntegerLiteralExpression) op2).getValue().equals(BigInteger.ZERO)
+        && (op == BinaryOperator.EQUALS || op == BinaryOperator.NOT_EQUALS))) {
       return pExpression;
     }
 
     CBinaryExpression binExpOp1 = (CBinaryExpression) op1;
-    CIntegerLiteralExpression IntOp2 = (CIntegerLiteralExpression) op2;
-
-    if(IntOp2.getValue().longValue() != 0) {
-      return pExpression;
-    }
-
     switch (binExpOp1.getOperator()) {
     case EQUALS:
       return new CBinaryExpression(binExpOp1.getFileLocation(), binExpOp1.getExpressionType(),
-          binExpOp1.getCalculationType(), binExpOp1.getOperand1(), binExpOp1.getOperand2(), BinaryOperator.NOT_EQUALS);
+          binExpOp1.getCalculationType(), binExpOp1.getOperand1(), binExpOp1.getOperand2(),
+          op == BinaryOperator.EQUALS ? BinaryOperator.NOT_EQUALS : BinaryOperator.EQUALS);
     case NOT_EQUALS:
       return new CBinaryExpression(binExpOp1.getFileLocation(), binExpOp1.getExpressionType(),
-          binExpOp1.getCalculationType(), binExpOp1.getOperand1(), binExpOp1.getOperand2(), BinaryOperator.EQUALS);
+          binExpOp1.getCalculationType(), binExpOp1.getOperand1(), binExpOp1.getOperand2(),
+          op == BinaryOperator.EQUALS ? BinaryOperator.EQUALS : BinaryOperator.NOT_EQUALS);
     default:
       return pExpression;
     }
