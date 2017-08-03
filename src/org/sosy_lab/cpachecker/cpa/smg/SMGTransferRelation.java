@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -235,8 +235,6 @@ public class SMGTransferRelation
 
     CExpression returnExp = returnEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
 
-    logger.log(Level.ALL, "Handling return Statement: ", returnExp);
-
     smgState = checkAndSetErrorRelation(smgState);
 
     CType expType = expressionEvaluator.getRealExpressionType(returnExp);
@@ -282,8 +280,6 @@ public class SMGTransferRelation
 
   private List<SMGState> handleFunctionReturn(SMGState smgState,
       CFunctionReturnEdge functionReturnEdge) throws CPATransferException {
-
-    logger.log(Level.ALL, "Handling function return");
 
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
@@ -361,8 +357,6 @@ public class SMGTransferRelation
       throws CPATransferException, SMGInconsistentException {
 
     CFunctionEntryNode functionEntryNode = callEdge.getSuccessor();
-
-    logger.log(Level.ALL, "Handling function call: ", functionEntryNode.getFunctionName());
 
     SMGState initialNewState = new SMGState(state);
 
@@ -660,7 +654,6 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
       throws CPATransferException {
-    logger.log(Level.ALL, ">>> Handling statement");
     List<SMGState> newStates = null;
 
     if (cStmt instanceof CAssignment) {
@@ -738,8 +731,6 @@ public class SMGTransferRelation
 
   private List<SMGState> handleAssignment(SMGState state, CFAEdge cfaEdge, CExpression lValue,
       CRightHandSide rValue) throws CPATransferException {
-
-    logger.log(Level.ALL, "Handling assignment:", lValue, "=", rValue);
 
     List<SMGState> result = new ArrayList<>(4);
 
@@ -959,8 +950,6 @@ public class SMGTransferRelation
   }
 
   private List<SMGState> handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
-    logger.log(Level.ALL, "Handling variable declaration:", pVarDecl);
-
     String varName = pVarDecl.getName();
     CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
 
@@ -986,8 +975,6 @@ public class SMGTransferRelation
   @Override
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
-    logger.log(Level.ALL, ">>> Handling declaration");
-
     if (!(cDecl instanceof CVariableDeclaration)) {
       return ImmutableList.of(state);
     }
@@ -1002,8 +989,6 @@ public class SMGTransferRelation
     CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
 
     if (newInitializer != null) {
-      logger.log(Level.ALL, "Handling variable declaration: handling initializer");
-
       return handleInitializer(pState, pVarDecl, pEdge, pObject, 0, cType, newInitializer);
     } else if (pVarDecl.isGlobal()) {
 
