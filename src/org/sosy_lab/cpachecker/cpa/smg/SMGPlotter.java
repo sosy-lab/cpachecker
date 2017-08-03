@@ -301,16 +301,11 @@ public final class SMGPlotter {
   }
 
   private static String smgValueAsDot(int value, Map<SMGKnownSymValue, SMGKnownExpValue> explicitValues) {
-
-
     String explicitValue = "";
-
     SMGKnownSymValue symValue =  SMGKnownSymValue.valueOf(value);
-
     if (explicitValues.containsKey(symValue)) {
       explicitValue = " : " + String.valueOf(explicitValues.get(symValue).getAsLong());
     }
-
     return "value_" + value + "[label=\"#" + value + explicitValue +  "\"];";
   }
 

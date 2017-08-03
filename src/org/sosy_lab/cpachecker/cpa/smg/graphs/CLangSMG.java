@@ -301,9 +301,7 @@ public class CLangSMG extends SMG {
           if ( pointedObject != null && ! seen.contains(pointedObject)) {
             workqueue.add(pointedObject);
           }
-          if ( ! seen_values.contains(Integer.valueOf(outbound.getValue()))) {
-            seen_values.add(Integer.valueOf(outbound.getValue()));
-          }
+          seen_values.add(outbound.getValue());
         }
       }
     }

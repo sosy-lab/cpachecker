@@ -108,17 +108,16 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
-  final LogManagerWithoutDuplicates logger;
-  final MachineModel machineModel;
-  private final AtomicInteger id_counter;
+  private final static AtomicInteger ID_COUNTER = new AtomicInteger(0);
 
-  final SMGOptions options;
-  final SMGExportDotOption exportSMGOptions;
-
-  final SMGRightHandSideEvaluator expressionEvaluator;
-
+  private final LogManagerWithoutDuplicates logger;
+  private final MachineModel machineModel;
+  private final SMGOptions options;
+  private final SMGExportDotOption exportSMGOptions;
   private final BlockOperator blockOperator;
   private final SMGPredicateManager smgPredicateManager;
+
+  final SMGRightHandSideEvaluator expressionEvaluator;
 
   /**
    * Indicates whether the executed statement could result
@@ -130,26 +129,18 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
 
   public final SMGBuiltins builtins;
 
-  @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState state, Precision precision, CFAEdge cfaEdge)
-          throws CPATransferException, InterruptedException {
-    return getAbstractSuccessorsForEdge((SMGState) state, cfaEdge);
-  }
-
   private SMGTransferRelation(LogManager pLogger,
       MachineModel pMachineModel, SMGExportDotOption pExportOptions, SMGTransferRelationKind pKind,
       SMGPredicateManager pSMGPredicateManager, BlockOperator pBlockOperator, SMGOptions pOptions) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     machineModel = pMachineModel;
     expressionEvaluator = new SMGRightHandSideEvaluator(this, logger, machineModel, pOptions);
-    id_counter = new AtomicInteger(0);
     smgPredicateManager = pSMGPredicateManager;
     blockOperator = pBlockOperator;
     options = pOptions;
     exportSMGOptions = pExportOptions;
     kind = pKind;
-    builtins = new SMGBuiltins(this);
+    builtins = new SMGBuiltins(this, options, exportSMGOptions, machineModel, logger);
   }
 
   public static SMGTransferRelation createTransferRelationForCEX(
@@ -177,9 +168,11 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
             pSMGPredicateManager, pBlockOperator, pOptions);
   }
 
-  private Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      SMGState state, CFAEdge cfaEdge)
+  @Override
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+      AbstractState pState, Precision pPrecision, CFAEdge cfaEdge)
           throws CPATransferException {
+    SMGState state = (SMGState) pState;
     logger.log(Level.ALL, "SMG GetSuccessor >>");
     logger.log(Level.ALL, "Edge:", cfaEdge.getEdgeType());
     logger.log(Level.ALL, "Code:", cfaEdge.getCode());
@@ -219,7 +212,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       successors = handleFunctionReturn(smgState, functionReturnEdge);
       if (options.isCheckForMemLeaksAtEveryFrameDrop()) {
         for (SMGState successor : successors) {
-          String name = String.format("%03d-%03d-%03d", successor.getPredecessorId(), successor.getId(), id_counter.getAndIncrement());
+          String name = String.format("%03d-%03d-%03d", successor.getPredecessorId(), successor.getId(), ID_COUNTER.getAndIncrement());
           SMGUtils.plotWhenConfigured("beforePrune" + name, successor, cfaEdge.getDescription(), logger,
               SMGExportLevel.INTERESTING, exportSMGOptions);
           successor.pruneUnreachable();
@@ -279,7 +272,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
       return String.format("initial-%03d", pState.getId());
     } else {
       return String.format("%03d-%03d-%03d", pState.getPredecessorId(), pState.getId(),
-          id_counter.getAndIncrement());
+          ID_COUNTER.getAndIncrement());
     }
   }
 

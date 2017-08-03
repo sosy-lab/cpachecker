@@ -94,7 +94,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   // use 'id' and 'precessorId' only for debugging or logging, never for important stuff!
   // TODO remove to avoid problems?
-  private static final AtomicInteger id_counter = new AtomicInteger(0);
+  private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
   private final int predecessorId;
   private final int id;
 
@@ -134,8 +134,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pLogger;
     options = pOptions;
 
-    predecessorId = id_counter.getAndIncrement();
-    id = id_counter.getAndIncrement();
+    predecessorId = ID_COUNTER.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
 
     invalidFree = false;
     invalidRead = false;
@@ -150,7 +150,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap = pHeap;
     logger = pLogger;
     predecessorId = pPredId;
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;
@@ -171,7 +171,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
@@ -192,7 +192,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
@@ -205,7 +205,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
     blockEnded = pOriginalState.blockEnded;
 
@@ -240,7 +240,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pCombinedMap);
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
