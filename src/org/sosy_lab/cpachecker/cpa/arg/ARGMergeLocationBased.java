@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -34,34 +35,43 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * MergeOperator for slicing abstractions.
+ * It merges AbtractionStates for the same location
+ * in the ARG, though it does NOT return a different state
+ * when merge() is called (to prevent readding to waitlist)!
+ * Apart from that it behaves like {@link ARGMergeJoin}
  * To be used together with {@link ARGStopJoin}
  */
 public class ARGMergeLocationBased implements MergeOperator {
 
+  private ARGMergeJoin argMergeJoin;
+
+  public ARGMergeLocationBased(MergeOperator pWrappedMerge) {
+    argMergeJoin = new ARGMergeJoin(pWrappedMerge);
+  }
+
   @Override
   public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
       throws CPAException, InterruptedException {
-    CFANode cfaNode1 = extractLocation(pState1);
-    CFANode cfaNode2 = extractLocation(pState2);
-    if (cfaNode1.equals(cfaNode2) && pState1 != pState2) {
-      ARGState mergedElement = (ARGState) pState2;
-      ARGState argElement1 = (ARGState) pState1;
 
-      // replace argElement1 with it
-      for (ARGState parentOfElement1 : argElement1.getParents()) {
-        mergedElement.addParent(parentOfElement1);
+    AbstractState retElement = argMergeJoin.merge(pState1, pState2, pPrecision);
+
+    if (retElement == pState2 && getPredicateState(retElement).isAbstractionState()) {
+      CFANode cfaNode1 = extractLocation(pState1);
+      CFANode cfaNode2 = extractLocation(pState2);
+      if (cfaNode1.equals(cfaNode2)) {
+        ARGState mergedElement = (ARGState) pState2;
+        ARGState argElement1 = (ARGState) pState1;
+
+        // redirect parents of argElement1 to mergedElement in ARG:
+        for (ARGState parentOfElement1 : argElement1.getParents()) {
+          mergedElement.addParent(parentOfElement1);
+        }
+        // this will lead to argElement1 being removed by the stop operator:
+        argElement1.setMergedWith(mergedElement);
       }
-
-      // argElement1 is the current successor, it does not have any children and covered nodes yet
-      assert argElement1.getChildren().isEmpty();
-      assert argElement1.getCoveredByThis().isEmpty();
-
-      // ARGElement1 will only be removed from ARG if stop(e1, reached) returns true.
-      // So we can't actually remove it now, but we need to remember this later.
-      argElement1.setMergedWith(mergedElement);
-
     }
-    // we always return pState2
-    return pState2;
+
+    return retElement;
   }
+
 }

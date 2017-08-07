@@ -135,7 +135,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   @Override
   public MergeOperator getMergeOperator() {
     if (useARGMergeLocationBased) {
-      return new ARGMergeLocationBased();
+      MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+      return new ARGMergeLocationBased(wrappedMergeOperator);
     } else {
       MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
       if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
