@@ -235,6 +235,7 @@ public class SSAMap implements Serializable {
 
     PersistentSortedMap<String, Integer> vars;
     FreshValueProvider freshValueProvider;
+    int defaultIndex;
     if (s1.vars == s2.vars && s1.freshValueProvider == s2.freshValueProvider) {
       // both are absolutely identical
       return s1;
@@ -248,6 +249,8 @@ public class SSAMap implements Serializable {
               PersistentSortedMaps.getMaximumMergeConflictHandler(),
               collectDifferences);
       freshValueProvider = s1.freshValueProvider.merge(s2.freshValueProvider);
+      assert s1.defaultValue == s2.defaultValue;
+      defaultIndex = s1.defaultValue;
     }
 
     PersistentSortedMap<String, CType> varTypes =
@@ -258,7 +261,7 @@ public class SSAMap implements Serializable {
             TYPE_CONFLICT_CHECKER,
             MapsDifference.ignoreMapsDifference());
 
-    return new SSAMap(vars, freshValueProvider, 0, varTypes);
+    return new SSAMap(vars, freshValueProvider, 0, varTypes, defaultIndex);
   }
 
   private final PersistentSortedMap<String, Integer> vars;
