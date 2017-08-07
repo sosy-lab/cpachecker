@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -52,9 +54,11 @@ public class GraphBlockFormulaStrategy extends BlockFormulaStrategy {
   private PathFormulaManager pfmgr;
   private Solver solver;
 
-  public GraphBlockFormulaStrategy(Solver solver, PathFormulaManager pPfmgr) {
+  @SuppressWarnings("options")
+  public GraphBlockFormulaStrategy(Solver solver, Configuration pConfig, PathFormulaManager pPfmgr) throws InvalidConfigurationException {
     this.pfmgr = pPfmgr;
     this.solver = solver;
+    pConfig.inject(this);
   }
 
   @Override
