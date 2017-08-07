@@ -23,22 +23,54 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.base.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 
-public abstract class SlicingAbstractionsRefiner implements Refiner {
+
+/**
+ * This is Refiner for Slicing Abstractions
+ * like in the papers:
+ * "Slicing Abstractions" (doi:10.1007/978-3-540-75698-9_2)
+ * "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
+ */
+
+public class SlicingAbstractionsRefiner implements Refiner {
+
+  @SuppressWarnings("unused")
+  private final Configuration config;
+  private final LogManager logger;
+  private final ARGBasedRefiner refiner;
+
+  public SlicingAbstractionsRefiner(Configuration pConfig, LogManager pLogger, ARGBasedRefiner pRefiner) {
+    this.config = pConfig;
+    this.logger = pLogger;
+    this.refiner = pRefiner;
+  }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
@@ -52,8 +84,38 @@ public abstract class SlicingAbstractionsRefiner implements Refiner {
         predicateCpa.getPredicateManager(),
         createPathChecker(predicateCpa));
 
-    return AbstractARGBasedRefiner.forARGBasedRefiner(
-        new PredicateCPARefinerFactory(pCpa).create(strategy), pCpa);
+    PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa);
+    ARGBasedRefiner refiner =  factory.create(strategy);
+    return new SlicingAbstractionsRefiner(predicateCpa.getConfiguration(), predicateCpa.getLogger(), refiner);
+  }
+
+  /*
+   * (non-Javadoc)
+   * @see org.sosy_lab.cpachecker.core.interfaces.Refiner#performRefinement(org.sosy_lab.cpachecker.core.reachedset.ReachedSet)
+   */
+  @Override
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
+    assert pReached.getWaitlist().size()==0;
+    CounterexampleInfo result = null;
+    Optional<AbstractState> optionalTargetState;
+    while (true) {
+      optionalTargetState =  from(pReached).firstMatch(AbstractStates.IS_TARGET_STATE);
+      if (optionalTargetState.isPresent()) {
+        AbstractState targetState = optionalTargetState.get();
+        ARGPath errorPath = ARGUtils.getOnePathTo((ARGState) targetState);
+        result = refiner.performRefinementForPath(new ARGReachedSet(pReached), errorPath);
+        if (!result.isSpurious()) {
+          logger.log(Level.INFO, "Found counterexample!");
+          // Returning false will make CEGARAlgorithm terminate!
+          return false;
+        }
+      } else {
+        break;
+      }
+    }
+    logger.log(Level.INFO, "No target state found in reached-set!");
+    // We always return false since we do not want to be restarted
+    return false;
   }
 
   private static PathChecker createPathChecker(PredicateCPA predicateCpa) throws InvalidConfigurationException {

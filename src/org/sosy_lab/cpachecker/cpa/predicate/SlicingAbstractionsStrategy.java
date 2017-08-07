@@ -54,6 +54,12 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 
+/**
+ * This is an implementation of the Slicing Abstractions idea
+ * as RefinementStrategy like in the papers:
+ * "Slicing Abstractions" (doi:10.1007/978-3-540-75698-9_2)
+ * "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
+ */
 public class SlicingAbstractionsStrategy extends RefinementStrategy {
 
   private class Stats implements Statistics {
