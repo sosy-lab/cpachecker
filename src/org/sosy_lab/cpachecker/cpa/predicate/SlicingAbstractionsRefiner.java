@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,8 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -68,8 +65,6 @@ public abstract class SlicingAbstractionsRefiner implements Refiner {
 
     CFA cfa = predicateCpa.getCfa();
     MachineModel machineModel = cfa.getMachineModel();
-    Optional<VariableClassification> variableClassification = cfa.getVarClassification();
-    Optional<LoopStructure> loopStructure = cfa.getLoopStructure();
     return new PathChecker(config, logger, shutdownNotifier, machineModel, pfmgr, solver);
 
   }
