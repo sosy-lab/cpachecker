@@ -138,7 +138,9 @@ public class ARGReachedSet {
     }
     mReached.removeAll(toRemove);
     for (ARGState state :  toRemove) {
-      state.detachFromARG();
+      if (!state.isDestroyed()) {
+        state.removeFromARG();
+      }
     }
   }
 

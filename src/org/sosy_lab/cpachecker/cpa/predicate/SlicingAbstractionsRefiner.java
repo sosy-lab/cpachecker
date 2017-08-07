@@ -27,12 +27,9 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
 import java.util.logging.Level;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -46,9 +43,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.PathChecker;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 
 
@@ -82,7 +76,7 @@ public class SlicingAbstractionsRefiner implements Refiner {
         predicateCpa.getConfiguration(),
         predicateCpa.getSolver(),
         predicateCpa.getPredicateManager(),
-        createPathChecker(predicateCpa));
+        predicateCpa.getPathFormulaManager());
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa);
     ARGBasedRefiner refiner =  factory.create(strategy);
@@ -117,19 +111,5 @@ public class SlicingAbstractionsRefiner implements Refiner {
     // We always return false since we do not want to be restarted
     return false;
   }
-
-  private static PathChecker createPathChecker(PredicateCPA predicateCpa) throws InvalidConfigurationException {
-    Configuration config = predicateCpa.getConfiguration();
-    LogManager logger = predicateCpa.getLogger();
-    ShutdownNotifier shutdownNotifier = predicateCpa.getShutdownNotifier();
-    Solver solver = predicateCpa.getSolver();
-    PathFormulaManager pfmgr = predicateCpa.getPathFormulaManager();
-
-    CFA cfa = predicateCpa.getCfa();
-    MachineModel machineModel = cfa.getMachineModel();
-    return new PathChecker(config, logger, shutdownNotifier, machineModel, pfmgr, solver);
-
-  }
-
 
 }

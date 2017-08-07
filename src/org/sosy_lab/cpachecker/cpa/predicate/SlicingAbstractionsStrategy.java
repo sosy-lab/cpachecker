@@ -27,11 +27,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.mkAbstractionState;
+import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtility.buildPathFormula;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,12 +49,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.PathChecker;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 
@@ -90,7 +96,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
   private final ImpactUtility impact;
-  private final PathChecker pathChecker;
+  private final PathFormulaManager pfmgr;
+  private final Solver solver;
 
   // During the refinement of a single path,
   // a reference to the abstraction of the last state we have seen
@@ -98,13 +105,15 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
   private AbstractionFormula lastAbstraction = null;
 
   public SlicingAbstractionsStrategy(final Configuration config, final Solver pSolver,
-      final PredicateAbstractionManager pPredAbsMgr, final PathChecker pPathChecker) throws InvalidConfigurationException {
+      final PredicateAbstractionManager pPredAbsMgr,
+      final PathFormulaManager pPathFormulaManager) throws InvalidConfigurationException {
     super(pSolver);
 
     bfmgr = pSolver.getFormulaManager().getBooleanFormulaManager();
     predAbsMgr = pPredAbsMgr;
     impact = new ImpactUtility(config, pSolver.getFormulaManager(), pPredAbsMgr);
-    pathChecker = pPathChecker;
+    pfmgr = pPathFormulaManager;
+    solver = pSolver;
   }
 
   @Override
@@ -170,6 +179,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     for (ARGState w : changedElements) {
       pReached.removeCoverageOf(w);
       if (w.getForkedChild() != null && !w.getForkedChild().isForkCompleted()) {
+        SlicingAbstractionsUtility.copyEdges(w.getForkedChild(),w,pReached);
         pReached.addForkedState(w.getForkedChild(),w);
         w.getForkedChild().setForkCompleted();
       }
@@ -210,34 +220,37 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
         .collect(Collectors.toList());
     allChangedStates.addAll(pChangedElements);
 
+    List<ARGState> priorAbstractionStates = new ArrayList<>();
     for (ARGState currentState : allChangedStates) {
-      List<Pair<ARGState, ARGState>> infeasibleEdges = new ArrayList<>();
+      for (ARGState s : SlicingAbstractionsUtility.calculateIncomingSegments(currentState).keySet()) {
+        if (!priorAbstractionStates.contains(s) && ! allChangedStates.contains(s)) {
+          priorAbstractionStates.add(s);
+        }
+      }
+    }
+    allChangedStates.addAll(priorAbstractionStates);
 
-      // Check all transitions from currentState to its children:
-      for (ARGState child: currentState.getChildren()) {
-        if (isInfeasibleEdge(currentState,child)) {
-          infeasibleEdges.add(Pair.of(currentState,child));
+    for (ARGState currentState : allChangedStates) {
+      Map<ARGState, List<ARGState>> segmentMap = SlicingAbstractionsUtility.calculateOutgoingSegments(currentState);
+      Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
+      Set<ARGState> segmentStateSet = new HashSet<>();
+      for (ARGState key : segmentMap.keySet()) {
+        boolean infeasible = isInfeasibleEdge(currentState, key);
+        infeasibleMap.put(key, infeasible);
+        segmentStateSet.addAll(segmentMap.get(key));
+      }
+      for (ARGState key : infeasibleMap.keySet()) {
+        if (infeasibleMap.get(key) == false) {
+          segmentStateSet.removeAll(segmentMap.get(key));
+        } else {
+          if (segmentMap.get(key).size()==0) {
+            key.removeParent(currentState);
+          }
         }
       }
 
-      // Check all transitions from parents of currentState to currentState:
-      for (ARGState parent: currentState.getParents()) {
-        if (allChangedStates.contains(parent)) {
-          // we already checked for this edge above!
-          continue;
-        }
-        if (isInfeasibleEdge(parent,currentState)) {
-          infeasibleEdges.add(Pair.of(parent,currentState));
-        }
-      }
-
-      // Remove the edges that have been found to be infeasible:
-      for (Pair<ARGState,ARGState> statePair : infeasibleEdges) {
-        ARGState parent = statePair.getFirst();
-        ARGState child = statePair.getSecond();
-        child.removeParent(parent);
-        assert !child.getParents().contains(parent);
-        assert !parent.getChildren().contains(child);
+      for (ARGState toRemove : segmentStateSet) {
+        toRemove.removeFromARG();
       }
     }
   }
@@ -245,7 +258,16 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
   private boolean isInfeasibleEdge(ARGState parent, ARGState child) {
     boolean infeasible = false;
     try {
-      infeasible = this.pathChecker.isInfeasibleEdge(parent,child);
+      SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
+      BooleanFormula formula = buildPathFormula(parent, child,startSSAMap,solver, pfmgr, true).getFormula();
+      try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        thmProver.push(formula);
+        if (thmProver.isUnsat()) {
+          infeasible = true;
+        } else {
+          infeasible =  false;
+        }
+      }
     } catch (SolverException|InterruptedException|CPATransferException  e){
       // TODO: What should we do here?
     }

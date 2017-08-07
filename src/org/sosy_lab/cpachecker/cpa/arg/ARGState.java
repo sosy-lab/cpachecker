@@ -592,14 +592,6 @@ public class ARGState extends AbstractSingleWrapperState
     checkState(pTemplateState.destroyed != true);
     checkState(pTemplateState.counterexample == null);
 
-    for (ARGState child : pTemplateState.getChildren()) {
-      child.addParent(this);
-    }
-
-    for (ARGState parent : pTemplateState.getParents()) {
-      this.addParent(parent);
-    }
-
     this.wasExpanded = pTemplateState.wasExpanded;
     this.mayCover = pTemplateState.mayCover;
     this.hasCoveredParent = pTemplateState.hasCoveredParent;
