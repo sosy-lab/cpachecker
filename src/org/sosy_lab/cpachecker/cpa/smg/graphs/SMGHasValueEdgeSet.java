@@ -79,7 +79,7 @@ public class SMGHasValueEdgeSet implements Set<SMGEdgeHasValue>, SMGHasValueEdge
   public void replaceHvEdges(Set<SMGEdgeHasValue> pNewHV) {
     map.clear();
     for(SMGEdgeHasValue edge : pNewHV) {
-      addEdge(edge);
+      map.put(edge.getObject(), edge);
     }
   }
 
