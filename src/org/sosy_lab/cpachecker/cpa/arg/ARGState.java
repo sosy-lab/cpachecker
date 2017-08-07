@@ -586,7 +586,7 @@ public class ARGState extends AbstractSingleWrapperState
     return newState;
   }
 
-  private void makeTwinOf(ARGState pTemplateState) {
+  public void makeTwinOf(ARGState pTemplateState) {
 
     checkState(this.stateId != pTemplateState.stateId);
     checkState(pTemplateState.destroyed != true);
