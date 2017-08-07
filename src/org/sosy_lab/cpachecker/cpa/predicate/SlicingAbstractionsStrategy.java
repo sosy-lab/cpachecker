@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -103,6 +104,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
   // a reference to the abstraction of the last state we have seen
   // (we sometimes needs this to refer to the previous block).
   private AbstractionFormula lastAbstraction = null;
+  private boolean initialSliceDone = false;
 
   public SlicingAbstractionsStrategy(final Configuration config, final Solver pSolver,
       final PredicateAbstractionManager pPredAbsMgr,
@@ -188,7 +190,18 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     // several root states, but we need the true root state for recalculateReachedSet()!
     Set<ARGState> rootStates = ARGUtils.getRootStates(pReached.asReachedSet());
     assert rootStates.size() == 1;
-    sliceEdges(changedElements);
+
+    // optimization: Slice all edges only on first iteration
+    // After that we only need to slice edges of the states we split
+    if (!initialSliceDone) {
+      @SuppressWarnings("unchecked")
+      List<ARGState> all = (List<ARGState>)(List<? extends AbstractState>)pReached.asReachedSet().asCollection().stream().
+          filter(x->getPredicateState(x).isAbstractionState()).collect(Collectors.toList());
+      sliceEdges(all);
+      initialSliceDone = true;
+    } else {
+      sliceEdges(changedElements);
+    }
 
     // We do not have a tree, so this does not make sense anymore:
     //pReached.removeInfeasiblePartofARG(infeasiblePartOfART);
