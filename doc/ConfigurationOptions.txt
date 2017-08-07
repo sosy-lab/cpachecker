@@ -658,7 +658,7 @@ counterexample.export.assumptions.allowMultiplicationWithConstants = false
 counterexample.export.assumptions.assumeLinearArithmetics = false
 
 # Whether or not to include concrete address values.
-counterexample.export.assumptions.includeConstantsForPointers = true
+counterexample.export.assumptions.includeConstantsForPointers = false
 
 # export counterexample as automaton
 counterexample.export.automaton = "Counterexample.%d.spc"

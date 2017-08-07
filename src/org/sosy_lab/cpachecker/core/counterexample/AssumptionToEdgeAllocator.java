@@ -160,7 +160,7 @@ public class AssumptionToEdgeAllocator {
 
   @Option(secure=true, description=
       "Whether or not to include concrete address values.")
-  private boolean includeConstantsForPointers = true;
+  private boolean includeConstantsForPointers = false;
 
   /**
    * Creates an instance of the allocator that takes an {@link CFAEdge} edge
