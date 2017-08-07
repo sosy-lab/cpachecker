@@ -166,7 +166,7 @@ public class PredicateCPARefinerFactory {
       if (sliceBlockFormulas) {
         bfs = new BlockFormulaSlicer(pfmgr);
       } else if (graphBlockFormulaStrategy) {
-        bfs = new GraphBlockFormulaStrategy(solver, config, pfmgr);
+        bfs = new SlicingAbstractionsBlockFormulaStrategy(solver, config, pfmgr);
       } else {
         bfs = new BlockFormulaStrategy();
       }

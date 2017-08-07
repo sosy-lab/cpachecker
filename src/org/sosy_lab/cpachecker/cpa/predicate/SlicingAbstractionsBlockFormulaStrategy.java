@@ -23,17 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtility.buildPathFormula;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -43,7 +45,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * Intended for use with {@link SlicingAbstractionsStrategy}
  */
 @Options(prefix = "cpa.predicate.refinement")
-public class GraphBlockFormulaStrategy extends BlockFormulaStrategy {
+public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrategy {
 
   @Option(
       secure = true,
@@ -54,8 +56,8 @@ public class GraphBlockFormulaStrategy extends BlockFormulaStrategy {
   private PathFormulaManager pfmgr;
   private Solver solver;
 
-  @SuppressWarnings("options")
-  public GraphBlockFormulaStrategy(Solver solver, Configuration pConfig, PathFormulaManager pPfmgr) throws InvalidConfigurationException {
+  public SlicingAbstractionsBlockFormulaStrategy(Solver solver, Configuration pConfig, PathFormulaManager pPfmgr)
+      throws InvalidConfigurationException {
     this.pfmgr = pPfmgr;
     this.solver = solver;
     pConfig.inject(this);
@@ -66,36 +68,20 @@ public class GraphBlockFormulaStrategy extends BlockFormulaStrategy {
       throws CPATransferException, InterruptedException {
 
     final List<BooleanFormula> abstractionFormulas = new ArrayList<>();
-    final List<PathFormula>pathFormulas = new ArrayList<>();
 
-    // Handle root state separately:
-    pathFormulas.add(pfmgr.makeEmptyPathFormula());
-    abstractionFormulas.add(pathFormulas.get(0).getFormula());
+    SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
+    PathFormula currentPathFormula = buildPathFormula(pRoot, pPath.get(0), startSSAMap, solver, pfmgr,includePartialInvariants);
+    abstractionFormulas.add(currentPathFormula.getFormula());
 
-    for (int i = 0; i< pPath.size()-1; i++) {
-      ARGState parent = pPath.get(i);
-      ARGState child = pPath.get(i+1);
-
-      PathFormula previousPathFormula = pathFormulas.get(i);
-      CFAEdge edge = parent.getEdgeToChild(child);
-
-      //calculate the PathFormula from parent to child with the right SSA indices (from previousPathFormula):
-      PathFormula newPathFormula;
-      if (includePartialInvariants) {
-        BooleanFormula partialInvariant = PredicateAbstractState.getPredicateState(parent).getAbstractionFormula().asFormula();
-        partialInvariant = solver.getFormulaManager().instantiate(partialInvariant,previousPathFormula.getSsa());
-        newPathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(previousPathFormula),partialInvariant);
-        newPathFormula = pfmgr.makeAnd(newPathFormula, edge);
-      } else {
-        newPathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(previousPathFormula),edge);
-      }
-
-      // update lists:
-      pathFormulas.add(newPathFormula);
-      abstractionFormulas.add(newPathFormula.getFormula());
+    for(int i = 0; i<pPath.size()-1; i++) {
+      PathFormula oldPathFormula = currentPathFormula;
+      currentPathFormula = buildPathFormula(pPath.get(i), pPath.get(i+1),
+          oldPathFormula.getSsa(), solver, pfmgr,includePartialInvariants);
+      abstractionFormulas.add(currentPathFormula.getFormula());
     }
 
     return abstractionFormulas;
+
   }
 
 }

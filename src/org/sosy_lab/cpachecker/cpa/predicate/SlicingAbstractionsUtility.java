@@ -45,6 +45,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+/**
+ * Utility class for Slicing Abstractions like in the papers:
+ * "Slicing Abstractions" (doi:10.1007/978-3-540-75698-9_2)
+ * "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
+ */
 public class SlicingAbstractionsUtility {
 
   /**
