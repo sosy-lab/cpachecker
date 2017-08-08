@@ -545,6 +545,9 @@ public class AutomatonGraphmlCommon {
   }
 
   public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
+    if (handleAsEpsilonEdge(pEdge)) {
+      return Collections.emptySet();
+    }
     if (pEdge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdge;
       FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
