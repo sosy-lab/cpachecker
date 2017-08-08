@@ -859,15 +859,16 @@ public class ARGPathExporter {
      * @param pSuccessorFunction the function defining the successors of a
      * state.
      * @param pPathStates a filter on the nodes.
+     * @param pIsRelevantEdge a filter on the successor function.
      *
      * @return the parents with their children.
      */
     private Iterable<ARGState> collectPathNodes(
         final ARGState pInitialState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-        final Predicate<? super ARGState> pPathStates) {
+        final Predicate<? super ARGState> pPathStates, Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge) {
       return Iterables.transform(
-          collectPathEdges(pInitialState, pSuccessorFunction, pPathStates), Pair::getFirst);
+          collectPathEdges(pInitialState, pSuccessorFunction, pPathStates, pIsRelevantEdge), Pair::getFirst);
     }
 
     /**
@@ -880,13 +881,15 @@ public class ARGPathExporter {
      * @param pSuccessorFunction the function defining the successors of a
      * state.
      * @param pPathStates a filter on the parent nodes.
+     * @param pIsRelevantEdge a filter on the successor function.
      *
      * @return the parents with their children.
      */
     private Iterable<Pair<ARGState, Iterable<ARGState>>> collectPathEdges(
         final ARGState pInitialState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-        final Predicate<? super ARGState> pPathStates) {
+        final Predicate<? super ARGState> pPathStates,
+        final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge) {
       return new Iterable<Pair<ARGState, Iterable<ARGState>>>() {
 
         private final Set<ARGState> visited = new HashSet<>();
@@ -923,7 +926,7 @@ public class ARGPathExporter {
 
               // Only the children on the path become parents themselves
               for (ARGState child : children.filter(pPathStates)) {
-                if (visited.add(child)) {
+                if (pIsRelevantEdge.apply(Pair.of(parent, child)) && visited.add(child)) {
                   waitlist.offer(child);
                 }
               }
@@ -966,7 +969,7 @@ public class ARGPathExporter {
       final String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       // Collect node flags in advance
-      for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState)) {
+      for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState, pIsRelevantEdge)) {
         String sourceStateNodeId = pGraphBuilder.getId(s);
         EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
         if (sourceStateNodeId.equals(entryStateNodeId)) {
@@ -986,7 +989,7 @@ public class ARGPathExporter {
           pIsRelevantEdge,
           valueMap,
           doc,
-          collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState),
+          collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, pIsRelevantEdge),
           this);
 
       // remove redundant edges leading to sink
@@ -1217,38 +1220,35 @@ public class ARGPathExporter {
 
       // Move the leaving edges
       Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(nodeToRemove));
-      // Remove the edges from their successors
-      for (Edge leavingEdge : leavingEdgesToMove) {
-        boolean removed = removeEdge(leavingEdge);
-        assert removed;
-      }
       // Create the replacement edges,
       // Add them as leaving edges to the source node,
       // Add them as entering edges to their target nodes
       for (Edge leavingEdge : leavingEdgesToMove) {
-        TransitionCondition label;
-        // Don't merge "originfile" tag if leavingEdge corresponds to default originfile
-        if (leavingEdge.label.getMapping().containsKey(KeyDef.SOURCECODE)) {
-          label = pEdge.label.removeAndCopy(KeyDef.ORIGINFILE).putAllAndCopy(leavingEdge.label);
-        } else {
-          label = pEdge.label.putAllAndCopy(leavingEdge.label);
+        if (!pEdge.equals(leavingEdge)) {
+          TransitionCondition label;
+          // Don't merge "originfile" tag if leavingEdge corresponds to default originfile
+          if (leavingEdge.label.getMapping().containsKey(KeyDef.SOURCECODE)) {
+            label = pEdge.label.removeAndCopy(KeyDef.ORIGINFILE).putAllAndCopy(leavingEdge.label);
+          } else {
+            label = pEdge.label.putAllAndCopy(leavingEdge.label);
+          }
+          Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.target, label);
+          putEdge(replacementEdge);
+          CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
+          if (loopHead != null) {
+            loopHeadEnteringEdges.remove(leavingEdge);
+            loopHeadEnteringEdges.put(replacementEdge, loopHead);
+          }
         }
-        Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.target, label);
-        putEdge(replacementEdge);
-        CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
-        if (loopHead != null) {
-          loopHeadEnteringEdges.remove(leavingEdge);
-          loopHeadEnteringEdges.put(replacementEdge, loopHead);
-        }
+      }
+      // Remove the old edges from their successors
+      for (Edge leavingEdge : leavingEdgesToMove) {
+        boolean removed = removeEdge(leavingEdge);
+        assert removed;
       }
 
       // Move the entering edges
       Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(this.enteringEdges.get(nodeToRemove));
-      // Remove the edges from their predecessors
-      for (Edge enteringEdge : enteringEdgesToMove) {
-        boolean removed = removeEdge(enteringEdge);
-        assert removed : "could not remove edge: " + enteringEdge;
-      }
       // Create the replacement edges,
       // Add them as entering edges to the source node,
       // Add add them as leaving edges to their source nodes
@@ -1263,6 +1263,11 @@ public class ARGPathExporter {
             loopHeadEnteringEdges.put(replacementEdge, loopHead);
           }
         }
+      }
+      // Remove the old edges from their predecessors
+      for (Edge enteringEdge : enteringEdgesToMove) {
+        boolean removed = removeEdge(enteringEdge);
+        assert removed : "could not remove edge: " + enteringEdge;
       }
 
     }
@@ -1322,6 +1327,9 @@ public class ARGPathExporter {
 
     private void putEdge(Edge pEdge) {
       assert leavingEdges.size() == enteringEdges.size();
+      assert !pEdge.source.equals(SINK_NODE_ID);
+      assert !enteringEdges.get(pEdge.source).isEmpty()
+        || nodeFlags.get(pEdge.source).contains(NodeFlag.ISENTRY);
       leavingEdges.put(pEdge.source, pEdge);
       enteringEdges.put(pEdge.target, pEdge);
       assert leavingEdges.size() == enteringEdges.size();
@@ -1333,6 +1341,10 @@ public class ARGPathExporter {
         boolean alsoRemoved = enteringEdges.remove(pEdge.target, pEdge);
         assert alsoRemoved : "edge was not removed: " + pEdge;
         assert leavingEdges.size() == enteringEdges.size();
+        assert nodeFlags.get(pEdge.target).contains(NodeFlag.ISENTRY)
+          || !enteringEdges.get(pEdge.target).isEmpty()
+          || leavingEdges.get(pEdge.target).isEmpty();
+
         return true;
       }
       return false;

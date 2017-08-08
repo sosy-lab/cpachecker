@@ -75,6 +75,10 @@ public enum GraphBuilder {
       int multiEdgeCount = 0;
       for (Pair<ARGState, Iterable<ARGState>> argEdges : pARGEdges) {
         ARGState s = argEdges.getFirst();
+        if (!s.equals(pRootState)
+            && !s.getParents().stream().anyMatch(p -> pIsRelevantEdge.apply(Pair.of(p, s)))) {
+          continue;
+        }
         String sourceStateNodeId = getId(s);
 
         // Process child states
