@@ -1201,12 +1201,8 @@ public class ARGPathExporter {
     private void mergeNodes(final Edge pEdge) {
       Preconditions.checkArgument(isEdgeRedundant.apply(pEdge));
 
-      // By default, merge into the predecessor,
-      // but if the successor is redundant while the predecessor is not,
-      // merge into the successor.
-      boolean intoPredecessor =
-          isNodeRedundant.apply(pEdge.target) || !isNodeRedundant.apply(pEdge.target);
-
+      // Always merge into the predecessor, unless the successor is the sink
+      boolean intoPredecessor = !nodeFlags.get(pEdge.target).equals(EnumSet.of(NodeFlag.ISSINKNODE));
       final String source = intoPredecessor ? pEdge.source : pEdge.target;
       final String target = intoPredecessor ? pEdge.target : pEdge.source;
 
