@@ -109,8 +109,10 @@ public class FileLocation implements Serializable {
     String niceFileName = null;
     int startingLine = Integer.MAX_VALUE;
     int startingLineInOrigin = Integer.MAX_VALUE;
+    int startOffset = Integer.MAX_VALUE;
     int endingLine = Integer.MIN_VALUE;
     int endingLineInOrigin = Integer.MIN_VALUE;
+    int endOffset = Integer.MIN_VALUE;
     for (FileLocation loc : locations) {
       if (loc == DUMMY) {
         continue;
@@ -124,8 +126,10 @@ public class FileLocation implements Serializable {
 
       startingLine = Math.min(startingLine, loc.getStartingLineNumber());
       startingLineInOrigin = Math.min(startingLineInOrigin, loc.getStartingLineInOrigin());
+      startOffset = Math.min(startOffset, loc.getNodeOffset());
       endingLine = Math.max(endingLine, loc.getEndingLineNumber());
       endingLineInOrigin = Math.max(endingLineInOrigin, loc.getEndingLineInOrigin());
+      endOffset = Math.max(endOffset, loc.getNodeOffset() + loc.getNodeLength());
     }
 
     if (fileName == null) {
@@ -135,8 +139,8 @@ public class FileLocation implements Serializable {
     return new FileLocation(
         fileName,
         niceFileName,
-        0,
-        0,
+        startOffset,
+        endOffset - startOffset,
         startingLine,
         endingLine,
         startingLineInOrigin,
