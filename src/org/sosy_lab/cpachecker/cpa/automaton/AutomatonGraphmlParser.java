@@ -388,7 +388,7 @@ public class AutomatonGraphmlParser {
         String functionEntry = Iterables.getOnlyElement(functionEntries, null);
         Set<String> functionExits =
             GraphMLDocumentData.getDataOnNode(transition, KeyDef.FUNCTIONEXIT);
-        String functionExit = Iterables.getOnlyElement(functionEntries, null);
+        String functionExit = Iterables.getOnlyElement(functionExits, null);
 
         // If the same function is entered and exited, the stack remains unchanged.
         // Otherwise, adjust the stack accordingly:
