@@ -426,7 +426,8 @@ public class AutomatonGraphmlParser {
             and(conjoinedTriggers, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
 
         // Match a loop start
-        if (entersLoopHead(transition)) {
+        boolean entersLoopHead = entersLoopHead(transition);
+        if (entersLoopHead) {
           conjoinedTriggers = and(conjoinedTriggers, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
         }
 
@@ -485,9 +486,7 @@ public class AutomatonGraphmlParser {
         }
 
         if (functionExit != null) {
-          conjoinedTriggers = and(conjoinedTriggers, or(
-              new AutomatonBoolExpr.MatchFunctionExit(functionExit),
-              new AutomatonBoolExpr.MatchFunctionCallStatement(functionExit)));
+          conjoinedTriggers = and(conjoinedTriggers, getFunctionExitMatcher(functionExit, entersLoopHead));
         }
 
         // If the transition represents a function call, add a sink transition
@@ -497,9 +496,7 @@ public class AutomatonGraphmlParser {
         if (functionEntry != null) {
           fpElseTrigger = and(
               conjoinedTriggers,
-              new AutomatonBoolExpr.MatchFunctionPointerAssumeCase(
-                  new AutomatonBoolExpr.MatchAssumeCase(targetNodeFlags.contains(NodeFlag.ISSINKNODE)),
-                  new AutomatonBoolExpr.MatchFunctionCall(functionEntry)));
+              getFunctionPointerAssumeCaseMatcher(functionEntry, targetNodeFlags.contains(NodeFlag.ISSINKNODE), entersLoopHead));
           transitions.add(
               createAutomatonSinkTransition(
                   fpElseTrigger,
@@ -509,7 +506,7 @@ public class AutomatonGraphmlParser {
         }
 
         if (functionEntry != null) {
-          conjoinedTriggers = and(conjoinedTriggers, new AutomatonBoolExpr.MatchFunctionCall(functionEntry));
+          conjoinedTriggers = and(conjoinedTriggers, getFunctionCallMatcher(functionEntry, entersLoopHead));
         }
 
         // If the triggers do not apply, none of the above transitions is taken,
@@ -669,6 +666,40 @@ public class AutomatonGraphmlParser {
     }
   }
 
+  private static AutomatonBoolExpr getFunctionCallMatcher(String pEnteredFunction, boolean pEntersLoopHead) {
+    AutomatonBoolExpr functionEntryMatcher =
+        new AutomatonBoolExpr.MatchFunctionCall(pEnteredFunction);
+    if (pEntersLoopHead) {
+      functionEntryMatcher =
+          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionEntryMatcher, true);
+    }
+    return functionEntryMatcher;
+  }
+
+  private static AutomatonBoolExpr getFunctionPointerAssumeCaseMatcher(String pEnteredFunction,
+      boolean pIsSinkNode, boolean pEntersLoopHead) {
+    AutomatonBoolExpr functionPointerAssumeCaseMatcher =
+      new AutomatonBoolExpr.MatchFunctionPointerAssumeCase(
+          new AutomatonBoolExpr.MatchAssumeCase(pIsSinkNode),
+          new AutomatonBoolExpr.MatchFunctionCall(pEnteredFunction));
+    if (pEntersLoopHead) {
+      functionPointerAssumeCaseMatcher =
+          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionPointerAssumeCaseMatcher, true);
+    }
+    return functionPointerAssumeCaseMatcher;
+  }
+
+  private static AutomatonBoolExpr getFunctionExitMatcher(String pExitedFunction, boolean pEntersLoopHead) {
+    AutomatonBoolExpr functionExitMatcher = or(
+        new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction),
+        new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
+    if (pEntersLoopHead) {
+      functionExitMatcher =
+          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionExitMatcher, true);
+    }
+    return functionExitMatcher;
+  }
+
   private static boolean entersLoopHead(Node pTransition) throws WitnessParseException {
     Set<String> loopHeadFlags =
         GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ENTERLOOPHEAD);
@@ -700,7 +731,7 @@ public class AutomatonGraphmlParser {
    * @return an automaton-transition condition for a specific start line corresponding to the line
    *     specified by the given transition.
    */
-  private AutomatonBoolExpr getOriginLineMatcher(Node pTransition) throws WitnessParseException {
+  private static AutomatonBoolExpr getOriginLineMatcher(Node pTransition) throws WitnessParseException {
     Set<String> originFileTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ORIGINFILE);
     checkParsable(
         originFileTags.size() < 2,
@@ -762,7 +793,7 @@ public class AutomatonGraphmlParser {
    * @return an automaton-transition condition for a specific character offset corresponding to the
    *     offset specified by the given transition.
    */
-  private AutomatonBoolExpr getOffsetMatcher(Node pTransition) throws WitnessParseException {
+  private static AutomatonBoolExpr getOffsetMatcher(Node pTransition) throws WitnessParseException {
     Set<String> originFileTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ORIGINFILE);
     checkParsable(
         originFileTags.size() < 2,
@@ -823,7 +854,7 @@ public class AutomatonGraphmlParser {
    * @return an automaton-transition condition for specific branches of an assumption corresponding
    *     to the control case specified by the given transition.
    */
-  private AutomatonBoolExpr getAssumeCaseMatcher(Node pTransition) throws WitnessParseException {
+  private static AutomatonBoolExpr getAssumeCaseMatcher(Node pTransition) throws WitnessParseException {
     Set<String> assumeCaseTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.CONTROLCASE);
 
     if (assumeCaseTags.size() > 0) {
@@ -857,7 +888,7 @@ public class AutomatonGraphmlParser {
    *
    * <p>Returns {@null}, if no data can be found.
    */
-  private AutomatonAction getThreadIdAssignment(Node transition)
+  private static AutomatonAction getThreadIdAssignment(Node transition)
       throws WitnessParseException {
     Set<String> threadIdTags =
         GraphMLDocumentData.getDataOnNode(transition, KeyDef.THREADID);
