@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;

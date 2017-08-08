@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -46,11 +50,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
 
 
 /**
@@ -144,7 +143,8 @@ public class CFADeclarationMover {
                              pred,
                              edge.getSuccessor(),
                              ((CAssumeEdge)edge).getExpression(),
-                             ((CAssumeEdge)edge).getTruthAssumption());
+                             ((CAssumeEdge)edge).getTruthAssumption(),
+                             ((CAssumeEdge)edge).isSwapped());
       pred.addLeavingEdge(edge);
       succ.addEnteringEdge(edge);
       return edge;

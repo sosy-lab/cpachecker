@@ -516,7 +516,9 @@ public class ARGPathExporter {
               || goesToSink
               || (isDefaultCase && !goesToSink)
               || !AutomatonGraphmlCommon.isPartOfSwitchStatement(assumeEdge)) {
-            AssumeCase assumeCase = assumeEdge.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
+            AssumeCase assumeCase = (assumeEdge.getTruthAssumption() != assumeEdge.isSwapped())
+                ? AssumeCase.THEN
+                : AssumeCase.ELSE;
             result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
           } else {
             return TransitionCondition.empty();

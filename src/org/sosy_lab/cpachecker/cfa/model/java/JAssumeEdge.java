@@ -37,7 +37,7 @@ public class JAssumeEdge extends AssumeEdge {
   public JAssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
       CFANode pSuccessor, JExpression pExpression, boolean pTruthAssumption) {
 
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pTruthAssumption);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pTruthAssumption, false);
   }
 
   @Override

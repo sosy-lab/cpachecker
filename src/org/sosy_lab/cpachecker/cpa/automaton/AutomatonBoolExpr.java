@@ -641,7 +641,8 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       if (pArgs.getCfaEdge() instanceof AssumeEdge) {
         AssumeEdge a = (AssumeEdge) pArgs.getCfaEdge();
-        if (matchPositiveCase == a.getTruthAssumption()) {
+        boolean actualBranchInSource = a.getTruthAssumption() != a.isSwapped();
+        if (matchPositiveCase == actualBranchInSource) {
           return CONST_TRUE;
         }
       }
