@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -58,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -281,11 +283,11 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
-  static class MatchFunctionCall implements AutomatonBoolExpr {
+  static class MatchFunctionCallStatement implements AutomatonBoolExpr {
 
     private final String functionName;
 
-    MatchFunctionCall(String pFunctionName) {
+    MatchFunctionCallStatement(String pFunctionName) {
       this.functionName = pFunctionName;
     }
 
@@ -311,7 +313,68 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public String toString() {
+      return "MATCH FUNCTION CALL STATEMENT \"" + functionName + "\"";
+    }
+
+  }
+
+  static class MatchFunctionCall implements AutomatonBoolExpr {
+
+    private final String functionName;
+
+    MatchFunctionCall(String pFunctionName) {
+      this.functionName = pFunctionName;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (edge instanceof FunctionCallEdge) {
+        FunctionCallEdge callEdge = (FunctionCallEdge) edge;
+        if (callEdge.getSuccessor().getFunctionName().equals(functionName)) {
+          return CONST_TRUE;
+        }
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
       return "MATCH FUNCTION CALL \"" + functionName + "\"";
+    }
+
+  }
+
+  static class MatchFunctionExit implements AutomatonBoolExpr {
+
+    private final String functionName;
+
+    MatchFunctionExit(String pFunctionName) {
+      this.functionName = pFunctionName;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      CFAEdge edge = pArgs.getCfaEdge();
+      if (edge instanceof FunctionReturnEdge) {
+        FunctionReturnEdge returnEdge = (FunctionReturnEdge) edge;
+        if (returnEdge.getPredecessor().getFunctionName().equals(functionName)) {
+          return CONST_TRUE;
+        }
+      } else if (edge instanceof AReturnStatementEdge) {
+        AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
+        if (returnStatementEdge.getSuccessor().getFunctionName().equals(functionName)) {
+          return CONST_TRUE;
+        }
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH FUNCTION EXIT \"" + functionName + "\"";
     }
 
   }
@@ -347,6 +410,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       return "MATCH LABEL \"" + label + "\"";
     }
   }
+
   /**
    * Implements a regex match on the label after the current CFAEdge.
    * The eval method returns false if there is no label following the CFAEdge.

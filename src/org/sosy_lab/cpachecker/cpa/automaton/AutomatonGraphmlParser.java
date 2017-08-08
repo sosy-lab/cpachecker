@@ -454,7 +454,7 @@ public class AutomatonGraphmlParser {
         if (graphType == WitnessType.VIOLATION_WITNESS && !assumptionResultFunctions.isEmpty()) {
           String resultFunctionName = assumptionResultFunction.get();
           conjoinedTriggers =
-              and(conjoinedTriggers, new AutomatonBoolExpr.MatchFunctionCall(resultFunctionName));
+              and(conjoinedTriggers, new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
         }
 
         Set<String> candidates =
@@ -482,6 +482,16 @@ public class AutomatonGraphmlParser {
 
         if (matchOffset) {
           conjoinedTriggers = and(conjoinedTriggers, getOffsetMatcher(transition));
+        }
+
+        if (functionEntry != null) {
+          conjoinedTriggers = and(conjoinedTriggers, new AutomatonBoolExpr.MatchFunctionCall(functionEntry));
+        }
+
+        if (functionExit != null) {
+          conjoinedTriggers = and(conjoinedTriggers, or(
+              new AutomatonBoolExpr.MatchFunctionExit(functionExit),
+              new AutomatonBoolExpr.MatchFunctionCallStatement(functionExit)));
         }
 
         // If the triggers do not apply, none of the above transitions is taken,
@@ -1936,6 +1946,16 @@ public class AutomatonGraphmlParser {
       result = and(result, e);
     }
     return result;
+  }
+
+  private static AutomatonBoolExpr or(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
+    if (pA.equals(AutomatonBoolExpr.TRUE) || pB.equals(AutomatonBoolExpr.FALSE)) {
+      return pA;
+    }
+    if (pB.equals(AutomatonBoolExpr.TRUE) || pA.equals(AutomatonBoolExpr.FALSE)) {
+      return pB;
+    }
+    return new AutomatonBoolExpr.Or(pA, pB);
   }
 
   private static void checkParsable(boolean pParsable, String pMessage)
