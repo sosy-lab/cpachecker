@@ -1921,7 +1921,7 @@ public class AutomatonGraphmlParser {
   }
 
   private static AutomatonBoolExpr and(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-    if (pA.equals(AutomatonBoolExpr.TRUE) || pA.equals(AutomatonBoolExpr.FALSE)) {
+    if (pA.equals(AutomatonBoolExpr.TRUE) || pB.equals(AutomatonBoolExpr.FALSE)) {
       return pB;
     }
     if (pB.equals(AutomatonBoolExpr.TRUE) || pA.equals(AutomatonBoolExpr.FALSE)) {
