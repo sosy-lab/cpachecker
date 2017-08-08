@@ -474,7 +474,6 @@ public class ARGPathExporter {
         if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
           FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
           result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
-
         }
         if (pEdge.getSuccessor() instanceof FunctionExitNode) {
           FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
@@ -486,27 +485,38 @@ public class ARGPathExporter {
         result = extractTransitionForStates(pFrom, pTo, pEdge, pFromState.get(), pValueMap, result);
       }
 
-      if (exportAssumeCaseInfo) {
-        if (pEdge instanceof AssumeEdge) {
-          AssumeEdge a = (AssumeEdge) pEdge;
-          // If the assume edge or its sibling edge is followed by a pointer call,
+      if (pEdge instanceof AssumeEdge) {
+        AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+        // Check if the assume edge is an artificial edge introduced for pointer-calls
+        if (CFAUtils.leavingEdges(assumeEdge.getPredecessor())
+            .filter(AssumeEdge.class)
+            .filter(a -> a.getTruthAssumption())
+            .anyMatch(sibling ->
+              CFAUtils.leavingEdges(sibling.getSuccessor())
+                  .filter(FunctionCallEdge.class)
+                  .filter(callEdge -> callEdge.getFileLocation().equals(sibling.getFileLocation()))
+                  .size() == 1)) {
+          // If the assume edge is followed by a pointer call,
           // the assumption is artificial and should not be exported
-          if (CFAUtils.leavingEdges(a.getPredecessor())
-              .anyMatch(
-                  predecessor ->
-                      CFAUtils.leavingEdges(predecessor.getSuccessor())
-                          .anyMatch(
-                              sibling -> sibling.getRawStatement().startsWith("pointer call")))) {
+          if (!goesToSink) {
             // remove all info from transitionCondition
             return TransitionCondition.empty();
+          } else if (assumeEdge.getTruthAssumption() && exportFunctionCallsAndReturns) {
+            // However, if we know that the function is not going to be called,
+            // this information may be valuable and can be exported
+            // by creating a transition for the function call, to the sink:
+            CFAEdge callEdge = Iterables.getOnlyElement(CFAUtils.leavingEdges(assumeEdge.getSuccessor()));
+            FunctionEntryNode in = (FunctionEntryNode) callEdge.getSuccessor();
+            result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
           }
+        } else if (exportAssumeCaseInfo) {
           // Do not export assume-case information for the assume edges
           // representing continuations of switch-case chains
-          if (a.getTruthAssumption()
+          if (assumeEdge.getTruthAssumption()
               || goesToSink
               || (isDefaultCase && !goesToSink)
-              || !AutomatonGraphmlCommon.isPartOfSwitchStatement(a)) {
-            AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
+              || !AutomatonGraphmlCommon.isPartOfSwitchStatement(assumeEdge)) {
+            AssumeCase assumeCase = assumeEdge.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
             result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
           } else {
             return TransitionCondition.empty();
