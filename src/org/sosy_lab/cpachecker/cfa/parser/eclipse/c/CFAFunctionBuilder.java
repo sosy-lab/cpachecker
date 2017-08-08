@@ -145,6 +145,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Deque<CExpression> switchExprStack = new ArrayDeque<>();
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
   private final Deque<CFANode> switchDefaultStack = new LinkedList<>(); // ArrayDeque not possible because it does not allow null
+  private final Deque<FileLocation> switchDefaultFileLocationStack = new LinkedList<>(); // ArrayDeque not possible because it does not allow null
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
@@ -1488,6 +1489,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     locStack.push(new CFANode(cfa.getFunctionName()));
 
     switchDefaultStack.push(null);
+    switchDefaultFileLocationStack.push(null);
 
     // visit only body, getBody() != getChildren()
     statement.getBody().accept(this);
@@ -1496,6 +1498,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode lastNodeInSwitch = locStack.pop();
     final CFANode lastNotCaseNode = switchCaseStack.pop();
     final CFANode defaultCaseNode = switchDefaultStack.pop();
+    final FileLocation defaultCaseFileLocation = switchDefaultFileLocationStack.pop();
 
     switchExprStack.pop();
 
@@ -1514,7 +1517,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       // blank edge connecting rootNode with defaultCaseNode
       final BlankEdge defaultEdge = new BlankEdge(statement.getRawSignature(),
-          FileLocation.DUMMY, lastNotCaseNode, defaultCaseNode, "default");
+          defaultCaseFileLocation, lastNotCaseNode, defaultCaseNode, "default");
       addToCFA(defaultEdge);
     }
 
@@ -1669,10 +1672,12 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // Update switchDefaultStack with the new node
     final CFANode oldDefaultNode = switchDefaultStack.pop();
-    if (oldDefaultNode != null) {
+    final FileLocation oldDefaultFileLocation = switchDefaultFileLocationStack.pop();
+    if (oldDefaultNode != null || oldDefaultFileLocation != null) {
       throw parseContext.parseError("Duplicate default statement in switch", statement);
     }
     switchDefaultStack.push(caseNode);
+    switchDefaultFileLocationStack.push(fileLocation);
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
