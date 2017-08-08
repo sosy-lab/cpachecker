@@ -708,7 +708,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     protected boolean eval(CFAEdge edge) {
-      return Iterables.any(CFAUtils.getFileLocationsFromCfaEdge(edge), matchDescriptor);
+      return Iterables.any(AutomatonGraphmlCommon.getFileLocationsFromCfaEdge(edge), matchDescriptor);
     }
 
     @Override

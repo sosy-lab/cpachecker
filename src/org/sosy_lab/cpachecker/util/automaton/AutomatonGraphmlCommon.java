@@ -35,10 +35,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -51,8 +53,11 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
@@ -61,7 +66,9 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
@@ -524,6 +531,31 @@ public class AutomatonGraphmlCommon {
         break;
     }
     return architecture;
+  }
+
+  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
+    if (pEdge instanceof AStatementEdge) {
+      AStatementEdge statementEdge = (AStatementEdge) pEdge;
+      FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
+      if (!FileLocation.DUMMY.equals(statementLocation)) {
+        return Collections.singleton(statementLocation);
+      }
+    }
+    if (pEdge instanceof FunctionCallEdge) {
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pEdge;
+      FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
+      if (summaryEdge != null && summaryEdge.getExpression() != null) {
+        AFunctionCall call = summaryEdge.getExpression();
+        if (call instanceof AFunctionCallAssignmentStatement) {
+          AFunctionCallAssignmentStatement statement = (AFunctionCallAssignmentStatement) call;
+          FileLocation callLocation = statement.getRightHandSide().getFileLocation();
+          if (!FileLocation.DUMMY.equals(callLocation)) {
+            return Collections.singleton(callLocation);
+          }
+        }
+      }
+    }
+    return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
   }
 
 }
