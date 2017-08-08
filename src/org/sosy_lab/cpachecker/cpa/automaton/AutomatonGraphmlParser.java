@@ -484,24 +484,46 @@ public class AutomatonGraphmlParser {
           conjoinedTriggers = and(conjoinedTriggers, getOffsetMatcher(transition));
         }
 
-        if (functionEntry != null) {
-          conjoinedTriggers = and(conjoinedTriggers, new AutomatonBoolExpr.MatchFunctionCall(functionEntry));
-        }
-
         if (functionExit != null) {
           conjoinedTriggers = and(conjoinedTriggers, or(
               new AutomatonBoolExpr.MatchFunctionExit(functionExit),
               new AutomatonBoolExpr.MatchFunctionCallStatement(functionExit)));
         }
 
+        // If the transition represents a function call, add a sink transition
+        // in case it is a function pointer call,
+        // where we can eliminate the other branch
+        AutomatonBoolExpr fpElseTrigger = null;
+        if (functionEntry != null) {
+          fpElseTrigger = and(
+              conjoinedTriggers,
+              new AutomatonBoolExpr.MatchFunctionPointerAssumeCase(
+                  new AutomatonBoolExpr.MatchAssumeCase(targetNodeFlags.contains(NodeFlag.ISSINKNODE)),
+                  new AutomatonBoolExpr.MatchFunctionCall(functionEntry)));
+          transitions.add(
+              createAutomatonSinkTransition(
+                  fpElseTrigger,
+                  Collections.<AutomatonBoolExpr>emptyList(),
+                  actions,
+                  false));
+        }
+
+        if (functionEntry != null) {
+          conjoinedTriggers = and(conjoinedTriggers, new AutomatonBoolExpr.MatchFunctionCall(functionEntry));
+        }
+
         // If the triggers do not apply, none of the above transitions is taken,
         // so we need to build the stutter condition
         // as the conjoined negations of the transition conditions.
         AutomatonBoolExpr stutterCondition = stutterConditions.get(sourceStateId);
+        AutomatonBoolExpr additionalStutterCondition = not(conjoinedTriggers);
+        if (fpElseTrigger != null) {
+          additionalStutterCondition = and(additionalStutterCondition, not(fpElseTrigger));
+        }
         if (stutterCondition == null) {
-          stutterCondition = not(conjoinedTriggers);
+          stutterCondition = additionalStutterCondition;
         } else {
-          stutterCondition = and(stutterCondition, not(conjoinedTriggers));
+          stutterCondition = and(stutterCondition, additionalStutterCondition);
         }
         stutterConditions.put(sourceStateId, stutterCondition);
 

@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collections;
@@ -342,6 +343,69 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     @Override
     public String toString() {
       return "MATCH FUNCTION CALL \"" + functionName + "\"";
+    }
+
+  }
+
+  static class MatchFunctionPointerAssumeCase implements AutomatonBoolExpr {
+
+    private final MatchAssumeCase matchAssumeCase;
+
+    private final MatchFunctionCall matchFunctionCall;
+
+    public MatchFunctionPointerAssumeCase(MatchAssumeCase pMatchAssumeCase, MatchFunctionCall pMatchFunctionCall) {
+      matchAssumeCase = pMatchAssumeCase;
+      matchFunctionCall = pMatchFunctionCall;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      ResultValue<Boolean> assumeMatches = matchAssumeCase.eval(pArgs);
+      if (assumeMatches.canNotEvaluate() || !assumeMatches.getValue()) {
+        return assumeMatches;
+      }
+      CFAEdge edge = pArgs.getCfaEdge();
+      AssumeEdge assumeEdge = (AssumeEdge) edge;
+      if (!assumeEdge.getTruthAssumption()) {
+        assumeEdge = AutomatonGraphmlCommon.getSibling(assumeEdge);
+      }
+      FluentIterable<FunctionCallEdge> pointerCallEdges = CFAUtils
+          .leavingEdges(assumeEdge.getSuccessor())
+          .filter(e -> e.getFileLocation().equals(edge.getFileLocation()))
+          .filter(FunctionCallEdge.class);
+      for (CFAEdge pointerCallEdge : pointerCallEdges) {
+        AutomatonExpressionArguments args = new AutomatonExpressionArguments(
+            pArgs.getState(),
+            pArgs.getAutomatonVariables(),
+            pArgs.getAbstractStates(),
+            pointerCallEdge, pArgs.getLogger());
+        return matchFunctionCall.eval(args);
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      if (pOther instanceof MatchFunctionPointerAssumeCase) {
+        MatchFunctionPointerAssumeCase other = (MatchFunctionPointerAssumeCase) pOther;
+        return matchAssumeCase.equals(other.matchAssumeCase)
+            && matchFunctionCall.equals(other.matchFunctionCall);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(matchAssumeCase, matchFunctionCall);
+    }
+
+    @Override
+    public String toString() {
+      return "MATCH FP-CALL(" + matchFunctionCall.functionName + ") BRANCHING CASE " + matchAssumeCase.matchPositiveCase;
     }
 
   }
