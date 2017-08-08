@@ -509,6 +509,10 @@ public class AutomatonGraphmlParser {
           conjoinedTriggers = and(conjoinedTriggers, getFunctionCallMatcher(functionEntry, entersLoopHead));
         }
 
+        if (matchAssumeCase) {
+          conjoinedTriggers = and(conjoinedTriggers, getAssumeCaseMatcher(transition));
+        }
+
         // If the triggers do not apply, none of the above transitions is taken,
         // so we need to build the stutter condition
         // as the conjoined negations of the transition conditions.
@@ -523,10 +527,6 @@ public class AutomatonGraphmlParser {
           stutterCondition = and(stutterCondition, additionalStutterCondition);
         }
         stutterConditions.put(sourceStateId, stutterCondition);
-
-        if (matchAssumeCase) {
-          conjoinedTriggers = and(conjoinedTriggers, getAssumeCaseMatcher(transition));
-        }
 
         // If the triggers match, there must be one successor state that moves the automaton forwards
         transitions.add(
