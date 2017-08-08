@@ -677,27 +677,44 @@ public class AutomatonGraphmlParser {
     Set<String> startLineTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.STARTLINE);
     checkParsable(
         startLineTags.size() < 2,
-        "At most one origin-line data tag must be provided for each edge.");
+        "At most one startline data tag must be provided for each edge.");
+    Set<String> endLineTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ENDLINE);
+    checkParsable(
+        endLineTags.size() < 2, "At most one endline data tag must be provided for each edge.");
 
-    int matchOriginLineNumber = -1;
+    int startLine = 0;
     if (startLineTags.size() > 0) {
-      matchOriginLineNumber = Integer.parseInt(startLineTags.iterator().next());
+      startLine = Integer.parseInt(startLineTags.iterator().next());
     }
-    if (matchOriginLineNumber > 0) {
+    int endLine = 0;
+    if (endLineTags.size() > 0) {
+      endLine = Integer.parseInt(endLineTags.iterator().next());
+    }
+    if (startLine < 1 && endLine > 1) {
+      startLine = endLine;
+    }
+    if (endLine < 1 && startLine >= 1) {
+      endLine = startLine;
+    }
+    if (endLine < startLine) {
+      return AutomatonBoolExpr.FALSE;
+    }
+
+    if (startLine > 0) {
       Optional<String> matchOriginFileName =
           originFileTags.isEmpty()
               ? Optional.empty()
               : Optional.of(originFileTags.iterator().next());
       OriginLineMatcher originDescriptor =
-          new OriginLineMatcher(matchOriginFileName, matchOriginLineNumber);
+          new OriginLineMatcher(matchOriginFileName, startLine, endLine);
 
-      AutomatonBoolExpr startingLineMatchingExpr =
+      AutomatonBoolExpr lineMatchingExpr =
           new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
       if (entersLoopHead(pTransition)) {
-        startingLineMatchingExpr =
-            AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(startingLineMatchingExpr, true);
+        lineMatchingExpr =
+            AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(lineMatchingExpr, true);
       }
-      return startingLineMatchingExpr;
+      return lineMatchingExpr;
     }
     return AutomatonBoolExpr.TRUE;
   }
@@ -722,10 +739,26 @@ public class AutomatonGraphmlParser {
     Set<String> offsetTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.OFFSET);
     checkParsable(
         offsetTags.size() < 2, "At most one offset data tag must be provided for each edge.");
+    Set<String> endoffsetTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ENDOFFSET);
+    checkParsable(
+        endoffsetTags.size() < 2, "At most one endoffset data tag must be provided for each edge.");
 
     int offset = -1;
     if (offsetTags.size() > 0) {
       offset = Integer.parseInt(offsetTags.iterator().next());
+    }
+    int endoffset = -1;
+    if (endoffsetTags.size() > 0) {
+      endoffset = Integer.parseInt(endoffsetTags.iterator().next());
+    }
+    if (offset < 0 && endoffset > 0) {
+      offset = endoffset;
+    }
+    if (endoffset < 0 && offset >= 0) {
+      endoffset = offset;
+    }
+    if (endoffset < offset) {
+      return AutomatonBoolExpr.FALSE;
     }
 
     if (offset >= 0) {
@@ -733,10 +766,11 @@ public class AutomatonGraphmlParser {
           originFileTags.isEmpty()
               ? Optional.empty()
               : Optional.of(originFileTags.iterator().next());
-      OffsetMatcher originDescriptor = new OffsetMatcher(matchOriginFileName, offset);
 
+      OffsetMatcher originDescriptor = new OffsetMatcher(matchOriginFileName, offset, endoffset);
       AutomatonBoolExpr offsetMatchingExpr =
           new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
+
       if (entersLoopHead(pTransition)) {
         offsetMatchingExpr =
             AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(offsetMatchingExpr, true);

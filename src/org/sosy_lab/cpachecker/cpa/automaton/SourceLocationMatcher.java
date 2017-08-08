@@ -25,12 +25,11 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class SourceLocationMatcher {
 
@@ -84,16 +83,20 @@ class SourceLocationMatcher {
 
   static class OriginLineMatcher extends BaseFileNameMatcher {
 
-    private final int originLineNumber;
+    private final int originStartLineNumber;
 
-    public OriginLineMatcher(Optional<String> pOriginFileName, int pOriginLineNumber) {
+    private final int originEndLineNumber;
+
+    public OriginLineMatcher(Optional<String> pOriginFileName, int pOriginStartLineNumber, int pOriginEndLineNumber) {
       super(pOriginFileName);
-      this.originLineNumber = pOriginLineNumber;
+      Preconditions.checkArgument(pOriginStartLineNumber <= pOriginEndLineNumber);
+      this.originStartLineNumber = pOriginStartLineNumber;
+      this.originEndLineNumber = pOriginEndLineNumber;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getOriginFileName(), originLineNumber);
+      return Objects.hash(getOriginFileName(), originStartLineNumber, originEndLineNumber);
     }
 
     @Override
@@ -106,33 +109,42 @@ class SourceLocationMatcher {
       }
       OriginLineMatcher other = (OriginLineMatcher) pObj;
       return Objects.equals(getOriginFileName(), other.getOriginFileName())
-          && originLineNumber == other.originLineNumber;
+          && originStartLineNumber == other.originStartLineNumber
+          && originEndLineNumber == other.originEndLineNumber;
     }
 
     @Override
     public boolean apply(FileLocation pFileLocation) {
       return super.apply(pFileLocation)
-          && pFileLocation.getStartingLineInOrigin() == originLineNumber;
+          && originStartLineNumber <= pFileLocation.getEndingLineInOrigin()
+          && pFileLocation.getStartingLineInOrigin() <= originEndLineNumber;
     }
 
     @Override
     public String toString() {
-      return "ORIGIN STARTING LINE " + originLineNumber;
+      if (originStartLineNumber == originEndLineNumber) {
+        return "ORIGIN LINE " + originStartLineNumber;
+      }
+      return "ORIGIN LINE " + originStartLineNumber + "-" + originEndLineNumber;
     }
   }
 
   static class OffsetMatcher extends BaseFileNameMatcher {
 
-    private final int offset;
+    private final int startOffset;
 
-    OffsetMatcher(Optional<String> pOriginFileName, int pOffset) {
+    private final int endOffset;
+
+    OffsetMatcher(Optional<String> pOriginFileName, int pStartOffset, int pEndOffset) {
       super(pOriginFileName);
-      this.offset = pOffset;
+      Preconditions.checkArgument(pStartOffset <= pEndOffset);
+      this.startOffset = pStartOffset;
+      this.endOffset = pEndOffset;
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getOriginFileName(), offset);
+      return Objects.hash(getOriginFileName(), startOffset, endOffset);
     }
 
     @Override
@@ -145,19 +157,24 @@ class SourceLocationMatcher {
       }
       OffsetMatcher other = (OffsetMatcher) pObj;
       return Objects.equals(getOriginFileName(), other.getOriginFileName())
-          && offset == other.offset;
+          && startOffset == other.startOffset
+          && endOffset == other.endOffset;
     }
 
     @Override
     public boolean apply(FileLocation pFileLocation) {
+      int locationEndOffset = pFileLocation.getNodeOffset() + pFileLocation.getNodeLength() - 1;
       return super.apply(pFileLocation)
-          && pFileLocation.getNodeOffset() <= offset
-          && pFileLocation.getNodeOffset() + pFileLocation.getNodeLength() > offset;
+          && pFileLocation.getNodeOffset() <= endOffset
+          && startOffset <= locationEndOffset;
     }
 
     @Override
     public String toString() {
-      return "OFFSET " + offset;
+      if (startOffset == endOffset) {
+        return "OFFSET " + startOffset;
+      }
+      return "OFFSET " + startOffset + "-" + endOffset;
     }
   }
 }

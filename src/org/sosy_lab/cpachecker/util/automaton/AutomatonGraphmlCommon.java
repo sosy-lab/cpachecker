@@ -128,6 +128,7 @@ public class AutomatonGraphmlCommon {
     CREATIONTIME("creationtime", ElementType.GRAPH, "creationTime", "string"),
     SOURCECODE("sourcecode", ElementType.EDGE, "sourcecode", "string"),
     STARTLINE("startline", ElementType.EDGE, "startline", "int"),
+    ENDLINE("endline", ElementType.EDGE, "endline", "int"),
     OFFSET("startoffset", ElementType.EDGE, "startoffset", "int"),
     ENDOFFSET("endoffset", ElementType.EDGE, "endoffset", "int"),
     ORIGINFILE("originfile", ElementType.EDGE, "originFileName", "string"),
