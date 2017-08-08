@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.util.automaton;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -35,9 +37,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -53,6 +57,8 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -63,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -74,6 +81,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.w3c.dom.DOMException;
@@ -556,7 +566,128 @@ public class AutomatonGraphmlCommon {
         }
       }
     }
+    if (pEdge instanceof AssumeEdge) {
+      AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+      FileLocation location = assumeEdge.getFileLocation();
+      if (isDefaultCase(assumeEdge)) {
+        CFANode successorNode = assumeEdge.getSuccessor();
+        FileLocation switchLocation = Iterables.getOnlyElement(CFAUtils.leavingEdges(successorNode)).getFileLocation();
+        if (!FileLocation.DUMMY.equals(switchLocation)) {
+          location = switchLocation;
+        } else {
+          SwitchDetector switchDetector = new SwitchDetector(assumeEdge);
+          CFATraversal.dfs().backwards().traverseOnce(assumeEdge.getSuccessor(), switchDetector);
+          List<FileLocation> caseLocations = FluentIterable
+              .from(switchDetector.getEdgesBackwardToSwitchNode())
+              .transform(e -> e.getFileLocation())
+              .toList();
+          location = FileLocation.merge(caseLocations);
+        }
+
+      }
+      if (!FileLocation.DUMMY.equals(location)) {
+        return Collections.singleton(location);
+      }
+    }
     return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+  }
+
+  public static boolean isPartOfSwitchStatement(AssumeEdge pAssumeEdge) {
+    SwitchDetector switchDetector = new SwitchDetector(pAssumeEdge);
+    CFATraversal.dfs().backwards().traverseOnce(pAssumeEdge.getSuccessor(), switchDetector);
+    return switchDetector.switchDetected();
+  }
+
+  public static boolean isDefaultCase(CFAEdge pEdge) {
+    if (!(pEdge instanceof AssumeEdge)) {
+      return false;
+    }
+    AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+    if (assumeEdge.getTruthAssumption()) {
+      return false;
+    }
+    FluentIterable<CFAEdge> successorEdges = CFAUtils.leavingEdges(assumeEdge.getSuccessor());
+    if (successorEdges.size() != 1) {
+      return false;
+    }
+    CFAEdge successorEdge = successorEdges.iterator().next();
+    if (!(successorEdge instanceof BlankEdge)) {
+      return false;
+    }
+    BlankEdge blankSuccessorEdge = (BlankEdge) successorEdge;
+    return blankSuccessorEdge.getDescription().equals("default");
+  }
+
+  public static AssumeEdge getSibling(AssumeEdge pAssumeEdge) {
+    return (AssumeEdge) Iterables.getOnlyElement(CFAUtils
+          .leavingEdges(pAssumeEdge.getPredecessor())
+          .filter(e -> !e.equals(pAssumeEdge)));
+  }
+
+  public static class SwitchDetector implements CFAVisitor {
+
+    private final AExpression assumeExpression;
+
+    private final AExpression switchOperand;
+
+    private final List<AssumeEdge> edgesBackwardToSwitchNode = new ArrayList<>();
+
+    private CFANode switchNode = null;
+
+    public SwitchDetector(AssumeEdge pAssumeEdge) {
+      assumeExpression = pAssumeEdge.getExpression();
+      if (assumeExpression instanceof ABinaryExpression) {
+        switchOperand = ((ABinaryExpression) assumeExpression).getOperand1();
+      } else {
+        switchOperand = assumeExpression;
+      }
+    }
+
+    public boolean switchDetected() {
+      return switchNode != null;
+    }
+
+    public List<AssumeEdge> getEdgesBackwardToSwitchNode() {
+      Preconditions.checkState(switchDetected());
+      return Collections.unmodifiableList(edgesBackwardToSwitchNode);
+    }
+
+    @Override
+    public TraversalProcess visitEdge(CFAEdge pEdge) {
+      if (switchOperand == assumeExpression) {
+        return TraversalProcess.ABORT;
+      }
+      if (pEdge instanceof AssumeEdge) {
+        AssumeEdge edge = (AssumeEdge) pEdge;
+        AExpression expression = edge.getExpression();
+        if (!(expression instanceof ABinaryExpression)) {
+          return TraversalProcess.ABORT;
+        }
+        AExpression operand = ((ABinaryExpression) expression).getOperand1();
+        if (!operand.equals(switchOperand)) {
+          return TraversalProcess.ABORT;
+        }
+        edgesBackwardToSwitchNode.add(edge);
+        return TraversalProcess.CONTINUE;
+      } else if (pEdge instanceof BlankEdge) {
+        BlankEdge edge = (BlankEdge) pEdge;
+        String switchPrefix = "switch (";
+        if (edge.getDescription().equals(switchPrefix + switchOperand + ")")
+            && !FileLocation.DUMMY.equals(edge.getFileLocation())
+            && assumeExpression.getFileLocation().getNodeOffset() == edge.getFileLocation().getNodeOffset() + switchPrefix.length()) {
+          switchNode = edge.getSuccessor();
+          return TraversalProcess.ABORT;
+        }
+        return TraversalProcess.CONTINUE;
+      }
+      return TraversalProcess.SKIP;
+    }
+
+    @Override
+    public TraversalProcess visitNode(CFANode pNode) {
+      return TraversalProcess.CONTINUE;
+    }
+
   }
 
 }

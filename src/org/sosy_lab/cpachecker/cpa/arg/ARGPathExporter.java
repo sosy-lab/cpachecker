@@ -463,6 +463,9 @@ public class ARGPathExporter {
         return result;
       }
 
+      boolean goesToSink = pTo.equals(SINK_NODE_ID);
+      boolean isDefaultCase = AutomatonGraphmlCommon.isDefaultCase(pEdge);
+
       if (entersLoop(pEdge, false).isPresent()) {
         result = result.putAndCopy(KeyDef.ENTERLOOPHEAD, "true");
       }
@@ -497,8 +500,17 @@ public class ARGPathExporter {
             // remove all info from transitionCondition
             return TransitionCondition.empty();
           }
-          AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
-          result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
+          // Do not export assume-case information for the assume edges
+          // representing continuations of switch-case chains
+          if (a.getTruthAssumption()
+              || goesToSink
+              || (isDefaultCase && !goesToSink)
+              || !AutomatonGraphmlCommon.isPartOfSwitchStatement(a)) {
+            AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
+            result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
+          } else {
+            return TransitionCondition.empty();
+          }
         }
       }
 
@@ -536,8 +548,16 @@ public class ARGPathExporter {
             Integer.toString(max.getNodeOffset() + max.getNodeLength() - 1));
       }
 
-      if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
-        result = result.putAndCopy(KeyDef.SOURCECODE, pEdge.getRawStatement());
+      if (exportSourcecode) {
+        final String sourceCode;
+        if (isDefaultCase && !goesToSink) {
+          sourceCode = "default:";
+        } else {
+          sourceCode = pEdge.getRawStatement().trim();
+        }
+        if (!sourceCode.isEmpty()) {
+          result = result.putAndCopy(KeyDef.SOURCECODE, sourceCode);
+        }
       }
 
       return result;
