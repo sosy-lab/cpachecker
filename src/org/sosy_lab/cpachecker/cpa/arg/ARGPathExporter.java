@@ -107,6 +107,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -461,7 +462,7 @@ public class ARGPathExporter {
         return result;
       }
 
-      if (entersLoop(pEdge).isPresent()) {
+      if (entersLoop(pEdge, false).isPresent()) {
         result = result.putAndCopy(KeyDef.ENTERLOOPHEAD, "true");
       }
 
@@ -1579,7 +1580,11 @@ public class ARGPathExporter {
 
   }
 
-  private Optional<CFANode> entersLoop(CFAEdge pEdge) {
+  private static Optional<CFANode> entersLoop(CFAEdge pEdge) {
+    return entersLoop(pEdge, true);
+  }
+
+  private static Optional<CFANode> entersLoop(CFAEdge pEdge, boolean pAllowGoto) {
     class EnterLoopVisitor implements CFAVisitor {
 
       private CFANode loopHead;
@@ -1587,6 +1592,14 @@ public class ARGPathExporter {
       @Override
       public TraversalProcess visitNode(CFANode pNode) {
         if (pNode.isLoopStart()) {
+          if (!pAllowGoto && pNode instanceof CLabelNode) {
+            CLabelNode node = (CLabelNode) pNode;
+            for (BlankEdge e : CFAUtils.enteringEdges(pNode).filter(BlankEdge.class)) {
+              if (e.getDescription().equals("Goto: " + node.getLabel())) {
+                return TraversalProcess.ABORT;
+              }
+            }
+          }
           loopHead = pNode;
           return TraversalProcess.ABORT;
         }
