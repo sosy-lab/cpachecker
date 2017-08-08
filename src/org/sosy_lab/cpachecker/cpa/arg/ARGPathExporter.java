@@ -1203,20 +1203,20 @@ public class ARGPathExporter {
 
       // Always merge into the predecessor, unless the successor is the sink
       boolean intoPredecessor = !nodeFlags.get(pEdge.target).equals(EnumSet.of(NodeFlag.ISSINKNODE));
-      final String source = intoPredecessor ? pEdge.source : pEdge.target;
-      final String target = intoPredecessor ? pEdge.target : pEdge.source;
+      final String nodeToKeep = intoPredecessor ? pEdge.source : pEdge.target;
+      final String nodeToRemove = intoPredecessor ? pEdge.target : pEdge.source;
 
       // Merge the flags
-      nodeFlags.putAll(source, nodeFlags.removeAll(target));
+      nodeFlags.putAll(nodeToKeep, nodeFlags.removeAll(nodeToRemove));
 
       // Merge the trees
-      mergeExpressionTrees(source, target);
+      mergeExpressionTrees(nodeToKeep, nodeToRemove);
 
       // Merge the violated properties
-      violatedProperties.putAll(source, violatedProperties.removeAll(target));
+      violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
 
       // Move the leaving edges
-      Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(target));
+      Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(nodeToRemove));
       // Remove the edges from their successors
       for (Edge leavingEdge : leavingEdgesToMove) {
         boolean removed = removeEdge(leavingEdge);
@@ -1233,7 +1233,7 @@ public class ARGPathExporter {
         } else {
           label = pEdge.label.putAllAndCopy(leavingEdge.label);
         }
-        Edge replacementEdge = new Edge(source, leavingEdge.target, label);
+        Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.target, label);
         putEdge(replacementEdge);
         CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
         if (loopHead != null) {
@@ -1243,7 +1243,7 @@ public class ARGPathExporter {
       }
 
       // Move the entering edges
-      Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(this.enteringEdges.get(target));
+      Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(this.enteringEdges.get(nodeToRemove));
       // Remove the edges from their predecessors
       for (Edge enteringEdge : enteringEdgesToMove) {
         boolean removed = removeEdge(enteringEdge);
@@ -1255,7 +1255,7 @@ public class ARGPathExporter {
       for (Edge enteringEdge : enteringEdgesToMove) {
         if (!pEdge.equals(enteringEdge)) {
           TransitionCondition label = pEdge.label.putAllAndCopy(enteringEdge.label);
-          Edge replacementEdge = new Edge(enteringEdge.source, source, label);
+          Edge replacementEdge = new Edge(enteringEdge.source, nodeToKeep, label);
           putEdge(replacementEdge);
           CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
           if (loopHead != null) {
