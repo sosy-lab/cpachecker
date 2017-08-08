@@ -962,11 +962,15 @@ public class ARGPathExporter {
         GraphBuilder pGraphBuilder)
         throws IOException {
 
-      final Multimap<ARGState, CFAEdgeWithAssumptions> valueMap;
-      if (pCounterExample.isPresent() && pCounterExample.get().isPreciseCounterExample()) {
-        valueMap = pCounterExample.get().getExactVariableValues();
-      } else {
-        valueMap = ImmutableMultimap.of();
+      Predicate<? super Pair<ARGState, ARGState>> isRelevantEdge = pIsRelevantEdge;
+      Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
+
+      if (pCounterExample.isPresent()) {
+        if (pCounterExample.get().isPreciseCounterExample()) {
+          valueMap = pCounterExample.get().getExactVariableValues();
+        } else {
+          isRelevantEdge = edge -> pIsRelevantState.apply(edge.getFirst()) && pIsRelevantState.apply(edge.getSecond());
+        }
       }
 
       final GraphMlBuilder doc;
@@ -979,7 +983,7 @@ public class ARGPathExporter {
       final String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       // Collect node flags in advance
-      for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState, pIsRelevantEdge)) {
+      for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge)) {
         String sourceStateNodeId = pGraphBuilder.getId(s);
         EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
         if (sourceStateNodeId.equals(entryStateNodeId)) {
@@ -996,10 +1000,10 @@ public class ARGPathExporter {
       pGraphBuilder.buildGraph(
           pRootState,
           pIsRelevantState,
-          pIsRelevantEdge,
+          isRelevantEdge,
           valueMap,
           doc,
-          collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, pIsRelevantEdge),
+          collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
           this);
 
       // remove redundant edges leading to sink
