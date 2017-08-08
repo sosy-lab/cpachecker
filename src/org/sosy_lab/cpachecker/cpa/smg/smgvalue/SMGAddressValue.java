@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,19 +21,18 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg;
+package org.sosy_lab.cpachecker.cpa.smg.smgvalue;
 
-public class SMGDebugExporter {
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
-//  public static void dumpPlot(String name, SMGState state) {
-//    Path path = PathTemplate.ofFormatString("output/smg/smgspec/" + name).getPath();
-//
-//    try {
-//      String dot = state.toDot(name, name);
-//      IO.writeFile(path, Charset.defaultCharset(), dot);
-//    } catch (IOException e) {
-//
-//    }
-//  }
+public interface SMGAddressValue extends SMGSymbolicValue {
 
+  @Override
+  public boolean isUnknown();
+
+  public SMGAddress getAddress();
+
+  public SMGExplicitValue getOffset();
+
+  public SMGObject getObject();
 }

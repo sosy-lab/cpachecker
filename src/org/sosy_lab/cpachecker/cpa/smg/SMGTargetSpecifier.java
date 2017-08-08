@@ -27,30 +27,21 @@ package org.sosy_lab.cpachecker.cpa.smg;
  * Target Specifier for specifying target of pointer.
  */
 public enum SMGTargetSpecifier {
-  REGION ,
-  FIRST,
-  LAST,
-  ALL,
-  OPT,
-  UNKNOWN;
+  REGION("reg"),
+  FIRST("fst"),
+  LAST("lst"),
+  ALL("all"),
+  OPT("optional"),
+  UNKNOWN("unknown");
+
+  private final String name;
+
+  private SMGTargetSpecifier(String pName) {
+    name = pName;
+  }
 
   @Override
   public String toString() {
-    switch (this) {
-      case REGION:
-        return "reg";
-      case FIRST:
-        return "fst";
-      case LAST:
-        return "lst";
-      case ALL:
-        return "all";
-      case OPT:
-        return "optional";
-      case UNKNOWN:
-        return "unknown";
-      default:
-        throw new AssertionError();
-    }
+    return name;
   }
 }

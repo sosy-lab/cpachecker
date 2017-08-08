@@ -23,19 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import com.google.common.collect.Sets;
 
 public class CLangSMGConsistencyVerifier {
   private CLangSMGConsistencyVerifier() {} /* utility class */
@@ -160,7 +159,7 @@ public class CLangSMGConsistencyVerifier {
   static private boolean verifyNullObjectCLangProperties(LogManager pLogger, CLangSMG pSmg) {
     // Verify that there is no NULL object in global scope
     for (SMGObject obj: pSmg.getGlobalObjects().values()) {
-      if (! obj.notNull()) {
+      if (obj == SMGNullObject.INSTANCE) {
         pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in global object set [" + obj + "]");
         return false;
       }
@@ -169,7 +168,7 @@ public class CLangSMGConsistencyVerifier {
     // Verify there is no more than one NULL object in the heap object set
     SMGObject firstNull = null;
     for (SMGObject obj: pSmg.getHeapObjects()) {
-      if (! obj.notNull()) {
+      if (obj == SMGNullObject.INSTANCE) {
         if (firstNull != null) {
           pLogger.log(Level.SEVERE, "CLangSMG inconsistent: second null object in heap object set [first=" + firstNull + ", second=" + obj +"]" );
           return false;
@@ -182,7 +181,7 @@ public class CLangSMGConsistencyVerifier {
     // Verify there is no NULL object in the stack object set
     for (CLangStackFrame frame: pSmg.getStackFrames()) {
       for (SMGObject obj: frame.getAllObjects()) {
-        if (! obj.notNull()) {
+        if (obj == SMGNullObject.INSTANCE) {
           pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in stack object set [" + obj + "]");
           return false;
         }

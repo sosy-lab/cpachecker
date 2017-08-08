@@ -168,6 +168,9 @@ analysis.algorithm.termination = false
 # run the parallel BAM algortihm.
 analysis.algorithm.useParallelBAM = false
 
+# Construct a residual program from condition and verify residual program
+analysis.asConditionalVerifier = false
+
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false
@@ -186,6 +189,9 @@ analysis.constructResidualProgram = false
 
 # continue analysis after a unsupported code was found on one path
 analysis.continueAfterUnsupportedCode = false
+
+# Maximum number of counterexamples to be created.
+analysis.counterexampleLimit = 0
 
 # stop CPAchecker after startup (internal option, not intended for users)
 analysis.disable = false
@@ -234,7 +240,7 @@ analysis.memorizeReachedAfterRestart = false
 analysis.partitionInitialStates = false
 
 # A String, denoting the programs to be analyzed
-analysis.programNames = no default value
+analysis.programNames = []
 
 # which reached set implementation to use?
 # NORMAL: just a simple set
@@ -591,6 +597,13 @@ cinvariants.prefix = no default value
 # Attempt to simplify the invariant before exporting [may be very expensive].
 cinvariants.simplify = false
 
+# configuration of the residual program generator
+conditional.verifier.generatorConfig = no default value
+
+# configuration for the verification of the residual program which is
+# constructed from another verifier's condition
+conditional.verifier.verifierConfig = no default value
+
 # Dump the complete configuration to a file.
 configuration.dumpFile = "UsedConfiguration.properties"
 
@@ -645,7 +658,7 @@ counterexample.export.assumptions.allowMultiplicationWithConstants = false
 counterexample.export.assumptions.assumeLinearArithmetics = false
 
 # Whether or not to include concrete address values.
-counterexample.export.assumptions.includeConstantsForPointers = true
+counterexample.export.assumptions.includeConstantsForPointers = false
 
 # export counterexample as automaton
 counterexample.export.automaton = "Counterexample.%d.spc"
@@ -665,6 +678,9 @@ counterexample.export.enabled = true
 
 # export counterexample as source file
 counterexample.export.exportAsSource = true
+
+# export coverage information for every witness
+counterexample.export.exportCounterexampleCoverage = false
 
 # export test harness
 counterexample.export.exportHarness = false
@@ -700,6 +716,10 @@ counterexample.export.harness = "Counterexample.%d.harness.c"
 # where to dump the counterexample model in case a specification violation is
 # found
 counterexample.export.model = "Counterexample.%d.assignment.txt"
+
+# export counterexample coverage information, considering only spec prefix as
+# covered (up until reaching __FALSE state in Assumption Automaton).
+counterexample.export.prefixCoverageFile = "Counterexample.%d.aa-prefix.coverage-info"
 
 # The files where the BDDCPARestrictionAlgorithm should write the presence
 # conditions for the counterexamples to.
@@ -2024,16 +2044,14 @@ cpa.slicing.weakeningStrategy = CEX
 cpa.smg.GCCZeroLengthArray = false
 
 # Array allocation functions
-cpa.smg.arrayAllocationFunctions = {
-      "calloc"}
+cpa.smg.arrayAllocationFunctions = {"calloc"}
 
 # with this option enabled, a check for unreachable memory occurs whenever a
 # function returns, and not only at the end of the main function
 cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
 
 # Deallocation functions
-cpa.smg.deallocationFunctions = {
-      "free"}
+cpa.smg.deallocationFunctions = {"free"}
 
 # with this option enabled, heap abstraction will be enabled.
 cpa.smg.enableHeapAbstraction = false
@@ -2049,8 +2067,7 @@ cpa.smg.exportSMGwhen = NEVER
   enum:     [NEVER, LEAF, INTERESTING, EVERY]
 
 # Functions which indicate on external allocated memory
-cpa.smg.externalAllocationFunction = {
-      "ext_allocation"}
+cpa.smg.externalAllocationFunction = {"ext_allocation"}
 
 # Default size of externally allocated memory
 cpa.smg.externalAllocationSize = Integer.MAX_VALUE
@@ -2067,8 +2084,7 @@ cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE]
 
 # Memory allocation functions
-cpa.smg.memoryAllocationFunctions = {
-      "malloc"}
+cpa.smg.memoryAllocationFunctions = {"malloc"}
 
 # Size parameter of memory allocation functions
 cpa.smg.memoryAllocationFunctionsSizeParameter = 0
@@ -2081,6 +2097,10 @@ cpa.smg.memoryArrayAllocationFunctionsNumParameter = 0
 
 # Determines if memory errors are target states
 cpa.smg.memoryErrors = true
+
+# which merge operator to use for the SMGCPA
+cpa.smg.merge = "SEP"
+  allowed values: [SEP, JOIN]
 
 # export interpolant smgs for every path interpolation to this path template
 cpa.smg.refinement.exportInterpolantSMGs = "smg/interpolation-%d/%s"
@@ -2117,8 +2137,7 @@ cpa.smg.unknownOnUndefined = true
 cpa.smg.verifyPredicates = false
 
 # Allocation functions which set memory to zero
-cpa.smg.zeroingMemoryAllocation = {
-      "calloc"}
+cpa.smg.zeroingMemoryAllocation = {"calloc"}
 
 # set this to true when you only want to do a code analysis. If StatisticsCPA
 # is combined with other CPAs to do queries use false.

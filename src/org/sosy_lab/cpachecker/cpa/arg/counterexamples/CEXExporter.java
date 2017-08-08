@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
@@ -30,10 +31,14 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
@@ -48,6 +53,9 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -102,6 +110,16 @@ public class CEXExporter {
       description="export counterexample as automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonFile = PathTemplate.ofFormatString("Counterexample.%d.spc");
+
+  @Option(secure=true, name="prefixCoverageFile",
+      description="export counterexample coverage information, considering only spec prefix as " +
+                  "covered (up until reaching __FALSE state in Assumption Automaton).")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  PathTemplate coveragePrefixTemplate = PathTemplate.ofFormatString("Counterexample.%d.aa-prefix.coverage-info");
+
+  @Option(secure=true, name="exportCounterexampleCoverage",
+      description="export coverage information for every witness")
+  private boolean exportCounterexampleCoverage = false;
 
   @Option(secure=true, name="exportWitness",
       description="export counterexample as witness/graphml file")
@@ -228,6 +246,29 @@ public class CEXExporter {
     final ARGState rootState = targetPath.getFirstState();
     final int uniqueId = counterexample.getUniqueId();
 
+    if (exportCounterexampleCoverage) {
+      HashMap<Integer, Integer> visitedLinesPrefix = new HashMap<>();
+
+      for (CFAEdge edge : targetPath.getFullPathPrefixWithinAssumptionAutomaton()) {
+        handleCoveredEdge(edge, visitedLinesPrefix);
+        // Considering covered up until (but not including) when the
+        // AssumptionAutomaton state is __FALSE.
+      }
+
+      String LINEDATA = "DA:";
+      try (Writer w = IO.openOutputFile(coveragePrefixTemplate.getPath(counterexample.getUniqueId()), Charset.defaultCharset())) {
+        for (Entry<Integer, Integer> entry : visitedLinesPrefix.entrySet()) {
+          w.append(
+              LINEDATA +
+              String.valueOf(entry.getKey()) + "," +
+              String.valueOf(entry.getValue()) + "\n");
+        }
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e,
+            "Could not write coverage information about the error path to file");
+      }
+    }
+
     writeErrorPathFile(errorPathFile, uniqueId, counterexample);
 
     if (errorPathCoreFile != null) {
@@ -336,6 +377,34 @@ public class CEXExporter {
                       counterexample));
     }
   }
+
+  // Copied from org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.addVisitedLine(int)
+  public void addVisitedLine(Map<Integer,Integer> visitedLines, int pLine) {
+    checkArgument(pLine > 0);
+    if (visitedLines.containsKey(pLine)) {
+      visitedLines.put(pLine, visitedLines.get(pLine) + 1);
+    } else {
+      visitedLines.put(pLine, 1);
+    }
+  }
+
+  //Copied from org.sosy_lab.cpachecker.util.coverage.CoverageReport.handleCoveredEdge(CFAEdge, Map<String, FileCoverageInformation>)
+  private void handleCoveredEdge(final CFAEdge pEdge, Map<Integer,Integer> visitedLines) {
+    FileLocation loc = pEdge.getFileLocation();
+    if (loc.getStartingLineNumber() == 0) {
+      return;
+    }
+    if (pEdge instanceof ADeclarationEdge
+        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
+      return;
+    }
+
+    // Not necessary, not tracking assumes.
+    //   if (pEdge instanceof AssumeEdge) { [...] }
+
+    //Do not extract lines from edge - there are not origin lines
+    addVisitedLine(visitedLines, loc.getStartingLineInOrigin());
+ }
 
   private void writeErrorPathFile(PathTemplate template, int uniqueId, Object content) {
     writeErrorPathFile(template, uniqueId, content, false);

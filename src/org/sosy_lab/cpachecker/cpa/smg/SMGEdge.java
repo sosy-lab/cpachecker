@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Objects;
-
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
 public abstract class SMGEdge {
@@ -56,7 +55,7 @@ public abstract class SMGEdge {
     if (this == obj) {
       return true;
     }
-    if (obj == null || !(obj instanceof SMGEdge)) {
+    if (!(obj instanceof SMGEdge)) {
       return false;
     }
     SMGEdge other = (SMGEdge) obj;

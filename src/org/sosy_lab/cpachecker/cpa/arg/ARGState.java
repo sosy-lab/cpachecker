@@ -305,7 +305,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   // was-expanded marker so we can identify open leafs
 
-  boolean wasExpanded() {
+  public boolean wasExpanded() {
     return wasExpanded;
   }
 

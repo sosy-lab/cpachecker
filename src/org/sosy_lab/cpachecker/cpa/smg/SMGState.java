@@ -27,50 +27,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
-import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownAddVal;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
-import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,8 +39,48 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.cpa.smg.SMGIntersectStates.SMGIntersectionResult;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
+import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
 
@@ -94,22 +90,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public static final String HAS_INVALID_WRITES = "has-invalid-writes";
   public static final String HAS_LEAKS = "has-leaks";
 
-  private final boolean memoryErrors;
-  private final boolean unknownOnUndefined;
-  private final boolean morePreciseIsLessOrEqual;
+  private static final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
 
-  private final AtomicInteger id_counter;
-
-  private final BiMap<SMGKnownSymValue, SMGKnownExpValue> explicitValues = HashBiMap.create();
-  private final CLangSMG heap;
-  private final LogManager logger;
+  // use 'id' and 'precessorId' only for debugging or logging, never for important stuff!
+  // TODO remove to avoid problems?
+  private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
   private final int predecessorId;
   private final int id;
 
-  private final SMGRuntimeCheck runtimeCheckLevel;
-  private final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
-  private final int externalAllocationSize;
-  private final boolean trackPredicates;
+  private final BiMap<SMGKnownSymValue, SMGKnownExpValue> explicitValues = HashBiMap.create();
+  private final CLangSMG heap;
 
   private final boolean blockEnded;
 
@@ -118,24 +108,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final boolean invalidRead;
   private final boolean invalidFree;
 
-  private void issueMemoryLeakMessage() {
-    issueMemoryError("Memory leak found", false);
-  }
-
-  private void issueInvalidReadMessage() {
-    issueMemoryError("Invalid read found", true);
-  }
-
-  private void issueInvalidWriteMessage() {
-    issueMemoryError("Invalid write found", true);
-  }
-
-  private void issueInvalidFreeMessage() {
-    issueMemoryError("Invalid free found", true);
-  }
+  private final LogManager logger;
+  private final SMGOptions options;
 
   private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
-    if (memoryErrors) {
+    if (options.isMemoryErrorTarget()) {
       logger.log(Level.FINE, pMessage);
     } else if (pUndefinedBehavior) {
       logger.log(Level.FINE, pMessage);
@@ -151,76 +128,34 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *
    * @param pLogger A logger to log any messages
    * @param pMachineModel A machine model for the underlying SMGs
-   * @param pTargetMemoryErrors targets property false valid memtrack
-   * @param pUnknownOnUndefined assumes unknown value if undefined
-   * @param pSMGRuntimeCheck consistency check threshold
    */
-  public SMGState(LogManager pLogger, MachineModel pMachineModel, boolean pTargetMemoryErrors,
-      boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck, int pExternalAllocationSize,
-      boolean pTrackPredicates, boolean pMorePreciseIsLessOrEqual) {
+  public SMGState(LogManager pLogger, MachineModel pMachineModel, SMGOptions pOptions) {
     heap = new CLangSMG(pMachineModel);
     logger = pLogger;
-    id_counter = new AtomicInteger(0);
-    predecessorId = id_counter.getAndIncrement();
-    id = id_counter.getAndIncrement();
-    memoryErrors = pTargetMemoryErrors;
-    unknownOnUndefined = pUnknownOnUndefined;
+    options = pOptions;
 
-    if (pSMGRuntimeCheck == null) {
-      runtimeCheckLevel = SMGRuntimeCheck.NONE;
-    } else {
-      runtimeCheckLevel = pSMGRuntimeCheck;
-    }
+    predecessorId = ID_COUNTER.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
 
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;
-    externalAllocationSize = pExternalAllocationSize;
-    trackPredicates = pTrackPredicates;
-    morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
     blockEnded = false;
   }
 
-  public SMGState(LogManager pLogger, boolean pTargetMemoryErrors,
-      boolean pUnknownOnUndefined, SMGRuntimeCheck pSMGRuntimeCheck, CLangSMG pHeap,
-      AtomicInteger pId, int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues,
-      int pExternalAllocationSize, boolean pTrackPredicates, boolean pMorePreciseIsLessOrEqual) {
+  public SMGState(LogManager pLogger, SMGOptions pOptions, CLangSMG pHeap,
+      int pPredId, Map<SMGKnownSymValue, SMGKnownExpValue> pMergedExplicitValues) {
     // merge
+    options = pOptions;
     heap = pHeap;
     logger = pLogger;
-    id_counter = pId;
     predecessorId = pPredId;
-    id = id_counter.getAndIncrement();
-    memoryErrors = pTargetMemoryErrors;
-    unknownOnUndefined = pUnknownOnUndefined;
-    runtimeCheckLevel = pSMGRuntimeCheck;
+    id = ID_COUNTER.getAndIncrement();
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;
     explicitValues.putAll(pMergedExplicitValues);
-    trackPredicates = pTrackPredicates;
-    externalAllocationSize = pExternalAllocationSize;
-    morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
     blockEnded = false;
-  }
-
-  SMGState(SMGState pOriginalState, SMGRuntimeCheck pSMGRuntimeCheck) {
-    heap = new CLangSMG(pOriginalState.heap);
-    logger = pOriginalState.logger;
-    predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
-    id = id_counter.getAndIncrement();
-    explicitValues.putAll(pOriginalState.explicitValues);
-    memoryErrors = pOriginalState.memoryErrors;
-    unknownOnUndefined = pOriginalState.unknownOnUndefined;
-    runtimeCheckLevel = pSMGRuntimeCheck;
-    invalidFree = pOriginalState.invalidFree;
-    invalidRead = pOriginalState.invalidRead;
-    invalidWrite = pOriginalState.invalidWrite;
-    externalAllocationSize = pOriginalState.externalAllocationSize;
-    trackPredicates = pOriginalState.trackPredicates;
-    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
-    blockEnded = pOriginalState.blockEnded;
   }
 
   /**
@@ -234,19 +169,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   public SMGState(SMGState pOriginalState) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
+    options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
-    memoryErrors = pOriginalState.memoryErrors;
-    unknownOnUndefined = pOriginalState.unknownOnUndefined;
-    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
-    externalAllocationSize = pOriginalState.externalAllocationSize;
-    trackPredicates = pOriginalState.trackPredicates;
-    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
     blockEnded = pOriginalState.blockEnded;
   }
 
@@ -258,38 +187,26 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pOriginalState Original state. Will be the predecessor of the
    * new state
    */
-  public SMGState(SMGState pOriginalState, BlockOperator pBlockOperator, CFANode pCurrentLocation) {
+  public SMGState(SMGState pOriginalState, boolean pBlockEnded) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
+    options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
-    memoryErrors = pOriginalState.memoryErrors;
-    unknownOnUndefined = pOriginalState.unknownOnUndefined;
-    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
-    externalAllocationSize = pOriginalState.externalAllocationSize;
-    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
-    blockEnded = pBlockOperator.isBlockEnd(pCurrentLocation, 0);
-    trackPredicates = pOriginalState.trackPredicates;
+    blockEnded = pBlockEnded;
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
+    options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
-    memoryErrors = pOriginalState.memoryErrors;
-    unknownOnUndefined = pOriginalState.unknownOnUndefined;
-    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
-    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
-    trackPredicates = pOriginalState.trackPredicates;
-    externalAllocationSize = pOriginalState.externalAllocationSize;
     blockEnded = pOriginalState.blockEnded;
 
     boolean pInvalidFree = pOriginalState.invalidFree;
@@ -317,47 +234,17 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidWrite = pInvalidWrite;
   }
 
-  public SMGState(Map<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues,
-      CLangSMG pHeap, LogManager pLogger, int pExternalAllocationSize,
-      boolean pTrackPredicates, boolean pMorePreciseIsLessOrEqual) {
-
-    heap = pHeap;
-    logger = pLogger;
-    explicitValues.putAll(pExplicitValues);
-
-    unknownOnUndefined = false;
-    runtimeCheckLevel = SMGRuntimeCheck.NONE;
-    predecessorId = -1;
-    memoryErrors = false;
-    invalidWrite = false;
-    invalidRead = false;
-    invalidFree = false;
-    id_counter = new AtomicInteger(1);
-    id = 0;
-
-    externalAllocationSize = pExternalAllocationSize;
-    trackPredicates = pTrackPredicates;
-    morePreciseIsLessOrEqual = pMorePreciseIsLessOrEqual;
-    blockEnded = false;
-  }
-
   public SMGState(SMGState pOriginalState, CLangSMG pDestSMG,
       BiMap<SMGKnownSymValue, SMGKnownExpValue> pCombinedMap) {
     heap = pDestSMG;
     logger = pOriginalState.logger;
+    options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id_counter = pOriginalState.id_counter;
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pCombinedMap);
-    memoryErrors = pOriginalState.memoryErrors;
-    unknownOnUndefined = pOriginalState.unknownOnUndefined;
-    runtimeCheckLevel = pOriginalState.runtimeCheckLevel;
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
-    trackPredicates = pOriginalState.trackPredicates;
-    externalAllocationSize = pOriginalState.externalAllocationSize;
-    morePreciseIsLessOrEqual = pOriginalState.morePreciseIsLessOrEqual;
     blockEnded = pOriginalState.blockEnded;
   }
 
@@ -499,7 +386,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    */
   final public void performConsistencyCheck(SMGRuntimeCheck pLevel)
       throws SMGInconsistentException {
-    if (pLevel == null || runtimeCheckLevel.isFinerOrEqualThan(pLevel)) {
+    if (pLevel == null || options.getRuntimeCheck().isFinerOrEqualThan(pLevel)) {
       if (!CLangSMGConsistencyVerifier.verifyCLangSMG(logger,
           heap)) { throw new SMGInconsistentException(
               "SMG was found inconsistent during a check on state id " + this.getId()); }
@@ -1418,7 +1305,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     for (SMGEdgeHasValue hv : edges) {
 
       boolean hvEdgeOverlaps = new_edge.overlapsWith(hv, heap.getMachineModel());
-      boolean hvEdgeIsZero = hv.getValue() == heap.getNullValue();
+      boolean hvEdgeIsZero = hv.getValue() == SMG.NULL_ADDRESS;
 
       if (hvEdgeOverlaps) {
         if (hvEdgeIsZero) {
@@ -1514,18 +1401,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   /**
-   * Computes the join of this abstract State and the reached abstract State.
-   *
-   * @param reachedState the abstract state this state will be joined to.
-   * @return the join of the two states.
-   */
-  @Override
-  public SMGState join(SMGState reachedState) {
-    // Not necessary if merge_SEP or SMGMerge and stop_SEP is used.
-    throw new UnsupportedOperationException();
-  }
-
-  /**
    * Computes the join of this abstract State and the reached abstract State,
    * or returns the reached state, if no join is defined.
    *
@@ -1533,7 +1408,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @return the join of the two states or reached state.
    * @throws SMGInconsistentException inconsistent smgs while
    */
-  public SMGState joinSMG(SMGState reachedState) throws SMGInconsistentException {
+  @Override
+  public SMGState join(SMGState reachedState) throws SMGInconsistentException {
     // Not necessary if merge_SEP and stop_SEP is used.
 
     SMGJoin join = new SMGJoin(this.heap, reachedState.heap, this, reachedState);
@@ -1559,9 +1435,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         mergedExplicitValues.put(entry.getKey(), entry.getValue());
       }
 
-      return new SMGState(logger, memoryErrors, unknownOnUndefined, runtimeCheckLevel, destHeap,
-          id_counter, predecessorId, mergedExplicitValues, reachedState.externalAllocationSize,
-          reachedState.trackPredicates, morePreciseIsLessOrEqual);
+      return new SMGState(logger, options, destHeap, predecessorId, mergedExplicitValues);
     } else {
       return reachedState;
     }
@@ -1584,7 +1458,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       return false;
     }
 
-    if(morePreciseIsLessOrEqual) {
+    if (options.isHeapAbstractionEnabled()) {
 
       SMGJoin join = new SMGJoin(heap, reachedState.heap, this, reachedState);
 
@@ -1631,28 +1505,28 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       case HAS_LEAKS:
         if (heap.hasMemoryLeaks()) {
           //TODO: Give more information
-          issueMemoryLeakMessage();
+          issueMemoryError("Memory leak found", false);
           return true;
         }
         return false;
       case HAS_INVALID_WRITES:
         if (invalidWrite) {
           //TODO: Give more information
-          issueInvalidWriteMessage();
+          issueMemoryError("Invalid write found", true);
           return true;
         }
         return false;
       case HAS_INVALID_READS:
         if (invalidRead) {
           //TODO: Give more information
-          issueInvalidReadMessage();
+          issueMemoryError("Invalid read found", true);
           return true;
         }
         return false;
       case HAS_INVALID_FREES:
         if (invalidFree) {
           //TODO: Give more information
-          issueInvalidFreeMessage();
+          issueMemoryError("Invalid free found", true);
           return true;
         }
         return false;
@@ -1695,9 +1569,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   /** memory externally allocated could be freed by the user */
   // TODO: refactore
   public SMGAddressValue addExternalAllocation(String pLabel) throws SMGInconsistentException {
-    SMGRegion new_object = new SMGRegion(externalAllocationSize, pLabel);
+    SMGRegion new_object = new SMGRegion(options.getExternalAllocationSize(), pLabel);
     int new_value = SMGValueFactory.getNewValue();
-    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, externalAllocationSize/2 );
+    SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, options.getExternalAllocationSize()/2 );
     heap.addHeapObject(new_object);
     heap.addValue(new_value);
     heap.addPointsToEdge(points_to);
@@ -1705,7 +1579,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap.setExternallyAllocatedFlag(new_object, true);
 
     performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return SMGKnownAddVal.valueOf(new_value, new_object, externalAllocationSize/2);
+    return SMGKnownAddVal.valueOf(new_value, new_object, options.getExternalAllocationSize()/2);
   }
 
   /** memory allocated on the stack is automatically freed when leaving the current function scope */
@@ -1912,7 +1786,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     for (SMGEdgeHasValue edge : targetEdges) {
       if (edge.overlapsWith(pTargetRangeOffset, targetRangeSize, heap.getMachineModel())) {
-        boolean hvEdgeIsZero = edge.getValue() == heap.getNullValue();
+        boolean hvEdgeIsZero = edge.getValue() == SMG.NULL_ADDRESS;
         heap.removeHasValueEdge(edge);
         if (hvEdgeIsZero) {
           SMGObject object = edge.getObject();
@@ -1976,10 +1850,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
-  public SMGObject getNullObject() {
-    return heap.getNullObject();
-  }
-
   public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
 
     assert !isInNeq(pKnownVal1, pKnownVal2);
@@ -1998,7 +1868,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public boolean isTrackPredicatesEnabled() {
-    return trackPredicates;
+    return options.trackPredicates();
   }
 
   public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
@@ -2061,8 +1931,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getErrorPredicateRelation();
   }
 
-  public void resetErrorRelation() {
-    heap.resetErrorRelation();
+  public SMGState resetErrorRelation() {
+    SMGState newState = new SMGState(this);
+    newState.heap.resetErrorRelation();
+    return newState;
   }
 
   /**
@@ -2095,9 +1967,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   boolean isExplicit(int value) {
-    SMGKnownSymValue key = SMGKnownSymValue.valueOf(value);
-
-    return explicitValues.containsKey(key);
+    return explicitValues.containsKey(SMGKnownSymValue.valueOf(value));
   }
 
   SMGKnownExpValue getExplicit(int value) {

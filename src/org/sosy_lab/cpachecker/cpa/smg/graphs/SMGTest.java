@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
@@ -89,7 +90,7 @@ public class SMGTest {
   public void getNullBytesForObjectTest() {
     SMG smg = getNewSMG64();
     smg.addObject(obj1);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, smg.getNullValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 32, obj1, SMG.NULL_ADDRESS);
     smg.addHasValueEdge(hv);
 
     TreeMap<Integer, Integer> nullEdges = smg.getNullEdgesMapOffsetToSizeForObject(obj1);
@@ -113,19 +114,19 @@ public class SMGTest {
   public void SMGConstructorTest() {
     SMG smg = getNewSMG64();
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
-    SMGObject nullObject = smg.getNullObject();
-    int nullAddress = smg.getNullValue();
+    SMGObject nullObject = SMGNullObject.INSTANCE;
+    int nullAddress = SMG.NULL_ADDRESS;
 
 
     Assert.assertNotNull(nullObject);
-    Assert.assertFalse(nullObject.notNull());
+    Assert.assertTrue(nullObject == SMGNullObject.INSTANCE);
     assertThat(smg.getObjects()).hasSize(1);
     assertThat(smg.getObjects()).contains(nullObject);
 
     assertThat(smg.getValues()).hasSize(1);
     assertThat(smg.getValues()).contains(Integer.valueOf(nullAddress));
 
-    assertThat(smg.getPTEdgesAsMap()).hasSize(1);
+    assertThat(smg.getPTEdges().asMap()).hasSize(1);
     SMGObject target_object = smg.getObjectPointedBy(nullAddress);
     Assert.assertEquals(nullObject, target_object);
 
@@ -167,7 +168,7 @@ public class SMGTest {
     SMG smg = getNewSMG64();
     SMGObject object = new SMGRegion(32, "object");
 
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, smg.getNullValue());
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, 0, object, SMG.NULL_ADDRESS);
 
     smg.addHasValueEdge(hv);
     assertThat(smg.getHVEdges()).contains(hv);
@@ -226,7 +227,7 @@ public class SMGTest {
 
   @Test
   public void validityTest() {
-    Assert.assertFalse(smg.isObjectValid(smg.getNullObject()));
+    Assert.assertFalse(smg.isObjectValid(SMGNullObject.INSTANCE));
     Assert.assertTrue(smg.isObjectValid(obj1));
     Assert.assertTrue(smg.isObjectValid(obj2));
 
@@ -237,16 +238,16 @@ public class SMGTest {
     smg.setValidity(obj1, false);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
-    Assert.assertFalse(smg.isObjectValid(smg.getNullObject()));
+    Assert.assertFalse(smg.isObjectValid(SMGNullObject.INSTANCE));
     Assert.assertFalse(smg.isObjectValid(obj1));
     Assert.assertTrue(smg.isObjectValid(obj2));
-    Assert.assertFalse(smg_copy.isObjectValid(smg_copy.getNullObject()));
+    Assert.assertFalse(smg_copy.isObjectValid(SMGNullObject.INSTANCE));
     Assert.assertTrue(smg_copy.isObjectValid(obj1));
     Assert.assertTrue(smg_copy.isObjectValid(obj2));
 
     smg.setValidity(obj2, false);
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg_copy));
-    Assert.assertFalse(smg_copy.isObjectValid(smg_copy.getNullObject()));
+    Assert.assertFalse(smg_copy.isObjectValid(SMGNullObject.INSTANCE));
     Assert.assertTrue(smg_copy.isObjectValid(obj1));
     Assert.assertTrue(smg_copy.isObjectValid(obj2));
   }
@@ -254,7 +255,7 @@ public class SMGTest {
   @Test
   public void consistencyViolationValidNullTest() {
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));
-    smg.setValidity(smg.getNullObject(), true);
+    smg.setValidity(SMGNullObject.INSTANCE, true);
     Assert.assertFalse(SMGConsistencyVerifier.verifySMG(logger, smg));
   }
 
@@ -394,14 +395,14 @@ public class SMGTest {
     HashSet<SMGObject> set = new HashSet<>();
     set.add(obj1);
     set.add(obj2);
-    set.add(smg.getNullObject());
+    set.add(SMGNullObject.INSTANCE);
 
     assertThat(smg.getObjects()).containsAllIn(set);
   }
 
   @Test
   public void getNullObjectTest() {
-    SMGObject nullObject = smg.getNullObject();
+    SMGObject nullObject = SMGNullObject.INSTANCE;
     Assert.assertFalse(smg.isObjectValid(nullObject));
     assertThat(nullObject.getSize()).isEqualTo(0);
   }
@@ -411,7 +412,7 @@ public class SMGTest {
     HashSet<Integer> set = new HashSet<>();
     set.add(val1);
     set.add(val2);
-    set.add(smg.getNullValue());
+    set.add(SMG.NULL_ADDRESS);
 
     assertThat(smg.getValues()).containsAllIn(set);
   }
@@ -453,7 +454,7 @@ public class SMGTest {
     Assert.assertFalse(nr.neq_exists(three, one));
     Assert.assertFalse(nr.neq_exists(three, two));
 
-    nr.add_relation(one, three);
+    nr = nr.addRelationAndCopy(one, three);
 
     Assert.assertFalse(nr.neq_exists(one, two));
     Assert.assertTrue(nr.neq_exists(one, three));
@@ -462,7 +463,7 @@ public class SMGTest {
     Assert.assertTrue(nr.neq_exists(three, one));
     Assert.assertFalse(nr.neq_exists(three, two));
 
-    nr.add_relation(one, three);
+    nr = nr.addRelationAndCopy(one, three);
 
     Assert.assertFalse(nr.neq_exists(one, two));
     Assert.assertTrue(nr.neq_exists(one, three));
@@ -471,7 +472,7 @@ public class SMGTest {
     Assert.assertTrue(nr.neq_exists(three, one));
     Assert.assertFalse(nr.neq_exists(three, two));
 
-    nr.add_relation(two, three);
+    nr = nr.addRelationAndCopy(two, three);
 
     Assert.assertFalse(nr.neq_exists(one, two));
     Assert.assertTrue(nr.neq_exists(one, three));
@@ -480,7 +481,7 @@ public class SMGTest {
     Assert.assertTrue(nr.neq_exists(three, one));
     Assert.assertTrue(nr.neq_exists(three, two));
 
-    nr.remove_relation(one, three);
+    nr = nr.removeRelationAndCopy(one, three);
 
     Assert.assertFalse(nr.neq_exists(one, two));
     Assert.assertFalse(nr.neq_exists(one, three));
@@ -491,42 +492,15 @@ public class SMGTest {
   }
 
   @Test
-  public void neqPutAllTest() {
-    NeqRelation nr = new NeqRelation();
-    NeqRelation newNr = new NeqRelation();
-    Integer one = Integer.valueOf(1);
-    Integer two = Integer.valueOf(2);
-    Integer three = Integer.valueOf(3);
-
-    nr.add_relation(one, three);
-
-    newNr.putAll(nr);
-    Assert.assertFalse(nr.neq_exists(one, two));
-    Assert.assertTrue(nr.neq_exists(one, three));
-    Assert.assertFalse(nr.neq_exists(two, three));
-    Assert.assertFalse(newNr.neq_exists(two, one));
-    Assert.assertTrue(newNr.neq_exists(three, one));
-    Assert.assertFalse(newNr.neq_exists(three, two));
-
-    nr.remove_relation(one, three);
-    Assert.assertFalse(nr.neq_exists(one, two));
-    Assert.assertFalse(nr.neq_exists(one, three));
-    Assert.assertFalse(nr.neq_exists(two, three));
-    Assert.assertFalse(newNr.neq_exists(two, one));
-    Assert.assertTrue(newNr.neq_exists(three, one));
-    Assert.assertFalse(newNr.neq_exists(three, two));
-  }
-
-  @Test
   public void neqRemoveValueTest() {
     NeqRelation nr = new NeqRelation();
     Integer one = Integer.valueOf(1);
     Integer two = Integer.valueOf(2);
     Integer three = Integer.valueOf(3);
 
-    nr.add_relation(one, two);
-    nr.add_relation(one, three);
-    nr.removeValue(one);
+    nr = nr.addRelationAndCopy(one, two);
+    nr = nr.addRelationAndCopy(one, three);
+    nr = nr.removeValueAndCopy(one);
     Assert.assertFalse(nr.neq_exists(one, two));
     Assert.assertFalse(nr.neq_exists(one, three));
     Assert.assertFalse(nr.neq_exists(two, three));
@@ -539,8 +513,8 @@ public class SMGTest {
     Integer two = Integer.valueOf(2);
     Integer three = Integer.valueOf(3);
 
-    nr.add_relation(one, three);
-    nr.mergeValues(two, three);
+    nr = nr.addRelationAndCopy(one, three);
+    nr = nr.mergeValuesAndCopy(two, three);
 
     Assert.assertTrue(nr.neq_exists(one, two));
     Assert.assertFalse(nr.neq_exists(one, three));
@@ -555,9 +529,9 @@ public class SMGTest {
     Integer two = Integer.valueOf(2);
     Integer three = Integer.valueOf(3);
 
-    nr.add_relation(zero, three);
-    nr.add_relation(one, three);
-    nr.mergeValues(two, three);
+    nr = nr.addRelationAndCopy(zero, three);
+    nr = nr.addRelationAndCopy(one, three);
+    nr = nr.mergeValuesAndCopy(two, three);
 
     Assert.assertTrue(nr.neq_exists(zero, two));
     Assert.assertTrue(nr.neq_exists(one, two));

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-enum SMGRuntimeCheck {
+public enum SMGRuntimeCheck {
   FORCED(-1),
   NONE(0),
   HALF(1),

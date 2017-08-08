@@ -41,4 +41,10 @@
   </tasks>
 
   <rundefinition/>
+
+  <columns>
+    <column title="reached">Size of reached set</column>
+    <column title="transfer">Time for transfer relation</column>
+    <column title="stop">Time for stop operator</column>
+  </columns>
 </benchmark>
