@@ -153,6 +153,7 @@ public class ARGPathExporter {
       EnumSet.of(
           KeyDef.SOURCECODE,
           KeyDef.STARTLINE,
+          KeyDef.ENDLINE,
           KeyDef.ORIGINFILE,
           KeyDef.OFFSET,
           KeyDef.ENDOFFSET,
@@ -508,8 +509,15 @@ public class ARGPathExporter {
         if (!min.getFileName().equals(defaultSourcefileName)) {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
-        result =
-            result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
+        result = result.putAndCopy(
+            KeyDef.STARTLINE,
+            Integer.toString(min.getStartingLineInOrigin()));
+      }
+      if (exportLineNumbers && maxFileLocation.isPresent()) {
+        FileLocation max = maxFileLocation.get();
+        result = result.putAndCopy(
+            KeyDef.ENDLINE,
+            Integer.toString(max.getEndingLineInOrigin()));
       }
 
       if (exportOffset && minFileLocation.isPresent()) {
@@ -517,11 +525,15 @@ public class ARGPathExporter {
         if (!min.getFileName().equals(defaultSourcefileName)) {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
-        result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
-        if (maxFileLocation.isPresent()) {
-          FileLocation max = maxFileLocation.get();
-          result = result.putAndCopy(KeyDef.ENDOFFSET, Integer.toString(max.getNodeOffset()+max.getNodeLength()));
-        }
+        result = result.putAndCopy(
+            KeyDef.OFFSET,
+            Integer.toString(min.getNodeOffset()));
+      }
+      if (exportOffset && maxFileLocation.isPresent()) {
+        FileLocation max = maxFileLocation.get();
+        result = result.putAndCopy(
+            KeyDef.ENDOFFSET,
+            Integer.toString(max.getNodeOffset() + max.getNodeLength() - 1));
       }
 
       if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
