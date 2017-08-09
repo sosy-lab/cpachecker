@@ -44,6 +44,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 
 public enum GraphBuilder {
@@ -129,6 +130,23 @@ public enum GraphBuilder {
             // Child belongs to the path!
             pEdgeAppender.appendNewEdge(
                 prevStateId, childStateId, edgeToNextState, state, pValueMap);
+            // For branchings, it is important to have both branches explicitly in the witness
+            if (edgeToNextState instanceof AssumeEdge) {
+              AssumeEdge assumeEdge = (AssumeEdge) edgeToNextState;
+              AssumeEdge siblingEdge = AutomatonGraphmlCommon.getSibling(assumeEdge);
+              boolean addArtificialSinkEdge = true;
+              for (ARGState sibling : s.getChildren()) {
+                if (sibling != child && s.getEdgeToChild(sibling).equals(siblingEdge)) {
+                  addArtificialSinkEdge = false;
+                  break;
+                }
+              }
+              if (addArtificialSinkEdge) {
+                // Child does not belong to the path --> add a branch to the SINK node!
+                pEdgeAppender.appendNewEdgeToSink(
+                    prevStateId, siblingEdge, state, pValueMap);
+              }
+            }
           } else {
             // Child does not belong to the path --> add a branch to the SINK node!
             pEdgeAppender.appendNewEdgeToSink(
