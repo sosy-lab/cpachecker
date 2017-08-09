@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.math.BigInteger;
-
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 
@@ -128,6 +128,7 @@ public class IIIOperatorTest {
     SimpleInterval negInfToZero = zeroToInf.negate();
     SimpleInterval zeroToTwo = SimpleInterval.of(BigInteger.ZERO, BigInteger.valueOf(2));
 
+    assertEquals(SimpleInterval.infinite(), IIIOperator.DIVIDE.apply(negInfToZero, negInfToFive));
     assertEquals(oneToFour, IIIOperator.DIVIDE.apply(negFourToNegTwo, negTwoToNegOne));
     assertEquals(negFourToNegOne, IIIOperator.DIVIDE.apply(negFourToNegTwo, oneToTwo));
     assertEquals(negFourToNegOne, IIIOperator.DIVIDE.apply(twoToFour, negTwoToNegOne));
