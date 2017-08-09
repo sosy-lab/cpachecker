@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 
+import java.math.BigInteger;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
-
-import java.math.BigInteger;
-
-import javax.annotation.Nullable;
 
 /**
  * This factory provides operators that can be applied to an interval operand
@@ -240,16 +239,32 @@ public enum ISIOperatorFactory {
         if (pSecondOperand.equals(BigInteger.ZERO)) {
           return null;
         }
+        BitVectorInfo typeInfo = pFirstOperand.getTypeInfo();
         /*
          * Only the absolute value of the divisor is considered (see
          * documentation), so a negative divisor is negated before
          * computing the result.
          */
         if (pSecondOperand.signum() < 0) {
+          // We cannot negate MIN_INT without an overflow, so we handle it
+          // explicitly: all values except MIN_INT are in the range of the modulo
+          if (pSecondOperand.equals(pFirstOperand.getTypeInfo().getMinValue())) {
+            if (pFirstOperand.contains(pSecondOperand)) {
+              return BitVectorInterval.span(
+                  pFirstOperand,
+                  BitVectorInterval.singleton(typeInfo, BigInteger.ZERO));
+            }
+            return pFirstOperand;
+          }
           return apply(pFirstOperand, pSecondOperand.negate());
         }
+        // x % 1 is always zero
+        if (pSecondOperand.equals(BigInteger.ONE)) {
+          return BitVectorInterval.singleton(typeInfo, BigInteger.ZERO);
+        }
+
         /*
-         * If this is a singleton, simply use the big integer remainder
+         * If this is a singleton, simply use the big-integer remainder
          * implementation.
          */
         if (pFirstOperand.isSingleton()) {
@@ -259,6 +274,20 @@ public enum ISIOperatorFactory {
               pAllowSignedWrapAround,
               pOverflowEventHandler);
         }
+
+        // If MIN_INT is contained, handle it separately
+        if (pFirstOperand.contains(typeInfo.getMinValue())) {
+          BigInteger minValue = typeInfo.getMinValue();
+          BigInteger minValueRemainder = minValue.remainder(pSecondOperand);
+          BitVectorInterval rest = BitVectorInterval
+              .singleton(typeInfo, minValue.add(BigInteger.ONE))
+              .extendToMaxValue()
+              .intersectWith(pFirstOperand);
+          return BitVectorInterval.span(
+              BitVectorInterval.singleton(typeInfo, minValueRemainder),
+              apply(rest, pSecondOperand));
+        }
+
         BigInteger largestPossibleValue = pSecondOperand.subtract(BigInteger.ONE);
         BitVectorInterval moduloRange = null;
         /*
