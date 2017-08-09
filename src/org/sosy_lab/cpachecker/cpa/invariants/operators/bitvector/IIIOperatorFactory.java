@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
@@ -134,29 +133,7 @@ public enum IIIOperatorFactory {
           return pFirstOperand;
         }
 
-        List<BigInteger> divisors = new ArrayList<>(
-            (pSecondOperand.containsPositive()
-                ? (pSecondOperand.closestPositiveToZero().equals(pSecondOperand.getUpperBound())
-                    ? 1
-                    : 2)
-                : 0)
-            + (pSecondOperand.containsNegative()
-                ? (pSecondOperand.closestNegativeToZero().equals(pSecondOperand.getLowerBound())
-                    ? 1
-                    : 2)
-                : 0));
-        if (pSecondOperand.containsPositive()) {
-          divisors.add(pSecondOperand.closestPositiveToZero());
-          if (!pSecondOperand.closestPositiveToZero().equals(pSecondOperand.getUpperBound())) {
-            divisors.add(pSecondOperand.getUpperBound());
-          }
-        }
-        if (pSecondOperand.containsNegative()) {
-          divisors.add(pSecondOperand.closestNegativeToZero());
-          if (!pSecondOperand.closestNegativeToZero().equals(pSecondOperand.getLowerBound())) {
-            divisors.add(pSecondOperand.getLowerBound());
-          }
-        }
+        List<BigInteger> divisors = pSecondOperand.getSplitZeroBounds();
 
         assert !divisors.isEmpty() : "Should only happen for singleton zero, but all singletons should be handled above.";
 
