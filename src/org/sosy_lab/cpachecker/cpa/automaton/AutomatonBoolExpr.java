@@ -825,10 +825,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     private final Predicate<FileLocation> matchDescriptor;
 
-    public MatchLocationDescriptor(Predicate<FileLocation> pOriginDescriptor) {
-      Preconditions.checkNotNull(pOriginDescriptor);
+    public MatchLocationDescriptor(Predicate<FileLocation> pDescriptor) {
+      Preconditions.checkNotNull(pDescriptor);
 
-      this.matchDescriptor = pOriginDescriptor;
+      this.matchDescriptor = pDescriptor;
     }
 
     @Override

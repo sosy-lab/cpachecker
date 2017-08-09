@@ -112,8 +112,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
-import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OriginLineMatcher;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -768,8 +768,8 @@ public class AutomatonGraphmlParser {
           originFileTags.isEmpty()
               ? Optional.empty()
               : Optional.of(originFileTags.iterator().next());
-      OriginLineMatcher originDescriptor =
-          new OriginLineMatcher(matchOriginFileName, startLine, endLine);
+      LineMatcher originDescriptor =
+          new LineMatcher(matchOriginFileName, startLine, endLine);
 
       AutomatonBoolExpr lineMatchingExpr =
           new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);

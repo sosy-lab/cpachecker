@@ -81,22 +81,29 @@ class SourceLocationMatcher {
 
   }
 
-  static class OriginLineMatcher extends BaseFileNameMatcher {
+  static class LineMatcher extends BaseFileNameMatcher {
 
-    private final int originStartLineNumber;
+    private final int startLineNumber;
 
-    private final int originEndLineNumber;
+    private final int endLineNumber;
 
-    public OriginLineMatcher(Optional<String> pOriginFileName, int pOriginStartLineNumber, int pOriginEndLineNumber) {
-      super(pOriginFileName);
-      Preconditions.checkArgument(pOriginStartLineNumber <= pOriginEndLineNumber);
-      this.originStartLineNumber = pOriginStartLineNumber;
-      this.originEndLineNumber = pOriginEndLineNumber;
+    private final boolean origin;
+
+    public LineMatcher(Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber, boolean pOrigin) {
+      super(pFileName);
+      Preconditions.checkArgument(pStartLineNumber <= pEndLineNumber);
+      this.startLineNumber = pStartLineNumber;
+      this.endLineNumber = pEndLineNumber;
+      this.origin = pOrigin;
+    }
+
+    public LineMatcher(Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber) {
+      this(pFileName, pStartLineNumber, pEndLineNumber, true);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getOriginFileName(), originStartLineNumber, originEndLineNumber);
+      return Objects.hash(getOriginFileName(), startLineNumber, endLineNumber, origin);
     }
 
     @Override
@@ -104,28 +111,39 @@ class SourceLocationMatcher {
       if (this == pObj) {
         return true;
       }
-      if (!(pObj instanceof OriginLineMatcher)) {
+      if (!(pObj instanceof LineMatcher)) {
         return false;
       }
-      OriginLineMatcher other = (OriginLineMatcher) pObj;
-      return Objects.equals(getOriginFileName(), other.getOriginFileName())
-          && originStartLineNumber == other.originStartLineNumber
-          && originEndLineNumber == other.originEndLineNumber;
+      LineMatcher other = (LineMatcher) pObj;
+      return origin == other.origin
+          && startLineNumber == other.startLineNumber
+          && endLineNumber == other.endLineNumber
+          && Objects.equals(getOriginFileName(), other.getOriginFileName());
     }
 
     @Override
     public boolean apply(FileLocation pFileLocation) {
+      int compStartingLine = origin
+          ? pFileLocation.getStartingLineInOrigin()
+          : pFileLocation.getStartingLineNumber();
+      int compEndingLine = origin
+          ? pFileLocation.getEndingLineInOrigin()
+          : pFileLocation.getEndingLineNumber();
       return super.apply(pFileLocation)
-          && originStartLineNumber <= pFileLocation.getEndingLineInOrigin()
-          && pFileLocation.getStartingLineInOrigin() <= originEndLineNumber;
+          && startLineNumber <= compEndingLine
+          && compStartingLine <= endLineNumber;
     }
 
     @Override
     public String toString() {
-      if (originStartLineNumber == originEndLineNumber) {
-        return "ORIGIN LINE " + originStartLineNumber;
+      String prefix = "LINE ";
+      if (origin) {
+        prefix = "ORIGIN " + prefix;
       }
-      return "ORIGIN LINE " + originStartLineNumber + "-" + originEndLineNumber;
+      if (startLineNumber == endLineNumber) {
+        return prefix + startLineNumber;
+      }
+      return prefix + startLineNumber + "-" + endLineNumber;
     }
   }
 
