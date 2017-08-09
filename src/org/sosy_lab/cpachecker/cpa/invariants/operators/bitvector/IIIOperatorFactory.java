@@ -24,15 +24,14 @@
 package org.sosy_lab.cpachecker.cpa.invariants.operators.bitvector;
 
 import com.google.common.base.Preconditions;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
-
-import java.math.BigInteger;
-
-import javax.annotation.Nullable;
 
 /**
  * This factory provides operators that can be applied to two bit-vector
@@ -135,54 +134,47 @@ public enum IIIOperatorFactory {
           return pFirstOperand;
         }
 
-        BigInteger lowerBound = null;
-        BigInteger upperBound = null;
-        // Determine the upper bound
-        if (pFirstOperand.containsPositive()) {
-          if (pSecondOperand.containsPositive()) {
-            // e.g. in [2,4] / [0,2] we want 4/1 as the upper bound
-            upperBound =
-                pFirstOperand.getUpperBound().divide(pSecondOperand.closestPositiveToZero());
-          } else {
-            // e.g. in [2,4] / [-2,-1] we want 2/(-2) as the upper bound
-            upperBound = pFirstOperand.getLowerBound().divide(pSecondOperand.getLowerBound());
-          }
-        } else {
-          if (pSecondOperand.containsPositive()) {
-            // e.g. in [-4,-2] / [1,2] we want -2/2 as the upper bound
-            upperBound = pFirstOperand.getUpperBound().divide(pSecondOperand.getUpperBound());
-          } else {
-            // e.g. in [-4,-2] / [-2,-1] we want -4/(-1) as the upper bound
-            upperBound =
-                pFirstOperand.getLowerBound().divide(pSecondOperand.closestNegativeToZero());
+        List<BigInteger> divisors = new ArrayList<>(
+            (pSecondOperand.containsPositive()
+                ? (pSecondOperand.closestPositiveToZero().equals(pSecondOperand.getUpperBound())
+                    ? 1
+                    : 2)
+                : 0)
+            + (pSecondOperand.containsNegative()
+                ? (pSecondOperand.closestNegativeToZero().equals(pSecondOperand.getLowerBound())
+                    ? 1
+                    : 2)
+                : 0));
+        if (pSecondOperand.containsPositive()) {
+          divisors.add(pSecondOperand.closestPositiveToZero());
+          if (!pSecondOperand.closestPositiveToZero().equals(pSecondOperand.getUpperBound())) {
+            divisors.add(pSecondOperand.getUpperBound());
           }
         }
-        // Determine the lower bound
-        if (pFirstOperand.containsNegative()) {
-          if (pSecondOperand.containsPositive()) {
-            // e.g. in [-4,-2] / [1,2] we want -4/1 as the lower bound
-            lowerBound =
-                pFirstOperand.getLowerBound().divide(pSecondOperand.closestPositiveToZero());
-          } else {
-            // e.g. in [-4,-2] / [1,2] we want -4/1 as the lower bound
-            lowerBound = pFirstOperand.getUpperBound().divide(pSecondOperand.getLowerBound());
-          }
-        } else {
-          if (pSecondOperand.containsPositive()) {
-            // e.g. in [2,4] / [1,2] we want 2/2 as the lower bound
-            lowerBound = pFirstOperand.getLowerBound().divide(pSecondOperand.getUpperBound());
-          } else {
-            // e.g. in [2,4] / [-2,-1] we want 4/(-1) as the lower bound
-            lowerBound =
-                pFirstOperand.getUpperBound().divide(pSecondOperand.closestNegativeToZero());
+        if (pSecondOperand.containsNegative()) {
+          divisors.add(pSecondOperand.closestNegativeToZero());
+          if (!pSecondOperand.closestNegativeToZero().equals(pSecondOperand.getLowerBound())) {
+            divisors.add(pSecondOperand.getLowerBound());
           }
         }
-        return BitVectorInterval.cast(
-            pFirstOperand.getTypeInfo(),
-            lowerBound,
-            upperBound,
-            pAllowSignedWrapAround,
-            pOverflowEventHandler);
+
+        assert !divisors.isEmpty() : "Should only happen for singleton zero, but all singletons should be handled above.";
+
+        Operator<BitVectorInterval, BigInteger, BitVectorInterval> isiDivider =
+            ISIOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler);
+
+        BitVectorInterval result = null;
+        for (BigInteger divisor : divisors) {
+          BitVectorInterval componentInterval = isiDivider.apply(pFirstOperand, divisor);
+          if (componentInterval != null) {
+            if (result == null) {
+              result = componentInterval;
+            } else {
+              result = BitVectorInterval.span(result, componentInterval);
+            }
+          }
+        }
+        return result;
       }
     };
   }
