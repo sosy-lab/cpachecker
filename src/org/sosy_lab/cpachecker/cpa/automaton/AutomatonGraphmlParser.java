@@ -493,7 +493,7 @@ public class AutomatonGraphmlParser {
         // in case it is a function pointer call,
         // where we can eliminate the other branch
         AutomatonBoolExpr fpElseTrigger = null;
-        if (functionEntry != null) {
+        if (functionEntry != null && graphType == WitnessType.CORRECTNESS_WITNESS) {
           fpElseTrigger = and(
               conjoinedTriggers,
               getFunctionPointerAssumeCaseMatcher(functionEntry, targetNodeFlags.contains(NodeFlag.ISSINKNODE), entersLoopHead));
