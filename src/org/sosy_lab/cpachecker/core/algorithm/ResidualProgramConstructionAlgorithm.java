@@ -32,6 +32,7 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -170,8 +171,13 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
     }
 
     logger.log(Level.INFO, "Write residual program to file.");
-    if (!writeResidualProgram(argRoot,
-        addPragma)) { throw new CPAException("Failed to write residual program."); }
+    if (!writeResidualProgram(argRoot, addPragma)) {
+      try {
+        Files.deleteIfExists(residualProgram);
+      } catch (IOException e) {
+      }
+      throw new CPAException("Failed to write residual program.");
+    }
 
     logger.log(Level.INFO, "Finished construction of residual program. ",
         "If the selected strategy is SLICING or COMBINATION, please continue with the slicing tool (Frama-C)");
