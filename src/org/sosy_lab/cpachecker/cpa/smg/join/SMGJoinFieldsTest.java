@@ -158,32 +158,6 @@ public class SMGJoinFieldsTest {
   }
 
   @Test
-  public void getHVSetWithoutNullValuesOnObjectTest() {
-    SMGRegion obj1 = new SMGRegion(64, "1");
-    SMGRegion obj2 = new SMGRegion(64, "1");
-
-    SMGEdgeHasValue obj1hv1at0 = new SMGEdgeHasValue(mockType4b, BigInteger.valueOf(0), obj1, value1);
-    SMGEdgeHasValue obj1hv0at4 = new SMGEdgeHasValue(mockType4b, BigInteger.valueOf(32), obj1, smg1.getNullValue());
-    SMGEdgeHasValue obj2hv2at0 = new SMGEdgeHasValue(mockType4b, BigInteger.valueOf(0), obj2, value2);
-    SMGEdgeHasValue obj2hv0at4 = new SMGEdgeHasValue(mockType4b, BigInteger.valueOf(32), obj2, smg1.getNullValue());
-
-    smg1.addObject(obj1);
-    smg1.addObject(obj2);
-    smg1.addValue(value1);
-    smg1.addValue(value2);
-    smg1.addHasValueEdge(obj1hv0at4);
-    smg1.addHasValueEdge(obj1hv1at0);
-    smg1.addHasValueEdge(obj2hv0at4);
-    smg1.addHasValueEdge(obj2hv2at0);
-
-    Set<SMGEdgeHasValue> hvSet = SMGJoinFields.getHVSetWithoutNullValuesOnObject(smg1, obj1);
-    Assert.assertTrue(hvSet.contains(obj1hv1at0));
-    Assert.assertTrue(hvSet.contains(obj2hv2at0));
-    Assert.assertTrue(hvSet.contains(obj2hv0at4));
-    Assert.assertEquals(3, hvSet.size());
-  }
-
-  @Test
   public void getHVSetOfMissingNullValuesTest() {
     SMGRegion obj1 = new SMGRegion(64, "1");
     SMGRegion obj2 = new SMGRegion(64, "2");
@@ -286,11 +260,11 @@ public class SMGJoinFieldsTest {
     smg2.addPointsToEdge(new SMGEdgePointsTo(value1, obj, BigInteger.valueOf(160)));
     smg2.addHasValueEdge(hv666for4at28in2);
 
-    Set<SMGEdgeHasValue> compSet1 = SMGJoinFields.getCompatibleHVEdgeSet(smg1, smg2, obj, obj);
-    Assert.assertEquals(4, compSet1.size());
+    SMGJoinFields.setCompatibleHVEdgesToSMG(smg1, smg2, obj, obj);
+    Assert.assertEquals(4, smg1.getHVEdges().size());
 
-    Set<SMGEdgeHasValue> compSet2 = SMGJoinFields.getCompatibleHVEdgeSet(smg2, smg1, obj, obj);
-    Assert.assertEquals(4, compSet2.size());
+    SMGJoinFields.setCompatibleHVEdgesToSMG(smg2, smg1, obj, obj);
+    Assert.assertEquals(4, smg1.getHVEdges().size());
   }
 
   @Test

@@ -47,7 +47,7 @@ public class SMGHasValueEdgeSet implements Set<SMGEdgeHasValue>, SMGHasValueEdge
   @Override
   public SMGHasValueEdges copy() {
     SMGHasValueEdgeSet copy = new SMGHasValueEdgeSet();
-    copy.addAll(this);
+    copy.map.putAll(this.map);
     return copy;
   }
 

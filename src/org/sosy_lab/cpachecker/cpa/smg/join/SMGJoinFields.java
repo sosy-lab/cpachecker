@@ -56,10 +56,8 @@ class SMGJoinFields {
     final SMG origSMG1 = new SMG(pSMG1);
     final SMG origSMG2 = new SMG(pSMG2);
 
-    Set<SMGEdgeHasValue> H1Prime = getCompatibleHVEdgeSet(pSMG1, pSMG2, pObj1, pObj2);
-    pSMG1.replaceHVSet(H1Prime);
-    Set<SMGEdgeHasValue> H2Prime = getCompatibleHVEdgeSet(pSMG2, pSMG1, pObj2, pObj1);
-    pSMG2.replaceHVSet(H2Prime);
+    setCompatibleHVEdgesToSMG(pSMG1, pSMG2, pObj1, pObj2);
+    setCompatibleHVEdgesToSMG(pSMG2, pSMG1, pObj2, pObj1);
 
     status = joinFieldsRelaxStatus(origSMG1, pSMG1, status, SMGJoinStatus.RIGHT_ENTAIL, pObj1);
     status = joinFieldsRelaxStatus(origSMG2, pSMG2, status, SMGJoinStatus.LEFT_ENTAIL, pObj2);
@@ -67,11 +65,13 @@ class SMGJoinFields {
     Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, pSMG2, pObj1, pObj2);
     Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, pSMG1, pObj2, pObj1);
 
-    H1Prime.addAll(smg1Extension);
-    H2Prime.addAll(smg2Extension);
+    for (SMGEdgeHasValue edge : smg1Extension) {
+      pSMG1.addHasValueEdge(edge);
+    }
+    for (SMGEdgeHasValue edge : smg2Extension) {
+      pSMG2.addHasValueEdge(edge);
+    }
 
-    pSMG1.replaceHVSet(H1Prime);
-    pSMG2.replaceHVSet(H2Prime);
 
     newSMG1 = pSMG1;
     newSMG2 = pSMG2;
@@ -120,13 +120,23 @@ class SMGJoinFields {
     return pCurStatus;
   }
 
-  static public Set<SMGEdgeHasValue> getCompatibleHVEdgeSet(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> newHVSet = SMGJoinFields.getHVSetWithoutNullValuesOnObject(pSMG1, pObj1);
+  static public void setCompatibleHVEdgesToSMG(SMG pSMG, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+    SMGEdgeHasValueFilter nullValueFilter = SMGEdgeHasValueFilter.objectFilter(pObj1);
+    nullValueFilter.filterHavingValue(pSMG.getNullValue());
 
-    newHVSet.addAll(SMGJoinFields.getHVSetOfCommonNullValues(pSMG1, pSMG2, pObj1, pObj2));
-    newHVSet.addAll(SMGJoinFields.getHVSetOfMissingNullValues(pSMG1, pSMG2, pObj1, pObj2));
+    Set<SMGEdgeHasValue> edgesToRemove = pSMG.getHVEdges(nullValueFilter);
+    Set<SMGEdgeHasValue> edgesToAdd1 = SMGJoinFields.getHVSetOfCommonNullValues(pSMG, pSMG2, pObj1, pObj2);
+    Set<SMGEdgeHasValue> edgesToAdd2 = SMGJoinFields.getHVSetOfMissingNullValues(pSMG, pSMG2, pObj1,pObj2);
 
-    return newHVSet;
+    for (SMGEdgeHasValue edge : edgesToRemove) {
+      pSMG.removeHasValueEdge(edge);
+    }
+    for (SMGEdgeHasValue edge : edgesToAdd1) {
+      pSMG.addHasValueEdge(edge);
+    }
+    for (SMGEdgeHasValue edge : edgesToAdd2) {
+      pSMG.addHasValueEdge(edge);
+    }
   }
 
   static public Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
@@ -196,18 +206,6 @@ class SMGJoinFields {
     }
 
     return Collections.unmodifiableSet(retset);
-  }
-
-  static public Set<SMGEdgeHasValue> getHVSetWithoutNullValuesOnObject(SMG pSMG, SMGObject pObj) {
-    Set<SMGEdgeHasValue> retset = new HashSet<>();
-    retset.addAll(pSMG.getHVEdges());
-
-    SMGEdgeHasValueFilter nullValueFilter = SMGEdgeHasValueFilter.objectFilter(pObj);
-    nullValueFilter.filterHavingValue(pSMG.getNullValue());
-
-    retset.removeAll(pSMG.getHVEdges(nullValueFilter));
-
-    return retset;
   }
 
   private static void checkResultConsistencySingleSide(SMG pSMG1, SMGEdgeHasValueFilter nullEdges1,
