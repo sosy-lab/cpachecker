@@ -122,6 +122,8 @@ public class ConditionalVerifierAlgorithm implements Algorithm {
                  .clearOption("conditional.verifier.verifierConfig")
                  .clearOption("conditional.verifier.generatorConfig")
                  .loadFromFile(generatorConfig)
+                 .copyOptionFromIfPresent(globalConfig, "AssumptionGuidingAutomaton.cpa.automaton.inputFile")
+                 .copyOptionFromIfPresent(globalConfig, "AssumptionAutomaton.cpa.automaton.inputFile")
                  .setOption("residualprogram.file", residualProg);
       Configuration config = configBuild.build();
       shutdown.shutdownIfNecessary();
