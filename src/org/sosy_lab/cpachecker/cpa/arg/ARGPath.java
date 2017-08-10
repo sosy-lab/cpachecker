@@ -130,38 +130,7 @@ public class ARGPath extends AbstractAppender {
    * using bam) we return an empty list instead.
    */
   public List<CFAEdge> getFullPath() {
-    return auxGetFullPath(false);
-  }
-
-  public List<CFAEdge> getFullPathPrefixWithinAssumptionAutomaton() {
-    return auxGetFullPath(true);
-  }
-
-  private boolean isOutsideAssumptionAutomaton(ARGState s) {
-    if (!s.toString().contains("AutomatonState: AssumptionAutomaton")) {
-      throw new IllegalArgumentException(
-          "This method should only be called when an " +
-          "Assumption Automaton is used as part of the specification.");
-    }
-    return s.toString().contains(
-        "AutomatonState: AssumptionAutomaton: __FALSE");
-  }
-  /**
-   * Returns the full path contained in this {@link ARGPath}. This means,
-   * edges which are null while using getInnerEdges or the pathIterator will be
-   * resolved and the complete path from the first {@link ARGState} to the last
-   * ARGState is created.
-   * This is done by filling up the wholes in the path.
-   * When onlyWithinAssumptionAutomaton is set to true, the resulting full path
-   * will only be expanded up until a __FALSE Assumption Automaton state is reached.
-   * If no Assumption Automaton state is part of the abstract domain, an
-   * {@link IllegalArgumentException} will be thrown.
-   *
-   * If there is no path (null edges can not be filled up, may be happening when
-   * using bam) we return an empty list instead.
-   */
-  private List<CFAEdge> auxGetFullPath(boolean onlyWithinAssumptionAutomaton) {
-    if (!onlyWithinAssumptionAutomaton && fullPath != null) {
+    if (fullPath != null) {
       return fullPath;
     }
 
@@ -173,9 +142,6 @@ public class ARGPath extends AbstractAppender {
       CFAEdge curOutgoingEdge = it.getOutgoingEdge();
       it.advance();
       ARGState succ = it.getAbstractState();
-      if (onlyWithinAssumptionAutomaton && isOutsideAssumptionAutomaton(succ)) {
-        break;
-      }
 
       // assert prev.getEdgeToChild(succ) == curOutgoingEdge : "invalid ARGPath";
 
@@ -200,9 +166,8 @@ public class ARGPath extends AbstractAppender {
         fullPath.add(curOutgoingEdge);
       }
     }
-    if (!onlyWithinAssumptionAutomaton) {
-      this.fullPath = fullPath;
-    }
+
+    this.fullPath = fullPath;
     return fullPath;
   }
 

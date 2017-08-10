@@ -675,7 +675,10 @@ counterexample.export.enabled = true
 # export counterexample as source file
 counterexample.export.exportAsSource = true
 
-# export coverage information for every witness
+# export coverage information for every witness: requires using an Assumption
+# Automaton as part of the specification. Lines are considered to be covered
+# only when the path reaching the statement does not reach the __FALSE state
+# in the Assumption Automaton.
 counterexample.export.exportCounterexampleCoverage = false
 
 # export test harness

@@ -61,11 +61,14 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
@@ -118,7 +121,10 @@ public class CEXExporter {
   PathTemplate coveragePrefixTemplate = PathTemplate.ofFormatString("Counterexample.%d.aa-prefix.coverage-info");
 
   @Option(secure=true, name="exportCounterexampleCoverage",
-      description="export coverage information for every witness")
+      description="export coverage information for every witness: " +
+      "requires using an Assumption Automaton as part of the specification. " +
+      "Lines are considered to be covered only when the path reaching " +
+      "the statement does not reach the __FALSE state in the Assumption Automaton.")
   private boolean exportCounterexampleCoverage = false;
 
   @Option(secure=true, name="exportWitness",
@@ -237,6 +243,24 @@ public class CEXExporter {
     }
   }
 
+  private boolean isOutsideAssumptionAutomaton(ARGState s) {
+    boolean foundAssumptionAutomaton = false;
+    for (AutomatonState aState : AbstractStates.asIterable(s).filter(AutomatonState.class)) {
+      if (aState.getOwningAutomatonName().equals("AssumptionAutomaton")) {
+        foundAssumptionAutomaton = true;
+        if (aState.getInternalStateName().equals("__FALSE")) {
+          return true;
+        }
+      }
+    }
+    if (!foundAssumptionAutomaton) {
+      throw new IllegalArgumentException(
+          "This method should only be called when an " +
+          "Assumption Automaton is used as part of the specification.");
+    }
+    return false;
+  }
+
   private void exportCounterexample0(final ARGState lastState,
                                     final CounterexampleInfo counterexample) {
 
@@ -247,12 +271,19 @@ public class CEXExporter {
     final int uniqueId = counterexample.getUniqueId();
 
     if (exportCounterexampleCoverage) {
-      HashMap<Integer, Integer> visitedLinesPrefix = new HashMap<>();
+      Map<Integer, Integer> visitedLinesPrefix = new HashMap<>();
 
-      for (CFAEdge edge : targetPath.getFullPathPrefixWithinAssumptionAutomaton()) {
-        handleCoveredEdge(edge, visitedLinesPrefix);
+      PathIterator pathIterator = targetPath.fullPathIterator();
+      while(pathIterator.hasNext()) {
+        CFAEdge edge = pathIterator.getOutgoingEdge();
+
         // Considering covered up until (but not including) when the
         // AssumptionAutomaton state is __FALSE.
+        if (isOutsideAssumptionAutomaton(pathIterator.getNextAbstractState())) {
+          break;
+        }
+        handleCoveredEdge(edge, visitedLinesPrefix);
+        pathIterator.advance();
       }
 
       String LINEDATA = "DA:";
