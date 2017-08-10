@@ -68,10 +68,12 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
 @Options(prefix = "residualprogram")
@@ -318,8 +320,20 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
         } else if (innerCPA instanceof CallstackCPA) {
           considersCallstack = true;
         } else if (!(innerCPA instanceof ControlAutomatonCPA)) {
-          throw new InvalidConfigurationException(
-              "The CompositeCPA may only consider LocationCPA, CallstackCPA and AutomatonCPAs.");
+          if (innerCPA instanceof PowerSetCPA) {
+            for (ConfigurableProgramAnalysis cpaInSetJoin : CPAs
+                .asIterable(((PowerSetCPA) innerCPA).getWrappedCPAs().get(0))) {
+              if (!(cpaInSetJoin instanceof ControlAutomatonCPA
+                  || cpaInSetJoin instanceof CompositeCPA)) {
+                throw new InvalidConfigurationException(
+                      "The CompositeCPA may only consider LocationCPA, CallstackCPA, SetJoinCPA, and AutomatonCPAs.");
+              }
+            }
+          } else {
+
+            throw new InvalidConfigurationException(
+                "The CompositeCPA may only consider LocationCPA, CallstackCPA, SetJoinCPA, and AutomatonCPAs.");
+          }
         }
       }
 
