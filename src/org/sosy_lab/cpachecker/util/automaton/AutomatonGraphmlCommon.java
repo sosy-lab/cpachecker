@@ -39,6 +39,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
@@ -74,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -481,7 +483,8 @@ public class AutomatonGraphmlCommon {
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
     if (edge instanceof BlankEdge) {
-      return !(edge.getSuccessor() instanceof FunctionExitNode);
+      return !(edge.getSuccessor() instanceof FunctionExitNode)
+          && !isMainFunctionEntry(edge);
     } else if (edge instanceof CFunctionReturnEdge) {
       return false;
     } else if (edge instanceof CDeclarationEdge) {
@@ -528,6 +531,19 @@ public class AutomatonGraphmlCommon {
     return false;
   }
 
+  public static boolean isMainFunctionEntry(CFAEdge pEdge) {
+    return isFunctionStartDummyEdge(pEdge)
+        && !(pEdge.getPredecessor() instanceof FunctionEntryNode);
+  }
+
+  public static boolean isFunctionStartDummyEdge(CFAEdge pEdge) {
+    if (!(pEdge instanceof BlankEdge)) {
+      return false;
+    }
+    BlankEdge edge = (BlankEdge) pEdge;
+    return edge.getDescription().equals("Function start dummy edge");
+  }
+
   public static String getArchitecture(MachineModel pMachineModel) {
     final String architecture;
     switch (pMachineModel) {
@@ -544,9 +560,24 @@ public class AutomatonGraphmlCommon {
     return architecture;
   }
 
-  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
+  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
     if (handleAsEpsilonEdge(pEdge)) {
       return Collections.emptySet();
+    }
+    if (isMainFunctionEntry(pEdge)) {
+      FileLocation location = pMainEntry.getFileLocation();
+      if (!FileLocation.DUMMY.equals(location)) {
+        location = new FileLocation(
+            location.getFileName(),
+            location.getNiceFileName(),
+            location.getNodeOffset(),
+            pMainEntry.getFunctionDefinition().toString().length(),
+            location.getStartingLineNumber(),
+            location.getStartingLineNumber(),
+            location.getStartingLineInOrigin(),
+            location.getStartingLineInOrigin());
+      }
+      return Collections.singleton(location);
     }
     if (pEdge instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdge;
@@ -593,6 +624,31 @@ public class AutomatonGraphmlCommon {
       }
     }
     return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+  }
+
+  public static Optional<FileLocation> getMinFileLocation(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
+    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry);
+    return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l1.getNodeOffset(), l2.getNodeOffset()));
+  }
+
+  public static Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
+    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry);
+    return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l2.getNodeOffset(), l1.getNodeOffset()));
+  }
+
+  private static Optional<FileLocation> getMinFileLocation(Iterable<FileLocation> pLocations, Comparator<FileLocation> pComparator) {
+    Iterator<FileLocation> locationIterator = pLocations.iterator();
+    if (!locationIterator.hasNext()) {
+      return Optional.empty();
+    }
+    FileLocation min = locationIterator.next();
+    while (locationIterator.hasNext()) {
+      FileLocation l = locationIterator.next();
+      if (pComparator.compare(l, min) < 0) {
+        min = l;
+      }
+    }
+    return Optional.of(min);
   }
 
   public static boolean isPartOfSwitchStatement(AssumeEdge pAssumeEdge) {

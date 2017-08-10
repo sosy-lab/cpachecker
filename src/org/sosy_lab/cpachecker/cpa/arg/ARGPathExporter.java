@@ -426,14 +426,9 @@ public class ARGPathExporter {
       if (isFunctionScope) {
         return;
       }
-      if (!(pEdge instanceof BlankEdge)) {
-        return;
+      if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
+        isFunctionScope = true;
       }
-      BlankEdge edge = (BlankEdge) pEdge;
-      if (!edge.getDescription().equals("Function start dummy edge")) {
-        return;
-      }
-      isFunctionScope = true;
     }
 
     /**
@@ -471,9 +466,10 @@ public class ARGPathExporter {
       }
 
       if (exportFunctionCallsAndReturns) {
-        if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
-          FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
-          result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
+        if (pEdge.getSuccessor() instanceof FunctionEntryNode
+            || AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
+          String functionName = pEdge.getSuccessor().getFunctionName();
+          result = result.putAndCopy(KeyDef.FUNCTIONENTRY, functionName);
         }
         if (pEdge.getSuccessor() instanceof FunctionExitNode) {
           FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
@@ -526,8 +522,8 @@ public class ARGPathExporter {
         }
       }
 
-      Optional<FileLocation> minFileLocation = getMinFileLocation(pEdge);
-      Optional<FileLocation> maxFileLocation = getMaxFileLocation(pEdge);
+      Optional<FileLocation> minFileLocation = AutomatonGraphmlCommon.getMinFileLocation(pEdge, cfa.getMainFunction());
+      Optional<FileLocation> maxFileLocation = AutomatonGraphmlCommon.getMaxFileLocation(pEdge, cfa.getMainFunction());
       if (exportLineNumbers && minFileLocation.isPresent()) {
         FileLocation min = minFileLocation.get();
         if (!min.getFileName().equals(defaultSourcefileName)) {
@@ -573,38 +569,6 @@ public class ARGPathExporter {
       }
 
       return result;
-    }
-
-    private Optional<FileLocation> getMinFileLocation(CFAEdge pEdge) {
-      Set<FileLocation> locations = AutomatonGraphmlCommon.getFileLocationsFromCfaEdge(pEdge);
-      if (locations.size() > 0) {
-        Iterator<FileLocation> locationIterator = locations.iterator();
-        FileLocation min = locationIterator.next();
-        while (locationIterator.hasNext()) {
-          FileLocation l = locationIterator.next();
-          if (l.getNodeOffset() < min.getNodeOffset()) {
-            min = l;
-          }
-        }
-        return Optional.of(min);
-      }
-      return Optional.empty();
-    }
-
-    private Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge) {
-      Set<FileLocation> locations = AutomatonGraphmlCommon.getFileLocationsFromCfaEdge(pEdge);
-      if (locations.size() > 0) {
-        Iterator<FileLocation> locationIterator = locations.iterator();
-        FileLocation max = locationIterator.next();
-        while (locationIterator.hasNext()) {
-          FileLocation l = locationIterator.next();
-          if (l.getNodeOffset()+l.getNodeLength() > max.getNodeOffset()+max.getNodeLength()) {
-            max = l;
-          }
-        }
-        return Optional.of(max);
-      }
-      return Optional.empty();
     }
 
     private TransitionCondition extractTransitionForStates(

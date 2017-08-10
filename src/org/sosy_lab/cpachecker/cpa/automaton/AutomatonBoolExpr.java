@@ -336,6 +336,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         if (callEdge.getSuccessor().getFunctionName().equals(functionName)) {
           return CONST_TRUE;
         }
+      } else if (AutomatonGraphmlCommon.isMainFunctionEntry(edge)
+          && edge.getSuccessor().getFunctionName().equals(functionName)) {
+        return CONST_TRUE;
       }
       return CONST_FALSE;
     }
@@ -823,11 +826,14 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   static class MatchLocationDescriptor implements AutomatonBoolExpr {
 
+    private final FunctionEntryNode mainEntry;
+
     private final Predicate<FileLocation> matchDescriptor;
 
-    public MatchLocationDescriptor(Predicate<FileLocation> pDescriptor) {
+    public MatchLocationDescriptor(FunctionEntryNode pMainEntry, Predicate<FileLocation> pDescriptor) {
       Preconditions.checkNotNull(pDescriptor);
 
+      this.mainEntry = pMainEntry;
       this.matchDescriptor = pDescriptor;
     }
 
@@ -837,12 +843,32 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     protected boolean eval(CFAEdge edge) {
-      return Iterables.any(AutomatonGraphmlCommon.getFileLocationsFromCfaEdge(edge), matchDescriptor);
+      return Iterables.any(
+          AutomatonGraphmlCommon.getFileLocationsFromCfaEdge(edge, mainEntry),
+          matchDescriptor);
     }
 
     @Override
     public String toString() {
       return "MATCH " + matchDescriptor;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(mainEntry, matchDescriptor);
+    }
+
+    @Override
+    public boolean equals(Object pOther) {
+      if (this == pOther) {
+        return true;
+      }
+      if (pOther instanceof MatchLocationDescriptor) {
+        MatchLocationDescriptor other = (MatchLocationDescriptor) pOther;
+        return mainEntry.equals(other.mainEntry)
+            && matchDescriptor.equals(other.matchDescriptor);
+      }
+      return false;
     }
 
   }

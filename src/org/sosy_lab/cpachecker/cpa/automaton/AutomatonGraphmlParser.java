@@ -731,7 +731,7 @@ public class AutomatonGraphmlParser {
    * @return an automaton-transition condition for a specific start line corresponding to the line
    *     specified by the given transition.
    */
-  private static AutomatonBoolExpr getOriginLineMatcher(Node pTransition) throws WitnessParseException {
+  private AutomatonBoolExpr getOriginLineMatcher(Node pTransition) throws WitnessParseException {
     Set<String> originFileTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ORIGINFILE);
     checkParsable(
         originFileTags.size() < 2,
@@ -772,7 +772,7 @@ public class AutomatonGraphmlParser {
           new LineMatcher(matchOriginFileName, startLine, endLine);
 
       AutomatonBoolExpr lineMatchingExpr =
-          new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
+          new AutomatonBoolExpr.MatchLocationDescriptor(cfa.getMainFunction(), originDescriptor);
       if (entersLoopHead(pTransition)) {
         lineMatchingExpr =
             AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(lineMatchingExpr, true);
@@ -793,7 +793,7 @@ public class AutomatonGraphmlParser {
    * @return an automaton-transition condition for a specific character offset corresponding to the
    *     offset specified by the given transition.
    */
-  private static AutomatonBoolExpr getOffsetMatcher(Node pTransition) throws WitnessParseException {
+  private AutomatonBoolExpr getOffsetMatcher(Node pTransition) throws WitnessParseException {
     Set<String> originFileTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ORIGINFILE);
     checkParsable(
         originFileTags.size() < 2,
@@ -832,7 +832,7 @@ public class AutomatonGraphmlParser {
 
       OffsetMatcher originDescriptor = new OffsetMatcher(matchOriginFileName, offset, endoffset);
       AutomatonBoolExpr offsetMatchingExpr =
-          new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
+          new AutomatonBoolExpr.MatchLocationDescriptor(cfa.getMainFunction(), originDescriptor);
 
       if (entersLoopHead(pTransition)) {
         offsetMatchingExpr =

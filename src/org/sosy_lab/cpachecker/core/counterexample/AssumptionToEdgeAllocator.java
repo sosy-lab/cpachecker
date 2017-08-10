@@ -397,7 +397,8 @@ public class AssumptionToEdgeAllocator {
         return Collections.emptyList();
       }
       CFAEdge enteringEdge = predecessor.getEnteringEdge(0);
-      if (!AutomatonGraphmlCommon.handleAsEpsilonEdge(enteringEdge)) {
+      if (!AutomatonGraphmlCommon.handleAsEpsilonEdge(enteringEdge)
+          && !AutomatonGraphmlCommon.isMainFunctionEntry(enteringEdge)) {
         return Collections.emptyList();
       }
       predecessor = enteringEdge.getPredecessor();
