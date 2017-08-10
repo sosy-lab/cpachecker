@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -233,6 +235,7 @@ public class SSAMap implements Serializable {
     // We don't bother checking the vars set for emptiness, because this will
     // probably never be the case on a merge.
 
+    checkArgument(s1.defaultValue == s2.defaultValue);
     PersistentSortedMap<String, Integer> vars;
     FreshValueProvider freshValueProvider;
     int defaultIndex;
@@ -249,7 +252,6 @@ public class SSAMap implements Serializable {
               PersistentSortedMaps.getMaximumMergeConflictHandler(),
               collectDifferences);
       freshValueProvider = s1.freshValueProvider.merge(s2.freshValueProvider);
-      assert s1.defaultValue == s2.defaultValue;
       defaultIndex = s1.defaultValue;
     }
 
