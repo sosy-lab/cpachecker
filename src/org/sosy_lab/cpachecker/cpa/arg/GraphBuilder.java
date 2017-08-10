@@ -204,15 +204,17 @@ public enum GraphBuilder {
         for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
           CFANode successor = leavingEdge.getSuccessor();
           final Collection<ARGState> locationStates;
+          boolean tryAddToWaitlist = false;
           if (subProgramNodes.contains(successor)) {
             locationStates = states.get(successor);
-            if (visited.add(successor)) {
-              waitlist.offer(successor);
-            }
+            tryAddToWaitlist = true;
           } else {
             locationStates = Collections.<ARGState>emptySet();
           }
-          appendEdge(pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
+          boolean appended = appendEdge(pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
+          if (tryAddToWaitlist && appended && visited.add(successor)) {
+            waitlist.offer(successor);
+          }
         }
       }
     }
@@ -298,7 +300,7 @@ public enum GraphBuilder {
 
   };
 
-  private static void appendEdge(
+  private static boolean appendEdge(
       EdgeAppender pEdgeAppender,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pStates,
@@ -308,7 +310,9 @@ public enum GraphBuilder {
     String targetId = pEdge.getSuccessor().toString();
     if (!(pEdge instanceof CFunctionSummaryStatementEdge)) {
       pEdgeAppender.appendNewEdge(sourceId, targetId, pEdge, pStates, pValueMap);
+      return true;
     }
+    return false;
   }
 
   public abstract String getId(ARGState pState);
