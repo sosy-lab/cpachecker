@@ -27,18 +27,17 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.io.Writer;
+import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
@@ -53,23 +52,20 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.CoverageWriter;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
@@ -179,6 +175,8 @@ public class CEXExporter {
   private final ARGPathExporter witnessExporter;
   private final HarnessExporter harnessExporter;
 
+  private final Optional<CoverageWriter> coverageReportWriter;
+
   public CEXExporter(
       Configuration config,
       LogManager logger,
@@ -204,6 +202,11 @@ public class CEXExporter {
         && errorPathGraphFile == null && errorPathSourceFile == null
         && errorPathAutomatonFile == null && errorPathAutomatonGraphmlFile == null) {
       exportErrorPath = false;
+    }
+    if (exportCounterexampleCoverage) {
+      coverageReportWriter = Optional.of(new CoverageReportGcov(config, logger));
+    } else {
+      coverageReportWriter = Optional.absent();
     }
   }
 
@@ -243,24 +246,6 @@ public class CEXExporter {
     }
   }
 
-  private boolean isOutsideAssumptionAutomaton(ARGState s) {
-    boolean foundAssumptionAutomaton = false;
-    for (AutomatonState aState : AbstractStates.asIterable(s).filter(AutomatonState.class)) {
-      if (aState.getOwningAutomatonName().equals("AssumptionAutomaton")) {
-        foundAssumptionAutomaton = true;
-        if (aState.getInternalStateName().equals("__FALSE")) {
-          return true;
-        }
-      }
-    }
-    if (!foundAssumptionAutomaton) {
-      throw new IllegalArgumentException(
-          "This method should only be called when an " +
-          "Assumption Automaton is used as part of the specification.");
-    }
-    return false;
-  }
-
   private void exportCounterexample0(final ARGState lastState,
                                     final CounterexampleInfo counterexample) {
 
@@ -271,33 +256,17 @@ public class CEXExporter {
     final int uniqueId = counterexample.getUniqueId();
 
     if (exportCounterexampleCoverage) {
-      Map<Integer, Integer> visitedLinesPrefix = new HashMap<>();
-
-      PathIterator pathIterator = targetPath.fullPathIterator();
-      while(pathIterator.hasNext()) {
-        CFAEdge edge = pathIterator.getOutgoingEdge();
-
-        // Considering covered up until (but not including) when the
-        // AssumptionAutomaton state is __FALSE.
-        if (isOutsideAssumptionAutomaton(pathIterator.getNextAbstractState())) {
-          break;
-        }
-        handleCoveredEdge(edge, visitedLinesPrefix);
-        pathIterator.advance();
+      if (!coverageReportWriter.isPresent()) {
+        throw new AssertionError("Invariant violated: A counterexample coverage report "
+            + "writer should exists.");
       }
-
-      String LINEDATA = "DA:";
-      try (Writer w = IO.openOutputFile(coveragePrefixTemplate.getPath(counterexample.getUniqueId()), Charset.defaultCharset())) {
-        for (Entry<Integer, Integer> entry : visitedLinesPrefix.entrySet()) {
-          w.append(
-              LINEDATA +
-              String.valueOf(entry.getKey()) + "," +
-              String.valueOf(entry.getValue()) + "\n");
-        }
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e,
-            "Could not write coverage information about the error path to file");
-      }
+      PrintStream nullStream =
+          new PrintStream(com.google.common.io.ByteStreams.nullOutputStream());
+      Path outputPath = coveragePrefixTemplate.getPath(counterexample.getUniqueId());
+      coverageReportWriter.get().write(
+          CoverageCollector.fromCounterexample(targetPath).collectCoverage(),
+          nullStream,
+          outputPath);
     }
 
     writeErrorPathFile(errorPathFile, uniqueId, counterexample);
@@ -418,24 +387,6 @@ public class CEXExporter {
       visitedLines.put(pLine, 1);
     }
   }
-
-  //Copied from org.sosy_lab.cpachecker.util.coverage.CoverageReport.handleCoveredEdge(CFAEdge, Map<String, FileCoverageInformation>)
-  private void handleCoveredEdge(final CFAEdge pEdge, Map<Integer,Integer> visitedLines) {
-    FileLocation loc = pEdge.getFileLocation();
-    if (loc.getStartingLineNumber() == 0) {
-      return;
-    }
-    if (pEdge instanceof ADeclarationEdge
-        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
-      return;
-    }
-
-    // Not necessary, not tracking assumes.
-    //   if (pEdge instanceof AssumeEdge) { [...] }
-
-    //Do not extract lines from edge - there are not origin lines
-    addVisitedLine(visitedLines, loc.getStartingLineInOrigin());
- }
 
   private void writeErrorPathFile(PathTemplate template, int uniqueId, Object content) {
     writeErrorPathFile(template, uniqueId, content, false);

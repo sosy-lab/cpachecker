@@ -24,11 +24,13 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.Map;
 
 
 public interface CoverageWriter {
 
-  void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pOut);
+  void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut,
+      Path pOutputCoverageFile);
 
 }

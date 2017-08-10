@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
@@ -273,7 +274,7 @@ class MainCPAStatistics implements Statistics {
       printSubStatistics(out, result, reached);
 
       if (coverageReport != null && cfa != null) {
-        coverageReport.writeCoverageReport(out, reached, cfa);
+        coverageReport.writeCoverageReport(out, CoverageCollector.fromReachedSet(reached, cfa));
       }
     }
 

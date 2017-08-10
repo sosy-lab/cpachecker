@@ -23,15 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInfo;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -40,24 +31,25 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.FunctionInfo;
 
 /**
  * Generate coverage information in Gcov format
  * (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html).
  */
 @Options
-class CoverageReportGcov implements CoverageWriter {
+public class CoverageReportGcov implements CoverageWriter {
 
   @Option(secure=true,
       name="coverage.export",
       description="print coverage info to file")
   private boolean exportCoverage = true;
-
-  @Option(secure=true,
-      name="coverage.file",
-      description="print coverage info to file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
 
   //String constants from gcov format
   private final static String TEXTNAME = "TN:";
@@ -77,7 +69,7 @@ class CoverageReportGcov implements CoverageWriter {
   }
 
   @Override
-  public void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut) {
+  public void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut, Path outputCoverageFile) {
 
     if (!exportCoverage || (outputCoverageFile == null)) {
       return;
