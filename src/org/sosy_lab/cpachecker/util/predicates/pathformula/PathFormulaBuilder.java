@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class PathFormulaBuilder {
 
-  private class PathFormulaAndBuilder extends PathFormulaBuilder {
+  private static class PathFormulaAndBuilder extends PathFormulaBuilder {
 
     private PathFormulaBuilder previousPathFormula;
 
@@ -51,7 +51,7 @@ public class PathFormulaBuilder {
 
   }
 
-  private class PathFormulaOrBuilder extends PathFormulaBuilder {
+  private static class PathFormulaOrBuilder extends PathFormulaBuilder {
 
     private PathFormulaBuilder first;
     private PathFormulaBuilder second;
