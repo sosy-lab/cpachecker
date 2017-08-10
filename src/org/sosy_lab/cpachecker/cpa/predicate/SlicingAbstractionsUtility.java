@@ -299,27 +299,27 @@ public class SlicingAbstractionsUtility {
     // copy the outgoing edges:
     for (ARGState endState : outgoingSegmentMap.keySet()) {
       List<ARGState> intermediateStateList = outgoingSegmentMap.get(endState);
-      copyEdge(intermediateStateList, forkedState, endState, endState, pReached);
+      copyEdge(intermediateStateList, originalState, endState, forkedState, endState, pReached);
       // if we have a self-loop, we have to make a self-loop from forkedState->forkedState:
       if (endState == originalState) {
-        copyEdge(intermediateStateList, forkedState,endState,forkedState, pReached);
+        copyEdge(intermediateStateList, originalState, endState,forkedState,forkedState, pReached);
       }
     }
 
     // copy the incoming edges:
     for (ARGState startState : incomingSegmentMap.keySet()) {
       List<ARGState> intermediateStateList = incomingSegmentMap.get(startState);
-      copyEdge(intermediateStateList, startState, originalState, forkedState, pReached);
+      copyEdge(intermediateStateList, startState, originalState, startState, forkedState, pReached);
     }
   }
 
-  private static void copyEdge(List<ARGState> pSegmentStates,
-      ARGState startState, ARGState oldEndState, ARGState newEndState, ARGReachedSet pReached) {
+  private static void copyEdge(List<ARGState> pSegmentStates, ARGState oldStartState,
+      ARGState oldEndState, ARGState newStartState, ARGState newEndState, ARGReachedSet pReached) {
 
     // we need to treat the case where we have no intermediate non-abstraction states differently:
     if (pSegmentStates.size() == 0) {
-      newEndState.addParent(startState);
-      assert (newEndState != startState) : "Self loop in ARG discovered. Splitting might be wrong!";
+      newEndState.addParent(newStartState);
+      assert (newEndState != newStartState) : "Self loop in ARG discovered. Splitting might be wrong!";
       return;
     }
 
@@ -337,11 +337,13 @@ public class SlicingAbstractionsUtility {
           newState.addParent(newSegmentStates.get(pSegmentStates.indexOf(parent)));
         }
       }
+      if (existingState.getParents().contains(oldStartState)) {
+        newState.addParent(newStartState);
+      }
       if (existingState.getChildren().contains(oldEndState)) {
         newEndState.addParent(newState);
       }
     }
-    newSegmentStates.get(0).addParent(startState);
     addForkedStatesToReachedSet(newSegmentStates, pSegmentStates, pReached);
   }
 
