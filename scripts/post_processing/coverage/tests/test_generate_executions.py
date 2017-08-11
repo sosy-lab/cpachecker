@@ -193,35 +193,6 @@ class TestCoverageTreeAAAnd2Paths(TestCoverage):
         self.assertEqual(lines_covered, set([3,4,5,6,9]))
         self.assertEqual(lines_to_cover, set([3,4,5,6,7,9,10,13,14,15]))
 
-class TestCoverageAAIsPrefix(TestCoverage):
-    def test(self):
-        instance = os.path.join(self.aux_root, 'three_paths.c')
-        aa_file = os.path.join(
-            self.aux_root, 'aa_three_paths_else_return_not_covered.spc')
-        specs_dir = os.path.join(
-            self.aux_root, 'cex_three_paths', 'outer_else_block')
-        with patch.object(self.logger, 'info') as mock_info:
-            lines_covered, lines_to_cover = \
-                generate_coverage.collect_coverage(
-                    instance=instance,
-                    aa_file=aa_file,
-                    specs_dir=specs_dir,
-                    heap_size=None,
-                    logger=self.logger)
-            expected_calls =  [
-                call('Collecting coverage from 1 executions.'),
-                call('Coverage after collecting 1 executions:'),
-                call('Lines covered: 3'),
-                call('Total lines to cover: 10'),
-                call(''),
-                call('Total lines covered: 3'),
-                call('Total lines to cover: 10')
-            ]
-            self.assertEqual(mock_info.mock_calls, expected_calls)
-
-        self.assertEqual(lines_covered, set([3,4,13]))
-        self.assertEqual(lines_to_cover, set([3,4,5,6,7,9,10,13,14,15]))
-
 class TestCoverageIntegrationOnlyCollectCoverage(TestCoverage):
     def test(self):
         instance = os.path.join(self.aux_root, 'three_paths.c')
