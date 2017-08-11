@@ -27,10 +27,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
@@ -206,7 +207,7 @@ public class CEXExporter {
     if (exportCounterexampleCoverage) {
       coverageReportWriter = Optional.of(new CoverageReportGcov(config, logger));
     } else {
-      coverageReportWriter = Optional.absent();
+      coverageReportWriter = Optional.empty();
     }
   }
 
@@ -260,6 +261,9 @@ public class CEXExporter {
         throw new AssertionError("Invariant violated: A counterexample coverage report "
             + "writer should exists.");
       }
+      @SuppressFBWarnings(
+          value = "DM_DEFAULT_ENCODING",
+          justification= "The encoding is never actually used, this is a null stream.")
       PrintStream nullStream =
           new PrintStream(com.google.common.io.ByteStreams.nullOutputStream());
       Path outputPath = coveragePrefixTemplate.getPath(counterexample.getUniqueId());
