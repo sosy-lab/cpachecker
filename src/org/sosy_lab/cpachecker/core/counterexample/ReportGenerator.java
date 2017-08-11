@@ -34,6 +34,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -50,6 +51,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
@@ -457,10 +459,14 @@ public class ReportGenerator {
     }
   }
 
+  // Program entry function at first place is important for the graph generation
   private void insertFunctionNames(Writer writer, CFA cfa) {
     try {
       writer.write("\"functionNames\":");
-      JSON.writeJSONString(cfa.getAllFunctionNames(), writer);
+      Set<String> allFunctionsEntryFirst = Sets.newLinkedHashSet();
+      allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
+      allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
+      JSON.writeJSONString(allFunctionsEntryFirst, writer);
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of function names failed.");

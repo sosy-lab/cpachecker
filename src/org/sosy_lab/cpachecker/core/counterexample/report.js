@@ -12,7 +12,7 @@
 			function($rootScope, $scope) {
 				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
 				$scope.help_content = "<p><b>CFA</b> (Control Flow Automaton) shows the control flow of the program. <br> For each function in the source code one CFA graph is created. <br>" + 
-				"Initially all CFA's are displayed below one another beginning with the CFA for the main function.</p>" + "<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
+				"Initially all CFA's are displayed below one another beginning with the CFA for the program entry function.</p>" + "<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
 				"<p>&#9675; &nbsp; normal element</p>" +
 				"<p>&#9634; &nbsp; combined normal elements</p>" +
 				"<p>&#9645; &nbsp; function node</p>" +
@@ -748,11 +748,11 @@ function init() {
         // Extract information from the cfaJson
         function extractVariables() {
             nodes = json.nodes;
+            functions = json.functionNames;
             mainNodes = nodes.filter(function(n) {
-                return n.func === "main";
+                return n.func === functions[0];
             });
             edges = json.edges;
-            functions = json.functionNames;
             combinedNodes = json.combinedNodes;
             combinedNodesLabels = json.combinedNodesLabels;
             mergedNodes = json.mergedNodes;
@@ -782,13 +782,13 @@ function init() {
         
         function buildGraphsAndPostResults() {
             if (mainNodes.length > graphSplitThreshold) {
-                buildMultipleGraphs(mainNodes, "main");
+                buildMultipleGraphs(mainNodes, functions[0]);
             } else {
-                buildSingleGraph(mainNodes, "main");
+                buildSingleGraph(mainNodes, functions[0]);
             }
             if (functions.length > 1) {
                 var functionsToProcess = functions.filter(function(f){
-                    return f !== "main";
+                    return f !== functions[0];
                 });
                 functionsToProcess.forEach(function(func) {
                     var funcNodes = nodes.filter(function(n){
@@ -815,7 +815,7 @@ function init() {
                 return nodesIndices.includes(e.source) && nodesIndices.includes(e.target);
             });
             setGraphEdges(g, edgesToSet, false);
-            if (funcName === "main") {
+            if (funcName === functions[0]) {
                 self.postMessage({"graph" : JSON.stringify(g), "id" : funcName + graphCounter, "func" : funcName});
                 graphMap.push(g);
             } else {
@@ -852,7 +852,7 @@ function init() {
                 }
             }
             buildCrossgraphEdges(nodesToSet);
-            if (funcName === "main") {
+            if (funcName === functions[0]) {
                 self.postMessage({"graph" : JSON.stringify(graphMap[graphCounter]), "id" : funcName + graphCounter, "func" : funcName});
                 graphCounter++;
             }
@@ -1629,9 +1629,6 @@ function init() {
 				var selection = d3.select("#arg-node" + d3.select(this).attr("id").split("-")[1]);
 				selection.classed("marked-arg-node", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				console.log(boundingRect);
-				console.log(d3.select("#arg-container").style("width").split("px")[0]);
-				console.log($("#arg-container").scrollLeft());
 				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft());
 			});
 		d3.selectAll(".arg-edge")

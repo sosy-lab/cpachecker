@@ -206,10 +206,10 @@ public final class DOTBuilder2 {
         } else if (combinedEdges.size() > 1) {
           CFAEdge first = combinedEdges.get(0);
           int firstNode = first.getPredecessor().getNodeNumber();
-          Set<Integer> combinedNodes = comboNodes.get(firstNode);
           for (CFAEdge edge : combinedEdges) {
             int predNumber = edge.getPredecessor().getNodeNumber();
             final StringBuilder label;
+            Set<Integer> combinedNodes = comboNodes.get(firstNode);
             if (combinedNodes != null) {
               if (combinedNodes.add(predNumber)) {
                 label = comboNodesLabels.get(firstNode);
