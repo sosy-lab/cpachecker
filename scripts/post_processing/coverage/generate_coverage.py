@@ -96,13 +96,13 @@ def cpachecker_command(
 
 def counterexample_spec_files(cex_dir):
     pattern = r'.*Counterexample.([^.]*).spc'
-    all_files = os.listdir(cex_dir)
+    all_files = sorted(os.listdir(cex_dir))
     return [os.path.join(cex_dir, cex)
             for cex in all_files if re.match(pattern, cex)]
 
 def counterexample_coverage_files(cex_dir):
     pattern = r'.*Counterexample.([^.]*).aa-prefix.coverage-info'
-    all_files = os.listdir(cex_dir)
+    all_files = sorted(os.listdir(cex_dir))
     return [os.path.join(cex_dir, cex)
             for cex in all_files if re.match(pattern, cex)]
 
