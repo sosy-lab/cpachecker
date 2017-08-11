@@ -218,13 +218,13 @@ public final class DOTBuilder2 {
                 label = null;
               }
             } else {
-              Set<Integer> nodesCombined = Sets.newLinkedHashSet();
-              nodesCombined.add(predNumber);
-              comboNodes.put(firstNode, nodesCombined);
+              combinedNodes = Sets.newLinkedHashSet();
+              comboNodes.put(firstNode, combinedNodes);
               label = new StringBuilder();
               comboNodesLabels.put(firstNode, label);
             }
             if (label != null) {
+              combinedNodes.add(predNumber);
               label.append(predNumber);
               label.append(" ");
               label.append(edge.getDescription());
