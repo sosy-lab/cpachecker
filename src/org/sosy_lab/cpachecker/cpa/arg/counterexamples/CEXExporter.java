@@ -30,15 +30,13 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
-import java.io.PrintStream;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
@@ -66,7 +64,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
-import org.sosy_lab.cpachecker.util.coverage.CoverageWriter;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
@@ -176,8 +173,6 @@ public class CEXExporter {
   private final ARGPathExporter witnessExporter;
   private final HarnessExporter harnessExporter;
 
-  private final Optional<CoverageWriter> coverageReportWriter;
-
   public CEXExporter(
       Configuration config,
       LogManager logger,
@@ -203,11 +198,6 @@ public class CEXExporter {
         && errorPathGraphFile == null && errorPathSourceFile == null
         && errorPathAutomatonFile == null && errorPathAutomatonGraphmlFile == null) {
       exportErrorPath = false;
-    }
-    if (exportCounterexampleCoverage) {
-      coverageReportWriter = Optional.of(new CoverageReportGcov(config, logger));
-    } else {
-      coverageReportWriter = Optional.empty();
     }
   }
 
@@ -256,21 +246,15 @@ public class CEXExporter {
     final ARGState rootState = targetPath.getFirstState();
     final int uniqueId = counterexample.getUniqueId();
 
-    if (exportCounterexampleCoverage) {
-      if (!coverageReportWriter.isPresent()) {
-        throw new AssertionError("Invariant violated: A counterexample coverage report "
-            + "writer should exists.");
-      }
-      @SuppressFBWarnings(
-          value = "DM_DEFAULT_ENCODING",
-          justification= "The encoding is never actually used, this is a null stream.")
-      PrintStream nullStream =
-          new PrintStream(com.google.common.io.ByteStreams.nullOutputStream());
+    if (exportCounterexampleCoverage && coveragePrefixTemplate != null) {
       Path outputPath = coveragePrefixTemplate.getPath(counterexample.getUniqueId());
-      coverageReportWriter.get().write(
-          CoverageCollector.fromCounterexample(targetPath).collectCoverage(),
-          nullStream,
-          outputPath);
+      try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
+        CoverageReportGcov.write(
+            CoverageCollector.fromCounterexample(targetPath).collectCoverage(), gcovFile);
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not write coverage information for counterexample to file");
+      }
     }
 
     writeErrorPathFile(errorPathFile, uniqueId, counterexample);
