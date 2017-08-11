@@ -2233,7 +2233,7 @@ class ASTConverter {
       } else if (initializer instanceof CFunctionCallExpression) {
         FileLocation loc = getLocation(i);
 
-        if (declaration != null) {
+        if (declaration != null && !declaration.getType().getCanonicalType().isConst()) {
           // This is a variable declaration like "int i = f();"
           // We can replace this with "int i; i = f();"
           CIdExpression var = new CIdExpression(loc, declaration);
