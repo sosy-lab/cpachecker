@@ -209,18 +209,24 @@ public final class DOTBuilder2 {
           int firstNode = first.getPredecessor().getNodeNumber();
           Set<Integer> combinedNodes = comboNodes.get(firstNode);
           StringBuilder label = comboNodesLabels.get(firstNode);
+          // Initialize the list of nodes and the label if necessary
+          if (combinedNodes == null) {
+            assert label == null : "label and combinedNodes should always be initialized and changed together";
+            combinedNodes = Sets.newLinkedHashSet();
+            comboNodes.put(firstNode, combinedNodes);
+            label = new StringBuilder();
+            comboNodesLabels.put(firstNode, label);
+          }
           for (CFAEdge edge : combinedEdges) {
             int predNumber = edge.getPredecessor().getNodeNumber();
-            if (combinedNodes != null && combinedNodes.add(predNumber)) {
-              label.append("\n");
-            } else {
-              combinedNodes = Sets.newLinkedHashSet();
-              comboNodes.put(firstNode, combinedNodes);
-              label = new StringBuilder();
-              comboNodesLabels.put(firstNode, label);
-            }
-            if (label != null) {
-              combinedNodes.add(predNumber);
+            // If we have not added this node yet,
+            // add it and extend the label
+            if (combinedNodes.add(predNumber)) {
+              // If this is not the first element we combine,
+              // we should continue the description in a new line
+              if (combinedNodes.size() > 1) {
+                label.append("\n");
+              }
               label.append(predNumber);
               label.append(" ");
               label.append(edge.getDescription());
