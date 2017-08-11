@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 
 @Options
-public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
+public class CoverageCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   public static CPAFactory factory() {
     AutomaticCPAFactory factory = AutomaticCPAFactory.forType(CoverageCPA.class);
