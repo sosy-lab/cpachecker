@@ -2857,7 +2857,7 @@ residualprogram.file = "residualProgram.c"
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
-  enum:     [SLICING, CONDITION, COMBINATION]
+  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
