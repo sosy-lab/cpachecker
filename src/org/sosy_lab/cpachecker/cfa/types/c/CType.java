@@ -83,11 +83,13 @@ public interface CType extends Type {
     CType rightHandSide = pType.getCanonicalType();
 
     // Cf. C-Standard §6.5.16.1 (1), first and last constraint of the list.
-    // The {@link CSimpleType}s are corresponding to the arithmetic types
-    // described in the standard (§6.2.5).
-    if (leftHandSide instanceof CSimpleType) {
-      if ((((CSimpleType) leftHandSide).getType().equals(CBasicType.BOOL) && rightHandSide instanceof CPointerType)
-          || rightHandSide instanceof CSimpleType) {
+    if (CTypes.isArithmeticType(leftHandSide)) {
+      if (CTypes.isArithmeticType(rightHandSide)) {
+        return true;
+      }
+      if (leftHandSide instanceof CSimpleType
+          && ((CSimpleType) leftHandSide).getType().equals(CBasicType.BOOL)
+          && rightHandSide instanceof CPointerType) {
         return true;
       }
     }
