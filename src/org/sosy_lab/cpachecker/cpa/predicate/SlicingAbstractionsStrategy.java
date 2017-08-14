@@ -76,7 +76,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
 
     @Override
     public String getName() {
-      return "Impact Refiner";
+      return "Slicing Abstractions";
     }
 
     @Override

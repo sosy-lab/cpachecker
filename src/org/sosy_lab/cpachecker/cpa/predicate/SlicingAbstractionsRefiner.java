@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
+import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,6 +35,8 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -53,7 +56,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
  * "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
  */
 
-public class SlicingAbstractionsRefiner implements Refiner {
+public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
 
   @SuppressWarnings("unused")
   private final Configuration config;
@@ -114,6 +117,13 @@ public class SlicingAbstractionsRefiner implements Refiner {
     logger.log(Level.INFO, "No target state found in reached-set!");
     // We always return false since we do not want to be restarted
     return false;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    if (refiner instanceof StatisticsProvider) {
+      ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
+    }
   }
 
 }
