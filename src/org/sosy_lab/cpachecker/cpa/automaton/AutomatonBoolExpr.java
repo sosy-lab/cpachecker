@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
+import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 
 /**
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when <code>eval()</code> is called.
@@ -123,9 +124,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       }
 
       CFAEdge edge = pArgs.getCfaEdge();
-      // Copied from org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter.handleCoveredEdge(CFAEdge, Map<Integer, Integer>)
-      if (edge instanceof ADeclarationEdge
-          && (((ADeclarationEdge)edge).getDeclaration() instanceof AFunctionDeclaration)) {
+      if (!CoverageCollector.coversLine(edge)) {
         return CONST_FALSE;
       }
       if (linesToCover.contains(edge.getFileLocation().getStartingLineInOrigin())) {

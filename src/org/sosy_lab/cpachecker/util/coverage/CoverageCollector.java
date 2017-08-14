@@ -108,17 +108,23 @@ public abstract class CoverageCollector {
     collector.addExistingLine(loc.getStartingLineInOrigin());
   }
 
-
+  public static boolean coversLine(CFAEdge pEdge) {
+    FileLocation loc = pEdge.getFileLocation();
+    if (loc.getStartingLineNumber() == 0) {
+      return false;
+    }
+    if (pEdge instanceof ADeclarationEdge
+        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
+      return false;
+    }
+    return true;
+  }
   private void handleCoveredEdge(
       final CFAEdge pEdge,
       final Map<String, FileCoverageInformation> pCollectors) {
 
     FileLocation loc = pEdge.getFileLocation();
-    if (loc.getStartingLineNumber() == 0) {
-      return;
-    }
-    if (pEdge instanceof ADeclarationEdge
-        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
+    if (!coversLine(pEdge)) {
       return;
     }
 
