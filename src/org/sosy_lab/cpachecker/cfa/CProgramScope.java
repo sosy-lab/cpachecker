@@ -624,7 +624,9 @@ public class CProgramScope implements Scope {
         });
 
     Multimap<CAstNode, FileLocation> varUseLocations = HashMultimap.create();
-    StreamSupport.stream(varUses.spliterator(), false).collect(Multimaps.toMultimap(
+    return ImmutableMultimap.copyOf(StreamSupport
+      .stream(varUses.spliterator(), false)
+      .collect(Multimaps.toMultimap(
         astNode -> {
           if (astNode instanceof CSimpleDeclaration) {
             CSimpleDeclaration decl = (CSimpleDeclaration) astNode;
@@ -648,9 +650,7 @@ public class CProgramScope implements Scope {
           return idExpression.getDeclaration();
         },
         astNode -> astNode.getFileLocation(),
-        () -> varUseLocations));
-
-    return ImmutableMultimap.copyOf(varUseLocations);
+        () -> varUseLocations)));
   }
 
   private static <T extends CType> void putIfUnique(Map<String, ? super T> pTarget, String pQualifiedName, Iterable<? extends T> pValues, LogManager pLogger) {
