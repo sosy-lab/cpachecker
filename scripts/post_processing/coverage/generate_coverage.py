@@ -166,12 +166,44 @@ def run_command(command, logger):
     logger.debug(output)
     return output
 
-def only_generated_successful_executions(output):
+class FoundUserDefinedPropertyViolation():
+    def found_property_violation(self):
+        return True
+
+    def found_bug(self):
+        return True
+
+class OnlyGeneratedSuccessfulExecutions():
+    def found_property_violation(self):
+        return True
+
+    def found_bug(self):
+        return False
+
+class NoPropertyViolationFound():
+    def found_property_violation(self):
+        return False
+
+    def found_bug(self):
+        raise Exception('This method should not have been called')
+
+def parse_result(output):
     pattern = r'Verification result: [^(]*\((?P<message>[^)]*)\).*'
+    result_pattern = r'Verification result: (?P<result>.*)'
+    m_result = re.search(pattern=result_pattern, string=str(output))
     m = re.search(pattern=pattern, string=str(output))
-    if not m:
+    if not m_result:
         raise Exception("Failed to parse CPAchecker output.")
-    return m.group('message') == coverage_test_case_message
+    if (m_result.group('result').startswith('TRUE') or
+        m_result.group('result').startswith('UNKNOWN')):
+        return NoPropertyViolationFound()
+    else:
+        if not m:
+            raise Exception("Failed to parse CPAchecker output.")
+        if m.group('message') == coverage_test_case_message:
+            return OnlyGeneratedSuccessfulExecutions()
+        else:
+            return FoundUserDefinedPropertyViolation()
 
 class ComputeCoverage():
     def __init__(
@@ -331,21 +363,26 @@ class FixPointOnCoveredLines(ComputeCoverage):
 
             try:
                 output = run_command(command, self.logger)
-                bug_found = not only_generated_successful_executions(output)
                 specs_generated = move_execution_spec_and_cex_coverage_files(
                     temp_dir=temp_dir, output_dir=self.output_dir)
             finally:
                 shutil.rmtree(temp_dir)
+
             msg = 'Generated ' + str(len(specs_generated)) + ' executions.'
             self.logger.info(msg)
 
-            if bug_found:
+            cpachecker_result = parse_result(output)
+            # sanity check
+            assert (cpachecker_result.found_property_violation() or
+                    len(specs_generated) == 0)
+            if not cpachecker_result.found_property_violation():
+                self.logger.debug('CPAchecker did not generate an execution.')
+                break
+            if cpachecker_result.found_bug():
                 self.logger.error(
                     'Found an assertion violation. Inspect counterexamples '
                     'before collecting a coverage measure.')
                 raise FoundBugException()
-            if not specs_generated:
-                break
             for spec in specs_generated:
                 yield spec
                 # we might be ignoring already produced counterexamples
@@ -410,7 +447,6 @@ class GenerateFirstThenCollect(ComputeCoverage):
 
         try:
             output = run_command(command, self.logger)
-            bug_found = not only_generated_successful_executions(output)
             move_execution_spec_files(
                 temp_dir=temp_dir, output_dir=self.output_dir)
         finally:
@@ -419,7 +455,11 @@ class GenerateFirstThenCollect(ComputeCoverage):
         msg = 'Generated ' + str(cex_generated) + ' executions.'
         self.logger.info(msg)
 
-        if bug_found:
+        cpachecker_result = parse_result(output)
+        # sanity check
+        assert (cpachecker_result.found_property_violation() or
+                cex_generated == 0)
+        if cpachecker_result.found_bug():
             self.logger.error(
                 'Found an assertion violation. Inspect counterexamples '
                 'before collecting a coverage measure.')
