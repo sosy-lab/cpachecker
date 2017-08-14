@@ -73,6 +73,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
 
     private final Timer coverTime = new Timer();
     private final Timer argUpdate = new Timer();
+    private final Timer copyEdges = new Timer();
+    private final Timer sliceEdges = new Timer();
+    private final Timer calcReached = new Timer();
 
     @Override
     public String getName() {
@@ -85,6 +88,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       out.println("  Checking whether itp is new:        " + impact.itpCheckTime);
       out.println("  Coverage checks:                    " + coverTime);
       out.println("  ARG update:                         " + argUpdate);
+      out.println("    Copy edges:                       " + copyEdges);
+      out.println("    Slice edges:                      " + sliceEdges);
+      out.println("    Recalculate ReachedSet:           " + calcReached);
       out.println();
       out.println("Number of abstractions during refinements:  " + impact.abstractionTime.getNumberOfIntervals());
 
@@ -178,6 +184,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
 
     stats.argUpdate.start();
 
+    stats.copyEdges.start();
     for (ARGState w : changedElements) {
       pReached.removeCoverageOf(w);
       if (w.getForkedChild() != null && !w.getForkedChild().isForkCompleted()) {
@@ -186,11 +193,13 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
         w.getForkedChild().setForkCompleted();
       }
     }
+    stats.copyEdges.stop();
     // save root of the ARG BEFORE slicing. After slicing, there might be
     // several root states, but we need the true root state for recalculateReachedSet()!
     Set<ARGState> rootStates = ARGUtils.getRootStates(pReached.asReachedSet());
     assert rootStates.size() == 1;
 
+    stats.sliceEdges.start();
     // optimization: Slice all edges only on first iteration
     // After that we only need to slice edges of the states we split
     if (!initialSliceDone) {
@@ -202,11 +211,14 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     } else {
       sliceEdges(changedElements);
     }
+    stats.sliceEdges.stop();
 
     // We do not have a tree, so this does not make sense anymore:
     //pReached.removeInfeasiblePartofARG(infeasiblePartOfART);
     // Instead we use a different method:
+    stats.calcReached.start();
     pReached.recalculateReachedSet(rootStates.iterator().next());
+    stats.calcReached.stop();
 
     stats.argUpdate.stop();
 
