@@ -158,7 +158,6 @@ def generate_executions(
         cex_count=cex_count,
         timelimit=timelimit,
         instance=instance)
-   
 
     try:
         output = run_command(command, logger)
@@ -246,15 +245,12 @@ def check_aa(aa_file, logger):
                 raise ValueError(
                     'Assumption Automaton contains ASSUME statement.')
 
-def collect_coverage(instance, aa_file, specs_dir, heap_size, logger):
+def collect_coverage(instance, aa_file, specs_generator, heap_size, logger):
     check_aa(aa_file, logger)
 
-    cex_specs = counterexample_spec_files(specs_dir)
-    logger.info(
-        'Collecting coverage from ' + str(len(cex_specs)) + ' executions.')
     lines_covered = set()
     lines_to_cover = set()
-    for num, cex in enumerate(cex_specs, start=1):
+    for num, cex in enumerate(specs_generator, start=1):
         new_covered, new_to_cover = get_coverage(
             cex, instance, aa_file, heap_size, logger)
         lines_covered.update(new_covered)
@@ -349,7 +345,9 @@ def check_args(args, logger):
              'be present when -only_collect_coverage is not present.'))
         sys.exit(0)
 
-
+def gen_specs_from_dir(cex_dir):
+    for spec in counterexample_spec_files(cex_dir):
+        yield spec
 
 def main(argv, logger):
     parser = create_arg_parser()
@@ -373,6 +371,6 @@ def main(argv, logger):
     collect_coverage(
         instance=args.instance_filename,
         aa_file=args.assumption_automaton_file,
-        specs_dir=args.cex_dir,
+        specs_generator=gen_specs_from_dir(args.cex_dir),
         heap_size=args.heap,
         logger=logger)

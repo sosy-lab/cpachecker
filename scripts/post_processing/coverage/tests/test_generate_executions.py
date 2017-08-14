@@ -15,6 +15,10 @@ import scripts.post_processing.coverage.generate_coverage as generate_coverage
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 
+def gen_files_in_dir(dir):
+    for f in os.listdir(dir):
+        yield os.path.join(dir, f)
+
 class TestCoverage(unittest.TestCase):
     aux_root = os.path.join(script_path, 'aux_files')
     cpachecker_root = os.path.join(
@@ -143,11 +147,10 @@ class TestCoverageAAIsPrefix(TestCoverage):
                 generate_coverage.collect_coverage(
                     instance=instance,
                     aa_file=aa_file,
-                    specs_dir=specs_dir,
+                    specs_generator=gen_files_in_dir(specs_dir),
                     heap_size=None,
                     logger=self.logger)
             expected_calls =  [
-                call('Collecting coverage from 1 executions.'),
                 call('Coverage after collecting 1 executions:'),
                 call('Lines covered: 3'),
                 call('Total lines to cover: 10'),
@@ -172,11 +175,10 @@ class TestCoverageTreeAAAnd2Paths(TestCoverage):
                 generate_coverage.collect_coverage(
                     instance=instance,
                     aa_file=aa_file,
-                    specs_dir=specs_dir,
+                    specs_generator=gen_files_in_dir(specs_dir),
                     heap_size=None,
                     logger=self.logger)
             expected_calls =  [
-                call('Collecting coverage from 2 executions.'),
                 call('Coverage after collecting 1 executions:'),
                 call('Lines covered: 4'),
                 call('Total lines to cover: 10'),
@@ -210,7 +212,6 @@ class TestCoverageIntegrationOnlyCollectCoverage(TestCoverage):
         with patch.object(self.logger, 'info') as mock_info:
             generate_coverage.main(argv, self.logger)
             expected_calls =  [
-                call('Collecting coverage from 2 executions.'),
                 call('Coverage after collecting 1 executions:'),
                 call('Lines covered: 4'),
                 call('Total lines to cover: 10'),
@@ -241,7 +242,6 @@ class TestCoverageIntegrationTimelimitOptional(TestCoverage):
             generate_coverage.main(argv, self.logger)
             expected_calls =  [
                 call('Generated 3 executions.'),
-                call('Collecting coverage from 3 executions.'),
                 call('Coverage after collecting 1 executions:'),
                 call('Lines covered: 3'),
                 call('Total lines to cover: 10'),
