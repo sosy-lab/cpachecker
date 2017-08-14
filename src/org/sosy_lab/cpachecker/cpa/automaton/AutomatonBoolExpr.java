@@ -106,6 +106,45 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
   }
 
+  /**
+   *
+   */
+  public static class CheckCoversLines implements AutomatonBoolExpr {
+    private final Set<Integer> linesToCover;
+
+    public CheckCoversLines(Set<Integer> pSet) {
+      linesToCover = pSet;
+    }
+
+    @Override
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+      if (pArgs.getAbstractStates().isEmpty()) {
+        return new ResultValue<>("No CPA elements available", "AutomatonBoolExpr.CheckCoversLines");
+      }
+
+      CFAEdge edge = pArgs.getCfaEdge();
+      // Copied from org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter.handleCoveredEdge(CFAEdge, Map<Integer, Integer>)
+      if (edge instanceof ADeclarationEdge
+          && (((ADeclarationEdge)edge).getDeclaration() instanceof AFunctionDeclaration)) {
+        return CONST_FALSE;
+      }
+      if (linesToCover.contains(edge.getFileLocation().getStartingLineInOrigin())) {
+        return CONST_TRUE;
+      }
+      return CONST_FALSE;
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder b  = new StringBuilder();
+      String sep = "";
+      for (Integer i : linesToCover) {
+        b.append(sep).append(i);
+        sep = " ";
+      }
+      return "COVERS_LINES(" + b.toString() + ")";
+    }
+  }
   static enum MatchProgramEntry implements AutomatonBoolExpr {
 
     INSTANCE;

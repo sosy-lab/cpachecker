@@ -162,6 +162,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "TARGET"            { return symbol("TARGET", AutomatonSym.TARGET); }
 <YYINITIAL> "IS_TARGET_STATE"   { return symbol("IS_TARGET_STATE", AutomatonSym.IS_TARGET_STATE); }
 <YYINITIAL> ","                 { return symbol("COMMA", AutomatonSym.COMMA); }
+<YYINITIAL> "COVERS_LINES"       { return symbol("COVERS_LINES", AutomatonSym.COVERS_LINES); }
 
 <YYINITIAL> {
   /* identifiers */ 
