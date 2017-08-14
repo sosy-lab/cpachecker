@@ -211,6 +211,66 @@ class TestCoverageTreeAAAnd2Paths(TestCoverage):
         self.assertEqual(lines_covered, set([3,4,5,6,9]))
         self.assertEqual(lines_to_cover, set([3,4,5,6,7,9,10,13,14,15]))
 
+class TestCoverageFixPointProducesExecutions(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, 'three_paths.c')
+        aa_file = os.path.join(
+            self.aux_root, 'single_true_state.spc')
+        specs_dir = self.temp_folder
+        with patch.object(self.logger, 'info') as mock_info:
+            g = generate_coverage.FixPointOnCoveredLines(
+                instance=instance,
+                output_dir=specs_dir,
+                cex_count=1,
+                spec=self.default_spec,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file)
+            cex_generated = list(g.generate_executions())
+            expected_calls =  [
+                call('Generated 1 executions.'),
+            ]
+            self.assertEqual(mock_info.mock_calls, expected_calls)
+        self.assertTrue(os.path.exists(self.temp_folder))
+        self.assertEqual(len(os.listdir(self.temp_folder)), 2)
+        self.assertEqual(len(cex_generated), 1)
+
+class TestCoverageFixPointProducesAllPossibleExecutions(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, 'three_paths.c')
+        aa_file = os.path.join(
+            self.aux_root, 'single_true_state.spc')
+        specs_dir = self.temp_folder
+        with patch.object(self.logger, 'info') as mock_info:
+            g = generate_coverage.FixPointOnCoveredLines(
+                instance=instance,
+                output_dir=specs_dir,
+                cex_count=10,
+                spec=self.default_spec,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file)
+            cex_generated = [next(g.generate_executions())]
+            # Updating covered lines, to force the generator to cover
+            # other lines.
+            g.lines_covered.update([3,4,13,14,15])
+            cex_generated.append(next(g.generate_executions()))
+            g.lines_covered.update([3,4,5,6,7])
+            cex_generated.append(next(g.generate_executions()))
+            g.lines_covered.update([3,4,5,9,10])
+            expected_calls =  [
+                call('Generated 1 executions.'),
+                call('Generated 1 executions.'),
+                call('Generated 1 executions.'),
+            ]
+            self.assertEqual(mock_info.mock_calls, expected_calls)
+            self.assertEqual(len(list(g.generate_executions())), 0)
+        self.assertTrue(os.path.exists(self.temp_folder))
+        self.assertEqual(len(os.listdir(self.temp_folder)), 6)
+        self.assertEqual(len(cex_generated), 3)
+
 class TestCoverageIntegrationOnlyCollectCoverage(TestCoverage):
     def test(self):
         instance = os.path.join(self.aux_root, 'three_paths.c')
