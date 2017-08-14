@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,14 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.coverage;
-
-import java.io.PrintStream;
-import java.util.Map;
-
-
-public interface CoverageWriter {
-
-  void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pOut);
-
-}
+/**
+ * CPA that transforms the wrapped CPA into a power set version, i.e., the states explored by the
+ * wrapped CPA are stored in a set and are joined on merge.
+ * This CPA provides a simple way to transform a CPA whose merge operator does not support join
+ * into a CPA with merge-join support.
+ **/
+package org.sosy_lab.cpachecker.cpa.powerset;

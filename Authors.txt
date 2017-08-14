@@ -6,7 +6,7 @@ Former Maintainers:
   Erkan Keremoglu (2008 - 2011), Simon Fraser University, Canada
 
 Developers/Contributors:
-  Pavel Andrianov (since 2014), Russian Academy of Sciences, Russia
+  Pavel Andrianov (since 2014), ISP RAS, Russia
   Henrik Bröcher (since 2016), University of Paderborn, Germany
   Johannes Bürdek (since 2014), University of Darmstadt, Germany
   Matthias Dangl (since 2012), LMU Munich, Germany
@@ -17,15 +17,15 @@ Developers/Contributors:
   Alexander Koos (since 2017), LMU Munich, Germany
   Thomas Lemberger (since 2014), LMU Munich, Germany
   Martin Spießl (since 2017), LMU Munich, Germany
-  Mikhail Mandrykin (since 2013), Russian Academy of Sciences, Russia
+  Mikhail Mandrykin (since 2013), ISP RAS, Russia
   Michael Maier (since 2017), LMU Munich, Germany
-  Vitaly Mordan (since 2014), Russian Academy of Sciences, Russia
-  Vadim Mutilin (since 2012), Russian Academy of Sciences, Russia
+  Vitaly Mordan (since 2014), ISP RAS, Russia
+  Vadim Mutilin (since 2012), ISP RAS, Russia
   Tanja Tornede (since 2014), University of Paderborn, Germany
   Manuel Töws (since 2016), University of Paderborn, Germany
-  Anton Vasilyev (since 2015), Russian Academy of Sciences, Russia
-  Anton Volkov (since 2015), Russian Academy of Sciences, Russia
-  Ilja Zakharov (since 2016), Russian Academy of Sciences, Russia
+  Anton Vasilyev (since 2015), ISP RAS, Russia
+  Anton Volkov (since 2015), ISP RAS, Russia
+  Ilja Zakharov (since 2016), ISP RAS, Russia
 
 Former Developers/Contributors:
   Emanuele De Angelis (2013 - 2014), University of Chieti and Pescara, Italy

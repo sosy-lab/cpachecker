@@ -474,10 +474,6 @@ cegar.refiner = no default value
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
-# Allow then/else branches to be swapped in order to obtain simpler
-# conditions.
-cfa.allowBranchSwapping = true
-
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
 
@@ -679,7 +675,10 @@ counterexample.export.enabled = true
 # export counterexample as source file
 counterexample.export.exportAsSource = true
 
-# export coverage information for every witness
+# export coverage information for every witness: requires using an Assumption
+# Automaton as part of the specification. Lines are considered to be covered
+# only when the path reaching the statement does not reach the __FALSE state
+# in the Assumption Automaton.
 counterexample.export.exportCounterexampleCoverage = false
 
 # export test harness
@@ -2858,7 +2857,7 @@ residualprogram.file = "residualProgram.c"
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
-  enum:     [SLICING, CONDITION, COMBINATION]
+  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration

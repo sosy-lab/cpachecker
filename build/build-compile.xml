@@ -24,6 +24,12 @@
         <copy todir="${class.dir}">
           <fileset dir="${source.dir}">
             <exclude name="**/*.java" />
+            <exclude name="**/*.cup" />
+            <exclude name="**/*.jflex" />
+            <exclude name="**/*.nested" />
+            <exclude name="**/*.xml" />
+            <exclude name="**/*.dia" />
+            <exclude name="**/*.pdf" />
           </fileset>
         </copy>
         <javac debug="true"

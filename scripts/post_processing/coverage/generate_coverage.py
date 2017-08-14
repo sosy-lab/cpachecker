@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import sys
 from subprocess import check_output
-
+from textwrap import wrap
 
 class FoundBugException(Exception):
     pass
@@ -22,6 +22,7 @@ class FoundBugException(Exception):
 script_path = os.path.dirname(os.path.realpath(__file__))
 cpachecker_root = os.path.join(script_path, os.pardir, os.pardir, os.pardir)
 
+# Not thread safe
 temp_dir = os.path.join(script_path, 'temp_dir_coverage')
 
 def print_command(command, logger):
@@ -53,56 +54,50 @@ def gen_reach_exit_spec(f):
     print('', file=f)
     print('END AUTOMATON', file=f)
 
+def gen_covers_any_line_in_set_then_reach_exit_spec(lines_to_cover, f):
+    print('CONTROL AUTOMATON CoverageAutomaton', file=f)
+    print('', file=f)
+    print('INITIAL STATE LookingForLine;', file=f)
+    print('', file=f)
+    print('STATE USEFIRST LookingForLine:', file=f)
+    print('  CHECK(' +
+          'AutomatonAnalysis_AssumptionAutomaton, "state == __FALSE") ' +
+          '-> STOP;', file=f)
+    lines = map(str, lines_to_cover)
+    print(
+        '  COVERS_LINES(' + ' '.join(lines) + ') -> GOTO WaitForExit;', 
+        file=f)
+    print('', file=f)
+    print('STATE USEFIRST WaitForExit:', file=f)
+    print(
+        '  MATCH EXIT -> ERROR("' + coverage_test_case_message + '");',
+        file=f)
+    print('', file=f)
+    print('END AUTOMATON', file=f)
+
 def create_spec(spec_folder):
-    reach_exit_spec_file = os.path.join(spec_folder, 'spec.spc')
+    reach_exit_spec_file = os.path.join(spec_folder, 'spec' + spec_extension)
     with open(reach_exit_spec_file, 'w') as f:
         gen_reach_exit_spec(f)
     return reach_exit_spec_file
 
-def cpachecker_command(
-    temp_dir,
-    specs,
-    heap_size,
-    cex_count,
-    timelimit,
-    instance,
-    export_coverage=False):
-    conf = os.path.join(
-        cpachecker_root, 'config', 'valueAnalysis.properties')
-    coverage_options = [
-        '-setprop',
-            'counterexample.export.exportCounterexampleCoverage=true',
-        '-setprop',
-            'cpa.composite.aggregateBasicBlocks=false']
+def create_spec_for_lines(spec_folder, lines_to_cover):
+    reach_exit_spec_file = os.path.join(spec_folder, 'spec' + spec_extension)
+    with open(reach_exit_spec_file, 'w') as f:
+        gen_covers_any_line_in_set_then_reach_exit_spec(lines_to_cover, f)
+    return reach_exit_spec_file
 
-    timelimit_prop = []
-    if timelimit is not None:
-        timelimit_prop = ['-setprop', 'limits.time.cpu='+str(timelimit)+'s']
-    return [
-        os.path.join(cpachecker_root, 'scripts', 'cpa.sh'),
-        '-config' , conf,
-        '-outputpath', temp_dir,
-        '-setprop', 'specification=' + ','.join(specs)] + (
-        ['-heap', heap_size] if heap_size else []) + [
-        '-setprop', 'analysis.stopAfterError=false',
-        '-setprop', 'analysis.counterexampleLimit='+str(cex_count),
-        '-setprop', 'analysis.traversal.usePostorder=true'] + (
-        timelimit_prop) + [
-        '-setprop', 'analysis.traversal.order=DFS',
-        '-setprop', 'analysis.traversal.useReversePostorder=false',
-        '-setprop', 'analysis.traversal.useCallstack=false' ] + ( 
-        coverage_options if export_coverage else []) + [
-        instance]
-
+spec_extension = '.spc'
 def counterexample_spec_files(cex_dir):
-    pattern = r'.*Counterexample.([^.]*).spc'
-    all_files = os.listdir(cex_dir)
+    pattern = r'.*Counterexample.([^.]*)' + spec_extension
+    all_files = sorted(os.listdir(cex_dir))
     return [os.path.join(cex_dir, cex)
             for cex in all_files if re.match(pattern, cex)]
 
+cov_extension = '.aa-prefix.coverage-info'
 def counterexample_coverage_files(cex_dir):
-    pattern = r'.*Counterexample.([^.]*).aa-prefix.coverage-info'
-    all_files = os.listdir(cex_dir)
+    pattern = r'.*Counterexample.([^.]*)' + cov_extension
+    all_files = sorted(os.listdir(cex_dir))
     return [os.path.join(cex_dir, cex)
             for cex in all_files if re.match(pattern, cex)]
 
@@ -114,6 +109,50 @@ def move_execution_spec_files(temp_dir, output_dir):
     all_cex_specs = counterexample_spec_files(temp_dir)
     for spec in all_cex_specs:
         shutil.copy(src=spec, dst=output_dir)
+
+def move_execution_spec_and_cex_coverage_files(temp_dir, output_dir):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    all_cex_specs = counterexample_spec_files(temp_dir)
+    all_cex_cov = counterexample_coverage_files(temp_dir)
+
+    # sanity check, should have a coverage file for each .spc file:
+    no_extension_cov = list(map(
+        lambda s : s.replace(cov_extension, ''), all_cex_cov))
+    no_extension_spc = list(map(
+        lambda s : s.replace(spec_extension, ''), all_cex_specs))
+    assert no_extension_cov == no_extension_spc
+    def counterexample_filename(path, i, ext):
+        return os.path.join(path, 'Counterexample.' + str(i) + ext)
+        
+    i = 1
+    new_specs = []
+    for cex in no_extension_spc:
+        while True:
+            if not os.path.exists(
+                counterexample_filename(
+                    path=output_dir, i=i, ext=spec_extension)):
+                break
+            i = i + 1
+        new_spec = counterexample_filename(
+            path=output_dir, i=i, ext=spec_extension)
+        shutil.copy(
+            src=cex+spec_extension,
+            dst=new_spec)
+        new_specs.append(new_spec)
+
+        # sanity check
+        # if spec file didn't exist, coverage file shouldn't exist either
+        assert not os.path.exists(
+            counterexample_filename(
+                path=output_dir, i=i, ext=cov_extension))
+        shutil.copy(
+            src=cex+cov_extension,
+            dst=counterexample_filename(
+                path=output_dir, i=i, ext=cov_extension))
+    return new_specs
+
+    
 
 def run_command(command, logger):
     logger.debug("Executing:")
@@ -127,58 +166,360 @@ def run_command(command, logger):
     logger.debug(output)
     return output
 
-def only_generated_successful_executions(output):
-    pattern = r'Verification result: [^(]*\((?P<message>[^)]*)\).*'
-    m = re.search(pattern=pattern, string=str(output))
-    if not m:
-        raise Exception("Failed to parse CPAchecker output.")
-    return m.group('message') == coverage_test_case_message
+class FoundUserDefinedPropertyViolation():
+    def found_property_violation(self):
+        return True
 
-def generate_executions(
+    def found_bug(self):
+        return True
+
+class OnlyGeneratedSuccessfulExecutions():
+    def found_property_violation(self):
+        return True
+
+    def found_bug(self):
+        return False
+
+class NoPropertyViolationFound():
+    def found_property_violation(self):
+        return False
+
+    def found_bug(self):
+        raise Exception('This method should not have been called')
+
+def parse_result(output):
+    pattern = r'Verification result: [^(]*\((?P<message>[^)]*)\).*'
+    result_pattern = r'Verification result: (?P<result>.*)'
+    m_result = re.search(pattern=result_pattern, string=str(output))
+    m = re.search(pattern=pattern, string=str(output))
+    if not m_result:
+        raise Exception("Failed to parse CPAchecker output.")
+    if (m_result.group('result').startswith('TRUE') or
+        m_result.group('result').startswith('UNKNOWN')):
+        return NoPropertyViolationFound()
+    else:
+        if not m:
+            raise Exception("Failed to parse CPAchecker output.")
+        if m.group('message') == coverage_test_case_message:
+            return OnlyGeneratedSuccessfulExecutions()
+        else:
+            return FoundUserDefinedPropertyViolation()
+
+class ComputeCoverage():
+    def __init__(
+        self,
+        instance,
+        output_dir,
+        cex_count,
+        spec,
+        heap_size,
+        timelimit,
+        logger,
+        aa_file):
+        self.instance = instance
+        self.output_dir = output_dir
+        self.cex_count = cex_count
+        self.spec = spec
+        self.heap_size = heap_size
+        self.timelimit = timelimit
+        self.logger = logger
+        check_aa(aa_file, logger)
+        self.aa_file = aa_file
+        self.lines_covered = set()
+        self.lines_to_cover = self.compute_lines_to_cover(
+            self.instance, self.logger)
+
+    @staticmethod
+    def compute_lines_to_cover(instance, logger):
+        create_temp_dir(temp_dir)
+        command = [
+            os.path.join(cpachecker_root, 'scripts', 'cpa.sh'),
+            # Using this configuration because it seems lightweight
+            '-detectRecursion',
+            '-outputpath', temp_dir,
+            instance]
+        try:
+            run_command(command, logger)
+            lines_to_cover = get_lines_to_cover(temp_dir)
+        finally:
+            shutil.rmtree(temp_dir)
+
+        return lines_to_cover
+
+    @staticmethod
+    def cpachecker_command(
+        temp_dir,
+        specs,
+        heap_size,
+        timelimit,
+        instance,
+        export_coverage=False,
+        stop_after_error=False,
+        cex_count=0):
+        conf = os.path.join(
+            cpachecker_root, 'config', 'valueAnalysis.properties')
+        coverage_options = [
+            '-setprop',
+                'counterexample.export.exportCounterexampleCoverage=true',
+            '-setprop',
+                'cpa.composite.aggregateBasicBlocks=false']
+        stop_after_error_opts = \
+            []  if stop_after_error else \
+            ['-setprop', 'analysis.stopAfterError=false']
+        timelimit_prop = []
+        if timelimit is not None:
+            timelimit_prop = ['-setprop', 'limits.time.cpu='+str(timelimit)+'s']
+        return [
+            os.path.join(cpachecker_root, 'scripts', 'cpa.sh'),
+            '-config' , conf,
+            '-outputpath', temp_dir,
+            '-setprop', 'specification=' + ','.join(specs)] + (
+            ['-heap', heap_size] if heap_size else []) + (
+            stop_after_error_opts) + [
+            '-setprop', 'analysis.counterexampleLimit='+str(cex_count),
+            '-setprop', 'analysis.traversal.usePostorder=true'] + (
+            timelimit_prop) + [
+            '-setprop', 'analysis.traversal.order=DFS',
+            '-setprop', 'analysis.traversal.useReversePostorder=false',
+            '-setprop', 'analysis.traversal.useCallstack=false' ] + ( 
+            coverage_options if export_coverage else []) + [
+            instance]
+
+    def generate_executions(self):
+        raise NotImplementedError("Instantiate one of the sub-classes.")
+
+    def get_coverage(self, cex_spec_file, instance, aa_file, heap_size, logger):
+        cex_prefix_coverage_file = \
+            os.path.splitext(cex_spec_file)[0] + cov_extension
+        assert os.path.isfile(cex_prefix_coverage_file)
+        lines_covered, _ = parse_coverage_file(cex_prefix_coverage_file)
+        return lines_covered
+
+    def collect_coverage(self):
+        for num, cex in enumerate(self.generate_executions(), start=1):
+            new_covered = self.get_coverage(
+                cex, self.instance, self.aa_file, self.heap_size, self.logger)
+            self.lines_covered.update(new_covered)
+            self.logger.info(
+                'Coverage after collecting ' + str(num) + ' executions:' )
+            self.logger.info('Lines covered: ' + str(len(self.lines_covered)))
+            self.logger.info(
+                'Total lines to cover: ' + str(len(self.lines_to_cover)))
+            self.logger.info('')
+        self.logger.info(
+            'Total lines covered: ' + str(len(self.lines_covered)))
+        self.logger.info(
+            'Total lines to cover: ' + str(len(self.lines_to_cover)))
+        return self.lines_covered, self.lines_to_cover
+
+def gen_specs_from_dir(cex_dir):
+    for spec in counterexample_spec_files(cex_dir):
+        yield spec
+
+# When adding additional generators also update argparse documentation.
+available_generators = ['fixpoint', 'blind']
+# It will be necessary to refactor this code to support custom configuration
+# of the generators.
+def create_generator(
+    name,
     instance,
     output_dir,
     cex_count,
     spec,
     heap_size,
     timelimit,
-    logger):
+    logger,
+    aa_file):
+    if name not in available_generators:
+        raise Exception('Invalid generator name.')
+    if name == 'fixpoint':
+        return FixPointOnCoveredLines(
+            instance=instance,
+            output_dir=output_dir,
+            cex_count=cex_count,
+            spec=spec,
+            heap_size=heap_size,
+            timelimit=timelimit,
+            logger=logger,
+            aa_file=aa_file)
+    if name == 'blind':
+        return GenerateFirstThenCollect(
+            instance=instance,
+            output_dir=output_dir,
+            cex_count=cex_count,
+            spec=spec,
+            heap_size=heap_size,
+            timelimit=timelimit,
+            logger=logger,
+            aa_file=aa_file)
+    raise Exception('Missing generator constructor.')
 
-    create_temp_dir(temp_dir)
-    reach_exit_spec_file = create_spec(spec_folder=temp_dir)
+class FixPointOnCoveredLines(ComputeCoverage):
+    def __init__(
+        self,
+        instance,
+        output_dir,
+        cex_count,
+        spec,
+        heap_size,
+        timelimit,
+        logger,
+        aa_file):
+        super().__init__(
+            instance, output_dir, cex_count, spec, heap_size, timelimit, logger, aa_file)
 
-    specs = [reach_exit_spec_file, spec]
+    def generate_executions(self):
+        last_difference_size = None
+        cex_created = 0
+        while True:
+            remaining_lines = \
+                self.lines_to_cover.difference(self.lines_covered)
+            difference_size = len(remaining_lines)
+            # sanity check
+            assert (last_difference_size is None or
+                    last_difference_size > difference_size)
+            if not difference_size:
+                break
 
-    # This configuration seems to produce sufficiently good executions.
-    # However, it is entirely possible to change it.
+            create_temp_dir(temp_dir)
+            cover_line_then_reach_exit_spec_file = create_spec_for_lines(
+                spec_folder=temp_dir,
+                lines_to_cover=remaining_lines)
 
-    command = cpachecker_command(
-        temp_dir=temp_dir,
-        specs=specs,
-        heap_size=heap_size,
-        cex_count=cex_count,
-        timelimit=timelimit,
-        instance=instance)
-   
+            specs = [cover_line_then_reach_exit_spec_file,
+                     self.spec,
+                     self.aa_file]
 
-    try:
-        output = run_command(command, logger)
-        bug_found = not only_generated_successful_executions(output)
-        move_execution_spec_files(temp_dir=temp_dir, output_dir=output_dir)
-    finally:
-        shutil.rmtree(temp_dir)
-    cex_generated = len(os.listdir(output_dir))
-    msg = 'Generated ' + str(cex_generated) + ' executions.'
-    logger.info(msg)
+            command = self.cpachecker_command(
+                temp_dir=temp_dir,
+                specs=specs,
+                heap_size=self.heap_size,
+                timelimit=self.timelimit,
+                instance=self.instance,
+                export_coverage=True,
+                stop_after_error=True)
 
-    if bug_found:
-        logger.error('Found an assertion violation. '
-                     'Inspect counterexamples before collecting a '
-                     'coverage measure.')
-        raise FoundBugException()
-    return cex_generated
+            try:
+                output = run_command(command, self.logger)
+                specs_generated = move_execution_spec_and_cex_coverage_files(
+                    temp_dir=temp_dir, output_dir=self.output_dir)
+            finally:
+                shutil.rmtree(temp_dir)
+
+            msg = 'Generated ' + str(len(specs_generated)) + ' executions.'
+            self.logger.info(msg)
+
+            cpachecker_result = parse_result(output)
+            # sanity check
+            assert (cpachecker_result.found_property_violation() or
+                    len(specs_generated) == 0)
+            if not cpachecker_result.found_property_violation():
+                self.logger.debug('CPAchecker did not generate an execution.')
+                break
+            if cpachecker_result.found_bug():
+                self.logger.error(
+                    'Found an assertion violation. Inspect counterexamples '
+                    'before collecting a coverage measure.')
+                raise FoundBugException()
+            for spec in specs_generated:
+                yield spec
+                # we might be ignoring already produced counterexamples
+                # if we generate more than once at a time (this is not
+                # the case yet)
+                cex_created += 1
+                if cex_created >= self.cex_count:
+                    break
+            # Also need to leave the main loop
+            if cex_created >= self.cex_count:
+                break
+
+
+class GenerateFirstThenCollect(ComputeCoverage):
+    def __init__(
+        self,
+        instance,
+        output_dir,
+        cex_count,
+        spec,
+        heap_size,
+        timelimit,
+        logger,
+        aa_file):
+        super().__init__(
+            instance, output_dir, cex_count, spec, heap_size, timelimit, logger, aa_file)
+
+    def get_coverage(self, cex_spec_file, instance, aa_file, heap_size, logger):
+        create_temp_dir(temp_dir)
+        specs = [aa_file, cex_spec_file]
+        lines_covered = set()
+        lines_to_cover = set()
+        command = self.cpachecker_command(
+            temp_dir=temp_dir,
+            specs=specs,
+            heap_size=heap_size,
+            timelimit=900,
+            instance=instance,
+            export_coverage=True,
+            stop_after_error=True)
+        try:
+            run_command(command, logger)
+            lines_covered = get_covered_lines(temp_dir)
+            lines_to_cover = get_lines_to_cover(temp_dir)
+        finally:
+            shutil.rmtree(temp_dir)
+        return lines_covered
+
+    def generate_executions(self):
+        create_temp_dir(temp_dir)
+        reach_exit_spec_file = create_spec(spec_folder=temp_dir)
+
+        specs = [reach_exit_spec_file, self.spec]
+
+        command = self.cpachecker_command(
+            temp_dir=temp_dir,
+            specs=specs,
+            heap_size=self.heap_size,
+            cex_count=self.cex_count,
+            timelimit=self.timelimit,
+            instance=self.instance)
+
+        try:
+            output = run_command(command, self.logger)
+            move_execution_spec_files(
+                temp_dir=temp_dir, output_dir=self.output_dir)
+        finally:
+            shutil.rmtree(temp_dir)
+        cex_generated = len(os.listdir(self.output_dir))
+        msg = 'Generated ' + str(cex_generated) + ' executions.'
+        self.logger.info(msg)
+
+        cpachecker_result = parse_result(output)
+        # sanity check
+        assert (cpachecker_result.found_property_violation() or
+                cex_generated == 0)
+        if cpachecker_result.found_bug():
+            self.logger.error(
+                'Found an assertion violation. Inspect counterexamples '
+                'before collecting a coverage measure.')
+            raise FoundBugException()
+        return gen_specs_from_dir(self.output_dir)
+
+class CollectFromExistingExecutions(GenerateFirstThenCollect):
+    def __init__(
+        self,
+        instance,
+        cex_dir,
+        heap_size,
+        timelimit,
+        logger,
+        aa_file):
+        super().__init__(
+            instance, output_dir=cex_dir, cex_count=None, spec=None, heap_size=heap_size, timelimit=timelimit, logger=logger, aa_file=aa_file)
+
+    def generate_executions(self):
+        return gen_specs_from_dir(self.output_dir)
 
 def parse_coverage_file(coverage_file):
-
     lines_covered = set()
     # Some lines, such as comments and blank lines, cannot be covered.
     # These lines never show up in coverage files produced by CPAchecker.
@@ -194,7 +535,10 @@ def parse_coverage_file(coverage_file):
             n_visits = int(m.group('visits'))
             if n_visits != 0:
                 lines_covered.add(line_number)
-
+    # The coverage files produced for counterexample do not contain
+    # all the existing lines. Should not output this information.
+    if coverage_file.endswith(cov_extension):
+        lines_to_cover = None
     return lines_covered, lines_to_cover
 
 def get_covered_lines(output_dir):
@@ -211,27 +555,6 @@ def get_lines_to_cover(output_dir):
     _, lines_to_cover = parse_coverage_file(coverage_file)
     return lines_to_cover
 
-def get_coverage(cex_spec_file, instance, aa_file, heap_size, logger):
-    create_temp_dir(temp_dir)
-    specs = [aa_file, cex_spec_file]
-    lines_covered = set()
-    lines_to_cover = set()
-    command = cpachecker_command(
-        temp_dir=temp_dir,
-        specs=specs,
-        heap_size=heap_size,
-        cex_count=1,
-        timelimit=900,
-        instance=instance,
-        export_coverage=True)
-    try:
-        run_command(command, logger)
-        lines_covered = get_covered_lines(temp_dir)
-        lines_to_cover = get_lines_to_cover(temp_dir)
-    finally:
-        shutil.rmtree(temp_dir)
-    return lines_covered, lines_to_cover
-
 def check_aa(aa_file, logger):
     assert os.path.isfile(aa_file)
     with open(aa_file) as f:
@@ -245,28 +568,6 @@ def check_aa(aa_file, logger):
                     'assumptions.automatonIgnoreAssumptions=true')
                 raise ValueError(
                     'Assumption Automaton contains ASSUME statement.')
-
-def collect_coverage(instance, aa_file, specs_dir, heap_size, logger):
-    check_aa(aa_file, logger)
-
-    cex_specs = counterexample_spec_files(specs_dir)
-    logger.info(
-        'Collecting coverage from ' + str(len(cex_specs)) + ' executions.')
-    lines_covered = set()
-    lines_to_cover = set()
-    for num, cex in enumerate(cex_specs, start=1):
-        new_covered, new_to_cover = get_coverage(
-            cex, instance, aa_file, heap_size, logger)
-        lines_covered.update(new_covered)
-        lines_to_cover.update(new_to_cover)
-        logger.info(
-            'Coverage after collecting ' + str(num) + ' executions:' )
-        logger.info('Lines covered: ' + str(len(lines_covered)))
-        logger.info('Total lines to cover: ' + str(len(lines_to_cover)))
-        logger.info('')
-    logger.info('Total lines covered: ' + str(len(lines_covered)))
-    logger.info('Total lines to cover: ' + str(len(lines_to_cover)))
-    return lines_covered, lines_to_cover
 
 def create_arg_parser():
     parser = argparse.ArgumentParser()
@@ -314,6 +615,15 @@ def create_arg_parser():
     parser.add_argument(
         "-heap", help="Heap size limit to be used by CPAchecker.")
     parser.add_argument(
+        "-generator_type",
+        choices=available_generators,
+        default='fixpoint',
+        help=("Type of generator to be used. 'fixpoint' incrementally "
+             "creates executions that cover statements not covered by "
+             "previously generated executions. The generator stops producing "
+             "executions when the number of generated executions reaches "
+             "-cex_count or when CPAchecker returns TRUE or UNKNOWN."))
+    parser.add_argument(
         "instance_filename", help="Instance filename.")
     return parser
 
@@ -349,8 +659,6 @@ def check_args(args, logger):
              'be present when -only_collect_coverage is not present.'))
         sys.exit(0)
 
-
-
 def main(argv, logger):
     parser = create_arg_parser()
     if len(argv)==0:
@@ -360,19 +668,24 @@ def main(argv, logger):
     if args.debug:
         logger.setLevel(logging.DEBUG)
     check_args(args, logger)
-    
-    if not args.only_collect_coverage:
-        generate_executions(
+
+    if args.only_collect_coverage:
+        compute_coverage = CollectFromExistingExecutions(
+            instance=args.instance_filename,
+            cex_dir=args.cex_dir,
+            heap_size=args.heap,
+            timelimit=args.timelimit,
+            logger=logger,
+            aa_file=args.assumption_automaton_file)
+    else:
+        compute_coverage = create_generator(
+            name=args.generator_type,
             instance=args.instance_filename,
             output_dir=args.cex_dir,
             cex_count=args.cex_count,
             spec=args.spec,
             heap_size=args.heap,
             timelimit=args.timelimit,
-            logger=logger)
-    collect_coverage(
-        instance=args.instance_filename,
-        aa_file=args.assumption_automaton_file,
-        specs_dir=args.cex_dir,
-        heap_size=args.heap,
-        logger=logger)
+            logger=logger,
+            aa_file=args.assumption_automaton_file)
+    compute_coverage.collect_coverage()

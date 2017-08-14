@@ -395,7 +395,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                     rootState,
                     Predicates.alwaysTrue(),
                     Predicates.alwaysTrue(),
-                    GraphBuilder.CFA_FULL,
+                    GraphBuilder.CFA_FROM_ARG,
                     new InvariantProvider() {
 
                       @Override

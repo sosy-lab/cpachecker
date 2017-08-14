@@ -9,10 +9,10 @@
   If one file is changed, please also update the other one.
   -->
 
-  <resultfiles>**.graphml.gz</resultfiles>
+  <resultfiles>**.graphml</resultfiles>
 
   <rundefinition name="witness-generation">
-    <option name="-sv-comp16"/>
+    <option name="-sv-comp17"/>
   </rundefinition>
 
   <tasks name="BitVectorsReach">

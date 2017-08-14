@@ -33,13 +33,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder.ListMultimapBuilder;
 import com.google.common.collect.MultimapBuilder.SetMultimapBuilder;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.google.common.html.HtmlEscapers;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -133,9 +134,9 @@ public final class DOTBuilder2 {
    */
   private static class DOTViewBuilder extends DefaultCFAVisitor {
     // global state for all functions
-    private final Map<Integer, List<Integer>> comboNodes = new HashMap<>();
-    private final Map<Integer, String> comboNodesLabels = new HashMap<>();
-    private final List<Integer> mergedNodes = new ArrayList<>();
+    private final Map<Integer, Set<Integer>> comboNodes = new HashMap<>();
+    private final Map<Integer, StringBuilder> comboNodesLabels = new HashMap<>();
+    private final Set<Integer> mergedNodes = Sets.newLinkedHashSet();
     private final Map<Integer, List<Integer>> virtFuncCallEdges = new HashMap<>();
     private int virtFuncCallNodeIdCounter = 100000;
 
@@ -188,44 +189,53 @@ public final class DOTBuilder2 {
       return TraversalProcess.CONTINUE;
     }
 
-    void postProcessing() {
+    @SuppressWarnings("null")
+    private void postProcessing() {
       Iterator<Entry<String, List<CFAEdge>>> it = comboedges.entries().iterator();
       while (it.hasNext()) {
         Entry<String, List<CFAEdge>> entry = it.next();
-        List<CFAEdge> combo = entry.getValue();
-        String funcname = entry.getKey();
+        List<CFAEdge> combinedEdges = entry.getValue();
+        String functionName = entry.getKey();
 
-        if (combo.size() == 1) {
+        if (combinedEdges.size() == 1) {
           it.remove();
-          edges.put(funcname, combo.get(0));
-          nodes.put(funcname, combo.get(0).getPredecessor());
-          nodes.put(funcname, combo.get(0).getSuccessor());
+          CFAEdge firstEdge = combinedEdges.get(0);
+          edges.put(functionName, firstEdge);
+          nodes.put(functionName, firstEdge.getPredecessor());
+          nodes.put(functionName, firstEdge.getSuccessor());
 
-        } else if (combo.size() > 1){
-          for (CFAEdge edge : combo) {
-            CFAEdge first = combo.get(0);
-            int firstNo = first.getPredecessor().getNodeNumber();
-            if (comboNodes.containsKey(firstNo)) {
-              if (!comboNodes.get(firstNo).contains(edge.getPredecessor().getNodeNumber())) {
-                comboNodes.get(firstNo).add(edge.getPredecessor().getNodeNumber());
-                comboNodesLabels.put(
-                    firstNo, comboNodesLabels.get(firstNo) + "\n" + edge.getPredecessor().getNodeNumber() + " " + edge.getDescription());
+        } else if (combinedEdges.size() > 1) {
+          CFAEdge first = combinedEdges.get(0);
+          int firstNode = first.getPredecessor().getNodeNumber();
+          Set<Integer> combinedNodes = comboNodes.get(firstNode);
+          StringBuilder label = comboNodesLabels.get(firstNode);
+          // Initialize the list of nodes and the label if necessary
+          if (combinedNodes == null) {
+            assert label == null : "label and combinedNodes should always be initialized and changed together";
+            combinedNodes = Sets.newLinkedHashSet();
+            comboNodes.put(firstNode, combinedNodes);
+            label = new StringBuilder();
+            comboNodesLabels.put(firstNode, label);
+          }
+          for (CFAEdge edge : combinedEdges) {
+            int predNumber = edge.getPredecessor().getNodeNumber();
+            // If we have not added this node yet,
+            // add it and extend the label
+            if (combinedNodes.add(predNumber)) {
+              // If this is not the first element we combine,
+              // we should continue the description in a new line
+              if (combinedNodes.size() > 1) {
+                label.append("\n");
               }
-            } else {
-              List<Integer> nodesCombined = new ArrayList<>();
-              nodesCombined.add(edge.getPredecessor().getNodeNumber());
-              comboNodes.put(firstNo, nodesCombined);
-              comboNodesLabels.put(firstNo, edge.getPredecessor().getNodeNumber() + " " + edge.getDescription());
+              label.append(predNumber);
+              label.append(" ");
+              label.append(edge.getDescription());
             }
           }
           comboNodes.forEach(
               (k, v) -> {
-                if (v.contains(k)) {
-                  v.remove(k);
-                }
-                if (!mergedNodes.containsAll(v)) {
-                  mergedNodes.addAll(v);
-                }
+                v.remove(k);
+                mergedNodes.addAll(v);
               });
         }
 

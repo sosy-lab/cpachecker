@@ -18,7 +18,7 @@ Quick Reference to use the report
     - CFA Tab
 
       - The CFA is divided into multiple graphs (one graph per function).
-         Initially all graphs are displayed below one another beginning with `main()`.
+         Initially all graphs are displayed below one another beginning with the program entry function, i.e. `main()`.
          Change the displayed function by using the **Displayed CFA** select box or
          by double clicking on a *function call node* (square element in graph).
       - Linear sequences of "normal" edges (StatementEdges, DeclarationEdges, and BlankEdges)
