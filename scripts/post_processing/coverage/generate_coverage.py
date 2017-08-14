@@ -524,8 +524,16 @@ def parse_coverage_file(coverage_file):
     # Some lines, such as comments and blank lines, cannot be covered.
     # These lines never show up in coverage files produced by CPAchecker.
     lines_to_cover = set()
+    # This script only supports a single source file right now.
+    # For the current use case we don't need more than that but the file
+    # format does not seem to complex.
+    sf_lines = []
     with open(coverage_file) as f:
         for line in f:
+            m_sf = re.match(
+                r'^SF:(?P<sourcefile>.*)$', line)
+            if m_sf:
+                sf_lines.append(m_sf.group('sourcefile'))
             m = re.match(
                 r'^DA:(?P<line_number>[^,]*),(?P<visits>.*)$', line)
             if not m:
@@ -535,6 +543,7 @@ def parse_coverage_file(coverage_file):
             n_visits = int(m.group('visits'))
             if n_visits != 0:
                 lines_covered.add(line_number)
+    assert len(sf_lines) == 1
     # The coverage files produced for counterexample do not contain
     # all the existing lines. Should not output this information.
     if coverage_file.endswith(cov_extension):
