@@ -102,6 +102,10 @@ public class SlicingAbstractionsRefiner implements Refiner {
           logger.log(Level.INFO, "Found counterexample!");
           // Returning false will make CEGARAlgorithm terminate!
           return false;
+        } else {
+          if (SlicingAbstractionsUtility.checkProgress(pReached, errorPath) == false) {
+            throw new RuntimeException("Progress property is violated!");
+          }
         }
       } else {
         break;

@@ -33,9 +33,13 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaBuilder;
@@ -352,6 +356,22 @@ public class SlicingAbstractionsUtility {
     for (int i = 0; i< newStates.size(); i++) {
       pReached.addForkedState(newStates.get(i),originalStates.get(i));
     }
+  }
+
+  public static boolean checkProgress(UnmodifiableReachedSet pReached, ARGPath pErrorPath) {
+    Set<ARGState> rootStates = ARGUtils.getRootStates(pReached);
+    assert rootStates.size()==1;
+    ARGState root = rootStates.iterator().next();
+    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(pErrorPath);
+    assert abstractionStatesTrace.get(0).getStateId()!=0;
+    for (int i = -1 ; i < abstractionStatesTrace.size()-1; i++) {
+       ARGState first = (i==-1) ? root : abstractionStatesTrace.get(i);
+       ARGState second = abstractionStatesTrace.get(i+1);
+       if (!SlicingAbstractionsUtility.calculateOutgoingSegments(first).keySet().contains(second)) {
+         return true;
+       }
+    }
+    return false;
   }
 
 }
