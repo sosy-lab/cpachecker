@@ -501,8 +501,9 @@ public class ARGPathExporter {
             // However, if we know that the function is not going to be called,
             // this information may be valuable and can be exported
             // by creating a transition for the function call, to the sink:
-            CFAEdge callEdge = Iterables.getOnlyElement(CFAUtils.leavingEdges(assumeEdge.getSuccessor()));
-            FunctionEntryNode in = (FunctionEntryNode) callEdge.getSuccessor();
+            FunctionCallEdge callEdge = Iterables.getOnlyElement(
+                CFAUtils.leavingEdges(assumeEdge.getSuccessor()).filter(FunctionCallEdge.class));
+            FunctionEntryNode in = callEdge.getSuccessor();
             result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
           }
         } else if (exportAssumeCaseInfo) {
