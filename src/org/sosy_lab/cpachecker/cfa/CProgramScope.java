@@ -31,9 +31,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -49,7 +49,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -628,7 +627,7 @@ public class CProgramScope implements Scope {
   }
 
   private static Multimap<CAstNode, FileLocation> extractVarUseLocations(Collection<CFANode> pNodes) {
-    Iterable<CAstNode> varUses = FluentIterable
+    FluentIterable<CAstNode> varUses = FluentIterable
         .from(pNodes)
         .transformAndConcat(CFAUtils::leavingEdges)
         .transformAndConcat(CProgramScope::getAstNodesFromCfaEdge)
@@ -641,10 +640,9 @@ public class CProgramScope implements Scope {
           return true;
         });
 
-    Multimap<CAstNode, FileLocation> varUseLocations = HashMultimap.create();
-    return ImmutableMultimap.copyOf(StreamSupport
-      .stream(varUses.spliterator(), false)
-      .collect(Multimaps.toMultimap(
+    return varUses
+      .stream()
+      .collect(ImmutableSetMultimap.toImmutableSetMultimap(
         astNode -> {
           if (astNode instanceof CSimpleDeclaration) {
             CSimpleDeclaration decl = (CSimpleDeclaration) astNode;
@@ -667,8 +665,7 @@ public class CProgramScope implements Scope {
           CIdExpression idExpression = (CIdExpression) astNode;
           return idExpression.getDeclaration();
         },
-        astNode -> astNode.getFileLocation(),
-        () -> varUseLocations)));
+        astNode -> astNode.getFileLocation()));
   }
 
   private static <T extends CType> void putIfUnique(Map<String, ? super T> pTarget, String pQualifiedName, Iterable<? extends T> pValues, LogManager pLogger) {
