@@ -677,12 +677,6 @@ public class AutomatonGraphmlCommon {
     return blankSuccessorEdge.getDescription().equals("default");
   }
 
-  public static AssumeEdge getSibling(AssumeEdge pAssumeEdge) {
-    return (AssumeEdge) Iterables.getOnlyElement(CFAUtils
-          .leavingEdges(pAssumeEdge.getPredecessor())
-          .filter(e -> !e.equals(pAssumeEdge)));
-  }
-
   public static class SwitchDetector implements CFAVisitor {
 
     private final AExpression assumeExpression;

@@ -370,7 +370,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       CFAEdge edge = pArgs.getCfaEdge();
       AssumeEdge assumeEdge = (AssumeEdge) edge;
       if (!assumeEdge.getTruthAssumption()) {
-        assumeEdge = AutomatonGraphmlCommon.getSibling(assumeEdge);
+        assumeEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
       }
       FluentIterable<FunctionCallEdge> pointerCallEdges = CFAUtils
           .leavingEdges(assumeEdge.getSuccessor())
