@@ -25,6 +25,16 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
+/**
+ * This interface represents types in C. Note that different object instances might represent the
+ * conceptually same type (e.g., due to typedefs). {@link #getCanonicalType()} can be used to get a
+ * canonical representation of each type.
+ *
+ * <p>{@link CTypes} contains further helper methods for type instances.
+ *
+ * <p>The files "CTypes.dia"/"CTypes.pdf" in this package document the C type system and the
+ * CPAchecker-specific classes.
+ */
 @SuppressWarnings("serial")
 public interface CType extends Type {
 
