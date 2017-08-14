@@ -145,7 +145,7 @@ class TestDocumentExpectedShortcoming(TestGenerateExecutions):
         self.assertEqual(len(os.listdir(self.temp_folder)), 1)
         self.assertEqual(cex_generated, 1)
 
-class TestCoverageAAIsPrefix(TestCoverage):
+class TestCoverageAAIsPrefixFromExistingPath(TestCoverage):
     def test(self):
         instance = os.path.join(self.aux_root, 'three_paths.c')
         aa_file = os.path.join(
@@ -177,7 +177,40 @@ class TestCoverageAAIsPrefix(TestCoverage):
         self.assertEqual(lines_covered, set([3,4,13]))
         self.assertEqual(lines_to_cover, set([3,4,5,6,7,9,10,13,14,15]))
 
-class TestCoverageTreeAAAnd2Paths(TestCoverage):
+class TestCoveragePathAAFixPoint(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, 'three_paths.c')
+        aa_file = os.path.join(
+            self.aux_root, 'aa_three_paths_else_return_not_covered.spc')
+        with patch.object(self.logger, 'info') as mock_info:
+            self.logger.setLevel(logging.DEBUG)
+            c = generate_coverage.FixPointOnCoveredLines(
+                instance=instance,
+                output_dir=self.temp_folder,
+                cex_count=10,
+                spec=self.default_spec,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file)
+            lines_covered, lines_to_cover = \
+                c.collect_coverage()
+            expected_calls =  [
+                call('Generated 1 executions.'),
+                call('Coverage after collecting 1 executions:'),
+                call('Lines covered: 3'),
+                call('Total lines to cover: 10'),
+                call(''),
+                call('Generated 0 executions.'),
+                call('Total lines covered: 3'),
+                call('Total lines to cover: 10')
+            ]
+            self.assertEqual(mock_info.mock_calls, expected_calls)
+
+        self.assertEqual(lines_covered, set([3,4,13]))
+        self.assertEqual(lines_to_cover, set([3,4,5,6,7,9,10,13,14,15]))
+
+class TestCoverageTreeAAAndExisting2Paths(TestCoverage):
     def test(self):
         instance = os.path.join(self.aux_root, 'three_paths.c')
         aa_file = os.path.join(
