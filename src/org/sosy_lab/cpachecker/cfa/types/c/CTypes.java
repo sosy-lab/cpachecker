@@ -54,7 +54,21 @@ public final class CTypes {
   public static boolean isRealType(CType type) {
     type = type.getCanonicalType();
     return (type instanceof CEnumType)
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        || (type instanceof CBitFieldType)
         || (type instanceof CSimpleType && !(((CSimpleType) type).isComplex()));
+  }
+
+  /**
+   * Check whether a given type is an inteeger type according to the C standard § 6.2.5 (17). Also
+   * returns true for all qualified versions of arithmetic types.
+   */
+  public static boolean isIntegerType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CEnumType)
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        || (type instanceof CBitFieldType)
+        || (type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType());
   }
 
   /**
@@ -63,7 +77,10 @@ public final class CTypes {
    */
   public static boolean isArithmeticType(CType type) {
     type = type.getCanonicalType();
-    return (type instanceof CEnumType) || (type instanceof CSimpleType);
+    return (type instanceof CEnumType)
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        || (type instanceof CBitFieldType)
+        || (type instanceof CSimpleType);
   }
 
   /**
