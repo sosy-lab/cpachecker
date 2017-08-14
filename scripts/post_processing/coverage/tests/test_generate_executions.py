@@ -7,11 +7,10 @@ import shutil
 import sys
 import unittest
 import unittest.mock
-from contextlib import contextmanager
 from io import StringIO
 from unittest.mock import MagicMock, call, patch
 
-import scripts.post_processing.coverage.generate_coverage as generate_coverage
+import post_processing.coverage.generate_coverage as generate_coverage
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -32,8 +31,7 @@ class TestCoverage(unittest.TestCase):
             shutil.rmtree(self.temp_folder)
         except:
             pass
-        self.logger = logging.getLogger(
-            'scripts.coverage.generate_coverage')
+        self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
     def tearDown(self):
         try:
@@ -48,15 +46,18 @@ class TestGenerateOnlyPossibleExecution(TestGenerateExecutions):
     def test(self):
         instance = os.path.join(self.aux_root, 'two_loop_iterations.c')
         cex_count = 2 # Will only produce one, checking the output though.
+        aa_file = os.path.join(self.aux_root, 'dummy_aa.spc')
         with patch.object(self.logger, 'info') as mock_logger:
-            cex_generated = generate_coverage.produce_executions(
+            g = generate_coverage.GenerateFirstThenCollect(
                 instance=instance,
                 output_dir=self.temp_folder,
                 cex_count=cex_count,
                 spec=self.default_spec,
                 heap_size=None,
                 timelimit=self.default_timelimit,
-                logger=self.logger)
+                logger=self.logger,
+                aa_file=aa_file)
+            cex_generated = len(list(g.generate_executions()))
             mock_logger.assert_called_once_with('Generated 1 executions.')
 
         self.assertTrue(os.path.exists(self.temp_folder))
@@ -67,17 +68,20 @@ class TestGenerateExceptionFoundBug(TestGenerateExecutions):
     def test(self):
         instance = os.path.join(self.aux_root, 'contains_error.c')
         cex_count = 2 # Will only produce one, checking the output though.
+        aa_file = os.path.join(self.aux_root, 'dummy_aa.spc')
         with patch.object(self.logger, 'error') as mock_logger, \
              patch.object(self.logger, 'info') as mock_info:
             try:
-                generate_coverage.produce_executions(
+                g = generate_coverage.GenerateFirstThenCollect(
                     instance=instance,
                     output_dir=self.temp_folder,
                     cex_count=cex_count,
                     spec=self.default_spec,
                     heap_size=None,
                     timelimit=self.default_timelimit,
-                    logger=self.logger)
+                    logger=self.logger,
+                    aa_file=aa_file)
+                cex_generated = len(list(g.generate_executions()))
                 self.fail('Should have raised FoundBugException.')
             except:
                 pass
@@ -96,15 +100,18 @@ class TestGenerateAllPaths(TestGenerateExecutions):
     def test(self):
         instance = os.path.join(self.aux_root, 'three_paths.c')
         cex_count = 10 # There are only 3 paths though, checking the output.
+        aa_file = os.path.join(self.aux_root, 'dummy_aa.spc')
         with patch.object(self.logger, 'info') as mock_info:
-            cex_generated = generate_coverage.produce_executions(
+            g = generate_coverage.GenerateFirstThenCollect(
                 instance=instance,
                 output_dir=self.temp_folder,
                 cex_count=cex_count,
                 spec=self.default_spec,
                 heap_size=None,
                 timelimit=self.default_timelimit,
-                logger=self.logger)
+                logger=self.logger,
+                aa_file=aa_file)
+            cex_generated = len(list(g.generate_executions()))
             mock_info.assert_called_once_with('Generated 3 executions.')
 
         self.assertTrue(os.path.exists(self.temp_folder))
@@ -120,15 +127,18 @@ class TestDocumentExpectedShortcoming(TestGenerateExecutions):
         '''
         instance = os.path.join(self.aux_root, 'one_per_return.c')
         cex_count = 10
+        aa_file = os.path.join(self.aux_root, 'dummy_aa.spc')
         with patch.object(self.logger, 'info') as mock_info:
-            cex_generated = generate_coverage.produce_executions(
+            g = generate_coverage.GenerateFirstThenCollect(
                 instance=instance,
                 output_dir=self.temp_folder,
                 cex_count=cex_count,
                 spec=self.default_spec,
                 heap_size=None,
                 timelimit=self.default_timelimit,
-                logger=self.logger)
+                logger=self.logger,
+                aa_file=aa_file)
+            cex_generated = len(list(g.generate_executions()))
             mock_info.assert_called_once_with('Generated 1 executions.')
 
         self.assertTrue(os.path.exists(self.temp_folder))
@@ -142,14 +152,18 @@ class TestCoverageAAIsPrefix(TestCoverage):
             self.aux_root, 'aa_three_paths_else_return_not_covered.spc')
         specs_dir = os.path.join(
             self.aux_root, 'cex_three_paths', 'outer_else_block')
+        
         with patch.object(self.logger, 'info') as mock_info:
+            self.logger.setLevel(logging.DEBUG)
+            c = generate_coverage.CollectFromExistingExecutions(
+                instance=instance,
+                cex_dir=specs_dir,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file)
             lines_covered, lines_to_cover = \
-                generate_coverage.collect_coverage(
-                    instance=instance,
-                    aa_file=aa_file,
-                    specs_generator=gen_files_in_dir(specs_dir),
-                    heap_size=None,
-                    logger=self.logger)
+                c.collect_coverage()
             expected_calls =  [
                 call('Coverage after collecting 1 executions:'),
                 call('Lines covered: 3'),
@@ -171,13 +185,15 @@ class TestCoverageTreeAAAnd2Paths(TestCoverage):
         specs_dir = os.path.join(
             self.aux_root, 'cex_three_paths', 'inner_both_blocks')
         with patch.object(self.logger, 'info') as mock_info:
+            c = generate_coverage.CollectFromExistingExecutions(
+                instance=instance,
+                cex_dir=specs_dir,
+                heap_size=None,
+                timelimit=None,
+                logger=self.logger,
+                aa_file=aa_file)
             lines_covered, lines_to_cover = \
-                generate_coverage.collect_coverage(
-                    instance=instance,
-                    aa_file=aa_file,
-                    specs_generator=gen_files_in_dir(specs_dir),
-                    heap_size=None,
-                    logger=self.logger)
+                c.collect_coverage()
             expected_calls =  [
                 call('Coverage after collecting 1 executions:'),
                 call('Lines covered: 4'),
