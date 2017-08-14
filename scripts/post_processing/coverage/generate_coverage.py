@@ -134,7 +134,7 @@ def only_generated_successful_executions(output):
         raise Exception("Failed to parse CPAchecker output.")
     return m.group('message') == coverage_test_case_message
 
-def generate_executions(
+def produce_executions(
     instance,
     output_dir,
     cex_count,
@@ -348,6 +348,23 @@ def check_args(args, logger):
 def gen_specs_from_dir(cex_dir):
     for spec in counterexample_spec_files(cex_dir):
         yield spec
+def generate_executions(
+    instance,
+    output_dir,
+    cex_count,
+    spec,
+    heap_size,
+    timelimit,
+    logger):
+    produce_executions(
+        instance=instance,
+        output_dir=output_dir,
+        cex_count=cex_count,
+        spec=spec,
+        heap_size=heap_size,
+        timelimit=timelimit,
+        logger=logger)
+    return gen_specs_from_dir(output_dir)
 
 def main(argv, logger):
     parser = create_arg_parser()
@@ -359,18 +376,21 @@ def main(argv, logger):
         logger.setLevel(logging.DEBUG)
     check_args(args, logger)
     
-    if not args.only_collect_coverage:
-        generate_executions(
-            instance=args.instance_filename,
-            output_dir=args.cex_dir,
-            cex_count=args.cex_count,
-            spec=args.spec,
-            heap_size=args.heap,
-            timelimit=args.timelimit,
-            logger=logger)
+    if args.only_collect_coverage:
+        specs_generator = gen_specs_from_dir(args.cex_dir)
+    else:
+        specs_generator = \
+            generate_executions(
+                instance=args.instance_filename,
+                output_dir=args.cex_dir,
+                cex_count=args.cex_count,
+                spec=args.spec,
+                heap_size=args.heap,
+                timelimit=args.timelimit,
+                logger=logger)
     collect_coverage(
         instance=args.instance_filename,
         aa_file=args.assumption_automaton_file,
-        specs_generator=gen_specs_from_dir(args.cex_dir),
+        specs_generator=specs_generator,
         heap_size=args.heap,
         logger=logger)

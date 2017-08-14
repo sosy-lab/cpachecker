@@ -49,7 +49,7 @@ class TestGenerateOnlyPossibleExecution(TestGenerateExecutions):
         instance = os.path.join(self.aux_root, 'two_loop_iterations.c')
         cex_count = 2 # Will only produce one, checking the output though.
         with patch.object(self.logger, 'info') as mock_logger:
-            cex_generated = generate_coverage.generate_executions(
+            cex_generated = generate_coverage.produce_executions(
                 instance=instance,
                 output_dir=self.temp_folder,
                 cex_count=cex_count,
@@ -70,7 +70,7 @@ class TestGenerateExceptionFoundBug(TestGenerateExecutions):
         with patch.object(self.logger, 'error') as mock_logger, \
              patch.object(self.logger, 'info') as mock_info:
             try:
-                generate_coverage.generate_executions(
+                generate_coverage.produce_executions(
                     instance=instance,
                     output_dir=self.temp_folder,
                     cex_count=cex_count,
@@ -97,7 +97,7 @@ class TestGenerateAllPaths(TestGenerateExecutions):
         instance = os.path.join(self.aux_root, 'three_paths.c')
         cex_count = 10 # There are only 3 paths though, checking the output.
         with patch.object(self.logger, 'info') as mock_info:
-            cex_generated = generate_coverage.generate_executions(
+            cex_generated = generate_coverage.produce_executions(
                 instance=instance,
                 output_dir=self.temp_folder,
                 cex_count=cex_count,
@@ -121,7 +121,7 @@ class TestDocumentExpectedShortcoming(TestGenerateExecutions):
         instance = os.path.join(self.aux_root, 'one_per_return.c')
         cex_count = 10
         with patch.object(self.logger, 'info') as mock_info:
-            cex_generated = generate_coverage.generate_executions(
+            cex_generated = generate_coverage.produce_executions(
                 instance=instance,
                 output_dir=self.temp_folder,
                 cex_count=cex_count,
