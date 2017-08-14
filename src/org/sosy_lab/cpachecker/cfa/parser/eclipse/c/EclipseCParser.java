@@ -72,8 +72,8 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
@@ -269,7 +269,11 @@ class EclipseCParser implements CParser {
       throw new CParserException("Not exactly one statement in function body: " + pCode);
     }
 
-    return converter.convert(statements[0]);
+    try {
+      return converter.convert(statements[0]);
+    } catch (CFAGenerationRuntimeException e) {
+      throw new CParserException(e);
+    }
   }
 
   @Override
@@ -282,7 +286,11 @@ class EclipseCParser implements CParser {
 
     for (IASTStatement statement : statements) {
       if (statement != null) {
-        nodeList.add(converter.convert(statement));
+        try {
+          nodeList.add(converter.convert(statement));
+        } catch (CFAGenerationRuntimeException e) {
+          throw new CParserException(e);
+        }
       }
     }
 
