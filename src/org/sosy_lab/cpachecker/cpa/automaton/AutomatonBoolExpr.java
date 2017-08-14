@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -828,9 +827,9 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     private final FunctionEntryNode mainEntry;
 
-    private final Predicate<FileLocation> matchDescriptor;
+    private final java.util.function.Predicate<FileLocation> matchDescriptor;
 
-    public MatchLocationDescriptor(FunctionEntryNode pMainEntry, Predicate<FileLocation> pDescriptor) {
+    public MatchLocationDescriptor(FunctionEntryNode pMainEntry, java.util.function.Predicate<FileLocation> pDescriptor) {
       Preconditions.checkNotNull(pDescriptor);
 
       this.mainEntry = pMainEntry;
@@ -843,9 +842,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
     }
 
     protected boolean eval(CFAEdge edge) {
-      return Iterables.any(
-          AutomatonGraphmlCommon.getFileLocationsFromCfaEdge(edge, mainEntry),
-          matchDescriptor);
+      return AutomatonGraphmlCommon
+          .getFileLocationsFromCfaEdge(edge, mainEntry)
+          .stream()
+          .anyMatch(matchDescriptor);
     }
 
     @Override
