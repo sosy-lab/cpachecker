@@ -52,6 +52,9 @@ import java.util.logging.Level;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -62,6 +65,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -609,11 +614,24 @@ public class CProgramScope implements Scope {
     return Multimaps.index(pQualifiedDeclarations.values(), GET_NAME);
   }
 
+  private static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
+    if (pEdge instanceof ADeclarationEdge) {
+      ADeclarationEdge declarationEdge = (ADeclarationEdge) pEdge;
+      ADeclaration declaration = declarationEdge.getDeclaration();
+      if (declaration instanceof AFunctionDeclaration) {
+        return Iterables.concat(
+            CFAUtils.getAstNodesFromCfaEdge(pEdge),
+            ((AFunctionDeclaration) declaration).getParameters());
+      }
+    }
+    return CFAUtils.getAstNodesFromCfaEdge(pEdge);
+  }
+
   private static Multimap<CAstNode, FileLocation> extractVarUseLocations(Collection<CFANode> pNodes) {
     Iterable<CAstNode> varUses = FluentIterable
         .from(pNodes)
         .transformAndConcat(CFAUtils::leavingEdges)
-        .transformAndConcat(CFAUtils::getAstNodesFromCfaEdge)
+        .transformAndConcat(CProgramScope::getAstNodesFromCfaEdge)
         .filter(CAstNode.class)
         .filter((astNode -> astNode instanceof CIdExpression || astNode instanceof CSimpleDeclaration))
         .filter(astNode -> {
