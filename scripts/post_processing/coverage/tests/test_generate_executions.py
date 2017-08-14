@@ -343,6 +343,7 @@ class TestCoverageIntegrationOnlyCollectCoverage(TestCoverage):
             '-cex_dir', specs_dir,
             '-only_collect_coverage',
             '-spec', self.default_spec,
+            '-generator_type', 'blind',
             instance
         ]]
         with patch.object(self.logger, 'info') as mock_info:
@@ -372,6 +373,7 @@ class TestCoverageIntegrationTimelimitOptional(TestCoverage):
             '-cex_dir', non_existent_dir,
             '-spec', self.default_spec,
             '-cex_count', 10,
+            '-generator_type', 'blind',
             instance
         ]]
         with patch.object(self.logger, 'info') as mock_info:
@@ -390,6 +392,44 @@ class TestCoverageIntegrationTimelimitOptional(TestCoverage):
                 call('Lines covered: 5'),
                 call('Total lines to cover: 10'),
                 call(''),
+                call('Total lines covered: 5'),
+                call('Total lines to cover: 10')
+            ]
+            self.assertEqual(mock_info.mock_calls, expected_calls)
+
+class TestCoverageIntegrationFixPoint(TestCoverage):
+    def test(self):
+        instance = os.path.join(self.aux_root, 'three_paths.c')
+        aa_file = os.path.join(
+            self.aux_root, 'aa_three_paths_inner_if_both_blocks.spc')
+        non_existent_dir = self.temp_folder
+        argv = [ str(x) for x in [
+            '-assumption_automaton_file', aa_file,
+            '-cex_dir', non_existent_dir,
+            '-spec', self.default_spec,
+            '-cex_count', 10,
+            '-generator_type', 'fixpoint',
+            instance
+        ]]
+        with patch.object(self.logger, 'info') as mock_info:
+            generate_coverage.main(argv, self.logger)
+            expected_calls =  [
+                call('Generated 1 executions.'),
+                call('Coverage after collecting 1 executions:'),
+                call('Lines covered: 1'),
+                call('Total lines to cover: 10'),
+                call(''),
+                call('Generated 1 executions.'),
+                call('Coverage after collecting 2 executions:'),
+                call('Lines covered: 4'),
+                call('Total lines to cover: 10'),
+                call(''),
+                call('Generated 1 executions.'),
+                call('Coverage after collecting 3 executions:'),
+                call('Lines covered: 5'),
+                call('Total lines to cover: 10'),
+                call(''),
+                call('Generated 0 executions.'),
                 call('Total lines covered: 5'),
                 call('Total lines to cover: 10')
             ]

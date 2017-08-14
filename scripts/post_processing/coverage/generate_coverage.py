@@ -289,17 +289,17 @@ class ComputeCoverage():
         raise NotImplementedError("Instantiate one of the sub-classes.")
 
     def get_coverage(self, cex_spec_file, instance, aa_file, heap_size, logger):
-        cex_prefix_coverage_file = cex_spec_file + cov_extension
+        cex_prefix_coverage_file = \
+            os.path.splitext(cex_spec_file)[0] + cov_extension
         assert os.path.isfile(cex_prefix_coverage_file)
         lines_covered, _ = parse_coverage_file(cex_prefix_coverage_file)
         return lines_covered
 
     def collect_coverage(self):
         for num, cex in enumerate(self.generate_executions(), start=1):
-            new_covered, new_to_cover = self.get_coverage(
+            new_covered = self.get_coverage(
                 cex, self.instance, self.aa_file, self.heap_size, self.logger)
             self.lines_covered.update(new_covered)
-            self.lines_to_cover.update(new_to_cover)
             self.logger.info(
                 'Coverage after collecting ' + str(num) + ' executions:' )
             self.logger.info('Lines covered: ' + str(len(self.lines_covered)))
@@ -315,6 +315,44 @@ class ComputeCoverage():
 def gen_specs_from_dir(cex_dir):
     for spec in counterexample_spec_files(cex_dir):
         yield spec
+
+# When adding additional generators also update argparse documentation.
+available_generators = ['fixpoint', 'blind']
+# It will be necessary to refactor this code to support custom configuration
+# of the generators.
+def create_generator(
+    name,
+    instance,
+    output_dir,
+    cex_count,
+    spec,
+    heap_size,
+    timelimit,
+    logger,
+    aa_file):
+    if name not in available_generators:
+        raise Exception('Invalid generator name.')
+    if name == 'fixpoint':
+        return FixPointOnCoveredLines(
+            instance=instance,
+            output_dir=output_dir,
+            cex_count=cex_count,
+            spec=spec,
+            heap_size=heap_size,
+            timelimit=timelimit,
+            logger=logger,
+            aa_file=aa_file)
+    if name == 'blind':
+        return GenerateFirstThenCollect(
+            instance=instance,
+            output_dir=output_dir,
+            cex_count=cex_count,
+            spec=spec,
+            heap_size=heap_size,
+            timelimit=timelimit,
+            logger=logger,
+            aa_file=aa_file)
+    raise Exception('Missing generator constructor.')
 
 class FixPointOnCoveredLines(ComputeCoverage):
     def __init__(
@@ -429,7 +467,7 @@ class GenerateFirstThenCollect(ComputeCoverage):
             lines_to_cover = get_lines_to_cover(temp_dir)
         finally:
             shutil.rmtree(temp_dir)
-        return lines_covered, lines_to_cover
+        return lines_covered
 
     def generate_executions(self):
         create_temp_dir(temp_dir)
@@ -577,6 +615,15 @@ def create_arg_parser():
     parser.add_argument(
         "-heap", help="Heap size limit to be used by CPAchecker.")
     parser.add_argument(
+        "-generator_type",
+        choices=available_generators,
+        default='fixpoint',
+        help=("Type of generator to be used. 'fixpoint' incrementally "
+             "creates executions that cover statements not covered by "
+             "previously generated executions. The generator stops producing "
+             "executions when the number of generated executions reaches "
+             "-cex_count or when CPAchecker returns TRUE or UNKNOWN."))
+    parser.add_argument(
         "instance_filename", help="Instance filename.")
     return parser
 
@@ -631,7 +678,8 @@ def main(argv, logger):
             logger=logger,
             aa_file=args.assumption_automaton_file)
     else:
-        compute_coverage = GenerateFirstThenCollect(
+        compute_coverage = create_generator(
+            name=args.generator_type,
             instance=args.instance_filename,
             output_dir=args.cex_dir,
             cex_count=args.cex_count,
