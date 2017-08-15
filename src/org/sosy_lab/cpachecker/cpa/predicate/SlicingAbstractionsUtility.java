@@ -216,7 +216,21 @@ public class SlicingAbstractionsUtility {
    * @throws CPATransferException building the {@link PathFormula} from {@link CFAEdge}s failed
    * @throws InterruptedException building the {@link PathFormula} from {@link CFAEdge}s got interrupted
    */
-  public static PathFormula buildPathFormula(ARGState start, ARGState stop, SSAMap pSSAMap, Solver pSolver, PathFormulaManager pPfmgr, boolean withInvariants) throws CPATransferException, InterruptedException {
+  public static PathFormula buildPathFormula(ARGState start, ARGState stop,
+      SSAMap pSSAMap, Solver pSolver, PathFormulaManager pPfmgr, boolean withInvariants)
+          throws CPATransferException, InterruptedException {
+    List<ARGState> segmentList = SlicingAbstractionsUtility.calculateOutgoingSegments(start).get(stop);
+    return buildPathFormula(start, stop, segmentList, pSSAMap, pSolver, pPfmgr, withInvariants);
+  }
+
+  /**
+   * For better scaling, call this method instead of
+   * {@link SlicingAbstractionsUtility#buildPathFormula(ARGState, ARGState, SSAMap, Solver, PathFormulaManager, boolean)}
+   * if you already have calculated the segmentList (states between start and stop state).
+   */
+  public static PathFormula buildPathFormula(ARGState start, ARGState stop,
+      List<ARGState> segmentList, SSAMap pSSAMap, Solver pSolver, PathFormulaManager pPfmgr, boolean withInvariants)
+          throws CPATransferException, InterruptedException {
 
     final PathFormula pathFormula;
     final PathFormula startFormula;
@@ -232,7 +246,7 @@ public class SlicingAbstractionsUtility {
 
     // generate the PathFormula for the path between start and stop
     // using the relevant non-abstraction states
-    pfb = buildFormulaBuilder(start,stop);
+    pfb = buildFormulaBuilder(start,stop,segmentList);
     PathFormula p = pfb.build(pPfmgr,startFormula);
 
     //add the abstraction formula of abstraction state if the caller wants this:
@@ -245,10 +259,6 @@ public class SlicingAbstractionsUtility {
     }
 
     return pathFormula;
-  }
-
-  private static PathFormulaBuilder buildFormulaBuilder(ARGState start, ARGState stop) {
-    return buildFormulaBuilder(start,stop,calculateOutgoingSegments(start).get(stop));
   }
 
   private static PathFormulaBuilder buildFormulaBuilder(ARGState start, ARGState stop, List<ARGState> segmentList) {

@@ -247,7 +247,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
 
     List<ARGState> priorAbstractionStates = new ArrayList<>();
     for (ARGState currentState : allChangedStates) {
-      for (ARGState s : SlicingAbstractionsUtility.calculateIncomingSegments(currentState).keySet()) {
+      for (ARGState s : SlicingAbstractionsUtility.calculateStartStates(currentState)) {
         if (!priorAbstractionStates.contains(s) && ! allChangedStates.contains(s)) {
           priorAbstractionStates.add(s);
         }
@@ -260,7 +260,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
       Set<ARGState> segmentStateSet = new HashSet<>();
       for (ARGState key : segmentMap.keySet()) {
-        boolean infeasible = isInfeasibleEdge(currentState, key);
+        boolean infeasible = isInfeasibleEdge(currentState, key,segmentMap.get(key));
         infeasibleMap.put(key, infeasible);
         segmentStateSet.addAll(segmentMap.get(key));
       }
@@ -280,11 +280,11 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     }
   }
 
-  private boolean isInfeasibleEdge(ARGState parent, ARGState child) {
+  private boolean isInfeasibleEdge(ARGState parent, ARGState child, List<ARGState> segmentList) {
     boolean infeasible = false;
     try {
       SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
-      BooleanFormula formula = buildPathFormula(parent, child,startSSAMap,solver, pfmgr, true).getFormula();
+      BooleanFormula formula = buildPathFormula(parent, child, segmentList, startSSAMap, solver, pfmgr, true).getFormula();
       try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
         thmProver.push(formula);
         if (thmProver.isUnsat()) {
