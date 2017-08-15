@@ -743,10 +743,12 @@ counterexample.removeInfeasibleErrors = false
 
 # Compute and export information about the verification coverage?
 coverage.enabled = true
+coverage.enabled = no default value
 
 # print coverage info to file
 coverage.export = true
 coverage.file = "coverage.info"
+coverage.file = no default value
 
 # How should coverage be determined? REACHED: from the final ARG, TRANSFER:
 # from the edges that explored by the transfer relation
@@ -1085,6 +1087,10 @@ cpa.conditions.global.time.wall = -1
 # unit; -1 for infinite)
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
+
+# Number of times the path condition may be adjusted, i.e., the path
+# condition threshold may be increased (-1 to always adjust)
+cpa.conditions.path.adjustment.threshold = -1
 
 # determines if there should be one single assignment state per state, one
 # per path segment between assume edges, or a global one for the whole
