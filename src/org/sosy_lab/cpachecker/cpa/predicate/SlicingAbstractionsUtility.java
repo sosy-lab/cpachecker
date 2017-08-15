@@ -31,10 +31,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -372,6 +375,43 @@ public class SlicingAbstractionsUtility {
        }
     }
     return false;
+  }
+
+  /**
+   * Calculates all states on the error path to the given error state.
+   * This method is a replacement of {@link ARGUtils#getAllStatesOnPathsTo(ARGState)}
+   * for cases where the abstraction states in the ARG do not form a tree.
+   *
+   * @param errorState The state at which the error path ends.
+   *                   Should ideally contain counterexample information
+   * @return A set of all states on the path to errorState
+   */
+  public static Set<ARGState> getStatesOnErrorPath(ARGState errorState) {
+
+    final ARGPath path;
+    if (errorState.getCounterexampleInformation().isPresent()) {
+      CounterexampleInfo cexInfo = errorState.getCounterexampleInformation().get();
+      path = cexInfo.getTargetPath();
+    } else {
+      // fall back solution:
+      path = ARGUtils.getOnePathTo(errorState);
+    }
+
+    final List<ARGState> abstractionStatesOnErrorPath;
+    abstractionStatesOnErrorPath = path.asStatesList().asList().
+        stream().
+        filter(x->PredicateAbstractState.getPredicateState(x).isAbstractionState()).
+        collect(Collectors.toList());
+
+    final Set<ARGState> statesOnErrorPath = new HashSet<>();
+    statesOnErrorPath.addAll(abstractionStatesOnErrorPath);
+    for (int i = 0; i< abstractionStatesOnErrorPath.size()-1;i++) {
+      ARGState start = abstractionStatesOnErrorPath.get(i);
+      ARGState stop = abstractionStatesOnErrorPath.get(i+1);
+      statesOnErrorPath.addAll(SlicingAbstractionsUtility.calculateOutgoingSegments(start).get(stop));
+    }
+
+    return statesOnErrorPath;
   }
 
 }

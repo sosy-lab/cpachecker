@@ -103,6 +103,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
         result = refiner.performRefinementForPath(new ARGReachedSet(pReached), errorPath);
         if (!result.isSpurious()) {
           logger.log(Level.INFO, "Found counterexample!");
+          ((ARGState)targetState).addCounterexampleInformation(result);
           // Returning false will make CEGARAlgorithm terminate!
           return false;
         } else {
