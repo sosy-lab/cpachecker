@@ -104,19 +104,6 @@ public class SMGTest {
   }
 
   @Test
-  public void replaceHVSetTest() {
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(mockType, BigInteger.valueOf(16), obj1, val1.intValue());
-    Set<SMGEdgeHasValue> hvSet = new HashSet<>();
-    hvSet.add(hv);
-
-    smg.replaceHVSet(hvSet);
-
-    Set<SMGEdgeHasValue> newHVSet = smg.getHVEdges();
-
-    Assert.assertTrue(hvSet.equals(newHVSet));
-  }
-
-  @Test
   public void SMGConstructorTest() {
     SMG smg = getNewSMG64();
     Assert.assertTrue(SMGConsistencyVerifier.verifySMG(logger, smg));

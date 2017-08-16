@@ -41,8 +41,6 @@ public interface SMGHasValueEdges {
 
   public void clear();
 
-  public void replaceHvEdges(Set<SMGEdgeHasValue> pNewHV);
-
   public Set<SMGEdgeHasValue> getHvEdges();
 
   public Set<SMGEdgeHasValue> filter(SMGEdgeHasValueFilter pFilter);

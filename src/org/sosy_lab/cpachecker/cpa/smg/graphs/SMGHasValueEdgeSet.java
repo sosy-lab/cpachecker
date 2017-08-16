@@ -23,48 +23,39 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.TreeMultimap;
 
-import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue.SMGEdgeHasValueComparator;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject.SMGObjectComparator;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.NavigableSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.util.builders.SetMultiMapBuilder;
 
 
 public class SMGHasValueEdgeSet implements Set<SMGEdgeHasValue>, SMGHasValueEdges {
 
-  private TreeMultimap<SMGObject, SMGEdgeHasValue> map = TreeMultimap.create(
-      new SMGObjectComparator(), new SMGEdgeHasValueComparator());
+  private SetMultiMapBuilder<SMGObject, SMGEdgeHasValue> map = new SetMultiMapBuilder<>(
+      ImmutableMultimap.<SMGObject, SMGEdgeHasValue>of());
 
   @Override
   public SMGHasValueEdges copy() {
     SMGHasValueEdgeSet copy = new SMGHasValueEdgeSet();
-    copy.map.putAll(this.map);
+    copy.map = new SetMultiMapBuilder<>(map);
     return copy;
   }
 
   @Override
   public void removeAllEdgesOfObject(SMGObject pObj) {
-    SMGEdgeHasValue pEdge = new SMGEdgeHasValue(0, BigInteger.valueOf(0), pObj, 0);
-    NavigableSet<SMGEdgeHasValue> valueView = map.get(pEdge.getObject());
-    Iterator<SMGEdgeHasValue> iterator = valueView.iterator();
-    while (iterator.hasNext()) {
-      iterator.next();
-      iterator.remove();
-    }
+    map.removeAll(pObj);
   }
 
   @Override
   public void addEdge(SMGEdgeHasValue pEdge) {
-    NavigableSet<SMGEdgeHasValue> valueView = map.get(pEdge.getObject());
+    Set<SMGEdgeHasValue> valueView = map.get(pEdge.getObject());
     if (!valueView.contains(pEdge)) {
       map.put(pEdge.getObject(), pEdge);
     }
@@ -73,14 +64,6 @@ public class SMGHasValueEdgeSet implements Set<SMGEdgeHasValue>, SMGHasValueEdge
   @Override
   public void removeEdge(SMGEdgeHasValue pEdge) {
     map.remove(pEdge.getObject(), pEdge);
-  }
-
-  @Override
-  public void replaceHvEdges(Set<SMGEdgeHasValue> pNewHV) {
-    map.clear();
-    for(SMGEdgeHasValue edge : pNewHV) {
-      map.put(edge.getObject(), edge);
-    }
   }
 
   @Override

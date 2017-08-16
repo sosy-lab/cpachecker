@@ -321,16 +321,6 @@ public class SMG {
   }
 
   /**
-   * Replaces whole HasValue edge set with new set.
-   * @param pNewHV
-   *
-   * Keeps consistency: no
-   */
-  public void replaceHVSet(Set<SMGEdgeHasValue> pNewHV) {
-    hv_edges.replaceHvEdges(pNewHV);
-  }
-
-  /**
    * Adds a neq relation between two values to the SMG
    * Keeps consistency: no
    */

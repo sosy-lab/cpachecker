@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 public class SMGEdgeHasValue extends SMGEdge {
   final private CType type;
   final private BigInteger offset;
+  private int hashcode;
 
   public SMGEdgeHasValue(CType pType, BigInteger pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject);
@@ -123,7 +124,10 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   @Override
   public int hashCode() {
-    return 31 * super.hashCode() + Objects.hash(type, offset);
+    if (hashcode == 0) {
+      hashcode = 31 * super.hashCode() + Objects.hash(type, offset);
+    }
+    return hashcode;
   }
 
   @Override

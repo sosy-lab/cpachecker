@@ -155,16 +155,6 @@ public class SMGHasValueEdgeAdjacencyList implements SMGHasValueEdges {
   }
 
   @Override
-  public void replaceHvEdges(Set<SMGEdgeHasValue> pNewHV) {
-    valueToHveEdgeMap.clear();
-    objectToHveEdgeMap.clear();
-
-    for (SMGEdgeHasValue edge : pNewHV) {
-      addEdge(edge);
-    }
-  }
-
-  @Override
   public String toString() {
     return valueToHveEdgeMap.values().toString();
   }
