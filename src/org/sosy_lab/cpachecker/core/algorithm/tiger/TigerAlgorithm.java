@@ -172,7 +172,6 @@ public class TigerAlgorithm implements Algorithm {
     cfa = pCfa;
     cpa = pCpa;
     startupConfig = new StartupConfig(pConfig, pLogger, pShutdownNotifier);
-    startupConfig.getConfig().inject(this);
     logger = pLogger;
     assert TigerAlgorithm.originalMainFunction != null;
     mCoverageSpecificationTranslator =
@@ -231,8 +230,7 @@ public class TigerAlgorithm implements Algorithm {
 
     try (Writer writer =
         new BufferedWriter(new OutputStreamWriter(
-            new FileOutputStream(
-                "/home/gregor/Eclipse_Workspaces/CPAIntegrationTiger_v3/CPAchecker/output/testsuite.txt"),
+            new FileOutputStream(testsuiteFile.toFile()),
             "utf-8"))) {
       writer.write(testsuite.toString());
       writer.close();
@@ -439,7 +437,7 @@ public class TigerAlgorithm implements Algorithm {
   }
 
   private Pair<Boolean, Boolean> buildAndRunAlgorithm(ShutdownManager algNotifier, ARGCPA lARTCPA)
-      throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException, InvalidConfigurationException {
 
     Algorithm algorithm;
 
@@ -466,19 +464,14 @@ public class TigerAlgorithm implements Algorithm {
         CEGARAlgorithm cegarAlg = (CEGARAlgorithm) algorithm;
 
         ARGStatistics lARTStatistics;
-        try {
-          lARTStatistics = new ARGStatistics(internalConfiguration, logger, lARTCPA,
-              stats, cfa);
-        } catch (InvalidConfigurationException e) {
-          throw new RuntimeException(e);
-        }
+
+        lARTStatistics = new ARGStatistics(internalConfiguration, logger, lARTCPA,
+            stats, cfa);
+
         Set<Statistics> lStatistics = new HashSet<>();
         lStatistics.add(lARTStatistics);
         cegarAlg.collectStatistics(lStatistics);
       }
-    } catch (IOException | InvalidConfigurationException e) {
-      throw new RuntimeException(e);
-    }
 
     if (cpuTimelimitPerGoal < 0) {
       // run algorithm without time limit
@@ -494,9 +487,7 @@ public class TigerAlgorithm implements Algorithm {
       workerThread.join();
 
       if (workerRunnable.throwableWasCaught()) {
-        // TODO: handle exception
-        analysisWasSound = false;
-        //        throw new RuntimeException(workerRunnable.getCaughtThrowable());
+        throw new CPAException("Error during algorithm execution", workerRunnable.getCaughtThrowable());
       } else {
         analysisWasSound = workerRunnable.analysisWasSound();
 
@@ -507,6 +498,9 @@ public class TigerAlgorithm implements Algorithm {
       }
     }
     return Pair.of(analysisWasSound, hasTimedOut);
+    } catch (IOException e) {
+      throw new CPAException("IOError", e);
+    }
   }
 
   private TestCase handleUnavailableCounterexample(CFAEdge criticalEdge, AbstractState lastState) {
@@ -540,7 +534,7 @@ public class TigerAlgorithm implements Algorithm {
       trace.addFirst(edge);
 
       // TODO Alex?
-      if (edge.equals(criticalEdge)) {
+      if (edge != null && edge.equals(criticalEdge)) {
         logger.logf(Level.INFO,
             "*********************** extract abstract state ***********************");
       }
