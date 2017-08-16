@@ -1098,9 +1098,9 @@ public class ARGPath extends AbstractAppender {
     }
   }
 
-  public void toJSON(Appendable sb) {
+  public void toJSON(Appendable sb) throws IOException {
     List<Map<?, ?>> path = new ArrayList<>(size());
-    for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(states, edges)) {
+    for (Pair<ARGState, CFAEdge> pair : Pair.zipList(states, edges)) {
       Map<String, Object> elem = new HashMap<>();
       ARGState argelem = pair.getFirst();
       CFAEdge edge = pair.getSecond();

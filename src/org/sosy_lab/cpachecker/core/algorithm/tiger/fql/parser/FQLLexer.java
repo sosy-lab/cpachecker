@@ -26,10 +26,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser;
 
-import java_cup.runtime.*;
-import java.io.IOException;
-
 import static org.sosy_lab.cpachecker.core.algorithm.tiger.fql.parser.FQLSym.*;
+
+import java.io.IOException;
+import java_cup.runtime.Symbol;
 
 @SuppressWarnings("all")
 
@@ -451,7 +451,7 @@ final class FQLLexer implements java_cup.runtime.Scanner {
       this.zzMarkedPos = zzMarkedPos;
       this.zzBuffer = zzBuffer;
       this.zzAtEOF = zzAtEOF;
-      this.zzEOFDone = zzEOFDone;
+      this.zzEOFDone = false;
       this.yyline = yyline;
       this.yycolumn = yycolumn;
     }

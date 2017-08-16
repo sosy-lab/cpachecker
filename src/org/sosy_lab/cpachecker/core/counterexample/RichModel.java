@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableListMultimap;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.Collection;
@@ -38,9 +37,9 @@ import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 
 /**
  * This class represents an assignment of concrete values to program variables
@@ -55,7 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
  */
 public class RichModel extends ForwardingMap<AssignableTerm, Object> implements Appender {
 
-  private final Map<AssignableTerm, Object> mModel;
+  private final Model mModel;
 
   private final CFAPathWithAssumptions assignments;
   private final Multimap<CFAEdge, AssignableTerm> assignableTermsPerCFAEdge;
@@ -70,26 +69,26 @@ public class RichModel extends ForwardingMap<AssignableTerm, Object> implements 
   }
 
   private RichModel() {
-    mModel = ImmutableMap.of();
+    mModel = Model.empty();
     assignments = new CFAPathWithAssumptions(new LinkedList<CFAEdgeWithAssumptions>());
     assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
   public RichModel(Map<AssignableTerm, Object> content) {
-    mModel = ImmutableMap.copyOf(content);
+    mModel = new Model(content);
     assignments = new CFAPathWithAssumptions(new LinkedList<CFAEdgeWithAssumptions>());
     assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
   private RichModel(Map<AssignableTerm, Object> content,
       CFAPathWithAssumptions pAssignments) {
-    mModel = ImmutableMap.copyOf(content);
+    mModel = new Model(content);
     assignments = pAssignments;
     assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
   public static RichModel of(Model model) {
-    return new RichModel(model.getData());
+    return new RichModel(model);
   }
 
   /**
@@ -122,13 +121,13 @@ public class RichModel extends ForwardingMap<AssignableTerm, Object> implements 
   }
 
   @Nullable
-  public Map<ARGState, CFAEdgeWithAssumptions> getExactVariableValues(ARGPath pPath) {
+  public Map<ARGState, Collection<CFAEdgeWithAssumptions>> getExactVariableValues(ARGPath pPath) {
 
     if (assignments.isEmpty()) {
       return null;
     }
 
-    return assignments.getExactVariableValues(pPath);
+    return assignments.getExactVariableValues(pPath).asMap();
   }
 
   @Nullable
@@ -137,13 +136,13 @@ public class RichModel extends ForwardingMap<AssignableTerm, Object> implements 
     if (assignments.isEmpty()) {
       return null;
     }
-
-    return assignments.getExactVariableValues(pPath);
+    return null;
+    //return assignments.getExactVariableValues(pPath);
   }
 
   @Override
   public void appendTo(Appendable output) throws IOException {
-    Model.appendModel(output, mModel);
+    mModel.appendTo(output);
   }
 
   @Override

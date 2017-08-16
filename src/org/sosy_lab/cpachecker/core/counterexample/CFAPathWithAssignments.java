@@ -245,7 +245,7 @@ public class CFAPathWithAssignments implements Iterable<CFAEdgeWithAssignments> 
 
     int index = 0;
 
-    for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(argPath.asStatesList(), argPath.asEdgesList())) {
+    for (Pair<ARGState, CFAEdge> pair : Pair.zipList(argPath.asStatesList(), argPath.asEdgesList())) {
 
       Map<String, Object> elem = new HashMap<>();
 
