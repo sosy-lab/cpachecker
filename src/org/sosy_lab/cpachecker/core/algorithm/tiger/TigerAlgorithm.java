@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import com.google.common.collect.Lists;
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -31,6 +33,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.math.BigInteger;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -233,7 +236,6 @@ public class TigerAlgorithm implements Algorithm {
             new FileOutputStream(testsuiteFile.toFile()),
             "utf-8"))) {
       writer.write(testsuite.toString());
-      writer.close();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -308,7 +310,7 @@ public class TigerAlgorithm implements Algorithm {
 
     //write ARG to file
     Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
-    try (FileWriter w = new FileWriter(argFile.toString())) {
+    try (Writer w = Files.newBufferedWriter(argFile, UTF_8)) {
       ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
@@ -485,7 +487,8 @@ public class TigerAlgorithm implements Algorithm {
       workerThread.join();
 
       if (workerRunnable.throwableWasCaught()) {
-        throw new CPAException("Error during algorithm execution", workerRunnable.getCaughtThrowable());
+        throw new CPAException(
+            workerRunnable.getCaughtThrowable().getMessage(), workerRunnable.getCaughtThrowable());
       } else {
         analysisWasSound = workerRunnable.analysisWasSound();
 
