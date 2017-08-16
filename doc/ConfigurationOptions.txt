@@ -2995,6 +2995,9 @@ tiger.optimizeGoalAutomata = true
 # Reuse ARG across test goals
 tiger.reuseARG = true
 
+# Filename for output of generated test suite
+tiger.testsuiteFile = "testsuite.txt"
+
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
 
