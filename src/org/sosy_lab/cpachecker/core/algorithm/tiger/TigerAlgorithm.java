@@ -24,23 +24,24 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import com.google.common.collect.Lists;
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -73,10 +74,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WrapperUtil;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.counterexample.Model;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -102,7 +100,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
-import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 @Options(prefix = "tiger")
@@ -135,6 +132,13 @@ public class TigerAlgorithm implements Algorithm {
 
   @Option(secure = true, name = "reuseARG", description = "Reuse ARG across test goals")
   private boolean reuseARG = true;
+
+  @Option(
+      secure = true,
+      name = "testsuiteFile",
+      description = "Filename for output of generated test suite")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path testsuiteFile = Paths.get("testsuite.txt");
 
   private FQLSpecification fqlSpecification;
   private final LogManager logger;
@@ -223,6 +227,17 @@ public class TigerAlgorithm implements Algorithm {
       } catch (InvalidConfigurationException e) {
         logger.log(Level.SEVERE, "Failed to run reachability analysis!");
       }
+    }
+
+    try (Writer writer =
+        new BufferedWriter(new OutputStreamWriter(
+            new FileOutputStream(
+                "/home/gregor/Eclipse_Workspaces/CPAIntegrationTiger_v3/CPAchecker/output/testsuite.txt"),
+            "utf-8"))) {
+      writer.write(testsuite.toString());
+      writer.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
 
     return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -319,8 +334,7 @@ public class TigerAlgorithm implements Algorithm {
 
           //For testing
           Optional<CounterexampleInfo> cexi = ((ARGState) lastState).getCounterexampleInformation();
-          if (cexi.isPresent()) {
-          }
+          if (cexi.isPresent()) {}
           //...........
 
           Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
@@ -342,41 +356,25 @@ public class TigerAlgorithm implements Algorithm {
               if (cex.isSpurious()) {
                 logger.logf(Level.WARNING, "Counterexample is spurious!");
               } else {
-               RichModel model = cex.getTargetPathModel();
-                Comparator<Map.Entry<AssignableTerm, Object>> comp =
-                    new Comparator<Map.Entry<AssignableTerm, Object>>() {
+                List<BigInteger> inputValues = new ArrayList<>(0);
+                // calcualte shrinked error path
+                List<CFAEdge> shrinkedErrorPath =
+                    new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
+                TestCase testcase =
+                    new TestCase(inputValues, cex.getTargetPath().asEdgesList(), shrinkedErrorPath,
+                        null, null);
+                testsuite.addTestCase(testcase, pGoal);
 
-                      @Override
-                      public int compare(Entry<AssignableTerm, Object> pArg0, Entry<AssignableTerm, Object> pArg1) {
-                        assert pArg0.getKey().getName().equals(pArg1.getKey().getName());
-                        assert pArg0.getKey() instanceof Model.Variable;
-                        assert pArg1.getKey() instanceof Model.Variable;
-
-                        Model.Variable v0 = (Model.Variable) pArg0.getKey();
-                        Model.Variable v1 = (Model.Variable) pArg1.getKey();
-
-                        return (v0.getSSAIndex() - v1.getSSAIndex());
-                      }
-                    };
-
-                    TreeSet<Map.Entry<AssignableTerm, Object>> inputs = new TreeSet<>(comp);
-
-                    for (Entry<AssignableTerm, Object> e : model.entrySet()) {
-                      if (e.getKey() instanceof Model.Variable) {
-                        Model.Variable v = (Model.Variable) e.getKey();
-
-                        if (v.getName().equals(WrapperUtil.CPAtiger_INPUT + "::__retval__")) {
-                          inputs.add(e);
-                        }
-                      }
-                    }
               }
-
-
-
             }
           }
+        } else {
+          logger.logf(Level.INFO, "Test goal infeasible.");
+          testsuite.addInfeasibleGoal(pGoal, null);
         }
+      } else {
+        throw new RuntimeException(
+            "We need a last state to determine the feasibility of the test goal!");
       }
     }
 
@@ -557,5 +555,4 @@ public class TigerAlgorithm implements Algorithm {
         null,
         null);
   }
-
 }

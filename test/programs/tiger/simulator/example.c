@@ -12,14 +12,14 @@ int foobar(int x, int y, int z) {
 		G3: a = y;
 	}
 	
-	if (z > 10) {
-		if ((z - a) < 0) {
-			G4: a *= -1;
+	if (z < y) {
+		if (z < x) {
+			G4: a = y;
 		}
-		G5: z -= a;
+		G5: z = a;
 	}
 	
-	return z;
+	G6: return z;
 }
 
 
