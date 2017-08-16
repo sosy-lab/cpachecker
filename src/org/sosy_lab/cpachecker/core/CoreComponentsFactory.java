@@ -383,17 +383,17 @@ public class CoreComponentsFactory {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
       }
 
+      TigerConfiguration tigerConfig = new TigerConfiguration(config);
+      if (tigerConfig.useTigerAlgorithm) {
+        algorithm = new TigerAlgorithm(logger,cfa,config,cpa,shutdownNotifier, programDenotation, specification);
+      }
+
       if (collectAssumptions) {
         algorithm = new AssumptionCollectorAlgorithm(algorithm, cpa, config, logger);
       }
 
       if (useAdjustableConditions) {
         algorithm = new RestartWithConditionsAlgorithm(algorithm, cpa, config, logger);
-      }
-
-      TigerConfiguration tigerConfig = new TigerConfiguration(config);
-      if (tigerConfig.useTigerAlgorithm) {
-        algorithm = new TigerAlgorithm(logger,cfa,config,cpa,shutdownNotifier, programDenotation, specification);
       }
 
       if (usePropertyCheckingAlgorithm) {
