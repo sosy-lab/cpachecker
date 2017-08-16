@@ -289,15 +289,13 @@ public class TigerAlgorithm implements Algorithm {
     //build CPAs for the goal
     ARGCPA lARTCPA = buildCPAs(pGoal);
 
-    reachedSet = new LocationMappedReachedSet(Waitlist.TraversalMethod.BFS); // TODO why does TOPSORT not exist anymore?
+    reachedSet = outsideReachedSet;
     AbstractState lInitialElement =
         lARTCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
     Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction(),
         StateSpacePartition.getDefaultPartition());
 
     reachedSet.add(lInitialElement, lInitialPrecision);
-
-    outsideReachedSet.add(lInitialElement, lInitialPrecision);
 
     ShutdownManager algNotifier =
         ShutdownManager.createWithParent(startupConfig.getShutdownNotifier());
