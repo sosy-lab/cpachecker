@@ -85,10 +85,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
-import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -155,7 +153,6 @@ public class TigerAlgorithm implements Algorithm {
   private GuardedEdgeLabel mOmegaLabel;
   private InverseGuardedEdgeLabel mInverseAlphaLabel;
   private final Configuration config;
-  private ReachedSet outsideReachedSet = null;
   private ReachedSet reachedSet = null;
   private StartupConfig startupConfig;
   private String programDenotation;
@@ -202,8 +199,8 @@ public class TigerAlgorithm implements Algorithm {
     logger.logf(Level.INFO,
         "We will not use the provided reached set since it violates the internal structure of Tiger's CPAs");
     logger.logf(Level.INFO, "We empty pReachedSet to stop complaints of an incomplete analysis");
-    outsideReachedSet = pReachedSet;
-    outsideReachedSet.clear();
+    reachedSet = pReachedSet;
+    reachedSet.clear();
 
     goalPatterns = extractTestGoalPatterns(fqlSpecification);
 
@@ -291,7 +288,6 @@ public class TigerAlgorithm implements Algorithm {
     //build CPAs for the goal
     ARGCPA lARTCPA = buildCPAs(pGoal);
 
-    reachedSet = outsideReachedSet;
     AbstractState lInitialElement =
         lARTCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
     Precision lInitialPrecision = lARTCPA.getInitialPrecision(cfa.getMainFunction(),
