@@ -743,12 +743,10 @@ counterexample.removeInfeasibleErrors = false
 
 # Compute and export information about the verification coverage?
 coverage.enabled = true
-coverage.enabled = no default value
 
 # print coverage info to file
 coverage.export = true
 coverage.file = "coverage.info"
-coverage.file = no default value
 
 # How should coverage be determined? REACHED: from the final ARG, TRANSFER:
 # from the edges that explored by the transfer relation
