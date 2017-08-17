@@ -729,14 +729,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    *
    * @param pPts1 The first set of pointer targets.
    * @param pPts2 The second set of pointer targets.
-   * @param pResultSSA The SSA map.
+   * @param pSsa The SSAMap to use.
    * @return A set of pointer targets merged from both.
    * @throws InterruptedException If the execution was interrupted.
    */
   @Override
-  public MergeResult<PointerTargetSet> mergePointerTargetSets(PointerTargetSet pPts1,
-      PointerTargetSet pPts2, SSAMapBuilder pResultSSA) throws InterruptedException {
-    return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pResultSSA, this);
+  public MergeResult<PointerTargetSet> mergePointerTargetSets(
+      PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSsa) throws InterruptedException {
+    return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pSsa, this);
   }
 
   /**

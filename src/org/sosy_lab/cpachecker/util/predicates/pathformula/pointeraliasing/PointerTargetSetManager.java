@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
@@ -249,7 +249,7 @@ class PointerTargetSetManager {
    *
    * @param pts1 The first {@code PointerTargetSet}.
    * @param pts2 The second {@code PointerTargetSet}.
-   * @param resultSSA The map of SSA indices.
+   * @param ssa The map of SSA indices.
    * @param conv The converter for C code to SMT formulae.
    * @return The merged {@code PointerTargetSet}s.
    * @throws InterruptedException If the algorithms gets interrupted by an external shutdown.
@@ -257,7 +257,7 @@ class PointerTargetSetManager {
   MergeResult<PointerTargetSet> mergePointerTargetSets(
       final PointerTargetSet pts1,
       final PointerTargetSet pts2,
-      final SSAMapBuilder resultSSA,
+      final SSAMap ssa,
       final CtoFormulaConverter conv)
       throws InterruptedException {
 
@@ -393,9 +393,9 @@ class PointerTargetSetManager {
 
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
     final BooleanFormula mergeFormula2 =
-        makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, resultSSA);
+        makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, ssa);
     final BooleanFormula mergeFormula1 =
-        makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, resultSSA);
+        makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, ssa);
 
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultPTSBuilder =
@@ -531,8 +531,10 @@ class PointerTargetSetManager {
    * @param ssa The SSA map.
    * @return A boolean formula for the import constraint.
    */
-  private BooleanFormula makeValueImportConstraints(final PersistentSortedMap<String, CType> newBases,
-      final List<Pair<CCompositeType, String>> sharedFields, final SSAMapBuilder ssa) {
+  private BooleanFormula makeValueImportConstraints(
+      final PersistentSortedMap<String, CType> newBases,
+      final List<Pair<CCompositeType, String>> sharedFields,
+      final SSAMap ssa) {
     List<BooleanFormula> constraints = new ArrayList<>();
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey())
@@ -553,19 +555,19 @@ class PointerTargetSetManager {
   /**
    * Create constraint that imports the old value of a variable into the memory handled with UFs.
    *
-   * @param address        The formula for the address.
+   * @param address The formula for the address.
    * @param variablePrefix A prefix for variables.
-   * @param variableType   The type of the variable.
-   * @param sharedFields   A list of shared fields.
-   * @param ssa  The SSA map.
+   * @param variableType The type of the variable.
+   * @param sharedFields A list of shared fields.
+   * @param ssa The SSA map.
    * @return A boolean formula for the import constraint.
    */
-  private <I extends Formula >BooleanFormula makeValueImportConstraints(
+  private <I extends Formula> BooleanFormula makeValueImportConstraints(
       final I address,
       final String variablePrefix,
       final CType variableType,
       final List<Pair<CCompositeType, String>> sharedFields,
-      final SSAMapBuilder ssa,
+      final SSAMap ssa,
       final MemoryRegion region) {
 
     assert !CTypeUtils.containsArrayOutsideFunctionParameter(variableType)
@@ -621,7 +623,7 @@ class PointerTargetSetManager {
    * @return A formula for the dereference of the type.
    */
   private <I extends Formula> Formula makeDereference(
-      final CType type, final I address, final SSAMapBuilder ssa, MemoryRegion region) {
+      final CType type, final I address, final SSAMap ssa, MemoryRegion region) {
     final String ufName = regionMgr.getPointerAccessName(region);
     final int index = ssa.getIndex(ufName);
     final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
