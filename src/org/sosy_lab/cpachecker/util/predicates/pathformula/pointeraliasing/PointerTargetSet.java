@@ -124,8 +124,11 @@ public final class PointerTargetSet implements Serializable {
   }
 
   boolean isEmpty() {
-    return bases.isEmpty() && fields.isEmpty()
-        && lastBase == null && deferredAllocations.isEmpty();
+    return bases.isEmpty()
+        && fields.isEmpty()
+        && lastBase == null
+        && deferredAllocations.isEmpty()
+        && allocationCount == 0;
   }
 
   @Override
@@ -141,6 +144,7 @@ public final class PointerTargetSet implements Serializable {
     result = prime * result + fields.hashCode();
     result = prime * result + Objects.hashCode(lastBase);
     result = prime * result + deferredAllocations.hashCode();
+    result = prime * result + Integer.hashCode(allocationCount);
     return result;
   }
 
@@ -157,7 +161,8 @@ public final class PointerTargetSet implements Serializable {
       return Objects.equals(lastBase, other.lastBase)
           && bases.equals(other.bases)
           && fields.equals(other.fields)
-          && deferredAllocations.equals(other.deferredAllocations);
+          && deferredAllocations.equals(other.deferredAllocations)
+          && allocationCount == other.allocationCount;
     }
   }
 
@@ -166,7 +171,8 @@ public final class PointerTargetSet implements Serializable {
       final @Nullable String lastBase,
       final PersistentSortedMap<CompositeField, Boolean> fields,
       final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations,
-      final PersistentSortedMap<String, PersistentList<PointerTarget>> targets) {
+      final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+      final int pAllocationCount) {
     this.bases = bases;
     this.lastBase = lastBase;
     this.fields = fields;
@@ -174,6 +180,7 @@ public final class PointerTargetSet implements Serializable {
     this.deferredAllocations = deferredAllocations;
 
     this.targets = targets;
+    allocationCount = pAllocationCount;
 
     if (isEmpty()) {
       // Inside isEmpty(), we do not check the following the targets field.
@@ -208,6 +215,11 @@ public final class PointerTargetSet implements Serializable {
     return targets;
   }
 
+  /** Get the number of allocations of memory on the heap. */
+  int getAllocationCount() {
+    return allocationCount;
+  }
+
   @Nullable
   String getLastBase() {
     return lastBase;
@@ -219,7 +231,8 @@ public final class PointerTargetSet implements Serializable {
           null,
           PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
           PersistentLinkedList.<Pair<String, DeferredAllocation>>of(),
-          PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of());
+          PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of(),
+          0);
 
   private static final Joiner joiner = Joiner.on(" ");
 
@@ -248,6 +261,8 @@ public final class PointerTargetSet implements Serializable {
   // its value is not tracked and might get lost.
   private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
 
+  private final int allocationCount;
+
   private static final String BASE_PREFIX = "__ADDRESS_OF_";
 
   private static final long serialVersionUID = 2102505458322248624L;
@@ -272,6 +287,7 @@ public final class PointerTargetSet implements Serializable {
     private final PersistentSortedMap<CompositeField, Boolean> fields;
     private final List<Pair<String, DeferredAllocation>> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
+    private final int allocationCount;
 
     private SerializationProxy(PointerTargetSet pts) {
       bases = pts.bases;
@@ -281,6 +297,7 @@ public final class PointerTargetSet implements Serializable {
           Lists.newArrayList(pts.deferredAllocations);
       this.deferredAllocations = deferredAllocations;
       this.targets = new HashMap<>(Maps.transformValues(pts.targets, Lists::newArrayList));
+      allocationCount = pts.allocationCount;
     }
 
     private Object readResolve() {
@@ -290,7 +307,8 @@ public final class PointerTargetSet implements Serializable {
           fields,
           PersistentLinkedList.copyOf(deferredAllocations),
           PathCopyingPersistentTreeMap.copyOf(
-              Maps.transformValues(this.targets, PersistentLinkedList::copyOf)));
+              Maps.transformValues(this.targets, PersistentLinkedList::copyOf)),
+          allocationCount);
     }
   }
 }

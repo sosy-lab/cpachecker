@@ -24,7 +24,14 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ImmutableSortedSet;
-
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -52,21 +59,10 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * This class is responsible for handling everything related to dynamic memory,
@@ -269,12 +265,14 @@ class DynamicMemoryHandler {
     }
     Formula address;
     if (newType != null) {
-      final String newBase = makeAllocVariableName(functionName, newType, ssa, conv);
+      final String newBase =
+          makeAllocVariableName(functionName, newType, pts.getFreshAllocationId());
       address =  makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                  newType,
                                  newBase);
     } else {
-      final String newBase = makeAllocVariableName(functionName, CVoidType.VOID, ssa, conv);
+      final String newBase =
+          makeAllocVariableName(functionName, CVoidType.VOID, pts.getFreshAllocationId());
       pts.addTemporaryDeferredAllocation(
           conv.options.isSuccessfulZallocFunctionName(functionName),
           Optional.ofNullable(size)
@@ -366,21 +364,16 @@ class DynamicMemoryHandler {
    *
    * @param functionName The name of the function.
    * @param type The type of the function.
-   * @param ssa The SSA map.
-   * @param conv The C to SMT formula converter.
+   * @param allocationId A unique ID for this allocation
    * @return A name for allocations.
    */
-  static String makeAllocVariableName(final String functionName, final CType type,
-      final SSAMapBuilder ssa, final CtoFormulaConverter conv) {
+  static String makeAllocVariableName(
+      final String functionName, final CType type, final int allocationId) {
     return functionName
         + "_"
         + CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type)
         + MALLOC_INDEX_SEPARATOR
-        + conv.makeFreshIndex(
-            CToFormulaConverterWithPointerAliasing.SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX
-                + functionName,
-            type,
-            ssa);
+        + allocationId;
   }
 
   /**

@@ -26,9 +26,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.testing.ClassSanityTester;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.lang.reflect.Constructor;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,8 +39,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-
-import java.lang.reflect.Constructor;
 
 /**
  * Testing the custom SSA implementation.
@@ -59,7 +56,8 @@ public class PathFormulaTest {
         null,
         PathCopyingPersistentTreeMap.of(),
         PersistentLinkedList.of(),
-        PathCopyingPersistentTreeMap.of()
+        PathCopyingPersistentTreeMap.of(),
+        0
         );
 
     return new ClassSanityTester()

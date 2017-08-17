@@ -32,6 +32,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
+import com.google.common.math.IntMath;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -343,6 +344,8 @@ class PointerTargetSetManager {
         mergeLists(pts1.getDeferredAllocations(), pts2.getDeferredAllocations());
     shutdownNotifier.shutdownIfNecessary();
 
+    int allocationCount = Math.max(pts1.getAllocationCount(), pts2.getAllocationCount());
+
     final String lastBase;
     final BooleanFormula basesMergeFormula;
     if (pts1.getLastBase() == null ||
@@ -369,8 +372,10 @@ class PointerTargetSetManager {
       // Otherwise we have no possibility to determine which base to use as lastBase,
       // so we create an additional fake one.
       final CType fakeBaseType = getFakeBaseType(0);
-      final String fakeBaseName = DynamicMemoryHandler.makeAllocVariableName(
-          FAKE_ALLOC_FUNCTION_NAME, fakeBaseType, resultSSA, conv);
+      allocationCount = IntMath.checkedAdd(allocationCount, 1);
+      final String fakeBaseName =
+          DynamicMemoryHandler.makeAllocVariableName(
+              FAKE_ALLOC_FUNCTION_NAME, fakeBaseType, allocationCount);
       mergedBases = mergedBases.putAndCopy(fakeBaseName, fakeBaseType);
       lastBase = fakeBaseName;
       basesMergeFormula = formulaManager.makeAnd(getNextBaseAddressInequality(fakeBaseName, pts1.getBases(), pts1.getLastBase()),
@@ -379,7 +384,12 @@ class PointerTargetSetManager {
 
     PointerTargetSet resultPTS =
         new PointerTargetSet(
-            mergedBases, lastBase, mergedFields, mergedDeferredAllocations, mergedTargets);
+            mergedBases,
+            lastBase,
+            mergedFields,
+            mergedDeferredAllocations,
+            mergedTargets,
+            allocationCount);
 
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
     final BooleanFormula mergeFormula2 =
