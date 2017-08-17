@@ -110,11 +110,6 @@ import org.sosy_lab.java_smt.api.FormulaType;
 @SuppressWarnings("OvershadowingSubclassFields")
 public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
 
-  /**
-   * Prefix for marking symbols in the SSAMap that do not need update terms.
-   */
-  static final String SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX = "#";
-
   // Overrides just for visibility in other classes of this package
 
   @SuppressWarnings("hiding")
@@ -260,9 +255,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
-    if (symbolName.startsWith(SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX)) {
-      return bfmgr.makeTrue();
-    } else if (isPointerAccessSymbol(symbolName)) {
+    if (isPointerAccessSymbol(symbolName)) {
       if(!options.useMemoryRegions()) {
         assert symbolName.equals(getPointerAccessNameForType(symbolType));
       } else {
