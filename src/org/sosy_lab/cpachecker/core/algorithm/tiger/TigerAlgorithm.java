@@ -486,7 +486,7 @@ public class TigerAlgorithm implements Algorithm, StatisticsProvider {
     }
     return Pair.of(analysisWasSound, hasTimedOut);
     } catch (IOException e) {
-      throw new CPAException("IOError", e);
+      throw new CPAException(e.getMessage(), e);
     }
   }
 
