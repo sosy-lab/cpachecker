@@ -25,14 +25,13 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import com.google.common.collect.ForwardingList;
 import com.google.common.collect.Lists;
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -54,9 +53,11 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -84,6 +85,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -104,7 +106,7 @@ import org.sosy_lab.cpachecker.util.automaton.NondeterministicFiniteAutomaton;
 import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
 
 @Options(prefix = "tiger")
-public class TigerAlgorithm implements Algorithm {
+public class TigerAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
       secure = true,
@@ -148,6 +150,7 @@ public class TigerAlgorithm implements Algorithm {
   private CoverageSpecificationTranslator mCoverageSpecificationTranslator;
   public static String originalMainFunction = null;
   private int statistics_numberOfTestGoals;
+  private ARGsCreated args;
   private Wrapper wrapper;
   private GuardedEdgeLabel mAlphaLabel;
   private GuardedEdgeLabel mOmegaLabel;
@@ -189,6 +192,7 @@ public class TigerAlgorithm implements Algorithm {
     this.programDenotation = programDenotation;
     this.stats = stats;
     testsuite = new TestSuite(null);
+    args = new ARGsCreated();
   }
 
   @Override
@@ -226,15 +230,6 @@ public class TigerAlgorithm implements Algorithm {
       } catch (InvalidConfigurationException e) {
         logger.log(Level.SEVERE, "Failed to run reachability analysis!");
       }
-    }
-
-    try (Writer writer =
-        new BufferedWriter(new OutputStreamWriter(
-            new FileOutputStream(testsuiteFile.toFile()),
-            "utf-8"))) {
-      writer.write(testsuite.toString());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
 
     return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -304,13 +299,8 @@ public class TigerAlgorithm implements Algorithm {
     Pair<Boolean, Boolean> analysisWasSound_hasTimedOut =
         buildAndRunAlgorithm(algNotifier, lARTCPA);
 
-    //write ARG to file
-    Path argFile = Paths.get("output", "ARG_goal_" + goalIndex + ".dot");
-    try (Writer w = Files.newBufferedWriter(argFile, UTF_8)) {
-      ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
-    } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
-    }
+    //store ARG to write to file later
+    args.add(Pair.of((ARGState) reachedSet.getFirstState(), goalIndex));
 
     if (analysisWasSound_hasTimedOut.getSecond()) {
       return ReachabilityAnalysisResult.TIMEDOUT;
@@ -546,4 +536,60 @@ public class TigerAlgorithm implements Algorithm {
         null,
         null);
   }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(new TestSuiteStatistics());
+    statsCollection.add(new ARGsCreated());
+  }
+
+  private class TestSuiteStatistics implements Statistics {
+
+    @Override
+    public void printStatistics(
+        PrintStream out, Result result, UnmodifiableReachedSet reached) {
+      try {
+        MoreFiles.writeFile(testsuiteFile, Charset.defaultCharset(), testsuite);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
+      }
+    }
+
+    @Nullable
+    @Override
+    public String getName() {
+      return "Test suite";
+    }
+  }
+
+  private class ARGsCreated extends ForwardingList<Pair<ARGState, Integer>> implements Statistics {
+
+    private List<Pair<ARGState, Integer>> args = new ArrayList<>(500);
+
+    @Override
+    protected List<Pair<ARGState, Integer>> delegate() {
+      return args;
+    }
+
+    @Override
+    public void printStatistics(
+        PrintStream out, Result result, UnmodifiableReachedSet reached) {
+      for (Pair<ARGState, Integer> s : args) {
+        Path argFile = Paths.get("output", "ARG_goal_" + s.getSecond() + ".dot");
+        try (Writer w = Files.newBufferedWriter(argFile, UTF_8)) {
+          ARGUtils.writeARGAsDot(w, (ARGState) reachedSet.getFirstState());
+        } catch (IOException e) {
+          logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+        }
+      }
+
+    }
+
+    @Nullable
+    @Override
+    public String getName() {
+      return "Test-goal ARGs";
+    }
+  }
+
 }
