@@ -369,18 +369,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
-    boolean initialEncountered = false;
-    for (final ARGState s : relevantStates) {
-      if (s.getParents().isEmpty()) {
-        if (!initialEncountered) {
-          sb.append("STATE USEFIRST ARG" + initialState.getStateId() + " :\n");
-          initialEncountered = true;
-        }
-        sb.append("    TRUE -> GOTO ARG" + s.getStateId() + ";\n");
-      }
-    }
-    sb.append("\n");
-
     for (final ARGState s : relevantStates) {
       assert !s.isCovered();
 
@@ -446,6 +434,15 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           addAssumption(sb, assumptionChild, ignoreAssumptions);
           finishTransition(sb, child, relevantStates, falseAssumptionStates, actionOnFinalEdges, branching);
 
+        }
+
+        if (s.equals(initialState)) {
+          for (final ARGState t : relevantStates) {
+            if (t.getParents().isEmpty() && !s.equals(t)) {
+              sb.append("    TRUE -> GOTO ARG" + s.getStateId() + ";\n");
+            }
+          }
+          sb.append("\n\n");
         }
 
         sb.append(";\n");
