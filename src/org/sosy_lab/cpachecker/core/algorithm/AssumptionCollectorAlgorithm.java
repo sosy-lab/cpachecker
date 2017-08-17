@@ -369,6 +369,18 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
+    boolean initialEncountered = false;
+    for (final ARGState s : relevantStates) {
+      if (s.getParents().isEmpty()) {
+        if (!initialEncountered) {
+          sb.append("STATE USEFIRST ARG" + initialState.getStateId() + " :\n");
+          initialEncountered = true;
+        }
+        sb.append("    TRUE -> GOTO ARG" + s.getStateId() + ";\n");
+      }
+    }
+    sb.append("\n");
+
     for (final ARGState s : relevantStates) {
       assert !s.isCovered();
 
