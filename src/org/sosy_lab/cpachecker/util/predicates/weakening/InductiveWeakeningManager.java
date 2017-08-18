@@ -27,7 +27,6 @@ package org.sosy_lab.cpachecker.util.predicates.weakening;
 import static org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY.CEX;
 
 import com.google.common.collect.BiMap;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Multiset;
@@ -151,14 +150,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
             .map(f -> fmgr.instantiate(f, startingSSA))
             .collect(bfmgr.toConjunction());
 
-    Collection<BooleanFormula> toStateLemmasInstantiated =
-        Collections2.transform(toStateLemmas, f -> fmgr.instantiate(f, transition.getSsa()));
-
     // Mapping from selectors to the items they annotate.
-    final BiMap<BooleanFormula, BooleanFormula> selectionInfo =
-        annotateConjunctions(toStateLemmasInstantiated);
+    final BiMap<BooleanFormula, BooleanFormula> selectionInfo = annotateConjunctions(toStateLemmas);
     BooleanFormula toStateLemmasAnnotated =
-        Collections3.zipMapEntries(selectionInfo, (selector, f) -> bfmgr.or(selector, f))
+        Collections3.zipMapEntries(selectionInfo, (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, transition.getSsa())))
             .collect(bfmgr.toConjunction());
 
     final Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
@@ -171,9 +166,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
     Set<BooleanFormula> out =
         Sets.filter(toStateLemmas,
-            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(
-                fmgr.instantiate(lemma, transition.getSsa())
-            ))));
+            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(lemma))));
     assert checkAllMapsTo(fromStateLemmas, startingSSA, out, transition
         .getSsa(), transition.getFormula());
     return out;
@@ -194,18 +187,20 @@ public class InductiveWeakeningManager implements StatisticsProvider {
   )
       throws SolverException, InterruptedException {
 
-    Collection<BooleanFormula> fromStateLemmasInstantiated =
-        Collections2.transform(lemmas, f -> fmgr.instantiate(f, startingSSA));
-
     // Mapping from selectors to the items they annotate.
-    final BiMap<BooleanFormula, BooleanFormula> selectionInfo =
-        annotateConjunctions(fromStateLemmasInstantiated);
+    final BiMap<BooleanFormula, BooleanFormula> selectionInfo = annotateConjunctions(lemmas);
+
     BooleanFormula fromStateLemmasAnnotated =
-        Collections3.zipMapEntries(selectionInfo, (selector, f) -> bfmgr.or(selector, f))
+        Collections3.zipMapEntries(
+                selectionInfo,
+                (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, startingSSA)))
             .collect(bfmgr.toConjunction());
 
-    BooleanFormula toStateLemmasAnnotated = fmgr.instantiate(
-        fromStateLemmasAnnotated, transition.getSsa());
+    BooleanFormula toStateLemmasAnnotated =
+        Collections3.zipMapEntries(
+                selectionInfo,
+                (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, transition.getSsa())))
+            .collect(bfmgr.toConjunction());
 
     final Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
         selectionInfo,
@@ -216,9 +211,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
     Set<BooleanFormula> out =
         Sets.filter(lemmas,
-            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(
-                fmgr.instantiate(lemma, startingSSA)
-            ))));
+            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(lemma))));
     assert checkAllMapsTo(out, startingSSA, out, transition.getSsa(),
         transition.getFormula());
 
@@ -244,8 +237,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
   /**
    *
-   * @param selectionVarsInfo Mapping from the selectors to the already
-   *                          instantiated formulas they annotate.
+   * @param selectionVarsInfo Mapping from the selectors to the (uninstantiated) formulas they annotate.
    * @param fromState Instantiated formula representing the state before the
    *                  transition.
    * @param transition Transition under which inductiveness should hold.
