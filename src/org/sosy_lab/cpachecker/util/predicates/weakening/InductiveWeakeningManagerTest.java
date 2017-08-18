@@ -41,13 +41,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 @RunWith(Parameterized.class)
@@ -61,8 +61,8 @@ public class InductiveWeakeningManagerTest {
   public Solvers solver;
 
   private InductiveWeakeningManager inductiveWeakeningManager;
-  private IntegerFormulaManager ifmgr;
-  private BooleanFormulaManager bfmgr;
+  private IntegerFormulaManagerView ifmgr;
+  private BooleanFormulaManagerView bfmgr;
 
   @Before
   public void setUp() throws Exception {
@@ -87,19 +87,14 @@ public class InductiveWeakeningManagerTest {
 
   @Test public void testSlicingVerySimple() throws Exception {
     SSAMap startingSsa = SSAMap.emptySSAMap().withDefault(0);
-    PathFormula transition = new PathFormula(
-        ifmgr.equal(
-            ifmgr.makeVariable("x@1"),
-            ifmgr.add(
-                ifmgr.makeVariable("x@0"),
-                ifmgr.makeNumber(1)
-            )
-        ),
-        startingSsa.builder().setIndex(
-            "x", CNumericTypes.INT, 1
-        ).build(),
-        PointerTargetSet.emptyPointerTargetSet(), 0
-    );
+    PathFormula transition =
+        new PathFormula(
+            ifmgr.equal(
+                ifmgr.makeVariable("x", 1),
+                ifmgr.add(ifmgr.makeVariable("x", 0), ifmgr.makeNumber(1))),
+            startingSsa.builder().setIndex("x", CNumericTypes.INT, 1).build(),
+            PointerTargetSet.emptyPointerTargetSet(),
+            0);
     Set<BooleanFormula> lemmas = ImmutableSet.of(
         ifmgr.equal(
             ifmgr.makeVariable("x"), ifmgr.makeNumber(1)
