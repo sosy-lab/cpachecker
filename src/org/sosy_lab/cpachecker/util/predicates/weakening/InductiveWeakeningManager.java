@@ -279,7 +279,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
       case CEX:
         return cexWeakeningManager.performWeakening(
-            selectionVarsInfo,
+            selectionVarsInfo.keySet(),
             fromState,
             transition,
             toState);
