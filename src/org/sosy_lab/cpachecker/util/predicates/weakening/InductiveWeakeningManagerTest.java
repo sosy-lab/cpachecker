@@ -27,7 +27,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,8 +49,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-
-import java.util.Set;
 
 @RunWith(Parameterized.class)
 public class InductiveWeakeningManagerTest {
@@ -104,17 +102,17 @@ public class InductiveWeakeningManagerTest {
     );
     Set<BooleanFormula> lemmas = ImmutableSet.of(
         ifmgr.equal(
-            ifmgr.makeVariable("x@0"), ifmgr.makeNumber(1)
+            ifmgr.makeVariable("x"), ifmgr.makeNumber(1)
         ),
         ifmgr.equal(
-            ifmgr.makeVariable("y@0"), ifmgr.makeNumber(0)
+            ifmgr.makeVariable("y"), ifmgr.makeNumber(0)
         )
     );
     Set<BooleanFormula> weakening = inductiveWeakeningManager
         .findInductiveWeakeningForRCNF(startingSsa, transition, lemmas);
     assertThat(weakening).containsExactly(
         ifmgr.equal(
-            ifmgr.makeVariable("y@0"), ifmgr.makeNumber(0)
+            ifmgr.makeVariable("y"), ifmgr.makeNumber(0)
         )
     );
   }
