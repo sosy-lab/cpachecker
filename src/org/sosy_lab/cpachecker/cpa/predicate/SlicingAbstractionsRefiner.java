@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -46,8 +47,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-
-
 
 /**
  * This is Refiner for Slicing Abstractions
@@ -62,15 +61,18 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
   private final Configuration config;
   private final LogManager logger;
   private final ARGBasedRefiner refiner;
+  private final ARGCPA argCpa;
 
-  public SlicingAbstractionsRefiner(Configuration pConfig, LogManager pLogger, ARGBasedRefiner pRefiner) {
+  public SlicingAbstractionsRefiner(Configuration pConfig, LogManager pLogger, ARGBasedRefiner pRefiner, ARGCPA pCpa) {
     this.config = pConfig;
     this.logger = pLogger;
     this.refiner = pRefiner;
+    this.argCpa = pCpa;
   }
 
   public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
+    ARGCPA argCpa = CPAs.retrieveCPA(pCpa,ARGCPA.class);
     if (predicateCpa == null) {
       throw new InvalidConfigurationException(SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
@@ -83,7 +85,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa);
     ARGBasedRefiner refiner =  factory.create(strategy);
-    return new SlicingAbstractionsRefiner(predicateCpa.getConfiguration(), predicateCpa.getLogger(), refiner);
+    return new SlicingAbstractionsRefiner(predicateCpa.getConfiguration(), predicateCpa.getLogger(), refiner, argCpa);
   }
 
   /*
@@ -100,7 +102,8 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
       if (optionalTargetState.isPresent()) {
         AbstractState targetState = optionalTargetState.get();
         ARGPath errorPath = ARGUtils.getOnePathTo((ARGState) targetState);
-        result = refiner.performRefinementForPath(new ARGReachedSet(pReached), errorPath);
+        ARGReachedSet reached = new ARGReachedSet(pReached, argCpa);
+        result = refiner.performRefinementForPath(reached, errorPath);
         if (!result.isSpurious()) {
           logger.log(Level.INFO, "Found counterexample!");
           ((ARGState)targetState).addCounterexampleInformation(result);

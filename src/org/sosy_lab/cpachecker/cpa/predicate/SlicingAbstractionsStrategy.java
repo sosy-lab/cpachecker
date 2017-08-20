@@ -226,11 +226,11 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     // close only those that were strengthened during refine
     stats.coverTime.start();
     try {
-      /*for (ARGState w : changedElements) {
-        if (pReached.tryToCover(w)) {
-          break; // all further elements are covered anyway
-        }
-      }*/
+      for (ARGState w : changedElements) {
+          if (pReached.tryToCover(w)) {
+            break; // all further elements are covered anyway
+          }
+      }
     } finally {
       stats.coverTime.stop();
     }
