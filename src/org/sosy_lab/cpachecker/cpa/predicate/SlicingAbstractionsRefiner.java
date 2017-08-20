@@ -27,7 +27,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
 import java.util.Collection;
-import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -94,8 +93,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
    */
   @Override
   public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
-    assert pReached.getWaitlist().size()==0;
-    CounterexampleInfo result = null;
+    CounterexampleInfo counterexample = null;
     Optional<AbstractState> optionalTargetState;
     while (true) {
       optionalTargetState =  from(pReached).firstMatch(AbstractStates.IS_TARGET_STATE);
@@ -103,11 +101,9 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
         AbstractState targetState = optionalTargetState.get();
         ARGPath errorPath = ARGUtils.getOnePathTo((ARGState) targetState);
         ARGReachedSet reached = new ARGReachedSet(pReached, argCpa);
-        result = refiner.performRefinementForPath(reached, errorPath);
-        if (!result.isSpurious()) {
-          logger.log(Level.INFO, "Found counterexample!");
-          ((ARGState)targetState).addCounterexampleInformation(result);
-          // Returning false will make CEGARAlgorithm terminate!
+        counterexample = refiner.performRefinementForPath(reached, errorPath);
+        if (!counterexample.isSpurious()) {
+          ((ARGState)targetState).addCounterexampleInformation(counterexample);
           return false;
         } else {
           if (SlicingAbstractionsUtility.checkProgress(pReached, errorPath) == false) {
@@ -118,9 +114,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
         break;
       }
     }
-    logger.log(Level.INFO, "No target state found in reached-set!");
-    // We always return false since we do not want to be restarted
-    return false;
+    return true;
   }
 
   @Override
