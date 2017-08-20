@@ -285,9 +285,32 @@ public class SlicingAbstractionsUtility {
       for (ARGState parent : currentState.getParents()) {
         if (finishedBuilders.containsKey(parent)) {
           if (currentBuilder == null) {
-            currentBuilder = finishedBuilders.get(parent).makeAnd(parent.getEdgeToChild(currentState));
+            CFAEdge edge = parent.getEdgeToChild(currentState);
+            if (edge != null) {
+              currentBuilder = finishedBuilders.get(parent).makeAnd(parent.getEdgeToChild(currentState));
+            } else {
+              // aggregateBasicBlocks is enabled!
+              List<CFAEdge> edges = parent.getEdgesToChild(currentState);
+              assert edges.size() != 0;
+              currentBuilder = finishedBuilders.get(parent);
+              for (CFAEdge e : edges) {
+                currentBuilder = currentBuilder.makeAnd(e);
+              }
+            }
           } else {
-            currentBuilder = currentBuilder.makeOr(finishedBuilders.get(parent).makeAnd(parent.getEdgeToChild(currentState)));
+            CFAEdge edge = parent.getEdgeToChild(currentState);
+            if (edge != null) {
+              currentBuilder = currentBuilder.makeOr(finishedBuilders.get(parent).makeAnd(parent.getEdgeToChild(currentState)));
+            } else {
+              // aggregateBasicBlocks is enabled!
+              PathFormulaBuilder otherBuilder = finishedBuilders.get(parent);
+              List<CFAEdge> edges = parent.getEdgesToChild(currentState);
+              assert edges.size() != 0;
+              for (CFAEdge e : edges) {
+                otherBuilder = otherBuilder.makeAnd(e);
+              }
+              currentBuilder = currentBuilder.makeOr(otherBuilder);
+            }
           }
         }
       }
