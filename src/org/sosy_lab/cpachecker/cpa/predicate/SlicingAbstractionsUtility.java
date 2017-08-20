@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -135,17 +137,17 @@ public class SlicingAbstractionsUtility {
     // Used data structures:
     final Collection<ARGState> outgoingStates = originState.getChildren();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
-    final Map<ARGState,List<ARGState>> frontier = new HashMap<>();
-    final Map<ARGState,List<ARGState>> segmentMap = new HashMap<>();
+    final Map<ARGState, PersistentList<ARGState>> frontier = new HashMap<>();
+    final Map<ARGState, List<ARGState>> segmentMap = new HashMap<>();
 
     // prepare initial state
-    frontier.put(originState,new ArrayList<>(0));
+    frontier.put(originState, PersistentLinkedList.of());
     for (ARGState startState: outgoingStates) {
       // we need to treat AbstractionStates differently!
       if (!getPredicateState(startState).isAbstractionState()) {
           waitlist.add(startState);
       } else {
-        segmentMap.put(startState,new ArrayList<ARGState>());
+        segmentMap.put(startState, PersistentLinkedList.of());
       }
     }
 
@@ -162,17 +164,22 @@ public class SlicingAbstractionsUtility {
 
       // All parents have already been explored, let's
       // build the state list for this state:
-      List<ARGState> currentStateList = new ArrayList<>();
+      PersistentList<ARGState> currentStateList = null;//PersistentLinkedList.of();
       for (ARGState parent : currentState.getParents()) {
-        List<ARGState> parentStateList = frontier.get(parent);
-        for (ARGState s : parentStateList) {
-          if (!currentStateList.contains(s)) {
-            currentStateList.add(s);
+        PersistentList<ARGState> parentStateList = frontier.get(parent);
+        if (currentStateList == null) {
+          currentStateList = parentStateList;
+        } else {
+          for (ARGState s : parentStateList.reversed()) {
+            if (!currentStateList.contains(s)) {
+              currentStateList = currentStateList.with(s);
+            }
           }
         }
       }
+      assert currentStateList != null;
       // Don't forget to add the currentState to its own list:
-      currentStateList.add(currentState);
+      currentStateList = currentStateList.with(currentState);
       // Now store the finished list for later use:
       frontier.put(currentState, currentStateList);
 
@@ -182,14 +189,15 @@ public class SlicingAbstractionsUtility {
       for (ARGState child : currentState.getChildren()) {
         if (getPredicateState(child).isAbstractionState()) {
           if (segmentMap.containsKey(child)) {
-            List<ARGState> storedStateList = segmentMap.get(child);
-            for (ARGState s : currentStateList) {
+            PersistentList<ARGState> storedStateList = (PersistentList<ARGState>) segmentMap.get(child);
+            for (ARGState s : currentStateList.reversed()) {
               if (!storedStateList.contains(s)) {
-                storedStateList.add(s);
+                storedStateList = storedStateList.with(s);
               }
             }
+            segmentMap.put(child, storedStateList);
           } else {
-            segmentMap.put(child,currentStateList);
+            segmentMap.put(child, currentStateList);
           }
         } else {
           if (!waitlist.contains(child)) {
@@ -197,6 +205,11 @@ public class SlicingAbstractionsUtility {
           }
         }
       }
+    }
+
+    // Now we need to reverse the segments so that they are in correct order:
+    for (ARGState key: segmentMap.keySet()) {
+      segmentMap.put(key, ((PersistentList<ARGState>) segmentMap.get(key)).reversed());
     }
 
     return segmentMap;
