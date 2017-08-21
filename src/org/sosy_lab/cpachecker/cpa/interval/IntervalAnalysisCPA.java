@@ -49,85 +49,82 @@ import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
 @Options(prefix = "cpa.interval")
 public class IntervalAnalysisCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofCheckerCPA {
+        implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider, ProofCheckerCPA {
 
-  /**
-   * This method returns a CPAfactory for the interval analysis CPA.
-   *
-   * @return the CPAfactory for the interval analysis CPA
-   */
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(IntervalAnalysisCPA.class);
-  }
+    /**
+     * This method returns a CPAfactory for the interval analysis CPA.
+     *
+     * @return the CPAfactory for the interval analysis CPA
+     */
+    public static CPAFactory factory() {
+        return AutomaticCPAFactory.forType(IntervalAnalysisCPA.class);
+    }
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-          description="which type of merge operator to use for IntervalAnalysisCPA")
-  /**
-   * the merge type of the interval analysis
-   */
-  private String mergeType = "SEP";
+    @Option(secure = true, name = "merge", toUppercase = true, values = { "SEP",
+            "JOIN" }, description = "which type of merge operator to use for IntervalAnalysisCPA")
+    /**
+     * the merge type of the interval analysis
+     */
+    private String mergeType = "SEP";
 
+    @Option(secure = true, description = "decides whether one (false) or two (true) successors should be created "
+            + "when an inequality-check is encountered")
+    private boolean splitIntervals = false;
 
-  @Option(
-    secure = true,
-    description =
-        "decides whether one (false) or two (true) successors should be created "
-            + "when an inequality-check is encountered"
-  )
-  private boolean splitIntervals = false;
+    @Option(secure = true, description = "at most that many intervals will be tracked per variable, -1 if number not restricted")
+    private int threshold = -1;
 
-  @Option(
-    secure = true,
-    description =
-        "at most that many intervals will be tracked per variable, -1 if number not restricted"
-  )
-  private int threshold = -1;
+    private final StateToFormulaWriter writer;
+    private final LogManager logger;
 
-  private final StateToFormulaWriter writer;
-  private final LogManager logger;
+    /**
+     * This method acts as the constructor of the interval analysis CPA.
+     *
+     * @param config
+     *            the configuration of the CPAinterval analysis CPA.
+     */
+    private IntervalAnalysisCPA(Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA cfa)
+            throws InvalidConfigurationException {
+        super("irrelevant", "sep", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
+        config.inject(this);
+        writer = new StateToFormulaWriter(config, pLogger, shutdownNotifier, cfa);
+        logger = pLogger;
+    }
 
-  /**
-   * This method acts as the constructor of the interval analysis CPA.
-   *
-   * @param config the configuration of the CPAinterval analysis CPA.
-   */
-  private IntervalAnalysisCPA(
-      Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA cfa)
-      throws InvalidConfigurationException {
-    super("irrelevant", "sep", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
-    config.inject(this);
-    writer = new StateToFormulaWriter(config, pLogger, shutdownNotifier, cfa);
-    logger = pLogger;
-  }
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#
+     * getMergeOperator()
+     */
+    @Override
+    public MergeOperator getMergeOperator() {
+        return buildMergeOperator(mergeType);
+    }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getMergeOperator()
-   */
-  @Override
-  public MergeOperator getMergeOperator() {
-    return buildMergeOperator(mergeType);
-  }
+    @Override
+    public Reducer getReducer() {
+        return new IntervalAnalysisReducer();
+    }
 
-  @Override
-  public Reducer getReducer() {
-    return new IntervalAnalysisReducer();
-  }
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#
+     * getInitialState(org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode)
+     */
+    @Override
+    public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+        return new IntervalAnalysisState();
+    }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialState(org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode)
-   */
-  @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new IntervalAnalysisState();
-  }
+    @Override
+    public TransferRelation getTransferRelation() {
+        return new IntervalAnalysisTransferRelation(splitIntervals, threshold, logger);
+    }
 
-  @Override
-  public TransferRelation getTransferRelation() {
-    return new IntervalAnalysisTransferRelation(splitIntervals, threshold, logger);
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    writer.collectStatistics(pStatsCollection);
-  }
+    @Override
+    public void collectStatistics(Collection<Statistics> pStatsCollection) {
+        writer.collectStatistics(pStatsCollection);
+    }
 }

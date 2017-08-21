@@ -62,361 +62,378 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation<Collection<IntervalAnalysisState>, IntervalAnalysisState, Precision> {
+public class IntervalAnalysisTransferRelation
+        extends ForwardingTransferRelation<Collection<IntervalAnalysisState>, IntervalAnalysisState, Precision> {
 
-  private final boolean splitIntervals;
-  private final int threshold;
-  private final LogManager logger;
+    private final boolean splitIntervals;
+    private final int threshold;
+    private final LogManager logger;
 
-  public IntervalAnalysisTransferRelation(
-      boolean pSplitIntervals, int pThreshold, LogManager pLogger) {
-    splitIntervals = pSplitIntervals;
-    threshold = pThreshold;
-    logger = pLogger;
+    public IntervalAnalysisTransferRelation(boolean pSplitIntervals, int pThreshold, LogManager pLogger) {
+        splitIntervals = pSplitIntervals;
+        threshold = pThreshold;
+        logger = pLogger;
 
-  }
-
-  @Override
-  protected Collection<IntervalAnalysisState> postProcessing(Collection<IntervalAnalysisState> successors, CFAEdge edge) {
-    return new HashSet<>(successors);
-  }
-
-  @Override
-  protected Collection<IntervalAnalysisState> handleBlankEdge(BlankEdge cfaEdge) {
-    IntervalAnalysisState newState = state;
-    if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
-      assert "default return".equals(cfaEdge.getDescription())
-              || "skipped unnecessary edges".equals(cfaEdge.getDescription());
-
-      // delete variables from returning function,
-      // we do not need them after this location, because the next edge is the functionReturnEdge.
-      newState = newState.dropFrame(functionName);
     }
 
-    return soleSuccessor(newState);
-  }
-
-  /**
-   * Handles return from one function to another function.
-   *
-   * @param cfaEdge return edge from a function to its call site.
-   * @return new abstract state.
-   */
-  @Override
-  protected Collection<IntervalAnalysisState> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
-      CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
-    throws UnrecognizedCodeException {
-
-    IntervalAnalysisState newState = state;
-    Optional<CVariableDeclaration> retVar = fnkCall.getFunctionEntry().getReturnVariable();
-    if (retVar.isPresent()) {
-      newState = newState.removeInterval(retVar.get().getQualifiedName());
+    @Override
+    protected Collection<IntervalAnalysisState> postProcessing(Collection<IntervalAnalysisState> successors,
+            CFAEdge edge) {
+        return new HashSet<>(successors);
     }
 
-    // expression is an assignment operation, e.g. a = g(b);
-    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
-      CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement)summaryExpr;
+    @Override
+    protected Collection<IntervalAnalysisState> handleBlankEdge(BlankEdge cfaEdge) {
+        IntervalAnalysisState newState = state;
+        if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
+            assert "default return".equals(cfaEdge.getDescription())
+                    || "skipped unnecessary edges".equals(cfaEdge.getDescription());
 
-      // left hand side of the expression has to be a variable
-      if (state.contains(retVar.get().getQualifiedName())) {
-        newState =
-            addInterval(
-                newState,
-                funcExp.getLeftHandSide(),
-                state.getInterval(retVar.get().getQualifiedName()));
-      }
+            // delete variables from returning function,
+            // we do not need them after this location, because the next edge is
+            // the functionReturnEdge.
+            newState = newState.dropFrame(functionName);
+        }
 
-    } else if (summaryExpr instanceof CFunctionCallStatement) {
-      // nothing to do
-    } else {
-      throw new UnrecognizedCCodeException("on function return", cfaEdge, summaryExpr);
-    }
-
-    return soleSuccessor(newState);
-  }
-
-  /**
-   * This method handles function calls.
-   *
-   * @param callEdge the respective CFA edge
-   * @return the successor state
-   */
-  @Override
-  protected Collection<IntervalAnalysisState> handleFunctionCallEdge(CFunctionCallEdge callEdge,
-      List<CExpression> arguments, List<CParameterDeclaration> parameters,
-      String calledFunctionName) throws UnrecognizedCCodeException {
-
-    if (callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
-      assert parameters.size() <= arguments.size();
-      logger.log(Level.WARNING, "Ignoring parameters passed as varargs to function",
-          callEdge.getSuccessor().getFunctionDefinition().toASTString());
-    } else {
-      assert parameters.size() == arguments.size();
-    }
-
-    IntervalAnalysisState newState = state;
-
-    // set the interval of each formal parameter to the interval of its respective actual parameter
-    for (int i = 0; i < parameters.size(); i++) {
-      // get value of actual parameter in caller function context
-      Interval interval = evaluateInterval(state, arguments.get(i), callEdge);
-      String formalParameterName = parameters.get(i).getQualifiedName();
-      newState = newState.addInterval(formalParameterName, interval, this.threshold);
-    }
-
-    return soleSuccessor(newState);
-  }
-
-  /**
-   * This method handles the statement edge which leads the function to the last node of its CFA (not same as a return edge).
-   *
-   * @param returnEdge the CFA edge corresponding to this statement
-   * @return the successor states
-   */
-  @Override
-  protected Collection<IntervalAnalysisState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
-      throws UnrecognizedCCodeException {
-    IntervalAnalysisState newState = state.dropFrame(functionName);
-
-    // assign the value of the function return to a new variable
-    if (returnEdge.asAssignment().isPresent()) {
-      CAssignment ass = returnEdge.asAssignment().get();
-      newState =
-          newState.addInterval(
-              ((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
-              evaluateInterval(state, ass.getRightHandSide(), returnEdge),
-              threshold);
-    }
-
-    return soleSuccessor(newState);
-  }
-
-  /**
-   * This method handles assumptions.
-   *
-   * @param expression the expression containing the assumption
-   * @param cfaEdge the CFA edge corresponding to this expression
-   * @param truthValue flag to determine whether this is the then- or the else-branch of the assumption
-   * @return the successor states
-   */
-  @Override
-  protected Collection<IntervalAnalysisState> handleAssumption(
-      CAssumeEdge cfaEdge, CExpression expression, boolean truthValue)
-          throws UnrecognizedCCodeException {
-
-    if ((truthValue ? Interval.ZERO : Interval.ONE).equals(evaluateInterval(state, expression, cfaEdge))) {
-      // the assumption is unsatisfiable
-      return noSuccessors();
-    }
-
-    // otherwise the assumption is satisfiable or unknown
-    // --> we try to get additional information from the assumption
-
-    BinaryOperator operator = ((CBinaryExpression)expression).getOperator();
-    CExpression operand1 = ((CBinaryExpression)expression).getOperand1();
-    CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
-
-    if (!truthValue) {
-      operator = operator.getOppositLogicalOperator();
-    }
-
-    // the following lines assume that one of the operands is an identifier
-    // and the other one represented with an interval (example "x<[3;5]").
-    // If none of the operands is an identifier, nothing is done.
-
-    IntervalAnalysisState newState = state;
-    ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
-    Interval interval1 = operand1.accept(visitor);
-    Interval interval2 = operand2.accept(visitor);
-
-    assert !interval1.isEmpty() : operand1;
-    assert !interval2.isEmpty() : operand2;
-
-    switch(operator) {
-    // a < b, a < 1
-    case LESS_THAN: {
-          newState =
-              addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2.minus(1L)));
-          newState =
-              addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1.plus(1L)));
-      return soleSuccessor(newState);
-    }
-
-    // a <= b, a <= 1
-    case LESS_EQUAL: {
-          newState = addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
-          newState = addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1));
-      return soleSuccessor(newState);
-    }
-
-    // a > b, a > 1
-    case GREATER_THAN: {
-          newState =
-              addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2.plus(1L)));
-          newState =
-              addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1.minus(1L)));
-      return soleSuccessor(newState);
-    }
-
-    // a >= b, a >= 1
-    case GREATER_EQUAL: {
-          newState = addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
-          newState = addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1));
-      return soleSuccessor(newState);
-    }
-
-    // a == b, a == 1
-    case EQUALS: {
-          newState = addInterval(newState, operand1, interval1.intersect(interval2));
-          newState = addInterval(newState, operand2, interval2.intersect(interval1));
-      return soleSuccessor(newState);
-    }
-
-    // a != b, a != 1
-    case NOT_EQUALS: {
-
-      // Splitting depends on the fact that one operand is a literal.
-      // Then we try to split into two intervals.
-      if (interval2.getLow().equals(interval2.getHigh())) {
-        return splitInterval(newState, operand1, interval1, interval2);
-
-      } else if (interval1.getLow().equals(interval1.getHigh())) {
-        return splitInterval(newState, operand2, interval2, interval1);
-
-      } else {
-        // we know nothing more than before
         return soleSuccessor(newState);
-      }
     }
 
-    default:
-      throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
-    }
-  }
+    /**
+     * Handles return from one function to another function.
+     *
+     * @param cfaEdge
+     *            return edge from a function to its call site.
+     * @return new abstract state.
+     */
+    @Override
+    protected Collection<IntervalAnalysisState> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
+            CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
+            throws UnrecognizedCodeException {
 
-  /**
-   * For an interval [2;5] and a splitPoint [3;3]
-   * we build two states with assignments for [2;2] and [4;5].
-   *
-   * @param newState where to store the new intervals
-   * @param lhs the left-hand-side of the assignment
-   * @param interval to be split
-   * @param splitPoint singular interval where to split
-   * @return two states
-   */
-  private Collection<IntervalAnalysisState> splitInterval(
-      IntervalAnalysisState newState, CExpression lhs, Interval interval, Interval splitPoint) {
+        IntervalAnalysisState newState = state;
+        Optional<CVariableDeclaration> retVar = fnkCall.getFunctionEntry().getReturnVariable();
+        if (retVar.isPresent()) {
+            newState = newState.removeInterval(retVar.get().getQualifiedName());
+        }
 
-    assert splitPoint.getLow().equals(splitPoint.getHigh()) : "invalid splitpoint for interval";
+        // expression is an assignment operation, e.g. a = g(b);
+        if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
+            CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement) summaryExpr;
 
-    // we split in following cases:
-    // - either always because of the option 'splitIntervals'
-    // - or if the splitPoint is the bound of the interval and thus we can shrink the interval.
-    if (splitIntervals
-        || interval.getLow().equals(splitPoint.getHigh())
-        || interval.getHigh().equals(splitPoint.getHigh())) {
+            // left hand side of the expression has to be a variable
+            if (state.contains(retVar.get().getQualifiedName())) {
+                newState = addInterval(newState, funcExp.getLeftHandSide(),
+                        state.getInterval(retVar.get().getQualifiedName()));
+            }
 
-      Collection<IntervalAnalysisState> successors = new ArrayList<>();
+        } else if (summaryExpr instanceof CFunctionCallStatement) {
+            // nothing to do
+        } else {
+            throw new UnrecognizedCCodeException("on function return", cfaEdge, summaryExpr);
+        }
 
-      Interval part1 = interval.intersect(Interval.createUpperBoundedInterval(splitPoint.getLow() - 1L));
-      Interval part2 = interval.intersect(Interval.createLowerBoundedInterval(splitPoint.getLow() + 1L));
-
-      if (!part1.isEmpty()) {
-        successors.add(addInterval(newState, lhs, part1));
-      }
-
-      if (!part2.isEmpty()) {
-        successors.add(addInterval(newState, lhs, part2));
-      }
-
-      return successors;
-    } else {
-      return soleSuccessor(newState);
-    }
-  }
-
-  private IntervalAnalysisState addInterval(
-      IntervalAnalysisState newState, CExpression lhs, Interval interval) {
-    // we currently only handle IdExpressions and ignore more complex Expressions
-    if (lhs instanceof CIdExpression) {
-      newState =
-          newState.addInterval(
-              ((CIdExpression) lhs).getDeclaration().getQualifiedName(), interval, threshold);
-    }
-    return newState;
-  }
-
-  /**
-   * This method handles variable declarations.
-   *
-   * So far, only primitive types are supported, pointers are not supported either.
-   *
-   * @param declarationEdge the CFA edge
-   * @return the successor state
-   */
-  @Override
-  protected Collection<IntervalAnalysisState> handleDeclarationEdge(CDeclarationEdge declarationEdge, CDeclaration declaration)
-      throws UnrecognizedCCodeException {
-
-    IntervalAnalysisState newState = state;
-    if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
-      CVariableDeclaration decl = (CVariableDeclaration)declarationEdge.getDeclaration();
-
-      // ignore pointer variables
-      if (decl.getType() instanceof CPointerType) {
         return soleSuccessor(newState);
-      }
-
-      Interval interval;
-      CInitializer init = decl.getInitializer();
-
-      // variable may be initialized explicitly on the spot ...
-      if (init instanceof CInitializerExpression) {
-        CExpression exp = ((CInitializerExpression) init).getExpression();
-        interval = evaluateInterval(state, exp, declarationEdge);
-      } else {
-        interval = Interval.UNBOUND;
-      }
-
-      newState = newState.addInterval(decl.getQualifiedName(), interval, this.threshold);
     }
 
-    return soleSuccessor(newState);
-  }
+    /**
+     * This method handles function calls.
+     *
+     * @param callEdge
+     *            the respective CFA edge
+     * @return the successor state
+     */
+    @Override
+    protected Collection<IntervalAnalysisState> handleFunctionCallEdge(CFunctionCallEdge callEdge,
+            List<CExpression> arguments, List<CParameterDeclaration> parameters, String calledFunctionName)
+            throws UnrecognizedCCodeException {
 
-  /**
-   * This method handles unary and binary statements.
-   *
-   * @param expression the current expression
-   * @param cfaEdge the CFA edge
-   * @return the successor
-   */
-  @Override
-  protected Collection<IntervalAnalysisState> handleStatementEdge(CStatementEdge cfaEdge, CStatement expression)
-    throws UnrecognizedCodeException {
-    IntervalAnalysisState successor = state;
-    // expression is an assignment operation, e.g. a = b;
-    if (expression instanceof CAssignment) {
-      CAssignment assignExpression = (CAssignment)expression;
-      CExpression op1 = assignExpression.getLeftHandSide();
-      CRightHandSide op2 = assignExpression.getRightHandSide();
+        if (callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+            assert parameters.size() <= arguments.size();
+            logger.log(Level.WARNING, "Ignoring parameters passed as varargs to function",
+                    callEdge.getSuccessor().getFunctionDefinition().toASTString());
+        } else {
+            assert parameters.size() == arguments.size();
+        }
 
-      // a = ?
-      successor = addInterval(successor, op1, evaluateInterval(state, op2, cfaEdge));
+        IntervalAnalysisState newState = state;
+
+        // set the interval of each formal parameter to the interval of its
+        // respective actual parameter
+        for (int i = 0; i < parameters.size(); i++) {
+            // get value of actual parameter in caller function context
+            NumberInterface interval = evaluateInterval(state, arguments.get(i), callEdge);
+            String formalParameterName = parameters.get(i).getQualifiedName();
+            newState = newState.addInterval(formalParameterName, interval, this.threshold);
+        }
+
+        return soleSuccessor(newState);
     }
-    return soleSuccessor(successor);
-  }
 
-  private Interval evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
-    return expression.accept(new ExpressionValueVisitor(readableState, cfaEdge));
-  }
+    /**
+     * This method handles the statement edge which leads the function to the
+     * last node of its CFA (not same as a return edge).
+     *
+     * @param returnEdge
+     *            the CFA edge corresponding to this statement
+     * @return the successor states
+     */
+    @Override
+    protected Collection<IntervalAnalysisState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
+            throws UnrecognizedCCodeException {
+        IntervalAnalysisState newState = state.dropFrame(functionName);
 
-  private Collection<IntervalAnalysisState> soleSuccessor(IntervalAnalysisState successor) {
-    return Collections.singleton(successor);
-  }
+        // assign the value of the function return to a new variable
+        if (returnEdge.asAssignment().isPresent()) {
+            CAssignment ass = returnEdge.asAssignment().get();
+            newState = newState.addInterval(((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
+                    evaluateInterval(state, ass.getRightHandSide(), returnEdge), threshold);
+        }
 
-  private Collection<IntervalAnalysisState> noSuccessors() {
-    return Collections.emptySet();
-  }
+        return soleSuccessor(newState);
+    }
+
+    /**
+     * This method handles assumptions.
+     *
+     * @param expression
+     *            the expression containing the assumption
+     * @param cfaEdge
+     *            the CFA edge corresponding to this expression
+     * @param truthValue
+     *            flag to determine whether this is the then- or the else-branch
+     *            of the assumption
+     * @return the successor states
+     */
+    @Override
+    protected Collection<IntervalAnalysisState> handleAssumption(CAssumeEdge cfaEdge, CExpression expression,
+            boolean truthValue) throws UnrecognizedCCodeException {
+
+        if ((truthValue ? new CreatorIntegerInterval().factoryMethod(null).ZERO()
+                : new CreatorIntegerInterval().factoryMethod(null).ONE())
+                        .equals(evaluateInterval(state, expression, cfaEdge))) {
+            // the assumption is unsatisfiable
+            return noSuccessors();
+        }
+
+        // otherwise the assumption is satisfiable or unknown
+        // --> we try to get additional information from the assumption
+
+        BinaryOperator operator = ((CBinaryExpression) expression).getOperator();
+        CExpression operand1 = ((CBinaryExpression) expression).getOperand1();
+        CExpression operand2 = ((CBinaryExpression) expression).getOperand2();
+
+        if (!truthValue) {
+            operator = operator.getOppositLogicalOperator();
+        }
+
+        // the following lines assume that one of the operands is an identifier
+        // and the other one represented with an interval (example "x<[3;5]").
+        // If none of the operands is an identifier, nothing is done.
+
+        IntervalAnalysisState newState = state;
+        ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
+        NumberInterface interval1 = operand1.accept(visitor);
+        NumberInterface interval2 = operand2.accept(visitor);
+
+        assert !interval1.isEmpty() : operand1;
+        assert !interval2.isEmpty() : operand2;
+
+        switch (operator) {
+        // a < b, a < 1
+        case LESS_THAN: {
+            newState = addInterval(newState, operand1,
+                    interval1.limitUpperBoundBy(interval2.minus(new CreatorIntegerInterval().factoryMethod(1L))));
+            newState = addInterval(newState, operand2,
+                    interval2.limitLowerBoundBy(interval1.plus(new CreatorIntegerInterval().factoryMethod(1L))));
+            return soleSuccessor(newState);
+        }
+
+        // a <= b, a <= 1
+        case LESS_EQUAL: {
+            newState = addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
+            newState = addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1));
+            return soleSuccessor(newState);
+        }
+
+        // a > b, a > 1
+        case GREATER_THAN: {
+            newState = addInterval(newState, operand1,
+                    interval1.limitLowerBoundBy(interval2.plus(new CreatorIntegerInterval().factoryMethod(1L))));
+            newState = addInterval(newState, operand2,
+                    interval2.limitUpperBoundBy(interval1.minus(new CreatorIntegerInterval().factoryMethod(1L))));
+            return soleSuccessor(newState);
+        }
+
+        // a >= b, a >= 1
+        case GREATER_EQUAL: {
+            newState = addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
+            newState = addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1));
+            return soleSuccessor(newState);
+        }
+
+        // a == b, a == 1
+        case EQUALS: {
+            newState = addInterval(newState, operand1, interval1.intersect(interval2));
+            newState = addInterval(newState, operand2, interval2.intersect(interval1));
+            return soleSuccessor(newState);
+        }
+
+        // a != b, a != 1
+        case NOT_EQUALS: {
+
+            // Splitting depends on the fact that one operand is a literal.
+            // Then we try to split into two intervals.
+            if (interval2.getLow().equals(interval2.getHigh())) {
+                return splitInterval(newState, operand1, interval1, interval2);
+
+            } else if (interval1.getLow().equals(interval1.getHigh())) {
+                return splitInterval(newState, operand2, interval2, interval1);
+
+            } else {
+                // we know nothing more than before
+                return soleSuccessor(newState);
+            }
+        }
+
+        default:
+            throw new UnrecognizedCCodeException("unexpected operator in assumption", cfaEdge, expression);
+        }
+    }
+
+    /**
+     * For an interval [2;5] and a splitPoint [3;3] we build two states with
+     * assignments for [2;2] and [4;5].
+     *
+     * @param newState
+     *            where to store the new intervals
+     * @param lhs
+     *            the left-hand-side of the assignment
+     * @param interval
+     *            to be split
+     * @param splitPoint
+     *            singular interval where to split
+     * @return two states
+     */
+    private Collection<IntervalAnalysisState> splitInterval(IntervalAnalysisState newState, CExpression lhs,
+            NumberInterface interval, NumberInterface splitPoint) {
+
+        assert splitPoint.getLow().equals(splitPoint.getHigh()) : "invalid splitpoint for interval";
+
+        // we split in following cases:
+        // - either always because of the option 'splitIntervals'
+        // - or if the splitPoint is the bound of the interval and thus we can
+        // shrink the interval.
+        if (splitIntervals || interval.getLow().equals(splitPoint.getHigh())
+                || interval.getHigh().equals(splitPoint.getHigh())) {
+
+            Collection<IntervalAnalysisState> successors = new ArrayList<>();
+
+            // TODO change to NumberInterface
+            NumberInterface part1 = interval
+                    .intersect(IntegerInterval.createUpperBoundedInterval(splitPoint.getLow().longValue() - 1L));
+            NumberInterface part2 = interval
+                    .intersect(IntegerInterval.createLowerBoundedInterval(splitPoint.getLow().longValue() + 1L));
+
+            if (!part1.isEmpty()) {
+                successors.add(addInterval(newState, lhs, part1));
+            }
+
+            if (!part2.isEmpty()) {
+                successors.add(addInterval(newState, lhs, part2));
+            }
+
+            return successors;
+        } else {
+            return soleSuccessor(newState);
+        }
+    }
+
+    private IntervalAnalysisState addInterval(IntervalAnalysisState newState, CExpression lhs,
+            NumberInterface interval) {
+        // we currently only handle IdExpressions and ignore more complex
+        // Expressions
+        if (lhs instanceof CIdExpression) {
+            newState = newState.addInterval(((CIdExpression) lhs).getDeclaration().getQualifiedName(), interval,
+                    threshold);
+        }
+        return newState;
+    }
+
+    /**
+     * This method handles variable declarations.
+     *
+     * So far, only primitive types are supported, pointers are not supported
+     * either.
+     *
+     * @param declarationEdge
+     *            the CFA edge
+     * @return the successor state
+     */
+    @Override
+    protected Collection<IntervalAnalysisState> handleDeclarationEdge(CDeclarationEdge declarationEdge,
+            CDeclaration declaration) throws UnrecognizedCCodeException {
+
+        IntervalAnalysisState newState = state;
+        if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
+            CVariableDeclaration decl = (CVariableDeclaration) declarationEdge.getDeclaration();
+
+            // ignore pointer variables
+            if (decl.getType() instanceof CPointerType) {
+                return soleSuccessor(newState);
+            }
+
+            NumberInterface interval;
+            CInitializer init = decl.getInitializer();
+
+            // variable may be initialized explicitly on the spot ...
+            if (init instanceof CInitializerExpression) {
+                CExpression exp = ((CInitializerExpression) init).getExpression();
+                interval = evaluateInterval(state, exp, declarationEdge);
+            } else {
+                interval = new CreatorIntegerInterval().factoryMethod(null).UNBOUND();
+            }
+
+            newState = newState.addInterval(decl.getQualifiedName(), interval, this.threshold);
+        }
+
+        return soleSuccessor(newState);
+    }
+
+    /**
+     * This method handles unary and binary statements.
+     *
+     * @param expression
+     *            the current expression
+     * @param cfaEdge
+     *            the CFA edge
+     * @return the successor
+     */
+    @Override
+    protected Collection<IntervalAnalysisState> handleStatementEdge(CStatementEdge cfaEdge, CStatement expression)
+            throws UnrecognizedCodeException {
+        IntervalAnalysisState successor = state;
+        // expression is an assignment operation, e.g. a = b;
+        if (expression instanceof CAssignment) {
+            CAssignment assignExpression = (CAssignment) expression;
+            CExpression op1 = assignExpression.getLeftHandSide();
+            CRightHandSide op2 = assignExpression.getRightHandSide();
+
+            // a = ?
+            successor = addInterval(successor, op1, evaluateInterval(state, op2, cfaEdge));
+        }
+        return soleSuccessor(successor);
+    }
+
+    private NumberInterface evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression,
+            CFAEdge cfaEdge) throws UnrecognizedCCodeException {
+        return expression.accept(new ExpressionValueVisitor(readableState, cfaEdge));
+    }
+
+    private Collection<IntervalAnalysisState> soleSuccessor(IntervalAnalysisState successor) {
+        return Collections.singleton(successor);
+    }
+
+    private Collection<IntervalAnalysisState> noSuccessors() {
+        return Collections.emptySet();
+    }
 }
-

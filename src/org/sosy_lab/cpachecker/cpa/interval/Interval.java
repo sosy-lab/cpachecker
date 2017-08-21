@@ -27,7 +27,7 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
-
+@Deprecated
 public class Interval implements Serializable{
   private static final long serialVersionUID = 4223098080993616295L;
 
