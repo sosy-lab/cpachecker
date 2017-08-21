@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,6 +42,10 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 @RunWith(Parameterized.class)
+@SuppressFBWarnings(
+    value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
+    justification = "Fields are filled by parameterization of JUnit"
+  )
 public class CTypeToStringTest {
 
   private static final String VAR = "var";

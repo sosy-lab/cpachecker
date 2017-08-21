@@ -130,6 +130,11 @@ public class CFunctionType extends AFunctionType implements CType {
     return pVisitor.visit(this);
   }
 
+  @Override
+  public int hashCode() {
+    return super.hashCode();
+  }
+
   /**
    * Be careful, this method compares the CType as it is to the given object,
    * typedefs won't be resolved. If you want to compare the type without having
@@ -141,12 +146,7 @@ public class CFunctionType extends AFunctionType implements CType {
       return true;
     }
 
-    if (!(obj instanceof CFunctionType) || !super.equals(obj)) {
-      return false;
-    }
-
-    // TODO Since r8208 this method does not check neither return nor parameter types, is this ok?
-    return true;
+    return obj instanceof CFunctionType && super.equals(obj);
   }
 
   @Override
