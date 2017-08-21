@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.math.IntMath;
@@ -88,7 +89,6 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public class AssignmentToPathAllocator {
 
-  private static final int FIRST = 0;
   private static final int IS_NOT_GLOBAL = 2;
   private static final int NAME_AND_FUNCTION = 0;
   private static final int IS_FIELD_REFERENCE = 1;
@@ -398,14 +398,8 @@ public class AssignmentToPathAllocator {
 
   private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
 
-    Map<String, Memory> memory = Maps.newHashMapWithExpectedSize(pMemory.size());
-
-    for (Map.Entry<String, Map<Address, Object>> heapObject : pMemory.entrySet()) {
-      Memory heap = new Memory(heapObject.getKey(), heapObject.getValue());
-      memory.put(heap.getName(), heap);
-    }
-
-    return memory;
+    return ImmutableMap.copyOf(
+        Maps.transformEntries(pMemory, (name, heap) -> new Memory(name, heap)));
   }
 
   private LeftHandSide createLeftHandSide(String pTermName) {
@@ -457,14 +451,7 @@ public class AssignmentToPathAllocator {
 
   private void removeDeallocatedVariables(
       SSAMap pMap, Map<String, ValueAssignment> variableEnvironment) {
-
-    Set<String> variableNames = new HashSet<>(variableEnvironment.keySet());
-
-    for (String name : variableNames) {
-      if (pMap.getIndex(name) < 0) {
-        variableEnvironment.remove(name);
-      }
-    }
+    variableEnvironment.keySet().removeIf(name -> pMap.getIndex(name) < 0);
   }
 
   /**
@@ -546,13 +533,9 @@ public class AssignmentToPathAllocator {
     String heapName = getName(pFunctionAssignment);
     Map<Address, Object> heap = memory.get(heapName);
 
-    if (pFunctionAssignment.getArgumentsInterpretation().size() == 1) {
-      Address address = Address.valueOf(pFunctionAssignment.getArgumentsInterpretation().get(FIRST));
-
-      heap.remove(address);
-    } else {
-      throw new AssertionError();
-    }
+    Address address =
+        Address.valueOf(Iterables.getOnlyElement(pFunctionAssignment.getArgumentsInterpretation()));
+    heap.remove(address);
   }
 
   private void addHeapValue(Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
@@ -565,14 +548,11 @@ public class AssignmentToPathAllocator {
 
     heap = memory.get(heapName);
 
-    if (pFunctionAssignment.getArgumentsInterpretation().size() == 1) {
-      Address address = Address.valueOf(pFunctionAssignment.getArgumentsInterpretation().get(FIRST));
+    Address address =
+        Address.valueOf(Iterables.getOnlyElement(pFunctionAssignment.getArgumentsInterpretation()));
 
-      Object value = pFunctionAssignment.getValue();
-      heap.put(address, value);
-    } else {
-      throw new AssertionError();
-    }
+    Object value = pFunctionAssignment.getValue();
+    heap.put(address, value);
   }
 
   private Map<LeftHandSide, Address> getVariableAddresses(
