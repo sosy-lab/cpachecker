@@ -30,7 +30,17 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -73,22 +83,10 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 
 public class ValueAnalysisConcreteErrorPathAllocator {
 
-  private static final MemoryName MEMORY_NAME = (pExp, pAddress) -> "Value_Analysis_Heap";
+  private static final MemoryName MEMORY_NAME = (pExp) -> "Value_Analysis_Heap";
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
@@ -408,7 +406,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     Map<Address, Object> values = createHeapValues(pValueState, pVariableAddressMap);
 
     // memory name of value analysis does not need to know expression or address
-    Memory heap = new Memory(MEMORY_NAME.getMemoryName(null, null), values);
+    Memory heap = new Memory(MEMORY_NAME.getMemoryName(null), values);
 
     Map<String, Memory> result = new HashMap<>();
 

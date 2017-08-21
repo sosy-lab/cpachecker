@@ -95,16 +95,17 @@ public class AssignmentToPathAllocator {
   private final ShutdownNotifier shutdownNotifier;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  private MemoryName memoryName = new MemoryName() {
+  private MemoryName memoryName =
+      new MemoryName() {
 
-    @Override
-    public String getMemoryName(CRightHandSide pExp, Address pAddress) {
-      CType type = pExp.getExpressionType().getCanonicalType();
-      type = CTypes.withoutConst(type);
-      type = CTypes.withoutVolatile(type);
-      return  "*" + type.toString().replace(" ", "_");
-    }
-  };
+        @Override
+        public String getMemoryName(CRightHandSide pExp) {
+          CType type = pExp.getExpressionType().getCanonicalType();
+          type = CTypes.withoutConst(type);
+          type = CTypes.withoutVolatile(type);
+          return "*" + type.toString().replace(" ", "_");
+        }
+      };
 
   public AssignmentToPathAllocator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
     this.shutdownNotifier = pShutdownNotifier;

@@ -27,7 +27,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -65,26 +72,18 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 public class SMGConcreteErrorPathAllocator {
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  private MemoryName memoryName = new MemoryName() {
+  private MemoryName memoryName =
+      new MemoryName() {
 
-    @Override
-    public String getMemoryName(CRightHandSide pExp, Address pAddress) {
-      return "SMG_Analysis_Heap";
-    }
-  };
+        @Override
+        public String getMemoryName(CRightHandSide pExp) {
+          return "SMG_Analysis_Heap";
+        }
+      };
 
   public SMGConcreteErrorPathAllocator(AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
     assumptionToEdgeAllocator = pAssumptionToEdgeAllocator;
@@ -311,7 +310,7 @@ public class SMGConcreteErrorPathAllocator {
     Map<Address, Object> values = createHeapValues(pSMGState, pAdresses);
 
     // memory name of smg analysis does not need to know expression or address
-    Memory heap = new Memory(memoryName.getMemoryName(null, null), values);
+    Memory heap = new Memory(memoryName.getMemoryName(null), values);
 
     Map<String, Memory> result = new HashMap<>();
 
