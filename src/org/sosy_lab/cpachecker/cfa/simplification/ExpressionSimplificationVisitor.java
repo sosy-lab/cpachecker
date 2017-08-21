@@ -51,9 +51,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /** This visitor visits an expression and evaluates it.
  * The returnvalue of the visit consists of the simplified expression and
@@ -90,7 +90,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
    * converts it to a <code>Pair<CExpression, Number></code> as required by
    * this class.
    */
-  private CExpression convertExplicitValueToExpression(final CExpression expr, Value value) {
+  private CExpression convertExplicitValueToExpression(final CExpression expr, NumberInterface value) {
     // TODO: handle cases other than numeric values
     NumericValue numericResult = value.asNumericValue();
     if (numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
@@ -147,7 +147,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     }
 
     // TODO: handle the case that it's not a CSimpleType or that it's not a number
-    Value result = AbstractExpressionValueVisitor.calculateBinaryOperation(
+    NumberInterface result = AbstractExpressionValueVisitor.calculateBinaryOperation(
         value1, value2,
         expr, machineModel, logger);
 
@@ -173,7 +173,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     }
 
     // TODO: handle the case that the result is not a numeric value
-    final Value castedValue = AbstractExpressionValueVisitor.castCValue(
+    final NumberInterface castedValue = AbstractExpressionValueVisitor.castCValue(
         value, expr.getExpressionType(), machineModel, logger, expr.getFileLocation());
 
 
