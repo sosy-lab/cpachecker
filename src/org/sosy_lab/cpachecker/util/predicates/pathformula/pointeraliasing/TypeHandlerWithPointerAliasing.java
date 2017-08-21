@@ -113,10 +113,8 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     return type.accept(canonizingVisitor);
   }
 
-  /**
-   * Get a simplified type as defined by {@link #simplifyType(CType)} from an AST node.
-   */
-  CType getSimplifiedType(final CRightHandSide exp) {
+  /** Get a simplified type as defined by {@link #simplifyType(CType)} from an AST node. */
+  public CType getSimplifiedType(final CRightHandSide exp) {
     return simplifyType(exp.getExpressionType());
   }
 
