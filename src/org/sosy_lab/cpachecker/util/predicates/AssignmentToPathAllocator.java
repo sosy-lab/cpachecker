@@ -479,12 +479,9 @@ public class AssignmentToPathAllocator {
           if (oldIndex < newIndex) {
 
             //update variableEnvironment for subsequent calculation
-            variableEnvironment.remove(canonicalName);
             variableEnvironment.put(canonicalName, term);
 
-            LeftHandSide oldlhs = createLeftHandSide(canonicalName);
             LeftHandSide lhs = createLeftHandSide(canonicalName);
-            pVariables.remove(oldlhs);
             pVariables.put(lhs, term.getValue());
           }
         } else {
@@ -511,7 +508,6 @@ public class AssignmentToPathAllocator {
               functionEnvironment.remove(name, oldAssignment);
               functionEnvironment.put(name, term);
               replaced = true;
-              removeHeapValue(memory, term);
               addHeapValue(memory, term);
 
             }
@@ -528,16 +524,6 @@ public class AssignmentToPathAllocator {
       }
     }
   }
-
-  private void removeHeapValue(Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
-    String heapName = getName(pFunctionAssignment);
-    Map<Address, Object> heap = memory.get(heapName);
-
-    Address address =
-        Address.valueOf(Iterables.getOnlyElement(pFunctionAssignment.getArgumentsInterpretation()));
-    heap.remove(address);
-  }
-
   private void addHeapValue(Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
     String heapName = getName(pFunctionAssignment);
     Map<Address, Object> heap;
