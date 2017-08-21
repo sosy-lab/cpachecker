@@ -103,16 +103,17 @@ public final class PointerTargetSet implements Serializable {
     private final String fieldName;
   }
 
-  public static String getBaseName(final String name) {
+  static String getBaseName(final String name) {
     return BASE_PREFIX + name;
   }
 
-  static boolean isBaseName(final String name) {
+  public static boolean isBaseName(final String name) {
     return name.startsWith(BASE_PREFIX);
   }
 
-  static String getBase(final String baseName) {
-    return baseName.replaceFirst(BASE_PREFIX, "");
+  public static String getBase(final String baseName) {
+    assert isBaseName(baseName);
+    return baseName.substring(BASE_PREFIX.length());
   }
 
   PersistentList<PointerTarget> getAllTargets(final String regionName) {

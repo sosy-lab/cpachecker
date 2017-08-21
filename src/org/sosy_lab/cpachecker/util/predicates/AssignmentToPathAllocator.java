@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -87,7 +88,6 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public class AssignmentToPathAllocator {
 
-  private static final String ADDRESS_PREFIX = "__ADDRESS_OF_";
   private static final int FIRST = 0;
   private static final int IS_NOT_GLOBAL = 2;
   private static final int NAME_AND_FUNCTION = 0;
@@ -581,11 +581,11 @@ public class AssignmentToPathAllocator {
 
     for (ValueAssignment constant : assignableTerms.getConstants()) {
       String name = constant.getName();
-      if (name.startsWith(ADDRESS_PREFIX)) {
+      if (PointerTargetSet.isBaseName(name)) {
         Address address = Address.valueOf(constant.getValue());
 
         //TODO ugly, refactor?
-        String constantName = name.substring(ADDRESS_PREFIX.length());
+        String constantName = PointerTargetSet.getBase(name);
         LeftHandSide leftHandSide = createLeftHandSide(constantName);
         addressOfVariables.put(leftHandSide, address);
       }
