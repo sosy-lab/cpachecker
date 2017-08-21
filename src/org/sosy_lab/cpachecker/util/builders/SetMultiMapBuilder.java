@@ -52,6 +52,7 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
   }
 
   public SetMultiMapBuilder(SetMultiMapBuilder<K, V> pSetMultiMapBuilder) {
+    sizeCoef = pSetMultiMapBuilder.sizeCoef;
     if (pSetMultiMapBuilder.origMap.size() > sizeCoef * (pSetMultiMapBuilder.toAdd.size() +
         pSetMultiMapBuilder.toRemove.size())) {
       Builder<K, V> builder = ImmutableMultimap.builder();
@@ -66,6 +67,8 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
         builder.putAll(pSetMultiMapBuilder.toAdd);
       }
       origMap = builder.build();
+      toAdd = HashMultimap.create();
+      toRemove = HashMultimap.create();
     } else {
       origMap = pSetMultiMapBuilder.origMap;
       toAdd = HashMultimap.create(pSetMultiMapBuilder.toAdd);
@@ -116,7 +119,9 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
     }
     for (V value : toAdd.values()) {
       if (value.equals(pO)) {
-        count++;
+        if (++count > 0) {
+          return true;
+        }
       }
     }
     if (count == 0) {
@@ -124,10 +129,9 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
     } else {
       for (V value : origMap.values()) {
         if (value.equals(pO)) {
-          count++;
-        }
-        if (count > 0) {
-          return true;
+          if (++count > 0) {
+            return true;
+          }
         }
       }
     }
@@ -172,8 +176,9 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
   public boolean putAll(@Nullable K pK, Iterable<? extends V> pIterable) {
     boolean res = false;
     for (V value : pIterable) {
-      if (put(pK, value))
+      if (put(pK, value)) {
         res = true;
+      }
     }
     return res;
   }
