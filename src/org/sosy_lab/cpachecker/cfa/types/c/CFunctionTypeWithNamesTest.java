@@ -40,7 +40,7 @@ public class CFunctionTypeWithNamesTest {
     CParameterDeclaration param =
         new CParameterDeclaration(FileLocation.DUMMY, CNumericTypes.INT, "param");
     CFunctionTypeWithNames orig =
-        new CFunctionTypeWithNames(true, true, CNumericTypes.INT, ImmutableList.of(param), true);
+        new CFunctionTypeWithNames(CNumericTypes.INT, ImmutableList.of(param), true);
     Object reserialized = SerializableTester.reserialize(orig);
     assertThat(reserialized).isInstanceOf(CFunctionType.class);
     assertThat(reserialized).isEqualTo(orig); // this holds, orig.equals(reserialized) not

@@ -1971,8 +1971,8 @@ class ASTConverter {
     // handle parameters
     List<CParameterDeclaration> paramsList = convert(sd.getParameters());
 
-    // TODO constant and volatile
-    CFunctionTypeWithNames fType = new CFunctionTypeWithNames(false, false, returnType, paramsList, sd.takesVarArgs());
+    CFunctionTypeWithNames fType =
+        new CFunctionTypeWithNames(returnType, paramsList, sd.takesVarArgs());
     CType type = fType;
 
     String name;

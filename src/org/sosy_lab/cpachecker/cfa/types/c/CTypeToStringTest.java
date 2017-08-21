@@ -142,8 +142,6 @@ public class CTypeToStringTest {
       { // declare var as function (int) returning pointer to double
         "double *var(int)",
         new CFunctionType(
-            false,
-            false,
             new CPointerType(false, false, CNumericTypes.DOUBLE),
             ImmutableList.of(CNumericTypes.INT),
             false),
@@ -151,8 +149,6 @@ public class CTypeToStringTest {
       { // declare var as function (int) returning const volatile pointer to double
         "double * const volatile var(int)",
         new CFunctionType(
-            false,
-            false,
             new CPointerType(true, true, CNumericTypes.DOUBLE),
             ImmutableList.of(CNumericTypes.INT),
             false),
@@ -160,8 +156,6 @@ public class CTypeToStringTest {
       { // declare var as function (int) returning pointer to double
         "double *var(int)",
         new CFunctionType(
-            false,
-            false,
             new CPointerType(false, false, CNumericTypes.DOUBLE),
             ImmutableList.of(CNumericTypes.INT),
             false),
@@ -169,40 +163,30 @@ public class CTypeToStringTest {
       { // declare var as function (int) returning pointer to function (double) returning void
         "void (*var(int))(double)",
         new CFunctionType(
-            false,
-            false,
             new CPointerType(
                 false,
                 false,
-                new CFunctionType(
-                    false, false, CVoidType.VOID, ImmutableList.of(CNumericTypes.DOUBLE), false)),
+                new CFunctionType(CVoidType.VOID, ImmutableList.of(CNumericTypes.DOUBLE), false)),
             ImmutableList.of(CNumericTypes.INT),
             false),
       },
       { // declare var as function (int) returning const volatile pointer to function (double) returning void
         "void (* const volatile var(int))(double)",
         new CFunctionType(
-            false,
-            false,
             new CPointerType(
                 true,
                 true,
-                new CFunctionType(
-                    false, false, CVoidType.VOID, ImmutableList.of(CNumericTypes.DOUBLE), false)),
+                new CFunctionType(CVoidType.VOID, ImmutableList.of(CNumericTypes.DOUBLE), false)),
             ImmutableList.of(CNumericTypes.INT),
             false),
       },
       { // declare var as function (int) returning pointer to function (double) returning pointer to char
         "char *(*var(int))(double)",
         new CFunctionType(
-            false,
-            false,
             new CPointerType(
                 false,
                 false,
                 new CFunctionType(
-                    false,
-                    false,
                     new CPointerType(false, false, CNumericTypes.CHAR),
                     ImmutableList.of(CNumericTypes.DOUBLE),
                     false)),

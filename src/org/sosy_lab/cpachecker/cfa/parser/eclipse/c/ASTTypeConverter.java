@@ -202,7 +202,7 @@ class ASTTypeConverter {
       }
 
       // TODO varargs
-      return new CFunctionType(false, false, convert(ft.getReturnType()), newParameters, false);
+      return new CFunctionType(convert(ft.getReturnType()), newParameters, false);
 
     } else if (t instanceof ICArrayType) {
       return conv((ICArrayType)t);

@@ -28,7 +28,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
+import java.io.IOException;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -69,15 +75,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-import java.io.IOException;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
 public class TestDataTools {
 
   /**
@@ -112,8 +109,8 @@ public class TestDataTools {
       CType pFunctionReturnType,
       List<CParameterDeclaration> pParameters) {
 
-    CFunctionType functionType = new CFunctionType(
-        false, false, checkNotNull(pFunctionReturnType), ImmutableList.<CType>of(), false);
+    CFunctionType functionType =
+        new CFunctionType(checkNotNull(pFunctionReturnType), ImmutableList.<CType>of(), false);
     CFunctionDeclaration fd = new CFunctionDeclaration(
         FileLocation.DUMMY, functionType, pFunctionName, pParameters);
     CDeclarationEdge declEdge = new CDeclarationEdge(
