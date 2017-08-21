@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 
@@ -42,6 +41,6 @@ public interface MemoryName {
    * @return The name of the memory that holds the value for the given expression at the given
    *     address.
    */
-  public String getMemoryName(@Nullable CRightHandSide exp);
+  public String getMemoryName(CRightHandSide exp);
 
 }

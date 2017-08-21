@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -65,7 +64,6 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath.SingleConcr
 import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
-import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
@@ -76,14 +74,8 @@ public class SMGConcreteErrorPathAllocator {
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-  private MemoryName memoryName =
-      new MemoryName() {
-
-        @Override
-        public String getMemoryName(CRightHandSide pExp) {
-          return "SMG_Analysis_Heap";
-        }
-      };
+  // this analysis puts every object in the same heap
+  private static final String MEMORY_NAME = "SMG_Analysis_Heap";
 
   public SMGConcreteErrorPathAllocator(AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
     assumptionToEdgeAllocator = pAssumptionToEdgeAllocator;
@@ -163,7 +155,7 @@ public class SMGConcreteErrorPathAllocator {
                     ImmutableMap.<LeftHandSide, Object>of(),
                     allocateAddresses(pSMGState, variableAddresses),
                     variableAddresses.getAddressMap(),
-                    memoryName)));
+                    exp -> MEMORY_NAME)));
       }
     }
 
@@ -185,7 +177,7 @@ public class SMGConcreteErrorPathAllocator {
               ImmutableMap.<LeftHandSide, Object>of(),
               allocateAddresses(pSMGState, variableAddresses),
               variableAddresses.getAddressMap(),
-              memoryName);
+              exp -> MEMORY_NAME);
     } else {
       state = ConcreteState.empty();
     }
@@ -309,14 +301,7 @@ public class SMGConcreteErrorPathAllocator {
 
     Map<Address, Object> values = createHeapValues(pSMGState, pAdresses);
 
-    // memory name of smg analysis does not need to know expression or address
-    Memory heap = new Memory(memoryName.getMemoryName(null), values);
-
-    Map<String, Memory> result = new HashMap<>();
-
-    result.put(heap.getName(), heap);
-
-    return result;
+    return ImmutableMap.of(MEMORY_NAME, new Memory(MEMORY_NAME, values));
   }
 
   private Map<Address, Object> createHeapValues(SMGState pSMGState,
