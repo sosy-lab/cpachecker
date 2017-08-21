@@ -1572,17 +1572,22 @@ class ASTConverter {
 
       // We need to resolve typedefs, but we cannot call getCanonicalType()
       // because we need to leave the parameter types unchanged.
-      while (type instanceof CTypedefType) {
-        type = ((CTypedefType)type).getRealType();
+      CType innerType = type;
+      while (innerType instanceof CTypedefType) {
+        innerType = ((CTypedefType)innerType).getRealType();
       }
-      if (type instanceof CFunctionType) {
+      if (innerType instanceof CFunctionType) {
         if (initializer != null) {
           throw parseContext.parseError("Function definition with initializer", d);
         }
 
+        // Note that this silently ignores const and volatile qualifiers
+        // for typedefs of function types, but this is ok because const or volatile functions
+        // are undefined behavior anyway (C11 §6.7.3 (9)).
+
         List<CParameterDeclaration> params;
 
-        CFunctionType functionType = (CFunctionType)type;
+        CFunctionType functionType = (CFunctionType)innerType;
         if (functionType instanceof CFunctionTypeWithNames) {
           params = ((CFunctionTypeWithNames)functionType).getParameterDeclarations();
         } else {
@@ -1601,7 +1606,7 @@ class ASTConverter {
       if (cStorageClass == CStorageClass.EXTERN && initializer != null) {
         throw parseContext.parseError("Extern declarations cannot have initializers", d);
       }
-      if (cStorageClass != CStorageClass.EXTERN && type instanceof CVoidType) {
+      if (cStorageClass != CStorageClass.EXTERN && innerType instanceof CVoidType) {
         throw parseContext.parseError("Variable cannot have type void", d);
       }
 

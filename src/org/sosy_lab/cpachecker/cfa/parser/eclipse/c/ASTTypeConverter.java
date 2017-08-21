@@ -439,7 +439,14 @@ class ASTTypeConverter {
     }
 
     if (type == null) {
-      return convert((IType) binding);
+      type = convert((IType) binding);
+    }
+
+    if (d.isConst()) {
+      type = CTypes.withConst(type);
+    }
+    if (d.isVolatile()) {
+      type = CTypes.withVolatile(type);
     }
 
     return type;
