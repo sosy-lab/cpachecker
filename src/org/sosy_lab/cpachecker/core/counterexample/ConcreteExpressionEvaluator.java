@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 
 /**
  * Implement this interface to use analysis specific expression evaluation when
@@ -54,7 +54,7 @@ public interface ConcreteExpressionEvaluator {
    * @param op2 concrete value of op2
    * @return result of binary expression evaluation with concrete value of op1 and op2
    */
-  public Value evaluate(ABinaryExpression binExp, Value op1, Value op2);
+  public NumberInterface evaluate(ABinaryExpression binExp, NumberInterface op1, NumberInterface op2);
 
   /**
    * Evaluate unary expression with given concrete operator.
@@ -63,7 +63,7 @@ public interface ConcreteExpressionEvaluator {
    * @param operand concrete value of operand
    * @return result of unary expression evaluation with concrete value of op1 and op2
    */
-  public Value evaluate(AUnaryExpression unaryExpression, Value operand);
+  public NumberInterface evaluate(AUnaryExpression unaryExpression, NumberInterface operand);
 
   /**
    * Evaluate casr expression with given concrete operator.
@@ -72,5 +72,5 @@ public interface ConcreteExpressionEvaluator {
    * @param operand value of operand
    * @return result of a cast expression evaluation with concrete value of operand
    */
-  public Value evaluate(ACastExpression castExpression, Value operand);
+  public NumberInterface evaluate(ACastExpression castExpression, NumberInterface operand);
 }

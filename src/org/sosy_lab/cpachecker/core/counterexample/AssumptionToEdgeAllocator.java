@@ -115,10 +115,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
@@ -683,7 +683,7 @@ public class AssumptionToEdgeAllocator {
 
     private Number evaluateNumericalValue(CExpression exp) {
 
-      Value addressV;
+      NumberInterface addressV;
       try {
         ModelExpressionValueVisitor v = new ModelExpressionValueVisitor(functionName, machineModel, new LogManagerWithoutDuplicates(logger));
         addressV = exp.accept(v);
@@ -1031,10 +1031,10 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Value visit(CCastExpression cast) throws UnrecognizedCCodeException {
+      public NumberInterface visit(CCastExpression cast) throws UnrecognizedCCodeException {
 
         if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(cast)) {
-          Value op = cast.getOperand().accept(this);
+          NumberInterface op = cast.getOperand().accept(this);
 
           if (op.isUnknown()) {
             return op;
@@ -1047,16 +1047,16 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Value visit(CBinaryExpression binaryExp) throws UnrecognizedCCodeException {
+      public NumberInterface visit(CBinaryExpression binaryExp) throws UnrecognizedCCodeException {
 
         if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(binaryExp)) {
-          Value op1 = binaryExp.getOperand1().accept(this);
+          NumberInterface op1 = binaryExp.getOperand1().accept(this);
 
           if (op1.isUnknown()) {
             return op1;
           }
 
-          Value op2 = binaryExp.getOperand2().accept(this);
+          NumberInterface op2 = binaryExp.getOperand2().accept(this);
 
           if (op2.isUnknown()) {
             return op2;
@@ -1080,7 +1080,7 @@ public class AssumptionToEdgeAllocator {
         CType addressType = null;
 
         if (lVarIsAddress && rVarIsAddress) {
-          return Value.UnknownValue.getInstance();
+          return NumberInterface.UnknownValue.getInstance();
         } else if (lVarIsAddress) {
           address = lVarInBinaryExp;
           pointerOffset = rVarInBinaryExp;
@@ -1099,7 +1099,7 @@ public class AssumptionToEdgeAllocator {
                       || rVarInBinaryExp instanceof ALiteralExpression)) {
                 return super.visit(binaryExp);
               }
-              return Value.UnknownValue.getInstance();
+              return NumberInterface.UnknownValue.getInstance();
             case DIVIDE:
             case MODULO:
               // Division and modulo with constants are sometimes supported
@@ -1112,7 +1112,7 @@ public class AssumptionToEdgeAllocator {
             case BINARY_XOR:
             case SHIFT_LEFT:
             case SHIFT_RIGHT:
-              return Value.UnknownValue.getInstance();
+              return NumberInterface.UnknownValue.getInstance();
             default:
               break;
             }
@@ -1130,13 +1130,13 @@ public class AssumptionToEdgeAllocator {
         case PLUS:
         case MINUS: {
 
-          Value addressValueV = address.accept(this);
+          NumberInterface addressValueV = address.accept(this);
 
-          Value offsetValueV = pointerOffset.accept(this);
+          NumberInterface offsetValueV = pointerOffset.accept(this);
 
           if (addressValueV.isUnknown() || offsetValueV.isUnknown()
               || !addressValueV.isNumericValue() || !offsetValueV.isNumericValue()) {
-            return Value.UnknownValue
+            return NumberInterface.UnknownValue
               .getInstance();
           }
 
@@ -1169,16 +1169,16 @@ public class AssumptionToEdgeAllocator {
         }
 
         default:
-          return Value.UnknownValue.getInstance();
+          return NumberInterface.UnknownValue.getInstance();
         }
       }
 
       @Override
-      public Value visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCCodeException {
+      public NumberInterface visit(CUnaryExpression pUnaryExpression) throws UnrecognizedCCodeException {
 
         if (concreteState.getAnalysisConcreteExpressionEvaluation().shouldEvaluateExpressionWithThisEvaluator(pUnaryExpression)) {
 
-          Value operand = pUnaryExpression.getOperand().accept(this);
+          NumberInterface operand = pUnaryExpression.getOperand().accept(this);
 
           if (operand.isUnknown() && (pUnaryExpression.getOperator() == UnaryOperator.MINUS
               || pUnaryExpression.getOperator() == UnaryOperator.TILDE)) {
@@ -1198,7 +1198,7 @@ public class AssumptionToEdgeAllocator {
         return super.visit(pUnaryExpression);
       }
 
-      private Value handleAmper(CExpression pOperand) {
+      private NumberInterface handleAmper(CExpression pOperand) {
         if (pOperand instanceof CLeftHandSide) {
 
           Address address = evaluateAddress((CLeftHandSide) pOperand);
@@ -1210,56 +1210,56 @@ public class AssumptionToEdgeAllocator {
           return handleAmper(((CCastExpression) pOperand).getOperand());
         }
 
-        return Value.UnknownValue.getInstance();
+        return NumberInterface.UnknownValue.getInstance();
       }
 
       @Override
-      protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
+      protected NumberInterface evaluateCPointerExpression(CPointerExpression pCPointerExpression)
           throws UnrecognizedCCodeException {
         Object value = LModelValueVisitor.this.visit(pCPointerExpression);
 
         if (value == null || !(value instanceof Number)) {
-          return Value.UnknownValue.getInstance();
+          return NumberInterface.UnknownValue.getInstance();
         }
 
         return new NumericValue((Number) value);
       }
 
       @Override
-      protected Value evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
+      protected NumberInterface evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
 
         Object value = LModelValueVisitor.this.visit(pCIdExpression);
 
         if (value == null || !(value instanceof Number)) {
-          return Value.UnknownValue.getInstance();
+          return NumberInterface.UnknownValue.getInstance();
         }
 
         return new NumericValue((Number)value);
       }
 
       @Override
-      protected Value evaluateJIdExpression(JIdExpression pVarName) {
-        return Value.UnknownValue.getInstance();
+      protected NumberInterface evaluateJIdExpression(JIdExpression pVarName) {
+        return NumberInterface.UnknownValue.getInstance();
       }
 
       @Override
-      protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+      protected NumberInterface evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
         if (value == null || !(value instanceof Number)) {
-          return Value.UnknownValue.getInstance();
+          return NumberInterface.UnknownValue.getInstance();
         }
 
         return new NumericValue((Number)value);
       }
 
       @Override
-      protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
+      protected NumberInterface evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
           throws UnrecognizedCCodeException {
         Object value = LModelValueVisitor.this.visit(pLValue);
 
         if (value == null || !(value instanceof Number)) {
-          return Value.UnknownValue.getInstance();
+          return NumberInterface.UnknownValue.getInstance();
         }
 
         return new NumericValue((Number) value);
@@ -1531,7 +1531,7 @@ public class AssumptionToEdgeAllocator {
             logger instanceof LogManagerWithoutDuplicates
                 ? (LogManagerWithoutDuplicates) logger
                 : new LogManagerWithoutDuplicates(logger);
-        Value value =
+        NumberInterface value =
             ExpressionValueVisitor.castCValue(
                 new NumericValue(pIntegerValue),
                 pType,

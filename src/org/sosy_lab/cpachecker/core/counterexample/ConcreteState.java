@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ACastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -32,12 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 
 /**
  * This class is used to represent the partial concrete memory of a C program at a statement
@@ -241,23 +238,23 @@ public final class ConcreteState {
       return false;
     }
 
-    private Value throwUnsupportedOperationException(AExpression pExp) {
+    private NumberInterface throwUnsupportedOperationException(AExpression pExp) {
       throw new UnsupportedOperationException(
           pExp.toASTString() + "should not be evaluated with this class.");
     }
 
     @Override
-    public Value evaluate(ABinaryExpression pBinExp, Value pOp1, Value pOp2) {
+    public NumberInterface evaluate(ABinaryExpression pBinExp, NumberInterface pOp1, NumberInterface pOp2) {
       return throwUnsupportedOperationException(pBinExp);
     }
 
     @Override
-    public Value evaluate(AUnaryExpression pUnaryExpression, Value pOperand) {
+    public NumberInterface evaluate(AUnaryExpression pUnaryExpression, NumberInterface pOperand) {
       return throwUnsupportedOperationException(pUnaryExpression);
     }
 
     @Override
-    public Value evaluate(ACastExpression pCastExpression, Value pOperand) {
+    public NumberInterface evaluate(ACastExpression pCastExpression, NumberInterface pOperand) {
       return throwUnsupportedOperationException(pCastExpression);
     }
   }
