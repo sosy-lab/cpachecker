@@ -187,7 +187,7 @@ public final class ConcreteState {
    * @param variable check the concrete address of this variable.
    * @return true, if the given variable has a concrete address, false otherwise.
    */
-  public boolean hasAddressOfVaribable(LeftHandSide variable) {
+  public boolean hasAddressOfVariable(LeftHandSide variable) {
     return variableAddressMap.containsKey(variable);
   }
 
