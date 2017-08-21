@@ -27,7 +27,7 @@ import com.google.common.base.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -37,11 +37,11 @@ public class ValueAnalysisInformation {
 
   public static final ValueAnalysisInformation EMPTY = new ValueAnalysisInformation();
 
-  private final PersistentMap<MemoryLocation, Value> assignments;
+  private final PersistentMap<MemoryLocation, NumberInterface> assignments;
   private final PersistentMap<MemoryLocation, Type> locationTypes;
 
   protected ValueAnalysisInformation(
-      final PersistentMap<MemoryLocation, Value> pAssignments,
+      final PersistentMap<MemoryLocation, NumberInterface> pAssignments,
       final PersistentMap<MemoryLocation, Type> pLocationTypes) {
     assignments = pAssignments;
     locationTypes = pLocationTypes;
@@ -52,7 +52,7 @@ public class ValueAnalysisInformation {
     locationTypes = PathCopyingPersistentTreeMap.of();
   }
 
-  public PersistentMap<MemoryLocation, Value> getAssignments() {
+  public PersistentMap<MemoryLocation, NumberInterface> getAssignments() {
     return assignments;
   }
 

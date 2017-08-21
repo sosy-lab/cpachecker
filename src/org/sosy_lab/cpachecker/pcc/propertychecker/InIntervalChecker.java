@@ -26,8 +26,9 @@ package org.sosy_lab.cpachecker.pcc.propertychecker;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.interval.Interval;
+import org.sosy_lab.cpachecker.cpa.interval.IntegerInterval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 
@@ -35,7 +36,7 @@ public class InIntervalChecker extends PerElementPropertyChecker {
 
   private final String label;
   private final String varName;
-  private final Interval allowedValues;
+  private final NumberInterface allowedValues;
 
   public InIntervalChecker(final String pVariableName, final String pLabel,
       // Necessary because called reflectively
@@ -46,7 +47,7 @@ public class InIntervalChecker extends PerElementPropertyChecker {
       final String pMax) {
     label = pLabel;
     varName = pVariableName;
-    allowedValues = new Interval(Long.parseLong(pMin), Long.parseLong(pMax));
+    allowedValues = new IntegerInterval(Long.parseLong(pMin), Long.parseLong(pMax));
 
   }
 
@@ -61,9 +62,10 @@ public class InIntervalChecker extends PerElementPropertyChecker {
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(label)) {
       IntervalAnalysisState state = AbstractStates.extractStateByType(pElemToCheck, IntervalAnalysisState.class);
       if (state != null) {
-        Interval interval = state.getInterval(varName);
-        if (interval != null && interval.getHigh() <= allowedValues.getHigh()
-            && interval.getLow() >= allowedValues.getLow()) {
+        NumberInterface interval = state.getInterval(varName);
+        //TODO Number instead Long
+        if (interval != null && interval.getHigh().longValue() <= allowedValues.getHigh().longValue()
+            && interval.getLow().longValue() >= allowedValues.getLow().longValue()) {
           return true;
         }
       }

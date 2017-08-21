@@ -24,25 +24,25 @@
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class RedundantRequirementsValueAnalysisStateImplementation extends
-    RedundantRequirementsRemoverImplementation<ValueAnalysisState, Value> {
+    RedundantRequirementsRemoverImplementation<ValueAnalysisState, NumberInterface> {
 
   private static final long serialVersionUID = 2875464105471673418L;
 
   @Override
-  public int compare(Value pO1, Value pO2) {
+  public int compare(NumberInterface pO1, NumberInterface pO2) {
     // one of arguments null -> NullPointerException
     // ClassCastException if p01 or p02 instanceof ArrayValue, BooleanValue, EnumConstantValue, NullValue
     // 0 if both are unknown Value
@@ -68,7 +68,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
   }
 
   @Override
-  protected boolean covers(Value pCovering, Value pCovered) {
+  protected boolean covers(NumberInterface pCovering, NumberInterface pCovered) {
     // return true if pCovering UnknownValue, pCovering equals pCovered
     // otherwise false
     if (pCovering.isUnknown() || pCovering.equals(pCovered)) {
@@ -79,7 +79,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
   }
 
   @Override
-  protected Value getAbstractValue(ValueAnalysisState pAbstractState, String pVarOrConst) {
+  protected NumberInterface getAbstractValue(ValueAnalysisState pAbstractState, String pVarOrConst) {
     // if pVarOrConst number, return NumericValue
     // if state contains pVarOrConst return value saved in state
     // otherwise unknown
@@ -95,19 +95,19 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
       }
     }
 
-    return Value.UnknownValue.getInstance();
+    return NumberInterface.UnknownValue.getInstance();
   }
 
   @Override
-  protected Value[] emptyArrayOfSize(int pSize) {
+  protected NumberInterface[] emptyArrayOfSize(int pSize) {
     // similar to RedundantRequirementsRemoverIntervalStateImplementation
-    return new Value[pSize];
+    return new NumberInterface[pSize];
   }
 
   @Override
-  protected Value[][] emptyMatrixOfSize(int pSize) {
+  protected NumberInterface[][] emptyMatrixOfSize(int pSize) {
     // similar to RedundantRequirementsRemoverIntervalStateImplementation
-    return new Value[pSize][];
+    return new NumberInterface[pSize][];
   }
 
   @Override

@@ -24,19 +24,21 @@
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.interval.Interval;
+import org.sosy_lab.cpachecker.cpa.interval.CreatorIntegerInterval;
+import org.sosy_lab.cpachecker.cpa.interval.IntegerInterval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
 
 
 public class RedundantRequirementsRemoverIntervalStateImplementation extends
-    RedundantRequirementsRemoverImplementation<IntervalAnalysisState, Interval> {
+    RedundantRequirementsRemoverImplementation<IntervalAnalysisState, NumberInterface> {
 
   private static final long serialVersionUID = 1323131138350817689L;
 
   @Override
-  public int compare(Interval pO1, Interval pO2) {
+  public int compare(NumberInterface pO1, NumberInterface pO2) {
     // one of arguments null -> NullPointerException
     // 0 if bounds the same for both
     // -1 if both bounds of p01 contained in bounds of p02
@@ -53,9 +55,12 @@ public class RedundantRequirementsRemoverIntervalStateImplementation extends
       return -1;
     } else if (pO1.contains(pO2)) {
       return 1;
-    } else if (pO1.getLow().compareTo(pO2.getLow()) < 0) {
+//    } else if (pO1.getLow().compareTo(pO2.getLow()) < 0) {
+      //TODO temporary solution
+    } else if (pO1.getLow().longValue()<pO2.getLow().longValue()) {
       return -1;
-    } else if (pO1.getLow().equals(pO2.getLow()) && pO1.getHigh().compareTo(pO2.getHigh()) < 0) {
+//    } else if (pO1.getLow().equals(pO2.getLow()) && pO1.getHigh().compareTo(pO2.getHigh()) < 0) {
+    } else if (pO1.getLow().equals(pO2.getLow()) && pO1.getHigh().longValue() < pO2.getHigh().longValue()) {
       return -1;
     }
 
@@ -63,37 +68,38 @@ public class RedundantRequirementsRemoverIntervalStateImplementation extends
   }
 
   @Override
-  protected boolean covers(Interval pCovering, Interval pCovered) {
+  protected boolean covers(NumberInterface pCovering, NumberInterface pCovered) {
     // return pCovering contains pCovered
     return pCovering.contains(pCovered);
   }
 
   @Override
-  protected Interval getAbstractValue(IntervalAnalysisState pAbstractState, String pVarOrConst) {
+  protected NumberInterface getAbstractValue(IntervalAnalysisState pAbstractState, String pVarOrConst) {
     // if pVarOrConst number, return interval [pVarOrConst,pVarOrConst]
     // if state contains pVarOrConst return interval saved in state
     // otherwise unboundedInterval
 
     try {
       long constant = Long.parseLong(pVarOrConst);
-      return new Interval(constant, constant);
+      return new CreatorIntegerInterval().factoryMethod(constant);
     } catch (NumberFormatException e) {
       if (pAbstractState.contains(pVarOrConst)) {
         return pAbstractState.getInterval(pVarOrConst);
       }
     }
+//TODO should be a NumberInerface
+    return IntegerInterval.UNBOUND;
+  }
 
-    return Interval.UNBOUND;
+
+  @Override
+  protected NumberInterface[] emptyArrayOfSize(int pSize) {
+    return new NumberInterface[Math.max(0, pSize)];
   }
 
   @Override
-  protected Interval[] emptyArrayOfSize(int pSize) {
-    return new Interval[Math.max(0, pSize)];
-  }
-
-  @Override
-  protected Interval[][] emptyMatrixOfSize(int pSize) {
-    return new Interval[Math.max(0, pSize)][];
+  protected NumberInterface[][] emptyMatrixOfSize(int pSize) {
+    return new NumberInterface[Math.max(0, pSize)][];
   }
 
   @Override

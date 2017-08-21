@@ -45,13 +45,13 @@ import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -131,9 +131,9 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(pValueState);
 
-    for (Map.Entry<? extends SymbolicIdentifier, Value> onlyValidAssignment : pAssignment.entrySet()) {
+    for (Map.Entry<? extends SymbolicIdentifier, NumberInterface> onlyValidAssignment : pAssignment.entrySet()) {
       final SymbolicIdentifier identifierToReplace = onlyValidAssignment.getKey();
-      final Value newIdentifierValue = onlyValidAssignment.getValue();
+      final NumberInterface newIdentifierValue = onlyValidAssignment.getValue();
 
       newElement.assignConstant(identifierToReplace, newIdentifierValue);
     }
@@ -162,8 +162,8 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
-    for (Map.Entry<MemoryLocation, Value> e : pValueState.getConstantsMapView().entrySet()) {
-      Value currV = e.getValue();
+    for (Map.Entry<MemoryLocation, NumberInterface> e : pValueState.getConstantsMapView().entrySet()) {
+      NumberInterface currV = e.getValue();
 
       if (!(currV instanceof SymbolicValue) || isSimpleSymbolicValue((SymbolicValue) currV)) {
         continue;
@@ -264,7 +264,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
   private Collection<SymbolicIdentifier> getIdentifiersInState(final ValueAnalysisState pState) {
     Collection<SymbolicIdentifier> ret = new HashSet<>();
 
-    for (Value v : pState.getConstantsMapView().values()) {
+    for (NumberInterface v : pState.getConstantsMapView().values()) {
       if (v instanceof SymbolicValue) {
         ret.addAll(SymbolicValues.getContainedSymbolicIdentifiers((SymbolicValue) v));
       }

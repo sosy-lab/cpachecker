@@ -30,7 +30,17 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -67,23 +77,11 @@ import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 
 public class ValueAnalysisConcreteErrorPathAllocator {
@@ -420,13 +418,13 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   private static Map<Address, Object> createHeapValues(ValueAnalysisState pValueState,
       Map<LeftHandSide, Address> pVariableAddressMap) {
 
-    Map<MemoryLocation, Value> valueView = pValueState.getConstantsMapView();
+    Map<MemoryLocation, NumberInterface> valueView = pValueState.getConstantsMapView();
 
     Map<Address, Object> result = new HashMap<>();
 
-    for (Entry<MemoryLocation, Value> entry : valueView.entrySet()) {
+    for (Entry<MemoryLocation, NumberInterface> entry : valueView.entrySet()) {
       MemoryLocation heapLoc = entry.getKey();
-      Value valueAsValue = entry.getValue();
+      NumberInterface valueAsValue = entry.getValue();
 
       if (!valueAsValue.isNumericValue()) {
         // Skip non numerical values for now

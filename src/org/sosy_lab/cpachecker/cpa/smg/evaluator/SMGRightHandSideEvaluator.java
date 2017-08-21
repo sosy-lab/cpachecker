@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.smg.SMGBuiltins;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
@@ -69,8 +70,6 @@ import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -102,7 +101,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     ForceExplicitValueVisitor v = new ForceExplicitValueVisitor(this, smgState,
         null, machineModel, logger, pCfaEdge);
 
-    Value val = rVal.accept(v);
+    NumberInterface val = rVal.accept(v);
 
     if (val.isUnknown()) {
       return SMGExplicitValueAndState.of(v.getNewState());
@@ -492,9 +491,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
 
     @Override
-    protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
+    protected NumberInterface evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
         throws UnrecognizedCCodeException {
-      Value result = super.evaluateCArraySubscriptExpression(pLValue);
+      NumberInterface result = super.evaluateCArraySubscriptExpression(pLValue);
 
       if (result.isUnknown()) {
         return guessLHS(pLValue);
@@ -504,10 +503,10 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
 
     @Override
-    protected Value evaluateCIdExpression(CIdExpression pCIdExpression)
+    protected NumberInterface evaluateCIdExpression(CIdExpression pCIdExpression)
         throws UnrecognizedCCodeException {
 
-      Value result = super.evaluateCIdExpression(pCIdExpression);
+      NumberInterface result = super.evaluateCIdExpression(pCIdExpression);
 
       if (result.isUnknown()) {
         return guessLHS(pCIdExpression);
@@ -516,7 +515,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       }
     }
 
-    private Value guessLHS(CLeftHandSide exp)
+    private NumberInterface guessLHS(CLeftHandSide exp)
         throws UnrecognizedCCodeException {
 
       SMGValueAndState symbolicValueAndState;
@@ -542,7 +541,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       setSmgState(symbolicValueAndState.getSmgState());
 
       if (value.isUnknown()) {
-        return UnknownValue.getInstance();
+        return NumberInterface.UnknownValue.getInstance();
       }
 
       getNewState().putExplicit((SMGKnownSymValue) value, GUESS);
@@ -551,8 +550,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
 
     @Override
-    protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
-      Value result = super.evaluateCFieldReference(pLValue);
+    protected NumberInterface evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+      NumberInterface result = super.evaluateCFieldReference(pLValue);
 
       if (result.isUnknown()) {
         return guessLHS(pLValue);
@@ -562,9 +561,9 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
 
     @Override
-    protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
+    protected NumberInterface evaluateCPointerExpression(CPointerExpression pCPointerExpression)
         throws UnrecognizedCCodeException {
-      Value result = super.evaluateCPointerExpression(pCPointerExpression);
+      NumberInterface result = super.evaluateCPointerExpression(pCPointerExpression);
 
       if (result.isUnknown()) {
         return guessLHS(pCPointerExpression);

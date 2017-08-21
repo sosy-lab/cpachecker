@@ -25,6 +25,8 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.math.BigInteger;
+import java.util.Collection;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -44,18 +46,15 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
-import java.util.Collection;
 
 /**
  * Visitor that derives further information from an assume edge
@@ -97,13 +96,13 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   }
 
   @Override
-  public Value visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
+  public NumberInterface visit(CBinaryExpression pE) throws UnrecognizedCCodeException {
     BinaryOperator binaryOperator = pE.getOperator();
     CExpression lVarInBinaryExp = (CExpression) unwrap(pE.getOperand1());
     CExpression rVarInBinaryExp = pE.getOperand2();
 
-    Value leftValue = lVarInBinaryExp.accept(this);
-    Value rightValue = rVarInBinaryExp.accept(this);
+    NumberInterface leftValue = lVarInBinaryExp.accept(this);
+    NumberInterface rightValue = rVarInBinaryExp.accept(this);
 
     if (isEqualityAssumption(binaryOperator)) {
       if (isEligibleForAssignment(leftValue)
@@ -145,15 +144,15 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     return super.visit(pE);
   }
 
-  private boolean isEligibleForAssignment(final Value pValue) {
+  private boolean isEligibleForAssignment(final NumberInterface pValue) {
     return pValue.isUnknown()
         || (!pValue.isExplicitlyKnown() && options.isAssignSymbolicAssumptionVars());
   }
 
   private void assignConcreteValue(
       final CExpression pVarInBinaryExp,
-      final Value pOldValue,
-      final Value pNewValue,
+      final NumberInterface pOldValue,
+      final NumberInterface pNewValue,
       final CType pValueType)
       throws UnrecognizedCCodeException {
     if (pOldValue instanceof SymbolicValue) {
@@ -162,7 +161,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       if (pOldValue instanceof SymbolicIdentifier) {
         id = (SymbolicIdentifier) pOldValue;
       } else if (pOldValue instanceof ConstantSymbolicExpression) {
-        Value innerVal = ((ConstantSymbolicExpression) pOldValue).getValue();
+        NumberInterface innerVal = ((ConstantSymbolicExpression) pOldValue).getValue();
 
         if (innerVal instanceof SymbolicValue) {
           assert innerVal instanceof SymbolicIdentifier;
@@ -178,7 +177,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
   }
 
-  private static boolean assumingUnknownToBeZero(Value value1, Value value2) {
+  private static boolean assumingUnknownToBeZero(NumberInterface value1, NumberInterface value2) {
     return value1.isUnknown() && value2.equals(new NumericValue(BigInteger.ZERO));
   }
 
@@ -193,7 +192,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   }
 
   @Override
-  public Value visit(JBinaryExpression pE) {
+  public NumberInterface visit(JBinaryExpression pE) {
     JBinaryExpression.BinaryOperator binaryOperator = pE.getOperator();
 
     JExpression lVarInBinaryExp = pE.getOperand1();
@@ -202,8 +201,8 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
     JExpression rVarInBinaryExp = pE.getOperand2();
 
-    Value leftValueV = lVarInBinaryExp.accept(this);
-    Value rightValueV = rVarInBinaryExp.accept(this);
+    NumberInterface leftValueV = lVarInBinaryExp.accept(this);
+    NumberInterface rightValueV = rVarInBinaryExp.accept(this);
 
     if ((binaryOperator == JBinaryExpression.BinaryOperator.EQUALS && truthValue)
         || (binaryOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS && !truthValue)) {
@@ -256,7 +255,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   }
 
   // Assign the given value of the given IdExpression to the state of this TransferRelation
-  private void assignValueToState(AIdExpression pIdExpression, Value pValue) {
+  private void assignValueToState(AIdExpression pIdExpression, NumberInterface pValue) {
     ASimpleDeclaration declaration = pIdExpression.getDeclaration();
 
     if (declaration != null) {

@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
@@ -69,7 +70,6 @@ import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -330,7 +330,7 @@ public class SMGExpressionEvaluator {
 
     ExplicitValueVisitor visitor = new ExplicitValueVisitor(this, smgState, null, machineModel, logger, cfaEdge);
 
-    Value value = rValue.accept(visitor);
+    NumberInterface value = rValue.accept(visitor);
     SMGState newState = visitor.getNewState();
 
     if (!value.isExplicitlyKnown() || !value.isNumericValue()) {

@@ -25,14 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import static com.google.common.base.Verify.verify;
 
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.refinement.Interpolant;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -40,8 +32,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.util.refinement.Interpolant;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map
@@ -51,7 +49,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
   /**
    * the variable assignment of the interpolant
    */
-  private @Nullable final Map<MemoryLocation, Value> assignment;
+  private @Nullable final Map<MemoryLocation, NumberInterface> assignment;
   private @Nullable final Map<MemoryLocation, Type> assignmentTypes;
 
   /**
@@ -62,7 +60,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
   /**
    * the interpolant representing "false"
    */
-  public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant((Map<MemoryLocation, Value>)null,(Map<MemoryLocation, Type>)null);
+  public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant((Map<MemoryLocation, NumberInterface>)null,(Map<MemoryLocation, Type>)null);
 
   /**
    * Constructor for a new, empty interpolant, i.e. the interpolant representing "true"
@@ -77,7 +75,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
    *
    * @param pAssignment the variable assignment to be represented by the interpolant
    */
-  public ValueAnalysisInterpolant(Map<MemoryLocation, Value> pAssignment, Map<MemoryLocation, Type> pAssignmentToType) {
+  public ValueAnalysisInterpolant(Map<MemoryLocation, NumberInterface> pAssignment, Map<MemoryLocation, Type> pAssignmentToType) {
     assignment = pAssignment;
     assignmentTypes = pAssignmentToType;
   }
@@ -118,11 +116,11 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
       return ValueAnalysisInterpolant.FALSE;
     }
 
-    Map<MemoryLocation, Value> newAssignment = new HashMap<>(assignment);
+    Map<MemoryLocation, NumberInterface> newAssignment = new HashMap<>(assignment);
 
     // add other itp mapping - one by one for now, to check for correctness
     // newAssignment.putAll(other.assignment);
-    for (Map.Entry<MemoryLocation, Value> entry : other.assignment.entrySet()) {
+    for (Map.Entry<MemoryLocation, NumberInterface> entry : other.assignment.entrySet()) {
       if (newAssignment.containsKey(entry.getKey())) {
         assert (entry.getValue().equals(other.assignment.get(entry.getKey()))) : "interpolants mismatch in " + entry.getKey();
       }
@@ -235,7 +233,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
 
     boolean strengthened = false;
 
-    for (Map.Entry<MemoryLocation, Value> itp : assignment.entrySet()) {
+    for (Map.Entry<MemoryLocation, NumberInterface> itp : assignment.entrySet()) {
       if (!valueState.contains(itp.getKey())) {
         valueState.assignConstant(itp.getKey(), itp.getValue(), assignmentTypes.get(itp.getKey()));
         strengthened = true;

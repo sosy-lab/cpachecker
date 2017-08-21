@@ -23,15 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.type;
 
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-
+import java.io.Serializable;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 
 /**
  * This class represents a boolean value.
  * It may store the values <code>false</code> and <code>true</code>.
  */
-public class BooleanValue implements Value {
+public class BooleanValue implements NumberInterface, Serializable {
 
   private static final long serialVersionUID = -35132790150256304L;
 
@@ -70,7 +71,7 @@ public class BooleanValue implements Value {
    * <code>BooleanValue</code> object representing the boolean meaning of the given value,
    * if one exists. An empty <code>Optional</code> instance, otherwise.
    */
-  public static Optional<BooleanValue> valueOf(Value pValue) {
+  public static Optional<BooleanValue> valueOf(NumberInterface pValue) {
     if (pValue.isUnknown()) {
       return Optional.empty();
 
@@ -113,6 +114,7 @@ public class BooleanValue implements Value {
    *         if this object represents <code>false</code>.
    *         An object representing <code>false</code> otherwise.
    */
+  @Override
   public BooleanValue negate() {
     return value ? FALSE_VALUE : TRUE_VALUE;
   }
@@ -205,5 +207,185 @@ public class BooleanValue implements Value {
   @Override
   public String toString() {
     return String.valueOf(value);
+  }
+
+  @Override
+  public NumberInterface EMPTY() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface UNBOUND() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface BOOLEAN_INTERVAL() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface ZERO() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface ONE() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean intersects(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public Number getLow() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Number getHigh() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean isGreaterThan(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public boolean isGreaterOrEqualThan(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public NumberInterface plus(NumberInterface pInterval) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface minus(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface times(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface divide(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface shiftLeft(NumberInterface pOffset) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface shiftRight(NumberInterface pOffset) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface unsignedDivide(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface unsignedModulo(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface unsignedShiftRight(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface modulo(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean isUnbound() {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public NumberInterface union(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean contains(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public NumberInterface intersect(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface limitUpperBoundBy(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface limitLowerBoundBy(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface asDecimal() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface asInteger() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Number getNumber() {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

@@ -93,9 +93,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
@@ -777,7 +777,7 @@ public class CtoFormulaConverter {
       if (negative) {
         intValue = intValue.negate();
       }
-      Value floatValue = AbstractExpressionValueVisitor.castCValue(
+      NumberInterface floatValue = AbstractExpressionValueVisitor.castCValue(
           intValue, targetType, machineModel,
           logger, e.getFileLocation());
       return new CFloatLiteralExpression(e.getFileLocation(), targetType,

@@ -54,12 +54,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
@@ -89,7 +89,7 @@ public class ValueAnalysisState
   /**
    * the map that keeps the name of variables and their constant values (concrete and symbolic ones)
    */
-  private PersistentMap<MemoryLocation, Value> constantsMap;
+  private PersistentMap<MemoryLocation, NumberInterface> constantsMap;
 
   private final @Nullable MachineModel machineModel;
 
@@ -104,14 +104,14 @@ public class ValueAnalysisState
 
   public ValueAnalysisState(
       Optional<MachineModel> pMachineModel,
-      PersistentMap<MemoryLocation, Value> pConstantsMap,
+      PersistentMap<MemoryLocation, NumberInterface> pConstantsMap,
       PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
     this(pMachineModel.orElse(null), pConstantsMap, pLocToTypeMap);
   }
 
   private ValueAnalysisState(
       @Nullable MachineModel pMachineModel,
-      PersistentMap<MemoryLocation, Value> pConstantsMap,
+      PersistentMap<MemoryLocation, NumberInterface> pConstantsMap,
       PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
     machineModel = pMachineModel;
     constantsMap = checkNotNull(pConstantsMap);
@@ -128,7 +128,7 @@ public class ValueAnalysisState
    * @param variableName name of the variable.
    * @param value value to be assigned.
    */
-  void assignConstant(String variableName, Value value) {
+  void assignConstant(String variableName, NumberInterface value) {
     if (blacklist.contains(MemoryLocation.valueOf(variableName))) {
       return;
     }
@@ -136,8 +136,8 @@ public class ValueAnalysisState
     addToConstantsMap(MemoryLocation.valueOf(variableName), value);
   }
 
-  private void addToConstantsMap(final MemoryLocation pMemLoc, final Value pValue) {
-    Value valueToAdd = pValue;
+  private void addToConstantsMap(final MemoryLocation pMemLoc, final NumberInterface pValue) {
+    NumberInterface valueToAdd = pValue;
 
     if (valueToAdd instanceof SymbolicValue) {
       valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(pMemLoc);
@@ -153,7 +153,7 @@ public class ValueAnalysisState
    * @param value value to be assigned.
    * @param pType the type of <code>value</code>.
    */
-  public void assignConstant(MemoryLocation pMemoryLocation, Value value, Type pType) {
+  public void assignConstant(MemoryLocation pMemoryLocation, NumberInterface value, Type pType) {
     if (blacklist.contains(pMemoryLocation)) {
       return;
     }
@@ -168,10 +168,10 @@ public class ValueAnalysisState
    * @param pSymbolicIdentifier the <code>SymbolicIdentifier</code> to assign the concrete value to.
    * @param pValue value to be assigned.
    */
-  public void assignConstant(SymbolicIdentifier pSymbolicIdentifier, Value pValue) {
-    for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
+  public void assignConstant(SymbolicIdentifier pSymbolicIdentifier, NumberInterface pValue) {
+    for (Map.Entry<MemoryLocation, NumberInterface> entry : constantsMap.entrySet()) {
       MemoryLocation currMemloc = entry.getKey();
-      Value currVal = entry.getValue();
+      NumberInterface currVal = entry.getValue();
 
       if (currVal instanceof ConstantSymbolicExpression) {
         currVal = ((ConstantSymbolicExpression) currVal).getValue();
@@ -198,7 +198,7 @@ public class ValueAnalysisState
       return ValueAnalysisInformation.EMPTY;
     }
 
-    Value value = constantsMap.get(pMemoryLocation);
+    NumberInterface value = constantsMap.get(pMemoryLocation);
     Type type = memLocToType.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
     memLocToType = memLocToType.removeAndCopy(pMemoryLocation);
@@ -207,7 +207,7 @@ public class ValueAnalysisState
     if (type != null) {
       typeAssignment = typeAssignment.putAndCopy(pMemoryLocation, type);
     }
-    PersistentMap<MemoryLocation, Value> valueAssignment = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, NumberInterface> valueAssignment = PathCopyingPersistentTreeMap.of();
     valueAssignment = valueAssignment.putAndCopy(pMemoryLocation, value);
 
     return new ValueAnalysisInformation(valueAssignment, typeAssignment);
@@ -215,7 +215,7 @@ public class ValueAnalysisState
 
   @Override
   public void remember(final MemoryLocation pLocation, final ValueAnalysisInformation pValueAndType) {
-    final Value value = pValueAndType.getAssignments().get(pLocation);
+    final NumberInterface value = pValueAndType.getAssignments().get(pLocation);
     final Type valueType = pValueAndType.getLocationTypes().get(pLocation);
 
     assignConstant(pLocation, value, valueType);
@@ -259,8 +259,8 @@ public class ValueAnalysisState
    * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value associated with the given variable
    */
-  public Value getValueFor(MemoryLocation variableName) {
-    Value value = constantsMap.get(variableName);
+  public NumberInterface getValueFor(MemoryLocation variableName) {
+    NumberInterface value = constantsMap.get(variableName);
 
     return checkNotNull(value);
   }
@@ -322,10 +322,10 @@ public class ValueAnalysisState
    */
   @Override
   public ValueAnalysisState join(ValueAnalysisState reachedState) {
-    PersistentMap<MemoryLocation, Value> newConstantsMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, NumberInterface> newConstantsMap = PathCopyingPersistentTreeMap.of();
     PersistentMap<MemoryLocation, Type> newlocToTypeMap = PathCopyingPersistentTreeMap.of();
 
-    for (Map.Entry<MemoryLocation, Value> otherEntry : reachedState.constantsMap.entrySet()) {
+    for (Map.Entry<MemoryLocation, NumberInterface> otherEntry : reachedState.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
 
       if (Objects.equals(otherEntry.getValue(), constantsMap.get(key))) {
@@ -359,10 +359,10 @@ public class ValueAnalysisState
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this
     // element
-    for (Map.Entry<MemoryLocation, Value> otherEntry : other.constantsMap.entrySet()) {
+    for (Map.Entry<MemoryLocation, NumberInterface> otherEntry : other.constantsMap.entrySet()) {
       MemoryLocation key = otherEntry.getKey();
-      Value otherValue = otherEntry.getValue();
-      Value thisValue = constantsMap.get(key);
+      NumberInterface otherValue = otherEntry.getValue();
+      NumberInterface thisValue = constantsMap.get(key);
 
       if (!otherValue.equals(thisValue)) {
         return false;
@@ -400,7 +400,7 @@ public class ValueAnalysisState
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("[");
-    for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
+    for (Map.Entry<MemoryLocation, NumberInterface> entry : constantsMap.entrySet()) {
       MemoryLocation key = entry.getKey();
       sb.append(" <");
       sb.append(key.getAsSimpleString());
@@ -443,7 +443,7 @@ public class ValueAnalysisState
     } else {
       String[] parts = pProperty.split("==");
       if (parts.length != 2) {
-        Value value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
+        NumberInterface value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
         if (value != null && value.isExplicitlyKnown()) {
           return value;
         } else {
@@ -466,7 +466,7 @@ public class ValueAnalysisState
           + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      Value val = this.constantsMap.get(MemoryLocation.valueOf(parts[0]));
+      NumberInterface val = this.constantsMap.get(MemoryLocation.valueOf(parts[0]));
       if (val == null) {
         return false;
       }
@@ -530,7 +530,7 @@ public class ValueAnalysisState
         } else {
           String varName = assignmentParts[0].trim();
           try {
-            Value newValue = new NumericValue(Long.parseLong(assignmentParts[1].trim()));
+            NumberInterface newValue = new NumericValue(Long.parseLong(assignmentParts[1].trim()));
             this.assignConstant(varName, newValue);
           } catch (NumberFormatException e) {
             throw new InvalidQueryException("The Query \"" + pModification
@@ -557,7 +557,7 @@ public class ValueAnalysisState
     BitvectorFormulaManagerView bitvectorFMGR = manager.getBitvectorFormulaManager();
     FloatingPointFormulaManagerView floatFMGR = manager.getFloatingPointFormulaManager();
 
-    for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
+    for (Map.Entry<MemoryLocation, NumberInterface> entry : constantsMap.entrySet()) {
       NumericValue num = entry.getValue().asNumericValue();
 
       if (num != null) {
@@ -635,8 +635,8 @@ public class ValueAnalysisState
    * @param valueMapping the mapping from variable name to the set of values of this variable
    * @return the new mapping
    */
-  public Multimap<String, Value> addToValueMapping(Multimap<String, Value> valueMapping) {
-    for (Map.Entry<MemoryLocation, Value> entry : constantsMap.entrySet()) {
+  public Multimap<String, NumberInterface> addToValueMapping(Multimap<String, NumberInterface> valueMapping) {
+    for (Map.Entry<MemoryLocation, NumberInterface> entry : constantsMap.entrySet()) {
       valueMapping.put(entry.getKey().getAsSimpleString(), entry.getValue());
     }
 
@@ -670,7 +670,7 @@ public class ValueAnalysisState
     return constantsMap.keySet();
   }
 
-  public Map<MemoryLocation, Value> getConstantsMapView() {
+  public Map<MemoryLocation, NumberInterface> getConstantsMapView() {
     return Collections.unmodifiableMap(constantsMap);
   }
 

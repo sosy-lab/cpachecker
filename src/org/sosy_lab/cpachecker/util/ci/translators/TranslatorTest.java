@@ -24,7 +24,13 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import com.google.common.truth.Truth;
-
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -43,8 +49,9 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.interval.Interval;
+import org.sosy_lab.cpachecker.cpa.interval.IntegerInterval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
@@ -52,7 +59,6 @@ import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -70,14 +76,6 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 
 public class TranslatorTest {
 
@@ -97,7 +95,7 @@ public class TranslatorTest {
 
   @Test
   public void testValueTranslator() {
-    PersistentMap<MemoryLocation, Value> constantsMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<MemoryLocation, NumberInterface> constantsMap = PathCopyingPersistentTreeMap.of();
     PersistentMap<MemoryLocation, Type> locToTypeMap = PathCopyingPersistentTreeMap.of();
 
     constantsMap = constantsMap.putAndCopy(MemoryLocation.valueOf("var1"), new NumericValue(3));
@@ -177,15 +175,16 @@ public class TranslatorTest {
 
   @Test
   public void testIntervalAndCartesianTranslator() {
-    PersistentMap<String, Interval> intervals = PathCopyingPersistentTreeMap.of();
+    PersistentMap<String, NumberInterface> intervals = PathCopyingPersistentTreeMap.of();
     PersistentMap<String, Integer> referenceMap = PathCopyingPersistentTreeMap.of();
 
-    intervals = intervals.putAndCopy("var1", new Interval(Long.MIN_VALUE, (long) 5));
-    intervals = intervals.putAndCopy("var2", new Interval((long) -7, Long.MAX_VALUE));
-    intervals = intervals.putAndCopy("var3", new Interval(Long.MIN_VALUE, (long) -2));
-    intervals = intervals.putAndCopy("fun::var1", new Interval((long) 0, (long) 10));
-    intervals = intervals.putAndCopy("fun::varB", new Interval((long) 8, Long.MAX_VALUE));
-    intervals = intervals.putAndCopy("fun::varC", new Interval((long) -15, (long) -3));
+    intervals = intervals.putAndCopy("var1", new IntegerInterval(Long.MIN_VALUE, (long) 5));
+    intervals = intervals.putAndCopy("var2", new IntegerInterval((long) -7, Long.MAX_VALUE));
+    intervals = intervals.putAndCopy("var3", new IntegerInterval(Long.MIN_VALUE, (long) -2));
+    intervals = intervals.putAndCopy("fun::var1", new IntegerInterval((long) 0, (long) 10));
+    intervals = intervals.putAndCopy("fun::varB", new IntegerInterval((long) 8, Long.MAX_VALUE));
+    intervals = intervals.putAndCopy("fun::varC", new IntegerInterval((long) -15, (long) -3));
+
 
     IntervalAnalysisState iStateTest = new IntervalAnalysisState(intervals, referenceMap);
     IntervalRequirementsTranslator iReqTransTest =
@@ -271,7 +270,7 @@ public class TranslatorTest {
     // Test method convertToFormula() with another IntervalAnalysisState
     intervals = PathCopyingPersistentTreeMap.of();
     referenceMap = PathCopyingPersistentTreeMap.of();
-    intervals = intervals.putAndCopy("var1", new Interval((long) 0, Long.MAX_VALUE));
+    intervals = intervals.putAndCopy("var1", new IntegerInterval((long) 0, Long.MAX_VALUE));
     IntervalAnalysisState anotherIStateTest = new IntervalAnalysisState(intervals, referenceMap);
 
     convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest, null);

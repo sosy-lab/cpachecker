@@ -25,14 +25,13 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.util.Types;
-
-import java.util.Optional;
 
 /**
  * Factory for creating {@link SymbolicValue}s.
@@ -55,7 +54,7 @@ public class SymbolicValueFactory {
     return SymbolicIdentifier.getNewIdentifier();
   }
 
-  public SymbolicExpression asConstant(Value pValue, Type pType) {
+  public SymbolicExpression asConstant(NumberInterface pValue, Type pType) {
     checkNotNull(pValue);
     assert !pValue.isUnknown();
     if (pValue instanceof SymbolicExpression) {

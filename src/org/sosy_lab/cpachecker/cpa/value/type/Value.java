@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.Serializable;
-
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
@@ -38,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  * For the future, floats, symbolic values, and SMG nodes should
  * also be supported.
  */
+@Deprecated
 public interface Value extends Serializable {
   public boolean isNumericValue();
 

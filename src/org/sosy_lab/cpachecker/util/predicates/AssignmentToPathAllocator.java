@@ -75,9 +75,8 @@ import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -294,11 +293,11 @@ public class AssignmentToPathAllocator {
     }
 
     @Override
-    public Value evaluate(ABinaryExpression pBinExp, Value pOp1, Value pOp2) {
+    public NumberInterface evaluate(ABinaryExpression pBinExp, NumberInterface pOp1, NumberInterface pOp2) {
 
       CBinaryExpression cBinExp = (CBinaryExpression) pBinExp;
       String functionName = getUninterpretedFunctionName(cBinExp);
-      Value[] operands = {pOp1, pOp2};
+      NumberInterface[] operands = {pOp1, pOp2};
 
       for (ValueAssignment valueAssignment : uninterpretedFunctions.get(functionName)) {
         if (matchOperands(valueAssignment, operands)) {
@@ -306,10 +305,10 @@ public class AssignmentToPathAllocator {
         }
       }
 
-      return Value.UnknownValue.getInstance();
+      return NumberInterface.UnknownValue.getInstance();
     }
 
-    private boolean matchOperands(ValueAssignment pValueAssignment, Value[] operands) {
+    private boolean matchOperands(ValueAssignment pValueAssignment, NumberInterface[] operands) {
       ImmutableList<Object> arguments = pValueAssignment.getArgumentsInterpretation();
 
       if (arguments.size() != operands.length) {
@@ -317,8 +316,8 @@ public class AssignmentToPathAllocator {
       }
 
       for (int i = 0; i < operands.length; i++) {
-        Value operandI = operands[i];
-        Value argumentI = asValue(arguments.get(i));
+        NumberInterface operandI = operands[i];
+        NumberInterface argumentI = asValue(arguments.get(i));
 
         if (!argumentI.equals(operandI)) {
           return false;
@@ -328,25 +327,25 @@ public class AssignmentToPathAllocator {
       return true;
     }
 
-    private Value asValue(Object pValue) {
+    private NumberInterface asValue(Object pValue) {
 
       if (pValue == null || !(pValue instanceof Number)) {
-        return Value.UnknownValue.getInstance();
+        return NumberInterface.UnknownValue.getInstance();
       }
 
       return new NumericValue((Number) pValue);
     }
 
     @Override
-    public Value evaluate(AUnaryExpression pUnaryExpression, Value pOperand) {
+    public NumberInterface evaluate(AUnaryExpression pUnaryExpression, NumberInterface pOperand) {
 
       if (!pOperand.isNumericValue()) {
-        return UnknownValue.getInstance();
+        return NumberInterface.UnknownValue.getInstance();
       }
 
       CUnaryExpression cUnaryExp = (CUnaryExpression) pUnaryExpression;
       String functionName = getUninterpretedFunctionName(cUnaryExp);
-      Value[] operands = {pOperand};
+      NumberInterface[] operands = {pOperand};
 
       for (ValueAssignment valueAssignment : uninterpretedFunctions.get(functionName)) {
         if (matchOperands(valueAssignment, operands)) {
@@ -354,19 +353,19 @@ public class AssignmentToPathAllocator {
         }
       }
 
-      return Value.UnknownValue.getInstance();
+      return NumberInterface.UnknownValue.getInstance();
     }
 
     @Override
-    public Value evaluate(ACastExpression pCastExpression, Value pOperand) {
+    public NumberInterface evaluate(ACastExpression pCastExpression, NumberInterface pOperand) {
 
       if (!pOperand.isNumericValue()) {
-        return UnknownValue.getInstance();
+        return NumberInterface.UnknownValue.getInstance();
       }
 
       CCastExpression cUnaryExp = (CCastExpression) pCastExpression;
       String functionName = getUninterpretedFunctionName(cUnaryExp);
-      Value[] operands = {pOperand};
+      NumberInterface[] operands = {pOperand};
 
       for (ValueAssignment valueAssignment : uninterpretedFunctions.get(functionName)) {
         if (matchOperands(valueAssignment, operands)) {
@@ -374,7 +373,7 @@ public class AssignmentToPathAllocator {
         }
       }
 
-      return Value.UnknownValue.getInstance();
+      return NumberInterface.UnknownValue.getInstance();
     }
   }
 

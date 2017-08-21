@@ -23,20 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.AliasCreator.Environment;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * Util class for {@link SymbolicValue}.
@@ -143,8 +142,8 @@ public class SymbolicValues {
     } else if (pValue1 instanceof ConstantSymbolicExpression) {
       assert pValue2 instanceof ConstantSymbolicExpression;
 
-      final Value innerVal1 = ((ConstantSymbolicExpression) pValue1).getValue();
-      final Value innerVal2 = ((ConstantSymbolicExpression) pValue2).getValue();
+      final NumberInterface innerVal1 = ((ConstantSymbolicExpression) pValue1).getValue();
+      final NumberInterface innerVal2 = ((ConstantSymbolicExpression) pValue2).getValue();
 
       if (innerVal1 instanceof SymbolicValue && innerVal2 instanceof SymbolicValue) {
         return representSameSymbolicMeaning((SymbolicValue) innerVal1, (SymbolicValue) innerVal2);

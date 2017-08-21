@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
@@ -44,8 +45,6 @@ import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -106,10 +105,10 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   @Override
-  public Value visit(CBinaryExpression binaryExp)
+  public NumberInterface visit(CBinaryExpression binaryExp)
       throws UnrecognizedCCodeException {
 
-    Value value = super.visit(binaryExp);
+    NumberInterface value = super.visit(binaryExp);
 
     if (value.isUnknown() && isPointerComparison(binaryExp)) {
       /* We may be able to get an explicit Value from pointer comaprisons. */
@@ -167,12 +166,12 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   @Override
-  protected Value evaluateCPointerExpression(CPointerExpression pCPointerExpression)
+  protected NumberInterface evaluateCPointerExpression(CPointerExpression pCPointerExpression)
       throws UnrecognizedCCodeException {
     return evaluateLeftHandSideExpression(pCPointerExpression);
   }
 
-  private Value evaluateLeftHandSideExpression(CLeftHandSide leftHandSide)
+  private NumberInterface evaluateLeftHandSideExpression(CLeftHandSide leftHandSide)
       throws UnrecognizedCCodeException {
 
     SMGValueAndStateList valueAndStates = null;
@@ -204,29 +203,29 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     SMGExplicitValue expValue = getExplicitValue(value);
 
     if (expValue.isUnknown()) {
-      return UnknownValue.getInstance();
+      return NumberInterface.UnknownValue.getInstance();
     } else {
       return new NumericValue(expValue.getAsLong());
     }
   }
 
   @Override
-  protected Value evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
+  protected NumberInterface evaluateCIdExpression(CIdExpression pCIdExpression) throws UnrecognizedCCodeException {
     return evaluateLeftHandSideExpression(pCIdExpression);
   }
 
   @Override
-  protected Value evaluateJIdExpression(JIdExpression pVarName) {
+  protected NumberInterface evaluateJIdExpression(JIdExpression pVarName) {
     return null;
   }
 
   @Override
-  protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+  protected NumberInterface evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
     return evaluateLeftHandSideExpression(pLValue);
   }
 
   @Override
-  protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
+  protected NumberInterface evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue)
       throws UnrecognizedCCodeException {
     return evaluateLeftHandSideExpression(pLValue);
   }

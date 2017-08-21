@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class MissingInformation {
@@ -56,7 +56,7 @@ public class MissingInformation {
    * Expression could not be evaluated due to missing information. (e.g.
    * missing pointer alias).
    */
-  private final Value cExpressionValue;
+  private final NumberInterface cExpressionValue;
 
   /**
    * The truth Assumption made in this assume edge.
@@ -108,7 +108,7 @@ public class MissingInformation {
     return truthAssumption != null && missingCExpressionInformation != null;
   }
 
-  public MissingInformation(CExpression pMissingCLeftMemoryLocation, Value pCExpressionValue) {
+  public MissingInformation(CExpression pMissingCLeftMemoryLocation, NumberInterface pCExpressionValue) {
     missingCExpressionInformation = null;
     missingCLeftMemoryLocation = pMissingCLeftMemoryLocation;
     cExpressionValue = pCExpressionValue;
@@ -168,7 +168,7 @@ public class MissingInformation {
     return missingFreeInvocation != null;
   }
 
-  public Value getcExpressionValue() {
+  public NumberInterface getcExpressionValue() {
     checkNotNull(cExpressionValue);
     return cExpressionValue;
   }

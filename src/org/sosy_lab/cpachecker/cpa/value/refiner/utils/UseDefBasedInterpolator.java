@@ -54,9 +54,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
@@ -159,12 +158,12 @@ public class UseDefBasedInterpolator {
    * @return the interpolant for the given variable declaration
    */
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
-    HashMap<MemoryLocation, Value> useDefInterpolant = new HashMap<>();
+    HashMap<MemoryLocation, NumberInterface> useDefInterpolant = new HashMap<>();
 
     for (ASimpleDeclaration use : uses) {
 
       for (MemoryLocation memoryLocation : obtainMemoryLocationsForType(use)) {
-        useDefInterpolant.put(memoryLocation, UnknownValue.getInstance());
+        useDefInterpolant.put(memoryLocation, NumberInterface.UnknownValue.getInstance());
       }
     }
 

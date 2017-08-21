@@ -26,14 +26,13 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Alias creator that returns all possible aliases for two sets of symbolic values.
@@ -178,8 +177,8 @@ public class RealAliasCreator implements AliasCreator {
       assert pExpressionOfFirstState instanceof ConstantSymbolicExpression;
       assert pExpressionOfSecondState instanceof ConstantSymbolicExpression;
 
-      Value e1Val = ((ConstantSymbolicExpression) pExpressionOfFirstState).getValue();
-      Value e2Val = ((ConstantSymbolicExpression) pExpressionOfSecondState).getValue();
+      NumberInterface e1Val = ((ConstantSymbolicExpression) pExpressionOfFirstState).getValue();
+      NumberInterface e2Val = ((ConstantSymbolicExpression) pExpressionOfSecondState).getValue();
 
       // Compare the values
       if (e1Val instanceof SymbolicIdentifier && e2Val instanceof SymbolicIdentifier) {

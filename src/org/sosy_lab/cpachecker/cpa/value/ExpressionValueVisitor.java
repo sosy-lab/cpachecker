@@ -44,7 +44,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -86,17 +87,17 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   @Override
-  protected Value evaluateCIdExpression(CIdExpression varName) {
+  protected NumberInterface evaluateCIdExpression(CIdExpression varName) {
     return evaluateAIdExpression(varName);
   }
 
   @Override
-  protected Value evaluateJIdExpression(JIdExpression varName) {
+  protected NumberInterface evaluateJIdExpression(JIdExpression varName) {
     return evaluateAIdExpression(varName);
   }
 
   /** This method returns the value of a variable from the current state. */
-  private Value evaluateAIdExpression(AIdExpression varName) {
+  private NumberInterface evaluateAIdExpression(AIdExpression varName) {
 
     final MemoryLocation memLoc;
 
@@ -111,16 +112,16 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     if (readableState.contains(memLoc)) {
       return readableState.getValueFor(memLoc);
     } else {
-      return Value.UnknownValue.getInstance();
+      return NumberInterface.UnknownValue.getInstance();
     }
   }
 
-  private Value evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
+  private NumberInterface evaluateLValue(CLeftHandSide pLValue) throws UnrecognizedCCodeException {
 
     MemoryLocation varLoc = evaluateMemoryLocation(pLValue);
 
     if (varLoc == null) {
-      return Value.UnknownValue.getInstance();
+      return UnknownValue.getInstance();
     }
 
     if (getState().contains(varLoc)) {
@@ -133,23 +134,23 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return readableState.getValueFor(varLoc);
       }
     }
-    return Value.UnknownValue.getInstance();
+    return UnknownValue.getInstance();
   }
 
   @Override
-  protected Value evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
+  protected NumberInterface evaluateCFieldReference(CFieldReference pLValue) throws UnrecognizedCCodeException {
     return evaluateLValue(pLValue);
   }
 
   @Override
-  protected Value evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException {
+  protected NumberInterface evaluateCArraySubscriptExpression(CArraySubscriptExpression pLValue) throws UnrecognizedCCodeException {
     return evaluateLValue(pLValue);
   }
 
   @Override
-  protected Value evaluateCPointerExpression(CPointerExpression pVarName) {
+  protected NumberInterface evaluateCPointerExpression(CPointerExpression pVarName) {
     missingPointer = true;
-    return Value.UnknownValue.getInstance();
+    return UnknownValue.getInstance();
   }
 
   public boolean canBeEvaluated(CExpression lValue) throws UnrecognizedCCodeException {
@@ -225,7 +226,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      Value subscriptValue = subscript.accept(evv);
+      NumberInterface subscriptValue = subscript.accept(evv);
 
       if (!subscriptValue.isExplicitlyKnown() || !subscriptValue.isNumericValue()) {
         return null;

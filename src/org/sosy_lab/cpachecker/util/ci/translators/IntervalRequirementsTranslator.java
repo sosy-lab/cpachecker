@@ -29,8 +29,8 @@ import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.interval.Interval;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 public class IntervalRequirementsTranslator extends CartesianRequirementsTranslator<IntervalAnalysisState> {
@@ -56,10 +56,11 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
     return list;
   }
 
-  private String getRequirement(final String var, final Interval interval) {
+  private String getRequirement(final String var, final NumberInterface interval) {
     StringBuilder sb = new StringBuilder();
-    boolean isMin = (interval.getLow() == Long.MIN_VALUE);
-    boolean isMax = (interval.getHigh() == Long.MAX_VALUE);
+  //TODO instanseof
+    boolean isMin = (interval.getLow().longValue() == Long.MIN_VALUE);
+    boolean isMax = (interval.getHigh().longValue() == Long.MAX_VALUE);
     Preconditions.checkArgument(!isMin || !isMax);
     Preconditions.checkArgument(!interval.isEmpty());
 

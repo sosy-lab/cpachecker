@@ -27,7 +27,9 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,12 +44,8 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
 
 @RunWith(Parameterized.class)
 public class ExpressionValueVisitorTest {
@@ -277,7 +275,7 @@ public class ExpressionValueVisitorTest {
   private void checkCast(long in, long expectedOut, CType outType)
       throws UnrecognizedCCodeException {
 
-    final Value value = evv.evaluate(
+    final NumberInterface value = evv.evaluate(
         new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(in)),
         outType);
 

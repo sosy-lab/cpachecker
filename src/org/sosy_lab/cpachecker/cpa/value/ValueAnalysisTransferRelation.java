@@ -123,6 +123,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
@@ -134,8 +135,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -216,11 +215,11 @@ public class ValueAnalysisTransferRelation
   private String missingInformationLeftJVariable = null;
 
   private boolean missingFieldVariableObject;
-  private Pair<String, Value> fieldNameAndInitialValue;
+  private Pair<String, NumberInterface> fieldNameAndInitialValue;
 
   private boolean missingScopedFieldName;
   private JIdExpression notScopedField;
-  private Value notScopedFieldValue;
+  private NumberInterface notScopedFieldValue;
 
   private boolean missingAssumeInformation;
 
@@ -313,7 +312,7 @@ public class ValueAnalysisTransferRelation
 
     // get value of actual parameter in caller function context
     for (int i = 0; i < parameters.size(); i++) {
-      Value value;
+      NumberInterface value;
       AExpression exp = arguments.get(i);
 
       if (exp instanceof JExpression) {
@@ -432,7 +431,7 @@ public class ValueAnalysisTransferRelation
       ExpressionValueVisitor v =
           new ExpressionValueVisitor(newElement, callerFunctionName, machineModel, logger);
 
-      Value newValue = null;
+      NumberInterface newValue = null;
       boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
       if (valueExists) {
         newValue = state.getValueFor(functionReturnVar);
@@ -464,7 +463,7 @@ public class ValueAnalysisTransferRelation
           if (valueExists) {
             memLoc = getMemoryLocation((CLeftHandSide) op1, newValue, v);
           } else {
-            memLoc = getMemoryLocation((CLeftHandSide) op1, UnknownValue.getInstance(), v);
+            memLoc = getMemoryLocation((CLeftHandSide) op1, NumberInterface.UnknownValue.getInstance(), v);
           }
 
         } else if (op1 instanceof AIdExpression) {
@@ -509,7 +508,7 @@ public class ValueAnalysisTransferRelation
 
   private Optional<MemoryLocation> getMemoryLocation(
       final CLeftHandSide pExpression,
-      final Value pRightHandSideValue,
+      final NumberInterface pRightHandSideValue,
       final ExpressionValueVisitor pValueVisitor
   ) throws UnrecognizedCCodeException {
 
@@ -535,7 +534,7 @@ public class ValueAnalysisTransferRelation
 
   private OptionalInt getIndex(JArraySubscriptExpression pExpression) {
     final ExpressionValueVisitor evv = getVisitor();
-    final Value indexValue = pExpression.getSubscriptExpression().accept(evv);
+    final NumberInterface indexValue = pExpression.getSubscriptExpression().accept(evv);
 
     if (indexValue.isUnknown()) {
       return OptionalInt.empty();
@@ -586,7 +585,7 @@ public class ValueAnalysisTransferRelation
     final Type booleanType = getBooleanType(expression);
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Value value = getExpressionValue(expression, booleanType, evv);
+    NumberInterface value = getExpressionValue(expression, booleanType, evv);
 
     if (value.isExplicitlyKnown() && stats != null) {
       stats.incrementDeterministicAssumptions();
@@ -660,7 +659,7 @@ public class ValueAnalysisTransferRelation
    *    * representsTrue(NullValue.getInstance(), false)    = false
    *
    */
-  private boolean representsBoolean(Value value, boolean bool) {
+  private boolean representsBoolean(NumberInterface value, boolean bool) {
     if (value instanceof BooleanValue) {
       return ((BooleanValue) value).isTrue() == bool;
 
@@ -689,7 +688,7 @@ public class ValueAnalysisTransferRelation
     // get the variable name in the declarator
     String varName = decl.getName();
 
-    Value initialValue = getDefaultInitialValue(decl);
+    NumberInterface initialValue = getDefaultInitialValue(decl);
 
     // get initializing statement
     AInitializer init = decl.getInitializer();
@@ -748,7 +747,7 @@ public class ValueAnalysisTransferRelation
     return newElement;
   }
 
-  private Value getDefaultInitialValue(AVariableDeclaration pDeclaration) {
+  private NumberInterface getDefaultInitialValue(AVariableDeclaration pDeclaration) {
     final boolean defaultBooleanValue = false;
     final long defaultNumericValue = 0;
 
@@ -773,14 +772,14 @@ public class ValueAnalysisTransferRelation
           case DOUBLE:
             return new NumericValue(defaultNumericValue);
           case UNSPECIFIED:
-            return UnknownValue.getInstance();
+            return NumberInterface.UnknownValue.getInstance();
           default:
             throw new AssertionError("Impossible type for declaration: " + basicType);
         }
       }
     }
 
-    return UnknownValue.getInstance();
+    return NumberInterface.UnknownValue.getInstance();
   }
 
   private boolean isComplexJavaType(Type pType) {
@@ -847,7 +846,7 @@ public class ValueAnalysisTransferRelation
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
-    Value newValue = evv.evaluate(functionCallExp, leftSideType);
+    NumberInterface newValue = evv.evaluate(functionCallExp, leftSideType);
 
     final Optional<MemoryLocation> memLoc = getMemoryLocation(leftSide, newValue, evv);
 
@@ -934,7 +933,7 @@ public class ValueAnalysisTransferRelation
         ExpressionValueVisitor evv = getVisitor();
 
         ArrayValue arrayToChange = getInnerMostArray(arrayExpression);
-        Value maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
+        NumberInterface maybeIndex = arrayExpression.getSubscriptExpression().accept(evv);
 
         if (arrayToChange == null || maybeIndex.isUnknown()) {
           assignUnknownValueToEnclosingInstanceOfArray(arrayExpression);
@@ -1008,7 +1007,7 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    Value value;
+    NumberInterface value;
     if (exp instanceof JRightHandSide) {
        value = visitor.evaluate((JRightHandSide) exp, (JType) lType);
     } else if (exp instanceof CRightHandSide) {
@@ -1106,7 +1105,7 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private void addMissingInformation(CLeftHandSide pOp1, Value pValue) {
+  private void addMissingInformation(CLeftHandSide pOp1, NumberInterface pValue) {
     missingInformationList.add(new MissingInformation(pOp1, pValue));
 
   }
@@ -1130,7 +1129,7 @@ public class ValueAnalysisTransferRelation
         MemoryLocation idName = MemoryLocation.valueOf(arrayDeclaration.getQualifiedName());
 
         if (state.contains(idName)) {
-          Value idValue = state.getValueFor(idName);
+          NumberInterface idValue = state.getValueFor(idName);
           if (idValue.isExplicitlyKnown()) {
             return (ArrayValue) idValue;
           }
@@ -1175,7 +1174,7 @@ public class ValueAnalysisTransferRelation
     if (enclosingExpression instanceof JIdExpression) {
       JIdExpression idExpression = (JIdExpression) enclosingExpression;
       MemoryLocation memLoc = getMemoryLocation(idExpression);
-      Value unknownValue = UnknownValue.getInstance();
+      NumberInterface unknownValue = NumberInterface.UnknownValue.getInstance();
 
       state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
 
@@ -1185,7 +1184,7 @@ public class ValueAnalysisTransferRelation
       OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
-        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.getAsInt());
+        enclosingArray.setValue(NumberInterface.UnknownValue.getInstance(), maybeIndex.getAsInt());
 
       }
       // if the index of unknown array in the enclosing array is also unknown, we assign unknown at this array's
@@ -1210,7 +1209,7 @@ public class ValueAnalysisTransferRelation
     }
 
     @Override
-    public Value visit(JBinaryExpression binaryExpression) {
+    public NumberInterface visit(JBinaryExpression binaryExpression) {
       return super.visit(binaryExpression);
     }
 
@@ -1229,31 +1228,31 @@ public class ValueAnalysisTransferRelation
     }
 
     @Override
-    public Value visit(JIdExpression idExp) {
+    public NumberInterface visit(JIdExpression idExp) {
 
       MemoryLocation varName = MemoryLocation.valueOf(handleIdExpression(idExp));
 
       if (readableState.contains(varName)) {
         return readableState.getValueFor(varName);
       } else {
-        return Value.UnknownValue.getInstance();
+        return NumberInterface.UnknownValue.getInstance();
       }
     }
   }
 
-  private Value getExpressionValue(AExpression expression, final Type type, ExpressionValueVisitor evv)
+  private NumberInterface getExpressionValue(AExpression expression, final Type type, ExpressionValueVisitor evv)
       throws UnrecognizedCCodeException {
     if (!isTrackedType(type)) {
-      return UnknownValue.getInstance();
+      return NumberInterface.UnknownValue.getInstance();
     }
 
     if (expression instanceof JRightHandSide) {
 
-      final Value value = evv.evaluate((JRightHandSide) expression, (JType) type);
+      final NumberInterface value = evv.evaluate((JRightHandSide) expression, (JType) type);
 
       if (evv.hasMissingFieldAccessInformation()) {
         missingInformationRightJExpression = (JRightHandSide) expression;
-        return Value.UnknownValue.getInstance();
+        return NumberInterface.UnknownValue.getInstance();
       } else {
         return value;
       }
@@ -1333,7 +1332,7 @@ public class ValueAnalysisTransferRelation
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           ValueAnalysisState newState =
-              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, UnknownValue.getInstance());
+              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, NumberInterface.UnknownValue.getInstance());
 
           newState = handleModf(rightHandSide, pointerState, newState);
 
@@ -1392,7 +1391,7 @@ public class ValueAnalysisTransferRelation
                     targetPointer.getExpressionType(),
                     targetPointer);
             ExpressionValueVisitor evv = getVisitor();
-            Value value;
+            NumberInterface value;
             if (exp instanceof JRightHandSide) {
               value = evv.evaluate((JRightHandSide) exp, (JType) exp.getExpressionType());
             } else if (exp instanceof CRightHandSide) {
@@ -1447,12 +1446,12 @@ public class ValueAnalysisTransferRelation
       Type pTargetType,
       ALeftHandSide pLeftHandSide,
       String pLeftHandVariable,
-      Value pValue)
+      NumberInterface pValue)
       throws UnrecognizedCCodeException {
 
     ValueAnalysisState newState = pValueState;
 
-    Value value = pValue;
+    NumberInterface value = pValue;
     MemoryLocation target = null;
     if (pLeftHandVariable != null) {
       target = MemoryLocation.valueOf(pLeftHandVariable);
@@ -1515,7 +1514,7 @@ public class ValueAnalysisTransferRelation
 
               Type otherVariableType = pValueState.getTypeForMemoryLocation(otherVariableLocation);
               if (otherVariableType != null) {
-                Value otherVariableValue = pValueState.getValueFor(otherVariableLocation);
+                NumberInterface otherVariableValue = pValueState.getValueFor(otherVariableLocation);
                 if (otherVariableValue != null) {
                   if (variableType.equals(otherVariableType)
                       || (variableType.equals(CNumericTypes.FLOAT)
@@ -1669,7 +1668,7 @@ public class ValueAnalysisTransferRelation
       }
     } else if (missingAssumeInformation && missingInformationRightJExpression != null) {
 
-      Value value = handleMissingInformationRightJExpression(rttState);
+      NumberInterface value = handleMissingInformationRightJExpression(rttState);
 
       missingAssumeInformation = false;
       missingInformationRightJExpression = null;
@@ -1684,7 +1683,7 @@ public class ValueAnalysisTransferRelation
       }
     } else if (missingInformationRightJExpression != null) {
 
-      Value value = handleMissingInformationRightJExpression(rttState);
+      NumberInterface value = handleMissingInformationRightJExpression(rttState);
 
       if (!value.isUnknown()) {
         newElement.assignConstant(missingInformationLeftJVariable, value);
@@ -1707,7 +1706,7 @@ public class ValueAnalysisTransferRelation
     return  uniqueObject + "::"+ fieldName;
   }
 
-  private Value handleMissingInformationRightJExpression(RTTState pJortState) {
+  private NumberInterface handleMissingInformationRightJExpression(RTTState pJortState) {
     return missingInformationRightJExpression.accept(
         new FieldAccessExpressionValueVisitor(pJortState, oldState));
   }
@@ -1721,7 +1720,7 @@ public class ValueAnalysisTransferRelation
 
      String scopedFieldName = getRTTScopedVariableName(notScopedField.getName(), objectScope);
 
-     Value value = notScopedFieldValue;
+     NumberInterface value = notScopedFieldValue;
      if (missingInformationRightJExpression != null) {
        value = handleMissingInformationRightJExpression(rttState);
      }

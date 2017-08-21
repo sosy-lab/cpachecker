@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
-
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 
 /**
  * Instances of this class represent arrays with characteristics of Java arrays.
@@ -48,7 +49,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
  * No other types can be stored in instances of this class.
  * </p>
  */
-public class ArrayValue implements Value {
+public class ArrayValue implements NumberInterface, Serializable {
 
   private static final long serialVersionUID = -3963825961335658001L;
 
@@ -63,7 +64,7 @@ public class ArrayValue implements Value {
   private final JType elementType;
 
   private final int arraySize;
-  private final Value[] values;
+  private final NumberInterface[] values;
 
   /**
    * <p>Creates a new <code>ArrayValue</code> instance representing an array of the given type and
@@ -85,7 +86,7 @@ public class ArrayValue implements Value {
     elementType = arrayType != null ? arrayType.getElementType() : null;
     arraySize = pArraySize;
     // we can't use concrete Value types because UnknownValue must be allowed
-    values = new Value[pArraySize];
+    values = new NumberInterface[pArraySize];
 
 
     if (elementType != null) {
@@ -119,19 +120,19 @@ public class ArrayValue implements Value {
    *
    * @throws IllegalArgumentException if a given value is not compatible with the array type
    */
-  public ArrayValue(JArrayType pType, List<Value> pValues) {
+  public ArrayValue(JArrayType pType, List<NumberInterface> pValues) {
     arrayType = pType;
     elementType = arrayType != null ? arrayType.getElementType() : null;
     arraySize = pValues.size();
 
-    for (Value currentValue : pValues) {
+    for (NumberInterface currentValue : pValues) {
       checkValidValue(currentValue);
     }
 
-    values = pValues.toArray(new Value[pValues.size()]);
+    values = pValues.toArray(new NumberInterface[pValues.size()]);
   }
 
-  private Value getInitialValue(JType pType) {
+  private NumberInterface getInitialValue(JType pType) {
     if (pType instanceof JClassOrInterfaceType) {
       return NullValue.getInstance();
 
@@ -165,7 +166,7 @@ public class ArrayValue implements Value {
     ArrayValue newArray = new ArrayValue(pArrayValue.arrayType, pArrayValue.arraySize);
 
     int counter = 0;
-    for (Value v : pArrayValue.values) {
+    for (NumberInterface v : pArrayValue.values) {
       if (v instanceof ArrayValue) {
         newArray.values[counter] = ArrayValue.copyOf((ArrayValue) v);
       } else {
@@ -178,7 +179,7 @@ public class ArrayValue implements Value {
     return newArray;
   }
 
-  private void checkValidValue(Value pValue) {
+  private void checkValidValue(NumberInterface pValue) {
     checkNotNull(pValue);
 
     final String errorMessage = "Illegal value " + pValue + " to store in array of type " + arrayType;
@@ -225,7 +226,7 @@ public class ArrayValue implements Value {
     }
   }
 
-  private boolean isValidComplexValue(Value pValue) {
+  private boolean isValidComplexValue(NumberInterface pValue) {
     checkNotNull(pValue);
 
     return pValue.isUnknown() || pValue instanceof NullValue || pValue instanceof EnumConstantValue
@@ -262,7 +263,7 @@ public class ArrayValue implements Value {
    * @param pIndex the index to return the value of
    * @return the value stored at the specified index
    */
-  public Value getValueAt(int pIndex) {
+  public NumberInterface getValueAt(int pIndex) {
     checkValidIndex(pIndex);
 
     return values[pIndex];
@@ -274,7 +275,7 @@ public class ArrayValue implements Value {
    * @param pValue the value to store at the specified index
    * @param pIndex the index to store the specified value at
    */
-  public void setValue(Value pValue, int pIndex) {
+  public void setValue(NumberInterface pValue, int pIndex) {
     checkValidValue(pValue);
     checkValidIndex(pIndex);
 
@@ -310,6 +311,192 @@ public class ArrayValue implements Value {
 
   @Override
   public Long asLong(CType type) {
+    return null;
+  }
+
+  @Override
+  public NumberInterface EMPTY() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface UNBOUND() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface BOOLEAN_INTERVAL() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface ZERO() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface ONE() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean intersects(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public Number getLow() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Number getHigh() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean isGreaterThan(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public boolean isGreaterOrEqualThan(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public NumberInterface plus(NumberInterface pInterval) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface minus(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface times(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface divide(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface shiftLeft(NumberInterface pOffset) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface shiftRight(NumberInterface pOffset) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface unsignedDivide(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface unsignedModulo(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface unsignedShiftRight(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface modulo(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean isUnbound() {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public NumberInterface union(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean contains(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public boolean isEmpty() {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public NumberInterface negate() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface intersect(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface limitUpperBoundBy(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface limitLowerBoundBy(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface asDecimal() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface asInteger() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Number getNumber() {
+    // TODO Auto-generated method stub
     return null;
   }
 }

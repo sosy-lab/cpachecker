@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.ACharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -34,11 +33,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -59,15 +58,15 @@ public class ExpressionTransformer {
     valueState = pValueState;
   }
 
-  protected Value createNumericValue(long pValue) {
+  protected NumberInterface createNumericValue(long pValue) {
     return new NumericValue(pValue);
   }
 
-  protected Value createNumericValue(BigDecimal pValue) {
+  protected NumberInterface createNumericValue(BigDecimal pValue) {
     return new NumericValue(pValue);
   }
 
-  protected Value createNumericValue(BigInteger pValue) {
+  protected NumberInterface createNumericValue(BigInteger pValue) {
     return new NumericValue(pValue);
   }
 
@@ -77,7 +76,7 @@ public class ExpressionTransformer {
     final Type idType = pIastIdExpression.getExpressionType();
 
     if (valueState.contains(memLoc)) {
-      final Value idValue = valueState.getValueFor(memLoc);
+      final NumberInterface idValue = valueState.getValueFor(memLoc);
 
       return SymbolicValueFactory.getInstance().asConstant(idValue, idType).copyForLocation(memLoc);
 

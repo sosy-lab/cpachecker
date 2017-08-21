@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayLengthExpression;
@@ -46,16 +47,14 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-
-import java.util.Optional;
 
 /**
  * Class for transforming {@link JExpression} objects into their {@link SymbolicExpression} representation.
@@ -193,7 +192,7 @@ public class JExpressionTransformer extends ExpressionTransformer
     return SymbolicValueFactory.getInstance().asConstant(createBooleanValue(value), booleanType);
   }
 
-  private Value createBooleanValue(boolean pValue) {
+  private NumberInterface createBooleanValue(boolean pValue) {
     return BooleanValue.valueOf(pValue);
   }
 
@@ -212,7 +211,7 @@ public class JExpressionTransformer extends ExpressionTransformer
     return SymbolicValueFactory.getInstance().asConstant(getNullValue(), nullType);
   }
 
-  private Value getNullValue() {
+  private NumberInterface getNullValue() {
     return NullValue.getInstance();
   }
 
@@ -224,7 +223,7 @@ public class JExpressionTransformer extends ExpressionTransformer
     return SymbolicValueFactory.getInstance().asConstant(createEnumValue(enumConstant), enumType);
   }
 
-  private Value createEnumValue(String pConstant) {
+  private NumberInterface createEnumValue(String pConstant) {
     return new EnumConstantValue(pConstant);
   }
 

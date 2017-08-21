@@ -27,12 +27,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
-
 import javax.annotation.Nullable;
-
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -57,7 +55,7 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
       final SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
-        Value integerValue = pRequirement.getConstantsMapView().get(memLoc);
+      NumberInterface integerValue = pRequirement.getConstantsMapView().get(memLoc);
         if (!integerValue.isNumericValue() || !(integerValue.asNumericValue().getNumber() instanceof Integer)) {
           logger.log(Level.SEVERE, "The value " + integerValue + " of the MemoryLocation " + memLoc + " is not an Integer.");
         } else {
