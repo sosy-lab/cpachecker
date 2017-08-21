@@ -339,7 +339,7 @@ class AssignmentHandler {
               : conv.getFreshIndex(targetName, lhsType, ssa);
 
       final Formula counter =
-          fmgr.makeVariable(conv.voidPointerFormulaType, targetName + "@" + oldIndex + "@counter");
+          fmgr.makeVariable(conv.voidPointerFormulaType, targetName + "__" + oldIndex + "__counter");
       final BooleanFormula rangeConstraint =
           fmgr.makeElementIndexConstraint(
               counter, lhsLocation.asAliased().getAddress(), pAssignments.size(), false);
@@ -800,7 +800,7 @@ class AssignmentHandler {
       // is equivalent to:
       // forall counter : condition || retentionConstraint
 
-      final Formula counter = fmgr.makeVariable(conv.voidPointerFormulaType, ufName + "@counter");
+      final Formula counter = fmgr.makeVariable(conv.voidPointerFormulaType, ufName + "__counter");
       final BooleanFormula updateCondition;
       if (isSimpleType(lvalueType)) {
         updateCondition = fmgr.makeEqual(counter, startAddress);

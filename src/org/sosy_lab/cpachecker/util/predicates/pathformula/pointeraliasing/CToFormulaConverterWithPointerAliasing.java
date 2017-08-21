@@ -295,7 +295,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(returnType);
 
     if (options.useQuantifiersOnArrays()) {
-      Formula counter = fmgr.makeVariable(voidPointerFormulaType, functionName + "@counter");
+      Formula counter = fmgr.makeVariable(voidPointerFormulaType, functionName + "__counter");
       return fmgr.getQuantifiedFormulaManager()
           .forall(
               counter,
