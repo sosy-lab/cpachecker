@@ -24,17 +24,16 @@
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import java.util.Map;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Less-or-equal operator for
@@ -96,7 +95,7 @@ public class ImplicationLessOrEqualOperator implements AbstractDomain {
       return false;
     }
 
-    for (Map.Entry<SymbolicIdentifier, Value> e : pBiggerStateDefinites.entrySet()) {
+    for (Map.Entry<SymbolicIdentifier, NumberInterface> e : pBiggerStateDefinites.entrySet()) {
       if (pLesserStateDefinites.containsKey(e.getKey())
           && pLesserStateDefinites.get(e.getKey()).equals(e.getValue())) {
 

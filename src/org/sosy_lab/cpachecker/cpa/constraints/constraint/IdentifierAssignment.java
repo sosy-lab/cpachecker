@@ -23,22 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
-
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.Maps;
+import java.util.HashMap;
+import java.util.Map;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 
 /**
  * Assignment for {@link SymbolicIdentifier}s.
  */
-public class IdentifierAssignment extends ForwardingMap<SymbolicIdentifier, Value> {
+public class IdentifierAssignment extends ForwardingMap<SymbolicIdentifier, NumberInterface> {
   private static final String ERROR_MSG_ASSIGNMENT_REMOVAL =
       "Definite assignments can't be removed!";
-  private Map<SymbolicIdentifier, Value> assignment = new HashMap<>();
+  private Map<SymbolicIdentifier, NumberInterface> assignment = new HashMap<>();
 
   public IdentifierAssignment() {
     super();
@@ -49,19 +47,19 @@ public class IdentifierAssignment extends ForwardingMap<SymbolicIdentifier, Valu
   }
 
   @Override
-  public Value put(SymbolicIdentifier pIdentifier, Value pValue) {
+  public NumberInterface put(SymbolicIdentifier pIdentifier, NumberInterface pValue) {
     assert !pValue.isUnknown();
 
     return super.put(pIdentifier, pValue);
   }
 
   @Override
-  public Value remove(Object pKey) {
+  public NumberInterface remove(Object pKey) {
     throw new UnsupportedOperationException(ERROR_MSG_ASSIGNMENT_REMOVAL);
   }
 
   @Override
-  public Value standardRemove(Object pKey) {
+  public NumberInterface standardRemove(Object pKey) {
     throw new UnsupportedOperationException(ERROR_MSG_ASSIGNMENT_REMOVAL);
   }
 
@@ -71,7 +69,7 @@ public class IdentifierAssignment extends ForwardingMap<SymbolicIdentifier, Valu
   }
 
   @Override
-  protected Map<SymbolicIdentifier, Value> delegate() {
+  protected Map<SymbolicIdentifier, NumberInterface> delegate() {
     return assignment;
   }
 

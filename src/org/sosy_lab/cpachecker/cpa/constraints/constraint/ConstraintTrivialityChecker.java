@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -50,7 +51,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Checks whether a {@link Constraint} is trivial, that means that it does not contain any
@@ -71,7 +71,7 @@ public class ConstraintTrivialityChecker implements SymbolicValueVisitor<Boolean
 
   @Override
   public Boolean visit(ConstantSymbolicExpression pExpression) {
-    final Value value = pExpression.getValue();
+    final NumberInterface value = pExpression.getValue();
 
     if (value instanceof SymbolicValue) {
       return ((SymbolicValue) value).accept(this);

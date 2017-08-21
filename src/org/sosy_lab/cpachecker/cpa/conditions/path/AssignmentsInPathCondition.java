@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -123,7 +123,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     /**
      * the mapping from variable name to the set of assigned values to this variable
      */
-    private Multimap<MemoryLocation, Value> mapping = HashMultimap.create();
+    private Multimap<MemoryLocation, NumberInterface> mapping = HashMultimap.create();
 
     /**
      * the maximal number of assignments over all variables
@@ -131,10 +131,10 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     private int maximum;
 
     private UniqueAssignmentsInPathConditionState() {
-      this(0, HashMultimap.<MemoryLocation, Value>create());
+      this(0, HashMultimap.<MemoryLocation, NumberInterface>create());
     }
 
-    private UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<MemoryLocation, Value> pMapping) {
+    private UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<MemoryLocation, NumberInterface> pMapping) {
       maximum = pMaximum;
       mapping = pMapping;
     }
@@ -173,7 +173,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
      *
      * @param memoryLocation the memory location for which to set assignment information
      */
-    public void updateAssignmentInformation(MemoryLocation memoryLocation, Value value) {
+    public void updateAssignmentInformation(MemoryLocation memoryLocation, NumberInterface value) {
       mapping.put(memoryLocation, value);
       maximum = Math.max(maximum, mapping.get(memoryLocation).size());
     }

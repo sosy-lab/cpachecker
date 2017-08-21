@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
  * Transforms {@link SymbolicExpression}s into {@link CExpression}s.
@@ -97,13 +96,13 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
 
   @Override
   public CExpression visit(ConstantSymbolicExpression pExpression) {
-    Value value = pExpression.getValue();
+    NumberInterface value = pExpression.getValue();
     CType type = getCType(pExpression.getType());
 
     return transformValue(value, type);
   }
 
-  private CExpression transformValue(Value pValue, CType pType) {
+  private CExpression transformValue(NumberInterface pValue, CType pType) {
 
     if (pValue instanceof SymbolicIdentifier) {
       return getIdentifierCExpression((SymbolicIdentifier) pValue, pType);
@@ -228,7 +227,7 @@ public class SymbolicExpressionTransformer implements SymbolicValueVisitor<CExpr
   private CExpression getIdentifierCExpression(SymbolicIdentifier pIdentifier, CType pType) {
 
     if (definiteAssignment.containsKey(pIdentifier)) {
-      Value concreteValue = definiteAssignment.get(pIdentifier);
+      NumberInterface concreteValue = definiteAssignment.get(pIdentifier);
       assert !(concreteValue instanceof SymbolicIdentifier);
 
       return transformValue(concreteValue, pType);
