@@ -783,6 +783,15 @@ public class CtoFormulaConverter {
       return new CFloatLiteralExpression(e.getFileLocation(), targetType,
           floatValue.asNumericValue().bigDecimalValue());
     }
+
+    if (e instanceof CFloatLiteralExpression) {
+      NumericValue floatValue = new NumericValue(((CFloatLiteralExpression)e).getValue());
+      if (negative) {
+        floatValue = floatValue.negate();
+      }
+      return new CFloatLiteralExpression(e.getFileLocation(), targetType, floatValue.asNumericValue().bigDecimalValue());
+    }
+
     return pExp;
   }
 
