@@ -13,6 +13,7 @@
   <tasks name="Termination-MainHeap">
     <includesfile>../programs/benchmarks/Termination-MainHeap.set</includesfile>
     <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
+    <option name="-64" />
   </tasks>
   <tasks name="Termination-Other">
     <includesfile>../programs/benchmarks/Termination-Other.set</includesfile>
