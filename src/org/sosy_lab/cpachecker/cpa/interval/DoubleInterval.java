@@ -5,7 +5,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 
 public class DoubleInterval implements NumberInterface {
     /**
@@ -679,42 +678,6 @@ public class DoubleInterval implements NumberInterface {
     }
 
     @Override
-    public boolean isNumericValue() {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
-    public boolean isUnknown() {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
-    public boolean isExplicitlyKnown() {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
-    public NumericValue asNumericValue() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Long asLong(CType pType) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public Number getNumber() {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public NumberInterface unsignedDivide(NumberInterface pOther) {
         // TODO Auto-generated method stub
         return null;
@@ -728,6 +691,30 @@ public class DoubleInterval implements NumberInterface {
 
     @Override
     public NumberInterface unsignedShiftRight(NumberInterface pOther) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public Long asLong(CType pType) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface binaryAnd(NumberInterface pRNum) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface binaryOr(NumberInterface pRNum) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface binaryXor(NumberInterface pRNum) {
         // TODO Auto-generated method stub
         return null;
     }

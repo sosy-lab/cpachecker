@@ -8,15 +8,26 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 
 public interface NumberInterface {
 
-    public NumberInterface EMPTY();
+    default NumberInterface EMPTY() {
+        return null;
+    }
 
-    public NumberInterface UNBOUND();
+    default NumberInterface UNBOUND() {
+        return null;
+    }
 
-    public NumberInterface BOOLEAN_INTERVAL();
+    default NumberInterface BOOLEAN_INTERVAL()
+    {
+        return null;
+    }
 
-    public NumberInterface ZERO();
+    default NumberInterface ZERO(){
+        return null;
+    }
 
-    public NumberInterface ONE();
+    default NumberInterface ONE(){
+        return null;
+    }
 
     /**
      * This method determines if this interval intersects with another interval.
@@ -25,21 +36,28 @@ public interface NumberInterface {
      *            the other interval
      * @return true if the intervals intersect, else false
      */
-    public boolean intersects(NumberInterface other);
+    default boolean intersects(NumberInterface other){
+        return false;
+    }
 
     /**
      * This method returns the lower bound of the interval.
      *
      * @return the lower bound
      */
-    public Number getLow();
+    default Number getLow(){
+        return null;
+    }
 
     /**
      * This method returns the upper bound of the interval.
      *
      * @return the upper bound
      */
-    public Number getHigh();
+    default Number getHigh()
+    {
+        return null;
+    }
 
     /**
      * This method determines if this interval is definitely greater than the
@@ -50,7 +68,9 @@ public interface NumberInterface {
      * @return true if the lower bound of this interval is always strictly
      *         greater than the upper bound of the other interval, else false
      */
-    public boolean isGreaterThan(NumberInterface other);
+    default boolean isGreaterThan(NumberInterface other){
+        return false;
+    }
 
     /**
      * This method determines if this interval is definitely greater or equal
@@ -63,7 +83,9 @@ public interface NumberInterface {
      *         greater or equal than the upper bound of the other interval, else
      *         false
      */
-    public boolean isGreaterOrEqualThan(NumberInterface other);
+    default boolean isGreaterOrEqualThan(NumberInterface other){
+        return false;
+    }
 
     public NumberInterface plus(NumberInterface interval);
 
@@ -90,9 +112,15 @@ public interface NumberInterface {
      *            the other interval
      * @return the new interval with the respective bounds.
      */
-    public NumberInterface modulo(NumberInterface other);
+    default NumberInterface modulo(NumberInterface other)
+    {
+        return null;
+    }
 
-    public boolean isUnbound();
+    default boolean isUnbound()
+    {
+        return false;
+    }
 
     /**
      * This method creates a new interval instance representing the union of
@@ -105,7 +133,10 @@ public interface NumberInterface {
      *            the other interval
      * @return the new interval with the respective bounds
      */
-    public NumberInterface union(NumberInterface other);
+    default NumberInterface union(NumberInterface other)
+    {
+        return null;
+    }
 
     /**
      * This method determines if this interval contains another interval.
@@ -119,13 +150,19 @@ public interface NumberInterface {
      *            the other interval
      * @return true if this interval contains the other interval, else false
      */
-    public boolean contains(NumberInterface other);
+    default boolean contains(NumberInterface other)
+    {
+        return false;
+    }
 
     default boolean isEmpty() {
         return false;
     }
 
-    public NumberInterface negate();
+    default NumberInterface negate()
+    {
+        return null;
+    }
 
     // public NumberInterface createUpperBoundedInterval(Long upperBound);
     // public NumberInterface createLowerBoundedInterval(Long lowerBound);
@@ -140,7 +177,9 @@ public interface NumberInterface {
      *            the other interval
      * @return the new interval with the respective bounds
      */
-    public NumberInterface intersect(NumberInterface other);
+    default NumberInterface intersect(NumberInterface other){
+        return null;
+    }
 
     /**
      * This method returns a new interval with a limited, i.e. lower, upper
@@ -153,7 +192,9 @@ public interface NumberInterface {
      *         interval's upper bound or an empty interval if this interval is
      *         greater than the other interval.
      */
-    public NumberInterface limitUpperBoundBy(NumberInterface other);
+    default NumberInterface limitUpperBoundBy(NumberInterface other){
+        return null;
+    }
 
     /**
      * This method returns a new interval with a limited, i.e. higher, lower
@@ -166,34 +207,56 @@ public interface NumberInterface {
      *         interval's lower bound or an empty interval if this interval is
      *         less than the other interval.
      */
-    public NumberInterface limitLowerBoundBy(NumberInterface other);
+    default NumberInterface limitLowerBoundBy(NumberInterface other){
+        return null;
+    }
 
-    public NumberInterface asDecimal();
+    default NumberInterface asDecimal(){
+        return null;
+    }
 
-    public NumberInterface asInteger();
+    default NumberInterface asInteger(){
+        return null;
+    }
 
-    public boolean isNumericValue();
+    default boolean isNumericValue(){
+        return false;
+    }
 
     /**
      * True if we have no idea about this value(can not track it), false
      * otherwise.
      */
-    public boolean isUnknown();
+    default boolean isUnknown()
+    {
+        return false;
+    }
 
     /** True if we deterministically know the actual value, false otherwise. */
-    public boolean isExplicitlyKnown();
+    default boolean isExplicitlyKnown()
+    {
+        return false;
+    }
+    public NumberInterface binaryAnd(NumberInterface rNum);
+
+    public NumberInterface binaryOr(NumberInterface rNum);
+
+    public NumberInterface binaryXor(NumberInterface rNum);
 
     /**
      * Returns the NumericValue if the stored value can be explicitly
      * represented by a numeric value, null otherwise.
      **/
 
-    public NumericValue asNumericValue();
+    default NumericValue asNumericValue(){
+        return null;
+    }
 
-    /** Return the long value if this is a long value, null otherwise. **/
     public Long asLong(CType type);
 
-    public Number getNumber();
+    default Number getNumber(){
+        return null;
+    }
 
     public static final class UnknownValue implements NumberInterface, Serializable {
 
@@ -240,67 +303,7 @@ public interface NumberInterface {
         }
 
         @Override
-        public NumberInterface EMPTY() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface UNBOUND() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface BOOLEAN_INTERVAL() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface ZERO() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface ONE() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public boolean intersects(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public Number getLow() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Number getHigh() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public boolean isGreaterThan(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public boolean isGreaterOrEqualThan(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public NumberInterface plus(NumberInterface otherNumberInterface) {
+        public NumberInterface plus(NumberInterface pInterval) {
             // TODO Auto-generated method stub
             return null;
         }
@@ -336,78 +339,6 @@ public interface NumberInterface {
         }
 
         @Override
-        public NumberInterface modulo(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public boolean isUnbound() {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public NumberInterface union(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public boolean contains(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public NumberInterface negate() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface intersect(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface limitUpperBoundBy(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface limitLowerBoundBy(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface asDecimal() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface asInteger() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Number getNumber() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
         public NumberInterface unsignedDivide(NumberInterface pOther) {
             // TODO Auto-generated method stub
             return null;
@@ -424,5 +355,25 @@ public interface NumberInterface {
             // TODO Auto-generated method stub
             return null;
         }
+
+        @Override
+        public NumberInterface binaryAnd(NumberInterface pRNum) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public NumberInterface binaryOr(NumberInterface pRNum) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public NumberInterface binaryXor(NumberInterface pRNum) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+
     }
 }
