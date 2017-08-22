@@ -776,34 +776,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
                 conv.bfmgr.ifThenElse(conv.bfmgr.or(isSecondNaN, firstGreaterSecond), param0, param1));
           }
         }
-      } else if (BuiltinFloatFunctions.matchesCeil(functionName)) {
-
-        Formula result = roundingBuiltin(functionName, parameters, FloatingPointRoundingMode.TOWARD_POSITIVE);
-
-        if (result != null) {
-          return result;
-        }
-      } else if (BuiltinFloatFunctions.matchesFloor(functionName)) {
-
-        Formula result = roundingBuiltin(functionName, parameters, FloatingPointRoundingMode.TOWARD_NEGATIVE);
-
-        if (result != null) {
-          return result;
-        }
-      } else if (BuiltinFloatFunctions.matchesRound(functionName)) {
-
-        Formula result = roundingBuiltin(functionName, parameters, FloatingPointRoundingMode.NEAREST_TIES_AWAY);
-
-        if (result != null) {
-          return result;
-        }
-      } else if (BuiltinFloatFunctions.matchesTrunc(functionName)) {
-
-        Formula result = roundingBuiltin(functionName, parameters, FloatingPointRoundingMode.TOWARD_ZERO);
-
-        if (result != null) {
-          return result;
-        }
       } else if (BuiltinFloatFunctions.matchesFdim(functionName)) {
 
         if (parameters.size() == 2) {
@@ -969,25 +941,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
-  }
-
-  private @Nullable Formula roundingBuiltin(String pFunctionName, List<CExpression> pParameters,
-      FloatingPointRoundingMode pRoundingMode) throws UnrecognizedCCodeException {
-
-    if (pParameters.size() == 1) {
-      CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
-      FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
-      if (formulaType.isFloatingPointType()) {
-        FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
-        FloatingPointFormula param = (FloatingPointFormula)processOperand(pParameters.get(0), paramType, paramType);
-
-        FloatingPointFormula rounded = fpfmgr.castFrom(fpfmgr.castTo(param, FormulaType.IntegerType, pRoundingMode), true, (FormulaType.FloatingPointType)formulaType);
-
-        return conv.bfmgr.ifThenElse(conv.bfmgr.makeTrue(), rounded, rounded);
-      }
-    }
-
-    return null;
   }
 
   /**
