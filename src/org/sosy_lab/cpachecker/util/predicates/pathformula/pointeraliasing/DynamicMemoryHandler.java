@@ -554,42 +554,43 @@ class DynamicMemoryHandler {
       final Set<String> rhsVariables = conv.fmgr.extractVariableNames(rhsExpression.asValue().getValue());
       // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
       for (final String mangledVariable : rhsVariables) {
-        final String variable =
-            PointerTargetSet.isBaseName(mangledVariable)
-                ? PointerTargetSet.getBase(mangledVariable)
-                : mangledVariable;
-        if (pts.isTemporaryDeferredAllocationPointer(variable)) {
-          if (!isAllocation) {
-            // We can reveal the type from the LHS
-            if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
-              handleDeferredAllocationTypeRevelation(variable, lhsType);
-            // We can defer the allocation and start tracking the variable in the LHS
-            } else {
-              final Optional<String> lhsPointer =
-                  lhs.accept(visitor.getPointerApproximatingVisitor());
-              lhsPointer.ifPresent(
-                  (s) -> {
-                    pts.removeDeferredAllocationPointer(s)
-                        .forEach((_d) -> handleDeferredAllocationPointerRemoval(s));
-                    pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS
-                    // And not the RHS, it was a dummy, not a code pointer approximation
-                    pts.removeDeferredAllocationPointer(variable)
-                        .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
-                  });
-              if (!lhsPointer.isPresent()) {
-                conv.logger.logfOnce(
-                    Level.WARNING,
-                    "Can't start tracking deferred allocation -- can't approximate this LHS: %s (here: %s)",
-                    lhs,
-                    edge);
-                pts.removeDeferredAllocationPointer(variable)
-                    .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
+        if (PointerTargetSet.isBaseName(mangledVariable)) {
+          final String variable = PointerTargetSet.getBase(mangledVariable);
+          if (pts.isTemporaryDeferredAllocationPointer(variable)) {
+            if (!isAllocation) {
+              if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
+                // We can reveal the type from the LHS
+                handleDeferredAllocationTypeRevelation(variable, lhsType);
+              } else {
+                // We can defer the allocation and start tracking the variable in the LHS
+                final Optional<String> lhsPointer =
+                    lhs.accept(visitor.getPointerApproximatingVisitor());
+                lhsPointer.ifPresent(
+                    (s) -> {
+                      pts.removeDeferredAllocationPointer(s)
+                          .forEach((_d) -> handleDeferredAllocationPointerRemoval(s));
+                      pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS
+                      // And not the RHS, it was a dummy, not a code pointer approximation
+                      pts.removeDeferredAllocationPointer(variable)
+                          .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
+                    });
+                if (!lhsPointer.isPresent()) {
+                  conv.logger.logfOnce(
+                      Level.WARNING,
+                      "Can't start tracking deferred allocation -- can't approximate this LHS: %s (here: %s)",
+                      lhs,
+                      edge);
+                  pts.removeDeferredAllocationPointer(variable)
+                      .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
+                }
               }
+              isAllocation = true;
+            } else {
+              throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, rhs);
             }
-            isAllocation = true;
-          } else {
-            throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, rhs);
           }
+        } else {
+          assert !pts.isTemporaryDeferredAllocationPointer(mangledVariable);
         }
       }
     }
