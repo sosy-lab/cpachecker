@@ -101,7 +101,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface.UnknownValue;
-import org.sosy_lab.cpachecker.cpa.interval.NumberInterfaceBinaryOperations;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -597,11 +596,11 @@ public abstract class AbstractExpressionValueVisitor
             }
             return lNum.shiftRight(rNum);
           case BINARY_AND:
-            return NumberInterfaceBinaryOperations.binaryAnd(lNum, rNum);
+            return lNum.binaryAnd(rNum);
           case BINARY_OR:
-            return NumberInterfaceBinaryOperations.binaryOr(lNum, rNum);
+            return lNum.binaryOr(rNum);
           case BINARY_XOR:
-            return NumberInterfaceBinaryOperations.binaryXor(lNum, rNum);
+            return lNum.binaryXor(rNum);
           default:
             throw new AssertionError("unknown binary operation: " + op);
         }
