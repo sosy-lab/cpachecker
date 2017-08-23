@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
@@ -30,10 +31,12 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appender;
@@ -44,7 +47,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -59,6 +62,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
@@ -102,6 +107,19 @@ public class CEXExporter {
       description="export counterexample as automaton")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathAutomatonFile = PathTemplate.ofFormatString("Counterexample.%d.spc");
+
+  @Option(secure=true, name="prefixCoverageFile",
+      description="export counterexample coverage information, considering only spec prefix as " +
+                  "covered (up until reaching __FALSE state in Assumption Automaton).")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  PathTemplate coveragePrefixTemplate = PathTemplate.ofFormatString("Counterexample.%d.aa-prefix.coverage-info");
+
+  @Option(secure=true, name="exportCounterexampleCoverage",
+      description="export coverage information for every witness: " +
+      "requires using an Assumption Automaton as part of the specification. " +
+      "Lines are considered to be covered only when the path reaching " +
+      "the statement does not reach the __FALSE state in the Assumption Automaton.")
+  private boolean exportCounterexampleCoverage = false;
 
   @Option(secure=true, name="exportWitness",
       description="export counterexample as witness/graphml file")
@@ -228,6 +246,17 @@ public class CEXExporter {
     final ARGState rootState = targetPath.getFirstState();
     final int uniqueId = counterexample.getUniqueId();
 
+    if (exportCounterexampleCoverage && coveragePrefixTemplate != null) {
+      Path outputPath = coveragePrefixTemplate.getPath(counterexample.getUniqueId());
+      try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
+        CoverageReportGcov.write(
+            CoverageCollector.fromCounterexample(targetPath).collectCoverage(), gcovFile);
+      } catch (IOException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not write coverage information for counterexample to file");
+      }
+    }
+
     writeErrorPathFile(errorPathFile, uniqueId, counterexample);
 
     if (errorPathCoreFile != null) {
@@ -337,6 +366,16 @@ public class CEXExporter {
     }
   }
 
+  // Copied from org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.addVisitedLine(int)
+  public void addVisitedLine(Map<Integer,Integer> visitedLines, int pLine) {
+    checkArgument(pLine > 0);
+    if (visitedLines.containsKey(pLine)) {
+      visitedLines.put(pLine, visitedLines.get(pLine) + 1);
+    } else {
+      visitedLines.put(pLine, 1);
+    }
+  }
+
   private void writeErrorPathFile(PathTemplate template, int uniqueId, Object content) {
     writeErrorPathFile(template, uniqueId, content, false);
   }
@@ -349,10 +388,10 @@ public class CEXExporter {
 
       try {
         if (!pCompress) {
-          MoreFiles.writeFile(file, Charset.defaultCharset(), content);
+          IO.writeFile(file, Charset.defaultCharset(), content);
         } else {
           file = file.resolveSibling(file.getFileName() + ".gz");
-          MoreFiles.writeGZIPFile(file, Charset.defaultCharset(), content);
+          IO.writeGZIPFile(file, Charset.defaultCharset(), content);
         }
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,

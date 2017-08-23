@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.simplification;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -73,7 +74,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     return expr.accept(this);
   }
 
-  private NumericValue getValue(CExpression expr) {
+  private @Nullable NumericValue getValue(CExpression expr) {
     if (expr instanceof CIntegerLiteralExpression) {
       return new NumericValue(((CIntegerLiteralExpression)expr).getValue());
     } else if (expr instanceof CCharLiteralExpression) {

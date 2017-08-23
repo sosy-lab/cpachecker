@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import org.sosy_lab.common.io.PathTemplate;
-import org.sosy_lab.cpachecker.cpa.smg.SMGCPA.SMGExportLevel;
-
 import java.nio.file.Path;
+import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 
 public class SMGExportDotOption {
 

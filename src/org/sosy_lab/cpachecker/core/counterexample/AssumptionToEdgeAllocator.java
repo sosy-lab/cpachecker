@@ -160,7 +160,7 @@ public class AssumptionToEdgeAllocator {
 
   @Option(secure=true, description=
       "Whether or not to include concrete address values.")
-  private boolean includeConstantsForPointers = true;
+  private boolean includeConstantsForPointers = false;
 
   /**
    * Creates an instance of the allocator that takes an {@link CFAEdge} edge
@@ -397,7 +397,8 @@ public class AssumptionToEdgeAllocator {
         return Collections.emptyList();
       }
       CFAEdge enteringEdge = predecessor.getEnteringEdge(0);
-      if (!AutomatonGraphmlCommon.handleAsEpsilonEdge(enteringEdge)) {
+      if (!AutomatonGraphmlCommon.handleAsEpsilonEdge(enteringEdge)
+          && !AutomatonGraphmlCommon.isMainFunctionEntry(enteringEdge)) {
         return Collections.emptyList();
       }
       predecessor = enteringEdge.getPredecessor();
@@ -920,7 +921,7 @@ public class AssumptionToEdgeAllocator {
 
         IDExpression name = getIDExpression(dcl);
 
-        if (concreteState.hasAddressOfVaribable(name)) {
+        if (concreteState.hasAddressOfVariable(name)) {
           return concreteState.getVariableAddress(name);
         }
 
@@ -997,7 +998,7 @@ public class AssumptionToEdgeAllocator {
         FieldReference fieldReferenceName = getFieldReference(pIastFieldReference, functionName);
 
         if (fieldReferenceName != null) {
-          if (concreteState.hasAddressOfVaribable(fieldReferenceName)) {
+          if (concreteState.hasAddressOfVariable(fieldReferenceName)) {
             return concreteState.getVariableAddress(fieldReferenceName);
           }
         }
@@ -1586,17 +1587,17 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visitDefault(CType pT) {
+      public @Nullable Void visitDefault(CType pT) {
         return null;
       }
 
       @Override
-      public Void visit(CTypedefType pT) {
+      public @Nullable Void visit(CTypedefType pT) {
         return pT.getRealType().accept(this);
       }
 
       @Override
-      public Void visit(CElaboratedType pT) {
+      public @Nullable Void visit(CElaboratedType pT) {
 
         CType realType = pT.getRealType();
 
@@ -1608,17 +1609,17 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CEnumType pT) {
+      public @Nullable Void visit(CEnumType pT) {
         return null;
       }
 
       @Override
-      public Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
         return pCBitFieldType.getType().accept(this);
       }
 
       @Override
-      public Void visit(CCompositeType compType) {
+      public @Nullable Void visit(CCompositeType compType) {
 
         if (compType.getKind() == ComplexTypeKind.ENUM) {
           // TODO Enum
@@ -1721,7 +1722,7 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CArrayType arrayType) {
+      public @Nullable Void visit(CArrayType arrayType) {
 
         CType expectedType = arrayType.getType().getCanonicalType();
 
@@ -1818,7 +1819,7 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CPointerType pointerType) {
+      public @Nullable Void visit(CPointerType pointerType) {
 
         CType expectedType = pointerType.getType().getCanonicalType();
 
@@ -1902,12 +1903,12 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visitDefault(CType pT) {
+      public @Nullable Void visitDefault(CType pT) {
         return null;
       }
 
       @Override
-      public Void visit(CElaboratedType type) {
+      public @Nullable Void visit(CElaboratedType type) {
 
         CType realType = type.getRealType();
 
@@ -1919,17 +1920,17 @@ public class AssumptionToEdgeAllocator {
       }
 
       @Override
-      public Void visit(CTypedefType pType) {
+      public @Nullable Void visit(CTypedefType pType) {
         return pType.getRealType().accept(this);
       }
 
       @Override
-      public Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
         return pCBitFieldType.getType().accept(this);
       }
 
       @Override
-      public Void visit(CCompositeType compType) {
+      public @Nullable Void visit(CCompositeType compType) {
 
         if (compType.getKind() == ComplexTypeKind.ENUM) {
           return null;

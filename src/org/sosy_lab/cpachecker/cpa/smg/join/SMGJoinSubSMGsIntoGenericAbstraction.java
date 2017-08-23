@@ -27,7 +27,13 @@ import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
@@ -44,14 +50,6 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplateWithConcreteValue;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
 import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 
 @SuppressWarnings("unused")
 public class SMGJoinSubSMGsIntoGenericAbstraction {
@@ -219,7 +217,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
   private MatchResult subSMGmatchStep(MaterlisationStep pMatStep, SMG pInputSMG,
       SMGRegion pRootObject, SMGNodeMapping pMapping, Set<SMGObject> pAlreadyVisited, GenericAbstractionCandidateTemplate pTemplate) {
 
-    Set<SMGObjectTemplate> entryRegions = pMatStep.getEntryRegions();
+    Set<SMGRegion> entryRegions = pMatStep.getEntryRegions();
     Set<SMGObject> alreadyVisited = new HashSet<>();
     alreadyVisited.addAll(pAlreadyVisited);
 

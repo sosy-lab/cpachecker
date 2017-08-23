@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
@@ -110,6 +111,9 @@ public class CoreComponentsFactory {
 
   @Option(secure = true, description="Solely construct the residual program for a given condition/assumption.")
   private boolean constructResidualProgram = false;
+
+  @Option(secure = true, description="Construct a residual program from condition and verify residual program")
+  private boolean asConditionalVerifier = false;
 
   @Option(secure=true, name="algorithm.BMC",
       description="use a BMC like algorithm that checks for satisfiability "
@@ -286,7 +290,10 @@ public class CoreComponentsFactory {
       algorithm =
           new ProofCheckAndExtractCIRequirementsAlgorithm(cpa, config, logger, shutdownNotifier,
               cfa, specification);
-    } else if (useRestartingAlgorithm) {
+    } else if (asConditionalVerifier) {
+      logger.log(Level.INFO, "Using Conditional Verifier");
+      algorithm = new ConditionalVerifierAlgorithm(config, logger, shutdownNotifier, specification, cfa);
+    }else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
 
@@ -437,7 +444,8 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay || useParallelAlgorithm) {
+    if (useRestartingAlgorithm || useRestartAlgorithmWithARGReplay || useParallelAlgorithm
+        || asConditionalVerifier) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -455,7 +463,7 @@ public class CoreComponentsFactory {
     logger.log(Level.FINE, "Creating CPAs");
 
     if (useRestartingAlgorithm || useParallelAlgorithm || useProofCheckAlgorithmWithStoredConfig
-        || useProofCheckWithARGCMCStrategy) {
+        || useProofCheckWithARGCMCStrategy || asConditionalVerifier) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

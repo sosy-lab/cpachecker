@@ -34,12 +34,12 @@ import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -132,7 +132,7 @@ public class CFunctionPointerResolver {
 
   private final Collection<FunctionEntryNode> candidateFunctions;
 
-  private final ImmutableSetMultimap<String, String> candidateFunctionsForField;
+  private @Nullable final ImmutableSetMultimap<String, String> candidateFunctionsForField;
 
   private final BiPredicate<CFunctionCall, CFunctionType> matchingFunctionCall;
 
@@ -486,13 +486,7 @@ public class CFunctionPointerResolver {
     return checkParams(
         functionType,
         functionCallExpression,
-        (e1, e2) -> {
-          if (machine.getSizeof(e1) == machine.getSizeof(e2)) {
-            return 0;
-          } else {
-            return -1;
-          }
-        });
+        (e1, e2) -> machine.getSizeof(e1) == machine.getSizeof(e2));
   }
 
   private boolean checkReturnAndParamTypes(CFunctionCall functionCall, CFunctionType functionType) {
@@ -506,22 +500,13 @@ public class CFunctionPointerResolver {
       return false;
     }
 
-    return checkParams(
-        functionType,
-        functionCallExpression,
-        (e1, e2) -> {
-          if (CTypes.areTypesCompatible(e1, e2)) {
-            return 0;
-          } else {
-            return -1;
-          }
-        });
+    return checkParams(functionType, functionCallExpression, CTypes::areTypesCompatible);
   }
 
   private boolean checkParams(
       CFunctionType functionType,
       final CFunctionCallExpression functionCallExpression,
-      Comparator<CType> comparison) {
+      BiPredicate<CType, CType> equality) {
     List<CType> declParams = functionType.getParameters();
     CFunctionType pointerType = null;
 
@@ -539,7 +524,7 @@ public class CFunctionPointerResolver {
     for (int i=0; i<declParams.size(); i++) {
       CType dt = declParams.get(i);
       CType et = exprParams.get(i);
-      if (comparison.compare(dt, et) != 0) {
+      if (!equality.test(dt, et)) {
         logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
             "does not match function", functionType,
             "because actual parameter", i, "has type", et, "instead of", dt);

@@ -299,7 +299,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
 
   // was-expanded marker so we can identify open leafs
 
-  boolean wasExpanded() {
+  public boolean wasExpanded() {
     return wasExpanded;
   }
 

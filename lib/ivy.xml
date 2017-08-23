@@ -31,11 +31,11 @@
     <dependencies>
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-130-g9e87b69" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-170-gfa70fe8" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="20.0" conf="runtime->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava" rev="22.0" conf="runtime->default; contrib->sources"/>
 
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
@@ -64,6 +64,7 @@
         <!-- The JUnit task for Ant so that we can run the tests.
              The property used here is defined in build.xml according to the current Ant version. -->
         <dependency org="org.apache.ant" name="ant-junit" rev="${ant.version.exact}" transitive="false" conf="build->default"/>
+        <dependency org="org.apache.ant" name="ant-junit4" rev="${ant.version.exact}" transitive="false" conf="build->default"/>
 
         <!-- Mockito
              Mocking framework for tests. -->
@@ -75,17 +76,17 @@
         <dependency org="com.google.truth.extensions" name="truth-java8-extension" rev="0.34" conf="test->default; contrib->sources"/>
 
         <!--  Guava-testlib contains many useful testing utilities -->
-        <dependency org="com.google.guava" name="guava-testlib" rev="20.0" conf="test->default; contrib->sources"/>
+        <dependency org="com.google.guava" name="guava-testlib" rev="22.0" conf="test->default; contrib->sources"/>
 
         <!-- Eclipse CDT and JDT
              Used for parsing C and Java code. -->
-        <dependency org="org.eclipse.cdt" name="core" rev="5.11.0.201509131935" conf="runtime->default; contrib->sources"/>
+        <dependency org="org.eclipse.cdt" name="core" rev="5.11.0.201602051005" conf="runtime->default; contrib->sources"/>
         <dependency org="org.eclipse.jdt" name="core" rev="3.11.0.v20150602-1242" conf="runtime->default; contrib->sources"/>
 
         <!-- Google error-prone
              Compiler adaptor with some useful checks for common errors. -->
-        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.19" transitive="false" conf="build->default" />
-        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.0.19" conf="build->default; contrib->sources" />
+        <dependency org="com.google.errorprone" name="error_prone_ant" rev="2.0.21" transitive="false" conf="build->default" />
+        <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.0.21" conf="build->default; contrib->sources" />
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
@@ -103,13 +104,13 @@
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="javasmt" rev="1.0.1-60-g9a31f2a" conf="runtime->runtime; contrib->sources" />
+        <dependency org="org.sosy_lab" name="javasmt" rev="1.0.1-100-g5e2287a" conf="runtime->runtime; contrib->sources" />
 
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
         <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2016-09-06-rd1adfdb" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Guava has a dependency on error_prone_annotations without a revision number, need an override. -->
-        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.0.19"/>
+        <override org="com.google.errorprone" module="error_prone_annotations" rev="2.0.21"/>
     </dependencies>
 </ivy-module>

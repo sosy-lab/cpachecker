@@ -27,7 +27,16 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -42,6 +51,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -65,17 +75,6 @@ import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
 
 
 @Options(prefix = "cpa.smg.refinement")
@@ -138,19 +137,18 @@ public class SMGRefiner implements Refiner {
     smgCpa.setTransferRelationToRefinment(exportRefinmentSMGs);
 
     SMGStrongestPostOperator strongestPostOpForCEX =
-        SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pConfig, pCfa, predicateManager, blockOperator);
+        SMGStrongestPostOperator.getSMGStrongestPostOperatorForCEX(pLogger, pCfa, predicateManager, blockOperator, smgCpa.getOptions());
 
-    SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction());
+    SMGState initialState = smgCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
     checker =
         new SMGFeasibilityChecker(strongestPostOpForCEX, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
 
-    interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger,
-        pCfa, smgCpa.getTrackPredicates(), smgCpa.getExternalAllocationSize());
+    interpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger, pCfa, smgCpa.getOptions());
 
     SMGStrongestPostOperator strongestPostOpForInterpolation =
-        SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(pLogger, pConfig, pCfa,
-            predicateManager, blockOperator);
+        SMGStrongestPostOperator.getSMGStrongestPostOperatorForInterpolation(pLogger, pCfa,
+            predicateManager, blockOperator, smgCpa.getOptions());
 
     SMGFeasibilityChecker checkerForInterpolation =
         new SMGFeasibilityChecker(strongestPostOpForInterpolation, logger, pCfa, initialState, automatonCpas, smgCpa.getBlockOperator());
@@ -162,7 +160,8 @@ public class SMGRefiner implements Refiner {
 
     interpolator =
         new SMGPathInterpolator(smgCpa.getShutdownNotifier(), interpolantManager,
-            edgeInterpolator, logger, exportInterpolantSMGs, smgCpa.getExportSMGLevel(), checkerForInterpolation);
+            edgeInterpolator, logger, exportInterpolantSMGs,
+            smgCpa.getOptions().getExportSMGLevel(), checkerForInterpolation);
 
     shutdownNotifier = pShutdownNotifier;
   }

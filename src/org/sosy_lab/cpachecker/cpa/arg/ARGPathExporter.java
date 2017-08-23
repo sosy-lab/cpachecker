@@ -107,6 +107,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
@@ -152,8 +153,10 @@ public class ARGPathExporter {
       EnumSet.of(
           KeyDef.SOURCECODE,
           KeyDef.STARTLINE,
+          KeyDef.ENDLINE,
           KeyDef.ORIGINFILE,
           KeyDef.OFFSET,
+          KeyDef.ENDOFFSET,
           KeyDef.LINECOLS,
           KeyDef.ASSUMPTIONSCOPE,
           KeyDef.ASSUMPTIONRESULTFUNCTION);
@@ -423,14 +426,9 @@ public class ARGPathExporter {
       if (isFunctionScope) {
         return;
       }
-      if (!(pEdge instanceof BlankEdge)) {
-        return;
+      if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
+        isFunctionScope = true;
       }
-      BlankEdge edge = (BlankEdge) pEdge;
-      if (!edge.getDescription().equals("Function start dummy edge")) {
-        return;
-      }
-      isFunctionScope = true;
     }
 
     /**
@@ -460,15 +458,18 @@ public class ARGPathExporter {
         return result;
       }
 
-      if (entersLoop(pEdge).isPresent()) {
+      boolean goesToSink = pTo.equals(SINK_NODE_ID);
+      boolean isDefaultCase = AutomatonGraphmlCommon.isDefaultCase(pEdge);
+
+      if (entersLoop(pEdge, false).isPresent()) {
         result = result.putAndCopy(KeyDef.ENTERLOOPHEAD, "true");
       }
 
       if (exportFunctionCallsAndReturns) {
-        if (pEdge.getSuccessor() instanceof FunctionEntryNode) {
-          FunctionEntryNode in = (FunctionEntryNode) pEdge.getSuccessor();
-          result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
-
+        if (pEdge.getSuccessor() instanceof FunctionEntryNode
+            || AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
+          String functionName = pEdge.getSuccessor().getFunctionName();
+          result = result.putAndCopy(KeyDef.FUNCTIONENTRY, functionName);
         }
         if (pEdge.getSuccessor() instanceof FunctionExitNode) {
           FunctionExitNode out = (FunctionExitNode) pEdge.getSuccessor();
@@ -480,34 +481,64 @@ public class ARGPathExporter {
         result = extractTransitionForStates(pFrom, pTo, pEdge, pFromState.get(), pValueMap, result);
       }
 
-      if (exportAssumeCaseInfo) {
-        if (pEdge instanceof AssumeEdge) {
-          AssumeEdge a = (AssumeEdge) pEdge;
-          // If the assume edge or its sibling edge is followed by a pointer call,
+      if (pEdge instanceof AssumeEdge) {
+        AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+        // Check if the assume edge is an artificial edge introduced for pointer-calls
+        if (CFAUtils.leavingEdges(assumeEdge.getPredecessor())
+            .filter(AssumeEdge.class)
+            .filter(a -> a.getTruthAssumption())
+            .anyMatch(sibling ->
+              CFAUtils.leavingEdges(sibling.getSuccessor())
+                  .filter(FunctionCallEdge.class)
+                  .filter(callEdge -> callEdge.getFileLocation().equals(sibling.getFileLocation()))
+                  .size() == 1)) {
+          // If the assume edge is followed by a pointer call,
           // the assumption is artificial and should not be exported
-          if (CFAUtils.leavingEdges(a.getPredecessor())
-              .anyMatch(
-                  predecessor ->
-                      CFAUtils.leavingEdges(predecessor.getSuccessor())
-                          .anyMatch(
-                              sibling -> sibling.getRawStatement().startsWith("pointer call")))) {
+          if (!goesToSink) {
             // remove all info from transitionCondition
             return TransitionCondition.empty();
+          } else if (assumeEdge.getTruthAssumption() && exportFunctionCallsAndReturns) {
+            // However, if we know that the function is not going to be called,
+            // this information may be valuable and can be exported
+            // by creating a transition for the function call, to the sink:
+            FunctionCallEdge callEdge = Iterables.getOnlyElement(
+                CFAUtils.leavingEdges(assumeEdge.getSuccessor()).filter(FunctionCallEdge.class));
+            FunctionEntryNode in = callEdge.getSuccessor();
+            result = result.putAndCopy(KeyDef.FUNCTIONENTRY, in.getFunctionName());
           }
-          AssumeCase assumeCase = a.getTruthAssumption() ? AssumeCase.THEN : AssumeCase.ELSE;
-          result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
+        } else if (exportAssumeCaseInfo) {
+          // Do not export assume-case information for the assume edges
+          // representing continuations of switch-case chains
+          if (assumeEdge.getTruthAssumption()
+              || goesToSink
+              || (isDefaultCase && !goesToSink)
+              || !AutomatonGraphmlCommon.isPartOfSwitchStatement(assumeEdge)) {
+            AssumeCase assumeCase = (assumeEdge.getTruthAssumption() != assumeEdge.isSwapped())
+                ? AssumeCase.THEN
+                : AssumeCase.ELSE;
+            result = result.putAndCopy(KeyDef.CONTROLCASE, assumeCase.toString());
+          } else {
+            return TransitionCondition.empty();
+          }
         }
       }
 
-      Optional<FileLocation> minFileLocation = getMinFileLocation(pEdge);
-      Optional<FileLocation> maxFileLocation = getMaxFileLocation(pEdge);
+      Optional<FileLocation> minFileLocation = AutomatonGraphmlCommon.getMinFileLocation(pEdge, cfa.getMainFunction());
+      Optional<FileLocation> maxFileLocation = AutomatonGraphmlCommon.getMaxFileLocation(pEdge, cfa.getMainFunction());
       if (exportLineNumbers && minFileLocation.isPresent()) {
         FileLocation min = minFileLocation.get();
         if (!min.getFileName().equals(defaultSourcefileName)) {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
-        result =
-            result.putAndCopy(KeyDef.STARTLINE, Integer.toString(min.getStartingLineInOrigin()));
+        result = result.putAndCopy(
+            KeyDef.STARTLINE,
+            Integer.toString(min.getStartingLineInOrigin()));
+      }
+      if (exportLineNumbers && maxFileLocation.isPresent()) {
+        FileLocation max = maxFileLocation.get();
+        result = result.putAndCopy(
+            KeyDef.ENDLINE,
+            Integer.toString(max.getEndingLineInOrigin()));
       }
 
       if (exportOffset && minFileLocation.isPresent()) {
@@ -515,61 +546,30 @@ public class ARGPathExporter {
         if (!min.getFileName().equals(defaultSourcefileName)) {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
         }
-        result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
-        if (maxFileLocation.isPresent()) {
-          FileLocation max = maxFileLocation.get();
-          result = result.putAndCopy(KeyDef.ENDOFFSET, Integer.toString(max.getNodeOffset()+max.getNodeLength()));
-        }
+        result = result.putAndCopy(
+            KeyDef.OFFSET,
+            Integer.toString(min.getNodeOffset()));
+      }
+      if (exportOffset && maxFileLocation.isPresent()) {
+        FileLocation max = maxFileLocation.get();
+        result = result.putAndCopy(
+            KeyDef.ENDOFFSET,
+            Integer.toString(max.getNodeOffset() + max.getNodeLength() - 1));
       }
 
-      if (exportSourcecode && !pEdge.getRawStatement().trim().isEmpty()) {
-        result = result.putAndCopy(KeyDef.SOURCECODE, pEdge.getRawStatement());
+      if (exportSourcecode) {
+        final String sourceCode;
+        if (isDefaultCase && !goesToSink) {
+          sourceCode = "default:";
+        } else {
+          sourceCode = pEdge.getRawStatement().trim();
+        }
+        if (!sourceCode.isEmpty()) {
+          result = result.putAndCopy(KeyDef.SOURCECODE, sourceCode);
+        }
       }
 
       return result;
-    }
-
-    private Optional<FileLocation> getMinFileLocation(CFAEdge pEdge) {
-      Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge);
-      if (locations.size() > 0) {
-        Iterator<FileLocation> locationIterator = locations.iterator();
-        FileLocation min = locationIterator.next();
-        while (locationIterator.hasNext()) {
-          FileLocation l = locationIterator.next();
-          if (l.getNodeOffset() < min.getNodeOffset()) {
-            min = l;
-          }
-        }
-        return Optional.of(min);
-      }
-      return Optional.empty();
-    }
-
-    private Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge) {
-      Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge);
-      if (locations.size() > 0) {
-        Iterator<FileLocation> locationIterator = locations.iterator();
-        FileLocation max = locationIterator.next();
-        while (locationIterator.hasNext()) {
-          FileLocation l = locationIterator.next();
-          if (l.getNodeOffset()+l.getNodeLength() > max.getNodeOffset()+max.getNodeLength()) {
-            max = l;
-          }
-        }
-        return Optional.of(max);
-      }
-      return Optional.empty();
-    }
-
-    private Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
-      if (pEdge instanceof AStatementEdge) {
-        AStatementEdge statementEdge = (AStatementEdge) pEdge;
-        FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
-        if (!FileLocation.DUMMY.equals(statementLocation)) {
-          return Collections.singleton(statementLocation);
-        }
-      }
-      return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
     }
 
     private TransitionCondition extractTransitionForStates(
@@ -836,15 +836,16 @@ public class ARGPathExporter {
      * @param pSuccessorFunction the function defining the successors of a
      * state.
      * @param pPathStates a filter on the nodes.
+     * @param pIsRelevantEdge a filter on the successor function.
      *
      * @return the parents with their children.
      */
     private Iterable<ARGState> collectPathNodes(
         final ARGState pInitialState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-        final Predicate<? super ARGState> pPathStates) {
+        final Predicate<? super ARGState> pPathStates, Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge) {
       return Iterables.transform(
-          collectPathEdges(pInitialState, pSuccessorFunction, pPathStates), Pair::getFirst);
+          collectPathEdges(pInitialState, pSuccessorFunction, pPathStates, pIsRelevantEdge), Pair::getFirst);
     }
 
     /**
@@ -857,13 +858,15 @@ public class ARGPathExporter {
      * @param pSuccessorFunction the function defining the successors of a
      * state.
      * @param pPathStates a filter on the parent nodes.
+     * @param pIsRelevantEdge a filter on the successor function.
      *
      * @return the parents with their children.
      */
     private Iterable<Pair<ARGState, Iterable<ARGState>>> collectPathEdges(
         final ARGState pInitialState,
         final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
-        final Predicate<? super ARGState> pPathStates) {
+        final Predicate<? super ARGState> pPathStates,
+        final Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge) {
       return new Iterable<Pair<ARGState, Iterable<ARGState>>>() {
 
         private final Set<ARGState> visited = new HashSet<>();
@@ -900,7 +903,7 @@ public class ARGPathExporter {
 
               // Only the children on the path become parents themselves
               for (ARGState child : children.filter(pPathStates)) {
-                if (visited.add(child)) {
+                if (pIsRelevantEdge.apply(Pair.of(parent, child)) && visited.add(child)) {
                   waitlist.offer(child);
                 }
               }
@@ -926,11 +929,15 @@ public class ARGPathExporter {
         GraphBuilder pGraphBuilder)
         throws IOException {
 
-      final Multimap<ARGState, CFAEdgeWithAssumptions> valueMap;
-      if (pCounterExample.isPresent() && pCounterExample.get().isPreciseCounterExample()) {
-        valueMap = pCounterExample.get().getExactVariableValues();
-      } else {
-        valueMap = ImmutableMultimap.of();
+      Predicate<? super Pair<ARGState, ARGState>> isRelevantEdge = pIsRelevantEdge;
+      Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
+
+      if (pCounterExample.isPresent()) {
+        if (pCounterExample.get().isPreciseCounterExample()) {
+          valueMap = pCounterExample.get().getExactVariableValues();
+        } else {
+          isRelevantEdge = edge -> pIsRelevantState.apply(edge.getFirst()) && pIsRelevantState.apply(edge.getSecond());
+        }
       }
 
       final GraphMlBuilder doc;
@@ -943,7 +950,7 @@ public class ARGPathExporter {
       final String entryStateNodeId = pGraphBuilder.getId(pRootState);
 
       // Collect node flags in advance
-      for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState)) {
+      for (ARGState s : collectPathNodes(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge)) {
         String sourceStateNodeId = pGraphBuilder.getId(s);
         EnumSet<NodeFlag> sourceNodeFlags = EnumSet.noneOf(NodeFlag.class);
         if (sourceStateNodeId.equals(entryStateNodeId)) {
@@ -960,10 +967,10 @@ public class ARGPathExporter {
       pGraphBuilder.buildGraph(
           pRootState,
           pIsRelevantState,
-          pIsRelevantEdge,
+          isRelevantEdge,
           valueMap,
           doc,
-          collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState),
+          collectPathEdges(pRootState, ARGState::getChildren, pIsRelevantState, isRelevantEdge),
           this);
 
       // remove redundant edges leading to sink
@@ -1129,6 +1136,10 @@ public class ARGPathExporter {
               return true;
             }
 
+            if (pEdge.source.equals(pEdge.target)) {
+              return false;
+            }
+
             // An edge is never redundant if there are conflicting scopes
             ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.source);
             if (sourceTree != null) {
@@ -1178,65 +1189,63 @@ public class ARGPathExporter {
     private void mergeNodes(final Edge pEdge) {
       Preconditions.checkArgument(isEdgeRedundant.apply(pEdge));
 
-      // By default, merge into the predecessor,
-      // but if the successor is redundant while the predecessor is not,
-      // merge into the successor.
-      boolean intoPredecessor =
-          isNodeRedundant.apply(pEdge.target) || !isNodeRedundant.apply(pEdge.target);
+      // Always merge into the predecessor, unless the successor is the sink
+      boolean intoPredecessor = !nodeFlags.get(pEdge.target).equals(EnumSet.of(NodeFlag.ISSINKNODE));
+      final String nodeToKeep = intoPredecessor ? pEdge.source : pEdge.target;
+      final String nodeToRemove = intoPredecessor ? pEdge.target : pEdge.source;
 
-      final String source = intoPredecessor ? pEdge.source : pEdge.target;
-      final String target = intoPredecessor ? pEdge.target : pEdge.source;
+      if (nodeToKeep.equals(nodeToRemove)) {
+        removeEdge(pEdge);
+        return;
+      }
 
       // Merge the flags
-      nodeFlags.putAll(source, nodeFlags.removeAll(target));
+      nodeFlags.putAll(nodeToKeep, nodeFlags.removeAll(nodeToRemove));
 
       // Merge the trees
-      mergeExpressionTrees(source, target);
+      mergeExpressionTrees(nodeToKeep, nodeToRemove);
 
       // Merge the violated properties
-      violatedProperties.putAll(source, violatedProperties.removeAll(target));
+      violatedProperties.putAll(nodeToKeep, violatedProperties.removeAll(nodeToRemove));
 
       // Move the leaving edges
-      Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(target));
-      // Remove the edges from their successors
-      for (Edge leavingEdge : leavingEdgesToMove) {
-        boolean removed = removeEdge(leavingEdge);
-        assert removed;
-      }
+      Collection<Edge> leavingEdgesToMove = ImmutableList.copyOf(this.leavingEdges.get(nodeToRemove));
       // Create the replacement edges,
       // Add them as leaving edges to the source node,
       // Add them as entering edges to their target nodes
       for (Edge leavingEdge : leavingEdgesToMove) {
-        TransitionCondition label;
-        // Don't merge "originfile" tag if leavingEdge corresponds to default originfile
-        if (leavingEdge.label.getMapping().containsKey(KeyDef.SOURCECODE)) {
-          label = pEdge.label.removeAndCopy(KeyDef.ORIGINFILE).putAllAndCopy(leavingEdge.label);
-        } else {
-          label = pEdge.label.putAllAndCopy(leavingEdge.label);
+        if (!pEdge.equals(leavingEdge)) {
+          TransitionCondition label;
+          // Don't merge "originfile" tag if leavingEdge corresponds to default originfile
+          if (leavingEdge.label.getMapping().containsKey(KeyDef.SOURCECODE)) {
+            label = pEdge.label.removeAndCopy(KeyDef.ORIGINFILE).putAllAndCopy(leavingEdge.label);
+          } else {
+            label = pEdge.label.putAllAndCopy(leavingEdge.label);
+          }
+          Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.target, label);
+          putEdge(replacementEdge);
+          CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
+          if (loopHead != null) {
+            loopHeadEnteringEdges.remove(leavingEdge);
+            loopHeadEnteringEdges.put(replacementEdge, loopHead);
+          }
         }
-        Edge replacementEdge = new Edge(source, leavingEdge.target, label);
-        putEdge(replacementEdge);
-        CFANode loopHead = loopHeadEnteringEdges.get(leavingEdge);
-        if (loopHead != null) {
-          loopHeadEnteringEdges.remove(leavingEdge);
-          loopHeadEnteringEdges.put(replacementEdge, loopHead);
-        }
+      }
+      // Remove the old edges from their successors
+      for (Edge leavingEdge : leavingEdgesToMove) {
+        boolean removed = removeEdge(leavingEdge);
+        assert removed;
       }
 
       // Move the entering edges
-      Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(this.enteringEdges.get(target));
-      // Remove the edges from their predecessors
-      for (Edge enteringEdge : enteringEdgesToMove) {
-        boolean removed = removeEdge(enteringEdge);
-        assert removed : "could not remove edge: " + enteringEdge;
-      }
+      Collection<Edge> enteringEdgesToMove = ImmutableList.copyOf(this.enteringEdges.get(nodeToRemove));
       // Create the replacement edges,
       // Add them as entering edges to the source node,
       // Add add them as leaving edges to their source nodes
       for (Edge enteringEdge : enteringEdgesToMove) {
         if (!pEdge.equals(enteringEdge)) {
           TransitionCondition label = pEdge.label.putAllAndCopy(enteringEdge.label);
-          Edge replacementEdge = new Edge(enteringEdge.source, source, label);
+          Edge replacementEdge = new Edge(enteringEdge.source, nodeToKeep, label);
           putEdge(replacementEdge);
           CFANode loopHead = loopHeadEnteringEdges.get(enteringEdge);
           if (loopHead != null) {
@@ -1244,6 +1253,11 @@ public class ARGPathExporter {
             loopHeadEnteringEdges.put(replacementEdge, loopHead);
           }
         }
+      }
+      // Remove the old edges from their predecessors
+      for (Edge enteringEdge : enteringEdgesToMove) {
+        boolean removed = removeEdge(enteringEdge);
+        assert removed : "could not remove edge: " + enteringEdge;
       }
 
     }
@@ -1303,6 +1317,9 @@ public class ARGPathExporter {
 
     private void putEdge(Edge pEdge) {
       assert leavingEdges.size() == enteringEdges.size();
+      assert !pEdge.source.equals(SINK_NODE_ID);
+      assert !enteringEdges.get(pEdge.source).isEmpty()
+        || nodeFlags.get(pEdge.source).contains(NodeFlag.ISENTRY);
       leavingEdges.put(pEdge.source, pEdge);
       enteringEdges.put(pEdge.target, pEdge);
       assert leavingEdges.size() == enteringEdges.size();
@@ -1314,6 +1331,10 @@ public class ARGPathExporter {
         boolean alsoRemoved = enteringEdges.remove(pEdge.target, pEdge);
         assert alsoRemoved : "edge was not removed: " + pEdge;
         assert leavingEdges.size() == enteringEdges.size();
+        assert nodeFlags.get(pEdge.target).contains(NodeFlag.ISENTRY)
+          || !enteringEdges.get(pEdge.target).isEmpty()
+          || leavingEdges.get(pEdge.target).isEmpty();
+
         return true;
       }
       return false;
@@ -1589,7 +1610,11 @@ public class ARGPathExporter {
 
   }
 
-  private Optional<CFANode> entersLoop(CFAEdge pEdge) {
+  private static Optional<CFANode> entersLoop(CFAEdge pEdge) {
+    return entersLoop(pEdge, true);
+  }
+
+  private static Optional<CFANode> entersLoop(CFAEdge pEdge, boolean pAllowGoto) {
     class EnterLoopVisitor implements CFAVisitor {
 
       private CFANode loopHead;
@@ -1597,6 +1622,14 @@ public class ARGPathExporter {
       @Override
       public TraversalProcess visitNode(CFANode pNode) {
         if (pNode.isLoopStart()) {
+          if (!pAllowGoto && pNode instanceof CLabelNode) {
+            CLabelNode node = (CLabelNode) pNode;
+            for (BlankEdge e : CFAUtils.enteringEdges(pNode).filter(BlankEdge.class)) {
+              if (e.getDescription().equals("Goto: " + node.getLabel())) {
+                return TraversalProcess.ABORT;
+              }
+            }
+          }
           loopHead = pNode;
           return TraversalProcess.ABORT;
         }

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.OptionalInt;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 
 /**
  * Helper methods for CType instances.
@@ -38,8 +39,80 @@ public final class CTypes {
   private CTypes() { }
 
   /**
-   * Check whether the given type is a pointer to a function.
+   * Check whether a given type is a character type according to the C standard § 6.2.5 (15). Also
+   * returns true for all qualified versions of real types.
    */
+  public static boolean isCharacterType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CSimpleType) && (((CSimpleType) type).getType() == CBasicType.CHAR);
+  }
+
+  /**
+   * Check whether a given type is a real type according to the C standard § 6.2.5 (17), i.e., a
+   * non-complex arithmetic type. Also returns true for all qualified versions of real types.
+   */
+  public static boolean isRealType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CEnumType)
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        || (type instanceof CBitFieldType)
+        || (type instanceof CSimpleType && !(((CSimpleType) type).isComplex()));
+  }
+
+  /**
+   * Check whether a given type is an inteeger type according to the C standard § 6.2.5 (17). Also
+   * returns true for all qualified versions of arithmetic types.
+   */
+  public static boolean isIntegerType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CEnumType)
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        || (type instanceof CBitFieldType)
+        || (type instanceof CSimpleType && ((CSimpleType) type).getType().isIntegerType());
+  }
+
+  /**
+   * Check whether a given type is an arithmetic type according to the C standard § 6.2.5 (18). Also
+   * returns true for all qualified versions of arithmetic types.
+   */
+  public static boolean isArithmeticType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CEnumType)
+        // C11 § 6.7.2.1 (10) "A bit-field is interpreted as having a signed or unsigned integer type"
+        || (type instanceof CBitFieldType)
+        || (type instanceof CSimpleType);
+  }
+
+  /**
+   * Check whether a given type is a scalar type according to the C standard § 6.2.5 (21). Also
+   * returns true for all qualified versions of scalar types.
+   */
+  public static boolean isScalarType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CPointerType) || isArithmeticType(type);
+  }
+
+  /**
+   * Check whether a given type is a scalar type according to the C standard § 6.2.5 (21). Also
+   * returns true for all qualified versions of aggregate types.
+   */
+  public static boolean isAggregateType(CType type) {
+    type = type.getCanonicalType();
+    return (type instanceof CArrayType)
+        || (type instanceof CCompositeType
+            && (((CCompositeType) type).getKind() == ComplexTypeKind.STRUCT));
+  }
+
+  /**
+   * Check whether a given type is a scalar type according to the C standard § 6.2.5, i.e., not a
+   * function type. Also returns true for all qualified versions of object types.
+   */
+  public static boolean isObjectType(CType type) {
+    type = type.getCanonicalType();
+    return !(type instanceof CFunctionType);
+  }
+
+  /** Check whether the given type is a pointer to a function. */
   public static boolean isFunctionPointer(CType type) {
     type = type.getCanonicalType();
     if (type instanceof CPointerType) {
@@ -309,7 +382,11 @@ public final class CTypes {
    * @param pType the {@link CType} to be adjusted, if necessary
    * @return the adjusted version of <code>pType</code>
    */
-  public static CType adjustFunctionOrArrayType(@Nullable CType pType) {
+  public static @Nullable CType adjustFunctionOrArrayType(@Nullable CType pType) {
+    if (pType == null) {
+      return pType;
+    }
+
     if (pType instanceof CArrayType) {
       CType innerType = ((CArrayType) pType).getType();
       CExpression sizeExpression = ((CArrayType) pType).getLength();
@@ -379,7 +456,10 @@ public final class CTypes {
 
     @Override
     public CFunctionType visit(CFunctionType t) {
-      return new CFunctionType(constValue, t.isVolatile(), t.getReturnType(), t.getParameters(), t.takesVarArgs());
+      if (constValue) {
+        throw new IllegalArgumentException("Cannot create const function type, this is undefined");
+      }
+      return t;
     }
 
     @Override
@@ -448,7 +528,10 @@ public final class CTypes {
 
     @Override
     public CFunctionType visit(CFunctionType t) {
-      return new CFunctionType(t.isConst(), volatileValue, t.getReturnType(), t.getParameters(), t.takesVarArgs());
+      if (volatileValue) {
+        throw new IllegalArgumentException("Cannot create const function type, this is undefined");
+      }
+      return t;
     }
 
     @Override

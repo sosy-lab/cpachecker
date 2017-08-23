@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
 import org.sosy_lab.cpachecker.cpa.smg.objects.DummyAbstraction;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
@@ -64,11 +65,11 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void nullObjectTest() {
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null, smg1.getNullObject(), smg2.getNullObject());
+    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null, SMGNullObject.INSTANCE, SMGNullObject.INSTANCE);
     Assert.assertFalse(mo.isDefined());
 
     smg1.addObject(srcObj1);
-    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null, srcObj1, smg2.getNullObject());
+    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null, srcObj1, SMGNullObject.INSTANCE);
     Assert.assertFalse(mo.isDefined());
   }
 

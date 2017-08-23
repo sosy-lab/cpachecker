@@ -24,22 +24,23 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
 import com.google.common.collect.Iterables;
-
+import java.util.Set;
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import java.util.Set;
 
 
 public class SMGSingleLinkedListCandidateTest {
@@ -57,7 +58,7 @@ public class SMGSingleLinkedListCandidateTest {
   }
 
   @Test
-  public void executeOnSimpleList() throws SMGInconsistentException {
+  public void executeOnSimpleList() throws SMGInconsistentException, InvalidConfigurationException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
 
     int NODE_SIZE = 64;
@@ -71,7 +72,8 @@ public class SMGSingleLinkedListCandidateTest {
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, OFFSET, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, SEGMENT_LENGTH, SMGJoinStatus.INCOMPARABLE, false);
 
-    CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, false, false, null, 4, false, false));
+    CLangSMG abstractedSmg = candidateSeq.execute(smg,
+        new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
     SMGObject pointedObject = abstractedSmg.getPointer(value).getObject();
@@ -95,7 +97,7 @@ public class SMGSingleLinkedListCandidateTest {
   }
 
   @Test
-  public void executeOnNullTerminatedList() throws SMGInconsistentException {
+  public void executeOnNullTerminatedList() throws SMGInconsistentException, InvalidConfigurationException {
     CLangSMG smg = new CLangSMG(MachineModel.LINUX64);
     SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, 2, 128, 64, "pointer");
 
@@ -103,7 +105,8 @@ public class SMGSingleLinkedListCandidateTest {
     SMGObject startObject = smg.getPointer(value).getObject();
     SMGSingleLinkedListCandidate candidate = new SMGSingleLinkedListCandidate(startObject, 64, 0, CPointerType.POINTER_TO_VOID, MachineModel.LINUX32);
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
-    CLangSMG abstractedSmg = candidateSeq.execute(smg, new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, false, false, null, 32, false, false));
+    CLangSMG abstractedSmg = candidateSeq.execute(smg,
+        new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
     Set<SMGObject> heap = abstractedSmg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
 

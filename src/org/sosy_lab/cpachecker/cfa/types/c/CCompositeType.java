@@ -38,7 +38,7 @@ public final class CCompositeType implements CComplexType {
 
   private static final long serialVersionUID = -839957929135012583L;
   private final CComplexType.ComplexTypeKind kind;
-  private List<CCompositeTypeMemberDeclaration> members = null;
+  private @Nullable List<CCompositeTypeMemberDeclaration> members = null;
   private final String name;
   private final String origName;
   private final boolean isConst;

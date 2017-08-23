@@ -49,7 +49,7 @@ import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -546,15 +546,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       if (exportAssumptions) {
         if (assumptionsFile != null) {
           try {
-            MoreFiles.writeFile(assumptionsFile, Charset.defaultCharset(), resultAssumption);
+            IO.writeFile(assumptionsFile, Charset.defaultCharset(), resultAssumption);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");
           }
         }
 
         if (assumptionAutomatonFile != null) {
-          try (Writer w =
-              MoreFiles.openOutputFile(assumptionAutomatonFile, Charset.defaultCharset())) {
+          try (Writer w = IO.openOutputFile(assumptionAutomatonFile, Charset.defaultCharset())) {
            produceAssumptionAutomaton(w, pReached);
           } catch (IOException e) {
             logger.logUserException(Level.WARNING, e, "Could not write assumptions to file");

@@ -32,9 +32,16 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -45,7 +52,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -55,6 +62,8 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -67,16 +76,20 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
 @Options(prefix = "residualprogram")
-public class ResidualProgramConstructionAlgorithm implements Algorithm {
+public class ResidualProgramConstructionAlgorithm implements Algorithm, StatisticsProvider {
 
-  public enum ResidualGenStrategy {SLICING, CONDITION, COMBINATION}
+  public enum ResidualGenStrategy {SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION}
 
   @Option(secure = true, name = "strategy",
       description = "which strategy to use to generate the residual program")
@@ -138,7 +151,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
     Preconditions.checkState(checkInitialState(pReachedSet.getFirstState()),
-        "CONDITION and COMBINATION strategy require assumption automaton (condition) and assumption guiding automaton in specification");
+        "CONDITION, CONDITION_PLUS_FOLD, and COMBINATION strategy require assumption automaton (condition) and assumption guiding automaton in specification");
 
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
     status = status.withPrecise(false);
@@ -165,13 +178,18 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
       case SLICING:
         addPragma = getAllTargetStatesNotFullyExplored(pReachedSet);
         break;
-      default: // CONDITION no effect
+      default: // CONDITION, CONDITION_PLUS_FOLD no effect
         addPragma = null;
     }
 
     logger.log(Level.INFO, "Write residual program to file.");
-    if (!writeResidualProgram(argRoot,
-        addPragma)) { throw new CPAException("Failed to write residual program."); }
+    if (!writeResidualProgram(argRoot, addPragma)) {
+      try {
+        Files.deleteIfExists(residualProgram);
+      } catch (IOException e) {
+      }
+      throw new CPAException("Failed to write residual program.");
+    }
 
     logger.log(Level.INFO, "Finished construction of residual program. ",
         "If the selected strategy is SLICING or COMBINATION, please continue with the slicing tool (Frama-C)");
@@ -255,11 +273,72 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
     }
   }
 
+  private ARGState foldARG(final ARGState pARGRoot) {
+    ARGState newRoot;
+    Map<Pair<LocationState, CallstackStateEqualsWrapper>, ARGState> foldedNodesToNewARGNode =
+        new HashMap<>();
+
+    Set<ARGState> seen = new HashSet<>();
+    Deque<Pair<ARGState, Pair<LocationState, CallstackStateEqualsWrapper>>> toProcess =
+        new ArrayDeque<>();
+    ARGState currentARGState, newChild;
+    Pair<LocationState, CallstackStateEqualsWrapper> foldedNode, foldedChild;
+
+    foldedNode = Pair.of(AbstractStates.extractStateByType(pARGRoot, LocationState.class),
+        new CallstackStateEqualsWrapper(
+            AbstractStates.extractStateByType(pARGRoot, CallstackState.class)));
+    seen.add(pARGRoot);
+    toProcess.add(Pair.of(pARGRoot, foldedNode));
+
+    newRoot = new ARGState(foldedNode.getFirst(), null);
+    foldedNodesToNewARGNode.put(foldedNode, newRoot);
+
+    while (!toProcess.isEmpty()) {
+      currentARGState = toProcess.peek().getFirst();
+      foldedNode = toProcess.pop().getSecond();
+
+      for (ARGState child : currentARGState.getChildren()) {
+        if (seen.add(child)) {
+          foldedChild = Pair.of(AbstractStates.extractStateByType(child, LocationState.class),
+              new CallstackStateEqualsWrapper(
+                  AbstractStates.extractStateByType(child, CallstackState.class)));
+          toProcess.add(Pair.of(child, foldedChild));
+
+          newChild = foldedNodesToNewARGNode.get(foldedChild);
+
+          if (newChild == null) {
+            newChild =
+                new ARGState(foldedChild.getFirst(), foldedNodesToNewARGNode.get(foldedNode));
+            foldedNodesToNewARGNode.put(foldedChild, newChild);
+          } else {
+            if (!foldedNodesToNewARGNode.get(foldedNode).getChildren().contains(newChild)) {
+              newChild.addParent(foldedNodesToNewARGNode.get(foldedNode));
+            }
+          }
+
+
+        }
+      }
+    }
+
+    return newRoot;
+  }
+
+  private String getResidualProgramText(final ARGState pARGRoot,
+      @Nullable final Set<ARGState> pAddPragma) throws CPAException {
+    if(constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
+      Preconditions.checkState(pAddPragma == null);
+
+      return translator.translateARG(foldARG(pARGRoot));
+    }
+    return translator.translateARG(pARGRoot, pAddPragma);
+  }
+
   protected boolean writeResidualProgram(final ARGState pArgRoot,
       @Nullable final Set<ARGState> pAddPragma) throws InterruptedException {
     logger.log(Level.INFO, "Generate residual program");
-    try (Writer writer = MoreFiles.openOutputFile(residualProgram, Charset.defaultCharset())) {
-      writer.write(translator.translateARG(pArgRoot, pAddPragma));
+    try (Writer writer = IO.openOutputFile(residualProgram, Charset.defaultCharset())) {
+      writer.write(getResidualProgramText(pArgRoot, pAddPragma));
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write residual program to file");
       return false;
@@ -312,8 +391,20 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
         } else if (innerCPA instanceof CallstackCPA) {
           considersCallstack = true;
         } else if (!(innerCPA instanceof ControlAutomatonCPA)) {
-          throw new InvalidConfigurationException(
-              "The CompositeCPA may only consider LocationCPA, CallstackCPA and AutomatonCPAs.");
+          if (innerCPA instanceof PowerSetCPA) {
+            for (ConfigurableProgramAnalysis cpaInSetJoin : CPAs
+                .asIterable(((PowerSetCPA) innerCPA).getWrappedCPAs().get(0))) {
+              if (!(cpaInSetJoin instanceof ControlAutomatonCPA
+                  || cpaInSetJoin instanceof CompositeCPA)) {
+                throw new InvalidConfigurationException(
+                      "The CompositeCPA may only consider LocationCPA, CallstackCPA, SetJoinCPA, and AutomatonCPAs.");
+              }
+            }
+          } else {
+
+            throw new InvalidConfigurationException(
+                "The CompositeCPA may only consider LocationCPA, CallstackCPA, SetJoinCPA, and AutomatonCPAs.");
+          }
         }
       }
 
@@ -328,6 +419,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
 
   private boolean checkInitialState(final AbstractState initState) {
     if (constructionStrategy == ResidualGenStrategy.CONDITION
+        || constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_FOLD
         || constructionStrategy == ResidualGenStrategy.COMBINATION) {
       boolean considersAssumption = false, considersAssumptionGuider = false;
 
@@ -358,6 +450,11 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm {
 
   protected @Nullable Path getAssumptionGuider() {
     return conditionSpec;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    cpaAlgorithm.collectStatistics(pStatsCollection);
   }
 
 }

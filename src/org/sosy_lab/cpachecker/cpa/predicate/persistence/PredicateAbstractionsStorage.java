@@ -35,7 +35,7 @@ import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -116,7 +116,7 @@ public class PredicateAbstractionsStorage {
 
     if (pFile != null) {
       try {
-        MoreFiles.checkReadableFile(pFile);
+        IO.checkReadableFile(pFile);
         parseAbstractionTree();
       } catch (IOException e) {
         throw new PredicateParsingFailedException(e, "Init", 0);

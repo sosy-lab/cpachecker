@@ -64,9 +64,12 @@ public class SMGRegionTest {
     SMGRegion three = new SMGRegion(80, "region");
     SMGRegion four = new SMGRegion(64, "REGION");
 
-    Assert.assertTrue(one.propertiesEqual(two));
-    Assert.assertFalse(one.propertiesEqual(three));
-    Assert.assertFalse(one.propertiesEqual(four));
+    Assert.assertEquals(one.getSize(), two.getSize());
+    Assert.assertNotEquals(one.getSize(), three.getSize());
+    Assert.assertEquals(one.getSize(), four.getSize());
+    Assert.assertEquals(one.getLabel(), two.getLabel());
+    Assert.assertEquals(one.getLabel(), three.getLabel());
+    Assert.assertNotEquals(one.getLabel(), four.getLabel());
   }
 
 }

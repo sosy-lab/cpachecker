@@ -37,7 +37,7 @@ import java.util.logging.Level;
 import org.llvm.Module;
 import org.llvm.TypeRef;
 import org.llvm.Value;
-import org.llvm.binding.LLVMLibrary.LLVMOpcode;
+import org.llvm.Value.OpCode;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -96,8 +96,6 @@ public class CFABuilder extends LlvmAstVisitor {
   private static final CFunctionDeclaration ABORT_FUNC_DECL = new CFunctionDeclaration(
           FileLocation.DUMMY,
           new CFunctionType(
-              false,
-              false,
               CVoidType.VOID,
               Collections.emptyList(),
               false),
@@ -231,8 +229,7 @@ public class CFABuilder extends LlvmAstVisitor {
         parameters.add(getAssignedIdExpression(functionArg, expectedType));
       }
 
-      CFunctionType functionType =
-          new CFunctionType(false, false, returnType, parameterTypes, false);
+      CFunctionType functionType = new CFunctionType(returnType, parameterTypes, false);
       functionNameExp = new CIdExpression(loc, functionType, functionName, null);
     } else {
       functionNameExp =
@@ -333,94 +330,94 @@ public class CFABuilder extends LlvmAstVisitor {
   }
 
   private List<CAstNode> handleBinaryOp(final Value pItem, String pFunctionName) {
-    LLVMOpcode opCode =  pItem.getOpCode();
+    OpCode opCode = pItem.getOpCode();
 
     switch (opCode) {
       // Arithmetic operations
-      case LLVMAdd:
-      case LLVMFAdd:
-      case LLVMSub:
-      case LLVMFSub:
-      case LLVMMul:
-      case LLVMFMul:
-      case LLVMUDiv:
-      case LLVMSDiv:
-      case LLVMFDiv:
-      case LLVMURem:
-      case LLVMSRem:
-      case LLVMFRem:
-      case LLVMShl:
-      case LLVMLShr:
-      case LLVMAShr:
-      case LLVMAnd:
-      case LLVMOr:
-      case LLVMXor:
+      case Add:
+      case FAdd:
+      case Sub:
+      case FSub:
+      case Mul:
+      case FMul:
+      case UDiv:
+      case SDiv:
+      case FDiv:
+      case URem:
+      case SRem:
+      case FRem:
+      case Shl:
+      case LShr:
+      case AShr:
+      case And:
+      case Or:
+      case Xor:
         return handleArithmeticOp(pItem, opCode, pFunctionName);
 
       // Comparison operations
-      case LLVMICmp:
+      case ICmp:
         break;
-      case LLVMFCmp:
+      case FCmp:
         break;
 
       // Select operator
-      case LLVMSelect:
+      case Select:
         break;
 
       // Sign extension/truncation operations
-      case LLVMTrunc:
+      case Trunc:
         break;
-      case LLVMZExt:
+      case ZExt:
         break;
-      case LLVMSExt:
+      case SExt:
         break;
-      case LLVMFPToUI:
+      case FPToUI:
         break;
-      case LLVMFPToSI:
+      case FPToSI:
         break;
-      case LLVMUIToFP:
+      case UIToFP:
         break;
-      case LLVMSIToFP:
+      case SIToFP:
         break;
-      case LLVMFPTrunc:
+      case FPTrunc:
         break;
-      case LLVMFPExt:
+      case FPExt:
         break;
-      case LLVMPtrToInt:
+      case PtrToInt:
         break;
-      case LLVMIntToPtr:
+      case IntToPtr:
         break;
-      case LLVMBitCast:
+      case BitCast:
         break;
-      case LLVMAddrSpaceCast:
+      case AddrSpaceCast:
         break;
 
       // Aggregate operations
-      case LLVMExtractValue:
+      case ExtractValue:
         break;
-      case LLVMInsertValue:
-        break;
-
-      case LLVMPHI:
+      case InsertValue:
         break;
 
-      case LLVMGetElementPtr:
+      case PHI:
+        break;
+
+      case GetElementPtr:
         break;
 
 
-      case LLVMUserOp1:
-      case LLVMUserOp2:
-      case LLVMVAArg:
+      case UserOp1:
+      case UserOp2:
+      case VAArg:
       // Vector operations
-      case LLVMExtractElement:
-      case LLVMInsertElement:
-      case LLVMShuffleVector:
+      case ExtractElement:
+      case InsertElement:
+      case ShuffleVector:
       // Concurrency-centric operations
-      case LLVMFence:
+      case Fence:
 
-      case LLVMAtomicCmpXchg:
+      case AtomicCmpXchg:
         break;
-      case LLVMAtomicRMW:
+      case AtomicRMW:
         break;
       default:
         throw new UnsupportedOperationException(opCode.toString());
@@ -437,7 +434,7 @@ public class CFABuilder extends LlvmAstVisitor {
 
   private List<CAstNode> handleArithmeticOp(
       final Value pItem,
-      final LLVMOpcode pOpCode,
+      final OpCode pOpCode,
       final String pFunctionName
   ) {
     final CType expressionType = typeConverter.getCType(pItem.typeOf());
@@ -455,49 +452,49 @@ public class CFABuilder extends LlvmAstVisitor {
 
     CBinaryExpression.BinaryOperator operation;
     switch (pOpCode) {
-      case LLVMAdd:
-      case LLVMFAdd:
+      case Add:
+      case FAdd:
         operation = BinaryOperator.PLUS;
         break;
-      case LLVMSub:
-      case LLVMFSub:
+      case Sub:
+      case FSub:
         operation = BinaryOperator.MINUS;
         break;
-      case LLVMMul:
-      case LLVMFMul:
+      case Mul:
+      case FMul:
         operation = BinaryOperator.MULTIPLY;
         break;
-      case LLVMUDiv:
-      case LLVMSDiv:
-      case LLVMFDiv:
+      case UDiv:
+      case SDiv:
+      case FDiv:
         // TODO: Respect unsigned and signed divide
         operation = BinaryOperator.DIVIDE;
         break;
-      case LLVMURem:
-      case LLVMSRem:
-      case LLVMFRem:
+      case URem:
+      case SRem:
+      case FRem:
         // TODO: Respect unsigned and signed modulo
         operation = BinaryOperator.MODULO;
         break;
-      case LLVMShl: // Shift left
+      case Shl: // Shift left
         operation = BinaryOperator.SHIFT_LEFT;
         break;
-      case LLVMLShr: // Logical shift right
-      case LLVMAShr: // arithmetic shift right
+      case LShr: // Logical shift right
+      case AShr: // arithmetic shift right
         // TODO Differentiate between logical and arithmetic shift somehow
         operation = BinaryOperator.SHIFT_RIGHT;
         break;
-      case LLVMAnd:
+      case And:
         operation = BinaryOperator.BINARY_AND;
         break;
-      case LLVMOr:
+      case Or:
         operation = BinaryOperator.BINARY_OR;
         break;
-      case LLVMXor:
+      case Xor:
         operation = BinaryOperator.BINARY_XOR;
         break;
       default:
-        throw new UnsupportedOperationException(String.valueOf(pOpCode.value()));
+        throw new AssertionError("Unhandled operation " + pOpCode);
     }
 
     CExpression expression = new CBinaryExpression(
@@ -768,26 +765,26 @@ public class CFABuilder extends LlvmAstVisitor {
 
     BinaryOperator operator = null;
     switch (pItem.getICmpPredicate()) {
-        case LLVMIntEQ:
+        case IntEQ:
             operator = BinaryOperator.EQUALS;
             break;
-        case LLVMIntNE:
+        case IntNE:
             operator = BinaryOperator.NOT_EQUALS;
             break;
-        case LLVMIntUGT:
-        case LLVMIntSGT:
+        case IntUGT:
+        case IntSGT:
             operator = BinaryOperator.GREATER_THAN;
             break;
-        case LLVMIntULT:
-        case LLVMIntSLT:
+        case IntULT:
+        case IntSLT:
             operator = BinaryOperator.LESS_THAN;
             break;
-        case LLVMIntULE:
-        case LLVMIntSLE:
+        case IntULE:
+        case IntSLE:
             operator = BinaryOperator.LESS_EQUAL;
             break;
-        case LLVMIntUGE:
-        case LLVMIntSGE:
+        case IntUGE:
+        case IntSGE:
             operator = BinaryOperator.GREATER_EQUAL;
             break;
         default:

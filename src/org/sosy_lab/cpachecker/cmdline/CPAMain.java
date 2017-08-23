@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static java.util.logging.Level.WARNING;
 import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 
@@ -31,16 +30,17 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
+import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringWriter;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,7 +67,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LoggingOptions;
@@ -149,7 +149,8 @@ public class CPAMain {
       if (options.doPCC) {
         proofGenerator = new ProofGenerator(cpaConfig, logManager, shutdownNotifier);
       }
-      reportGenerator = new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile());
+      reportGenerator =
+          new ReportGenerator(cpaConfig, logManager, logOptions.getOutputFile(), options.programs);
     } catch (InvalidConfigurationException e) {
       logManager.logUserException(Level.SEVERE, e, "Invalid configuration");
       System.exit(ERROR_EXIT_CODE);
@@ -237,7 +238,7 @@ public class CPAMain {
       //required=true, NOT required because we want to give a nicer user message ourselves
       description = "A String, denoting the programs to be analyzed"
     )
-    private @Nullable List<String> programs;
+    private ImmutableList<String> programs = ImmutableList.of();
 
     @Option(secure=true, name="configuration.dumpFile",
         description="Dump the complete configuration to a file.")
@@ -263,7 +264,7 @@ public class CPAMain {
       LogManager logManager) {
     if (options.configurationOutputFile != null) {
       try {
-        MoreFiles.writeFile(
+        IO.writeFile(
             options.configurationOutputFile, Charset.defaultCharset(), config.asPropertiesString());
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not dump configuration to file");
@@ -439,7 +440,11 @@ public class CPAMain {
     try {
       parser.parse();
     } catch (InvalidPropertyFileException e) {
-      throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
+      throw new InvalidCmdlineArgumentException(
+          String.format("Invalid property file '%s': %s", propertyFile, e.getMessage()), e);
+    } catch (IOException e) {
+      throw new InvalidCmdlineArgumentException(
+          "Could not read property file: " + e.getMessage(), e);
     }
 
     // set the file from where to read the specification automaton
@@ -561,7 +566,7 @@ public class CPAMain {
 
     if (options.exportStatistics && options.exportStatisticsFile != null) {
       try {
-        MoreFiles.createParentDirs(options.exportStatisticsFile);
+        MoreFiles.createParentDirectories(options.exportStatisticsFile);
         file = closer.register(Files.newOutputStream(options.exportStatisticsFile));
       } catch (IOException e) {
         logManager.logUserException(Level.WARNING, e, "Could not write statistics to file");
@@ -598,33 +603,8 @@ public class CPAMain {
 
     // export report
     if (mResult.getResult() != Result.NOT_YET_STARTED) {
-       boolean generated =
-          reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
-
-      if (generated) {
-        try {
-          Path pathToReportGenerator = getPathToReportGenerator();
-          if (pathToReportGenerator != null) {
-            stream.println("Run " + pathToReportGenerator + " to show graphical report.");
-          }
-        } catch (SecurityException | URISyntaxException e) {
-          logManager.logUserException(WARNING, e, "Could not find script for generating report.");
-        }
-      }
+      reportGenerator.generate(mResult.getCfa(), mResult.getReached(), statistics.toString());
     }
-  }
-
-  private static @Nullable Path getPathToReportGenerator() throws URISyntaxException {
-    Path curDir = Paths.get("").toAbsolutePath();
-    Path codeDir =
-        Paths.get(CPAMain.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-
-    Path reportGenerator =
-        curDir.relativize(codeDir.resolveSibling("scripts").resolve("report-generator.py"));
-    if (Files.isExecutable(reportGenerator)) {
-      return reportGenerator;
-    }
-    return null;
   }
 
   @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",

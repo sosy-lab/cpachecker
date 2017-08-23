@@ -48,7 +48,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -219,7 +219,7 @@ class PredicateCPAStatistics extends AbstractStatistics {
     allPredicates.addAll(predicates.location.values());
     allPredicates.addAll(predicates.locationInstance.values());
 
-    try (Writer w = MoreFiles.openOutputFile(targetFile, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(targetFile, Charset.defaultCharset())) {
       precisionWriter.writePredicateMap(predicates.locationInstance,
           predicates.location, predicates.function, predicates.global,
           allPredicates, w);

@@ -136,10 +136,8 @@ public class CFASingleLoopTransformation {
    */
   private final LogManager logger;
 
-  /**
-   * The shutdown notifier used.
-   */
-  private final ShutdownNotifier shutdownNotifier;
+  /** The shutdown notifier used. */
+  private final @Nullable ShutdownNotifier shutdownNotifier;
 
   @Option(secure=true,
       description="Single loop transformation builds a decision tree based on" +
@@ -165,10 +163,11 @@ public class CFASingleLoopTransformation {
    *
    * @param pLogger the log manager to be used.
    * @param pConfig the configuration used.
-   *
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  private CFASingleLoopTransformation(LogManager pLogger, Configuration pConfig, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  private CFASingleLoopTransformation(
+      LogManager pLogger, Configuration pConfig, @Nullable ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
     pConfig.inject(this);
@@ -1319,7 +1318,7 @@ public class CFASingleLoopTransformation {
     switch (pEdge.getEdgeType()) {
     case AssumeEdge:
       CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
-      return new CAssumeEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, assumeEdge.getExpression(), assumeEdge.getTruthAssumption());
+      return new CAssumeEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, assumeEdge.getExpression(), assumeEdge.getTruthAssumption(), assumeEdge.isSwapped());
     case BlankEdge:
       return new BlankEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, pEdge.getDescription());
     case DeclarationEdge:

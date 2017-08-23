@@ -47,7 +47,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArrayDesignator;
@@ -141,7 +141,7 @@ public class AppliedCustomInstructionParser {
 
   private void writeCustomInstructionSpecification(final CustomInstruction ci,
       final Path signatureFile) throws IOException {
-    try (Writer br = MoreFiles.openOutputFile(signatureFile, Charset.defaultCharset())) {
+    try (Writer br = IO.openOutputFile(signatureFile, Charset.defaultCharset())) {
       br.write(ci.getSignature() + "\n");
       String ciString = ci.getFakeSMTDescription().getSecond();
       br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");

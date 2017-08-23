@@ -113,10 +113,8 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     return type.accept(canonizingVisitor);
   }
 
-  /**
-   * Get a simplified type as defined by {@link #simplifyType(CType)} from an AST node.
-   */
-  CType getSimplifiedType(final CRightHandSide exp) {
+  /** Get a simplified type as defined by {@link #simplifyType(CType)} from an AST node. */
+  public CType getSimplifiedType(final CRightHandSide exp) {
     return simplifyType(exp.getExpressionType());
   }
 
@@ -166,12 +164,11 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       return; // The type has already been added
     }
 
-    final Integer size = compositeType.accept(sizeofVisitor);
+    final int size = compositeType.accept(sizeofVisitor);
     final int sizeOfByte = machineModel.getSizeofCharInBits();
 
-    assert size != null : "Can't evaluate size of a composite type: " + compositeType;
-
-    assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+    assert compositeType.getKind() != ComplexTypeKind.ENUM
+        : "Enums are not composite: " + compositeType;
 
     final Multiset<String> members = HashMultiset.create();
     int offset = 0;

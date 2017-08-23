@@ -110,6 +110,12 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
   }
 
   public boolean summarizes(TransitionCondition pLabel) {
+    if (keyValues.containsKey(KeyDef.FUNCTIONENTRY)
+        || keyValues.containsKey(KeyDef.FUNCTIONEXIT)
+        || pLabel.keyValues.containsKey(KeyDef.FUNCTIONENTRY)
+        || pLabel.keyValues.containsKey(KeyDef.FUNCTIONEXIT)) {
+      return false;
+    }
     if (equals(pLabel)) {
       return true;
     }

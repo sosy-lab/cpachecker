@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
@@ -57,7 +58,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -80,6 +81,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -219,11 +221,19 @@ public class CPAchecker {
   )
   private boolean unknownAsTrue = false;
 
+  @Option(
+      secure = true,
+      name = "analysis.counterexampleLimit",
+      description = "Maximum number of counterexamples to be created."
+    )
+  private int cexLimit = 0;
+
   private final LogManager logger;
   private final Configuration config;
   private final ShutdownManager shutdownManager;
   private final ShutdownNotifier shutdownNotifier;
   private final CoreComponentsFactory factory;
+
 
   // The content of this String is read from a file that is created by the
   // ant task "init".
@@ -421,7 +431,7 @@ public class CPAchecker {
     Path file = Paths.get(fileDenotation.get(0));
 
     try {
-      MoreFiles.checkReadableFile(file);
+      IO.checkReadableFile(file);
     } catch (FileNotFoundException e) {
       throw new InvalidConfigurationException(e.getMessage());
     }
@@ -466,12 +476,21 @@ public class CPAchecker {
 
     stats.startAnalysisTimer();
     try {
+      int counterExampleCount = 0;
       do {
         status = status.update(algorithm.run(reached));
 
+        if (cexLimit > 0) {
+          counterExampleCount = Optionals.presentInstances(
+              from(reached)
+              .filter(IS_TARGET_STATE)
+              .filter(ARGState.class)
+              .transform(ARGState::getCounterexampleInformation)).toList().size();
+        }
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty
-      } while (!stopAfterError && reached.hasWaitingState());
+        // or until maximum number of counterexamples is reached
+      } while (!stopAfterError && reached.hasWaitingState() && (cexLimit == 0 || cexLimit > counterExampleCount));
 
       logger.log(Level.INFO, "Stopping analysis ...");
       return status;

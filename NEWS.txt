@@ -1,5 +1,7 @@
 Changes since CPAchecker 1.6.1
 ------------------------------
+* The HTML report has been updated and is now produced directly by CPAchecker
+  (no need to call report-generator.py anymore).
 * CPAchecker requires Java 8.
 
 

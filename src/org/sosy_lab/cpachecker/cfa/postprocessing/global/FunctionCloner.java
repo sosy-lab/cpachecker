@@ -32,6 +32,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -191,7 +192,7 @@ class FunctionCloner implements CFAVisitor {
       case AssumeEdge: {
         if (edge instanceof CAssumeEdge) {
           final CAssumeEdge e = (CAssumeEdge) edge;
-          newEdge = new CAssumeEdge(rawStatement, loc, start, end, cloneAst(e.getExpression()), e.getTruthAssumption());
+          newEdge = new CAssumeEdge(rawStatement, loc, start, end, cloneAst(e.getExpression()), e.getTruthAssumption(), e.isSwapped());
         } else {
           throw new AssertionError(ONLY_C_SUPPORTED);
         }
@@ -333,7 +334,7 @@ class FunctionCloner implements CFAVisitor {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends AAstNode> T cloneAst(final T ast) {
+  private @Nullable <T extends AAstNode> T cloneAst(final T ast) {
 
     if (ast == null) {
       return null;
@@ -479,7 +480,7 @@ class FunctionCloner implements CFAVisitor {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends Type> T cloneType(T type) {
+  private @Nullable <T extends Type> T cloneType(T type) {
 
     if (type == null) {
       return null;
@@ -625,14 +626,14 @@ class FunctionCloner implements CFAVisitor {
         for (CParameterDeclaration param : ((CFunctionTypeWithNames)type).getParameterDeclarations()) {
           l.add(cloneAst(param));
         }
-        funcType = new CFunctionTypeWithNames(type.isConst(), type.isVolatile(), type.getReturnType(), l, type.takesVarArgs());
+        funcType = new CFunctionTypeWithNames(type.getReturnType(), l, type.takesVarArgs());
       } else {
         assert type.getClass() == CFunctionType.class;
         List<CType> l = new ArrayList<>(type.getParameters().size());
         for (CType param : type.getParameters()) {
           l.add(cloneType(param));
         }
-        funcType = new CFunctionType(type.isConst(), type.isVolatile(), type.getReturnType(), l, type.takesVarArgs());
+        funcType = new CFunctionType(type.getReturnType(), l, type.takesVarArgs());
       }
       if (type.getName() != null) {
         funcType.setName(changeName(type.getName()));

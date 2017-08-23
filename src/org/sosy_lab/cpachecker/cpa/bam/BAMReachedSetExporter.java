@@ -45,7 +45,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
@@ -149,7 +149,7 @@ class BAMReachedSetExporter implements Statistics {
       final Path file,
       final Multimap<ARGState, ARGState> connections,
       final Set<ARGState> rootStates) {
-    try (Writer w = MoreFiles.openOutputFile(file, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(file, Charset.defaultCharset())) {
       ARGToDotWriter.write(
           w,
           rootStates,

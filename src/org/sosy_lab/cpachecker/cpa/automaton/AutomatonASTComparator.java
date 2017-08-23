@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import static org.sosy_lab.cpachecker.util.Pair.zipList;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -61,7 +60,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Provides methods for generating, comparing and printing the ASTs generated from String.
@@ -392,13 +390,11 @@ class AutomatonASTComparator {
         return false;
       }
 
-      for (Pair<ASTMatcher, CExpression> parameters :
-          zipList(parameterPatterns, pSource.getParameterExpressions())) {
-        if (!parameters.getFirst().matches(parameters.getSecond(), pArg)) {
-          return false;
-        }
-      }
-      return true;
+      return Streams.zip(
+              parameterPatterns.stream(),
+              pSource.getParameterExpressions().stream(),
+              (pattern, parameter) -> pattern.matches(parameter, pArg))
+          .allMatch(match -> match);
     }
   }
 

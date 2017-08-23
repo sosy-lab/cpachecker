@@ -40,6 +40,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import com.google.errorprone.annotations.FormatMethod;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -59,17 +60,17 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.ForwardingLogManager;
 import org.sosy_lab.common.log.LogManager;
@@ -601,11 +602,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               .generateLoopTransition(ssa, pts, pLocation);
 
       Set<BooleanFormula> lemmas =
-          semiCNFConverter
-              .toLemmasInstantiated(pBlockFormula, fmgr)
-              .stream()
-              .map(s -> fmgr.uninstantiate(s))
-              .collect(Collectors.toSet());
+          Collections3.transformedImmutableSetCopy(
+              semiCNFConverter.toLemmasInstantiated(pBlockFormula, fmgr), fmgr::uninstantiate);
 
       Set<BooleanFormula> inductiveLemmas =
           new InductiveWeakeningManager(config, solver, logger, shutdownNotifier)
@@ -633,11 +631,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       stats.pfKindTime.start();
 
       Set<BooleanFormula> conjuncts =
-          semiCNFConverter
-              .toLemmasInstantiated(pPathFormula, fmgr)
-              .stream()
-              .map(s -> fmgr.uninstantiate(s))
-              .collect(Collectors.toSet());
+          Collections3.transformedImmutableSetCopy(
+              semiCNFConverter.toLemmasInstantiated(pPathFormula, fmgr), fmgr::uninstantiate);
 
       final Map<String, BooleanFormula> formulaToRegion = new HashMap<>();
       StaticCandidateProvider candidateGenerator =
@@ -706,7 +701,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       // may be null when -noout is specified
       if (dumpInvariantGenerationAutomata && dumpInvariantGenerationAutomataFile != null) {
         Path logPath = dumpInvariantGenerationAutomataFile.getFreshPath();
-        MoreFiles.writeFile(logPath, Charset.defaultCharset(), spc);
+        IO.writeFile(logPath, Charset.defaultCharset(), spc);
       }
 
       Scope scope =
@@ -917,20 +912,18 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
                   return Collections.emptyList();
                 }
 
-                List<CandidateInvariant> invCandidates = new ArrayList<>();
                 // add false as last interpolant for the error location
                 interpolants = new ArrayList<>(interpolants);
                 interpolants.add(bfmgr.makeFalse());
 
-                for (Pair<CFANode, BooleanFormula> nodeAndFormula :
-                    Pair.<CFANode, BooleanFormula>zipList(abstractionNodes, interpolants)) {
-                  invCandidates.add(
-                      makeLocationInvariant(
-                          nodeAndFormula.getFirst(),
-                          fmgr.dumpFormula(fmgr.uninstantiate(nodeAndFormula.getSecond()))
-                              .toString()));
-                }
-                return invCandidates;
+                return Streams.zip(
+                        abstractionNodes.stream(),
+                        interpolants.stream(),
+                        (abstractionNode, itp) ->
+                            makeLocationInvariant(
+                                abstractionNode,
+                                fmgr.dumpFormula(fmgr.uninstantiate(itp)).toString()))
+                    .collect(ImmutableList.toImmutableList());
               }
             };
 

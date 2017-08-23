@@ -28,16 +28,13 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
-
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
-
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 
 /**
 * This class describes a location in the memory.
@@ -92,15 +89,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
   @Override
   public int hashCode() {
-
-    int hc = 17;
-    int hashMultiplier = 59;
-
-    hc = hc * hashMultiplier + Objects.hashCode(functionName);
-    hc = hc * hashMultiplier + identifier.hashCode();
-    hc = hc * hashMultiplier + Objects.hashCode(offset);
-
-    return hc;
+    return Objects.hash(functionName, identifier, offset);
   }
 
   public static MemoryLocation valueOf(String pFunctionName, String pIdentifier) {
@@ -206,30 +195,10 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
 
   @Override
   public int compareTo(MemoryLocation other) {
-
-    int result = 0;
-
-    if (isOnFunctionStack()) {
-      if (other.isOnFunctionStack()) {
-        result = functionName.compareTo(other.functionName);
-      } else {
-        result = 1;
-      }
-    } else {
-      if (other.isOnFunctionStack()) {
-        result = -1;
-      } else {
-        result = 0;
-      }
-    }
-
-    if (result != 0) {
-      return result;
-    }
-
     return ComparisonChain.start()
+        .compare(functionName, other.functionName, Ordering.natural().nullsFirst())
         .compare(identifier, other.identifier)
-        .compare(offset, other.offset, Ordering.<Long>natural().nullsFirst())
+        .compare(offset, other.offset, Ordering.natural().nullsFirst())
         .result();
   }
 }

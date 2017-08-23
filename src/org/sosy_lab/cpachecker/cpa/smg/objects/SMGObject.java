@@ -23,49 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
+public abstract class SMGObject implements Comparable<SMGObject> {
 
-import java.io.Serializable;
-import java.util.Comparator;
-
-public abstract class SMGObject {
   private final int size;
   private final String label;
   private final int level;
   private final SMGObjectKind kind;
   private static int count;
   private final int id;
-
-
-
-  private static final SMGObject NULL_OBJECT = new SMGObject(0, "NULL", SMGObjectKind.NULL) {
-
-    @Override
-    public String toString() {
-      return "NULL";
-    }
-
-    @Override
-    public SMGObject copy() {
-      // fancy way of referencing itself
-      return SMGObject.getNullObject();
-    }
-
-    @Override
-    public SMGObject copy(int level) {
-      // fancy way of referencing itself
-      return SMGObject.getNullObject();
-    }
-
-    @Override
-    public boolean isMoreGeneral(SMGObject pOther) {
-      /*There is no object that can replace the null object in an smg.*/
-      return false;
-    }
-  };
-
-  static public SMGObject getNullObject() {
-    return NULL_OBJECT;
-  }
 
   public SMGObjectKind getKind() {
     return kind;
@@ -91,8 +56,6 @@ public abstract class SMGObject {
     id = pId;
   }
 
-  public abstract SMGObject copy();
-
   public abstract SMGObject copy(int pNewLevel);
 
   public String getLabel() {
@@ -103,24 +66,9 @@ public abstract class SMGObject {
     return size;
   }
 
-  public boolean notNull() {
-    return (! equals(NULL_OBJECT));
-  }
+  public abstract boolean isAbstract();
 
-  public boolean isAbstract() {
-    if (equals(NULL_OBJECT)) {
-      return false;
-    }
-
-    throw new UnsupportedOperationException("isAbstract() called on SMGObject instance, not on a subclass");
-  }
-
-  /**
-   * @param visitor the visitor to accept
-   */
-  public void accept(SMGObjectVisitor visitor) {
-    throw new UnsupportedOperationException("accept() called on SMGObject instance not on a subclass");
-  }
+  public abstract <T> T accept(SMGObjectVisitor<T> visitor);
 
   /**
    * Compares objects and determines, if this object is more general than given object.
@@ -137,9 +85,7 @@ public abstract class SMGObject {
    * @param pOther object to join with
    * @param pDestLevel increase Nesting level.
    */
-  public SMGObject join(SMGObject pOther, int pDestLevel) {
-    throw new UnsupportedOperationException("join() called on SMGObject instance, not on a subclass");
-  }
+  public abstract SMGObject join(SMGObject pOther, int pDestLevel);
 
   public int getLevel() {
     return level;
@@ -154,13 +100,8 @@ public abstract class SMGObject {
     return id;
   }
 
-  public static class SMGObjectComparator implements Serializable, Comparator<SMGObject> {
-
-    private static final long serialVersionUID = 1L;
-
-    @Override
-    public int compare(SMGObject o1, SMGObject o2) {
-      return Integer.compare(o1.getId(), o2.getId());
-    }
+  @Override
+  public int compareTo(SMGObject o) {
+    return Integer.compare(getId(), o.getId());
   }
 }

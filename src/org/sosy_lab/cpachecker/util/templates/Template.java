@@ -23,21 +23,20 @@
  */
 package org.sosy_lab.cpachecker.util.templates;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.common.rationals.LinearExpression;
-import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.stream.Stream;
+import org.sosy_lab.common.rationals.LinearExpression;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 
 /**
  * Linear expression over program variables.
@@ -46,10 +45,9 @@ public class Template {
   // todo: switch to MemoryLocation, additionally track type.
   private final LinearExpression<CIdExpression> linearExpression;
 
-  public Stream<String> getUsedVars() {
-    return linearExpression.getMap().keySet()
-        .stream()
-        .map(s -> s.getDeclaration().getQualifiedName());
+  public Collection<String> getUsedVars() {
+    return Collections2.transform(
+        linearExpression.getMap().keySet(), s -> s.getDeclaration().getQualifiedName());
   }
 
   /**

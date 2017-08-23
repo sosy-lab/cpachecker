@@ -39,7 +39,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -47,7 +46,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.OptionCollector;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument0;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.PropertyAddingCmdLineArgument;
@@ -99,7 +98,7 @@ class CmdLineArguments {
   static final String SECURE_MODE_OPTION = "secureMode";
   static final String PRINT_USED_OPTIONS_OPTION = "log.usedOptions.export";
 
-  private static final Collection<CmdLineArgument> CMD_LINE_ARGS =
+  private static final ImmutableSortedSet<CmdLineArgument> CMD_LINE_ARGS =
       ImmutableSortedSet.of(
           new CmdLineArgument0("-stats", "statistics.print", "true")
               .withDescription("collect statistics during the analysis and print them afterwards"),
@@ -247,7 +246,7 @@ class CmdLineArguments {
 
           if (configFile != null) {
             try {
-              MoreFiles.checkReadableFile(configFile);
+              IO.checkReadableFile(configFile);
               putIfNotExistent(properties, CONFIGURATION_FILE_OPTION, configFile.toString());
             } catch (FileNotFoundException e) {
               ERROR_OUTPUT.println("Invalid configuration " + argName + " (" + e.getMessage() + ")");

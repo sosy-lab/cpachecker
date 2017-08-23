@@ -56,7 +56,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
@@ -331,7 +331,7 @@ public class TerminationStatistics implements Statistics {
     if (resultFile != null) {
       logger.logf(FINER, "Writing result of termination analysis into %s.", resultFile);
 
-      try (Writer writer = MoreFiles.openOutputFile(resultFile, UTF_8)) {
+      try (Writer writer = IO.openOutputFile(resultFile, UTF_8)) {
         writer.append("Non-termination arguments:\n");
         for (Entry<Loop, NonTerminationArgument> nonTerminationArgument :
             nonTerminationArguments.entrySet()) {

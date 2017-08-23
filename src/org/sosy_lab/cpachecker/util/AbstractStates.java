@@ -34,8 +34,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeTraverser;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -260,14 +258,11 @@ public final class AbstractStates {
    * formulas
    */
   public static BooleanFormula extractReportedFormulas(FormulaManagerView manager, AbstractState state) {
-    List<BooleanFormula> result = new ArrayList<>();
-
     // traverse through all the sub-states contained in this state
-    for (FormulaReportingState s : asIterable(state).filter(FormulaReportingState.class)) {
-
-      result.add(s.getFormulaApproximation(manager));
-    }
-
-    return manager.getBooleanFormulaManager().and(result);
+    return asIterable(state)
+        .filter(FormulaReportingState.class)
+        .transform(s -> s.getFormulaApproximation(manager))
+        .stream()
+        .collect(manager.getBooleanFormulaManager().toConjunction());
   }
 }

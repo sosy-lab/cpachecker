@@ -126,17 +126,14 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
 
 
       final CFunctionType result;
-      if (returnType == oldReturnType &&
-          parameterTypes == null &&
-          (!ignoreConst || !t.isConst()) &&
-          (!ignoreVolatile || !t.isVolatile())) {
+      if (returnType == oldReturnType && parameterTypes == null) {
         result = t;
       } else {
-        result = new CFunctionType(!ignoreConst && t.isConst(),
-                                   !ignoreVolatile && t.isVolatile(),
-                                   returnType,
-                                   parameterTypes != null ? parameterTypes : t.getParameters(),
-                                   t.takesVarArgs());
+        result =
+            new CFunctionType(
+                returnType,
+                parameterTypes != null ? parameterTypes : t.getParameters(),
+                t.takesVarArgs());
         if (t.getName() != null) {
           result.setName(t.getName());
         }

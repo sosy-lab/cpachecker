@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.FileCoverage;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.FileCoverage.FunctionInfo;
@@ -59,7 +59,7 @@ class CoverageReportGcov {
 
     Map<String, FileCoverage> infos = pData.getInfosPerFile();
 
-    try (Writer w = MoreFiles.openOutputFile(pTarget, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(pTarget, Charset.defaultCharset())) {
 
       for (Map.Entry<String, FileCoverage> entry : infos.entrySet()) {
         String sourcefile = entry.getKey();

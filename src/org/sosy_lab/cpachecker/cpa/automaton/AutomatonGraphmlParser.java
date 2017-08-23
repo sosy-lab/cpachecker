@@ -38,6 +38,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
+import com.google.common.io.MoreFiles;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,6 +63,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
@@ -75,7 +77,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser;
@@ -111,8 +113,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.LineMatcher;
 import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OffsetMatcher;
-import org.sosy_lab.cpachecker.cpa.automaton.SourceLocationMatcher.OriginLineMatcher;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -355,6 +357,16 @@ public class AutomatonGraphmlParser {
                       -distances.getOrDefault(targetStateId, Integer.MAX_VALUE))));
         }
 
+        Optional<Predicate<FileLocation>> offsetMatcherPredicate = getOffsetMatcherPredicate(transition);
+        Optional<Predicate<FileLocation>> lineMatcherPredicate = getOriginLineMatcherPredicate(transition);
+        Predicate<FileLocation> locationMatcherPredicate = Predicates.alwaysTrue();
+        if (offsetMatcherPredicate.isPresent()) {
+          locationMatcherPredicate = locationMatcherPredicate.and(offsetMatcherPredicate.get());
+        }
+        if (lineMatcherPredicate.isPresent()) {
+          locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
+        }
+
         if (matchThreadId) {
           AutomatonAction threadAssignment = getThreadIdAssignment(transition);
           if (threadAssignment != null) {
@@ -387,7 +399,7 @@ public class AutomatonGraphmlParser {
         String functionEntry = Iterables.getOnlyElement(functionEntries, null);
         Set<String> functionExits =
             GraphMLDocumentData.getDataOnNode(transition, KeyDef.FUNCTIONEXIT);
-        String functionExit = Iterables.getOnlyElement(functionEntries, null);
+        String functionExit = Iterables.getOnlyElement(functionExits, null);
 
         // If the same function is entered and exited, the stack remains unchanged.
         // Otherwise, adjust the stack accordingly:
@@ -425,14 +437,15 @@ public class AutomatonGraphmlParser {
             and(conjoinedTriggers, not(AutomatonBoolExpr.MatchSplitDeclaration.INSTANCE));
 
         // Match a loop start
-        if (entersLoopHead(transition)) {
+        boolean entersLoopHead = entersLoopHead(transition);
+        if (entersLoopHead) {
           conjoinedTriggers = and(conjoinedTriggers, AutomatonBoolExpr.MatchLoopStart.INSTANCE);
         }
 
         // Add assumptions to the transition
         Set<String> assumptionScopes =
             GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTIONSCOPE);
-        Scope scope = determineScope(assumptionScopes, newStack);
+        Scope scope = determineScope(assumptionScopes, newStack, locationMatcherPredicate);
         Set<String> assumptionResultFunctions =
             GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTIONRESULTFUNCTION);
         Optional<String> assumptionResultFunction = determineResultFunction(assumptionResultFunctions, scope);
@@ -453,14 +466,14 @@ public class AutomatonGraphmlParser {
         if (graphType == WitnessType.VIOLATION_WITNESS && !assumptionResultFunctions.isEmpty()) {
           String resultFunctionName = assumptionResultFunction.get();
           conjoinedTriggers =
-              and(conjoinedTriggers, new AutomatonBoolExpr.MatchFunctionCall(resultFunctionName));
+              and(conjoinedTriggers, new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName));
         }
 
         Set<String> candidates =
             GraphMLDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANT);
         Set<String> candidateScopes =
             GraphMLDocumentData.getDataOnNode(targetStateNode, KeyDef.INVARIANTSCOPE);
-        final Scope candidateScope = determineScope(candidateScopes, newStack);
+        final Scope candidateScope = determineScope(candidateScopes, newStack, locationMatcherPredicate);
         Set<String> resultFunctions =
             GraphMLDocumentData.getDataOnNode(transition, KeyDef.ASSUMPTIONRESULTFUNCTION);
         Optional<String> resultFunction = determineResultFunction(resultFunctions, scope);
@@ -476,27 +489,55 @@ public class AutomatonGraphmlParser {
         }
 
         if (matchOriginLine) {
-          conjoinedTriggers = and(conjoinedTriggers, getOriginLineMatcher(transition));
+          conjoinedTriggers = and(conjoinedTriggers, getLocationMatcher(entersLoopHead, lineMatcherPredicate));
         }
 
         if (matchOffset) {
-          conjoinedTriggers = and(conjoinedTriggers, getOffsetMatcher(transition));
+          conjoinedTriggers = and(conjoinedTriggers, getLocationMatcher(entersLoopHead, offsetMatcherPredicate));
+        }
+
+        if (functionExit != null) {
+          conjoinedTriggers = and(conjoinedTriggers, getFunctionExitMatcher(functionExit, entersLoopHead));
+        }
+
+        // If the transition represents a function call, add a sink transition
+        // in case it is a function pointer call,
+        // where we can eliminate the other branch
+        AutomatonBoolExpr fpElseTrigger = null;
+        if (functionEntry != null && graphType == WitnessType.CORRECTNESS_WITNESS) {
+          fpElseTrigger = and(
+              conjoinedTriggers,
+              getFunctionPointerAssumeCaseMatcher(functionEntry, targetNodeFlags.contains(NodeFlag.ISSINKNODE), entersLoopHead));
+          transitions.add(
+              createAutomatonSinkTransition(
+                  fpElseTrigger,
+                  Collections.<AutomatonBoolExpr>emptyList(),
+                  actions,
+                  false));
+        }
+
+        if (functionEntry != null) {
+          conjoinedTriggers = and(conjoinedTriggers, getFunctionCallMatcher(functionEntry, entersLoopHead));
+        }
+
+        if (matchAssumeCase) {
+          conjoinedTriggers = and(conjoinedTriggers, getAssumeCaseMatcher(transition));
         }
 
         // If the triggers do not apply, none of the above transitions is taken,
         // so we need to build the stutter condition
         // as the conjoined negations of the transition conditions.
         AutomatonBoolExpr stutterCondition = stutterConditions.get(sourceStateId);
+        AutomatonBoolExpr additionalStutterCondition = not(conjoinedTriggers);
+        if (fpElseTrigger != null) {
+          additionalStutterCondition = and(additionalStutterCondition, not(fpElseTrigger));
+        }
         if (stutterCondition == null) {
-          stutterCondition = not(conjoinedTriggers);
+          stutterCondition = additionalStutterCondition;
         } else {
-          stutterCondition = and(stutterCondition, not(conjoinedTriggers));
+          stutterCondition = and(stutterCondition, additionalStutterCondition);
         }
         stutterConditions.put(sourceStateId, stutterCondition);
-
-        if (matchAssumeCase) {
-          conjoinedTriggers = and(conjoinedTriggers, getAssumeCaseMatcher(transition));
-        }
 
         // If the triggers match, there must be one successor state that moves the automaton forwards
         transitions.add(
@@ -612,13 +653,13 @@ public class AutomatonGraphmlParser {
       result.add(automaton);
 
       if (automatonDumpFile != null) {
-        try (Writer w = MoreFiles.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
+        try (Writer w = IO.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
           automaton.writeDotFile(w);
         } catch (IOException e) {
           // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
         }
         Path automatonFile = automatonDumpFile.resolveSibling(automatonDumpFile.getFileName() + ".spc");
-        try (Writer w = MoreFiles.openOutputFile(automatonFile, Charset.defaultCharset())) {
+        try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
           w.write(automaton.toString());
         } catch (IOException e) {
           // logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
@@ -634,6 +675,40 @@ public class AutomatonGraphmlParser {
     } catch (CParserException e) {
       throw new WitnessParseException("The witness automaton contains invalid C code!", e);
     }
+  }
+
+  private static AutomatonBoolExpr getFunctionCallMatcher(String pEnteredFunction, boolean pEntersLoopHead) {
+    AutomatonBoolExpr functionEntryMatcher =
+        new AutomatonBoolExpr.MatchFunctionCall(pEnteredFunction);
+    if (pEntersLoopHead) {
+      functionEntryMatcher =
+          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionEntryMatcher, true);
+    }
+    return functionEntryMatcher;
+  }
+
+  private static AutomatonBoolExpr getFunctionPointerAssumeCaseMatcher(String pEnteredFunction,
+      boolean pIsSinkNode, boolean pEntersLoopHead) {
+    AutomatonBoolExpr functionPointerAssumeCaseMatcher =
+      new AutomatonBoolExpr.MatchFunctionPointerAssumeCase(
+          new AutomatonBoolExpr.MatchAssumeCase(pIsSinkNode),
+          new AutomatonBoolExpr.MatchFunctionCall(pEnteredFunction));
+    if (pEntersLoopHead) {
+      functionPointerAssumeCaseMatcher =
+          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionPointerAssumeCaseMatcher, true);
+    }
+    return functionPointerAssumeCaseMatcher;
+  }
+
+  private static AutomatonBoolExpr getFunctionExitMatcher(String pExitedFunction, boolean pEntersLoopHead) {
+    AutomatonBoolExpr functionExitMatcher = or(
+        new AutomatonBoolExpr.MatchFunctionExit(pExitedFunction),
+        new AutomatonBoolExpr.MatchFunctionCallStatement(pExitedFunction));
+    if (pEntersLoopHead) {
+      functionExitMatcher =
+          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(functionExitMatcher, true);
+    }
+    return functionExitMatcher;
   }
 
   private static boolean entersLoopHead(Node pTransition) throws WitnessParseException {
@@ -657,17 +732,42 @@ public class AutomatonGraphmlParser {
   }
 
   /**
-   * Creates an automaton-transition condition for a specific start line corresponding to the line
-   * specified by the given transition.
+   * Creates an automaton-transition condition to match a specific file location.
    *
-   * <p>If no start line is specified by the given transition, the resulting condition is {@code
-   * AutomatonBoolExpr#TRUE}.
+   * <p>If no predicate is specified, the resulting condition is
+   * {@code AutomatonBoolExpr#TRUE}.</p>
    *
-   * @param pTransition the transition specifying which start line to assume.
-   * @return an automaton-transition condition for a specific start line corresponding to the line
-   *     specified by the given transition.
+   * @param pEntersLoopHead if {@code true} and a predicate is specified,
+   * the condition is wrapped as a backward epsilon match.
+   *
+   * @return an automaton-transition condition to match a specific file location.
    */
-  private AutomatonBoolExpr getOriginLineMatcher(Node pTransition) throws WitnessParseException {
+  private AutomatonBoolExpr getLocationMatcher(boolean pEntersLoopHead, Optional<Predicate<FileLocation>> pMatcherPredicate) {
+
+    if (!pMatcherPredicate.isPresent()) {
+      return AutomatonBoolExpr.TRUE;
+    }
+
+    AutomatonBoolExpr offsetMatchingExpr =
+        new AutomatonBoolExpr.MatchLocationDescriptor(cfa.getMainFunction(), pMatcherPredicate.get());
+
+    if (pEntersLoopHead) {
+      offsetMatchingExpr =
+          AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(offsetMatchingExpr, true);
+    }
+    return offsetMatchingExpr;
+  }
+
+  /**
+   * Creates a predicate to match file locations based on the line numbers specified by the transition.
+   *
+   * <p>If no line number is specified by the given transition,
+   * the resulting condition is {@link Optional#empty}.</p>
+   *
+   * @param pTransition the transition specifying which line numbers to assume.
+   * @return a predicate to match file locations based on the line numbers specified by the transition.
+   */
+  private Optional<Predicate<FileLocation>> getOriginLineMatcherPredicate(Node pTransition) throws WitnessParseException {
     Set<String> originFileTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ORIGINFILE);
     checkParsable(
         originFileTags.size() < 2,
@@ -676,43 +776,51 @@ public class AutomatonGraphmlParser {
     Set<String> startLineTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.STARTLINE);
     checkParsable(
         startLineTags.size() < 2,
-        "At most one origin-line data tag must be provided for each edge.");
+        "At most one startline data tag must be provided for each edge.");
+    Set<String> endLineTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ENDLINE);
+    checkParsable(
+        endLineTags.size() < 2, "At most one endline data tag must be provided for each edge.");
 
-    int matchOriginLineNumber = -1;
+    int startLine = 0;
     if (startLineTags.size() > 0) {
-      matchOriginLineNumber = Integer.parseInt(startLineTags.iterator().next());
+      startLine = Integer.parseInt(startLineTags.iterator().next());
     }
-    if (matchOriginLineNumber > 0) {
+    int endLine = 0;
+    if (endLineTags.size() > 0) {
+      endLine = Integer.parseInt(endLineTags.iterator().next());
+    }
+    if (startLine < 1 && endLine > 1) {
+      startLine = endLine;
+    }
+    if (endLine < 1 && startLine >= 1) {
+      endLine = startLine;
+    }
+    if (endLine < startLine) {
+      return Optional.of(Predicates.alwaysFalse());
+    }
+
+    if (startLine > 0) {
       Optional<String> matchOriginFileName =
           originFileTags.isEmpty()
               ? Optional.empty()
               : Optional.of(originFileTags.iterator().next());
-      OriginLineMatcher originDescriptor =
-          new OriginLineMatcher(matchOriginFileName, matchOriginLineNumber);
-
-      AutomatonBoolExpr startingLineMatchingExpr =
-          new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
-      if (entersLoopHead(pTransition)) {
-        startingLineMatchingExpr =
-            AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(startingLineMatchingExpr, true);
-      }
-      return startingLineMatchingExpr;
+      LineMatcher originDescriptor =
+          new LineMatcher(matchOriginFileName, startLine, endLine);
+      return Optional.of(originDescriptor);
     }
-    return AutomatonBoolExpr.TRUE;
+    return Optional.empty();
   }
 
   /**
-   * Creates an automaton-transition condition for a specific character offset corresponding to the
-   * offset specified by the given transition.
+   * Creates a predicate to match file locations based on the offsets specified by the transition.
    *
-   * <p>If no character offset is specified by the given transition, the resulting condition is
-   * {@code AutomatonBoolExpr#TRUE}.
+   * <p>If no character offset is specified by the given transition,
+   * the resulting condition is {@link Optional#empty}.</p>
    *
    * @param pTransition the transition specifying which character offset to assume.
-   * @return an automaton-transition condition for a specific character offset corresponding to the
-   *     offset specified by the given transition.
+   * @return a predicate to match file locations based on the offsets specified by the transition.
    */
-  private AutomatonBoolExpr getOffsetMatcher(Node pTransition) throws WitnessParseException {
+  private static Optional<Predicate<FileLocation>> getOffsetMatcherPredicate(Node pTransition) throws WitnessParseException {
     Set<String> originFileTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ORIGINFILE);
     checkParsable(
         originFileTags.size() < 2,
@@ -721,10 +829,26 @@ public class AutomatonGraphmlParser {
     Set<String> offsetTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.OFFSET);
     checkParsable(
         offsetTags.size() < 2, "At most one offset data tag must be provided for each edge.");
+    Set<String> endoffsetTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.ENDOFFSET);
+    checkParsable(
+        endoffsetTags.size() < 2, "At most one endoffset data tag must be provided for each edge.");
 
     int offset = -1;
     if (offsetTags.size() > 0) {
       offset = Integer.parseInt(offsetTags.iterator().next());
+    }
+    int endoffset = -1;
+    if (endoffsetTags.size() > 0) {
+      endoffset = Integer.parseInt(endoffsetTags.iterator().next());
+    }
+    if (offset < 0 && endoffset > 0) {
+      offset = endoffset;
+    }
+    if (endoffset < 0 && offset >= 0) {
+      endoffset = offset;
+    }
+    if (endoffset < offset) {
+      return Optional.of(Predicates.alwaysFalse());
     }
 
     if (offset >= 0) {
@@ -732,17 +856,11 @@ public class AutomatonGraphmlParser {
           originFileTags.isEmpty()
               ? Optional.empty()
               : Optional.of(originFileTags.iterator().next());
-      OffsetMatcher originDescriptor = new OffsetMatcher(matchOriginFileName, offset);
 
-      AutomatonBoolExpr offsetMatchingExpr =
-          new AutomatonBoolExpr.MatchLocationDescriptor(originDescriptor);
-      if (entersLoopHead(pTransition)) {
-        offsetMatchingExpr =
-            AutomatonBoolExpr.EpsilonMatch.backwardEpsilonMatch(offsetMatchingExpr, true);
-      }
-      return offsetMatchingExpr;
+      OffsetMatcher originDescriptor = new OffsetMatcher(matchOriginFileName, offset, endoffset);
+      return Optional.of(originDescriptor);
     }
-    return AutomatonBoolExpr.TRUE;
+    return Optional.empty();
   }
 
   /**
@@ -756,7 +874,7 @@ public class AutomatonGraphmlParser {
    * @return an automaton-transition condition for specific branches of an assumption corresponding
    *     to the control case specified by the given transition.
    */
-  private AutomatonBoolExpr getAssumeCaseMatcher(Node pTransition) throws WitnessParseException {
+  private static AutomatonBoolExpr getAssumeCaseMatcher(Node pTransition) throws WitnessParseException {
     Set<String> assumeCaseTags = GraphMLDocumentData.getDataOnNode(pTransition, KeyDef.CONTROLCASE);
 
     if (assumeCaseTags.size() > 0) {
@@ -790,7 +908,7 @@ public class AutomatonGraphmlParser {
    *
    * <p>Returns {@null}, if no data can be found.
    */
-  private AutomatonAction getThreadIdAssignment(Node transition)
+  private static AutomatonAction getThreadIdAssignment(Node transition)
       throws WitnessParseException {
     Set<String> threadIdTags =
         GraphMLDocumentData.getDataOnNode(transition, KeyDef.THREADID);
@@ -1085,18 +1203,21 @@ public class AutomatonGraphmlParser {
     return Optional.empty();
   }
 
-  private Scope determineScope(Set<String> pScopes, Deque<String> pFunctionStack)
+  private Scope determineScope(Set<String> pScopes, Deque<String> pFunctionStack, Predicate<FileLocation> pLocationDescriptor)
       throws WitnessParseException {
     checkParsable(pScopes.size() <= 1, "At most one scope must be provided for a transition.");
     Scope result = this.scope;
-    if (result instanceof CProgramScope && (!pScopes.isEmpty() || !pFunctionStack.isEmpty())) {
-      final String functionName;
-      if (!pScopes.isEmpty()) {
-        functionName = pScopes.iterator().next();
-      } else {
-        functionName = pFunctionStack.peek();
+    if (result instanceof CProgramScope) {
+      result = ((CProgramScope) result).withLocationDescriptor(pLocationDescriptor);
+      if (!pScopes.isEmpty() || !pFunctionStack.isEmpty()) {
+        final String functionName;
+        if (!pScopes.isEmpty()) {
+          functionName = pScopes.iterator().next();
+        } else {
+          functionName = pFunctionStack.peek();
+        }
+        result = ((CProgramScope) result).withFunctionScope(functionName);
       }
-      result = ((CProgramScope) result).createFunctionScope(functionName);
     }
     return result;
   }
@@ -1886,7 +2007,7 @@ public class AutomatonGraphmlParser {
   }
 
   private static AutomatonBoolExpr and(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
-    if (pA.equals(AutomatonBoolExpr.TRUE) || pA.equals(AutomatonBoolExpr.FALSE)) {
+    if (pA.equals(AutomatonBoolExpr.TRUE) || pB.equals(AutomatonBoolExpr.FALSE)) {
       return pB;
     }
     if (pB.equals(AutomatonBoolExpr.TRUE) || pA.equals(AutomatonBoolExpr.FALSE)) {
@@ -1901,6 +2022,16 @@ public class AutomatonGraphmlParser {
       result = and(result, e);
     }
     return result;
+  }
+
+  private static AutomatonBoolExpr or(AutomatonBoolExpr pA, AutomatonBoolExpr pB) {
+    if (pA.equals(AutomatonBoolExpr.TRUE) || pB.equals(AutomatonBoolExpr.FALSE)) {
+      return pA;
+    }
+    if (pB.equals(AutomatonBoolExpr.TRUE) || pA.equals(AutomatonBoolExpr.FALSE)) {
+      return pB;
+    }
+    return new AutomatonBoolExpr.Or(pA, pB);
   }
 
   private static void checkParsable(boolean pParsable, String pMessage)

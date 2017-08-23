@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.types;
 import static com.google.common.truth.Truth8.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
 import java.util.OptionalInt;
 import org.junit.Test;
@@ -41,6 +42,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 @RunWith(Parameterized.class)
+@SuppressFBWarnings(
+  value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
+  justification = "Fields are filled by parameterization of JUnit"
+)
 public class MachineModelGetOffsetTest {
 
   private final static String TEST_STRUCT = "testStruct";

@@ -29,7 +29,9 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -66,6 +68,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerVi
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
@@ -672,6 +675,211 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           }
         }
 
+      } else if (BuiltinFloatFunctions.matchesCopysign(functionName)) {
+
+        if (parameters.size() == 2) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param0 = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula param1 = (FloatingPointFormula)processOperand(parameters.get(1), paramType, paramType);
+
+            FloatingPointFormula zero = fpfmgr.makeNumber(0.0, (FormulaType.FloatingPointType)formulaType);
+            // XXX: Note, that by this means we do not take notice of negative zero (-0.0),
+            // which is not less than zero but is detected by copysign, resulting in a
+            // negative return value.
+            // Also, by those means we can not correctly handle param0 being a NaN.
+            BooleanFormula isFirstNegative = mgr.makeLessThan(param0, zero, true);
+            BooleanFormula isSecondNegative = mgr.makeLessThan(param1, zero, true);
+            BooleanFormula haveSameSign = conv.bfmgr.equivalence(isFirstNegative, isSecondNegative);
+
+            return conv.bfmgr.ifThenElse(haveSameSign, param0, fpfmgr.negate(param0));
+          }
+        }
+
+      } else if (BuiltinFloatFunctions.matchesFmod(functionName) || BuiltinFloatFunctions.matchesFremainder(functionName)) {
+
+        if (parameters.size() == 2) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param0 = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula param1 = (FloatingPointFormula)processOperand(parameters.get(1), paramType, paramType);
+
+            BooleanFormula isFirstInfinity = fpfmgr.isInfinity(param0);
+            BooleanFormula isSecondInfinity = fpfmgr.isInfinity(param1);
+            BooleanFormula isFirstNaN = fpfmgr.isNaN(param0);
+            BooleanFormula isSecondNaN = fpfmgr.isNaN(param1);
+            BooleanFormula isFirstZero = fpfmgr.isZero(param0);
+            BooleanFormula isSecondZero = fpfmgr.isZero(param1);
+
+            BooleanFormula domainErr = conv.bfmgr.or(isFirstInfinity, isFirstNaN, isSecondNaN, isSecondZero);
+            BooleanFormula noOpNeeded = conv.bfmgr.or(isSecondInfinity, isFirstZero);
+
+            // Description of fmod from Linux manpage:
+            // The fmod() function computes the floating-point remainder of dividing x by y.
+            // The return value is x - n * y, where n is the quotient of x / y.
+            // N is rounded toward zero to an integer for function fmod and toward the nearest
+            // integer (to the even one in case of a tie) for function remainderf.
+
+            FloatingPointFormula n;
+            // x / y -> rounded towards 0
+            if (BuiltinFloatFunctions.matchesFmod(functionName)) {
+              n = fpfmgr.divide(param0, param1, FloatingPointRoundingMode.TOWARD_ZERO);
+            } else {
+              n = fpfmgr.divide(param0,  param1, FloatingPointRoundingMode.NEAREST_TIES_TO_EVEN);
+            }
+
+            // x - (n * y)
+            FloatingPointFormula mainCalculation = fpfmgr.subtract(param0, fpfmgr.multiply(n, param1));
+
+            return conv.bfmgr.ifThenElse(domainErr, fpfmgr.makeNaN((FloatingPointType) formulaType),
+                conv.bfmgr.ifThenElse(noOpNeeded, param0,
+                    mainCalculation));
+          }
+        }
+      } else if (BuiltinFloatFunctions.matchesFmin(functionName)) {
+
+        if (parameters.size() == 2) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param0 = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula param1 = (FloatingPointFormula)processOperand(parameters.get(1), paramType, paramType);
+
+            BooleanFormula isFirstNaN = fpfmgr.isNaN(param0);
+            BooleanFormula isSecondNaN = fpfmgr.isNaN(param1);
+            BooleanFormula firstLessSecond = fpfmgr.lessThan(param0, param1);
+
+            return conv.bfmgr.ifThenElse(isFirstNaN, param1,
+                conv.bfmgr.ifThenElse(conv.bfmgr.or(isSecondNaN, firstLessSecond), param0, param1));
+          }
+        }
+      } else if (BuiltinFloatFunctions.matchesFmax(functionName)) {
+
+        if (parameters.size() == 2) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param0 = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula param1 = (FloatingPointFormula)processOperand(parameters.get(1), paramType, paramType);
+
+            BooleanFormula isFirstNaN = fpfmgr.isNaN(param0);
+            BooleanFormula isSecondNaN = fpfmgr.isNaN(param1);
+            BooleanFormula firstGreaterSecond = fpfmgr.greaterThan(param0, param1);
+
+            return conv.bfmgr.ifThenElse(isFirstNaN, param1,
+                conv.bfmgr.ifThenElse(conv.bfmgr.or(isSecondNaN, firstGreaterSecond), param0, param1));
+          }
+        }
+      } else if (BuiltinFloatFunctions.matchesFdim(functionName)) {
+
+        if (parameters.size() == 2) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param0 = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula param1 = (FloatingPointFormula)processOperand(parameters.get(1), paramType, paramType);
+            FloatingPointFormula zero = fpfmgr.makeNumber(0, (FormulaType.FloatingPointType)formulaType);
+
+            BooleanFormula isFirstNaN = fpfmgr.isNaN(param0);
+            BooleanFormula isSecondNaN = fpfmgr.isNaN(param1);
+
+            FloatingPointFormula diff;
+
+            return conv.bfmgr.ifThenElse(isFirstNaN, param0,
+                conv.bfmgr.ifThenElse(isSecondNaN, param1,
+                    conv.bfmgr.ifThenElse(fpfmgr.greaterThan((diff = fpfmgr.subtract(param0, param1)), zero), diff, zero)));
+          }
+        }
+      } else if (BuiltinFloatFunctions.matchesIsless(functionName)) {
+
+        FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+        Formula result = inequalityBuiltin(functionName, parameters, fpfmgr::lessThan, fpfmgr);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesIslessequal(functionName)) {
+
+        FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+        Formula result = inequalityBuiltin(functionName, parameters, fpfmgr::lessOrEquals, fpfmgr);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesIsgreater(functionName)) {
+
+        FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+        Formula result = inequalityBuiltin(functionName, parameters, fpfmgr::greaterThan, fpfmgr);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesIsgreaterequal(functionName)) {
+
+        FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+        Formula result = inequalityBuiltin(functionName, parameters, fpfmgr::greaterOrEquals, fpfmgr);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesIslessgreater(functionName)) {
+
+        // XXX: Sanity check this...
+        FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+        Formula result = inequalityBuiltin(functionName, parameters, (e1, e2) -> {
+          return conv.bfmgr.not(fpfmgr.equalWithFPSemantics(e1, e2));
+        }, fpfmgr);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesIsunordered(functionName)) {
+
+        if (parameters.size() == 2) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param0 = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula param1 = (FloatingPointFormula)processOperand(parameters.get(1), paramType, paramType);
+
+            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            Formula zero = mgr.makeNumber(resultType, 0);
+            Formula one = mgr.makeNumber(resultType, 1);
+
+            return conv.bfmgr.ifThenElse(fpfmgr.isNaN(param0), one,
+                conv.bfmgr.ifThenElse(fpfmgr.isNaN(param1), one, zero));
+          }
+        }
+      } else if (BuiltinFloatFunctions.matchesSignbit(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FloatingPointType)formulaType);
+            FloatingPointFormula fp_nan = fpfmgr.makeNaN((FloatingPointType)formulaType);
+
+            FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+            Formula zero = mgr.makeNumber(resultType, 0);
+            Formula one = mgr.makeNumber(resultType, 1);
+
+            return conv.bfmgr.ifThenElse(fpfmgr.isZero(param),
+                conv.bfmgr.ifThenElse(fpfmgr.assignment(param, fp_zero), zero, one),
+                conv.bfmgr.ifThenElse(fpfmgr.isNaN(param),
+                    conv.bfmgr.ifThenElse(fpfmgr.assignment(param, fp_nan), zero, one),
+                    conv.bfmgr.ifThenElse(fpfmgr.lessThan(param, fp_zero), one, zero)));
+          }
+        }
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0
@@ -733,6 +941,42 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
+  }
+
+  /**
+   * The built-in inequality macros of C behave similar to each other, except the function <code>isunordered</code>.
+   *
+   * @param pFunctionName name of built-in function
+   * @param pParameters parameter list of built-in function
+   * @param pFunction inequality function of pFpfmgr, representing the respective built-in function
+   * @param pFpfmgr {@link FloatingPointFormulaManagerView} for internal usage
+   * @return resulting {@link Formula}
+   * @throws UnrecognizedCCodeException re-throw from internal calls
+   */
+  private @Nullable Formula inequalityBuiltin(String pFunctionName, List<CExpression> pParameters,
+      BiFunction<FloatingPointFormula, FloatingPointFormula, BooleanFormula> pFunction, FloatingPointFormulaManagerView pFpfmgr) throws UnrecognizedCCodeException {
+
+    if (pParameters.size() == 2) {
+      CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
+      FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+      if (formulaType.isFloatingPointType()) {
+        FloatingPointFormula param0 = (FloatingPointFormula)processOperand(pParameters.get(0), paramType, paramType);
+        FloatingPointFormula param1 = (FloatingPointFormula)processOperand(pParameters.get(1), paramType, paramType);
+
+        FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
+        Formula zero = mgr.makeNumber(resultType, 0);
+        Formula one = mgr.makeNumber(resultType, 1);
+
+        BooleanFormula isFirstNaN = pFpfmgr.isNaN(param0);
+        BooleanFormula isSecondNaN = pFpfmgr.isNaN(param1);
+
+        return conv.bfmgr.ifThenElse(isFirstNaN, zero,
+            conv.bfmgr.ifThenElse(isSecondNaN, zero,
+                conv.bfmgr.ifThenElse(pFunction.apply(param0, param1), one, zero)));
+      }
+    }
+
+    return null;
   }
 
   protected Formula makeNondet(final String varName, final CType type) {

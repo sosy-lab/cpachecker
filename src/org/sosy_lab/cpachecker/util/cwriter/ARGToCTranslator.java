@@ -329,7 +329,9 @@ public class ARGToCTranslator {
         // if part
         CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
         // create a new block starting with this condition
-        CompoundStatement newBlock = addIfStatement(currentBlock, "if (" + assumeEdge.getExpression().toASTString() + ")");
+        boolean truthAssumption = assumeEdge.getTruthAssumption();
+        CompoundStatement newBlock = addIfStatement(currentBlock, "if (" + (truthAssumption ? "" : "!(")
+                + assumeEdge.getExpression().toASTString() + (truthAssumption ? "" : ")") + ")");
         ARGEdge e = new ARGEdge(currentElement, child, edgeToChild, newBlock);
         pushToWaitlist(waitlist, e.getParentElement(), e.getChildElement(), e.getCfaEdge(), e.getCurrentBlock());
 

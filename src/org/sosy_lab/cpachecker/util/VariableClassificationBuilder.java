@@ -44,7 +44,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -247,7 +247,7 @@ public class VariableClassificationBuilder {
     }
 
     if (dumpfile != null) { // option -noout
-      try (Writer w = MoreFiles.openOutputFile(dumpfile, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(dumpfile, Charset.defaultCharset())) {
         w.append("IntBool\n\n");
         w.append(intBoolVars.toString());
         w.append("\n\nIntEq\n\n");
@@ -273,7 +273,7 @@ public class VariableClassificationBuilder {
   }
 
   private void dumpDomainTypeStatistics(Path pDomainTypeStatisticsFile, VariableClassification vc) {
-    try (Writer w = MoreFiles.openOutputFile(pDomainTypeStatisticsFile, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(pDomainTypeStatisticsFile, Charset.defaultCharset())) {
       try (PrintWriter p = new PrintWriter(w)) {
         Object[][] statMapping = {
               {"intBoolVars",           vc.getIntBoolVars().size()},
@@ -308,7 +308,7 @@ public class VariableClassificationBuilder {
   }
 
   private void dumpVariableTypeMapping(Path target, VariableClassification vc) {
-    try (Writer w = MoreFiles.openOutputFile(target, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(target, Charset.defaultCharset())) {
         for (String var : allVars) {
           int type = 0;
           if (vc.getIntBoolVars().contains(var)) {

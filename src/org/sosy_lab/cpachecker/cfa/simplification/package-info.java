@@ -22,7 +22,10 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Post-processing for the CFA that simplifies expressions,
- * executed (optionally) between parsing and returning the finished CFA.
+ * Post-processing for the CFA that simplifies expressions, executed (optionally) between parsing
+ * and returning the finished CFA.
  */
+@javax.annotation.ParametersAreNonnullByDefault
+@org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
+@org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.cfa.simplification;

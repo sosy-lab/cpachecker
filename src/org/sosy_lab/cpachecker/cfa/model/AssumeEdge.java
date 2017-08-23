@@ -26,24 +26,30 @@ package org.sosy_lab.cpachecker.cfa.model;
 import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 public class AssumeEdge extends AbstractCFAEdge {
 
   private static final long serialVersionUID = 1953381509820035275L;
   private final boolean truthAssumption;
+  private final boolean swapped;
   protected final AExpression expression;
-
 
   /**
    * @param pTruthAssumption If set to false, the expression is assumed to be
    *                         negated.
+   * @param pSwapped {@code true} if the value of {@code pTruthAssumption}
+   * corresponds inversely to the then/else branches of the branching statement
+   * in the source code.
    */
   protected AssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
-      CFANode pSuccessor, AExpression pExpression, boolean pTruthAssumption) {
+      CFANode pSuccessor, AExpression pExpression, boolean pTruthAssumption, boolean pSwapped) {
 
     super("[" + pRawStatement + "]", pFileLocation, pPredecessor, pSuccessor);
     truthAssumption = pTruthAssumption;
     expression = pExpression;
+    swapped = pSwapped;
   }
 
   @Override
@@ -81,5 +87,28 @@ public class AssumeEdge extends AbstractCFAEdge {
   @Override
   public Optional<? extends AExpression> getRawAST() {
     return Optional.of(expression);
+  }
+
+  /**
+   * <p>{@code true} if and only if the value of {@code pTruthAssumption}
+   * corresponds inversely to the then/else branches of the branching statement
+   * in the source code.</p>
+   *
+   * <p>You will <em>never</em> need to call this method to implement the
+   * {@link TransferRelation} of a {@link ConfigurableProgramAnalysis};
+   * instead, you are looking for {@link #getTruthAssumption()}.</p>
+   *
+   * <p><em>Only</em> call this method if your use case requires you to map this
+   * specific edge back to a specific branch in the source code.
+   * Valid use cases are exporting counterexample information to the user,
+   * e.g. as a witness, or reading such information back in,
+   * e.g. for witness validation.</p>
+   *
+   * @return {@code true} if and only if the value of {@code pTruthAssumption}
+   * corresponds inversely to the then/else branches of the branching statement
+   * in the source code.
+   */
+  public boolean isSwapped() {
+    return swapped;
   }
 }

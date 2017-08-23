@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -46,7 +47,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="cpa.slicing")
-public class FormulaSlicingManager implements IFormulaSlicingManager {
+public class FormulaSlicingManager implements StatisticsProvider {
   @Option(secure=true, description="Check target states reachability")
   private boolean checkTargetStates = true;
 
@@ -91,7 +92,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     loopStructure = pCfa.getLoopStructure().get();
   }
 
-  @Override
   public Collection<? extends SlicingState> getAbstractSuccessors(
       SlicingState oldState, CFAEdge edge)
       throws CPATransferException, InterruptedException {
@@ -116,7 +116,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     return Collections.singleton(out);
   }
 
-  @Override
   public Optional<PrecisionAdjustmentResult> prec(
       SlicingState pState,
       UnmodifiableReachedSet pStates, AbstractState pFullState)
@@ -362,12 +361,10 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
     }
   }
 
-  @Override
   public SlicingState getInitialState(CFANode node) {
     return SlicingAbstractedState.empty(fmgr, node);
   }
 
-  @Override
   public boolean isLessOrEqual(SlicingState pState1, SlicingState pState2) {
     Preconditions.checkState(pState1.isAbstracted() == pState2.isAbstracted());
 
@@ -448,7 +445,6 @@ public class FormulaSlicingManager implements IFormulaSlicingManager {
         (loopState == null || loopState.isLoopCounterAbstracted());
   }
 
-  @Override
   public SlicingState merge(SlicingState pState1, SlicingState pState2) throws InterruptedException {
     Preconditions.checkState(pState1.isAbstracted() == pState2.isAbstracted());
 

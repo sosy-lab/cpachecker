@@ -52,7 +52,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
@@ -159,7 +159,7 @@ public class ARGStatistics implements Statistics {
       // We do this lazily so that the file is written only if there are refinements.
       try {
         refinementGraphUnderlyingWriter =
-            MoreFiles.openOutputFile(refinementGraphFile, Charset.defaultCharset());
+            IO.openOutputFile(refinementGraphFile, Charset.defaultCharset());
         refinementGraphWriter = new ARGToDotWriter(refinementGraphUnderlyingWriter);
       } catch (IOException e) {
         if (refinementGraphUnderlyingWriter != null) {
@@ -208,7 +208,7 @@ public class ARGStatistics implements Statistics {
     }
 
     if (translateARG) {
-      try (Writer writer = MoreFiles.openOutputFile(argCFile, Charset.defaultCharset())) {
+      try (Writer writer = IO.openOutputFile(argCFile, Charset.defaultCharset())) {
         writer.write(
             argToCExporter.translateARG((ARGState) pReached.getFirstState()));
       } catch (IOException | CPAException e) {
@@ -272,7 +272,7 @@ public class ARGStatistics implements Statistics {
 
     if (proofWitness != null && pResult == Result.TRUE) {
       try (Writer w =
-          MoreFiles.openOutputFile(
+          IO.openOutputFile(
               adjustPathNameForPartitioning(rootState, proofWitness), StandardCharsets.UTF_8)) {
         argPathExporter.writeProofWitness(w, rootState,
             Predicates.alwaysTrue(),
@@ -284,7 +284,7 @@ public class ARGStatistics implements Statistics {
 
     if (argFile != null) {
       try (Writer w =
-          MoreFiles.openOutputFile(
+          IO.openOutputFile(
               adjustPathNameForPartitioning(rootState, argFile), Charset.defaultCharset())) {
         ARGToDotWriter.write(
             w, rootState, ARGState::getChildren, Predicates.alwaysTrue(), isTargetPathEdge);
@@ -295,7 +295,7 @@ public class ARGStatistics implements Statistics {
 
     if (simplifiedArgFile != null) {
       try (Writer w =
-          MoreFiles.openOutputFile(
+          IO.openOutputFile(
               adjustPathNameForPartitioning(rootState, simplifiedArgFile),
               Charset.defaultCharset())) {
         ARGToDotWriter.write(w, rootState,

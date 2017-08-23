@@ -29,9 +29,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.truth.Truth;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -53,9 +51,8 @@ import org.sosy_lab.java_smt.api.FormulaType.NumeralType;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.test.SolverBasedTest0;
-
-import java.util.Set;
 
 @RunWith(Parameterized.class)
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
@@ -287,9 +284,9 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
 
     IntegerFormula _0 = imgrv.makeNumber(0);
     IntegerFormula _i = imgrv.makeVariable("i");
-    IntegerFormula _i1 = imgrv.makeVariable("i@1");
+    IntegerFormula _i1 = imgrv.makeVariable("i", 1);
     IntegerFormula _j = imgrv.makeVariable("j");
-    IntegerFormula _j1 = imgrv.makeVariable("j@1");
+    IntegerFormula _j1 = imgrv.makeVariable("j", 1);
     IntegerFormula _x = imgrv.makeVariable("x");
 
     ArrayFormulaManagerView amgrv = mgrv.getArrayFormulaManager();
@@ -322,11 +319,11 @@ public class FormulaManagerViewTest extends SolverBasedTest0 {
     IntegerFormula _0 = imgrv.makeNumber(0);
     IntegerFormula _1 = imgrv.makeNumber(1);
     IntegerFormula _i = imgrv.makeVariable("i");
-    IntegerFormula _i1 = imgrv.makeVariable("i@1");
+    IntegerFormula _i1 = imgrv.makeVariable("i", 1);
     IntegerFormula _j = imgrv.makeVariable("j");
-    IntegerFormula _j1 = imgrv.makeVariable("j@1");
+    IntegerFormula _j1 = imgrv.makeVariable("j", 1);
     IntegerFormula _x = imgrv.makeVariable("x");
-    IntegerFormula _x1 = imgrv.makeVariable("x@1");
+    IntegerFormula _x1 = imgrv.makeVariable("x", 1);
 
     BooleanFormula _inst1 = imgrv.equal(imgrv.add(_1, _j1), imgrv.add(_0, _i1));
     BooleanFormula _inst2 =

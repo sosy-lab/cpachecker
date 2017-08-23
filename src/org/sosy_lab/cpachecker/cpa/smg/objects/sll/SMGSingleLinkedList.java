@@ -79,8 +79,8 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
   }
 
   @Override
-  public void accept(SMGObjectVisitor visitor) {
-    visitor.visit(this);
+  public <T> T accept(SMGObjectVisitor<T> visitor) {
+    return visitor.visit(this);
   }
 
   @Override
@@ -140,11 +140,6 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
       default:
         throw new IllegalArgumentException("join called on unjoinable Objects");
     }
-  }
-
-  @Override
-  public SMGObject copy() {
-    return new SMGSingleLinkedList(this);
   }
 
   @Override

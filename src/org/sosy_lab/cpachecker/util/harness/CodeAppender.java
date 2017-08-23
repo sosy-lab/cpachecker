@@ -245,8 +245,6 @@ class CodeAppender implements Appendable {
     if (functionType instanceof CFunctionType) {
       CFunctionType cFunctionType = (CFunctionType) functionType;
       return new CFunctionTypeWithNames(
-          cFunctionType.isConst(),
-          cFunctionType.isVolatile(),
           cFunctionType.getReturnType(),
           FluentIterable.from(enforceParameterNames(pInputFunction.getParameters()))
               .filter(CParameterDeclaration.class)

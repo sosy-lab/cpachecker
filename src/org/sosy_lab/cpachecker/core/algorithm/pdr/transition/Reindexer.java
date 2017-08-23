@@ -24,18 +24,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.pdr.transition;
 
 import com.google.common.collect.Maps;
-
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.IntUnaryOperator;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.IntUnaryOperator;
 
 final class Reindexer {
 
@@ -55,10 +52,7 @@ final class Reindexer {
     for (String variableName : allVariables) {
       int highIndex = pFormulaSSAMap.getIndex(variableName);
       String highVariableName =
-          pFormulaManager
-              .instantiate(Collections.singleton(variableName), pFormulaSSAMap)
-              .iterator()
-              .next();
+          FormulaManagerView.instantiateVariableName(variableName, pFormulaSSAMap);
       final int realHighIndex;
       if (formulaVariables.contains(highVariableName)) {
         realHighIndex = highIndex;
@@ -82,19 +76,13 @@ final class Reindexer {
       CType type = pFormulaSSAMap.getType(variableName);
       int highIndex = pFormulaSSAMap.getIndex(variableName);
       String highVariableName =
-          pFormulaManager
-              .instantiate(Collections.singleton(variableName), pFormulaSSAMap)
-              .iterator()
-              .next();
+          FormulaManagerView.instantiateVariableName(variableName, pFormulaSSAMap);
       while (highIndex > 1 && !formulaVariables.contains(highVariableName)) {
         --highIndex;
         highVariableName =
-            pFormulaManager
-                .instantiate(
-                    Collections.singleton(variableName),
-                    SSAMap.emptySSAMap().builder().setIndex(variableName, type, highIndex).build())
-                .iterator()
-                .next();
+            FormulaManagerView.instantiateVariableName(
+                variableName,
+                SSAMap.emptySSAMap().builder().setIndex(variableName, type, highIndex).build());
       }
       final int realHighIndex = highIndex;
       builder.setIndex(variableName, type, realHighIndex);
@@ -126,19 +114,13 @@ final class Reindexer {
         SSAMap oldSSAMap =
             SSAMap.emptySSAMap().builder().setIndex(variableName, type, index).build();
         String oldVariableName =
-            pFormulaManager
-                .instantiate(Collections.singleton(variableName), oldSSAMap)
-                .iterator()
-                .next();
+            FormulaManagerView.instantiateVariableName(variableName, oldSSAMap);
         if (allIndexedVariables.contains(oldVariableName)) {
           int newIndex = pConvertIndex.apply(variableName, index);
           SSAMap newSSAMap =
               SSAMap.emptySSAMap().builder().setIndex(variableName, type, newIndex).build();
           String newVariableName =
-              pFormulaManager
-                  .instantiate(Collections.singleton(variableName), newSSAMap)
-                  .iterator()
-                  .next();
+              FormulaManagerView.instantiateVariableName(variableName, newSSAMap);
           substitution.put(oldVariableName, newVariableName);
         }
       }

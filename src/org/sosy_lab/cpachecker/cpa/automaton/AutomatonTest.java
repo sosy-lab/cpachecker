@@ -26,18 +26,16 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableMap;
-
-import org.junit.Test;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-import org.sosy_lab.cpachecker.util.test.TestResults;
-
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import org.junit.Test;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+import org.sosy_lab.cpachecker.util.test.TestResults;
 
 public class AutomatonTest {
   private static final String CPAS_UNINITVARS = "cpa.location.LocationCPA, cpa.uninitvars.UninitializedVariablesCPA";
@@ -55,7 +53,7 @@ public class AutomatonTest {
       Path tmpSpc = Paths.get("test/config/automata/tmpSpecification.spc");
       String content = "#include UninitializedVariablesTestAutomaton.txt \n" +
       "#include tmpSpecification.spc \n";
-      MoreFiles.writeFile(tmpSpc, StandardCharsets.US_ASCII, content);
+      IO.writeFile(tmpSpc, StandardCharsets.US_ASCII, content);
       TestResults results = CPATestRunner.run(prop, "test/programs/simple/UninitVarsErrors.c");
       results.assertIsSafe();
       assertThat(results.getLog()).contains("test/config/automata/tmpSpecification.spc\" was referenced multiple times.");
@@ -261,5 +259,36 @@ public class AutomatonTest {
       assertThat(results.getLog()).contains("A: Matched i in line 13 x=2");
       assertThat(results.getLog()).contains("B: A increased to 2 And i followed ");
       results.assertIsSafe();
+  }
+
+  @Test
+  public void coversSingleLine() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",   "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA",
+        "specification", "test/config/automata/testCoversSingleLine.txt",
+        "log.consoleLevel",    "INFO");
+
+      TestResults results = CPATestRunner.run(prop, "test/programs/coverage/test1.c");
+      results.assertIs(Result.FALSE);
+  }
+
+  @Test
+  public void coversEitherLine() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",   "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA",
+        "specification", "test/config/automata/testCoversEitherLine.txt");
+
+      TestResults results = CPATestRunner.run(prop, "test/programs/coverage/test2.c");
+      results.assertIs(Result.FALSE);
+  }
+
+  @Test
+  public void doesNotCoverUnreachableLine() throws Exception {
+    Map<String, String> prop = ImmutableMap.of(
+        "CompositeCPA.cpas",   "cpa.location.LocationCPA, cpa.value.ValueAnalysisCPA",
+        "specification", "test/config/automata/testNotCoveringUnreachableLine.txt");
+
+      TestResults results = CPATestRunner.run(prop, "test/programs/coverage/test2.c");
+      results.assertIs(Result.TRUE);
   }
 }

@@ -23,10 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
-
+import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -34,11 +37,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 class CompositePrecisionAdjustment implements PrecisionAdjustment {
   private final ImmutableList<PrecisionAdjustment> precisionAdjustments;
@@ -148,10 +146,7 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
           precisionAdjustment.strengthen(
               oldElement,
               oldPrecision,
-              Stream.concat(
-                      wrappedStates.subList(0, i).stream(),
-                      wrappedStates.subList(i + 1, dim).stream())
-                  .collect(Collectors.toList()));
+              from(wrappedStates.subList(0, i)).append(wrappedStates.subList(i + 1, dim)).toList());
       if (!out.isPresent()) {
         return Optional.empty();
       }

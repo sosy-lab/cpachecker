@@ -238,16 +238,16 @@ public class RCNFManager implements StatisticsProvider {
 
         assert intersection != null
             : "Should not be null for a non-zero number of operands.";
+        Set<BooleanFormula> commonTerms = intersection;
 
-        BooleanFormula common = bfmgr.and(intersection);
-        List<BooleanFormula> branches = new ArrayList<>();
+        BooleanFormula common = bfmgr.and(commonTerms);
+        BooleanFormula branches =
+            argsAsConjunctions
+                .stream()
+                .map(args -> bfmgr.and(Sets.difference(args, commonTerms)))
+                .collect(bfmgr.toDisjunction());
 
-        for (Set<BooleanFormula> args : argsAsConjunctions) {
-          Set<BooleanFormula> newEl = Sets.difference(args, intersection);
-          branches.add(bfmgr.and(newEl));
-        }
-
-        return bfmgr.and(common, bfmgr.or(branches));
+        return bfmgr.and(common, branches);
       }
     });
   }
@@ -280,11 +280,7 @@ public class RCNFManager implements StatisticsProvider {
         if (sizeAfterExpansion <= expansionResultSizeLimit) {
           // Perform recursive expansion.
           Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
-          Set<BooleanFormula> newArgs = new HashSet<>(product.size());
-          for (List<BooleanFormula> l : product) {
-            newArgs.add(bfmgr.or(l));
-          }
-          return bfmgr.and(newArgs);
+          return product.stream().map(bfmgr::or).collect(bfmgr.toConjunction());
         } else {
           return bfmgr.or(operands);
         }

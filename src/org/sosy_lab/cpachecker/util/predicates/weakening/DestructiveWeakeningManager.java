@@ -25,6 +25,12 @@ package org.sosy_lab.cpachecker.util.predicates.weakening;
 
 import static org.sosy_lab.java_smt.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE_OVER_ASSUMPTIONS;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -34,17 +40,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.InductiveWeakeningStatistics;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.sosy_lab.java_smt.api.SolverException;
 
 /**
  * Perform weakening by destructive iterations.
@@ -94,7 +93,7 @@ public class DestructiveWeakeningManager {
         fromState, transition.getFormula(), bfmgr.not(toState)
     );
     return destructiveWeakening(
-        selectionsVarsInfo,
+        selectionsVarsInfo.keySet(),
         selectorsToAbstractOverApproximation,
         query
     );
@@ -122,15 +121,14 @@ public class DestructiveWeakeningManager {
    * Note that since at every iteration the set of abstracted variables is
    * inductive, the algorithm can be terminated early.
    *
-   * @param selectionInfo Mapping from selection variables
-   *    to the atoms (possibly w/ negation) they represent.
+   * @param selectors All selection variables.
    * @param selectionVars List of selection variables, already determined to
    *    be inductive.
    * @return Set of selectors which correspond to atoms which *should*
    *   be abstracted.
    */
   public Set<BooleanFormula> destructiveWeakening(
-      Map<BooleanFormula, BooleanFormula> selectionInfo,
+      Set<BooleanFormula> selectors,
       Set<BooleanFormula> selectionVars,
       BooleanFormula query) throws SolverException, InterruptedException {
 
@@ -165,7 +163,7 @@ public class DestructiveWeakeningManager {
         pe.push();
 
         // Force all selectors not in {@code toAbstract} to be {@code false}.
-        pe.addConstraint(generateNegations(selectionInfo.keySet(), toAbstract));
+        pe.addConstraint(generateNegations(selectors, toAbstract));
 
         core = pe.unsatCoreOverAssumptions(toAbstract);
         noIterations++;

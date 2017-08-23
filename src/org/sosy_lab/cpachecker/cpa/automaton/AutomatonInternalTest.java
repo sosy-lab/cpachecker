@@ -32,6 +32,7 @@ import static org.mockito.Mockito.verify;
 
 import com.google.common.io.CharSource;
 import com.google.common.io.CharStreams;
+import com.google.common.io.MoreFiles;
 import com.google.common.truth.FailureStrategy;
 import com.google.common.truth.Subject;
 import com.google.common.truth.SubjectFactory;
@@ -48,7 +49,6 @@ import java.util.logging.Level;
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import org.junit.Test;
-import org.sosy_lab.common.io.MoreFiles;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;

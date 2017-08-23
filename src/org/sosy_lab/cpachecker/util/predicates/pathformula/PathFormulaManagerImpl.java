@@ -298,9 +298,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             shutdownNotifier,
             NONDET_FORMULA_TYPE);
     final MergeResult<SSAMap> mergeSSAResult = merger.mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMapBuilder newSSA = mergeSSAResult.getResult().builder();
+    final SSAMap newSSA = mergeSSAResult.getResult();
 
-    final MergeResult<PointerTargetSet> mergePtsResult = converter.mergePointerTargetSets(pts1, pts2, newSSA);
+    final MergeResult<PointerTargetSet> mergePtsResult =
+        converter.mergePointerTargetSets(pts1, pts2, mergeSSAResult.getResult());
 
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 = bfmgr.and(formula1,
@@ -312,7 +313,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    PathFormula out = new PathFormula(newFormula, newSSA, newPTS, newLength);
     if (simplifyGeneratedPathFormulas) {
       out = out.updateFormula(fmgr.simplify(out.getFormula()));
     }

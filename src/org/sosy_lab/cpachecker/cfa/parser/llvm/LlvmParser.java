@@ -24,12 +24,21 @@
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 import org.llvm.Module;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.exceptions.LLVMParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
@@ -60,14 +69,48 @@ public class LlvmParser implements Parser {
     Module llvmModule;
     parseTimer.start();
     try {
+      addLlvmLookupDirs();
       llvmModule = Module.parseIR(pFilename);
     } finally {
       parseTimer.stop();
     }
 
+    if (llvmModule == null) {
+      throw new LLVMParserException("Error while parsing");
+    }
     // TODO: Handle/show errors in parser
 
     return buildCfa(llvmModule, pFilename);
+  }
+
+  private void addLlvmLookupDirs() {
+    List<Path> libDirs = new ArrayList<>(3);
+    try {
+      Path nativeDir = NativeLibraries.getNativeLibraryPath();
+      libDirs.add(nativeDir);
+
+      // If cpachecker.jar is used, decodedBasePath will look similar to CPACHECKER/cpachecker.jar .
+      // If the compiled class files are used outside of a jar, decodedBasePath will look similar to
+      // CPACHECKER/bin .
+      // In both cases, we strip the last part to get the CPAchecker base directory.
+      String encodedBasePath =
+          LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+      String decodedBasePath = URLDecoder.decode(encodedBasePath, "UTF-8");
+
+      Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
+      if (cpacheckerDir != null) {
+        Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
+        libDirs.add(runtimeLibDir);
+      }
+
+    } catch (UnsupportedEncodingException e) {
+      throw new AssertionError(e);
+    }
+
+    for (Path p : libDirs) {
+      logger.log(Level.FINE, "Adding llvm shared library lookup dir: %s", p);
+    }
+    Module.addLibraryLookupPaths(libDirs);
   }
 
   private ParseResult buildCfa(final Module pModule, final String pFilename) {
@@ -89,5 +132,4 @@ public class LlvmParser implements Parser {
   public Timer getCFAConstructionTime() {
     return cfaCreationTimer;
   }
-
 }

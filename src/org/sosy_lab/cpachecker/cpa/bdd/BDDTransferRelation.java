@@ -276,8 +276,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       if (init != null) {
         final Region[] rhs = evaluateVectorExpression(partition, init, vdecl.getType(), cfaEdge.getSuccessor());
         newState = newState.addAssignment(var, rhs);
-        return newState;
       }
+
+      return newState;
     }
 
     return state; // if we know nothing, we return the old state
@@ -448,10 +449,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function returns a bitvector, that represents the expression.
    * The partition chooses the compression of the bitvector. */
   private @Nullable Region[] evaluateVectorExpression(
-      final Partition partition,
-      final CExpression exp,
-      final CType targetType,
-      final CFANode location)
+      final Partition partition, final CExpression exp, CType targetType, final CFANode location)
       throws UnsupportedCCodeException {
     final boolean compress = (partition != null) && compressIntEqual
             && varClass.getIntEqualPartitions().contains(partition);
@@ -462,12 +460,15 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       return exp.accept(new BDDCompressExpressionVisitor(predmgr, precision, getBitsize(partition, null), location, bvmgr, partition));
     } else {
       Region[] value = exp.accept(new BDDVectorCExpressionVisitor(predmgr, precision, bvmgr, machineModel, location));
-      if (value != null) {
+      targetType = targetType.getCanonicalType();
+      if (value != null && targetType instanceof CSimpleType) {
         // cast to correct length
         final CType sourceType = exp.getExpressionType().getCanonicalType();
-        value = bvmgr.toBitsize(
-                machineModel.getSizeof(targetType) * machineModel.getSizeofCharInBits(),
-                sourceType instanceof CSimpleType && machineModel.isSigned((CSimpleType) sourceType),
+        value =
+            bvmgr.toBitsize(
+                machineModel.getSizeofInBits((CSimpleType) targetType),
+                sourceType instanceof CSimpleType
+                    && machineModel.isSigned((CSimpleType) sourceType),
                 value);
       }
       return value;

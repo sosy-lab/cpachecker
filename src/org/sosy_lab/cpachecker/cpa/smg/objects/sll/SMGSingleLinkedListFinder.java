@@ -26,7 +26,10 @@ package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
@@ -44,11 +47,6 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
@@ -79,11 +77,8 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
 
     Set<SMGSingleLinkedListCandidateSequenceBlock> sllBlocks =
-        FluentIterable.from(pAbstractionLocks).filter((SMGAbstractionBlock block) -> {
-          return block instanceof SMGSingleLinkedListCandidateSequenceBlock;
-        }).transform((SMGAbstractionBlock block) -> {
-          return (SMGSingleLinkedListCandidateSequenceBlock) block;
-        }).toSet();
+        FluentIterable.from(pAbstractionLocks)
+            .filter(SMGSingleLinkedListCandidateSequenceBlock.class).toSet();
 
     return pProgress.getValidCandidates(seqLengthEqualityThreshold, seqLengthEntailmentThreshold, seqLengthIncomparableThreshold, pSmg, sllBlocks);
   }

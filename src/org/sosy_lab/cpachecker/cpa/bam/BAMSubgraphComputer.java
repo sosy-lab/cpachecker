@@ -81,7 +81,10 @@ public class BAMSubgraphComputer {
   Pair<BackwardARGState, Collection<BackwardARGState>> computeCounterexampleSubgraph(
       final Collection<ARGState> targets, final ARGReachedSet pMainReachedSet)
       throws InterruptedException {
-    assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets);
+    assert pMainReachedSet.asReachedSet().asCollection().containsAll(targets)
+      : "target states should be contained in reached-set. The following states are not contained: "
+        + Iterables.filter(targets, s -> !pMainReachedSet.asReachedSet().contains(s));
+    assert !targets.isEmpty() : "cannot compute subgraph without target states";
     Collection<BackwardARGState> newTargets = from(targets).transform(BackwardARGState::new).toList();
     BackwardARGState root = computeCounterexampleSubgraph(pMainReachedSet, newTargets);
     assert pMainReachedSet.asReachedSet().getFirstState() == root.getARGState();
@@ -157,7 +160,8 @@ public class BAMSubgraphComputer {
         root = newCurrentState;
       }
     }
-    assert root != null;
+    assert root != null : "no root state found in reachedset with initial state "
+        + reachedSet.asReachedSet().getFirstState();
     return root;
   }
 

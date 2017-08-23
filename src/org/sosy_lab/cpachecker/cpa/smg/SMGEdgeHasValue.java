@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.io.Serializable;
-import java.util.Comparator;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -130,25 +128,4 @@ public class SMGEdgeHasValue extends SMGEdge {
         && offset == other.offset
         && type.getCanonicalType().equals(other.type.getCanonicalType());
   }
-
-  public static class SMGEdgeHasValueComparator
-      implements Serializable, Comparator<SMGEdgeHasValue> {
-
-    private static final long serialVersionUID = 1L;
-
-      @Override
-      public int compare(SMGEdgeHasValue o1, SMGEdgeHasValue o2) {
-        int result = Integer.compare(o1.getObject().getId(), o2.getObject().getId());
-        if (result == 0) {
-          result = Integer.compare(o1.offset, o2.offset);
-          if (result == 0) {
-            result = Integer.compare(o1.getValue(), o2.getValue());
-            if (result == 0) {
-              result = o1.type.getCanonicalType().toString().compareTo(o2.type.getCanonicalType().toString());
-            }
-          }
-        }
-        return result;
-      }
-    }
 }
