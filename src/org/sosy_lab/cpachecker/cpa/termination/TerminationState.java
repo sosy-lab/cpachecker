@@ -201,8 +201,7 @@ public class TerminationState extends AbstractSingleWrapperState
     if (unsatisfiedRankingRelation == null) {
       return pManager.getBooleanFormulaManager().makeTrue();
     } else {
-      return pManager.uninstantiate(
-          pManager.makeNot(unsatisfiedRankingRelation.asFormulaFromOtherSolver(pManager)));
+      return pManager.makeNot(unsatisfiedRankingRelation.asFormulaFromOtherSolver(pManager));
     }
   }
 
