@@ -553,6 +553,14 @@ public final class LoopStructure implements Serializable {
           startNode = startNode.getLeavingEdge(0).getSuccessor();
         }
 
+        // Workaround: remove last state of initial chain such that it will be used by the algorithm
+        // Otherwise, the algorithm still works correctly, but it will often find a different set
+        // of loop head nodes that does not contain what most users would consider
+        // the most important loop head node of a function.
+        if (!initialChain.isEmpty()) {
+          initialChain.remove(initialChain.size()-1);
+        }
+
         if (!hasBackWardsEdges(startNode)) {
           return ImmutableList.of();
         }
