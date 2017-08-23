@@ -537,30 +537,42 @@ public final class LoopStructure implements Serializable {
    */
   private static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
 
-    // if there are no backwards directed edges, there are no loops, so we do
-    // not need to search for them
+    // Two optimizations:
+    // - if there are no backwards directed edges, there are no loops,
+    //   so we do not need to search for them
+    // - linear chains of nodes at the function start cannot be part of a loop, so we remove them
+    // The latter can be a huge improvement for the main function, which may have thousands of nodes
+    // in such an initial chain (global declarations).
+    List<CFANode> initialChain = new ArrayList<>();
     {
       CFANode functionExitNode = nodes.first(); // The function exit node is always the first
       if (functionExitNode instanceof FunctionExitNode) {
-        CFANode functionEntryNode = ((FunctionExitNode)functionExitNode).getEntryNode();
+        CFANode startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
+        while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
+          initialChain.add(startNode);
+          startNode = startNode.getLeavingEdge(0).getSuccessor();
+        }
 
-        if (!hasBackWardsEdges(functionEntryNode)) {
+        if (!hasBackWardsEdges(startNode)) {
           return ImmutableList.of();
         }
       }
     }
 
-    nodes = new TreeSet<>(nodes); // copy nodes because we change it
+    nodes = new TreeSet<>(nodes); // copy nodes because we change it, it is our working set
+    nodes.removeAll(initialChain);
 
     // We need to store some information per pair of CFANodes.
     // We could use Map<Pair<CFANode, CFANode>> but it would be very memory
     // inefficient. Instead we use some arrays.
     // We use the reverse post-order id of each node as the array index for that node,
     // because this id is unique, without gaps, and its minimum is 0.
+    // (Note that all removed nodes from initialChain
+    // are guaranteed to have higher reverse post-order ids than the remaining nodes.)
     // It's important to not use the node number because it has large gaps.
     final Function<CFANode, Integer> arrayIndexForNode = CFANode::getReversePostorderId;
     // this is the size of the arrays
-    int size = nodes.size();
+    final int size = nodes.size();
 
     // all nodes of the graph
     // forall i : arrayIndexForNode.apply(nodes[i]) == i
