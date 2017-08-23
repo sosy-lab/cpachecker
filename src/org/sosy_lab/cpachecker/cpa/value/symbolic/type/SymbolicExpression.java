@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
-import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.util.Objects;
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * An expression containing {@link SymbolicValue}s.
@@ -122,5 +122,116 @@ public abstract class SymbolicExpression implements SymbolicValue {
         && pObj.getClass().equals(getClass())
         && Objects.equals(representedLocation,
                           ((SymbolicExpression) pObj).representedLocation);
+  }
+  @Override
+  public boolean intersects(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public NumberInterface plus(NumberInterface pInterval) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface minus(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface times(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface divide(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface shiftLeft(NumberInterface pOffset) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface shiftRight(NumberInterface pOffset) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface unsignedDivide(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface unsignedModulo(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface unsignedShiftRight(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface modulo(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+  @Override
+  public NumberInterface union(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public boolean contains(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
+  @Override
+  public NumberInterface intersect(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface limitUpperBoundBy(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public NumberInterface limitLowerBoundBy(NumberInterface pOther) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+  @Override
+  public NumberInterface binaryAnd(NumberInterface pRNum) {
+      // TODO Auto-generated method stub
+      return null;
+  }
+
+  @Override
+  public NumberInterface binaryOr(NumberInterface pRNum) {
+      // TODO Auto-generated method stub
+      return null;
+  }
+
+  @Override
+  public NumberInterface binaryXor(NumberInterface pRNum) {
+      // TODO Auto-generated method stub
+      return null;
   }
 }
