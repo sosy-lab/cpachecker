@@ -497,7 +497,8 @@ class GenerateFirstThenCollect(ComputeCoverage):
         # sanity check
         assert (cpachecker_result.found_property_violation() or
                 cex_generated == 0)
-        if cpachecker_result.found_bug():
+        if (cpachecker_result.found_property_violation() and 
+            cpachecker_result.found_bug()):
             self.logger.error(
                 'Found an assertion violation. Inspect counterexamples '
                 'before collecting a coverage measure.')
