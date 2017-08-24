@@ -727,9 +727,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
             FloatingPointFormula n;
             // x / y -> rounded towards 0
             if (BuiltinFloatFunctions.matchesFmod(functionName)) {
-              n = fpfmgr.divide(param0, param1, FloatingPointRoundingMode.TOWARD_ZERO);
+              n = fpfmgr.divide(param0, param1);
+              n = fpfmgr.round(n, FloatingPointRoundingMode.TOWARD_ZERO);
             } else {
-              n = fpfmgr.divide(param0,  param1, FloatingPointRoundingMode.NEAREST_TIES_TO_EVEN);
+              n = fpfmgr.divide(param0, param1);
+              n = fpfmgr.round(n, FloatingPointRoundingMode.NEAREST_TIES_TO_EVEN);
             }
 
             // x - (n * y)
@@ -893,11 +895,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
             FloatingPointFormula zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
             FloatingPointFormula nan = fpfmgr.makeNaN((FloatingPointType) formulaType);
             FloatingPointFormula rounded =
-                fpfmgr.castFrom(
-                    fpfmgr.castTo(
-                        param, FormulaType.IntegerType, FloatingPointRoundingMode.TOWARD_ZERO),
-                    true,
-                    (FormulaType.FloatingPointType) formulaType);
+                fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_ZERO);
 
             return conv.bfmgr.ifThenElse(
                 fpfmgr.isNaN(param),
