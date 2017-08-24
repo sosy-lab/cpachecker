@@ -245,7 +245,8 @@ public class FloatingPointFormulaManagerView
   }
 
   @Override
-  public FloatingPointFormula round(FloatingPointFormula pNumber, FloatingPointRoundingMode pFloatingPointRoundingMode) {
+  public FloatingPointFormula round(
+      FloatingPointFormula pNumber, FloatingPointRoundingMode pFloatingPointRoundingMode) {
     return manager.round(pNumber, pFloatingPointRoundingMode);
   }
 }
