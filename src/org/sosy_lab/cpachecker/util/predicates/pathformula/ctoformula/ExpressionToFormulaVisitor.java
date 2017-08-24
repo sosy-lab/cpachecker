@@ -946,23 +946,31 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
             FloatingPointFormula integral =
                 fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_ZERO);
-            FloatingPointFormula rounded_0 =
+            FloatingPointFormula rounded_negative_Infinity =
                 fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_NEGATIVE);
-            FloatingPointFormula rounded_1 =
+            FloatingPointFormula rounded_positive_Infinity =
                 fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_POSITIVE);
-            FloatingPointFormula rounded_2 =
-                fpfmgr.round(param, FloatingPointRoundingMode.NEAREST_TIES_TO_EVEN);
 
+            // XXX: Currently MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
+            // which corresponds to the semantics of 'round'.
+            // Hence, we represent those semantics by the formula below, until there
+            // is a release of MathSAT supporting NEAREST_TIE_AWAY.
+            //
+            // It would be possible to rewrite this code calling roundingBuiltin with
+            // NEAREST_TIE_AWAY, catching IllegalArgumentExceptions and in this case
+            // proceeding with the hand-built formula below.
+            // The benefits of that try-catch approach are debatable and I don't consider
+            // it to be of much help for the readability of the code.
             return conv.bfmgr.ifThenElse(
                 fpfmgr.greaterThan(param, zero),
                 conv.bfmgr.ifThenElse(
                     fpfmgr.greaterOrEquals(fpfmgr.subtract(param, integral), fp_half),
-                    rounded_1,
-                    rounded_2),
+                    rounded_positive_Infinity,
+                    integral),
                 conv.bfmgr.ifThenElse(
                     fpfmgr.lessOrEquals(fpfmgr.subtract(param, integral), fp_neg_half),
-                    rounded_0,
-                    rounded_2));
+                    rounded_negative_Infinity,
+                    integral));
           }
         }
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
@@ -1028,6 +1036,17 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     }
   }
 
+  /**
+   * The built-in rounding functions of C can all be expressed by the SMT floating point function
+   * <code>round</code>, given the corresponding <code>RoundingMode</code>.
+   *
+   * @param pFunctionName name of built-in function
+   * @param pParameters parameter list of built-in function
+   * @param pRoundingMode the <code>RoundindMode</code> corresponding to the built-in function
+   * @return a {@link Formula} representing the semantics of the rounding function, <code>null
+   *     </code> if the length of pParameters or the type of its members do not match
+   * @throws UnrecognizedCCodeException re-throw from internal calls
+   */
   private @Nullable Formula roundingBuiltin(
       String pFunctionName, List<CExpression> pParameters, FloatingPointRoundingMode pRoundingMode)
       throws UnrecognizedCCodeException {
