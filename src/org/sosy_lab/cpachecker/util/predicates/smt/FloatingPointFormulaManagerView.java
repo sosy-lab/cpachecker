@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import java.math.BigDecimal;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
@@ -31,8 +32,6 @@ import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-
-import java.math.BigDecimal;
 
 
 public class FloatingPointFormulaManagerView
@@ -243,5 +242,10 @@ public class FloatingPointFormulaManagerView
   @Override
   public FloatingPointFormula makeNaN(FloatingPointType pType) {
     return manager.makeNaN(pType);
+  }
+
+  @Override
+  public FloatingPointFormula round(FloatingPointFormula pNumber, FloatingPointRoundingMode pFloatingPointRoundingMode) {
+    return manager.round(pNumber, pFloatingPointRoundingMode);
   }
 }
