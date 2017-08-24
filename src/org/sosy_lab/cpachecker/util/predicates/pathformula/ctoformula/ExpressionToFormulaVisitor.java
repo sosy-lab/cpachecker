@@ -880,6 +880,91 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
                     conv.bfmgr.ifThenElse(fpfmgr.lessThan(param, fp_zero), one, zero)));
           }
         }
+      } else if (BuiltinFloatFunctions.matchesModf(functionName)) {
+
+        if (parameters.size() == 2) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param =
+                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+
+            FloatingPointFormula zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
+            FloatingPointFormula nan = fpfmgr.makeNaN((FloatingPointType) formulaType);
+            FloatingPointFormula rounded =
+                fpfmgr.castFrom(
+                    fpfmgr.castTo(
+                        param, FormulaType.IntegerType, FloatingPointRoundingMode.TOWARD_ZERO),
+                    true,
+                    (FormulaType.FloatingPointType) formulaType);
+
+            return conv.bfmgr.ifThenElse(
+                fpfmgr.isNaN(param),
+                nan,
+                conv.bfmgr.ifThenElse(
+                    fpfmgr.isInfinity(param), zero, fpfmgr.subtract(param, rounded)));
+          }
+        }
+      } else if (BuiltinFloatFunctions.matchesCeil(functionName)) {
+
+        Formula result =
+            roundingBuiltin(functionName, parameters, FloatingPointRoundingMode.TOWARD_POSITIVE);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesFloor(functionName)) {
+
+        Formula result =
+            roundingBuiltin(functionName, parameters, FloatingPointRoundingMode.TOWARD_NEGATIVE);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesTrunc(functionName)) {
+
+        Formula result =
+            roundingBuiltin(functionName, parameters, FloatingPointRoundingMode.TOWARD_ZERO);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesRound(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param =
+                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
+            FloatingPointFormula fp_half = fpfmgr.makeNumber(0.5, (FloatingPointType) formulaType);
+            FloatingPointFormula fp_neg_half =
+                fpfmgr.makeNumber(-0.5, (FloatingPointType) formulaType);
+
+            FloatingPointFormula integral =
+                fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_ZERO);
+            FloatingPointFormula rounded_0 =
+                fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_NEGATIVE);
+            FloatingPointFormula rounded_1 =
+                fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_POSITIVE);
+            FloatingPointFormula rounded_2 =
+                fpfmgr.round(param, FloatingPointRoundingMode.NEAREST_TIES_TO_EVEN);
+
+            return conv.bfmgr.ifThenElse(
+                fpfmgr.greaterThan(param, zero),
+                conv.bfmgr.ifThenElse(
+                    fpfmgr.greaterOrEquals(fpfmgr.subtract(param, integral), fp_half),
+                    rounded_1,
+                    rounded_2),
+                conv.bfmgr.ifThenElse(
+                    fpfmgr.lessOrEquals(fpfmgr.subtract(param, integral), fp_neg_half),
+                    rounded_0,
+                    rounded_2));
+          }
+        }
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0
@@ -941,6 +1026,27 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
+  }
+
+  private @Nullable Formula roundingBuiltin(
+      String pFunctionName, List<CExpression> pParameters, FloatingPointRoundingMode pRoundingMode)
+      throws UnrecognizedCCodeException {
+
+    if (pParameters.size() == 1) {
+      CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
+      FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+      if (formulaType.isFloatingPointType()) {
+        FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+        FloatingPointFormula param =
+            (FloatingPointFormula) processOperand(pParameters.get(0), paramType, paramType);
+
+        FloatingPointFormula rounded = fpfmgr.round(param, pRoundingMode);
+
+        return rounded;
+      }
+    }
+
+    return null;
   }
 
   /**
