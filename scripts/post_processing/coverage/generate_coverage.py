@@ -588,6 +588,7 @@ def create_arg_parser():
              File containing an assumption automaton.""")
     parser.add_argument(
         "-cex_dir",
+        required=True,
         help=("Directory where traces sampling the execution space are "
               "located. If the option -only_collect_coverage is not "
               "present, then this directory must not exist, since it will "
