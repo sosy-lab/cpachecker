@@ -1136,6 +1136,10 @@ public class ARGPathExporter {
               return true;
             }
 
+            if (pEdge.source.equals(pEdge.target)) {
+              return false;
+            }
+
             // An edge is never redundant if there are conflicting scopes
             ExpressionTree<Object> sourceTree = getStateInvariant(pEdge.source);
             if (sourceTree != null) {
@@ -1189,6 +1193,11 @@ public class ARGPathExporter {
       boolean intoPredecessor = !nodeFlags.get(pEdge.target).equals(EnumSet.of(NodeFlag.ISSINKNODE));
       final String nodeToKeep = intoPredecessor ? pEdge.source : pEdge.target;
       final String nodeToRemove = intoPredecessor ? pEdge.target : pEdge.source;
+
+      if (nodeToKeep.equals(nodeToRemove)) {
+        removeEdge(pEdge);
+        return;
+      }
 
       // Merge the flags
       nodeFlags.putAll(nodeToKeep, nodeFlags.removeAll(nodeToRemove));

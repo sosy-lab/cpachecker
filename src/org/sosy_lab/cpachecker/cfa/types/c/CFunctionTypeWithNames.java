@@ -46,15 +46,11 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
   private final List<CParameterDeclaration> parameters;
 
   public CFunctionTypeWithNames(
-      boolean pConst,
-      boolean pVolatile,
       CType pReturnType,
       List<CParameterDeclaration> pParameters,
       boolean pTakesVarArgs) {
 
     super(
-        pConst,
-        pVolatile,
         pReturnType,
         FluentIterable.from(pParameters).transform(CParameterDeclaration::getType).toList(),
         pTakesVarArgs);
@@ -112,7 +108,6 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   private Object writeReplace() {
     // Cannot serialize parameter names, but typically this is not necessary anyway.
-    return new CFunctionType(
-        isConst(), isVolatile(), getReturnType(), getParameters(), takesVarArgs());
+    return new CFunctionType(getReturnType(), getParameters(), takesVarArgs());
   }
 }

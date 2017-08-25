@@ -34,6 +34,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.math.IntMath;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -108,6 +109,8 @@ public interface PointerTargetSetBuilder {
 
   Iterable<PointerTarget> getNonMatchingTargets(MemoryRegion region, Predicate<PointerTarget> pattern);
 
+  int getFreshAllocationId();
+
   /**
    * Returns an immutable PointerTargetSet with all the changes made to the builder.
    */
@@ -137,6 +140,7 @@ public interface PointerTargetSetBuilder {
     private PersistentSortedMap<CompositeField, Boolean> fields;
     private PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+    private int allocationCount;
 
     // Used in addEssentialFields()
     private final Predicate<Pair<CCompositeType, String>> isNewFieldPredicate =
@@ -193,6 +197,7 @@ public interface PointerTargetSetBuilder {
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
       targets = pointerTargetSet.getTargets();
+      allocationCount = pointerTargetSet.getAllocationCount();
       formulaManager = pFormulaManager;
       typeHandler = pTypeHandler;
       ptsMgr = pPtsMgr;
@@ -710,13 +715,20 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public PointerTargetSet build() {
-      PointerTargetSet result = new PointerTargetSet(bases, lastBase, fields,
-          deferredAllocations, targets);
+      PointerTargetSet result =
+          new PointerTargetSet(
+              bases, lastBase, fields, deferredAllocations, targets, allocationCount);
       if (result.isEmpty()) {
         return PointerTargetSet.emptyPointerTargetSet();
       } else {
         return result;
       }
+    }
+
+    /** Returns a fresh ID that can be used as identifier for a heap allocation. */
+    @Override
+    public int getFreshAllocationId() {
+      return allocationCount = IntMath.checkedAdd(allocationCount, 1);
     }
   }
 
@@ -829,6 +841,11 @@ public interface PointerTargetSetBuilder {
     @Override
     public Iterable<PointerTarget> getNonMatchingTargets(
         MemoryRegion region, Predicate<PointerTarget> pPattern) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int getFreshAllocationId() {
       throw new UnsupportedOperationException();
     }
 

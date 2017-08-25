@@ -163,9 +163,6 @@ public class LlvmTypeConverter {
   }
 
   private CType getFunctionType(TypeRef pFuncType) {
-    final boolean isConst = false;
-    final boolean isVolatile = false;
-
     CType returnType = getCType(pFuncType.getReturnType());
 
     int paramNumber = pFuncType.countParamTypes();
@@ -179,7 +176,7 @@ public class LlvmTypeConverter {
 
     boolean takesVarArgs = pFuncType.isFunctionVarArg(); // TODO: do we have to call this method on pFuncType directly?
 
-    return new CFunctionType(isConst, isVolatile, returnType, parameterTypes, takesVarArgs);
+    return new CFunctionType(returnType, parameterTypes, takesVarArgs);
   }
 
   private CType getIntegerType(

@@ -1086,6 +1086,10 @@ cpa.conditions.global.time.wall = -1
 # When using adjustable conditions, analysis will end after this threshold
 cpa.conditions.global.time.wall.hardlimit = -1
 
+# Number of times the path condition may be adjusted, i.e., the path
+# condition threshold may be increased (-1 to always adjust)
+cpa.conditions.path.adjustment.threshold = -1
+
 # determines if there should be one single assignment state per state, one
 # per path segment between assume edges, or a global one for the whole
 # program.

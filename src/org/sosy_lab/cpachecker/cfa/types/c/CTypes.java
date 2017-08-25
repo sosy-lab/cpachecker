@@ -456,7 +456,10 @@ public final class CTypes {
 
     @Override
     public CFunctionType visit(CFunctionType t) {
-      return new CFunctionType(constValue, t.isVolatile(), t.getReturnType(), t.getParameters(), t.takesVarArgs());
+      if (constValue) {
+        throw new IllegalArgumentException("Cannot create const function type, this is undefined");
+      }
+      return t;
     }
 
     @Override
@@ -525,7 +528,10 @@ public final class CTypes {
 
     @Override
     public CFunctionType visit(CFunctionType t) {
-      return new CFunctionType(t.isConst(), volatileValue, t.getReturnType(), t.getParameters(), t.takesVarArgs());
+      if (volatileValue) {
+        throw new IllegalArgumentException("Cannot create const function type, this is undefined");
+      }
+      return t;
     }
 
     @Override

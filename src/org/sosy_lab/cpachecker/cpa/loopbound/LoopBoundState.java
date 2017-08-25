@@ -65,7 +65,7 @@ public class LoopBoundState
   }
 
   public LoopBoundState exit(Loop pOldLoop) throws CPATransferException {
-    assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
+    assert !loopStack.isEmpty() : "Exiting loop without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
     LoopIterationState loopIterationState = loopStack.peek();
     if (loopIterationState.isEntryKnown()) {
       if (!pOldLoop.equals(loopIterationState.getLoopEntry().getLoop())) {

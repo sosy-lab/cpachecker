@@ -202,7 +202,7 @@ class ASTTypeConverter {
       }
 
       // TODO varargs
-      return new CFunctionType(false, false, convert(ft.getReturnType()), newParameters, false);
+      return new CFunctionType(convert(ft.getReturnType()), newParameters, false);
 
     } else if (t instanceof ICArrayType) {
       return conv((ICArrayType)t);
@@ -439,7 +439,14 @@ class ASTTypeConverter {
     }
 
     if (type == null) {
-      return convert((IType) binding);
+      type = convert((IType) binding);
+    }
+
+    if (d.isConst()) {
+      type = CTypes.withConst(type);
+    }
+    if (d.isVolatile()) {
+      type = CTypes.withVolatile(type);
     }
 
     return type;

@@ -921,7 +921,7 @@ public class AssumptionToEdgeAllocator {
 
         IDExpression name = getIDExpression(dcl);
 
-        if (concreteState.hasAddressOfVaribable(name)) {
+        if (concreteState.hasAddressOfVariable(name)) {
           return concreteState.getVariableAddress(name);
         }
 
@@ -998,7 +998,7 @@ public class AssumptionToEdgeAllocator {
         FieldReference fieldReferenceName = getFieldReference(pIastFieldReference, functionName);
 
         if (fieldReferenceName != null) {
-          if (concreteState.hasAddressOfVaribable(fieldReferenceName)) {
+          if (concreteState.hasAddressOfVariable(fieldReferenceName)) {
             return concreteState.getVariableAddress(fieldReferenceName);
           }
         }

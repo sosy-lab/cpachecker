@@ -96,8 +96,6 @@ public class CFABuilder extends LlvmAstVisitor {
   private static final CFunctionDeclaration ABORT_FUNC_DECL = new CFunctionDeclaration(
           FileLocation.DUMMY,
           new CFunctionType(
-              false,
-              false,
               CVoidType.VOID,
               Collections.emptyList(),
               false),
@@ -231,8 +229,7 @@ public class CFABuilder extends LlvmAstVisitor {
         parameters.add(getAssignedIdExpression(functionArg, expectedType));
       }
 
-      CFunctionType functionType =
-          new CFunctionType(false, false, returnType, parameterTypes, false);
+      CFunctionType functionType = new CFunctionType(returnType, parameterTypes, false);
       functionNameExp = new CIdExpression(loc, functionType, functionName, null);
     } else {
       functionNameExp =

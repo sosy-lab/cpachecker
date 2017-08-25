@@ -110,11 +110,6 @@ import org.sosy_lab.java_smt.api.FormulaType;
 @SuppressWarnings("OvershadowingSubclassFields")
 public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter {
 
-  /**
-   * Prefix for marking symbols in the SSAMap that do not need update terms.
-   */
-  static final String SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX = "#";
-
   // Overrides just for visibility in other classes of this package
 
   @SuppressWarnings("hiding")
@@ -260,9 +255,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       throws InterruptedException {
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
 
-    if (symbolName.startsWith(SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX)) {
-      return bfmgr.makeTrue();
-    } else if (isPointerAccessSymbol(symbolName)) {
+    if (isPointerAccessSymbol(symbolName)) {
       if(!options.useMemoryRegions()) {
         assert symbolName.equals(getPointerAccessNameForType(symbolType));
       } else {
@@ -302,7 +295,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(returnType);
 
     if (options.useQuantifiersOnArrays()) {
-      Formula counter = fmgr.makeVariable(voidPointerFormulaType, functionName + "@counter");
+      Formula counter =
+          fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, functionName + "__counter");
       return fmgr.getQuantifiedFormulaManager()
           .forall(
               counter,
@@ -377,7 +371,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   Formula makeFormulaForTarget(final PointerTarget target) {
     return fmgr.makePlus(
-        fmgr.makeVariable(voidPointerFormulaType, target.getBaseName()),
+        fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, target.getBaseName()),
         fmgr.makeNumber(voidPointerFormulaType, target.getOffset()));
   }
 
@@ -736,14 +730,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    *
    * @param pPts1 The first set of pointer targets.
    * @param pPts2 The second set of pointer targets.
-   * @param pResultSSA The SSA map.
+   * @param pSsa The SSAMap to use.
    * @return A set of pointer targets merged from both.
    * @throws InterruptedException If the execution was interrupted.
    */
   @Override
-  public MergeResult<PointerTargetSet> mergePointerTargetSets(PointerTargetSet pPts1,
-      PointerTargetSet pPts2, SSAMapBuilder pResultSSA) throws InterruptedException {
-    return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pResultSSA, this);
+  public MergeResult<PointerTargetSet> mergePointerTargetSets(
+      PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSsa) throws InterruptedException {
+    return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pSsa, this);
   }
 
   /**

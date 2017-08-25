@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
@@ -111,10 +112,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
    *
    */
   public static class CheckCoversLines implements AutomatonBoolExpr {
-    private final Set<Integer> linesToCover;
+    private final ImmutableSet<Integer> linesToCover;
 
     public CheckCoversLines(Set<Integer> pSet) {
-      linesToCover = pSet;
+      linesToCover = ImmutableSet.copyOf(pSet);
     }
 
     @Override
@@ -135,13 +136,7 @@ interface AutomatonBoolExpr extends AutomatonExpression {
 
     @Override
     public String toString() {
-      StringBuilder b  = new StringBuilder();
-      String sep = "";
-      for (Integer i : linesToCover) {
-        b.append(sep).append(i);
-        sep = " ";
-      }
-      return "COVERS_LINES(" + b.toString() + ")";
+      return "COVERS_LINES(" + Joiner.on(' ').join(linesToCover) + ")";
     }
   }
   static enum MatchProgramEntry implements AutomatonBoolExpr {

@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -39,6 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.zip.GZIPInputStream;
 
 import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Scanner;
@@ -119,11 +122,20 @@ parser code {:
   */
   public static List<Automaton> parseAutomatonFile(Path pInputFile, Configuration config, LogManager pLogger, MachineModel pMachine, Scope scope, Language pLanguage) throws InvalidConfigurationException {
 
-    try (Reader input = Files.newBufferedReader(pInputFile, StandardCharsets.UTF_8)) {
-      return parseAutomaton(input, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
+    try (InputStream inputStream = Files.newInputStream(pInputFile);
+         InputStream gzipInputStream = new GZIPInputStream(inputStream);
+         InputStreamReader unzippedInput = new InputStreamReader(gzipInputStream, StandardCharsets.UTF_8)
+    ) {
+      return parseAutomaton(unzippedInput, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
 
     } catch (IOException e) {
-      throw new InvalidConfigurationException("Could not load automaton from file " + e.getMessage(), e);
+      try (Reader input = Files.newBufferedReader(pInputFile, StandardCharsets.UTF_8)) {
+        return parseAutomaton(input, Optional.of(pInputFile), config, pLogger, pMachine, scope, pLanguage);
+
+      } catch (IOException e2) {
+        throw new InvalidConfigurationException(
+            "Could not load automaton from file " + e2.getMessage(), e2);
+      }
     }
   }
 
