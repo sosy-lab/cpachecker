@@ -40,6 +40,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -67,6 +69,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * "Slicing Abstractions" (doi:10.1007/978-3-540-75698-9_2)
  * "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
  */
+@Options(prefix = "cpa.predicate.slicingabstractions")
 public class SlicingAbstractionsStrategy extends RefinementStrategy {
 
   private class Stats implements Statistics {
@@ -98,6 +101,16 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     }
   }
 
+  @Option(secure=true, name="minimalslicing",
+      description="Only slices the minimal amount of edges to guarantuee progress")
+  private boolean minimalSlicing = false;
+
+  @Option(secure=true, name="optimizeslicing",
+      description="Reduces the amount of solver calls by directely slicing some edges" +
+                  "that are mathematically proven to be infeasible in any case")
+
+  private boolean optimizeSlicing = false;
+
   private final Stats stats = new Stats();
 
   private final BooleanFormulaManagerView bfmgr;
@@ -122,6 +135,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     impact = new ImpactUtility(config, pSolver.getFormulaManager(), pPredAbsMgr);
     pfmgr = pPathFormulaManager;
     solver = pSolver;
+
+    config.inject(this);
   }
 
   @Override
@@ -206,10 +221,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       @SuppressWarnings("unchecked")
       List<ARGState> all = (List<ARGState>)(List<? extends AbstractState>)pReached.asReachedSet().asCollection().stream().
           filter(x->getPredicateState(x).isAbstractionState()).collect(Collectors.toList());
-      sliceEdges(all);
+      sliceEdges(all, infeasiblePartOfART);
       initialSliceDone = true;
     } else {
-      sliceEdges(changedElements);
+      sliceEdges(changedElements,infeasiblePartOfART);
     }
     stats.sliceEdges.stop();
 
@@ -227,6 +242,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     stats.coverTime.start();
     try {
       for (ARGState w : changedElements) {
+          if (w.isDestroyed()) {
+            break; // all further elements are unreachable anyway
+          }
           if (pReached.tryToCover(w)) {
             break; // all further elements are covered anyway
           }
@@ -236,8 +254,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     }
   }
 
-  private void sliceEdges(List<ARGState> pChangedElements) {
-    List<ARGState> allChangedStates = new ArrayList<>(pChangedElements.size());
+  private void sliceEdges(final List<ARGState> pChangedElements, ARGState pInfeasiblePartOfART) {
+    final List<ARGState> allChangedStates;
     //get the corresponding forked states:
     allChangedStates = pChangedElements.stream()
         .map(x -> x.getForkedChild())
@@ -255,12 +273,24 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     }
     allChangedStates.addAll(priorAbstractionStates);
 
+    // for minimalSlicing, there could be the case that no states got changed
+    // in the refinement, but still some edges in the error path are infeasible
+    // Therefore we need to make sure that allChangedStates at least contains
+    // all abstraction states on the error path:
+    if (minimalSlicing) {
+      // TODO: refactor RefinementStrategy o that we can get absTrace in a different way:
+      allChangedStates.addAll(absTrace.stream().
+          filter(x->!allChangedStates.contains(x)).
+          collect(Collectors.toList()));
+    }
+
     for (ARGState currentState : allChangedStates) {
       Map<ARGState, List<ARGState>> segmentMap = SlicingAbstractionsUtility.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
       Set<ARGState> segmentStateSet = new HashSet<>();
       for (ARGState key : segmentMap.keySet()) {
-        boolean infeasible = isInfeasibleEdge(currentState, key,segmentMap.get(key));
+        // TODO: Refactor RefinementStrategy so that we do not need to pass absTrace via this hack:
+        boolean infeasible = checkEdge(currentState, key, segmentMap.get(key), absTrace, pInfeasiblePartOfART, pChangedElements);
         infeasibleMap.put(key, infeasible);
         segmentStateSet.addAll(segmentMap.get(key));
       }
@@ -280,6 +310,28 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     }
   }
 
+  private boolean checkEdge(ARGState startState, ARGState endState,
+      List<ARGState> segmentList, final List<ARGState> abstractionStatesTrace,
+      ARGState pInfeasiblePartOfART, List<ARGState> pChangedElements) {
+    boolean infeasible = false;
+    final boolean mustBeInfeasible = mustBeInfeasible(startState, endState,
+        abstractionStatesTrace, pInfeasiblePartOfART, pChangedElements);
+
+    if (mustBeInfeasible && optimizeSlicing) {
+      infeasible = true;
+    } else if (minimalSlicing) {
+      if (!optimizeSlicing) {
+        assert (!mustBeInfeasible || isInfeasibleEdge(startState, endState, segmentList)) : "^ " + startState.getStateId() + " -> " + endState.getStateId();
+      }
+      infeasible = mustBeInfeasible;
+    } else {
+      infeasible = isInfeasibleEdge(startState, endState, segmentList);
+      // Assert that mustBeInfeasible => infeasible holds:
+      assert (!mustBeInfeasible || infeasible);
+    }
+    return infeasible;
+  }
+
   private boolean isInfeasibleEdge(ARGState parent, ARGState child, List<ARGState> segmentList) {
     boolean infeasible = false;
     try {
@@ -297,6 +349,42 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       // TODO: What should we do here?
     }
     return infeasible;
+  }
+
+  private boolean mustBeInfeasible(ARGState parent, ARGState child,
+      List<ARGState> abstractionStatesTrace, ARGState infeasiblePartOfART, List<ARGState> pChangedElements) {
+    // Slicing Abstraction guarantees that the edges marked with mustBeInfeasible
+    // here MUST be infeasible because of the properties of inductive interpolants
+
+    for (int i = 0; i< abstractionStatesTrace.size()-1; i++) {
+      ARGState currentState = abstractionStatesTrace.get(i);
+      ARGState nextState = abstractionStatesTrace.get(i+1);
+      if (currentState == parent) {
+        ARGState s = nextState.getForkedChild();
+        if (s == child && pChangedElements.contains(nextState)) {
+          return true;
+        }
+      }
+    }
+
+    // root state needs special treatment:
+    if (parent.getStateId()==0) {
+      ARGState firstAfterRoot = abstractionStatesTrace.get(0);
+      ARGState s = firstAfterRoot.getForkedChild();
+      if (s == child &&  pChangedElements.contains(firstAfterRoot)) {
+        return true;
+      }
+    }
+
+    // beginning of infeasible part at end of trace needs special treatment:
+    if (infeasiblePartOfART == child) {
+      int i = abstractionStatesTrace.indexOf(infeasiblePartOfART);
+      if (abstractionStatesTrace.get(i-1) == parent) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   @Override

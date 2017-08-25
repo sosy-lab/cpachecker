@@ -66,6 +66,8 @@ public abstract class RefinementStrategy {
   private final StatInt numberOfAffectedStates = new StatInt(StatKind.SUM, "Number of affected states");
   private final StatInt totalPathLengthToInfeasibility = new StatInt(StatKind.AVG, "Length of refined path (in blocks)");
 
+  protected List<ARGState> absTrace;
+
   protected AbstractStatistics basicRefinementStatistics = new AbstractStatistics() {
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
@@ -99,6 +101,7 @@ public abstract class RefinementStrategy {
       List<BooleanFormula> pInterpolants,
       boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
+    absTrace = abstractionStatesTrace;
     // Hook
     startRefinementOfPath();
 
