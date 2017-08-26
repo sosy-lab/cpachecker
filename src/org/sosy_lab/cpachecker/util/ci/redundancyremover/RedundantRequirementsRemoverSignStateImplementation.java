@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -31,12 +32,14 @@ import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRe
 
 
 public class RedundantRequirementsRemoverSignStateImplementation extends
-RedundantRequirementsRemoverImplementation<SignState, SIGN>{
+RedundantRequirementsRemoverImplementation<SignState, NumberInterface>{
 
   private static final long serialVersionUID = 7689875020110766102L;
 
   @Override
-  public int compare(SIGN pO1, SIGN pO2) {
+  public int compare(NumberInterface pO1, NumberInterface pO2) {
+      SIGN pO1Temp = (SIGN)pO1;
+      SIGN pO2Temp = (SIGN)pO2;
     // one of arguments null -> NullPointerException
     // 0 if sign values identical
     // -1 if p02 covers p01
@@ -49,32 +52,32 @@ RedundantRequirementsRemoverImplementation<SignState, SIGN>{
 
     if (pO1 == null || pO2 == null) {
       throw new NullPointerException("At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
-    } else if (pO1.equals(pO2)) {
+    } else if (pO1Temp.equals(pO2Temp)) {
       return 0;
-    } else if (pO2.covers(pO1)) {
+    } else if (pO2Temp.covers(pO1Temp)) {
       return -1;
-    } else if (pO1.covers(pO2)) {
+    } else if (pO1Temp.covers(pO2Temp)) {
       return 1;
-    } else if (pO1 == SIGN.MINUS && (pO2 == SIGN.ZERO || pO2 == SIGN.PLUS || pO2 == SIGN.PLUS0)) {
+    } else if (pO1Temp == SIGN.MINUS && (pO2Temp == SIGN.ZERO || pO2Temp == SIGN.PLUS || pO2Temp == SIGN.PLUS0)) {
       return -1;
-    } else if (pO1 == SIGN.ZERO && (pO2 == SIGN.PLUS || pO2 == SIGN.PLUSMINUS)) {
+    } else if (pO1Temp == SIGN.ZERO && (pO2Temp == SIGN.PLUS || pO2Temp == SIGN.PLUSMINUS)) {
       return -1;
-    } else if (pO1 == SIGN.PLUSMINUS && pO2 == SIGN.PLUS0) {
+    } else if (pO1Temp == SIGN.PLUSMINUS && pO2Temp == SIGN.PLUS0) {
       return -1;
-    } else if (pO1 == SIGN.MINUS0 && (pO2 == SIGN.PLUS || pO2 == SIGN.PLUS0 || pO2 == SIGN.PLUSMINUS)) {
+    } else if (pO1Temp == SIGN.MINUS0 && (pO2Temp == SIGN.PLUS || pO2Temp == SIGN.PLUS0 || pO2Temp == SIGN.PLUSMINUS)) {
       return -1;
     }
     return 1;
   }
 
   @Override
-  protected boolean covers(SIGN pCovering, SIGN pCovered) {
+  protected boolean covers(NumberInterface pCovering, NumberInterface pCovered) {
     // return pCovering.covers(pCovered)
-    return pCovering.covers(pCovered);
+    return ((SIGN)pCovering).covers((SIGN)pCovered);
   }
 
   @Override
-  protected SIGN getAbstractValue(SignState pAbstractState, String pVarOrConst) {
+  protected NumberInterface getAbstractValue(SignState pAbstractState, String pVarOrConst) {
     // if pVarOrConst number, number<0 MINUS, number=0 ZERO, number>0 PLUS
     // otherwise getSignForVariable
 
