@@ -23,18 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-
 import javax.annotation.Nullable;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-
-import com.google.common.base.Preconditions;
 
 
 public class SignRequirementsTranslator extends CartesianRequirementsTranslator<SignState> {
@@ -54,7 +51,7 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
     List<String> list = new ArrayList<>();
     for (String var : pRequirement.getSignMapView().keySet()) {
       if (pRequiredVars == null || pRequiredVars.contains(var)) {
-        list.add(getRequirement(getVarWithIndex(var, pIndices),pRequirement.getSignMapView().get(var)));
+        list.add(getRequirement(getVarWithIndex(var, pIndices), (SIGN)pRequirement.getSignMapView().get(var)));
       }
     }
     return list;
