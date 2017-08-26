@@ -60,7 +60,7 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
   public String toASTString() {
     StringBuilder lASTString = new StringBuilder();
 
-    lASTString.append(getType().toASTString(getName()));
+    lASTString.append(getType().toASTString(getQualifiedName().replace("::", "_")));
 
     if (initializer != null) {
       lASTString.append(" = ");

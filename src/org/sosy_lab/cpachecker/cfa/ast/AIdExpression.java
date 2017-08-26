@@ -59,7 +59,17 @@ public abstract class AIdExpression extends AbstractLeftHandSide {
 
   @Override
   public String toASTString() {
-    return name;
+    ASimpleDeclaration decl = getDeclaration();
+    if (decl != null) {
+      String qualName = decl.getQualifiedName();
+      if (qualName != null) {
+        return qualName.replace("::", "_");
+      } else {
+        return name;
+      }
+    } else {
+      return name;
+    }
   }
 
   public ASimpleDeclaration getDeclaration() {
