@@ -26,20 +26,19 @@ package org.sosy_lab.cpachecker.cpa.sign;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
-
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
 
 public class SignState implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
@@ -50,12 +49,12 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
-  private PersistentMap<String, SIGN> signMap;
+  private PersistentMap<String, NumberInterface> signMap;
 
   public final static SignState TOP = new SignState();
   private final static SerialProxySign proxy = new SerialProxySign();
 
-  private SignState(PersistentMap<String, SIGN> pSignMap) {
+  private SignState(PersistentMap<String, NumberInterface> pSignMap) {
     signMap = pSignMap;
   }
 
@@ -72,13 +71,13 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
     if (isLessOrEqual(pToJoin)) { return pToJoin; }
 
     SignState result = SignState.TOP;
-    PersistentMap<String, SIGN> newMap = PathCopyingPersistentTreeMap.of();
-    SIGN combined;
+    PersistentMap<String, NumberInterface> newMap = PathCopyingPersistentTreeMap.of();
+    NumberInterface combined;
     for (String varIdent : pToJoin.signMap.keySet()) {
       // only add those variables that are contained in both states (otherwise one has value ALL (not saved))
       if (signMap.containsKey(varIdent)) {
         combined = getSignForVariable(varIdent).combineWith(pToJoin.getSignForVariable(varIdent));
-        if (!combined.isAll()) {
+        if (!((SIGN)combined).isAll()) {
           newMap = newMap.putAndCopy(varIdent, combined);
         }
       }
@@ -99,8 +98,8 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
     return true;
   }
 
-  public SignState enterFunction(ImmutableMap<String, SIGN> pArguments) {
-    PersistentMap<String, SIGN> newMap = signMap;
+  public SignState enterFunction(ImmutableMap<String, NumberInterface> pArguments) {
+    PersistentMap<String, NumberInterface> newMap = signMap;
 
     for (String var : pArguments.keySet()) {
       if (!pArguments.get(var).equals(SIGN.ALL)) {
@@ -112,7 +111,7 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
   }
 
   public SignState leaveFunction(String pFunctionName) {
-    PersistentMap<String, SIGN> newMap = signMap;
+    PersistentMap<String, NumberInterface> newMap = signMap;
 
     for (String var : signMap.keySet()) {
       if (var.startsWith(pFunctionName + "::")) {
@@ -123,8 +122,8 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
     return newMap == signMap ? this : new SignState(newMap);
   }
 
-  public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
-    if (sign.isAll()) {
+  public SignState assignSignToVariable(String pVarIdent, NumberInterface sign) {
+    if (((SIGN)sign).isAll()) {
       return signMap.containsKey(pVarIdent) ? new SignState(signMap.removeAndCopy(pVarIdent)) : this;
     }
     return signMap.containsKey(pVarIdent) && getSignForVariable(pVarIdent).equals(sign) ? this
@@ -135,7 +134,7 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
     return assignSignToVariable(pVarIdent, SIGN.ALL);
   }
 
-  public SIGN getSignForVariable(String pVarIdent) {
+  public NumberInterface getSignForVariable(String pVarIdent) {
     return signMap.containsKey(pVarIdent) ? signMap.get(pVarIdent) : SIGN.ALL;
   }
 
@@ -208,22 +207,22 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
 
       // pProperty = value <= varName
       if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
-        SIGN value = SIGN.valueOf(parts.get(0));
-        SIGN varName = getSignForVariable(parts.get(1));
+          NumberInterface value = SIGN.valueOf(parts.get(0));
+          NumberInterface varName = getSignForVariable(parts.get(1));
         return (varName.covers(value));
       }
 
       // pProperty = varName <= value
       else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))){
-        SIGN varName = getSignForVariable(parts.get(0));
-        SIGN value = SIGN.valueOf(parts.get(1));
+          NumberInterface varName = getSignForVariable(parts.get(0));
+          NumberInterface value = SIGN.valueOf(parts.get(1));
         return (value.covers(varName));
       }
 
       // pProperty = varName1 <= varName2
       else {
-        SIGN varName1 = getSignForVariable(parts.get(0));
-        SIGN varName2 = getSignForVariable(parts.get(1));
+          NumberInterface varName1 = getSignForVariable(parts.get(0));
+          NumberInterface varName2 = getSignForVariable(parts.get(1));
         return (varName2.covers(varName1));
       }
     }
@@ -247,7 +246,7 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
     return false;
   }
 
-  public Map<String, SIGN> getSignMapView() {
+  public Map<String, NumberInterface> getSignMapView() {
     return Collections.unmodifiableMap(signMap);
   }
 

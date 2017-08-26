@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
+import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -97,7 +98,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       assert (pParameters.size() == pArguments.size());
     }
     // Collect arguments
-    ImmutableMap.Builder<String, SIGN> mapBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<String, NumberInterface> mapBuilder = ImmutableMap.builder();
     for (int i = 0; i < pParameters.size(); i++) {
       AExpression exp = pArguments.get(i);
       if (!(exp instanceof CRightHandSide)) {
@@ -106,7 +107,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       String scopedVarId = getScopedVariableNameForNonGlobalVariable(pParameters.get(i).getName(), pCalledFunctionName);
       mapBuilder.put(scopedVarId, ((CRightHandSide)exp).accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
     }
-    ImmutableMap<String, SIGN> argumentMap = mapBuilder.build();
+    ImmutableMap<String, NumberInterface> argumentMap = mapBuilder.build();
     logger.log(Level.FINE, "Entering function " + pCalledFunctionName + " with arguments " + argumentMap);
     return state.enterFunction(argumentMap);
   }
@@ -141,8 +142,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
 
   private static class IdentifierValuePair {
     CExpression identifier;
-    SIGN value;
-    public IdentifierValuePair(CExpression pIdentifier, SIGN pValue) {
+    NumberInterface value;
+    public IdentifierValuePair(CExpression pIdentifier, NumberInterface pValue) {
       super();
       identifier = pIdentifier;
       value = pValue;
@@ -158,7 +159,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     logger.log(Level.FINER, "Filtered strongest identifier " + strongestId + " from assume expression" + pAssumeExp);
     CExpression refinementExpression = getRefinementExpression(strongestId, pAssumeExp);
     BinaryOperator resultOp = truthAssumption ? pAssumeExp.getOperator() : pAssumeExp.getOperator().getOppositLogicalOperator();
-    SIGN resultSign;
+    NumberInterface resultSign;
     try {
       resultSign = refinementExpression.accept(new SignCExpressionVisitor(pCFAEdge, state, this));
     } catch (UnrecognizedCodeException e) {
@@ -176,7 +177,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     throw new IllegalArgumentException("Argument pExp is not part of pBinExp");
   }
 
-  private Optional<IdentifierValuePair> evaluateAssumption(CExpression pIdExp, BinaryOperator pOp, SIGN pResultSign, boolean pIdentIsLeft) {
+  private Optional<IdentifierValuePair> evaluateAssumption(CExpression pIdExp, BinaryOperator pOp, NumberInterface pResultSign, boolean pIdentIsLeft) {
     boolean equalZero = false;
     switch (pOp) {
     case GREATER_EQUAL:
@@ -249,8 +250,8 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       return Optional.of(result.get(0));
     }
     try {
-      SIGN leftResultSign = result.get(0).accept(new SignCExpressionVisitor(pCFAEdge, state, this));
-      SIGN rightResultSign = result.get(1).accept(new SignCExpressionVisitor(pCFAEdge, state, this));
+        NumberInterface leftResultSign = result.get(0).accept(new SignCExpressionVisitor(pCFAEdge, state, this));
+        NumberInterface rightResultSign = result.get(1).accept(new SignCExpressionVisitor(pCFAEdge, state, this));
       if (leftResultSign.covers(rightResultSign)) {
         return Optional.of(result.get(0));
       } else {
@@ -354,7 +355,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       throws CPATransferException {
     if (pRightExpr instanceof CRightHandSide) {
       CRightHandSide right = (CRightHandSide)pRightExpr;
-      SIGN result = right.accept(new SignCExpressionVisitor(edge, pState, this));
+      NumberInterface result = right.accept(new SignCExpressionVisitor(edge, pState, this));
       logger.log(Level.FINE,  "Assignment: " + pVarIdent + " = " + result);
       return pState.assignSignToVariable(pVarIdent, result);
     }
