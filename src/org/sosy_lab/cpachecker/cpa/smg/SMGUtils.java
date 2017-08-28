@@ -50,11 +50,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplate;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgeHasValueTemplateWithConcreteValue;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGEdgePointsToTemplate;
-import org.sosy_lab.cpachecker.cpa.smg.objects.generic.SMGObjectTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGEdgeHasValueTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGEdgeHasValueTemplateWithConcreteValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGEdgePointsToTemplate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.SMGObjectTemplate;
 
 /**
  * This class contains smg utilities, for example filters.

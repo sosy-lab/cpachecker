@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 import java.util.HashMap;
 import java.util.Map;

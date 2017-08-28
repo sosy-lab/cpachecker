@@ -27,8 +27,8 @@ import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidateFinder;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListFinder;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dls.SMGDoublyLinkedListCandidateFinder;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListFinder;
 
 import java.util.ArrayList;
 import java.util.List;
