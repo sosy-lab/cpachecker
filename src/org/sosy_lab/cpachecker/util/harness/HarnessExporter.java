@@ -782,8 +782,6 @@ public class HarnessExporter {
   private static CFunctionCallExpression callMalloc(CExpression pSize) {
     CFunctionType type =
         new CFunctionType(
-            false,
-            false,
             CPointerType.POINTER_TO_VOID,
             Collections.singletonList(CNumericTypes.INT),
             false);

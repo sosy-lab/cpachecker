@@ -20,10 +20,10 @@
     <target name="load-junit" depends="resolve-dependencies" unless="ant.junit.available">
         <taskdef name="junit"
                  classname="org.apache.tools.ant.taskdefs.optional.junit.JUnitTask"
-                 classpath="${ivy.jar.dir}/ant-junit.jar"/>
+                 classpath="${ivy.jar.dir}/ant-junit.jar:${ivy.jar.dir}/ant-junit4.jar"/>
         <taskdef name="junitreport"
                  classname="org.apache.tools.ant.taskdefs.optional.junit.XMLResultAggregator"
-                 classpath="${ivy.jar.dir}/ant-junit.jar"/>
+                 classpath="${ivy.jar.dir}/ant-junit.jar:${ivy.jar.dir}/ant-junit4.jar"/>
     </target>
 
     <target name="init-unit-tests">

@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -61,28 +60,30 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dls.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownAddVal;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGState implements AbstractQueryableState, LatticeAbstractState<SMGState> {
@@ -97,7 +98,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   // use 'id' and 'precessorId' only for debugging or logging, never for important stuff!
   // TODO remove to avoid problems?
-  private static final AtomicInteger id_counter = new AtomicInteger(0);
+  private static final AtomicInteger ID_COUNTER = new AtomicInteger(0);
   private final int predecessorId;
   private final int id;
 
@@ -137,8 +138,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pLogger;
     options = pOptions;
 
-    predecessorId = id_counter.getAndIncrement();
-    id = id_counter.getAndIncrement();
+    predecessorId = ID_COUNTER.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
 
     invalidFree = false;
     invalidRead = false;
@@ -153,7 +154,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     heap = pHeap;
     logger = pLogger;
     predecessorId = pPredId;
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     invalidFree = false;
     invalidRead = false;
     invalidWrite = false;
@@ -174,7 +175,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
@@ -190,17 +191,17 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pOriginalState Original state. Will be the predecessor of the
    * new state
    */
-  public SMGState(SMGState pOriginalState, BlockOperator pBlockOperator, CFANode pCurrentLocation) {
+  public SMGState(SMGState pOriginalState, boolean pBlockEnded) {
     heap = new CLangSMG(pOriginalState.heap);
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
-    blockEnded = pBlockOperator.isBlockEnd(pCurrentLocation, 0);
+    blockEnded = pBlockEnded;
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
@@ -208,7 +209,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pOriginalState.explicitValues);
     blockEnded = pOriginalState.blockEnded;
 
@@ -243,7 +244,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger = pOriginalState.logger;
     options = pOriginalState.options;
     predecessorId = pOriginalState.getId();
-    id = id_counter.getAndIncrement();
+    id = ID_COUNTER.getAndIncrement();
     explicitValues.putAll(pCombinedMap);
     invalidFree = pOriginalState.invalidFree;
     invalidRead = pOriginalState.invalidRead;
@@ -1853,10 +1854,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
-  public SMGObject getNullObject() {
-    return SMGNullObject.INSTANCE;
-  }
-
   public void identifyEqualValues(SMGKnownSymValue pKnownVal1, SMGKnownSymValue pKnownVal2) {
 
     assert !isInNeq(pKnownVal1, pKnownVal2);
@@ -1938,8 +1935,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.getErrorPredicateRelation();
   }
 
-  public void resetErrorRelation() {
-    heap.resetErrorRelation();
+  public SMGState resetErrorRelation() {
+    SMGState newState = new SMGState(this);
+    newState.heap.resetErrorRelation();
+    return newState;
   }
 
   /**
@@ -1972,9 +1971,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   boolean isExplicit(int value) {
-    SMGKnownSymValue key = SMGKnownSymValue.valueOf(value);
-
-    return explicitValues.containsKey(key);
+    return explicitValues.containsKey(SMGKnownSymValue.valueOf(value));
   }
 
   SMGKnownExpValue getExplicit(int value) {
@@ -2298,6 +2295,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public CLangStackFrame getStackFrame() {
-    return heap.getStackFrames().peek();
+    return Iterables.getLast(heap.getStackFrames());
   }
 }

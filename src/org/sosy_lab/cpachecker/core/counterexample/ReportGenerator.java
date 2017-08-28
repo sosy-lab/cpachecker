@@ -25,21 +25,22 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.html.HtmlEscapers.htmlEscaper;
 import static java.nio.file.Files.isReadable;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -50,8 +51,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
@@ -68,6 +68,8 @@ import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -148,13 +150,15 @@ public class ReportGenerator {
 
     buildArgGraphData(pReached);
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
-
+    PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
         fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
+        console.println("Graphical representation included in the \"" + reportFile.getFileName() + "\" file.");
       }
 
     } else {
+      StringBuilder counterExFiles = new StringBuilder();
       for (CounterexampleInfo counterExample : counterExamples) {
         fillOutTemplate(
             counterExample,
@@ -162,7 +166,14 @@ public class ReportGenerator {
             pCfa,
             dotBuilder,
             pStatistics);
+        counterExFiles.append("\"");
+        counterExFiles.append(counterExampleFiles.getPath(counterExample.getUniqueId()).getFileName());
+        counterExFiles.append("\"");
+        counterExFiles.append(" ");
       }
+      String info = counterExamples.size() > 1 ? "files." : "file.";
+      counterExFiles.append(info);
+      console.println("Graphical representation included in the " + counterExFiles.toString());
     }
   }
 
@@ -239,8 +250,6 @@ public class ReportGenerator {
       writer.write(",\n");
       insertCombinedNodesData(writer, dotBuilder);
       writer.write(",\n");
-      insertInversedCombinedNodesData(writer, dotBuilder);
-      writer.write(",\n");
       insertCombinedNodesLabelsData(writer, dotBuilder);
       writer.write(",\n");
       insertMergedNodesListData(writer, dotBuilder);
@@ -257,28 +266,25 @@ public class ReportGenerator {
 
   private void insertArgJson(Writer writer) {
     try {
-      writer.write("var argJson = {\n");
-      writer.write("\"nodes\":");
-      JSON.writeJSONString(argNodes.values(), writer);
-      writer.write(",\n\"edges\":");
-      JSON.writeJSONString(argEdges.values(), writer);
-      writer.write("\n}\n");
+      writer.write("var argJson = {");
+      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+        writer.write("\n\"nodes\":");
+        JSON.writeJSONString(argNodes.values(), writer);
+        writer.write(",\n\"edges\":");
+        JSON.writeJSONString(argEdges.values(), writer);
+        writer.write("\n");
+      }
+      writer.write("}\n");
     } catch (IOException e) {
       logger.logUserException(WARNING, e, "Could not create report: Inserting ARG Json failed.");
     }
   }
 
   private void insertCss(Writer writer) throws IOException {
-    try (BufferedReader reader =
-        Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
-            .openBufferedStream(); ) {
-      writer.write("<style>" + "\n");
-      String line;
-      while (null != (line = reader.readLine())) {
-        writer.write(line + "\n");
-      }
-      writer.write("</style>");
-    }
+    writer.write("<style>" + "\n");
+    Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
+        .copyTo(writer);
+    writer.write("</style>");
   }
 
   private void insertMetaTags(Writer writer) {
@@ -325,7 +331,7 @@ public class ReportGenerator {
   private void insertStatistics(Writer writer, String statistics) throws IOException {
     int counter = 0;
     for (String line : LINE_SPLITTER.split(statistics)) {
-      line = "<pre id=\"statistics-" + counter + "\">" + htmlEscape(line) + "</pre>\n";
+      line = "<pre id=\"statistics-" + counter + "\">" + htmlEscaper().escape(line) + "</pre>\n";
       writer.write(line);
       counter++;
     }
@@ -353,7 +359,7 @@ public class ReportGenerator {
                 + ")\">\n<table>\n");
         String line;
         while (null != (line = source.readLine())) {
-          line = "<td><pre class=\"prettyprint\">" + htmlEscape(line) + "  </pre></td>";
+          line = "<td><pre class=\"prettyprint\">" + htmlEscaper().escape(line) + "  </pre></td>";
           writer.write(
               "<tr id=\"source-"
                   + lineNumber
@@ -378,27 +384,27 @@ public class ReportGenerator {
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
     int iterator = 0;
     for (String line : lines) {
-      line = "<pre id=\"config-" + iterator + "\">" + htmlEscape(line) + "</pre>\n";
+      line = "<pre id=\"config-" + iterator + "\">" + htmlEscaper().escape(line) + "</pre>\n";
       writer.write(line);
       iterator++;
     }
   }
 
-  private void insertLog(Writer writer) {
+  private void insertLog(Writer writer) throws IOException {
+    if (logFile != null && Files.isReadable(logFile)) {
     try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
-      if (logFile != null && Files.isReadable(logFile)) {
         int counter = 0;
         String line;
         while (null != (line = log.readLine())) {
-          line = "<pre id=\"log-" + counter + "\">" + htmlEscape(line) + "</pre>\n";
+          line = "<pre id=\"log-" + counter + "\">" + htmlEscaper().escape(line) + "</pre>\n";
           writer.write(line);
           counter++;
         }
-    } else {
-        writer.write("<p>No Log-File available</p>");
+      } catch (IOException e) {
+        logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
       }
-    } catch (IOException e) {
-      logger.logUserException(WARNING, e, "Could not create report: Adding log failed.");
+    } else {
+      writer.write("<p>Log not available</p>");
     }
   }
 
@@ -419,16 +425,6 @@ public class ReportGenerator {
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of combined nodes failed.");
-    }
-  }
-
-  private void insertInversedCombinedNodesData(Writer writer, DOTBuilder2 dotBuilder) {
-    try {
-      writer.write("\"inversedCombinedNodes\":");
-      dotBuilder.writeInversedComboNodes(writer);
-    } catch (IOException e) {
-      logger.logUserException(
-          WARNING, e, "Could not create report: Insertion of inversed combined nodes failed.");
     }
   }
 
@@ -463,10 +459,14 @@ public class ReportGenerator {
     }
   }
 
+  // Program entry function at first place is important for the graph generation
   private void insertFunctionNames(Writer writer, CFA cfa) {
     try {
       writer.write("\"functionNames\":");
-      JSON.writeJSONString(cfa.getAllFunctionNames(), writer);
+      Set<String> allFunctionsEntryFirst = Sets.newLinkedHashSet();
+      allFunctionsEntryFirst.add(cfa.getMainFunction().getFunctionName());
+      allFunctionsEntryFirst.addAll(cfa.getAllFunctionNames());
+      JSON.writeJSONString(allFunctionsEntryFirst, writer);
     } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create report: Insertion of function names failed.");
@@ -484,68 +484,45 @@ public class ReportGenerator {
     }
   }
 
-  private static String htmlEscape(String text) {
-
-    Map<String, String> htmlReplacements = new ImmutableMap.Builder<String, String>()
-        .put("&", "&amp;")
-        .put("<", "&lt;")
-        .put(">", "&gt;")
-        .build();
-
-    String regexp = Joiner.on('|').join(htmlReplacements.keySet());
-
-    StringBuffer sb = new StringBuffer();
-    Pattern p = Pattern.compile(regexp);
-    Matcher m = p.matcher(text);
-
-    while (m.find()) {
-      m.appendReplacement(sb, htmlReplacements.get(m.group()));
-    }
-
-    m.appendTail(sb);
-    return sb.toString();
-  }
-
+  // Build ARG data only if the reached states are ARGStates
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
-    reached
-        .asCollection()
-        .forEach(
-            entry -> {
-              int parentStateId = ((ARGState) entry).getStateId();
-              for (CFANode node : AbstractStates.extractLocations(entry)) {
-                if (!argNodes.containsKey(parentStateId)) {
-                  if (((ARGState) entry).toDOTLabel().length() > 0) {
-                    createArgNode(parentStateId, node, (ARGState) entry);
-                  } else {
-                    createArgNode(parentStateId, node, (ARGState) entry);
-                  }
-                }
-                if (!((ARGState) entry).getChildren().isEmpty()) {
-                  for (ARGState child : ((ARGState) entry).getChildren()) {
-                    int childStateId = child.getStateId();
-                    // Covered state is not contained in the reached set
-                    if (child.isCovered()) {
-                      createCoveredArgNode(
-                          childStateId,
-                          child,
-                          child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2));
-                      createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
-                    }
-                    createArgEdge(
-                        parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
-                  }
+    if (reached.getFirstState() instanceof ARGState) {
+      reached
+      .asCollection()
+      .forEach(
+          entry -> {
+            int parentStateId = ((ARGState) entry).getStateId();
+            for (CFANode node : AbstractStates.extractLocations(entry)) {
+              if (!argNodes.containsKey(parentStateId)) {
+                if (((ARGState) entry).toDOTLabel().length() > 0) {
+                  createArgNode(parentStateId, node, (ARGState) entry);
+                } else {
+                  createArgNode(parentStateId, node, (ARGState) entry);
                 }
               }
-            });
+              if (!((ARGState) entry).getChildren().isEmpty()) {
+                for (ARGState child : ((ARGState) entry).getChildren()) {
+                  int childStateId = child.getStateId();
+                  // Covered state is not contained in the reached set
+                  if (child.isCovered()) {
+                    String label = child.toDOTLabel().length() > 2 ? child.toDOTLabel().substring(0, child.toDOTLabel().length() - 2) : "";
+                    createCoveredArgNode(
+                        childStateId,
+                        child,
+                        label);
+                    createCoveredArgEdge(childStateId, child.getCoveringState().getStateId());
+                  }
+                  createArgEdge(
+                      parentStateId, childStateId, ((ARGState) entry).getEdgesToChild(child));
+                }
+              }
+            }
+          });
+    }
   }
 
   private void createArgNode(int parentStateId, CFANode node, ARGState argState) {
-    String dotLabel = "";
-    if (argState.toDOTLabel().length() > 0) {
-      dotLabel = argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2);
-    } else {
-      dotLabel = argState.toDOTLabel();
-    }
+    String dotLabel = argState.toDOTLabel().length() > 2 ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2) : "";
     Map<String, Object> argNode = new HashMap<>();
     argNode.put("index", parentStateId);
     argNode.put("func", node.getFunctionName());
@@ -557,6 +534,7 @@ public class ReportGenerator {
             + "\n"
             + node.getFunctionName()
             + nodeTypeInNodeLabel(node)
+            + "\n"
             + dotLabel);
     argNode.put("type", determineNodeType(argState));
     argNodes.put(parentStateId, argNode);
@@ -609,44 +587,50 @@ public class ReportGenerator {
     Map<String, Object> argEdge = new HashMap<>();
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
-    String edgeLabel = "";
+    StringBuilder edgeLabel = new StringBuilder();
     if (edges.isEmpty()) {
-      edgeLabel += "dummy edge";
+      edgeLabel.append("dummy edge");
+      argEdge.put("type", "dummy type");
     } else {
+      argEdge.put("type", edges.get(0).getEdgeType().toString());
       if (edges.size() > 1) {
-        edgeLabel +=
-            "Lines "
-                + edges.get(0).getFileLocation().getStartingLineInOrigin()
-                + " - "
-                + edges.get(edges.size() - 1).getFileLocation().getStartingLineInOrigin()
-                + ":";
+        edgeLabel.append("Lines ");
+        edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(" - ");
+        edgeLabel.append(edges.get(edges.size() - 1).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append(":");
         argEdge.put("lines", edgeLabel.substring(6));
       } else {
-        edgeLabel += "Line " + edges.get(0).getFileLocation().getStartingLineInOrigin() + "";
+        edgeLabel.append("Line ");
+        edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
+        edgeLabel.append("");
         argEdge.put("line", edgeLabel.substring(5));
       }
       for (CFAEdge edge : edges) {
         if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-          edgeLabel +=
-              "\n" + getEdgeText(edge).split(":")[0] + "\n" + getEdgeText(edge).split(":")[1];
+          edgeLabel.append("\n");
+          edgeLabel.append(getEdgeText(edge).split(":")[0]);
+          edgeLabel.append("\n");
+          edgeLabel.append(getEdgeText(edge).split(":")[1]);
         } else {
-          edgeLabel += "\n" + getEdgeText(edge);
+          edgeLabel.append("\n");
+          edgeLabel.append(getEdgeText(edge));
         }
       }
       argEdge.put("file", edges.get(0).getFileLocation().getFileName());
     }
-    argEdge.put("label", edgeLabel);
-    argEdge.put("type", edges.get(0).getEdgeType().toString());
+    argEdge.put("label", edgeLabel.toString());
     argEdges.put("" + parentStateId + "->" + childStateId, argEdge);
   }
 
   // Add the node type (if it is entry or exit) to the node label
   private String nodeTypeInNodeLabel(CFANode node) {
-    String result = node.describeFileLocation().split(" ")[0];
-    if (result.equalsIgnoreCase("entry") || result.equalsIgnoreCase("exit")) {
-      return " " + result + "\n";
+    if (node instanceof FunctionEntryNode) {
+      return " entry";
+    } else if (node instanceof FunctionExitNode) {
+      return " exit";
     }
-    return "\n";
+    return "";
   }
 
   // Similar to the getEdgeText method in DOTBuilder2

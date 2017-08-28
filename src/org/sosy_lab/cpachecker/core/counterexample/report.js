@@ -12,7 +12,7 @@
 			function($rootScope, $scope) {
 				$scope.logo = "https://cpachecker.sosy-lab.org/logo.svg";
 				$scope.help_content = "<p><b>CFA</b> (Control Flow Automaton) shows the control flow of the program. <br> For each function in the source code one CFA graph is created. <br>" + 
-				"Initially all CFA's are displayed below one another beginning with the CFA for the main function.</p>" + "<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
+				"Initially all CFA's are displayed below one another beginning with the CFA for the program entry function.</p>" + "<p> If an error path is detected by the analysis the edges leading to it will appear red.</p>" +
 				"<p>&#9675; &nbsp; normal element</p>" +
 				"<p>&#9634; &nbsp; combined normal elements</p>" +
 				"<p>&#9645; &nbsp; function node</p>" +
@@ -32,9 +32,9 @@
 	            "<p>- use the Displayed ARG select box to select between the complete ARG and ARG containing only the error path (only in case an error was found) </p>" +
 	            "<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
 	            "<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
-	            "<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target <br> -- doubleclick on 'split edge' to jump to initial edge </p>";
-		        $scope.help_errorpath = "<p>The errorpath leads to the error 'line by line' (Source) or 'edge by edge' (CFA) or 'node by node' (ARG)</p>\n" +
-	            "<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point</p>\n" +
+	            "<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p>";
+		        $scope.help_errorpath = "<p>The errorpath leads to the error 'edge by edge' (CFA) or 'node by node' (ARG) or 'line by line' (Source)</p>\n" +
+	            "<p><b>-V- (Value Assignments)</b> Click to show all initialized variables and their values at that point in the programm.</p>\n" +
 	            "<p><b>Edge-Description (Source-Code-View)</b> Click to jump to the relating edge in the CFA / node in the ARG / line in Source (depending on active tab).\n If non of the mentioned tabs is currently set, the ARG tab will be selected.</p>\n" +
 	            "<p><b>Buttons (Prev, Start, Next)</b> Click to navigate through the errorpath and jump to the relating position in the active tab</p>\n" +
 	            "<p><b>Search</b>\n - You can search for words or numbers in the edge-descriptions (matches appear blue)\n" +
@@ -45,7 +45,6 @@
 					$scope.setTab(tabIndex);
 				});
 				$scope.setTab = function(tabIndex) {
-					$scope.tab = tabIndex;
 					if (tabIndex === 1) {
 						if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
 							d3.select("#arg-toolbar").style("visibility", "hidden");
@@ -61,6 +60,7 @@
 						}
 						d3.selectAll(".cfa-graph").style("visibility", "visible");
 					} else if (tabIndex === 2) {
+						if (argTabDisabled) return;
 						if (d3.select("#cfa-toolbar").style("visibility") !== "hidden") {
 							d3.select("#cfa-toolbar").style("visibility", "hidden");
 							d3.selectAll(".cfa-graph").style("visibility", "hidden");
@@ -101,6 +101,7 @@
 							}
 						}						
 					}
+					$scope.tab = tabIndex;
 				};
 				$scope.tabIsSet = function(tabIndex) {
 					return $scope.tab === tabIndex;
@@ -274,7 +275,7 @@
         		var selection = d3.select("#cfa-node" + actualSourceAndTarget.source);
     			selection.classed("marked-cfa-node", true);
     			var boundingRect = selection.node().getBoundingClientRect();
-    			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
+    			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container").scrollLeft());
         		return;
         	}
 			if (!d3.select(".marked-cfa-edge").empty()) {
@@ -284,7 +285,7 @@
 			var selection = d3.select("#cfa-edge_" + actualSourceAndTarget.source + "-" + actualSourceAndTarget.target);
 			selection.classed("marked-cfa-edge", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container").scrollLeft());
         }
         
         function getActualSourceAndTarget(element) {
@@ -321,9 +322,9 @@
         // Retrieve the node in which this node was merged
         function getMergingNode(index) {
             var result = "";
-            Object.keys(cfaJson.inversedCombinedNodes).some(function(key){
-                if (key.includes(index)) {
-                    result = cfaJson.inversedCombinedNodes[key];
+            Object.keys(cfaJson.combinedNodes).some(function(key) {
+                if (cfaJson.combinedNodes[key].includes(index)) {
+                    result = key;
                     return result;
                 }
             })
@@ -337,10 +338,15 @@
 			if (!d3.select(".marked-arg-node").empty()) {
 				d3.select(".marked-arg-node").classed("marked-arg-node", false);
 			}
-			var selection = d3.select("#arg-node" + errPathEntry.argelem);
+			var idToSelect;
+			if (d3.select("#arg-graph0").style("display") !== "none")
+				idToSelect = "#arg-node";
+			else
+				idToSelect = "#arg-error-node";
+			var selection = d3.select(idToSelect + errPathEntry.argelem);
 			selection.classed("marked-arg-node", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 280);
+			$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#arg-container").style("width").split("px")[0] - $("#arg-container").scrollLeft());
         }
         
         function markSourceLine(errPathEntry) {
@@ -483,7 +489,11 @@
     				d3.selectAll(".cfa-svg-" + $scope.selectedCFAFunction).attr("display", "inline-block");
     			}
     			var firstElRect = d3.select("[display=inline-block] .cfa-node:nth-child(2)").node().getBoundingClientRect();
-    			$("#cfa-container").scrollTop(firstElRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(firstElRect.left + $("#cfa-container").scrollLeft() - 280);
+    			if (d3.select("#errorpath_section").style("display") !== "none") {
+    				$("#cfa-container").scrollTop(firstElRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(firstElRect.left - $("#cfa-container").scrollLeft() - d3.select("#externalFiles_section").style("width"));
+    			} else {
+    				$("#cfa-container").scrollTop(firstElRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(firstElRect.left - $("#cfa-container").scrollLeft());
+    			}
     		};
         
     		$scope.cfaFunctionIsSet = function(value){
@@ -664,14 +674,20 @@ var zoomEnabled = false;
 var render = new dagreD3.render();
 const margin = 20;
 var cfaWorker, argWorker;
-var cfaSplit = false;
+var cfaSplit = false, argTabDisabled = false;
 
 function init() {
 	
 	// Calculate total count of graphs to display in modal
-	var argTotalGraphCount = Math.ceil(argJson.nodes.length/graphSplitThreshold);
-	$("#arg-modal").text("0/" + argTotalGraphCount);
-	argTotalGraphCount = null;
+	var argTotalGraphCount;
+	if (argJson.nodes) {
+		argTotalGraphCount = Math.ceil(argJson.nodes.length/graphSplitThreshold);
+		$("#arg-modal").text("0/" + argTotalGraphCount);
+	} else { // No ARG data -> happens if the AbstractStates are not ARGStates
+		$("#arg-modal").text("0/0");
+		$("#set-tab-2").parent().addClass("disabled");
+		argTabDisabled = true;
+	}
 	var cfaTotalGraphCount = 0;
 	cfaJson.functionNames.forEach(function(f) {
 		var fNodes = cfaJson.nodes.filter(function(n) {
@@ -699,8 +715,8 @@ function init() {
 	 * The graph(s) is/are returned to the main script once created
 	 */
     function cfaWorker_function() {
-        self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
-        var json, nodes, mainNodes, edges, functions, combinedNodes, inversedCombinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
+        self.importScripts("https://www.sosy-lab.org/lib/d3js/3.5.17/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.4.17/dagre-d3.min.js");
+        var json, nodes, mainNodes, edges, functions, combinedNodes, combinedNodesLabels, mergedNodes, functionCallEdges, errorPath;
         var graphSplitThreshold = 700; // default value
         var graphMap = [];
         var graphCounter = 0;
@@ -732,13 +748,12 @@ function init() {
         // Extract information from the cfaJson
         function extractVariables() {
             nodes = json.nodes;
+            functions = json.functionNames;
             mainNodes = nodes.filter(function(n) {
-                return n.func === "main";
+                return n.func === functions[0];
             });
             edges = json.edges;
-            functions = json.functionNames;
             combinedNodes = json.combinedNodes;
-            inversedCombinedNodes = json.inversedCombinedNodes;
             combinedNodesLabels = json.combinedNodesLabels;
             mergedNodes = json.mergedNodes;
             functionCallEdges = json.functionCallEdges;
@@ -767,13 +782,13 @@ function init() {
         
         function buildGraphsAndPostResults() {
             if (mainNodes.length > graphSplitThreshold) {
-                buildMultipleGraphs(mainNodes, "main");
+                buildMultipleGraphs(mainNodes, functions[0]);
             } else {
-                buildSingleGraph(mainNodes, "main");
+                buildSingleGraph(mainNodes, functions[0]);
             }
             if (functions.length > 1) {
                 var functionsToProcess = functions.filter(function(f){
-                    return f !== "main";
+                    return f !== functions[0];
                 });
                 functionsToProcess.forEach(function(func) {
                     var funcNodes = nodes.filter(function(n){
@@ -800,7 +815,7 @@ function init() {
                 return nodesIndices.includes(e.source) && nodesIndices.includes(e.target);
             });
             setGraphEdges(g, edgesToSet, false);
-            if (funcName === "main") {
+            if (funcName === functions[0]) {
                 self.postMessage({"graph" : JSON.stringify(g), "id" : funcName + graphCounter, "func" : funcName});
                 graphMap.push(g);
             } else {
@@ -837,7 +852,7 @@ function init() {
                 }
             }
             buildCrossgraphEdges(nodesToSet);
-            if (funcName === "main") {
+            if (funcName === functions[0]) {
                 self.postMessage({"graph" : JSON.stringify(graphMap[graphCounter]), "id" : funcName + graphCounter, "func" : funcName});
                 graphCounter++;
             }
@@ -1038,13 +1053,13 @@ function init() {
         // Retrieve the node in which this node was merged
         function getMergingNode(index) {
             var result = "";
-            Object.keys(inversedCombinedNodes).some(function(key){
-                if (key.includes(index)) {
-                    result = inversedCombinedNodes[key];
+            Object.keys(combinedNodes).some(function(key) {
+                if (combinedNodes[key].includes(index)) {
+                    result = key;
                     return result;
                 }
             })
-            return result;
+            return parseInt(result);
         }
         
         // Decide the weight for the edges based on type
@@ -1079,275 +1094,288 @@ function init() {
 
 	/**
 	 * The ARG Worker. Contains the logic for creating a single or multi ARG graph.
-	 * Once the graph(s) is/are created they are returned to the main script. 
+	 * Once the graph(s) is/are created they are returned to the main script.
+	 * ONLY if ARG data is available!
 	 */
-	function argWorker_function() {
-		self.importScripts("http://d3js.org/d3.v3.min.js", "https://cdn.rawgit.com/cpettitt/dagre-d3/2f394af7/dist/dagre-d3.min.js");
-		var json, nodes, edges, errorPath, errorGraphMap;
-		var graphSplitThreshold = 700;
-		var graphMap = [], graphCounter = 0;
-		self.addEventListener("message", function(m) {
-			if (m.data.json !== undefined) {
-				json = JSON.parse(m.data.json);
-				nodes = json.nodes;
-				edges = json.edges;
-				buildGraphsAndPrepareResults()
-			} else if (m.data.errorPath !== undefined) {
-				errorPath = [];
-				JSON.parse(m.data.errorPath).forEach(function(d) {
-					if (d.argelem !== undefined) {
-						errorPath.push(d.argelem);
-					}
-				});
-			} else if (m.data.renderer !== undefined) {
-				if (graphMap.length > 0) {
-                    self.postMessage({"graph" : JSON.stringify(graphMap[0]), "id" : graphCounter});
-                    graphMap.shift();
-                    graphCounter++;
-                } else {
-                    self.postMessage({"status": "done"});
-                    if (errorPath !== undefined) {
-                    	errorGraphMap = [];
-                    	graphCounter = 0;
-                    	prepareErrorGraph();
-                    }
-                }
-			} else if (m.data.errorGraph !== undefined) {
-				if (errorGraphMap.length > 0) {
-					self.postMessage({"graph" : JSON.stringify(errorGraphMap[0]), "id": graphCounter, "errorGraph": true});
-					errorGraphMap.shift();
-					graphCounter++;
-				}
-			} else if (m.data.split !== undefined) {
-    			graphSplitThreshold = m.data.split;
-    			if (errorGraphMap !== undefined && errorGraphMap.length > 0) {
-    				errorGraphMap = [];
-    			}
-    			buildGraphsAndPrepareResults();
-    		}
-		}, false);
-		
-		function buildGraphsAndPrepareResults() {
-			if (nodes.length > graphSplitThreshold) {
-				buildMultipleGraphs();
-			} else {
-				buildSingleGraph();
-			}			
-		}
-		
-        // After the initial ARG graph has been send to the master script, prepare ARG containing only error path		
-		function prepareErrorGraph() {
-			var errorNodes = [], errorEdges = [];
-			nodes.forEach(function(n) {
-				if (errorPath.includes(n.index)) {
-					errorNodes.push(n);
-				}
-			});
-			edges.forEach(function(e) {
-				if (errorPath.includes(e.source) && errorPath.includes(e.target)) {
-					errorEdges.push(e);
-				}
-			});
-			if (errorNodes.length > graphSplitThreshold) {
-				buildMultipleErrorGraphs(errorNodes, errorEdges);
-			} else {
-				var g = createGraph();
-				setGraphNodes(g, errorNodes);
-				setGraphEdges(g, errorEdges, false);
-				errorGraphMap.push(g);
-			}
-		}
-		
-		function buildSingleGraph() {
-			var g = createGraph();
-			setGraphNodes(g, nodes);
-			setGraphEdges(g, edges, false);
-            graphMap.push(g);
-		}
-		
-		// Split the ARG graph honoring the split threshold
-		function buildMultipleGraphs() {
-			nodes.sort(function(firstNode, secondNode) {
-				return firstNode.index - secondNode.index;
-			})
-    		var requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
-    		var firstGraphBuild = false;
-    		var nodesPerGraph = [];
-    		for (var i = 1; i <= requiredGraphs; i++) {
-    			if (!firstGraphBuild) {
-    				nodesPerGraph = nodes.slice(0, graphSplitThreshold);
-    				firstGraphBuild = true;
-    			} else {
-    				if (nodes[graphSplitThreshold * i - 1] !== undefined) {
-    					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
-    				} else {
-    					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1));
-    				}
-    			}
-    			var graph = createGraph();
-    			graphMap.push(graph);
-    			setGraphNodes(graph, nodesPerGraph);
-    			var nodesIndices = []
-    			nodesPerGraph.forEach(function(n) {
-    				nodesIndices.push(n.index);
-    			});
-    			var graphEdges = edges.filter(function(e) {
-    				if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
-    					return e;
-    				}
-    			});
-    			setGraphEdges(graph, graphEdges, true);
-    		}
-    		buildCrossgraphEdges(edges, false);
-		}
-		
-		// Split the ARG error graph honoring the split threshold
-        function buildMultipleErrorGraphs(errorNodes, errorEdges) {
-			errorNodes.sort(function(firstNode, secondNode) {
-				return firstNode.index - secondNode.index;
-			})
-            var requiredGraphs = Math.ceil(errorNodes.length/graphSplitThreshold);
-            var firstGraphBuild = false;
-            var nodesPerGraph = [];
-            for (var i = 1; i <= requiredGraphs; i++) {
-                if (!firstGraphBuild) {
-                    nodesPerGraph = errorNodes.slice(0, graphSplitThreshold);
-                    firstGraphBuild = true;
-                } else {
-                    if (nodes[graphSplitThreshold * i - 1] !== undefined) {
-                        nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
-                    } else {
-                        nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1));
-                    }
-                }
-                var graph = createGraph();
-                errorGraphMap.push(graph);
-                setGraphNodes(graph, nodesPerGraph);
-                var nodesIndices = []
-                nodesPerGraph.forEach(function(n) {
-                    nodesIndices.push(n.index);
-                });
-                var graphEdges = errorEdges.filter(function(e) {
-                    if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
-                        return e;
-                    }
-                });
-                setGraphEdges(graph, graphEdges, true);
-            }
-            buildCrossgraphEdges(errorEdges, true);            
-        }
-		
-		// Handle graph connecting edges
-    	function buildCrossgraphEdges(edges, errorGraph) {
-    		edges.forEach(function(edge) {
-    			var sourceGraph, targetGraph;
-    			if (errorGraph) {
-    				sourceGraph = getGraphForErrorNode(edge.source);
-    				targetGraph = getGraphForErrorNode(edge.target);
-        			if (sourceGraph < targetGraph) { 
-        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
-        				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
-        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-        				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
-        			} else if (sourceGraph > targetGraph) {
-        				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
-        				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
-        				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-        				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
-        			}
-    			} else {
-        			sourceGraph = getGraphForNode(edge.source);
-        			targetGraph = getGraphForNode(edge.target);
-        			if (sourceGraph < targetGraph) { 
-            			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
-            			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
-            			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-            			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
-        			} else if (sourceGraph > targetGraph) {
-        				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
-        				graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
-        				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-        				graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
-        			}
-    			}
-    		});
-    	}
-    	
-    	// Return the graph in which the nodeNumber is present
-    	function getGraphForNode(nodeNumber) {
-    		return graphMap.findIndex(function(graph) {
-    			return graph.nodes().includes("" + nodeNumber);
-    		})
-    	}
-    	
-    	// Return the graph in which the nodeNumber is present for an error node
-    	function getGraphForErrorNode(nodeNumber) {
-    		return errorGraphMap.findIndex(function(graph) {
-    			return graph.nodes().includes("" + nodeNumber);
-    		})
-    	}
-		
-    	// create and return a graph element with a set transition
-    	function createGraph() {
-    		var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
-    				function() {
-    					return {};
+    if (argJson.nodes) {
+    	function argWorker_function() {
+    		self.importScripts("https://www.sosy-lab.org/lib/d3js/3.5.17/d3.min.js", "https://www.sosy-lab.org/lib/dagre-d3/0.4.17/dagre-d3.min.js");
+    		var json, nodes, edges, errorPath, errorGraphMap;
+    		var graphSplitThreshold = 700;
+    		var graphMap = [], graphCounter = 0;
+    		self.addEventListener("message", function(m) {
+    			if (m.data.json !== undefined) {
+    				json = JSON.parse(m.data.json);
+    				nodes = json.nodes;
+    				edges = json.edges;
+    				buildGraphsAndPrepareResults()
+    			} else if (m.data.errorPath !== undefined) {
+    				errorPath = [];
+    				JSON.parse(m.data.errorPath).forEach(function(d) {
+    					if (d.argelem !== undefined) {
+    						errorPath.push(d.argelem);
+    					}
     				});
-    		return g;
-    	}
-    	
-    	// Set nodes for the graph contained in the json nodes
-    	function setGraphNodes(graph, nodesToSet) {
-    		nodesToSet.forEach(function(n) {
-    			if (n.type === "target" && errorPath !== undefined && !errorPath.includes(n.index)) {
-    				errorPath.push(n.index);
-    			}
-    			graph.setNode(n.index, {
-    				label : n.label,
-    				class : "arg-node " + n.type,
-    				id : "arg-node" + n.index
-    			});
-    		});
-    	}
-    	
-    	// Set the graph edges 
-    	function setGraphEdges(graph, edgesToSet, multigraph) {
-        	edgesToSet.forEach(function(e) {
-        		if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
-            		graph.setEdge(e.source, e.target, {
-            			label: e.label,
-            			lineInterpolate: "basis",
-            			class: edgeClassDecider(e),
-            			id: "arg-edge"+ e.source + e.target,
-            			weight: edgeWeightDecider(e)
-            		});
+    			} else if (m.data.renderer !== undefined) {
+    				if (graphMap.length > 0) {
+                        self.postMessage({"graph" : JSON.stringify(graphMap[0]), "id" : graphCounter});
+                        graphMap.shift();
+                        graphCounter++;
+                    } else {
+                        self.postMessage({"status": "done"});
+                        if (errorPath !== undefined) {
+                        	errorGraphMap = [];
+                        	graphCounter = 0;
+                        	prepareErrorGraph();
+                        }
+                    }
+    			} else if (m.data.errorGraph !== undefined) {
+    				if (errorGraphMap.length > 0) {
+    					self.postMessage({"graph" : JSON.stringify(errorGraphMap[0]), "id": graphCounter, "errorGraph": true});
+    					errorGraphMap.shift();
+    					graphCounter++;
+    				}
+    			} else if (m.data.split !== undefined) {
+        			graphSplitThreshold = m.data.split;
+        			if (errorGraphMap !== undefined && errorGraphMap.length > 0) {
+        				errorGraphMap = [];
+        			}
+        			buildGraphsAndPrepareResults();
         		}
-        	});
-    	}
-    	
-    	// Set class for passed edge
-    	function edgeClassDecider(edge) {
-    		if (errorPath !== undefined && errorPath.includes(edge.source) && errorPath.includes(edge.target)) {
-    			return "arg-edge error-edge";
-    		} else {
-    			return "arg-edge";
+    		}, false);
+    		
+    		function buildGraphsAndPrepareResults() {
+    			if (nodes.length > graphSplitThreshold) {
+    				buildMultipleGraphs();
+    			} else {
+    				buildSingleGraph();
+    			}			
     		}
+    		
+            // After the initial ARG graph has been send to the master script, prepare ARG containing only error path		
+    		function prepareErrorGraph() {
+    			var errorNodes = [], errorEdges = [];
+    			nodes.forEach(function(n) {
+    				if (errorPath.includes(n.index)) {
+    					errorNodes.push(n);
+    				}
+    			});
+    			edges.forEach(function(e) {
+    				if (errorPath.includes(e.source) && errorPath.includes(e.target)) {
+    					errorEdges.push(e);
+    				}
+    			});
+    			if (errorNodes.length > graphSplitThreshold) {
+    				buildMultipleErrorGraphs(errorNodes, errorEdges);
+    			} else {
+    				var g = createGraph();
+    				setGraphNodes(g, errorNodes);
+    				setGraphEdges(g, errorEdges, false);
+    				errorGraphMap.push(g);
+    			}
+    		}
+    		
+    		function buildSingleGraph() {
+    			var g = createGraph();
+    			setGraphNodes(g, nodes);
+    			setGraphEdges(g, edges, false);
+                graphMap.push(g);
+    		}
+    		
+    		// Split the ARG graph honoring the split threshold
+    		function buildMultipleGraphs() {
+    			nodes.sort(function(firstNode, secondNode) {
+    				return firstNode.index - secondNode.index;
+    			})
+        		var requiredGraphs = Math.ceil(nodes.length/graphSplitThreshold);
+        		var firstGraphBuild = false;
+        		var nodesPerGraph = [];
+        		for (var i = 1; i <= requiredGraphs; i++) {
+        			if (!firstGraphBuild) {
+        				nodesPerGraph = nodes.slice(0, graphSplitThreshold);
+        				firstGraphBuild = true;
+        			} else {
+        				if (nodes[graphSplitThreshold * i - 1] !== undefined) {
+        					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
+        				} else {
+        					nodesPerGraph = nodes.slice(graphSplitThreshold * (i - 1));
+        				}
+        			}
+        			var graph = createGraph();
+        			graphMap.push(graph);
+        			setGraphNodes(graph, nodesPerGraph);
+        			var nodesIndices = []
+        			nodesPerGraph.forEach(function(n) {
+        				nodesIndices.push(n.index);
+        			});
+        			var graphEdges = edges.filter(function(e) {
+        				if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
+        					return e;
+        				}
+        			});
+        			setGraphEdges(graph, graphEdges, true);
+        		}
+        		buildCrossgraphEdges(edges, false);
+    		}
+    		
+    		// Split the ARG error graph honoring the split threshold
+            function buildMultipleErrorGraphs(errorNodes, errorEdges) {
+    			errorNodes.sort(function(firstNode, secondNode) {
+    				return firstNode.index - secondNode.index;
+    			})
+                var requiredGraphs = Math.ceil(errorNodes.length/graphSplitThreshold);
+                var firstGraphBuild = false;
+                var nodesPerGraph = [];
+                for (var i = 1; i <= requiredGraphs; i++) {
+                    if (!firstGraphBuild) {
+                        nodesPerGraph = errorNodes.slice(0, graphSplitThreshold);
+                        firstGraphBuild = true;
+                    } else {
+                        if (nodes[graphSplitThreshold * i - 1] !== undefined) {
+                            nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1), graphSplitThreshold * i);
+                        } else {
+                            nodesPerGraph = errorNodes.slice(graphSplitThreshold * (i - 1));
+                        }
+                    }
+                    var graph = createGraph();
+                    errorGraphMap.push(graph);
+                    setGraphNodes(graph, nodesPerGraph);
+                    var nodesIndices = []
+                    nodesPerGraph.forEach(function(n) {
+                        nodesIndices.push(n.index);
+                    });
+                    var graphEdges = errorEdges.filter(function(e) {
+                        if (nodesIndices.includes(e.source) && nodesIndices.includes(e.target)) {
+                            return e;
+                        }
+                    });
+                    setGraphEdges(graph, graphEdges, true);
+                }
+                buildCrossgraphEdges(errorEdges, true);            
+            }
+    		
+    		// Handle graph connecting edges
+        	function buildCrossgraphEdges(edges, errorGraph) {
+        		edges.forEach(function(edge) {
+        			var sourceGraph, targetGraph;
+        			if (errorGraph) {
+        				sourceGraph = getGraphForErrorNode(edge.source);
+        				targetGraph = getGraphForErrorNode(edge.target);
+            			if (sourceGraph < targetGraph) { 
+            				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
+            				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+            				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
+            				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+            			} else if (sourceGraph > targetGraph) {
+            				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
+            				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
+            				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
+            				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+            			}
+        			} else {
+            			sourceGraph = getGraphForNode(edge.source);
+            			targetGraph = getGraphForNode(edge.target);
+            			if (sourceGraph < targetGraph) { 
+                			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
+                			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
+                			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
+                			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+            			} else if (sourceGraph > targetGraph) {
+            				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
+            				graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
+            				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
+            				graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+            			}
+        			}
+        		});
+        	}
+        	
+        	// Return the graph in which the nodeNumber is present
+        	function getGraphForNode(nodeNumber) {
+        		return graphMap.findIndex(function(graph) {
+        			return graph.nodes().includes("" + nodeNumber);
+        		})
+        	}
+        	
+        	// Return the graph in which the nodeNumber is present for an error node
+        	function getGraphForErrorNode(nodeNumber) {
+        		return errorGraphMap.findIndex(function(graph) {
+        			return graph.nodes().includes("" + nodeNumber);
+        		})
+        	}
+    		
+        	// create and return a graph element with a set transition
+        	function createGraph() {
+        		var g = new dagreD3.graphlib.Graph().setGraph({}).setDefaultEdgeLabel(
+        				function() {
+        					return {};
+        				});
+        		return g;
+        	}
+        	
+        	// Set nodes for the graph contained in the json nodes
+        	function setGraphNodes(graph, nodesToSet) {
+        		nodesToSet.forEach(function(n) {
+        			if (n.type === "target" && errorPath !== undefined && !errorPath.includes(n.index)) {
+        				errorPath.push(n.index);
+        			}
+        			graph.setNode(n.index, {
+        				label : n.label,
+        				class : "arg-node " + n.type,
+        				id : nodeIdDecider(n)
+        			});
+        		});
+        	}
+
+            function nodeIdDecider(node) {
+                if (errorGraphMap === undefined)
+                    return "arg-node" + node.index;
+                else 
+                    return "arg-error-node" + node.index;
+            }
+        	
+        	// Set the graph edges 
+        	function setGraphEdges(graph, edgesToSet, multigraph) {
+            	edgesToSet.forEach(function(e) {
+            		if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
+                		graph.setEdge(e.source, e.target, {
+                			label: e.label,
+                			lineInterpolate: "basis",
+                			class: edgeClassDecider(e),
+                			id: "arg-edge"+ e.source + e.target,
+                			weight: edgeWeightDecider(e)
+                		});
+            		}
+            	});
+        	}
+        	
+        	// Set class for passed edge
+        	function edgeClassDecider(edge) {
+        		if (errorPath !== undefined && errorPath.includes(edge.source) && errorPath.includes(edge.target)) {
+        			return "arg-edge error-edge";
+        		} else {
+        			return "arg-edge";
+        		}
+        	}
+        	
+        	// Decide the weight for the edges based on type
+        	function edgeWeightDecider(edge) {
+        		if (edge.type === "covered") return 0;
+        		return 1;
+        	}
+    		
     	}
-    	
-    	// Decide the weight for the edges based on type
-    	function edgeWeightDecider(edge) {
-    		if (edge.type === "covered") return 0;
-    		return 1;
-    	}
-		
-	}
+    }
+
 	// ======================= Create CFA and ARG Worker Listeners =======================
 	/**
 	 * Create workers using blobs due to Chrome's default security policy and 
 	 * the need of having a single file at the end that can be send i.e. via e-mail
 	 */
 	cfaWorker = new Worker(URL.createObjectURL(new Blob(["("+cfaWorker_function.toString()+")()"], {type: 'text/javascript'})));
-	argWorker = new Worker(URL.createObjectURL(new Blob(["("+argWorker_function.toString()+")()"], {type: "text/javascript"})));
+	if (argJson.nodes) {
+		argWorker = new Worker(URL.createObjectURL(new Blob(["("+argWorker_function.toString()+")()"], {type: "text/javascript"})));
+	}
 
 	cfaWorker.addEventListener("message", function(m) {
 		if (m.data.graph !== undefined) {
@@ -1377,7 +1405,11 @@ function init() {
 			if (cfaSplit) {
 				$("#renderStateModal").modal("hide");
 			} else {
-				argWorker.postMessage({"renderer" : "ready"});
+				if (!argTabDisabled) {
+					argWorker.postMessage({"renderer" : "ready"});
+				} else {
+					$("#renderStateModal").modal("hide");
+				}
 			}
 		}
 	}, false);
@@ -1389,65 +1421,69 @@ function init() {
 	// Initial postMessage to the CFA worker to trigger CFA graph(s) creation
 	cfaWorker.postMessage({"json" : JSON.stringify(cfaJson)});
 
-	argWorker.addEventListener('message', function(m) {
-		if (m.data.graph !== undefined) {
-			var id = "arg-graph" + m.data.id; 
-			var argClass = "arg-graph";
-			if (m.data.errorGraph !== undefined) {
-				id = "arg-error-graph" + m.data.id;
-				argClass = "arg-error-graph";
-				d3.select("#arg-modal-error").style("display", "inline");
-				$("#renderStateModal").modal("show");
-			}
-			var g = createGraph();
-			g = Object.assign(g, JSON.parse(m.data.graph));
-			d3.select("#arg-container").append("div").attr("id", id).attr("class", argClass);
-			var svg = d3.select("#" + id).append("svg").attr("id", "arg-svg" + id).attr("class", "arg-svg");
-			var svgGroup = svg.append("g");
-			render(d3.select("#arg-svg" + id + " g"), g);
-			// Center the graph - calculate svg.attributes
-			svg.attr("height", g.graph().height + margin * 2);
-			svg.attr("width", g.graph().width + margin * 10);
-			svgGroup.attr("transform", "translate(" + margin * 2 + ", " + margin + ")");
-			// FIXME: until https://github.com/cpettitt/dagre-d3/issues/169 is not resolved, label centering like so:
-			d3.selectAll(".arg-node tspan").each(function(d,i) {
-				d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
-			})
-			if (m.data.errorGraph !== undefined) {
-				$("#renderStateModal").modal("hide");
-				argWorker.postMessage({"errorGraph": true});
-			} else {
-				$("#arg-modal").text(parseInt($("#arg-modal").text().split("/")[0]) + 1 + "/" + $("#arg-modal").text().split("/")[1]);
-				argWorker.postMessage({"renderer" : "ready"});
-			}
-		} else if (m.data.status !== undefined) {
-			if ($("#report-controller").scope().getTabSet() === 2) {
-				d3.select("#arg-toolbar").style("visibility", "visible");
-				d3.select("#arg-container").classed("arg-content", true);
-				d3.selectAll(".arg-graph").style("visibility", "visible");
-				$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
-			}
-			addEventsToArg();
-			if (errorPath !== undefined) {
-				d3.selectAll("td.disabled").classed("disabled", false);
-				if (!d3.select(".make-pretty").classed("prettyprint")) {
-					d3.selectAll(".make-pretty").classed("prettyprint", true);
-					PR.prettyPrint();
+	// ONLY if ARG data is available
+	if (argJson.nodes) {
+		argWorker.addEventListener('message', function(m) {
+			if (m.data.graph !== undefined) {
+				var id = "arg-graph" + m.data.id; 
+				var argClass = "arg-graph";
+				if (m.data.errorGraph !== undefined) {
+					id = "arg-error-graph" + m.data.id;
+					argClass = "arg-error-graph";
+					d3.select("#arg-modal-error").style("display", "inline");
+					$("#renderStateModal").modal("show");
 				}
+				var g = createGraph();
+				g = Object.assign(g, JSON.parse(m.data.graph));
+				d3.select("#arg-container").append("div").attr("id", id).attr("class", argClass);
+				var svg = d3.select("#" + id).append("svg").attr("id", "arg-svg" + id).attr("class", "arg-svg");
+				var svgGroup = svg.append("g");
+				render(d3.select("#arg-svg" + id + " g"), g);
+				// Center the graph - calculate svg.attributes
+				svg.attr("height", g.graph().height + margin * 2);
+				svg.attr("width", g.graph().width + margin * 10);
+				svgGroup.attr("transform", "translate(" + margin * 2 + ", " + margin + ")");
+				// FIXME: until https://github.com/cpettitt/dagre-d3/issues/169 is not resolved, label centering like so:
+				d3.selectAll(".arg-node tspan").each(function(d,i) {
+					d3.select(this).attr("dx", Math.abs(d3.transform(d3.select(this.parentNode.parentNode).attr("transform")).translate[0]));
+				})
+				if (m.data.errorGraph !== undefined) {
+					addEventsToArg();
+					$("#renderStateModal").modal("hide");
+					argWorker.postMessage({"errorGraph": true});
+				} else {
+					$("#arg-modal").text(parseInt($("#arg-modal").text().split("/")[0]) + 1 + "/" + $("#arg-modal").text().split("/")[1]);
+					argWorker.postMessage({"renderer" : "ready"});
+				}
+			} else if (m.data.status !== undefined) {
+				if ($("#report-controller").scope().getTabSet() === 2) {
+					d3.select("#arg-toolbar").style("visibility", "visible");
+					d3.select("#arg-container").classed("arg-content", true);
+					d3.selectAll(".arg-graph").style("visibility", "visible");
+					$("#arg-container").scrollLeft(d3.select(".arg-svg").attr("width")/4);
+				}
+				addEventsToArg();
+				if (errorPath !== undefined) {
+					d3.selectAll("td.disabled").classed("disabled", false);
+					if (!d3.select(".make-pretty").classed("prettyprint")) {
+						d3.selectAll(".make-pretty").classed("prettyprint", true);
+						PR.prettyPrint();
+					}
+				}
+				$("#renderStateModal").modal("hide");
 			}
-			$("#renderStateModal").modal("hide");
+		}, false);
+		
+		argWorker.addEventListener("error", function(e) {
+			alert("ARG Worker failed in line " + e.lineno + " with message " + e.message)
+		}, false);
+		
+		// Initial postMessage to the ARG worker to trigger ARG graph(s) creation
+		if (errorPath !== undefined) {
+			argWorker.postMessage({"errorPath" : JSON.stringify(errorPath)});
 		}
-	}, false);
-	
-	argWorker.addEventListener("error", function(e) {
-		alert("ARG Worker failed in line " + e.lineno + " with message " + e.message)
-	}, false);
-	
-	// Initial postMessage to the ARG worker to trigger ARG graph(s) creation
-	if (errorPath !== undefined) {
-		argWorker.postMessage({"errorPath" : JSON.stringify(errorPath)});
+		argWorker.postMessage({"json" : JSON.stringify(argJson)});
 	}
-	argWorker.postMessage({"json" : JSON.stringify(argJson)});
 	
 	// create and return a graph element with a set transition
 	function createGraph() {
@@ -1482,10 +1518,13 @@ function init() {
 		}).on("mouseout", function() {
 			hideToolTipBox();
 		}).on("dblclick", function() {
+			if (!d3.select(".marked-cfa-node").empty()) {
+				d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
+			}
 			var selection = d3.select("#cfa-node" + d3.select(this).attr("id").split("-")[1]);
 			selection.classed("marked-cfa-node", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
 		})
 		d3.selectAll(".cfa-edge")
 			.on("mouseover", function(d) { 
@@ -1505,7 +1544,9 @@ function init() {
 				if (line === 0) {
 					line = 1;
 				}
-				d3.select(".marked-source-line").classed("marked-source-line", false);
+				if (!d3.select(".marked-source-line").empty()) {
+					d3.select(".marked-source-line").classed("marked-source-line", false);
+				}
 				var selection = d3.select("#source-" + line + " td pre.prettyprint");
 				selection.classed("marked-source-line", true);
 				$(".sourceContent").scrollTop(selection.node().getBoundingClientRect().top + $(".sourceContent").scrollTop() - 200);
@@ -1519,10 +1560,13 @@ function init() {
 				hideToolTipBox();
 			}).on("dblclick", function() {
 				var edgeSourceTarget = d3.select(this).attr("id").split("_")[1];
+				if (!d3.select(".marked-cfa-edge").empty()) {
+					d3.select(".marked-cfa-edge").classed("marked-cfa-edge", false);
+				}
 				var selection = d3.select("#cfa-edge_" + edgeSourceTarget.split("-")[0] + "-" + edgeSourceTarget.split("-")[1]);
 				selection.classed("marked-cfa-edge", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
+				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
 			})
 	}
 	
@@ -1565,10 +1609,13 @@ function init() {
 				hideToolTipBox(); 
 			}).on("dblclick", function() {
 				$("#set-tab-1").click();
+				if (!d3.select(".marked-cfa-node").empty()) {
+					d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
+				}
 				var selection = d3.select("#cfa-node" + d3.select(this).select("tspan").text().split("N")[1]);
 				selection.classed("marked-cfa-node", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - 280);
+				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
 			});
 		d3.selectAll(".arg-dummy")
 			.on("mouseover", function(d) {
@@ -1576,10 +1623,13 @@ function init() {
 			}).on("mouseout", function() {
 				hideToolTipBox();
 			}).on("dblclick", function() {
+				if (!d3.select(".marked-arg-node").empty()) {
+					d3.select(".marked-arg-node").classed("marked-arg-node", false);
+				}
 				var selection = d3.select("#arg-node" + d3.select(this).attr("id").split("-")[1]);
 				selection.classed("marked-arg-node", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 280);
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft());
 			});
 		d3.selectAll(".arg-edge")
 			.on("mouseover", function(d) {
@@ -1605,10 +1655,13 @@ function init() {
 				hideToolTipBox();
 			}).on("dblclick", function() {
 				var edgeSourceTarget = d3.select(this).attr("id").split("_")[1];
+				if (!d3.select(".marked-arg-edge").empty()) {
+					d3.select(".marked-arg-edge").classed("marked-arg-edge", false);
+				}
 				var selection = d3.select("#arg-edge" + edgeSourceTarget.split("-")[0] + edgeSourceTarget.split("-")[1]);
 				selection.classed("marked-arg-edge", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - 280);
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft());
 			});
 	}
 	

@@ -29,11 +29,11 @@ import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 
 /**
  * This class represents a simple Pair of an object and a state.
@@ -61,7 +61,6 @@ public abstract class SMGAbstractObjectAndState<T> {
   public String toString() {
     return object.toString() + " StateId: " + smgState.getId();
   }
-
 
   public static class SMGAddressValueAndState extends SMGValueAndState {
 
@@ -171,7 +170,6 @@ public abstract class SMGAbstractObjectAndState<T> {
   }
 
   public static class SMGAddressValueAndStateList extends SMGValueAndStateList {
-
 
     private SMGAddressValueAndStateList(List<SMGAddressValueAndState> pList) {
       super(ImmutableList.copyOf(pList));

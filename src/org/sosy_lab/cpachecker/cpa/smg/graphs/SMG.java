@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -39,14 +38,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class SMG {
@@ -419,11 +418,11 @@ public class SMG {
    * @return A set of Has-Value edges for which the criteria in p hold
    */
   final public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return Collections.unmodifiableSet(hv_edges.filter(pFilter));
+    return ImmutableSet.copyOf(pFilter.filter(hv_edges));
   }
 
   public Set<SMGEdgePointsTo> getPtEdges(SMGEdgePointsToFilter pFilter) {
-    return ImmutableSet.copyOf(pt_edges.filter(pFilter));
+    return ImmutableSet.copyOf(pFilter.filter(pt_edges));
   }
 
   public SMGPointsToEdges getPTEdges() {
@@ -505,15 +504,14 @@ public class SMG {
   public TreeMap<Integer, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
     Set<SMGEdgeHasValue> edges = hv_edges.getEdgesForObject(pObj);
     SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterHavingValue(SMG.NULL_ADDRESS);
-    edges = objectFilter.filterSet(edges);
 
     TreeMultimap<Integer, Integer> offsetToSize = TreeMultimap.create();
-    for (SMGEdgeHasValue edge : edges) {
+    for (SMGEdgeHasValue edge : objectFilter.filter(edges)) {
       offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
     }
 
     TreeMap<Integer, Integer> resultOffsetToSize = new TreeMap<>();
-    if (offsetToSize != null && !offsetToSize.isEmpty()) {
+    if (!offsetToSize.isEmpty()) {
       Iterator<Integer> offsetsIterator = offsetToSize.keySet().iterator();
       Integer resultOffset = offsetsIterator.next();
       Integer resultSize = offsetToSize.get(resultOffset).last();

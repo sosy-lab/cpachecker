@@ -276,8 +276,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       if (init != null) {
         final Region[] rhs = evaluateVectorExpression(partition, init, vdecl.getType(), cfaEdge.getSuccessor());
         newState = newState.addAssignment(var, rhs);
-        return newState;
       }
+
+      return newState;
     }
 
     return state; // if we know nothing, we return the old state

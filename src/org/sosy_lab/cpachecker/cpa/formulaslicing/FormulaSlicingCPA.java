@@ -49,7 +49,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     AutoCloseable {
 
   private final StopOperator stopOperator;
-  private final IFormulaSlicingManager manager;
+  private final FormulaSlicingManager manager;
   private final MergeOperator mergeOperator;
   private final InductiveWeakeningManager inductiveWeakeningManager;
   private final RCNFManager RCNFManager;

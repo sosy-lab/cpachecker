@@ -78,7 +78,10 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
+import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
+import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
@@ -124,10 +127,20 @@ class MainCPAStatistics implements Statistics {
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable PathTemplate cInvariantsPrefix = PathTemplate.ofFormatString("inv-%s");
 
+  @Option(
+    secure = true,
+    name = "coverage.enabled",
+    description = "Compute and export information about the verification coverage?"
+  )
+  private boolean exportCoverage = true;
+
+  @Option(secure = true, name = "coverage.file", description = "print coverage info to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path outputCoverageFile = Paths.get("coverage.info");
+
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final @Nullable MemoryStatistics memStats;
-  private final CoverageReport coverageReport;
   private final @Nullable CExpressionInvariantExporter cExpressionInvariantExporter;
   private Thread memStatsThread;
 
@@ -179,7 +192,6 @@ class MainCPAStatistics implements Statistics {
       programCpuTime = -1;
     }
 
-    coverageReport = new CoverageReport(pConfig, pLogger);
     if (cInvariantsExport && cInvariantsPrefix != null) {
       cExpressionInvariantExporter =
           new CExpressionInvariantExporter(pConfig, pLogger, pShutdownNotifier, cInvariantsPrefix);
@@ -272,8 +284,19 @@ class MainCPAStatistics implements Statistics {
 
       printSubStatistics(out, result, reached);
 
-      if (coverageReport != null && cfa != null) {
-        coverageReport.writeCoverageReport(out, reached, cfa);
+      if (exportCoverage && cfa != null) {
+        Map<String, FileCoverageInformation> infosPerFile =
+            CoverageCollector.fromReachedSet(reached, cfa).collectCoverage();
+
+        CoverageReportStdoutSummary.write(infosPerFile, out);
+        if (outputCoverageFile != null) {
+          try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
+            CoverageReportGcov.write(infosPerFile, gcovOut);
+          } catch (IOException e) {
+            logger.logUserException(
+                Level.WARNING, e, "Could not write coverage information to file");
+          }
+        }
       }
     }
 

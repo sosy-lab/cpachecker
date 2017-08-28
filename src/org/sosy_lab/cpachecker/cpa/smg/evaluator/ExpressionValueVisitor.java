@@ -60,13 +60,13 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -316,76 +316,77 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
     return SMGValueAndStateList.copyOf(result);
   }
 
-  private SMGValueAndStateList evaluateBinaryExpression(SMGSymbolicValue lVal, SMGSymbolicValue rVal, BinaryOperator binaryOperator, SMGState newState) throws SMGInconsistentException {
+  private SMGValueAndStateList evaluateBinaryExpression(SMGSymbolicValue lVal,
+      SMGSymbolicValue rVal, BinaryOperator binaryOperator, SMGState newState)
+      throws SMGInconsistentException {
 
     if (lVal.equals(SMGUnknownValue.getInstance()) || rVal.equals(SMGUnknownValue.getInstance())) {
       return SMGValueAndStateList.of(newState);
     }
 
     switch (binaryOperator) {
-    case PLUS:
-    case MINUS:
-    case DIVIDE:
-    case MULTIPLY:
-    case SHIFT_LEFT:
-    case MODULO:
-    case SHIFT_RIGHT:
-    case BINARY_AND:
-    case BINARY_OR:
-    case BINARY_XOR: {
-
-      boolean isZero;
-
-      switch (binaryOperator) {
       case PLUS:
-      case SHIFT_LEFT:
-      case BINARY_OR:
-      case BINARY_XOR:
-      case SHIFT_RIGHT:
-        isZero = lVal.equals(SMGKnownSymValue.ZERO) && rVal.equals(SMGKnownSymValue.ZERO);
-        SMGSymbolicValue val = (isZero) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-        return SMGValueAndStateList.of(newState, val);
-
       case MINUS:
-      case MODULO:
-        isZero = (lVal.equals(rVal));
-        val = (isZero) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-        return SMGValueAndStateList.of(newState, val);
-
       case DIVIDE:
-        // TODO maybe we should signal a division by zero error?
-        if (rVal.equals(SMGKnownSymValue.ZERO)) {
-          return SMGValueAndStateList.of(newState);
-        }
-
-        isZero = lVal.equals(SMGKnownSymValue.ZERO);
-        val = (isZero) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-        return SMGValueAndStateList.of(newState, val);
-
       case MULTIPLY:
+      case SHIFT_LEFT:
+      case MODULO:
+      case SHIFT_RIGHT:
       case BINARY_AND:
-        isZero = lVal.equals(SMGKnownSymValue.ZERO)
-            || rVal.equals(SMGKnownSymValue.ZERO);
-        val = (isZero) ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
-        return SMGValueAndStateList.of(newState, val);
+      case BINARY_OR:
+      case BINARY_XOR: {
 
-      default:
-        throw new AssertionError();
+        boolean isZero;
+
+        switch (binaryOperator) {
+          case PLUS:
+          case SHIFT_LEFT:
+          case BINARY_OR:
+          case BINARY_XOR:
+          case SHIFT_RIGHT:
+            isZero = lVal.equals(SMGKnownSymValue.ZERO) && rVal.equals(SMGKnownSymValue.ZERO);
+            SMGSymbolicValue val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+            return SMGValueAndStateList.of(newState, val);
+
+          case MINUS:
+          case MODULO:
+            isZero = (lVal.equals(rVal));
+            val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+            return SMGValueAndStateList.of(newState, val);
+
+          case DIVIDE:
+            // TODO maybe we should signal a division by zero error?
+            if (rVal.equals(SMGKnownSymValue.ZERO)) {
+              return SMGValueAndStateList.of(newState);
+            }
+
+            isZero = lVal.equals(SMGKnownSymValue.ZERO);
+            val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+            return SMGValueAndStateList.of(newState, val);
+
+          case MULTIPLY:
+          case BINARY_AND:
+            isZero = lVal.equals(SMGKnownSymValue.ZERO)
+                || rVal.equals(SMGKnownSymValue.ZERO);
+            val = isZero ? SMGKnownSymValue.ZERO : SMGUnknownValue.getInstance();
+            return SMGValueAndStateList.of(newState, val);
+
+          default:
+            throw new AssertionError();
+        }
       }
-    }
 
-    case EQUALS:
-    case NOT_EQUALS:
-    case GREATER_THAN:
-    case GREATER_EQUAL:
-    case LESS_THAN:
-    case LESS_EQUAL: {
+      case EQUALS:
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_EQUAL:
+      case LESS_THAN:
+      case LESS_EQUAL: {
 
-      AssumeVisitor v = smgExpressionEvaluator.getAssumeVisitor(getCfaEdge(), newState);
+        AssumeVisitor v = smgExpressionEvaluator.getAssumeVisitor(getCfaEdge(), newState);
 
-
-
-        SMGValueAndStateList assumptionValueAndStates = v.evaluateBinaryAssumption(newState, binaryOperator, lVal, rVal);
+        SMGValueAndStateList assumptionValueAndStates =
+            v.evaluateBinaryAssumption(newState, binaryOperator, lVal, rVal);
 
         List<SMGValueAndState> result = new ArrayList<>(2);
 
@@ -394,8 +395,7 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
           SMGSymbolicValue assumptionVal = assumptionValueAndState.getObject();
 
           if (assumptionVal == SMGKnownSymValue.FALSE) {
-            SMGValueAndState resultValueAndState =
-                SMGValueAndState.of(newState, SMGKnownSymValue.ZERO);
+            SMGValueAndState resultValueAndState = SMGValueAndState.of(newState, SMGKnownSymValue.ZERO);
             result.add(resultValueAndState);
           } else {
             result.add(SMGValueAndState.of(newState));
@@ -403,10 +403,10 @@ public class ExpressionValueVisitor extends DefaultCExpressionVisitor<SMGValueAn
         }
 
         return SMGValueAndStateList.copyOf(result);
-    }
+      }
 
-    default:
-      return SMGValueAndStateList.of(getInitialSmgState());
+      default:
+        return SMGValueAndStateList.of(getInitialSmgState());
     }
   }
 

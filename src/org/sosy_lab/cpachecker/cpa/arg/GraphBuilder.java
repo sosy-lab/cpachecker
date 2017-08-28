@@ -75,6 +75,10 @@ public enum GraphBuilder {
       int multiEdgeCount = 0;
       for (Pair<ARGState, Iterable<ARGState>> argEdges : pARGEdges) {
         ARGState s = argEdges.getFirst();
+        if (!s.equals(pRootState)
+            && !s.getParents().stream().anyMatch(p -> pIsRelevantEdge.apply(Pair.of(p, s)))) {
+          continue;
+        }
         String sourceStateNodeId = getId(s);
 
         // Process child states
@@ -125,6 +129,23 @@ public enum GraphBuilder {
             // Child belongs to the path!
             pEdgeAppender.appendNewEdge(
                 prevStateId, childStateId, edgeToNextState, state, pValueMap);
+            // For branchings, it is important to have both branches explicitly in the witness
+            if (edgeToNextState instanceof AssumeEdge) {
+              AssumeEdge assumeEdge = (AssumeEdge) edgeToNextState;
+              AssumeEdge siblingEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
+              boolean addArtificialSinkEdge = true;
+              for (ARGState sibling : s.getChildren()) {
+                if (sibling != child && s.getEdgeToChild(sibling).equals(siblingEdge)) {
+                  addArtificialSinkEdge = false;
+                  break;
+                }
+              }
+              if (addArtificialSinkEdge) {
+                // Child does not belong to the path --> add a branch to the SINK node!
+                pEdgeAppender.appendNewEdgeToSink(
+                    prevStateId, siblingEdge, state, pValueMap);
+              }
+            }
           } else {
             // Child does not belong to the path --> add a branch to the SINK node!
             pEdgeAppender.appendNewEdgeToSink(
@@ -182,15 +203,17 @@ public enum GraphBuilder {
         for (CFAEdge leavingEdge : CFAUtils.leavingEdges(current)) {
           CFANode successor = leavingEdge.getSuccessor();
           final Collection<ARGState> locationStates;
+          boolean tryAddToWaitlist = false;
           if (subProgramNodes.contains(successor)) {
             locationStates = states.get(successor);
-            if (visited.add(successor)) {
-              waitlist.offer(successor);
-            }
+            tryAddToWaitlist = true;
           } else {
             locationStates = Collections.<ARGState>emptySet();
           }
-          appendEdge(pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
+          boolean appended = appendEdge(pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
+          if (tryAddToWaitlist && appended && visited.add(successor)) {
+            waitlist.offer(successor);
+          }
         }
       }
     }
@@ -276,7 +299,7 @@ public enum GraphBuilder {
 
   };
 
-  private static void appendEdge(
+  private static boolean appendEdge(
       EdgeAppender pEdgeAppender,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pStates,
@@ -286,7 +309,9 @@ public enum GraphBuilder {
     String targetId = pEdge.getSuccessor().toString();
     if (!(pEdge instanceof CFunctionSummaryStatementEdge)) {
       pEdgeAppender.appendNewEdge(sourceId, targetId, pEdge, pStates, pValueMap);
+      return true;
     }
+    return false;
   }
 
   public abstract String getId(ARGState pState);

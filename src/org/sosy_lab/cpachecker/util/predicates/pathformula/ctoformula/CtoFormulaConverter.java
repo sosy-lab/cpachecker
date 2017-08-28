@@ -415,7 +415,7 @@ public class CtoFormulaConverter {
    * This method does not handle scoping!
    */
   protected Formula makeConstant(String name, CType type) {
-    return fmgr.makeVariable(getFormulaTypeFromCType(type), name);
+    return fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name);
   }
 
   /**
@@ -783,6 +783,15 @@ public class CtoFormulaConverter {
       return new CFloatLiteralExpression(e.getFileLocation(), targetType,
           floatValue.asNumericValue().bigDecimalValue());
     }
+
+    if (e instanceof CFloatLiteralExpression) {
+      NumericValue floatValue = new NumericValue(((CFloatLiteralExpression)e).getValue());
+      if (negative) {
+        floatValue = floatValue.negate();
+      }
+      return new CFloatLiteralExpression(e.getFileLocation(), targetType, floatValue.asNumericValue().bigDecimalValue());
+    }
+
     return pExp;
   }
 
@@ -1430,13 +1439,15 @@ public class CtoFormulaConverter {
 
   /**
    * Parameters not used in {@link CtoFormulaConverter}, may be in subclasses they are.
+   *
    * @param pts1 the first PointerTargetset
    * @param pts2 the second PointerTargetset
-   * @param resultSSA the SSAMapBuilder to use
+   * @param ssa the SSAMap to use
    * @throws InterruptedException may be thrown in subclasses
    */
-  public MergeResult<PointerTargetSet> mergePointerTargetSets(final PointerTargetSet pts1,
-      final PointerTargetSet pts2, final SSAMapBuilder resultSSA) throws InterruptedException {
+  public MergeResult<PointerTargetSet> mergePointerTargetSets(
+      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMap ssa)
+      throws InterruptedException {
     return MergeResult.trivial(pts1, bfmgr);
   }
 

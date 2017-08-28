@@ -40,12 +40,12 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -58,12 +58,13 @@ public class SMGBuiltins {
   private final SMGExportDotOption exportSMGOptions;
   private final SMGOptions options;
 
-  SMGBuiltins(SMGTransferRelation pSmgTransferRelation) {
+  SMGBuiltins(SMGTransferRelation pSmgTransferRelation, SMGOptions pOptions,
+      SMGExportDotOption pExportSMGOptions, MachineModel pMachineModel, LogManager pLogger) {
     smgTransferRelation = pSmgTransferRelation;
-    machineModel = pSmgTransferRelation.machineModel;
-    logger = pSmgTransferRelation.logger;
-    exportSMGOptions = pSmgTransferRelation.exportSMGOptions;
-    options = pSmgTransferRelation.options;
+    machineModel = pMachineModel;
+    logger = pLogger;
+    exportSMGOptions = pExportSMGOptions;
+    options = pOptions;
   }
 
   private static final int MEMSET_BUFFER_PARAMETER = 0;
@@ -425,7 +426,7 @@ public class SMGBuiltins {
           allocation_label);
 
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
-        currentState = smgTransferRelation.writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size * smgTransferRelation.machineModel.getSizeofCharInBits()),
+        currentState = smgTransferRelation.writeValue(currentState, new_address.getObject(), 0, AnonymousTypes.createTypeWithLength(size * machineModel.getSizeofCharInBits()),
             SMGKnownSymValue.ZERO, cfaEdge);
       }
       smgTransferRelation.possibleMallocFail = true;

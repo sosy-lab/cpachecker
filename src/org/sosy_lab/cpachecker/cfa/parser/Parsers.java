@@ -68,12 +68,6 @@ public class Parsers {
 
     @Option(
       secure = true,
-      description = "Allow then/else branches to be swapped in order to obtain simpler conditions."
-    )
-    private boolean allowBranchSwapping = true;
-
-    @Option(
-      secure = true,
       description =
           "simplify pointer expressions like s->f to (*s).f with this option "
               + "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide"
@@ -89,10 +83,6 @@ public class Parsers {
 
     public boolean showDeadCode() {
       return showDeadCode;
-    }
-
-    public boolean allowBranchSwapping() {
-      return allowBranchSwapping;
     }
 
     public boolean simplifyPointerExpressions() {

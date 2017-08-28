@@ -25,32 +25,11 @@ package org.sosy_lab.cpachecker.util.coverage;
 
 import java.io.PrintStream;
 import java.util.Map;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
-@Options
-class CoverageReportStdoutSummary implements CoverageWriter {
+public class CoverageReportStdoutSummary {
 
-  @Option(secure=true,
-      name="coverage.stdout",
-      description="print coverage summary to stdout")
-  private boolean enabled = true;
-
-  public CoverageReportStdoutSummary(Configuration pConfig) throws InvalidConfigurationException {
-    pConfig.inject(this);
-  }
-
-  @Override
-  public void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut) {
-
-    if (!enabled) {
-      return;
-    }
-
+  public static void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut) {
     long numTotalConditions = 0;
     long numTotalFunctions = 0;
     long numTotalLines = 0;

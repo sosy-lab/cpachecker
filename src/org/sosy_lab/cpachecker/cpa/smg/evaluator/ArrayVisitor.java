@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -56,14 +56,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 class ArrayVisitor extends AddressVisitor
     implements CRightHandSideVisitor<List<SMGAddressAndState>, CPATransferException> {
 
-
   public ArrayVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     super(pSmgExpressionEvaluator, pEdge, pSmgState);
-  }
-
-  @Override
-  protected List<SMGAddressAndState> visitDefault(CExpression exp) {
-    return SMGAddressAndState.listOf(getInitialSmgState());
   }
 
   @Override
@@ -100,9 +94,9 @@ class ArrayVisitor extends AddressVisitor
       addressType = rVarInBinaryExpType;
     } else {
       throw new UnrecognizedCCodeException("Expected either "
-    + lVarInBinaryExp.toASTString() + " or "
-    + rVarInBinaryExp.toASTString() +
-    "to be a pointer to an array.", binaryExp);
+          + lVarInBinaryExp.toASTString() + " or "
+          + rVarInBinaryExp.toASTString() +
+          "to be a pointer to an array.", binaryExp);
     }
 
     // a = &a[0]
@@ -166,7 +160,7 @@ class ArrayVisitor extends AddressVisitor
   }
 
   @Override
-  public List<SMGAddressAndState> visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
-    return SMGAddressAndState.listOf(getInitialSmgState());
+  public List<SMGAddressAndState> visit(CFunctionCallExpression pIastFunctionCallExpression) {
+    return visitDefault(pIastFunctionCallExpression);
   }
 }

@@ -48,7 +48,7 @@ public class LValueAssignmentVisitor extends AddressVisitor {
   }
 
   @Override
-  public List<SMGAddressAndState> visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
-    throw new AssertionError("This expression is not a lValue expression.");
+  public List<SMGAddressAndState> visit(CFunctionCallExpression lValue) throws CPATransferException {
+    throw new UnrecognizedCCodeException(lValue.toASTString() + " is not a lValue", getCfaEdge(), lValue);
   }
 }

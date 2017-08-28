@@ -107,7 +107,7 @@ public final class ConcreteState {
     variableAddressMap = ImmutableMap.of();
     allocatedMemory = ImmutableMap.of();
     variables = ImmutableMap.of();
-    memoryNameAllocator = (pExp, pAddress) -> "";
+    memoryNameAllocator = (pExp) -> "";
 
     analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
   }
@@ -122,7 +122,7 @@ public final class ConcreteState {
    */
   public Object getValueFromMemory(CRightHandSide exp, Address address) {
 
-    String memoryName = memoryNameAllocator.getMemoryName(exp, address);
+    String memoryName = memoryNameAllocator.getMemoryName(exp);
 
     if (!allocatedMemory.containsKey(memoryName)) {
       return null;
@@ -187,7 +187,7 @@ public final class ConcreteState {
    * @param variable check the concrete address of this variable.
    * @return true, if the given variable has a concrete address, false otherwise.
    */
-  public boolean hasAddressOfVaribable(LeftHandSide variable) {
+  public boolean hasAddressOfVariable(LeftHandSide variable) {
     return variableAddressMap.containsKey(variable);
   }
 

@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -110,10 +110,10 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
 
     NumberInterface value = super.visit(binaryExp);
 
-    if (value.isUnknown() && isPointerComparison(binaryExp)) {
+    if (value.isUnknown() && binaryExp.getOperator().isLogicalOperator()) {
       /* We may be able to get an explicit Value from pointer comaprisons. */
 
-      SMGValueAndStateList symValueAndStates = null;
+      SMGValueAndStateList symValueAndStates;
 
       try {
         symValueAndStates = smgExpressionEvaluator.evaluateAssumptionValue(smgState, edge, binaryExp);
@@ -124,7 +124,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
         throw e2;
       }
 
-      SMGValueAndState symValueAndState = null;
+      SMGValueAndState symValueAndState;
 
       if (symValueAndStates.size() > 0) {
         symValueAndState = symValueAndStates.getValueAndStateList().get(0);
@@ -149,22 +149,6 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     return value;
   }
 
-  private boolean isPointerComparison(CBinaryExpression pE) {
-
-    switch (pE.getOperator()) {
-    case EQUALS:
-    case LESS_EQUAL:
-    case GREATER_EQUAL:
-    case GREATER_THAN:
-    case LESS_THAN:
-    case NOT_EQUALS:
-      //TODO Check, if one of the two operand types is expressed as pointer, e.g. pointer, struct, array, etc
-      return true;
-      default :
-        return false;
-    }
-  }
-
   @Override
   protected NumberInterface evaluateCPointerExpression(CPointerExpression pCPointerExpression)
       throws UnrecognizedCCodeException {
@@ -174,8 +158,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   private NumberInterface evaluateLeftHandSideExpression(CLeftHandSide leftHandSide)
       throws UnrecognizedCCodeException {
 
-    SMGValueAndStateList valueAndStates = null;
-
+    SMGValueAndStateList valueAndStates;
     try {
       valueAndStates = smgExpressionEvaluator.evaluateExpressionValue(smgState, edge, leftHandSide);
     } catch (CPATransferException e) {
@@ -185,8 +168,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       throw e2;
     }
 
-    SMGValueAndState valueAndState = null;
-
+    SMGValueAndState valueAndState;
     if (valueAndStates.size() > 0) {
       valueAndState = valueAndStates.getValueAndStateList().get(0);
     } else {
@@ -201,7 +183,6 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     smgState = valueAndState.getSmgState();
 
     SMGExplicitValue expValue = getExplicitValue(value);
-
     if (expValue.isUnknown()) {
       return NumberInterface.UnknownValue.getInstance();
     } else {
@@ -229,5 +210,4 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       throws UnrecognizedCCodeException {
     return evaluateLeftHandSideExpression(pLValue);
   }
-
 }

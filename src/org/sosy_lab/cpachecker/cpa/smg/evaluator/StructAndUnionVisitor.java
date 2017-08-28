@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
@@ -54,7 +54,7 @@ class StructAndUnionVisitor extends AddressVisitor
 
   @Override
   public List<SMGAddressAndState> visit(CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
-    return SMGAddressAndState.listOf(getInitialSmgState());
+    return visitDefault(pIastFunctionCallExpression);
   }
 
   @Override
@@ -64,8 +64,7 @@ class StructAndUnionVisitor extends AddressVisitor
       return cast.getOperand().accept(this);
     } else {
       //TODO cast reinterpretation
-      return SMGAddressAndState.listOf(getInitialSmgState());
+      return visitDefault(cast);
     }
-
   }
 }

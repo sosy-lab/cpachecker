@@ -31,6 +31,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
@@ -844,8 +845,18 @@ public class FormulaManagerView {
         makeLessOrEqual(start, term, signed), makeLessOrEqual(term, end, signed));
   }
 
+  /** Create a variable with an SSA index. */
   public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name, int idx) {
     return makeVariable(formulaType, makeName(name, idx));
+  }
+
+  /**
+   * Create a variable that should never get an SSA index, even when calling {@link
+   * #instantiate(Formula, SSAMap)}.
+   */
+  public <T extends Formula> T makeVariableWithoutSSAIndex(
+      FormulaType<T> formulaType, String name) {
+    return makeVariable(formulaType, makeNameNoIndex(name));
   }
 
   public IntegerFormulaManagerView getIntegerFormulaManager() {
@@ -917,40 +928,55 @@ public class FormulaManagerView {
   }
 
   // the character for separating name and index of a value
-  private static final String INDEX_SEPARATOR = "@";
+  private static final char INDEX_SEPARATOR = '@';
+  private static final Splitter INDEX_SPLITTER = Splitter.on(INDEX_SEPARATOR);
 
   static String makeName(String name, int idx) {
-    assert !name.contains(INDEX_SEPARATOR)
-        : "Instantiating already instantiated variable " + name + " with index " + idx;
-    if (idx < 0) {
-      return name;
-    }
+    checkArgument(
+        name.indexOf(INDEX_SEPARATOR) == -1,
+        "Instantiating already instantiated variable %s with index %s",
+        name,
+        idx);
+    checkArgument(idx >= 0, "Invalid index %s for variable %s", idx, name);
     return name + INDEX_SEPARATOR + idx;
+  }
+
+  static String makeNameNoIndex(String name) {
+    checkArgument(
+        name.indexOf(INDEX_SEPARATOR) == -1, "Variable with forbidden symbol '@': %s", name);
+    return name + INDEX_SEPARATOR;
   }
 
 
   /**
-   * (Re-)instantiate the variables in pF with the SSA indices in pSsa.
-   *
-   * Existing instantiations are REPLACED by the
-   * indices that are provided in the SSA map!
+   * Instantiate the variables in pF with the SSA indices in pSsa. Already instantiated variables
+   * are not allowed in the formula.
    */
   public <F extends Formula> F instantiate(F pF, final SSAMap pSsa) {
-    return wrap(getFormulaType(pF),
-        myFreeVariableNodeTransformer(unwrap(pF), new HashMap<>(),
+    return wrap(
+        getFormulaType(pF),
+        myFreeVariableNodeTransformer(
+            unwrap(pF),
+            new HashMap<>(),
             pFullSymbolName -> {
-              final Pair<String, OptionalInt> indexedSymbol = parseName(pFullSymbolName);
-              final int reInstantiateWithIndex = pSsa.getIndex(indexedSymbol.getFirst());
+              int sepPos = pFullSymbolName.indexOf(INDEX_SEPARATOR);
+              if (sepPos == pFullSymbolName.length() - 1) {
+                // variable should never be instantiated
+                // TODO check no index in SSAMap
+                return pFullSymbolName;
+              } else if (sepPos != -1) {
+                throw new IllegalArgumentException(
+                    "already instantiated variable " + pFullSymbolName + " in formula");
+              }
+              final int reInstantiateWithIndex = pSsa.getIndex(pFullSymbolName);
 
               if (reInstantiateWithIndex > 0) {
-                // OK, the variable has ALREADY an instance in the SSA, REPLACE it
-                return makeName(indexedSymbol.getFirst(), reInstantiateWithIndex);
+                return makeName(pFullSymbolName, reInstantiateWithIndex);
               } else {
-                // the variable is not used in the SSA, keep it as is
+                // TODO throw exception
                 return pFullSymbolName;
               }
-            })
-        );
+            }));
   }
 
   // various caches for speeding up expensive tasks
@@ -966,11 +992,17 @@ public class FormulaManagerView {
    * @throws IllegalArgumentException thrown if the given name is invalid
    */
   public static Pair<String, OptionalInt> parseName(final String name) {
-    String[] s = name.split(INDEX_SEPARATOR);
-    if (s.length == 2) {
-      return Pair.of(s[0], OptionalInt.of(Integer.parseInt(s[1])));
-    } else if (s.length == 1) {
-      return Pair.of(s[0], OptionalInt.empty());
+    checkArgument(name.length() > 0, "Invalid empty name");
+    List<String> parts = INDEX_SPLITTER.splitToList(name);
+    if (parts.size() == 2) {
+      if (parts.get(1).isEmpty()) {
+        // Variable name ending in @ marks variables that should not be instantiated
+        return Pair.of(parts.get(0), OptionalInt.empty());
+      }
+      return Pair.of(parts.get(0), OptionalInt.of(Integer.parseInt(parts.get(1))));
+    } else if (parts.size() == 1) {
+      // TODO throw exception after forbidding such variable names
+      return Pair.of(parts.get(0), OptionalInt.empty());
     } else {
       throw new IllegalArgumentException("Not an instantiated variable nor constant: " + name);
     }
@@ -992,10 +1024,15 @@ public class FormulaManagerView {
    * @return    Uninstantiated formula
    */
   public <F extends Formula> F uninstantiate(F f) {
-    return wrap(getFormulaType(f),
-        myFreeVariableNodeTransformer(unwrap(f), uninstantiateCache,
-            pArg0 -> parseName(pArg0).getFirst())
-        );
+    return wrap(
+        getFormulaType(f),
+        myFreeVariableNodeTransformer(
+            unwrap(f),
+            uninstantiateCache,
+            pArg0 ->
+                pArg0.charAt(pArg0.length() - 1) == INDEX_SEPARATOR
+                    ? pArg0
+                    : parseName(pArg0).getFirst()));
   }
 
   /**

@@ -348,7 +348,11 @@ public class LassoBuilder {
 
       if (pRelevantVariables.get(variableName) != null) {
         rankVars.put(
-            new RankVar(variableName, pRelevantVariables.get(variableName).isGlobal(), term), term);
+            new RankVar(
+                variableName,
+                pRelevantVariables.get(variableName).isGlobal(),
+                fmgr.extractInfo(uninstantiatedVariable)),
+            term);
 
       } else if (substitution.containsValue(variable)) {
         Formula originalFormula =

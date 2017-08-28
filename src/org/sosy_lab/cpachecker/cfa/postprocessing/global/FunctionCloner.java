@@ -192,7 +192,7 @@ class FunctionCloner implements CFAVisitor {
       case AssumeEdge: {
         if (edge instanceof CAssumeEdge) {
           final CAssumeEdge e = (CAssumeEdge) edge;
-          newEdge = new CAssumeEdge(rawStatement, loc, start, end, cloneAst(e.getExpression()), e.getTruthAssumption());
+          newEdge = new CAssumeEdge(rawStatement, loc, start, end, cloneAst(e.getExpression()), e.getTruthAssumption(), e.isSwapped());
         } else {
           throw new AssertionError(ONLY_C_SUPPORTED);
         }
@@ -626,14 +626,14 @@ class FunctionCloner implements CFAVisitor {
         for (CParameterDeclaration param : ((CFunctionTypeWithNames)type).getParameterDeclarations()) {
           l.add(cloneAst(param));
         }
-        funcType = new CFunctionTypeWithNames(type.isConst(), type.isVolatile(), type.getReturnType(), l, type.takesVarArgs());
+        funcType = new CFunctionTypeWithNames(type.getReturnType(), l, type.takesVarArgs());
       } else {
         assert type.getClass() == CFunctionType.class;
         List<CType> l = new ArrayList<>(type.getParameters().size());
         for (CType param : type.getParameters()) {
           l.add(cloneType(param));
         }
-        funcType = new CFunctionType(type.isConst(), type.isVolatile(), type.getReturnType(), l, type.takesVarArgs());
+        funcType = new CFunctionType(type.getReturnType(), l, type.takesVarArgs());
       }
       if (type.getName() != null) {
         funcType.setName(changeName(type.getName()));

@@ -440,7 +440,11 @@ public class CPAMain {
     try {
       parser.parse();
     } catch (InvalidPropertyFileException e) {
-      throw new InvalidCmdlineArgumentException("Invalid property file: " + e.getMessage(), e);
+      throw new InvalidCmdlineArgumentException(
+          String.format("Invalid property file '%s': %s", propertyFile, e.getMessage()), e);
+    } catch (IOException e) {
+      throw new InvalidCmdlineArgumentException(
+          "Could not read property file: " + e.getMessage(), e);
     }
 
     // set the file from where to read the specification automaton

@@ -12,8 +12,10 @@
   <resultfiles>**.graphml.gz</resultfiles>
 
   <rundefinition name="witness-generation">
-    <option name="-sv-comp16"/>
+    <option name="-sv-comp17"/>
   </rundefinition>
+
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
 
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>

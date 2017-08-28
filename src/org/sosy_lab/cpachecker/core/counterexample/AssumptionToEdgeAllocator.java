@@ -160,7 +160,7 @@ public class AssumptionToEdgeAllocator {
 
   @Option(secure=true, description=
       "Whether or not to include concrete address values.")
-  private boolean includeConstantsForPointers = true;
+  private boolean includeConstantsForPointers = false;
 
   /**
    * Creates an instance of the allocator that takes an {@link CFAEdge} edge
@@ -397,7 +397,8 @@ public class AssumptionToEdgeAllocator {
         return Collections.emptyList();
       }
       CFAEdge enteringEdge = predecessor.getEnteringEdge(0);
-      if (!AutomatonGraphmlCommon.handleAsEpsilonEdge(enteringEdge)) {
+      if (!AutomatonGraphmlCommon.handleAsEpsilonEdge(enteringEdge)
+          && !AutomatonGraphmlCommon.isMainFunctionEntry(enteringEdge)) {
         return Collections.emptyList();
       }
       predecessor = enteringEdge.getPredecessor();
@@ -920,7 +921,7 @@ public class AssumptionToEdgeAllocator {
 
         IDExpression name = getIDExpression(dcl);
 
-        if (concreteState.hasAddressOfVaribable(name)) {
+        if (concreteState.hasAddressOfVariable(name)) {
           return concreteState.getVariableAddress(name);
         }
 
@@ -997,7 +998,7 @@ public class AssumptionToEdgeAllocator {
         FieldReference fieldReferenceName = getFieldReference(pIastFieldReference, functionName);
 
         if (fieldReferenceName != null) {
-          if (concreteState.hasAddressOfVaribable(fieldReferenceName)) {
+          if (concreteState.hasAddressOfVariable(fieldReferenceName)) {
             return concreteState.getVariableAddress(fieldReferenceName);
           }
         }

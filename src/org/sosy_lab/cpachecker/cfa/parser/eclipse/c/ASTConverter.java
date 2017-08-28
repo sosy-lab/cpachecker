@@ -87,6 +87,7 @@ import org.eclipse.cdt.core.dom.ast.IBasicType.Kind;
 import org.eclipse.cdt.core.dom.ast.IPointerType;
 import org.eclipse.cdt.core.dom.ast.IProblemType;
 import org.eclipse.cdt.core.dom.ast.c.ICASTArrayDesignator;
+import org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer;
 import org.eclipse.cdt.core.dom.ast.c.ICASTDesignator;
 import org.eclipse.cdt.core.dom.ast.c.ICASTFieldDesignator;
@@ -94,6 +95,7 @@ import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
 import org.sosy_lab.common.log.LogManager;
@@ -1570,17 +1572,22 @@ class ASTConverter {
 
       // We need to resolve typedefs, but we cannot call getCanonicalType()
       // because we need to leave the parameter types unchanged.
-      while (type instanceof CTypedefType) {
-        type = ((CTypedefType)type).getRealType();
+      CType innerType = type;
+      while (innerType instanceof CTypedefType) {
+        innerType = ((CTypedefType)innerType).getRealType();
       }
-      if (type instanceof CFunctionType) {
+      if (innerType instanceof CFunctionType) {
         if (initializer != null) {
           throw parseContext.parseError("Function definition with initializer", d);
         }
 
+        // Note that this silently ignores const and volatile qualifiers
+        // for typedefs of function types, but this is ok because const or volatile functions
+        // are undefined behavior anyway (C11 §6.7.3 (9)).
+
         List<CParameterDeclaration> params;
 
-        CFunctionType functionType = (CFunctionType)type;
+        CFunctionType functionType = (CFunctionType)innerType;
         if (functionType instanceof CFunctionTypeWithNames) {
           params = ((CFunctionTypeWithNames)functionType).getParameterDeclarations();
         } else {
@@ -1599,7 +1606,7 @@ class ASTConverter {
       if (cStorageClass == CStorageClass.EXTERN && initializer != null) {
         throw parseContext.parseError("Extern declarations cannot have initializers", d);
       }
-      if (cStorageClass != CStorageClass.EXTERN && type instanceof CVoidType) {
+      if (cStorageClass != CStorageClass.EXTERN && innerType instanceof CVoidType) {
         throw parseContext.parseError("Variable cannot have type void", d);
       }
 
@@ -1723,7 +1730,7 @@ class ASTConverter {
 
   private Triple<CType, IASTInitializer, String> convert(IASTDeclarator d, CType specifier) {
     while (d != null
-        && d.getClass() == org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator.class
+        && d.getClass() == CASTDeclarator.class
         && d.getPointerOperators().length == 0
         && d.getAttributes().length == 0
         && d.getAttributeSpecifiers().length == 0
@@ -1928,8 +1935,8 @@ class ASTConverter {
   }
 
   private CType convert(IASTArrayModifier am, CType type) {
-    if (am instanceof org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier) {
-      org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier a = (org.eclipse.cdt.core.dom.ast.c.ICASTArrayModifier)am;
+    if (am instanceof ICASTArrayModifier) {
+      ICASTArrayModifier a = (ICASTArrayModifier)am;
       CExpression lengthExp = convertExpressionWithoutSideEffects(a.getConstantExpression());
       if (lengthExp != null) {
         lengthExp = simplifyExpressionRecursively(lengthExp);
@@ -1964,8 +1971,8 @@ class ASTConverter {
     // handle parameters
     List<CParameterDeclaration> paramsList = convert(sd.getParameters());
 
-    // TODO constant and volatile
-    CFunctionTypeWithNames fType = new CFunctionTypeWithNames(false, false, returnType, paramsList, sd.takesVarArgs());
+    CFunctionTypeWithNames fType =
+        new CFunctionTypeWithNames(returnType, paramsList, sd.takesVarArgs());
     CType type = fType;
 
     String name;
@@ -2161,14 +2168,14 @@ class ASTConverter {
       return convert((IASTInitializerList)i, declaration);
     } else if (i instanceof IASTEqualsInitializer) {
       return convert((IASTEqualsInitializer)i, declaration);
-    } else if (i instanceof org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer) {
-      return convert((org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer)i, declaration);
+    } else if (i instanceof ICASTDesignatedInitializer) {
+      return convert((ICASTDesignatedInitializer)i, declaration);
     } else {
       throw parseContext.parseError("unknown initializer: " + i.getClass().getSimpleName(), i);
     }
   }
 
-  private CInitializer convert(org.eclipse.cdt.core.dom.ast.c.ICASTDesignatedInitializer init, @Nullable CVariableDeclaration declaration) {
+  private CInitializer convert(ICASTDesignatedInitializer init, @Nullable CVariableDeclaration declaration) {
     ICASTDesignator[] desInit = init.getDesignators();
 
     CInitializer cInit = convert(init.getOperand(), declaration);
@@ -2231,7 +2238,7 @@ class ASTConverter {
       } else if (initializer instanceof CFunctionCallExpression) {
         FileLocation loc = getLocation(i);
 
-        if (declaration != null) {
+        if (declaration != null && !declaration.getType().getCanonicalType().isConst()) {
           // This is a variable declaration like "int i = f();"
           // We can replace this with "int i; i = f();"
           CIdExpression var = new CIdExpression(loc, declaration);

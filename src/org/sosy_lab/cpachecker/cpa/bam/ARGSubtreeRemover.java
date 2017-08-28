@@ -155,6 +155,7 @@ public class ARGSubtreeRemover {
         // old code:
         // the main-reachedset contains only the root, exit-states and targets.
         // we assume, that the current refinement was caused by a target-state.
+        assert firstState.getChildren().contains(lastState);
         mainReachedSet.removeSubtree(lastState);
       } else {
         ARGState stateToRemove = relevantCallStates.get(0).getARGState();
@@ -185,6 +186,8 @@ public class ARGSubtreeRemover {
   /** just remove a state and its subtree from the given reachedSet. */
   static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement) {
     if (BAMTransferRelation.isHeadOfMainFunction(extractLocation(argElement))) {
+      assert ((ARGState)reachedSet.asReachedSet().getFirstState()).getChildren().contains(
+          reachedSet.asReachedSet().getLastState());
       reachedSet.removeSubtree((ARGState)reachedSet.asReachedSet().getLastState());
     } else {
       reachedSet.removeSubtree(argElement);

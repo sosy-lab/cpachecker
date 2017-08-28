@@ -25,36 +25,33 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import java.util.List;
 import java.util.Optional;
-import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class CSizeOfVisitor extends BaseSizeofVisitor {
   private final CFAEdge edge;
   private final SMGState state;
   private final Optional<CExpression> expression;
-  private final SMGExpressionEvaluator eval;
+  protected final SMGExpressionEvaluator eval;
 
-  public CSizeOfVisitor(MachineModel pModel, CFAEdge pEdge, SMGState pState, LogManagerWithoutDuplicates pLogger,
-      Optional<CExpression> pExpression) {
-    super(pModel);
-
+  public CSizeOfVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge,
+      SMGState pState, Optional<CExpression> pExpression) {
+    super(pSmgExpressionEvaluator.machineModel);
     edge = pEdge;
     state = pState;
     expression = pExpression;
-    eval = new SMGExpressionEvaluator(pLogger, pModel);
+    eval = pSmgExpressionEvaluator;
   }
 
   @Override

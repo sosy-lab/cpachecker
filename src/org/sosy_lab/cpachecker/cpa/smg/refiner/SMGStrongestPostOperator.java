@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,7 +30,6 @@ import java.util.List;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
@@ -59,34 +56,20 @@ public class SMGStrongestPostOperator {
     return new SMGStrongestPostOperator(transfer);
   }
 
-  public Collection<SMGState> getStrongestPost(SMGState pOrigin, Precision pPrecision,
-      CFAEdge pOperation)
-          throws CPAException, InterruptedException {
-
+  public Collection<SMGState> getStrongestPost(
+      SMGState pOrigin, Precision pPrecision, CFAEdge pOperation) throws CPAException {
     Collection<SMGState> start = ImmutableList.of(pOrigin);
-
     return getStrongestPost(start, pPrecision, pOperation);
   }
 
-  public Collection<SMGState> getStrongestPost(Collection<SMGState> pStates,
-      Precision pPrecision,
-      CFAEdge pOperation) throws CPATransferException, InterruptedException {
-
-    List<AbstractState> result = new ArrayList<>();
-
+  public Collection<SMGState> getStrongestPost(
+      Collection<SMGState> pStates, Precision pPrecision, CFAEdge pOperation)
+      throws CPATransferException {
+    List<SMGState> result = new ArrayList<>();
     for (SMGState state : pStates) {
-      Collection<? extends AbstractState> successors =
-          transfer.getAbstractSuccessorsForEdge(state, pPrecision, pOperation);
-      result.addAll(successors);
+      result.addAll(transfer.getAbstractSuccessorsForEdge(state, pPrecision, pOperation));
     }
-
-    return FluentIterable.from(result).transform(new Function<AbstractState, SMGState>() {
-
-      @Override
-      public SMGState apply(AbstractState pState) {
-        return (SMGState) pState;
-      }
-    }).toList();
+    return result;
   }
 
   public static SMGStrongestPostOperator getSMGStrongestPostOperatorForInterpolation(

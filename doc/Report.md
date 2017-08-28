@@ -4,34 +4,37 @@ CPAchecker Analysis Report
 Quick Reference to use the report
 ---------------------------------
 
-TODO: This description is somewhat outdated and needs to be updated
-to reflect the improvements of the new report.
-
   - Left Panel: Error Path (if a bug is found)
 
      - Indentation reflects height of call stack.
-     - Click nodes/edges to jump to the location in the `CFA`/`ARG`/Source (depending on the active tab).
      - Function Start, Function Return, and unlabeled edges are not displayed.
-     - Use Start (or click a node/edge) and Prev/Next to walk along the error path.
+     - Click table element to jump to its location in the `CFA`/`ARG`/`Source` (depending on the active tab).
+        If none of the mentioned tabs is selected, `ARG` will become active.
+     - Use Start (or click table element) and Prev/Next to walk along the error path.
+     
 
   - Right Panel:
 
     - CFA Tab
 
-      - The CFA has been cut into multiple images (one image per function).
-         Change the displayed function by using the select box at the top.
+      - The CFA is divided into multiple graphs (one graph per function).
+         Initially all graphs are displayed below one another beginning with the program entry function, i.e. `main()`.
+         Change the displayed function by using the **Displayed CFA** select box or
+         by double clicking on a *function call node* (square element in graph).
       - Linear sequences of "normal" edges (StatementEdges, DeclarationEdges, and BlankEdges)
-         are displayed as a node containing a table. The left column contains the node number
-         of the predecessor of an edge. The right column contains the edge label.
-         The successor can be found in the left column of the next row.
-      - Special function call nodes and edges have been introduced, as the CFA is spread out over multiple images.
+         are displayed as a multi-label node. Each line contains the predecessor node and the edge label. 
+         The successor can be found in the left of the next line.
       - The error path is highlighted in red.
-      - Click an edge (or the edge label) to jump to the location in the source code.
+      - Hover over a graph element to display additional information.
+      - Double-click an edge to jump to the location in the source code.
 
     - ARG Tab
 
       - The error path is highlighted in red.
-      - Click an edge to jump to the location in the CFA.
+      - Use the **Displayed ARG** select box to alter between the *complete* ARG and 
+        an ARG graph containing only the *error path*.
+      - Hover over a graph element to display additional information.
+      - Double-click a node to jump to the location in the CFA.
 
     - Source Tab
 
@@ -39,35 +42,26 @@ to reflect the improvements of the new report.
 
     - Log Tab
 
-      - Displays the output of CPAchecker.
+      - Displays the Log output of CPAchecker.
+      
+    - Statistics Tab
+
+      - Displays the Statistics output of CPAchecker.
+
+    - Configurations Tab
+
+      - Displays the Configurations used by CPAchecker.
+
+    - Help button
+
+      - Click to display additional information for the right panel.
 
 
 Known Problems
 --------------
 
-  - The CFA tab uses an `iframe` to load SVG images. The `errorpath` is highlighted dynamically using Javascript.
-     Unfortunately, the `onload` event fires only when the first SVG is loaded (and does not fire later when the SVG is changed).
-     To work around that, the `onload` event is no longer used. Instead, the script assumes that it takes at most 0.5s to
-     load an SVG. If the report is placed on a server, this may no longer hold. As a result, the error path might not be highlighted.
-     Workaround: When using Next and the displayed function changes, but the error path is not highlighted or the arrow is not displayed,
-     press Prev followed by Next. This time the SVG will be most likely served out of the local cache.
-
-  - Clicking edges leaving the introduced `multistatement` nodes does not jump to the correct location in the source code.
-     All other edges in the `CFA` should be ok.
+  - When a specific CFA function is displayed and an error path element, that is not contained in said function, is selected, the displayed function does not change.
+     Workaround: Select `all` in the **Displayed CFA** select box and click the error path element again.
 
   - When an item is selected in the error path window on the left, only the active tab on the right is updated.
      Workaround: After changing the tab on the right, click the selected item in the error path window again.
-
-  - As the `ARG` might be huge, it could take a couple of seconds when switching to the `ARG` tab.
-     Also you might have to scroll to the right initially to find the root of the `ARG`. Alternatively, click an item in
-     the error path window on the left.
-
-  - The error path in the `ARG` sometimes misses a few edges (they stay black). Also not all edges are clickable
-     (but the red ones seem to be always clickable).
-     This error is not deterministic. Reloading the page seems to fix the coloring issue. I suspect the error has to do with the huge
-     number of click events that are placed on the ARG. I tried to use event delegation instead, but it seems SVG events
-     do not bubble up the way HTML events do. Stepping through the error path works perfectly though.
-
-  - `graphviz` does not like to create the really big node in `main()`, that contains the global declarations (label to long?)
-     and only includes the node number instead. I consider this a feature, as the relevant statements are listed in the
-     error path window on the left and this keeps the graph smaller.
