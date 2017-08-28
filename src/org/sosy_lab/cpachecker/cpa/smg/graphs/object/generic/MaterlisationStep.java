@@ -23,8 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
@@ -33,11 +31,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
@@ -304,56 +301,40 @@ public class MaterlisationStep {
   }
 
   public Set<SMGEdgePointsToTemplate> getPointerToThisTemplate(SMGObjectTemplate pTemplate) {
-
     assert objectTemplates.contains(pTemplate);
 
-    Predicate<SMGEdgePointsToTemplate> objectFilter = new SMGUtils.FilterTargetTemplate(pTemplate);
-
-    Set<SMGEdgePointsToTemplate> pointerSet = new HashSet<>(pointerTemplate);
-    pointerSet.addAll(targetAdressTemplateOfPointer);
-
-    return FluentIterable.from(pointerSet).filter(objectFilter).toSet();
+    return FluentIterable.from(pointerTemplate)
+        .append(targetAdressTemplateOfPointer)
+        .filter(ptEdge -> ptEdge.getObjectTemplate() == pTemplate)
+        .toSet();
   }
 
   public FieldsOfTemplate getFieldsOfThisTemplate(SMGObjectTemplate pTemplate) {
-
     assert  objectTemplates.contains(pTemplate);
 
     Set<SMGEdgeHasValueTemplateWithConcreteValue> lFieldTemplateContainingValue =
         FluentIterable.from(fieldTemplateContainingValue)
-            .filter(new SMGUtils.FilterTemplateObjectFieldsWithConcreteValue(pTemplate)).toSet();
+            .filter(ptEdge -> ptEdge.getObjectTemplate() == pTemplate)
+            .toSet();
     Set<SMGEdgeHasValueTemplate> lFieldTemplateContainingPointerTemplate =
         FluentIterable.from(fieldTemplateContainingPointerTemplate)
-            .filter(new SMGUtils.FilterTemplateObjectFieldsWithConcreteValue(pTemplate)).toSet();
+            .filter(ptEdge -> ptEdge.getObjectTemplate() == pTemplate)
+            .toSet();
     Set<SMGEdgeHasValueTemplate> lFieldTemplateContainingPointer =
         FluentIterable.from(fieldTemplateContainingPointer)
-            .filter(new SMGUtils.FilterTemplateObjectFieldsWithConcreteValue(pTemplate)).toSet();
+            .filter(ptEdge -> ptEdge.getObjectTemplate() == pTemplate)
+            .toSet();
 
     return new FieldsOfTemplate(lFieldTemplateContainingValue, lFieldTemplateContainingPointerTemplate, lFieldTemplateContainingPointer, pTemplate);
   }
 
   public Set<SMGEdgeHasValueTemplate> getFieldsOfValue(int value) {
-
-    Set<SMGEdgeHasValueTemplate> fields = new HashSet<>();
-    fields.addAll(
-        FluentIterable.from(fieldTemplateContainingValue).transform(
-            new Function<SMGEdgeHasValueTemplateWithConcreteValue, SMGEdgeHasValueTemplate>() {
-
-              @Override
-              public SMGEdgeHasValueTemplate apply(SMGEdgeHasValueTemplateWithConcreteValue pEdge) {
-                return (SMGEdgeHasValueTemplate) pEdge;
-              }
-            }).filter(new SMGUtils.FilterFieldsOfValue(value)).toSet()
-        );
-
-    fields.addAll(FluentIterable.from(fieldTemplateContainingPointerTemplate)
-        .filter(new SMGUtils.FilterFieldsOfValue(value)).toSet());
-
-    fields.addAll(FluentIterable.from(fieldTemplateContainingPointer)
-        .filter(new SMGUtils.FilterFieldsOfValue(value)).toSet());
-
-
-    return fields;
+    return FluentIterable.from(fieldTemplateContainingValue)
+        .filter(SMGEdgeHasValueTemplate.class)
+        .append(fieldTemplateContainingPointerTemplate)
+        .append(fieldTemplateContainingPointer)
+        .filter(edge -> value == edge.getAbstractValue())
+        .toSet();
   }
 
   public Optional<SMGEdgePointsToTemplate> getPointer(int value) {
