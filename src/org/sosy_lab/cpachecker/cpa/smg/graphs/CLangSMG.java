@@ -269,7 +269,6 @@ public class CLangSMG extends SMG {
     Set<Integer> seen_values = new HashSet<>();
     Queue<SMGObject> workqueue = new ArrayDeque<>();
 
-    // TODO: wrap to getStackObjects(), perhaps just internally?
     for (CLangStackFrame frame : getStackFrames()) {
       for (SMGObject stack_object : frame.getAllObjects()) {
         workqueue.add(stack_object);
@@ -473,17 +472,6 @@ public class CLangSMG extends SMG {
     return stack_objects.peek().getReturnObject();
   }
 
-  @Nullable
-  public String getFunctionName(SMGObject pObject) {
-    for (CLangStackFrame cLangStack : stack_objects) {
-      if (cLangStack.getAllObjects().contains(pObject)) {
-        return cLangStack.getFunctionDeclaration().getName();
-      }
-    }
-
-    return null;
-  }
-
   @Override
   public void mergeValues(int v1, int v2) {
 
@@ -542,11 +530,15 @@ public class CLangSMG extends SMG {
 
     if (pLocation.isOnFunctionStack()) {
 
-      if (!hasStackFrame(pLocation.getFunctionName())) {
+      CLangStackFrame frame =
+          Iterables.find(
+              stack_objects,
+              f -> f.getFunctionDeclaration().getName().equals(pLocation.getFunctionName()),
+              null);
+
+      if (frame == null) {
         return null;
       }
-
-      CLangStackFrame frame = getStackFrame(pLocation.getFunctionName());
 
       if(locId.equals("___cpa_temp_result_var_")) {
         return frame.getReturnObject();
@@ -667,36 +659,6 @@ public class CLangSMG extends SMG {
     return false;
   }
 
-  /*
-   * Returns stack frame of given function name
-   */
-  private boolean hasStackFrame(String pFunctionName) {
-
-    for (CLangStackFrame frame : stack_objects) {
-      String frameName = frame.getFunctionDeclaration().getName();
-      if (frameName.equals(pFunctionName)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /*
-   * Returns stack frame of given function name
-   */
-  private CLangStackFrame getStackFrame(String pFunctionName) {
-
-    for (CLangStackFrame frame : stack_objects) {
-      String frameName = frame.getFunctionDeclaration().getName();
-      if (frameName.equals(pFunctionName)) {
-        return frame;
-      }
-    }
-
-    throw new AssertionError("No stack frame " + pFunctionName + " exists.");
-  }
-
   private MemoryLocation resolveMemLoc(SMGEdgeHasValue hvEdge) {
 
     SMGObject object = hvEdge.getObject();
@@ -706,28 +668,18 @@ public class CLangSMG extends SMG {
       return MemoryLocation.valueOf(object.getLabel(), offset);
     } else {
 
-      CLangStackFrame frame = getStackFrameOfObject(object);
+      String regionLabel = object.getLabel();
+      CLangStackFrame frame =
+          Iterables.find(
+              stack_objects,
+              f ->
+                  (f.containsVariable(regionLabel) && f.getVariable(regionLabel) == object)
+                      || object == f.getReturnObject());
 
       String functionName = frame.getFunctionDeclaration().getName();
 
       return MemoryLocation.valueOf(functionName, object.getLabel(), offset);
     }
-  }
-
-  private CLangStackFrame getStackFrameOfObject(SMGObject pObject) {
-
-    String regionLabel = pObject.getLabel();
-
-    for (CLangStackFrame frame : stack_objects) {
-      if ((frame.containsVariable(regionLabel)
-            && frame.getVariable(regionLabel) == pObject)
-          || pObject == frame.getReturnObject()) {
-
-        return frame;
-      }
-    }
-
-    throw new AssertionError("object " + pObject.getLabel() + " is not on a function stack");
   }
 
   @Override
@@ -999,7 +951,8 @@ public class CLangSMG extends SMG {
     }
 
     SMGObject obj = frame.getVariable(pVariable);
-    frame.removeVariable(pVariable);
+
+    stack_objects = stack_objects.replace(f -> f == frame, frame.removeVariable(pVariable));
 
     removeObjectAndEdges(obj);
   }
@@ -1046,8 +999,7 @@ public class CLangSMG extends SMG {
 
     Set<SMGEdgeHasValue> hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
     Set<SMGEdgePointsTo> ptes = getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(pObj));
-    Set<SMGEdgePointsTo> resultPtes = new HashSet<>();
-    resultPtes.addAll(ptes);
+    Set<SMGEdgePointsTo> resultPtes = new HashSet<>(ptes);
 
     for (SMGEdgeHasValue edge : hves) {
       if (isPointer(edge.getValue())) {
