@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -419,11 +418,11 @@ public class SMG {
    * @return A set of Has-Value edges for which the criteria in p hold
    */
   final public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return Collections.unmodifiableSet(hv_edges.filter(pFilter));
+    return ImmutableSet.copyOf(pFilter.filter(hv_edges));
   }
 
   public Set<SMGEdgePointsTo> getPtEdges(SMGEdgePointsToFilter pFilter) {
-    return ImmutableSet.copyOf(pt_edges.filter(pFilter));
+    return ImmutableSet.copyOf(pFilter.filter(pt_edges));
   }
 
   public SMGPointsToEdges getPTEdges() {
@@ -512,7 +511,7 @@ public class SMG {
     }
 
     TreeMap<Integer, Integer> resultOffsetToSize = new TreeMap<>();
-    if (offsetToSize != null && !offsetToSize.isEmpty()) {
+    if (!offsetToSize.isEmpty()) {
       Iterator<Integer> offsetsIterator = offsetToSize.keySet().iterator();
       Integer resultOffset = offsetsIterator.next();
       Integer resultSize = offsetToSize.get(resultOffset).last();

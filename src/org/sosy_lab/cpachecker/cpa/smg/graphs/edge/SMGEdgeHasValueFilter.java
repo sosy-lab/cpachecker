@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
@@ -151,22 +151,17 @@ public class SMGEdgeHasValueFilter {
     return true;
   }
 
-  public Set<SMGEdgeHasValue> filterSet(SMGHasValueEdges pEdges) {
-    Set<SMGEdgeHasValue> returnSet = new HashSet<>();
+  public Iterable<SMGEdgeHasValue> filter(SMGHasValueEdges pEdges) {
     Set<SMGEdgeHasValue> filtered;
     if (object != null) {
       filtered = pEdges.getEdgesForObject(object);
+      if (filtered == null) {
+        return ImmutableSet.of();
+      }
     } else {
       filtered = pEdges.getHvEdges();
     }
-    if (filtered != null) {
-      for (SMGEdgeHasValue edge : filtered) {
-        if (holdsFor(edge)) {
-          returnSet.add(edge);
-        }
-      }
-    }
-    return returnSet;
+    return filter(filtered);
   }
 
   public Iterable<SMGEdgeHasValue> filter(Iterable<SMGEdgeHasValue> pEdges) {

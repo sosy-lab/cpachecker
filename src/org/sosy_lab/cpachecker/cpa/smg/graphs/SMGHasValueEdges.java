@@ -24,8 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.collect.ImmutableSet;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 /** An immutable collection of has-value-edges. */
@@ -45,7 +45,5 @@ public interface SMGHasValueEdges {
 
   public ImmutableSet<SMGEdgeHasValue> getHvEdges();
 
-  public ImmutableSet<SMGEdgeHasValue> filter(SMGEdgeHasValueFilter pFilter);
-
-  public ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
+  public @Nullable ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject);
 }

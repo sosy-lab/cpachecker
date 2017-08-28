@@ -24,17 +24,18 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 class SMGJoinFields {
@@ -118,11 +119,9 @@ class SMGJoinFields {
   }
 
   static public Set<SMGEdgeHasValue> getCompatibleHVEdgeSet(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> newHVSet = SMGJoinFields.getHVSetWithoutNullValuesOnObject(pSMG1, pObj1);
-
-    newHVSet.addAll(SMGJoinFields.getHVSetOfCommonNullValues(pSMG1, pSMG2, pObj1, pObj2));
-    newHVSet.addAll(SMGJoinFields.getHVSetOfMissingNullValues(pSMG1, pSMG2, pObj1, pObj2));
-
+    Set<SMGEdgeHasValue> newHVSet = Sets.newHashSet(getHVSetWithoutNullValuesOnObject(pSMG1, pObj1));
+    newHVSet.addAll(getHVSetOfCommonNullValues(pSMG1, pSMG2, pObj1, pObj2));
+    newHVSet.addAll(getHVSetOfMissingNullValues(pSMG1, pSMG2, pObj1, pObj2));
     return newHVSet;
   }
 
@@ -188,16 +187,10 @@ class SMGJoinFields {
     return Collections.unmodifiableSet(retset);
   }
 
+  /** get edges for all objects, except the Null-edges of the given object. */
   static public Set<SMGEdgeHasValue> getHVSetWithoutNullValuesOnObject(SMG pSMG, SMGObject pObj) {
-    Set<SMGEdgeHasValue> retset = new HashSet<>();
-    retset.addAll(pSMG.getHVEdges());
-
-    SMGEdgeHasValueFilter nullValueFilter = SMGEdgeHasValueFilter.objectFilter(pObj);
-    nullValueFilter.filterHavingValue(SMG.NULL_ADDRESS);
-
-    retset.removeAll(pSMG.getHVEdges(nullValueFilter));
-
-    return retset;
+    SMGEdgeHasValueFilter nullValueFilter = SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMG.NULL_ADDRESS);
+    return Sets.difference(pSMG.getHVEdges(), pSMG.getHVEdges(nullValueFilter));
   }
 
   private static void checkResultConsistencySingleSide(SMG pSMG1, SMGEdgeHasValueFilter nullEdges1,

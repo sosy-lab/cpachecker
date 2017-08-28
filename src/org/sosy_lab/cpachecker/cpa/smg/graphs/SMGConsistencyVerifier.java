@@ -23,17 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import com.google.common.collect.Lists;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
 
 final class SMGConsistencyVerifier {
   private SMGConsistencyVerifier() {} /* utility class */
@@ -184,9 +182,8 @@ final class SMGConsistencyVerifier {
    * @param pEdges A set of edges for consistency verification
    * @return True, if all edges in pEdges satisfy consistency criteria. False otherwise.
    */
-  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Collection<? extends SMGEdge> pEdges) {
-    List<SMGEdge> to_verify = new ArrayList<>();
-    to_verify.addAll(pEdges);
+  static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Iterable<? extends SMGEdge> pEdges) {
+    List<SMGEdge> to_verify = Lists.newArrayList(pEdges);
 
     while (to_verify.size() > 0) {
       SMGEdge edge = to_verify.get(0);
@@ -274,7 +271,7 @@ final class SMGConsistencyVerifier {
         pLogger,
         "Has Value edge consistency");
     toReturn = toReturn && verifySMGProperty(
-        verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges().asSet()),
+        verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges()),
         pLogger,
         "Points To edge consistency");
     toReturn = toReturn && verifySMGProperty(

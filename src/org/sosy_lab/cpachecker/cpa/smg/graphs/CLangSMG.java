@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
@@ -201,9 +202,8 @@ public class CLangSMG extends SMG {
   public void addStackObject(SMGRegion pObject) {
     super.addObject(pObject);
     CLangStackFrame top = stack_objects.peek();
-    if (!top.hasVariable(pObject.getLabel())) {
-      stack_objects = stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
-    }
+    Preconditions.checkArgument(!top.hasVariable(pObject.getLabel()), "object with same label cannot be added twice");
+    stack_objects = stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
   }
 
   /**

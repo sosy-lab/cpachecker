@@ -23,10 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import java.util.Set;
+import java.util.Iterator;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -57,10 +54,8 @@ public class SMGPointsToMap implements SMGPointsToEdges {
 
   @Override
   public SMGPointsToMap removeAllEdgesOfObjectAndCopy(SMGObject pObj) {
-    Set<SMGEdgePointsTo> toRemove = filter(SMGEdgePointsToFilter.targetObjectFilter(pObj));
-
     PersistentMap<Integer, SMGEdgePointsTo> tmp = map;
-    for (SMGEdgePointsTo edge : toRemove) {
+    for (SMGEdgePointsTo edge : SMGEdgePointsToFilter.targetObjectFilter(pObj).filter(this)) {
       tmp = tmp.removeAndCopy(edge.getValue());
     }
     return new SMGPointsToMap(tmp);
@@ -82,28 +77,8 @@ public class SMGPointsToMap implements SMGPointsToEdges {
   }
 
   @Override
-  public Set<SMGEdgePointsTo> filter(SMGEdgePointsToFilter pFilter) {
-
-    if (pFilter.isFilteringAtValue()) {
-      SMGEdgePointsTo result = map.get(pFilter.filtersHavingValue());
-      if (result == null) {
-        return ImmutableSet.of();
-      } else {
-        return ImmutableSet.of(result);
-      }
-    }
-
-    return ImmutableSet.copyOf(Iterables.filter(map.values(), pFilter::holdsFor));
-  }
-
-  @Override
-  public ImmutableSet<SMGEdgePointsTo> asSet() {
-    return ImmutableSet.copyOf(map.values());
-  }
-
-  @Override
-  public ImmutableMap<Integer, SMGEdgePointsTo> asMap() {
-    return ImmutableMap.copyOf(map);
+  public int size() {
+    return map.size();
   }
 
   @Override
@@ -119,5 +94,10 @@ public class SMGPointsToMap implements SMGPointsToEdges {
   @Override
   public String toString() {
     return map.toString();
+  }
+
+  @Override
+  public Iterator<SMGEdgePointsTo> iterator() {
+    return map.values().iterator();
   }
 }

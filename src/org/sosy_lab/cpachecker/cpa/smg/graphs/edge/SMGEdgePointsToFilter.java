@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPointsToEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
 public class SMGEdgePointsToFilter {
@@ -119,5 +122,23 @@ public class SMGEdgePointsToFilter {
     }
 
     return true;
+  }
+
+  public Iterable<SMGEdgePointsTo> filter(SMGPointsToEdges edges) {
+
+    if (isFilteringAtValue()) {
+      SMGEdgePointsTo result = edges.getEdgeWithValue(filtersHavingValue());
+      if (result == null) {
+        return ImmutableSet.of();
+      } else {
+        return ImmutableSet.of(result);
+      }
+    }
+
+    return filter((Iterable<SMGEdgePointsTo>)edges);
+  }
+
+  public Iterable<SMGEdgePointsTo> filter(Iterable<SMGEdgePointsTo> edges) {
+    return Iterables.filter(edges, this::holdsFor);
   }
 }

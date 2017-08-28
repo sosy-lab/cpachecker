@@ -24,11 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.ImmutableList;
-import java.util.HashSet;
+import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -59,11 +58,7 @@ final public class SMGJoin {
     Map<String, SMGRegion> globals_in_smg2 = opSMG2.getGlobalObjects();
     ImmutableList<CLangStackFrame> stack_in_smg2 = ImmutableList.copyOf(opSMG2.getStackFrames());
 
-    Set<String> globalVars = new HashSet<>();
-    globalVars.addAll(globals_in_smg1.keySet());
-    globalVars.addAll(globals_in_smg2.keySet());
-
-    for (String globalVar : globalVars) {
+    for (String globalVar : Sets.union(globals_in_smg1.keySet(), globals_in_smg2.keySet())) {
       SMGRegion globalInSMG1 = globals_in_smg1.get(globalVar);
       SMGRegion globalInSMG2 = globals_in_smg2.get(globalVar);
       if (globalInSMG1 == null || globalInSMG2 == null) {
@@ -91,12 +86,8 @@ final public class SMGJoin {
 
       smg.addStackFrame(frameInSMG1.getFunctionDeclaration());
 
-      Set<String> localVars = new HashSet<>();
-      localVars.addAll(frameInSMG1.getVariables().keySet());
-      localVars.addAll(frameInSMG2.getVariables().keySet());
-
-      for (String localVar : localVars) {
-        if ((!frameInSMG1.containsVariable(localVar)) || (!frameInSMG2.containsVariable(localVar))) {
+      for (String localVar : Sets.union(frameInSMG1.getVariables().keySet(), frameInSMG2.getVariables().keySet())) {
+        if (!frameInSMG1.containsVariable(localVar) || !frameInSMG2.containsVariable(localVar)) {
           return;
         }
         SMGRegion localInSMG1 = frameInSMG1.getVariable(localVar);
