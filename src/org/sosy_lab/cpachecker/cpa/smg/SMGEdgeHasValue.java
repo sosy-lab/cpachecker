@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,34 +23,40 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGValue;
 
+/**
+ * SMGs have two kind of edges: {@link SMGEdgeHasValue} and {@link SMGEdgePointsTo}. {@link
+ * SMGEdgeHasValue}s lead from {@link SMGObject}s to {@link SMGValue}s. {@link SMGEdgeHasValue}s are
+ * labelled by the offset and type of the field in which the value is stored within an object.
+ */
 public class SMGEdgeHasValue extends SMGEdge {
+
   final private CType type;
-  final private int offset;
 
   public SMGEdgeHasValue(CType pType, int pOffset, SMGObject pObject, int pValue) {
-    super(pValue, pObject);
+    super(pValue, pObject, pOffset);
     type = pType;
-    offset = pOffset;
   }
 
   public SMGEdgeHasValue(int pSizeInBits, int pOffset, SMGObject pObject, int pValue) {
-    super(pValue, pObject);
+    super(pValue, pObject, pOffset);
     type = AnonymousTypes.createTypeWithLength(pSizeInBits);
-    offset = pOffset;
   }
 
   @Override
   public String toString() {
-    return "sizeof(" + type.toASTString("foo") + ")b @ " + object.getLabel() + "+" + offset + "b has value " + value;
-  }
-
-  public int getOffset() {
-    return offset;
+    return "sizeof("
+        + type.toASTString("foo")
+        + ")b @ "
+        + object.getLabel()
+        + "+"
+        + getOffset()
+        + "b has value "
+        + value;
   }
 
   public CType getType() {
@@ -67,10 +73,10 @@ public class SMGEdgeHasValue extends SMGEdge {
       return false;
     }
 
-    if ((object == other.object) &&
-        (offset == ((SMGEdgeHasValue)other).offset) &&
-        (type == ((SMGEdgeHasValue)other).type)) {
-      return (value == other.value);
+    if (object == other.object
+        && getOffset() == ((SMGEdgeHasValue) other).getOffset()
+        && type == ((SMGEdgeHasValue) other).type) {
+      return value == other.value;
     }
 
     return true;
@@ -90,7 +96,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   public boolean overlapsWith(int pOtStart, int pOtEnd, MachineModel pModel) {
 
-    int myStart = offset;
+    int myStart = getOffset();
 
     int myEnd = myStart + pModel.getBitSizeof(type);
 
@@ -106,26 +112,27 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public boolean isCompatibleField(SMGEdgeHasValue other) {
-    return type.equals(other.type) && (offset == other.offset);
+    return type.equals(other.type) && (getOffset() == other.getOffset());
   }
 
   public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    return pModel.getBitSizeof(type) == pModel.getBitSizeof(other.type) && (offset == other.offset) && object == other.object;
+    return pModel.getBitSizeof(type) == pModel.getBitSizeof(other.type)
+        && (getOffset() == other.getOffset())
+        && object == other.object;
   }
 
   @Override
   public int hashCode() {
-    return 31 * super.hashCode() + Objects.hash(type, offset);
+    return 31 * super.hashCode() + type.hashCode();
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (obj == null || !(obj instanceof SMGEdgeHasValue)) {
+    if (!(obj instanceof SMGEdgeHasValue)) {
       return false;
     }
     SMGEdgeHasValue other = (SMGEdgeHasValue) obj;
     return super.equals(obj)
-        && offset == other.offset
         && type.getCanonicalType().equals(other.type.getCanonicalType());
   }
 }

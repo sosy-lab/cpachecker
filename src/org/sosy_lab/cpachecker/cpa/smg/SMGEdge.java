@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,14 +25,28 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.base.Objects;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGValue;
 
+/**
+ * SMGs have two kind of edges: {@link SMGEdgeHasValue} and {@link SMGEdgePointsTo}.
+ *
+ * <p>{@link SMGEdgeHasValue}s lead from {@link SMGObject}s to {@link SMGValue}s. {@link
+ * SMGEdgeHasValue}s are labeled by the offset (and type) of the field in which the value is stored
+ * within an object.
+ *
+ * <p>{@link SMGEdgePointsTo}s lead from addresses ({@link SMGValue}s to {@link SMGObject}s. {@link
+ * SMGEdgePointsTo} are labeled by an offset (and a {@link SMGTargetSpecifier}). The offset
+ * indicates that the address points before, inside, or after an object.
+ */
 public abstract class SMGEdge {
   final protected int value;
   final protected SMGObject object;
+  private final int offset;
 
-  SMGEdge(int pValue, SMGObject pObject) {
+  SMGEdge(int pValue, SMGObject pObject, int pOffset) {
     value = pValue;
     object = pObject;
+    offset = pOffset;
   }
 
   public int getValue() {
@@ -43,11 +57,15 @@ public abstract class SMGEdge {
     return object;
   }
 
+  public int getOffset() {
+    return offset;
+  }
+
   public abstract boolean isConsistentWith(SMGEdge pOther_edge);
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(object, value);
+    return Objects.hashCode(object, value, offset);
   }
 
   @Override
@@ -59,7 +77,6 @@ public abstract class SMGEdge {
       return false;
     }
     SMGEdge other = (SMGEdge) obj;
-    return value == other.value
-        && Objects.equal(object, other.object);
+    return value == other.value && offset == other.offset && Objects.equal(object, other.object);
   }
 }

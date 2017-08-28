@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
+/** The {@link SMGNullObject} represents the target of NULL. */
 public final class SMGNullObject extends SMGObject {
 
   public static final SMGNullObject INSTANCE = new SMGNullObject();

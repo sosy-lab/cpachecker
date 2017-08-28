@@ -23,6 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
+import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGValue;
+
+/**
+ * SMGs consists of two types of nodes: {@link SMGObject}s and {@link SMGValue}s. {@link SMGObject}s
+ * are further derived into {@link SMGRegion}s and abstractions like {@link SMGDoublyLinkedList}.
+ * There is a special {@link SMGNullObject} representing the target of NULL.
+ */
 public abstract class SMGObject implements Comparable<SMGObject> {
 
   private final int size;

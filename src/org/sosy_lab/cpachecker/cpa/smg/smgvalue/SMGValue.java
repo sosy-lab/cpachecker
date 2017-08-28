@@ -24,7 +24,15 @@
 package org.sosy_lab.cpachecker.cpa.smg.smgvalue;
 
 import java.math.BigInteger;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 
+/**
+ * SMGs consists of two types of nodes: {@link SMGObject}s and {@link SMGValue}s. {@link SMGValue}s
+ * represent addresses or data stored in {@link SMGObject}s. All values are abstract, such that we
+ * only know whether they are equal or not. The only exception is the value 0 that is used to
+ * represent 0 in all possible types as well as the address of the {@link SMGNullObject}.
+ */
 public interface SMGValue {
 
   public boolean isUnknown();
