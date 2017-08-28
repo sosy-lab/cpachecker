@@ -74,10 +74,12 @@ public class SMGEdgeHasValueFilter {
     return this;
   }
 
+  @Deprecated
   public SMGObject filtersByObject() {
     return object;
   }
 
+  @Deprecated
   public Integer filtersHavingValue() {
     if (valueComplement) {
       return null;
@@ -86,6 +88,7 @@ public class SMGEdgeHasValueFilter {
     }
   }
 
+  @Deprecated
   public Integer filtersNotHavingValue() {
     if (valueComplement) {
       return value;
@@ -94,30 +97,37 @@ public class SMGEdgeHasValueFilter {
     }
   }
 
+  @Deprecated
   public Integer filtersAtOffset() {
     return offset;
   }
 
+  @Deprecated
   public CType filtersByType() {
     return type;
   }
 
+  @Deprecated
   public boolean isFilteringByObject() {
     return object != null;
   }
 
+  @Deprecated
   public boolean isFilteringHavingValue() {
     return value != null && !valueComplement;
   }
 
+  @Deprecated
   public boolean isFilteringNotHavingValue() {
     return value != null && valueComplement;
   }
 
+  @Deprecated
   public boolean isFilteringAtOffset() {
     return offset != null;
   }
 
+  @Deprecated
   public CType isFilteringAtType() {
     return type;
   }

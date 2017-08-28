@@ -58,6 +58,7 @@ public class SMGEdgePointsToFilter {
     return this;
   }
 
+  @Deprecated
   public SMGObject filtersByTargetObject() {
     return targetObject;
   }
@@ -66,14 +67,17 @@ public class SMGEdgePointsToFilter {
     return value;
   }
 
+  @Deprecated
   public Integer filtersAtTargetOffset() {
     return targetOffset;
   }
 
+  @Deprecated
   public SMGTargetSpecifier filtersByTargetSpecifier() {
     return targetSpecifier;
   }
 
+  @Deprecated
   public boolean isFilteringByObject() {
     return targetObject != null;
   }
@@ -82,16 +86,17 @@ public class SMGEdgePointsToFilter {
     return value != null;
   }
 
+  @Deprecated
   public boolean isFilteringAtTargetOffset() {
     return targetOffset != null;
   }
 
+  @Deprecated
   public boolean isFilteringByTargetSpecifier() {
     return targetSpecifier != null;
   }
 
   public static SMGEdgePointsToFilter valueFilter(Integer pValue) {
-
     return new SMGEdgePointsToFilter().filterHavingValue(pValue);
   }
 
@@ -100,7 +105,7 @@ public class SMGEdgePointsToFilter {
   }
 
   public boolean holdsFor(SMGEdgePointsTo pEdge) {
-    if (isFilteringByObject() && !targetObject.equals(pEdge.getObject())) {
+    if (targetObject != null && !targetObject.equals(pEdge.getObject())) {
       return false;
     }
 
@@ -108,11 +113,11 @@ public class SMGEdgePointsToFilter {
       return false;
     }
 
-    if (isFilteringAtTargetOffset() && !targetOffset.equals(pEdge.getOffset())) {
+    if (targetOffset != null && !targetOffset.equals(pEdge.getOffset())) {
       return false;
     }
 
-    if (isFilteringByTargetSpecifier() && targetSpecifier != pEdge.getTargetSpecifier()) {
+    if (targetSpecifier != null && targetSpecifier != pEdge.getTargetSpecifier()) {
       return false;
     }
 
