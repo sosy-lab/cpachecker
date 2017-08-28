@@ -1059,7 +1059,7 @@ public class CLangSMG extends SMG {
 
     if (pMemoryLocation.isOnFunctionStack()) {
       CLangStackFrame frame = getFrame(pMemoryLocation);
-      stack_objects.replace(
+      stack_objects = stack_objects.replace(
           f -> f == frame, frame.addStackVariable(pMemoryLocation.getIdentifier(), pRegion));
     } else {
       global_objects = global_objects.putAndCopy(pRegion.getLabel(), pRegion);
