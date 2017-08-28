@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.collect.Sets;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -80,10 +79,8 @@ public class CLangSMGConsistencyVerifier {
    * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctHeapAndStack(LogManager pLogger, CLangSMG pSmg) {
-    Deque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
     Set<SMGObject> stack = new HashSet<>();
-
-    for (CLangStackFrame frame: stack_frames) {
+    for (CLangStackFrame frame : pSmg.getStackFrames()) {
       stack.addAll(frame.getAllObjects());
     }
     Set<SMGObject> heap = pSmg.getHeapObjects();
@@ -105,10 +102,8 @@ public class CLangSMGConsistencyVerifier {
    * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
    */
   static private boolean verifyDisjunctGlobalAndStack(LogManager pLogger, CLangSMG pSmg) {
-    Deque<CLangStackFrame> stack_frames = pSmg.getStackFrames();
     Set<SMGObject> stack = new HashSet<>();
-
-    for (CLangStackFrame frame: stack_frames) {
+    for (CLangStackFrame frame : pSmg.getStackFrames()) {
       stack.addAll(frame.getAllObjects());
     }
     Map<String, SMGRegion> globals = pSmg.getGlobalObjects();

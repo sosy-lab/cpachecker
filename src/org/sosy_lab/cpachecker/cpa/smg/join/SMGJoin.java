@@ -23,19 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
+import com.google.common.collect.ImmutableList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 final public class SMGJoin {
   static public void performChecks(boolean pOn) {
@@ -56,9 +55,9 @@ final public class SMGJoin {
     SMGNodeMapping mapping2 = new SMGNodeMapping();
 
     Map<String, SMGRegion> globals_in_smg1 = opSMG1.getGlobalObjects();
-    Deque<CLangStackFrame> stack_in_smg1 = opSMG1.getStackFrames();
+    ImmutableList<CLangStackFrame> stack_in_smg1 = ImmutableList.copyOf(opSMG1.getStackFrames());
     Map<String, SMGRegion> globals_in_smg2 = opSMG2.getGlobalObjects();
-    Deque<CLangStackFrame> stack_in_smg2 = opSMG2.getStackFrames();
+    ImmutableList<CLangStackFrame> stack_in_smg2 = ImmutableList.copyOf(opSMG2.getStackFrames());
 
     Set<String> globalVars = new HashSet<>();
     globalVars.addAll(globals_in_smg1.keySet());
@@ -81,8 +80,8 @@ final public class SMGJoin {
       mapping2.map(globalInSMG2, finalObject);
     }
 
-    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
-    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
+    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.reverse().iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.reverse().iterator();
 
     //TODO assert stack smg1 == stack smg2
 
@@ -122,8 +121,7 @@ final public class SMGJoin {
 
     smg1stackIterator = stack_in_smg1.iterator();
     smg2stackIterator = stack_in_smg2.iterator();
-    Deque<CLangStackFrame> stack_in_destSMG = smg.getStackFrames();
-    Iterator<CLangStackFrame> destSmgStackIterator = stack_in_destSMG.iterator();
+    Iterator<CLangStackFrame> destSmgStackIterator = smg.getStackFrames().iterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();

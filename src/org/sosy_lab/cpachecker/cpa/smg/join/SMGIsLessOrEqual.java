@@ -23,19 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
@@ -94,11 +92,8 @@ public class SMGIsLessOrEqual {
       }
     }
 
-    Deque<CLangStackFrame> stack_in_smg1 = pSMG1.getStackFrames();
-    Deque<CLangStackFrame> stack_in_smg2 = pSMG2.getStackFrames();
-
-    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
-    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
+    Iterator<CLangStackFrame> smg1stackIterator = pSMG1.getStackFrames().iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = pSMG2.getStackFrames().iterator();
 
     // Check, whether the stack frames of smg1 are less or equal to smg 2
     while (smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {

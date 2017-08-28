@@ -2295,6 +2295,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public CLangStackFrame getStackFrame() {
-    return heap.getStackFrames().peek();
+    return Iterables.getLast(heap.getStackFrames());
   }
 }

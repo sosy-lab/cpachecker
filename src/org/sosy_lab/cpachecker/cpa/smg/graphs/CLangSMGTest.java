@@ -28,6 +28,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import java.util.Map;
 import java.util.Set;
 import org.junit.Assert;
@@ -201,14 +202,14 @@ public class CLangSMGTest {
     smg.addStackFrame(sf.getFunctionDeclaration());
 
     smg.addStackObject(obj1);
-    CLangStackFrame current_frame = smg.getStackFrames().peek();
+    CLangStackFrame current_frame = Iterables.get(smg.getStackFrames(), 0);
 
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
     assertThat(current_frame.getVariable("label")).isEqualTo(obj1);
     assertThat(current_frame.getVariables()).hasSize(1);
 
     smg.addStackObject(diffobj1);
-    current_frame = smg.getStackFrames().peek();
+    current_frame = Iterables.get(smg.getStackFrames(), 0);
 
     Assert.assertTrue(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg));
     assertThat(current_frame.getVariable("label")).isEqualTo(obj1);
@@ -262,22 +263,22 @@ public class CLangSMGTest {
     smg.addStackObject(new SMGRegion(64, "frame1_2"));
     smg.addStackObject(new SMGRegion(64, "frame1_3"));
     assertThat(smg.getStackFrames()).hasSize(1);
-    assertThat(smg.getStackFrames().peek().getVariables()).hasSize(3);
+    assertThat(Iterables.get(smg.getStackFrames(), 0).getVariables()).hasSize(3);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(new SMGRegion(64, "frame2_1"));
     smg.addStackObject(new SMGRegion(64, "frame2_2"));
     assertThat(smg.getStackFrames()).hasSize(2);
-    assertThat(smg.getStackFrames().peek().getVariables()).hasSize(2);
+    assertThat(Iterables.get(smg.getStackFrames(), 1).getVariables()).hasSize(2);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     smg.addStackObject(new SMGRegion(64, "frame3_1"));
     assertThat(smg.getStackFrames()).hasSize(3);
-    assertThat(smg.getStackFrames().peek().getVariables()).hasSize(1);
+    assertThat(Iterables.get(smg.getStackFrames(), 2).getVariables()).hasSize(1);
 
     smg.addStackFrame(sf.getFunctionDeclaration());
     assertThat(smg.getStackFrames()).hasSize(4);
-    assertThat(smg.getStackFrames().peek().getVariables()).hasSize(0);
+    assertThat(Iterables.get(smg.getStackFrames(), 3).getVariables()).hasSize(0);
   }
 
   @Test

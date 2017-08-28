@@ -78,7 +78,7 @@ public class CLangStackFrameTest {
 
   @Test
   public void CLangStackFrameAddVariableTest() {
-    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
     assert_().withMessage("Added variable is present").that(sf.containsVariable("fooVar")).isTrue();
 
     Map<String, SMGRegion> variables = sf.getVariables();
@@ -113,7 +113,7 @@ public class CLangStackFrameTest {
     // Test that there is an return value object at
     assertThat(objects).hasSize(1);
 
-    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
     objects = sf.getAllObjects();
     assertThat(objects).hasSize(2);
   }
@@ -128,8 +128,8 @@ public class CLangStackFrameTest {
 
   @Test(expected=IllegalArgumentException.class)
   public void CLangStackFrameAddVariableTwiceTest() {
-    sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
-    sf.addStackVariable("fooVar", new SMGRegion(128, "newFooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(64, "fooVarObject"));
+    sf = sf.addStackVariable("fooVar", new SMGRegion(128, "newFooVarObject"));
   }
 
   @Test(expected=NoSuchElementException.class)

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
-import java.util.Deque;
+import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -63,9 +63,9 @@ public final class SMGIntersectStates {
     mapping2.map(SMGNullObject.INSTANCE, SMGNullObject.INSTANCE);
 
     Map<String, SMGRegion> globals_in_smg1 = pHeap1.getGlobalObjects();
-    Deque<CLangStackFrame> stack_in_smg1 = pHeap1.getStackFrames();
+    ImmutableList<CLangStackFrame> stack_in_smg1 = ImmutableList.copyOf(pHeap1.getStackFrames());
     Map<String, SMGRegion> globals_in_smg2 = pHeap2.getGlobalObjects();
-    Deque<CLangStackFrame> stack_in_smg2 = pHeap2.getStackFrames();
+    ImmutableList<CLangStackFrame> stack_in_smg2 = ImmutableList.copyOf(pHeap2.getStackFrames());
 
     Set<SMGEdgeHasValue> singleHveEdge1 = new HashSet<>();
     Set<SMGEdgeHasValue> singleHveEdge2 = new HashSet<>();
@@ -86,8 +86,8 @@ public final class SMGIntersectStates {
       mapping2.map(globalInSMG2, finalObject);
     }
 
-    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
-    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
+    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.reverse().iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.reverse().iterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
@@ -132,8 +132,8 @@ public final class SMGIntersectStates {
       }
     }
 
-    smg1stackIterator = stack_in_smg1.descendingIterator();
-    smg2stackIterator = stack_in_smg2.descendingIterator();
+    smg1stackIterator = stack_in_smg1.reverse().iterator();
+    smg2stackIterator = stack_in_smg2.reverse().iterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
