@@ -215,65 +215,6 @@ public class NumericValue implements NumberInterface, Serializable {
   }
 
   @Override
-  public NumberInterface EMPTY() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public NumberInterface UNBOUND() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public NumberInterface BOOLEAN_INTERVAL() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public NumberInterface ZERO() {
-    return new NumericValue(0);
-  }
-
-  @Override
-  public NumberInterface ONE() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public boolean intersects(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public Number getLow() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public Number getHigh() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public boolean isGreaterThan(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public boolean isGreaterOrEqualThan(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
   public NumberInterface plus(NumberInterface otherNumberInterface) {
     if (this.getNumber() instanceof Long) {
       return new NumericValue(
@@ -396,62 +337,96 @@ public class NumericValue implements NumberInterface, Serializable {
       return UnknownValue.getInstance();
     }
   }
-
   @Override
-  public boolean isUnbound() {
+  public NumberInterface binaryAnd(NumberInterface rNum) {
+      if (getNumber() instanceof Long && rNum.getNumber() instanceof Long) {
+          return new NumericValue(getNumber().longValue() & rNum.getNumber().longValue());
+      } else {
+          throw new AssertionError("trying to perform Binary And on floating point operands");
+      }
+  }
+  @Override
+  public NumberInterface binaryOr(NumberInterface rNum) {
+      if (getNumber() instanceof Long && rNum.getNumber() instanceof Long) {
+          return new NumericValue(getNumber().longValue() | rNum.getNumber().longValue());
+      } else {
+          throw new AssertionError("trying to perform Binary Or on floating point operands");
+      }
+  }
+  @Override
+  public NumberInterface binaryXor(NumberInterface rNum) {
+      if (getNumber() instanceof Long && rNum.getNumber() instanceof Long) {
+          return new NumericValue(getNumber().longValue() ^ rNum.getNumber().longValue());
+      } else {
+          throw new AssertionError("trying to perform Binary Xor on floating point operands");
+      }
+  }
+
+@Override
+public boolean covers(NumberInterface pSign) {
     // TODO Auto-generated method stub
     return false;
-  }
+}
 
-  @Override
-  public NumberInterface union(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public boolean contains(NumberInterface pOther) {
+@Override
+public boolean isSubsetOf(NumberInterface pSign) {
     // TODO Auto-generated method stub
     return false;
-  }
+}
 
-  @Override
-  public boolean isEmpty() {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public NumberInterface intersect(NumberInterface pOther) {
+@Override
+public NumberInterface evaluateNonCommutativePlusOperator(NumberInterface pRight) {
     // TODO Auto-generated method stub
     return null;
-  }
+}
 
-  @Override
-  public NumberInterface limitUpperBoundBy(NumberInterface pOther) {
+@Override
+public NumberInterface evaluateMulOperator(NumberInterface pRight) {
     // TODO Auto-generated method stub
     return null;
-  }
+}
 
-  @Override
-  public NumberInterface limitLowerBoundBy(NumberInterface pOther) {
+@Override
+public NumberInterface evaluateNonCommutativeMulOperator(NumberInterface pRight) {
     // TODO Auto-generated method stub
     return null;
-  }
+}
 
-  @Override
-  public NumberInterface asDecimal() {
+@Override
+public NumberInterface evaluateDivideOperator(NumberInterface pRight) {
     // TODO Auto-generated method stub
     return null;
-  }
+}
 
-  @Override
-  public NumberInterface asInteger() {
+@Override
+public NumberInterface evaluateModuloOperator(NumberInterface pRight) {
     // TODO Auto-generated method stub
     return null;
-  }
+}
 
+@Override
+public NumberInterface evaluateAndOperator(NumberInterface pRight) {
+    // TODO Auto-generated method stub
+    return null;
+}
 
+@Override
+public NumberInterface evaluateLessOperator(NumberInterface pRight) {
+    // TODO Auto-generated method stub
+    return null;
+}
+
+@Override
+public NumberInterface evaluateLessEqualOperator(NumberInterface pRight) {
+    // TODO Auto-generated method stub
+    return null;
+}
+
+@Override
+public NumberInterface evaluateEqualOperator(NumberInterface pRight) {
+    // TODO Auto-generated method stub
+    return null;
+}
 
   //  public static class NegativeNaN extends Number {
   //

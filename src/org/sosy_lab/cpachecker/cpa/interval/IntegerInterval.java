@@ -711,4 +711,70 @@ public class IntegerInterval implements NumberInterface {
         // TODO Auto-generated method stub
         return null;
     }
+
+    @Override
+    public boolean covers(NumberInterface pSign) {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public boolean isSubsetOf(NumberInterface pSign) {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public NumberInterface evaluateNonCommutativePlusOperator(NumberInterface pRight) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface evaluateMulOperator(NumberInterface pRight) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface evaluateNonCommutativeMulOperator(NumberInterface pRight) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface evaluateDivideOperator(NumberInterface pRight) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface evaluateModuloOperator(NumberInterface pRight) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface evaluateAndOperator(NumberInterface pRight) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface evaluateLessOperator(NumberInterface pRight) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface evaluateLessEqualOperator(NumberInterface pRight) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public NumberInterface evaluateEqualOperator(NumberInterface pRight) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }
