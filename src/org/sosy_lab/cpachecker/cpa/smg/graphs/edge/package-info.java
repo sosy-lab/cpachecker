@@ -23,6 +23,8 @@
  */
 
 /**
- * SMGs have two kind of {@link SMGEdge}s: {@link SMGEdgeHasValue} and {@link SMGEdgePointsTo}.
+ * SMGs have two kind of {@link org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge}s: {@link
+ * org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue} and {@link
+ * org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo}.
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;

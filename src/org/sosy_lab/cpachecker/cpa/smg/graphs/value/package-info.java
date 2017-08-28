@@ -23,8 +23,9 @@
  */
 
 /**
- * /**
- * SMGs have two kind of nodes: {@link SMGObject}s and {@link SMGValue}s.
- * This package contains {@link SMGValue}s for the representation ofvalues and addresses.
+ * SMGs have two kind of nodes: {@link org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject}s and
+ * {@link org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue}s. This package contains {@link
+ * org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue}s for the representation of values and
+ * addresses.
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.value;
