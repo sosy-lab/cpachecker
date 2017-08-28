@@ -174,8 +174,8 @@ public class SMGIsLessOrEqual {
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pSMGObject1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pSMGObject2);
 
-    Set<SMGEdgeHasValue> HVE1 = filterForSMG1.filterSet(pSMG1.getHVEdges());
-    Set<SMGEdgeHasValue> HVE2 = filterForSMG2.filterSet(pSMG2.getHVEdges());
+    Iterable<SMGEdgeHasValue> HVE1 = filterForSMG1.filter(pSMG1.getHVEdges());
+    Iterable<SMGEdgeHasValue> HVE2 = filterForSMG2.filter(pSMG2.getHVEdges());
 
     //TODO Merge Zero.
     for (SMGEdgeHasValue edge1 : HVE1) {

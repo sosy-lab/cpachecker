@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.Set;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -84,15 +85,15 @@ public class SMGPointsToMap implements SMGPointsToEdges {
   public Set<SMGEdgePointsTo> filter(SMGEdgePointsToFilter pFilter) {
 
     if (pFilter.isFilteringAtValue()) {
-      int value = pFilter.filtersHavingValue();
-      if (map.containsKey(value)) {
-        return ImmutableSet.of(map.get(value));
-      } else {
+      SMGEdgePointsTo result = map.get(pFilter.filtersHavingValue());
+      if (result == null) {
         return ImmutableSet.of();
+      } else {
+        return ImmutableSet.of(result);
       }
     }
 
-    return pFilter.filterSet(asSet());
+    return ImmutableSet.copyOf(Iterables.filter(map.values(), pFilter::holdsFor));
   }
 
   @Override

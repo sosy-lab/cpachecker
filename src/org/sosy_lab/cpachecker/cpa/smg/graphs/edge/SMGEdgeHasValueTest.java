@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.Assert;
@@ -176,7 +177,8 @@ public class SMGEdgeHasValueTest {
     SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockType, 0, object1, value1);
     SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockType, 0, object1, value2);
 
-    Predicate<SMGEdgeHasValue> predicate = SMGEdgeHasValueFilter.objectFilter(object1).filterHavingValue(value1).asPredicate();
+    Predicate<SMGEdgeHasValue> predicate =
+        SMGEdgeHasValueFilter.objectFilter(object1).filterHavingValue(value1)::holdsFor;
 
     Assert.assertTrue(predicate.apply(hv11at0));
     Assert.assertFalse(predicate.apply(hv12at0));
@@ -214,7 +216,7 @@ public class SMGEdgeHasValueTest {
     Assert.assertFalse(filter.holdsFor(hv21at0));
     Assert.assertFalse(filter.holdsFor(hv22at0));
 
-    Set<SMGEdgeHasValue> filteredSet = filter.filterSet(allEdges);
+    Set<SMGEdgeHasValue> filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
     Assert.assertEquals(2, filteredSet.size());
     Assert.assertTrue(filteredSet.contains(hv11at0));
@@ -248,7 +250,7 @@ public class SMGEdgeHasValueTest {
     Assert.assertTrue(filter.holdsFor(hv21at0));
     Assert.assertFalse(filter.holdsFor(hv22at0));
 
-    Set<SMGEdgeHasValue> filteredSet = filter.filterSet(allEdges);
+    Set<SMGEdgeHasValue> filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
     Assert.assertEquals(2, filteredSet.size());
     Assert.assertTrue(filteredSet.contains(hv11at0));
@@ -282,7 +284,7 @@ public class SMGEdgeHasValueTest {
     Assert.assertTrue(filter.holdsFor(hv21at0));
     Assert.assertFalse(filter.holdsFor(hv22at0));
 
-    Set<SMGEdgeHasValue> filteredSet = filter.filterSet(allEdges);
+    Set<SMGEdgeHasValue> filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
     Assert.assertEquals(2, filteredSet.size());
     Assert.assertTrue(filteredSet.contains(hv11at0));
@@ -295,7 +297,7 @@ public class SMGEdgeHasValueTest {
     Assert.assertFalse(filter.holdsFor(hv21at0));
     Assert.assertTrue(filter.holdsFor(hv22at0));
 
-    filteredSet = filter.filterSet(allEdges);
+    filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
     Assert.assertEquals(2, filteredSet.size());
     Assert.assertTrue(filteredSet.contains(hv22at0));

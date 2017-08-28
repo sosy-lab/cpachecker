@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
@@ -122,15 +119,5 @@ public class SMGEdgePointsToFilter {
     }
 
     return true;
-  }
-
-  public Set<SMGEdgePointsTo> filterSet(Set<SMGEdgePointsTo> pEdges) {
-    Set<SMGEdgePointsTo> returnSet = new HashSet<>();
-    for (SMGEdgePointsTo edge : pEdges) {
-      if (holdsFor(edge)) {
-        returnSet.add(edge);
-      }
-    }
-    return Collections.unmodifiableSet(returnSet);
   }
 }

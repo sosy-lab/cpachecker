@@ -23,8 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
-import com.google.common.base.Predicate;
-import java.util.Collections;
+import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -34,14 +33,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 public class SMGEdgeHasValueFilter {
 
   public static SMGEdgeHasValueFilter objectFilter(SMGObject pObject) {
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
-    filter.filterByObject(pObject);
-
-    return filter;
+    return new SMGEdgeHasValueFilter().filterByObject(pObject);
   }
 
   private SMGObject object = null;
-
   private Integer value = null;
   private boolean valueComplement = false;
   private Integer offset = null;
@@ -174,43 +169,21 @@ public class SMGEdgeHasValueFilter {
     return returnSet;
   }
 
-  public Set<SMGEdgeHasValue> filterSet(Set<SMGEdgeHasValue> pEdges) {
-    Set<SMGEdgeHasValue> returnSet = new HashSet<>();
-    for (SMGEdgeHasValue edge : pEdges) {
-      if (holdsFor(edge)) {
-        returnSet.add(edge);
-      }
-    }
-    return Collections.unmodifiableSet(returnSet);
+  public Iterable<SMGEdgeHasValue> filter(Iterable<SMGEdgeHasValue> pEdges) {
+    return Iterables.filter(pEdges, this::holdsFor);
   }
 
-  public boolean edgeContainedIn(Set<SMGEdgeHasValue> pEdges) {
+  public boolean edgeContainedIn(Iterable<SMGEdgeHasValue> pEdges) {
 
     assert value != null;
     assert object != null;
     assert offset != null;
     assert type != null;
 
-    for (SMGEdgeHasValue edge : pEdges) {
-      if (holdsFor(edge)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  public Predicate<SMGEdgeHasValue> asPredicate() {
-    return new Predicate<SMGEdgeHasValue>() {
-      @Override
-      public boolean apply(SMGEdgeHasValue pEdge) {
-        return SMGEdgeHasValueFilter.this.holdsFor(pEdge);
-      }
-    };
+    return Iterables.any(pEdges, this::holdsFor);
   }
 
   public static SMGEdgeHasValueFilter valueFilter(Integer pValue) {
-
     return new SMGEdgeHasValueFilter().filterHavingValue(pValue);
   }
 }
