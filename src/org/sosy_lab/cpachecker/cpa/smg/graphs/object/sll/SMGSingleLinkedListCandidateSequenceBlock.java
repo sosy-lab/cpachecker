@@ -23,85 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
-import java.util.Objects;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractListCandidateSequenceBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
 public class SMGSingleLinkedListCandidateSequenceBlock
-    implements SMGAbstractionBlock {
-
-  private final SMGSingleLinkedListShape shape;
-  private final int length;
-  private final SMGMemoryPath pointerToStartObject;
+extends SMGAbstractListCandidateSequenceBlock<SMGSingleLinkedListShape> {
 
   public SMGSingleLinkedListCandidateSequenceBlock(SMGSingleLinkedListShape pShape, int pLength,
       SMGMemoryPath pPointerToStartObject) {
-    super();
-    shape = pShape;
-    length = pLength;
-    pointerToStartObject = pPointerToStartObject;
+    super(pShape, pLength, pPointerToStartObject);
   }
 
   @Override
   public boolean isBlocked(SMGAbstractionCandidate pCandidate, CLangSMG smg) {
-
-    if (!(pCandidate instanceof SMGSingleLinkedListCandidateSequence)) {
-      return false;
-    }
-
-    SMGSingleLinkedListCandidateSequence sllcs = (SMGSingleLinkedListCandidateSequence) pCandidate;
-
-    if (!shape.equals(sllcs.getCandidate().getShape())) {
-      return false;
-    }
-
-    if(length != sllcs.getLength()) {
-      return false;
-    }
-
-    Optional<SMGEdgeHasValue> edge = smg.getHVEdgeFromMemoryLocation(pointerToStartObject);
-
-    if(!edge.isPresent()) {
-      return false;
-    }
-
-    int value = edge.get().getValue();
-
-    if (!smg.isPointer(value)) {
-      return false;
-    }
-
-    SMGObject startObjectLock = smg.getPointer(value).getObject();
-
-    if (!startObjectLock.equals(sllcs.getCandidate().getStartObject())) {
-      return false;
-    }
-
-    return true;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(length, pointerToStartObject, shape);
+    return pCandidate instanceof SMGSingleLinkedListCandidateSequence && super.isBlocked(pCandidate, smg);
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (!(obj instanceof SMGSingleLinkedListCandidateSequenceBlock)) {
-      return false;
-    }
-    SMGSingleLinkedListCandidateSequenceBlock other =
-        (SMGSingleLinkedListCandidateSequenceBlock) obj;
-    return length == other.length
-        && Objects.equals(pointerToStartObject, other.pointerToStartObject)
-        && Objects.equals(shape, other.shape);
+    return obj instanceof SMGSingleLinkedListCandidateSequenceBlock && super.equals(obj);
   }
 }

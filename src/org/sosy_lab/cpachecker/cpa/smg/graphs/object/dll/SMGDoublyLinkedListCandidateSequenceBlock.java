@@ -23,83 +23,26 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
-import java.util.Objects;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractListCandidateSequenceBlock;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
 public class SMGDoublyLinkedListCandidateSequenceBlock
-    implements SMGAbstractionBlock {
-
-  private final SMGDoublyLinkedListShape shape;
-  private final int length;
-  private final SMGMemoryPath pointerToStartObject;
+    extends SMGAbstractListCandidateSequenceBlock<SMGDoublyLinkedListShape> {
 
   public SMGDoublyLinkedListCandidateSequenceBlock(SMGDoublyLinkedListShape pShape, int pLength,
       SMGMemoryPath pPointerToStartObject) {
-    super();
-    shape = pShape;
-    length = pLength;
-    pointerToStartObject = pPointerToStartObject;
+    super(pShape, pLength, pPointerToStartObject);
   }
 
   @Override
   public boolean isBlocked(SMGAbstractionCandidate pCandidate, CLangSMG smg) {
-
-    if (!(pCandidate instanceof SMGDoublyLinkedListCandidateSequence)) { return false; }
-
-    SMGDoublyLinkedListCandidateSequence dllcs = (SMGDoublyLinkedListCandidateSequence) pCandidate;
-
-    if (!shape.equals(dllcs.getCandidate().getShape())) {
-      return false;
-    }
-
-    if(length != dllcs.getLength()) {
-      return false;
-    }
-
-    Optional<SMGEdgeHasValue> edge = smg.getHVEdgeFromMemoryLocation(pointerToStartObject);
-
-    if(!edge.isPresent()) {
-      return false;
-    }
-
-    int value = edge.get().getValue();
-
-    if (!smg.isPointer(value)) {
-      return false;
-    }
-
-    SMGObject startObjectLock = smg.getPointer(value).getObject();
-
-    if (!startObjectLock.equals(dllcs.getCandidate().getStartObject())) {
-      return false;
-    }
-
-    return true;
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(length, pointerToStartObject, shape);
+    return pCandidate instanceof SMGDoublyLinkedListCandidateSequence && super.isBlocked(pCandidate, smg);
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (!(obj instanceof SMGDoublyLinkedListCandidateSequenceBlock)) {
-      return false;
-    }
-    SMGDoublyLinkedListCandidateSequenceBlock other =
-        (SMGDoublyLinkedListCandidateSequenceBlock) obj;
-    return length == other.length
-        && Objects.equals(pointerToStartObject, other.pointerToStartObject)
-        && Objects.equals(shape, other.shape);
+    return obj instanceof SMGDoublyLinkedListCandidateSequenceBlock && super.equals(obj);
   }
 }
