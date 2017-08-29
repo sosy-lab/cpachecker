@@ -265,7 +265,6 @@ public class SlicingAbstractionsUtility {
     //add the abstraction formula of abstraction state if the caller wants this:
     if (withInvariants) {
       BooleanFormula endInvariant = PredicateAbstractState.getPredicateState(stop).getAbstractionFormula().asFormula();
-      endInvariant = pSolver.getFormulaManager().instantiate(endInvariant,p.getSsa());
       pathFormula = pPfmgr.makeAnd(p, endInvariant);
     } else {
       pathFormula = p;
