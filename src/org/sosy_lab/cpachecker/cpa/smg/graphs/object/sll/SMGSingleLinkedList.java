@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,59 +23,35 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
 
 
-public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractObject {
-
-  private final int minimumLength;
-  private final SMGSingleLinkedListShape shape;
-  private final int id = SMGValueFactory.getNewValue();
+public final class SMGSingleLinkedList extends SMGAbstractList<SMGSingleLinkedListShape> {
 
   public SMGSingleLinkedList(int pSize, int pHfo, int pNfo,
       int pMinLength, int level) {
-    super(pSize, "sll", level, SMGObjectKind.SLL);
-
-    minimumLength = pMinLength;
-    shape = new SMGSingleLinkedListShape(pHfo, pNfo);
+    super(
+        pSize,
+        "sll",
+        level,
+        SMGObjectKind.SLL,
+        new SMGSingleLinkedListShape(pHfo, pNfo),
+        pMinLength);
   }
 
   public SMGSingleLinkedList(SMGSingleLinkedList other) {
-    super(other.getSize(), other.getLabel(), other.getLevel(), SMGObjectKind.SLL);
-
-    minimumLength = other.minimumLength;
-    shape = other.shape;
-  }
-
-  public int getMinimumLength() {
-    return minimumLength;
-  }
-
-  @Override
-  public boolean isAbstract() {
-    return true;
+    super(other);
   }
 
   public int getNfo() {
-    return shape.getNfo();
+    return getShape().getNfo();
   }
 
   public int getHfo() {
-    return shape.getHfo();
-  }
-
-  public SMGSingleLinkedListShape getShape() {
-    return shape;
-  }
-
-  @Override
-  public String toString() {
-    return "SLL(id=" + id + " size=" + getSize() + ", hfo=" + shape.getHfo() + ", nfo=" + shape.getNfo()
-        + ", len=" + minimumLength + ", level=" + getLevel() + ")";
+    return getShape().getHfo();
   }
 
   @Override
@@ -84,60 +60,18 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
   }
 
   @Override
-  public boolean matchGenericShape(SMGAbstractObject pOther) {
-    return pOther.getKind() == SMGObjectKind.SLL;
-  }
-
-  @Override
-  public boolean matchSpecificShape(SMGAbstractObject pOther) {
-    return matchGenericShape(pOther) && shape.equals(((SMGSingleLinkedList) pOther).shape);
-  }
-
-  @Override
-  public boolean isMoreGeneral(SMGObject pOther) {
-
-    switch (pOther.getKind()) {
-      case REG:
-        return minimumLength < 2;
-      case OPTIONAL:
-        return minimumLength == 0;
-      case SLL:
-        return matchSpecificShape((SMGAbstractObject) pOther)
-            && minimumLength < ((SMGSingleLinkedList) pOther).minimumLength;
-      default:
-        return false;
-    }
-  }
-
-  @Override
-  public SMGObject join(SMGObject pOther, int pDestLevel) {
-
-    switch (pOther.getKind()) {
-      case SLL:
-        SMGSingleLinkedList otherLinkedList = (SMGSingleLinkedList) pOther;
-        assert matchSpecificShape(otherLinkedList);
-
-        int minlength = Math.min(getMinimumLength(), otherLinkedList.getMinimumLength());
-
-        return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
-            pDestLevel);
-      case REG:
-      case OPTIONAL:
-        assert getSize() == pOther.getSize();
-
-        int otherLength = pOther.getKind() == SMGObjectKind.REG ? 1 : 0;
-        minlength = Math.min(getMinimumLength(), otherLength);
-
-        return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minlength,
-            pDestLevel);
-
-      default:
-        throw new IllegalArgumentException("join called on unjoinable Objects");
-    }
+  public String toString() {
+    return "SLL(id=" + id + " size=" + getSize() + ", hfo=" + getHfo() + ", nfo=" + getNfo()
+        + ", len=" + getMinimumLength() + ", level=" + getLevel() + ")";
   }
 
   @Override
   public SMGObject copy(int pNewLevel) {
-    return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), minimumLength, pNewLevel);
+    return copy(getMinimumLength(), pNewLevel);
+  }
+
+  @Override
+  public SMGSingleLinkedList copy(int newLength, int pNewLevel) {
+    return new SMGSingleLinkedList(getSize(), getHfo(), getNfo(), newLength, pNewLevel);
   }
 }
