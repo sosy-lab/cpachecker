@@ -28,11 +28,12 @@ import java.util.Objects;
 
 public class SMGSingleLinkedListShape implements Comparable<SMGSingleLinkedListShape> {
 
+  /** head field offset */
   private final int hfo;
+  /** next field offset */
   private final int nfo;
 
   public SMGSingleLinkedListShape(int pHfo, int pNfo) {
-    super();
     hfo = pHfo;
     nfo = pNfo;
   }

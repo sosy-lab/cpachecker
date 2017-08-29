@@ -28,8 +28,11 @@ import java.util.Objects;
 
 public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListShape> {
 
+  /** head field offset */
   private final int hfo;
+  /** prev field offset */
   private final int pfo;
+  /** next field offset */
   private final int nfo;
 
   public int getHfo() {
