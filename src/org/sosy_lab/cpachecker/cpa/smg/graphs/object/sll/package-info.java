@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,8 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+
 /**
- * Package with the classes representing a doubly linked list segment abstraction.
+ * Package with the classes representing a single linked list segment abstraction.
  */
-package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dls;
+package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;

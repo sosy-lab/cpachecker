@@ -21,10 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dls;
+package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
 import com.google.common.collect.ImmutableList;
-
+import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,17 +39,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
-import java.util.Set;
 
-
-public class SMGDoublyLinkedListCandidateFinderTest {
+public class SMGDoublyLinkedListFinderTest {
 
   private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   private final CFunctionDeclaration functionDeclaration3 = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.<CParameterDeclaration>of());
@@ -156,7 +154,7 @@ public class SMGDoublyLinkedListCandidateFinderTest {
     smg1.setValidity(l5, true);
     smg1.setValidity(head, true);
 
-    SMGDoublyLinkedListCandidateFinder f = new SMGDoublyLinkedListCandidateFinder();
+    SMGDoublyLinkedListFinder f = new SMGDoublyLinkedListFinder();
 
      Set<SMGAbstractionCandidate> s = f.traverse(smg1, null);
 

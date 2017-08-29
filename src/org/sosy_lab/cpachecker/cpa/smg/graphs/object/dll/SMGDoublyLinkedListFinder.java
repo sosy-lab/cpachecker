@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dls;
+package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -48,19 +48,19 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder {
+public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
 
   private final int seqLengthSubGraphEqualityThreshold;
   private final int seqLengthSubGraphEntailmentThreshold;
   private final int seqLengthSubGraphIncomparabilityThreshold;
 
-  public SMGDoublyLinkedListCandidateFinder() {
+  public SMGDoublyLinkedListFinder() {
     seqLengthSubGraphEqualityThreshold = 2;
     seqLengthSubGraphEntailmentThreshold = 2;
     seqLengthSubGraphIncomparabilityThreshold = 3;
   }
 
-  public SMGDoublyLinkedListCandidateFinder(int pSeqLengthSubGraphEqualityThreshold,
+  public SMGDoublyLinkedListFinder(int pSeqLengthSubGraphEqualityThreshold,
       int pSeqLengthSubGraphEntailmentThreshold, int pSeqLengthSubGraphIncomparabilityThreshold) {
     seqLengthSubGraphEqualityThreshold = pSeqLengthSubGraphEqualityThreshold;
     seqLengthSubGraphEntailmentThreshold = pSeqLengthSubGraphEntailmentThreshold;

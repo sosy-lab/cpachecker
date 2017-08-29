@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,20 +21,8 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic.GenericAbstraction;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
-
-
-public interface SMGObjectVisitor<T> {
-
-  public T visit(SMGNullObject pObject);
-  public T visit(SMGRegion pObject);
-  public T visit(SMGSingleLinkedList pObject);
-  public T visit(SMGDoublyLinkedList pObject);
-  public T visit(SMGOptionalObject pObject);
-  public T visit(GenericAbstraction pObject);
-}
+/**
+ * Package with the classes representing a doubly linked list segment abstraction.
+ */
+package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;

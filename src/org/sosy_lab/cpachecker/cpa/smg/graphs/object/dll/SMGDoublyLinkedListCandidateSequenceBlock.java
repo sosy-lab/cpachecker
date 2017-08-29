@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dls;
+package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
 import java.util.Objects;
 import java.util.Optional;

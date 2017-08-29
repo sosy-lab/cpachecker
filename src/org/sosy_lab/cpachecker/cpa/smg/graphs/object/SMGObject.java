@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dls.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 /**
