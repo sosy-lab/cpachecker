@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
+import java.util.Objects;
 
 public class SMGSingleLinkedListShape implements Comparable<SMGSingleLinkedListShape> {
 
@@ -39,11 +39,7 @@ public class SMGSingleLinkedListShape implements Comparable<SMGSingleLinkedListS
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + hfo;
-    result = prime * result + nfo;
-    return result;
+    return Objects.hash(hfo, nfo);
   }
 
   @Override
@@ -58,13 +54,7 @@ public class SMGSingleLinkedListShape implements Comparable<SMGSingleLinkedListS
       return false;
     }
     SMGSingleLinkedListShape other = (SMGSingleLinkedListShape) obj;
-    if (hfo != other.hfo) {
-      return false;
-    }
-    if (nfo != other.nfo) {
-      return false;
-    }
-    return true;
+    return hfo == other.hfo && nfo == other.nfo;
   }
 
   @Override
@@ -82,9 +72,6 @@ public class SMGSingleLinkedListShape implements Comparable<SMGSingleLinkedListS
 
   @Override
   public int compareTo(SMGSingleLinkedListShape other) {
-    return ComparisonChain.start()
-        .compare(nfo, other.nfo, Ordering.<Integer> natural().nullsFirst())
-        .compare(hfo, other.hfo, Ordering.<Integer> natural().nullsFirst())
-        .result();
+    return ComparisonChain.start().compare(nfo, other.nfo).compare(hfo, other.hfo).result();
   }
 }

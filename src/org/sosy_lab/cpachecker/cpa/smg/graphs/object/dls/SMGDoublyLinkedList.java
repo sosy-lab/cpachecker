@@ -63,21 +63,8 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
    * @see org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject#matchSpecificShape(org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject)
    */
   @Override
-  public boolean matchSpecificShape(SMGAbstractObject obj) {
-
-    if (this == obj) {
-      return true;
-    }
-
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-
-    SMGDoublyLinkedList other = (SMGDoublyLinkedList) obj;
-    return dllShape.equals(other.dllShape);
+  public boolean matchSpecificShape(SMGAbstractObject pOther) {
+    return matchGenericShape(pOther) && dllShape.equals(((SMGDoublyLinkedList) pOther).dllShape);
   }
 
   public int getMinimumLength() {

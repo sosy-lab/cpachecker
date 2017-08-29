@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.generic;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.ArrayList;
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -89,15 +89,8 @@ public class GenericAbstraction extends SMGObject implements SMGAbstractObject {
   }
 
   public List<SMG> materialize(SMG pSMG, int pointer) {
-    List<MaterlisationStep> steps = getSteps(pointer);
-
-    List<SMG> result = new ArrayList<>(steps.size());
-
-    for (MaterlisationStep step : steps) {
-      result.add(step.materialize(pSMG, abstractToConcretePointerMap));
-    }
-
-    return result;
+    return Lists.transform(
+        getSteps(pointer), step -> step.materialize(pSMG, abstractToConcretePointerMap));
   }
 
   private List<MaterlisationStep> getSteps(int pPointer) {

@@ -90,13 +90,7 @@ public final class SMGSingleLinkedList extends SMGObject implements SMGAbstractO
 
   @Override
   public boolean matchSpecificShape(SMGAbstractObject pOther) {
-    if (!matchGenericShape(pOther)) {
-      return false;
-    }
-
-    SMGSingleLinkedList sllOther = (SMGSingleLinkedList) pOther;
-
-    return shape.equals(sllOther.shape);
+    return matchGenericShape(pOther) && shape.equals(((SMGSingleLinkedList) pOther).shape);
   }
 
   @Override

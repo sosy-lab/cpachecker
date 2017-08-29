@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dls;
 
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
+import java.util.Objects;
 
 public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListShape> {
 
@@ -46,12 +46,7 @@ public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListS
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + hfo;
-    result = prime * result + nfo;
-    result = prime * result + pfo;
-    return result;
+    return Objects.hash(hfo, nfo, pfo);
   }
 
   @Override
@@ -66,20 +61,10 @@ public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListS
       return false;
     }
     SMGDoublyLinkedListShape other = (SMGDoublyLinkedListShape) obj;
-    if (hfo != other.hfo) {
-      return false;
-    }
-    if (nfo != other.nfo) {
-      return false;
-    }
-    if (pfo != other.pfo) {
-      return false;
-    }
-    return true;
+    return hfo == other.hfo && nfo == other.nfo && pfo == other.pfo;
   }
 
   public SMGDoublyLinkedListShape(int pHfo, int pPfo, int pNfo) {
-    super();
     hfo = pHfo;
     pfo = pPfo;
     nfo = pNfo;
@@ -93,9 +78,9 @@ public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListS
   @Override
   public int compareTo(SMGDoublyLinkedListShape other) {
     return ComparisonChain.start()
-        .compare(nfo, other.nfo, Ordering.<Integer> natural().nullsFirst())
-        .compare(pfo, other.pfo, Ordering.<Integer> natural().nullsFirst())
-        .compare(hfo, other.hfo, Ordering.<Integer> natural().nullsFirst())
+        .compare(nfo, other.nfo)
+        .compare(pfo, other.pfo)
+        .compare(hfo, other.hfo)
         .result();
   }
 }
