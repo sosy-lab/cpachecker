@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -327,16 +328,17 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     } else {
       infeasible = isInfeasibleEdge(startState, endState, segmentList);
       // Assert that mustBeInfeasible => infeasible holds:
-      assert (!mustBeInfeasible || infeasible);
+      assert (!mustBeInfeasible || infeasible) : "^ " + startState.getStateId() + " -> " + endState.getStateId();
     }
     return infeasible;
   }
 
-  private boolean isInfeasibleEdge(ARGState parent, ARGState child, List<ARGState> segmentList) {
+  private boolean isInfeasibleEdge(ARGState start, ARGState stop, List<ARGState> segmentList) {
     boolean infeasible = false;
     try {
       SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
-      BooleanFormula formula = buildPathFormula(parent, child, segmentList, startSSAMap, solver, pfmgr, true).getFormula();
+      PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
+      BooleanFormula formula = buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true).getFormula();
       try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
         thmProver.push(formula);
         if (thmProver.isUnsat()) {

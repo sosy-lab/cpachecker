@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -70,13 +71,14 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
     final List<BooleanFormula> abstractionFormulas = new ArrayList<>();
 
     SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
-    PathFormula currentPathFormula = buildPathFormula(pRoot, pPath.get(0), startSSAMap, solver, pfmgr,includePartialInvariants);
+    PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
+    PathFormula currentPathFormula = buildPathFormula(pRoot, pPath.get(0), startSSAMap, startPts, solver, pfmgr,includePartialInvariants);
     abstractionFormulas.add(currentPathFormula.getFormula());
 
     for(int i = 0; i<pPath.size()-1; i++) {
       PathFormula oldPathFormula = currentPathFormula;
       currentPathFormula = buildPathFormula(pPath.get(i), pPath.get(i+1),
-          oldPathFormula.getSsa(), solver, pfmgr,includePartialInvariants);
+          oldPathFormula.getSsa(), oldPathFormula.getPointerTargetSet(), solver, pfmgr,includePartialInvariants);
       abstractionFormulas.add(currentPathFormula.getFormula());
     }
 
