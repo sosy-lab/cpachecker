@@ -27,9 +27,8 @@ import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
@@ -49,7 +48,7 @@ public class SMGDoublyLinkedListCandidateSequenceBlock
   }
 
   @Override
-  public boolean isBlocked(SMGAbstractionCandidate pCandidate, CLangSMG smg) throws SMGInconsistentException {
+  public boolean isBlocked(SMGAbstractionCandidate pCandidate, CLangSMG smg) {
 
     if (!(pCandidate instanceof SMGDoublyLinkedListCandidateSequence)) { return false; }
 

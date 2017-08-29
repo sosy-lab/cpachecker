@@ -642,12 +642,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     }
 
     public boolean containsCandidate(SMGObject pObject, Integer pNfo, Integer pPfo) {
-
-      if (candidates.containsKey(pObject)) {
-        return candidates.get(pObject).containsKey(Pair.of(pNfo, pPfo));
-      }
-
-      return false;
+      return candidates.containsKey(pObject) && candidates.get(pObject).containsKey(Pair.of(pNfo, pPfo));
     }
 
     public void initializeCandidiate(SMGDoublyLinkedListCandidate pCandidate) {
@@ -657,10 +652,7 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
 
     public void putCandidiateMap(SMGObject pObject) {
       assert !candidates.containsKey(pObject);
-
-      Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> newMap = new HashMap<>();
-
-      candidates.put(pObject, newMap);
+      candidates.put(pObject, new HashMap<>());
     }
 
     public boolean containsCandidateMap(SMGObject pObject) {
@@ -670,63 +662,38 @@ public class SMGDoublyLinkedListCandidateFinder implements SMGAbstractionFinder 
     public Set<SMGAbstractionCandidate> getValidCandidates(int pSeqLengthSubGraphEqualityThreshold,
         int pSeqLengthSubGraphEntailmentThreshold,
         int pSeqLengthSubGraphIncomparabilityThreshold, CLangSMG pSMG,
-        Set<SMGDoublyLinkedListCandidateSequenceBlock> pDllBlocks) throws SMGInconsistentException {
+        Set<SMGDoublyLinkedListCandidateSequenceBlock> pDllBlocks) {
 
       Set<SMGAbstractionCandidate> resultBeforeBlocks = new HashSet<>();
 
       for (Map<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> objCandidates : candidates.values()) {
         for (SMGDoublyLinkedListCandidate candidate : objCandidates.values()) {
-          if (candidateLength.containsKey(Pair.of(candidate, SMGJoinStatus.EQUAL))) {
-            int length = candidateLength.get(Pair.of(candidate, SMGJoinStatus.EQUAL));
-            if (length >= pSeqLengthSubGraphEqualityThreshold) {
-              resultBeforeBlocks.add(getCandidat(candidate, length, SMGJoinStatus.EQUAL, pSMG));
-            }
-          }
-
-          if (candidateLength.containsKey(Pair.of(candidate, SMGJoinStatus.LEFT_ENTAIL))) {
-            int length = candidateLength.get(Pair.of(candidate, SMGJoinStatus.LEFT_ENTAIL));
-            if (length >= pSeqLengthSubGraphEntailmentThreshold) {
-              resultBeforeBlocks.add(getCandidat(candidate, length, SMGJoinStatus.LEFT_ENTAIL, pSMG));
-            }
-          }
-
-          if (candidateLength.containsKey(Pair.of(candidate, SMGJoinStatus.RIGHT_ENTAIL))) {
-            int length = candidateLength.get(Pair.of(candidate, SMGJoinStatus.RIGHT_ENTAIL));
-            if (length >= pSeqLengthSubGraphEntailmentThreshold) {
-              resultBeforeBlocks.add(getCandidat(candidate, length, SMGJoinStatus.RIGHT_ENTAIL, pSMG));
-            }
-          }
-
-          if (candidateLength.containsKey(Pair.of(candidate, SMGJoinStatus.INCOMPARABLE))) {
-            int length = candidateLength.get(Pair.of(candidate, SMGJoinStatus.INCOMPARABLE));
-            if (length >= pSeqLengthSubGraphIncomparabilityThreshold) {
-              resultBeforeBlocks.add(getCandidat(candidate, length, SMGJoinStatus.INCOMPARABLE, pSMG));
-            }
-          }
+          addCandidate(SMGJoinStatus.EQUAL,
+              candidate, pSeqLengthSubGraphEqualityThreshold, pSMG, resultBeforeBlocks);
+          addCandidate(SMGJoinStatus.LEFT_ENTAIL,
+              candidate, pSeqLengthSubGraphEntailmentThreshold, pSMG, resultBeforeBlocks);
+          addCandidate(SMGJoinStatus.RIGHT_ENTAIL,
+              candidate, pSeqLengthSubGraphEntailmentThreshold, pSMG, resultBeforeBlocks);
+          addCandidate(SMGJoinStatus.INCOMPARABLE,
+              candidate, pSeqLengthSubGraphIncomparabilityThreshold, pSMG, resultBeforeBlocks);
         }
       }
 
-      if (pDllBlocks.isEmpty()) {
-        return resultBeforeBlocks;
-      }
-
-      Set<SMGAbstractionCandidate> result = new HashSet<>(resultBeforeBlocks.size());
-
+      Set<SMGAbstractionCandidate> result = new HashSet<>();
       for (SMGAbstractionCandidate candidate : resultBeforeBlocks) {
-        boolean blocked = false;
-        for (SMGDoublyLinkedListCandidateSequenceBlock block : pDllBlocks) {
-          if (block.isBlocked(candidate, pSMG)) {
-            blocked = true;
-            break;
-          }
-        }
-
-        if (!blocked) {
+        if (Iterables.all(pDllBlocks, b -> !b.isBlocked(candidate, pSMG))) {
           result.add(candidate);
         }
       }
-
       return result;
+    }
+
+    private void addCandidate(SMGJoinStatus joinStatus, SMGDoublyLinkedListCandidate pCandidate,
+        int pThreshold, CLangSMG pSMG, Set<SMGAbstractionCandidate> pResultBeforeBlocks) {
+      Integer length = candidateLength.get(Pair.of(pCandidate, joinStatus));
+      if (length != null && length >= pThreshold) {
+        pResultBeforeBlocks.add(getCandidat(pCandidate, length, joinStatus, pSMG));
+      }
     }
 
     private SMGDoublyLinkedListCandidateSequence getCandidat(

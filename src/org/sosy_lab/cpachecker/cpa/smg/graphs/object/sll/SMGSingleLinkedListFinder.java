@@ -34,18 +34,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
@@ -565,12 +565,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
 
     public boolean containsCandidate(SMGObject pObject, Integer pNfo) {
-
-      if (candidates.containsKey(pObject)) {
-        return candidates.get(pObject).containsKey(pNfo);
-      }
-
-      return false;
+      return candidates.containsKey(pObject) && candidates.get(pObject).containsKey(pNfo);
     }
 
     public void initializeCandidiate(SMGSingleLinkedListCandidate pCandidate) {
@@ -580,10 +575,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
     public void putCandidiateMap(SMGObject pObject) {
       assert !candidates.containsKey(pObject);
-
-      Map<Integer, SMGSingleLinkedListCandidate> newMap = new HashMap<>();
-
-      candidates.put(pObject, newMap);
+      candidates.put(pObject, new HashMap<>());
     }
 
     public boolean containsCandidateMap(SMGObject pObject) {
@@ -593,63 +585,38 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     public Set<SMGAbstractionCandidate> getValidCandidates(int pSeqLengthSubGraphEqualityThreshold,
         int pSeqLengthSubGraphEntailmentThreshold,
         int pSeqLengthSubGraphIncomparabilityThreshold, CLangSMG pSMG,
-        Set<SMGSingleLinkedListCandidateSequenceBlock> pSllBlocks) throws SMGInconsistentException {
+        Set<SMGSingleLinkedListCandidateSequenceBlock> pSllBlocks) {
 
       Set<SMGAbstractionCandidate> resultBeforeBlocks = new HashSet<>();
 
       for (Map<Integer, SMGSingleLinkedListCandidate> objCandidates : candidates.values()) {
         for (SMGSingleLinkedListCandidate candidate : objCandidates.values()) {
-          if (candidateLength.containsKey(Pair.of(candidate, SMGJoinStatus.EQUAL))) {
-            int length = candidateLength.get(Pair.of(candidate, SMGJoinStatus.EQUAL));
-            if (length >= pSeqLengthSubGraphEqualityThreshold) {
-              resultBeforeBlocks.add(getCandidat(candidate, length, SMGJoinStatus.EQUAL, pSMG));
-            }
-          }
-
-          if (candidateLength.containsKey(Pair.of(candidate, SMGJoinStatus.LEFT_ENTAIL))) {
-            int length = candidateLength.get(Pair.of(candidate, SMGJoinStatus.LEFT_ENTAIL));
-            if (length >= pSeqLengthSubGraphEntailmentThreshold) {
-              resultBeforeBlocks.add(getCandidat(candidate, length, SMGJoinStatus.LEFT_ENTAIL, pSMG));
-            }
-          }
-
-          if (candidateLength.containsKey(Pair.of(candidate, SMGJoinStatus.RIGHT_ENTAIL))) {
-            int length = candidateLength.get(Pair.of(candidate, SMGJoinStatus.RIGHT_ENTAIL));
-            if (length >= pSeqLengthSubGraphEntailmentThreshold) {
-              resultBeforeBlocks.add(getCandidat(candidate, length, SMGJoinStatus.RIGHT_ENTAIL, pSMG));
-            }
-          }
-
-          if (candidateLength.containsKey(Pair.of(candidate, SMGJoinStatus.INCOMPARABLE))) {
-            int length = candidateLength.get(Pair.of(candidate, SMGJoinStatus.INCOMPARABLE));
-            if (length >= pSeqLengthSubGraphIncomparabilityThreshold) {
-              resultBeforeBlocks.add(getCandidat(candidate, length, SMGJoinStatus.INCOMPARABLE, pSMG));
-            }
-          }
+          addCandidate(SMGJoinStatus.EQUAL,
+              candidate, pSeqLengthSubGraphEqualityThreshold, pSMG, resultBeforeBlocks);
+          addCandidate(SMGJoinStatus.LEFT_ENTAIL,
+              candidate, pSeqLengthSubGraphEntailmentThreshold, pSMG, resultBeforeBlocks);
+          addCandidate(SMGJoinStatus.RIGHT_ENTAIL,
+              candidate, pSeqLengthSubGraphEntailmentThreshold, pSMG, resultBeforeBlocks);
+          addCandidate(SMGJoinStatus.INCOMPARABLE,
+              candidate, pSeqLengthSubGraphIncomparabilityThreshold, pSMG, resultBeforeBlocks);
         }
       }
 
-      if (pSllBlocks.isEmpty()) {
-        return resultBeforeBlocks;
-      }
-
-      Set<SMGAbstractionCandidate> result = new HashSet<>(resultBeforeBlocks.size());
-
+      Set<SMGAbstractionCandidate> result = new HashSet<>();
       for (SMGAbstractionCandidate candidate : resultBeforeBlocks) {
-        boolean blocked = false;
-        for (SMGSingleLinkedListCandidateSequenceBlock block : pSllBlocks) {
-          if (block.isBlocked(candidate, pSMG)) {
-            blocked = true;
-            break;
-          }
-        }
-
-        if (!blocked) {
+        if (Iterables.all(pSllBlocks, b -> !b.isBlocked(candidate, pSMG))) {
           result.add(candidate);
         }
       }
-
       return result;
+    }
+
+    private void addCandidate(SMGJoinStatus joinStatus, SMGSingleLinkedListCandidate pCandidate,
+        int pThreshold, CLangSMG pSMG, Set<SMGAbstractionCandidate> pResultBeforeBlocks) {
+      Integer length = candidateLength.get(Pair.of(pCandidate, joinStatus));
+      if (length != null && length >= pThreshold) {
+        pResultBeforeBlocks.add(getCandidat(pCandidate, length, joinStatus, pSMG));
+      }
     }
 
     private SMGSingleLinkedListCandidateSequence getCandidat(
