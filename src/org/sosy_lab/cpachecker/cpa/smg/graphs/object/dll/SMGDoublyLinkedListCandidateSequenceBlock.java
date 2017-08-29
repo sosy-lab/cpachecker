@@ -54,7 +54,7 @@ public class SMGDoublyLinkedListCandidateSequenceBlock
 
     SMGDoublyLinkedListCandidateSequence dllcs = (SMGDoublyLinkedListCandidateSequence) pCandidate;
 
-    if (!shape.equals(dllcs.getCandidate().getDllShape())) {
+    if (!shape.equals(dllcs.getCandidate().getShape())) {
       return false;
     }
 
@@ -76,7 +76,7 @@ public class SMGDoublyLinkedListCandidateSequenceBlock
 
     SMGObject startObjectLock = smg.getPointer(value).getObject();
 
-    if (!startObjectLock.equals(dllcs.getCandidate().getObject())) {
+    if (!startObjectLock.equals(dllcs.getCandidate().getStartObject())) {
       return false;
     }
 

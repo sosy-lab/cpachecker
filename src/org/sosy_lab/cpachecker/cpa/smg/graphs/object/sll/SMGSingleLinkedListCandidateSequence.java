@@ -24,24 +24,22 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
 import com.google.common.collect.Iterables;
-
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandidate {
 
@@ -61,7 +59,7 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
   @Override
   public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException {
     SMGObject prevObject = candidate.getStartObject();
-    int nfo = candidate.getNfo();
+    int nfo = candidate.getShape().getNfo();
 
     pSmgState.pruneUnreachable();
 
@@ -169,7 +167,7 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
   }
 
   private int getRecursiveFieldTypeScore() {
-    return candidate.hasRecursiveFieldType() ? 10 : 0;
+    return candidate.hasRecursiveFields() ? 10 : 0;
   }
 
   private int getStatusScore() {

@@ -57,7 +57,7 @@ final public class SMGJoinSubSMGsForAbstraction {
   private final Set<SMGObject> nonSharedObjectsFromSMG2;
   private final boolean defined;
 
-  public SMGJoinSubSMGsForAbstraction(CLangSMG pInputSMG, SMGObject obj1, SMGObject obj2, SMGListCandidate pListCandidate, SMGState pStateOfSmg) throws SMGInconsistentException {
+  public SMGJoinSubSMGsForAbstraction(CLangSMG pInputSMG, SMGObject obj1, SMGObject obj2, SMGListCandidate<?> pListCandidate, SMGState pStateOfSmg) throws SMGInconsistentException {
 
     CLangSMG smg = pInputSMG;
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
@@ -74,9 +74,9 @@ final public class SMGJoinSubSMGsForAbstraction {
 
     if (pListCandidate instanceof SMGDoublyLinkedListCandidate) {
       SMGDoublyLinkedListCandidate dllc = (SMGDoublyLinkedListCandidate) pListCandidate;
-      nfo = dllc.getNfo();
-      pfo = dllc.getPfo();
-      hfo = dllc.getHfo();
+      nfo = dllc.getShape().getNfo();
+      pfo = dllc.getShape().getPfo();
+      hfo = dllc.getShape().getHfo();
 
       int lengthObj1 = getMinLength(obj1);
       int lengthObj2 = getMinLength(obj2);
@@ -98,8 +98,8 @@ final public class SMGJoinSubSMGsForAbstraction {
 
     } else {
       SMGSingleLinkedListCandidate sllc = (SMGSingleLinkedListCandidate) pListCandidate;
-      hfo = sllc.getHfo();
-      nfo = sllc.getNfo();
+      hfo = sllc.getShape().getHfo();
+      nfo = sllc.getShape().getNfo();
 
       int lengthObj1 = getMinLength(obj1);
       int lengthObj2 = getMinLength(obj2);

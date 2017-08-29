@@ -52,8 +52,8 @@ public class SMGSingleLinkedListCandidateTest {
     SMGSingleLinkedListCandidateSequence candidateSeq = new SMGSingleLinkedListCandidateSequence(candidate, 2, SMGJoinStatus.INCOMPARABLE, false);
 
     Assert.assertSame(object, candidate.getStartObject());
-    Assert.assertEquals(32, candidate.getNfo());
-    Assert.assertEquals(0, candidate.getHfo());
+    Assert.assertEquals(32, candidate.getShape().getNfo());
+    Assert.assertEquals(0, candidate.getShape().getHfo());
     Assert.assertEquals(2, candidateSeq.getLength());
   }
 

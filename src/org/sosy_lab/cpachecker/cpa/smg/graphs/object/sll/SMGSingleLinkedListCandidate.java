@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,44 +29,24 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
-public class SMGSingleLinkedListCandidate implements SMGListCandidate {
+public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLinkedListShape> {
 
-  private final SMGObject startObject;
   private final CType nfoType;
-  private final MachineModel model;
-  private final SMGSingleLinkedListShape shape;
 
   public SMGSingleLinkedListCandidate(SMGObject pStartObject, int pNfo, int pHfo, CType pNfoType,
       MachineModel pModel) {
-    startObject = pStartObject;
+    super(pStartObject, pModel, new SMGSingleLinkedListShape(pHfo, pNfo));
     nfoType = pNfoType;
-    model = pModel;
-    shape = new SMGSingleLinkedListShape(pHfo, pNfo);
   }
 
-  public boolean hasRecursiveFieldType() {
-    return SMGUtils.isRecursiveOnOffset(nfoType, shape.getNfo(), model);
-  }
-
-  public SMGObject getStartObject() {
-    return startObject;
-  }
-
-  public int getHfo() {
-    return shape.getHfo();
-  }
-
-  public int getNfo() {
-    return shape.getNfo();
-  }
-
-  public SMGSingleLinkedListShape getShape() {
-    return shape;
+  @Override
+  public boolean hasRecursiveFields() {
+    return SMGUtils.isRecursiveOnOffset(nfoType, getShape().getNfo(), model);
   }
 
   @Override
   public String toString() {
-    return "SMGSingleLinkedListCandidate [startObject=" + startObject + ", nfo=" + getNfo() + ", hfo="
-        + getHfo() + "]";
+    return "SMGSingleLinkedListCandidate [startObject=" + getStartObject()
+    + ", nfo=" + getShape().getNfo() + ", hfo=" + getShape().getHfo() + "]";
   }
 }

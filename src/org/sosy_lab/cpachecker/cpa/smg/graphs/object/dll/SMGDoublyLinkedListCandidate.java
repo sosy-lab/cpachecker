@@ -29,55 +29,28 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
-public class SMGDoublyLinkedListCandidate implements SMGListCandidate {
+public class SMGDoublyLinkedListCandidate extends SMGListCandidate<SMGDoublyLinkedListShape> {
 
-  private final SMGObject startObject;
   private final CType pfoType;
   private final CType nfoType;
-  private final MachineModel model;
-  private final SMGDoublyLinkedListShape dllShape;
 
   public SMGDoublyLinkedListCandidate(SMGObject pObject, int pHfo, int pPfo, int pNfo,
       CType pPfoType, CType nNfoType, MachineModel pModel) {
-    startObject = pObject;
-    dllShape = new SMGDoublyLinkedListShape(pHfo, pPfo, pNfo);
+    super(pObject, pModel, new SMGDoublyLinkedListShape(pHfo, pPfo, pNfo));
     pfoType = pPfoType;
     nfoType = nNfoType;
-    model = pModel;
   }
 
+  @Override
   public boolean hasRecursiveFields() {
-    return SMGUtils.isRecursiveOnOffset(pfoType, dllShape.getPfo(), model)
-        && SMGUtils.isRecursiveOnOffset(nfoType, dllShape.getNfo(), model);
+    return SMGUtils.isRecursiveOnOffset(pfoType, getShape().getPfo(), model)
+        && SMGUtils.isRecursiveOnOffset(nfoType, getShape().getNfo(), model);
   }
 
   @Override
   public String toString() {
-    return "SMGDoublyLinkedListCandidate [startObject=" + startObject + ", hfo=" + dllShape.getHfo() + ", pfo="
-        + dllShape.getPfo() + ", nfo=" + dllShape.getNfo() + "]";
-  }
-
-  public boolean isConsistentWith(SMGDoublyLinkedListCandidate other) {
-    return dllShape.equals(other.dllShape);
-  }
-
-  public SMGObject getObject() {
-    return startObject;
-  }
-
-  public int getHfo() {
-    return dllShape.getHfo();
-  }
-
-  public int getPfo() {
-    return dllShape.getPfo();
-  }
-
-  public int getNfo() {
-    return dllShape.getNfo();
-  }
-
-  public SMGDoublyLinkedListShape getDllShape() {
-    return dllShape;
+    return "SMGDoublyLinkedListCandidate [startObject=" + getStartObject()
+        + ", hfo=" + getShape().getHfo() + ", pfo=" + getShape().getPfo()
+        + ", nfo=" + getShape().getNfo() + "]";
   }
 }

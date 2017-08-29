@@ -190,8 +190,8 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       startTraversal(nextObject, pSmg, pSmgState, pProgress);
     }
 
-    Integer nfo = pPrevCandidate.getNfo();
-    Integer hfo = pPrevCandidate.getHfo();
+    Integer nfo = pPrevCandidate.getShape().getNfo();
+    Integer hfo = pPrevCandidate.getShape().getHfo();
 
     SMGSingleLinkedListCandidate candidate;
 
@@ -231,7 +231,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       candidate = pProgress.getCandidate(nextObject, nfo);
     }
 
-    if (candidate.getHfo() != pPrevCandidate.getHfo()) {
+    if (candidate.getShape().getHfo() != pPrevCandidate.getShape().getHfo()) {
       return;
     }
 
@@ -284,7 +284,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     Set<SMGEdgePointsTo> ptes2 = SMGUtils.getPointerToThisObject(nextObject, pSmg);
 
     for (SMGEdgePointsTo pte : ptes1) {
-      if (pte.getOffset() != candidate.getHfo()) {
+      if (pte.getOffset() != candidate.getShape().getHfo()) {
         if (!nonSharedValues1.contains(pte.getValue())) {
           return;
         }
@@ -292,7 +292,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
 
     for (SMGEdgePointsTo pte : ptes2) {
-      if (pte.getOffset() != candidate.getHfo()) {
+      if (pte.getOffset() != candidate.getShape().getHfo()) {
         if (!nonSharedValues2.contains(pte.getValue())) {
           return;
         }
@@ -569,7 +569,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
     }
 
     public void initializeCandidiate(SMGSingleLinkedListCandidate pCandidate) {
-      candidates.get(pCandidate.getStartObject()).put(pCandidate.getNfo(), pCandidate);
+      candidates.get(pCandidate.getStartObject()).put(pCandidate.getShape().getNfo(), pCandidate);
       candidateLength.put(Pair.of(pCandidate, SMGJoinStatus.EQUAL), 1);
     }
 
@@ -635,7 +635,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
 
       for (int i = 1; i < pLength; i++) {
         SMGEdgeHasValue nextHveEdge = Iterables.getOnlyElement(pSmg.getHVEdges(
-            SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pCandidate.getNfo())));
+            SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pCandidate.getShape().getNfo())));
         nextObject = pSmg.getPointer(nextHveEdge.getValue()).getObject();
 
         if (nextObject.getKind() == SMGObjectKind.SLL) {

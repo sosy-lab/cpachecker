@@ -67,9 +67,9 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   @Override
   public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException {
 
-    SMGObject prevObject = candidate.getObject();
-    int nfo = candidate.getNfo();
-    int pfo = candidate.getPfo();
+    SMGObject prevObject = candidate.getStartObject();
+    int nfo = candidate.getShape().getNfo();
+    int pfo = candidate.getShape().getPfo();
 
     pSmgState.pruneUnreachable();
 
@@ -217,8 +217,8 @@ public class SMGDoublyLinkedListCandidateSequence implements SMGAbstractionCandi
   public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState) {
 
     Map<SMGObject, SMGMemoryPath> map = pSmgState.getHeapObjectMemoryPaths();
-    SMGMemoryPath pPointerToStartObject = map.get(candidate.getObject());
-    return new SMGDoublyLinkedListCandidateSequenceBlock(candidate.getDllShape(), length,
+    SMGMemoryPath pPointerToStartObject = map.get(candidate.getStartObject());
+    return new SMGDoublyLinkedListCandidateSequenceBlock(candidate.getShape(), length,
         pPointerToStartObject);
   }
 

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,27 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
-public interface SMGListCandidate {
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
+public abstract class SMGListCandidate<S> {
+
+  private final SMGObject startObject;
+  protected final MachineModel model;
+  private final S shape;
+
+  public SMGListCandidate(SMGObject pStartObject, MachineModel pModel, S pShape) {
+    startObject = pStartObject;
+    model = pModel;
+    shape = pShape;
+  }
+
+  public abstract boolean hasRecursiveFields();
+
+  public SMGObject getStartObject() {
+    return startObject;
+  }
+
+  public S getShape() {
+    return shape;
+  }
 }
