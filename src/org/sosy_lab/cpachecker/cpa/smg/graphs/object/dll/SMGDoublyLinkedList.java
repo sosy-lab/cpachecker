@@ -38,7 +38,7 @@ public class SMGDoublyLinkedList extends SMGObject implements SMGAbstractObject 
 
   public SMGDoublyLinkedList(int pSize, int pHfo, int pNfo, int pPfo,
       int pMinLength, int level) {
-    super(pSize, "dls", level, SMGObjectKind.DLL);
+    super(pSize, "dll", level, SMGObjectKind.DLL);
 
     dllShape = new SMGDoublyLinkedListShape(pHfo, pPfo, pNfo);
     minimumLength = pMinLength;
