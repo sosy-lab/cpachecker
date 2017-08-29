@@ -379,8 +379,14 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     // beginning of infeasible part at end of trace needs special treatment:
     if (infeasiblePartOfART == child) {
       int i = abstractionStatesTrace.indexOf(infeasiblePartOfART);
-      if (abstractionStatesTrace.get(i-1) == parent) {
-        return true;
+      if (i>0) {
+        if (abstractionStatesTrace.get(i-1) == parent) {
+          return true;
+        }
+      } else {
+        if (parent.getStateId() == 0) {
+          return true;
+        }
       }
     }
 
