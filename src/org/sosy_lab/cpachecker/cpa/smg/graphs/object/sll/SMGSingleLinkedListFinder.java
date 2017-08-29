@@ -300,7 +300,7 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       }
     }
 
-    pProgress.updateProgress(pPrevCandidate, candidate, join.getStatus());
+    pProgress.updateProgress(pPrevCandidate, candidate, join.getStatus(), /* irrelevant */ true);
   }
 
   private boolean isSubSmgSeperate(Set<SMGObject> nonSharedObject, Set<Integer> nonSharedValues,

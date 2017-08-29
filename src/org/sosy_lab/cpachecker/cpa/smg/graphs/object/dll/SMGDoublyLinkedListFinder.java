@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
 
@@ -229,7 +230,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
 
     SMGDoublyLinkedListCandidate candidate;
 
-    if (!pProgress.containsCandidate(nextObject, nfo, pfo)) {
+    if (!pProgress.containsCandidate(nextObject, Pair.of(nfo, pfo))) {
       /* candidate not doubly linked with next object,
        * last object in sequence.
        */
@@ -261,7 +262,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
       candidate = new SMGDoublyLinkedListCandidate(nextObject, hfo, pfo, nfo, pfoField.getType(), nfoField.getType(), pSmg.getMachineModel());
       pProgress.initializeLastInSequenceCandidate(candidate);
     } else {
-      candidate = pProgress.getCandidate(nextObject, nfo, pfo);
+      candidate = pProgress.getCandidate(nextObject, Pair.of(nfo, pfo));
     }
 
     if (candidate.getShape().getHfo() != pPrevCandidate.getShape().getHfo()) {
