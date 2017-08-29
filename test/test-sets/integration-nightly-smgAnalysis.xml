@@ -19,7 +19,7 @@
     <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
 
-  <rundefinition name="smg">
+  <rundefinition>
     <option name="-smg"/>
   </rundefinition>
 
