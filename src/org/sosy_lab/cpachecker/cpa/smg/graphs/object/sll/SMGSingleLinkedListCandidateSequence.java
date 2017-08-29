@@ -24,10 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
 import com.google.common.collect.Iterables;
-import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
-import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
@@ -36,24 +34,17 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractListCandidateSequence;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 
-public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandidate {
-
-  private final SMGSingleLinkedListCandidate candidate;
-  private final int length;
-  private final boolean includesSll;
-  private final SMGJoinStatus seqStatus;
+public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandidateSequence<SMGSingleLinkedListCandidate> {
 
   public SMGSingleLinkedListCandidateSequence(SMGSingleLinkedListCandidate pCandidate,
       int pLength, SMGJoinStatus pSmgJoinStatus, boolean pIncludesSll) {
-    candidate = pCandidate;
-    length = pLength;
-    seqStatus = pSmgJoinStatus;
-    includesSll = pIncludesSll;
+    super(pCandidate, pLength, pSmgJoinStatus, pIncludesSll);
   }
 
   @Override
@@ -92,8 +83,6 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
 
       SMGObject newAbsObj = join.getNewAbstractObject();
 
-      Map<Integer, Integer> reached = new HashMap<>();
-
       for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(nextObject, pSMG)) {
         pSMG.removePointsToEdge(pte.getValue());
 
@@ -104,28 +93,7 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
         }
       }
 
-      reached.clear();
-
-      for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(prevObject, pSMG)) {
-        pSMG.removePointsToEdge(pte.getValue());
-
-        if (pte.getTargetSpecifier() == SMGTargetSpecifier.ALL) {
-          SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
-              SMGTargetSpecifier.ALL);
-          pSMG.addPointsToEdge(newPte);
-        } else {
-
-          if (reached.containsKey(pte.getOffset())) {
-            int val = reached.get(pte.getOffset());
-            pSMG.mergeValues(val, pte.getValue());
-          } else {
-            SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
-                SMGTargetSpecifier.FIRST);
-            pSMG.addPointsToEdge(newPte);
-            reached.put(newPte.getOffset(), newPte.getValue());
-          }
-        }
-      }
+      addPointsToEdges(pSMG, prevObject, newAbsObj, SMGTargetSpecifier.FIRST);
 
       SMGEdgeHasValue nextObj2hve = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo)));
 
@@ -151,59 +119,14 @@ public class SMGSingleLinkedListCandidateSequence implements SMGAbstractionCandi
 
   @Override
   public String toString() {
-    return "SMGSingleLinkedListCandidateSequence [candidate=" + candidate + ", length=" + length
-        + "]";
-  }
-
-  @Override
-  public int getScore() {
-    int score = length + getStatusScore() + getRecursiveFieldTypeScore();
-
-    if (includesSll) {
-      score = score + 2;
-    }
-
-    return score;
-  }
-
-  private int getRecursiveFieldTypeScore() {
-    return candidate.hasRecursiveFields() ? 10 : 0;
-  }
-
-  private int getStatusScore() {
-
-    switch (seqStatus) {
-      case EQUAL:
-        return 50;
-      case LEFT_ENTAIL:
-        return 31;
-      case RIGHT_ENTAIL:
-        return 30;
-      case INCOMPARABLE:
-      default:
-        return 0;
-    }
-  }
-
-  public SMGSingleLinkedListCandidate getCandidate() {
-    return candidate;
-  }
-
-  public int getLength() {
-    return length;
+    return "SMGSingleLinkedListCandidateSequence [candidate=" + candidate + ", length=" + length + "]";
   }
 
   @Override
   public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState) {
-
     Map<SMGObject, SMGMemoryPath> map = pSmgState.getHeapObjectMemoryPaths();
     SMGMemoryPath pPointerToStartObject = map.get(candidate.getStartObject());
     return new SMGSingleLinkedListCandidateSequenceBlock(candidate.getShape(), length,
         pPointerToStartObject);
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return false;
   }
 }

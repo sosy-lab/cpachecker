@@ -119,29 +119,7 @@ public class SMGAbstractionManager {
       logger.log(Level.ALL, "Finish executing abstraction of ", best);
       return best;
     } else {
-      return new SMGAbstractionCandidate() {
-
-        @Override
-        public boolean isEmpty() {
-          return true;
-        }
-
-        @Override
-        public int getScore() {
-          return 0;
-        }
-
-        @Override
-        public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException {
-          return pSMG;
-        }
-
-        @Override
-        public SMGAbstractionBlock createAbstractionBlock(SMGState pSmgState) {
-          throw new IllegalArgumentException(
-              "Can't create abstraction block of empty abstraction candidate.");
-        }
-      };
+      return EmptyAbstractionCandidate.INSTANCE;
     }
   }
 
