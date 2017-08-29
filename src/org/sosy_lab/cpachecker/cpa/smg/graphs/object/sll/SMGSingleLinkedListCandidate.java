@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
@@ -48,5 +49,19 @@ public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLink
   public String toString() {
     return "SMGSingleLinkedListCandidate [startObject=" + getStartObject()
     + ", nfo=" + getShape().getNfo() + ", hfo=" + getShape().getHfo() + "]";
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode() * 13 + nfoType.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof SMGSingleLinkedListCandidate)) {
+      return false;
+    }
+    SMGSingleLinkedListCandidate other = (SMGSingleLinkedListCandidate) o;
+    return super.equals(other) && Objects.equals(nfoType, other.nfoType);
   }
 }

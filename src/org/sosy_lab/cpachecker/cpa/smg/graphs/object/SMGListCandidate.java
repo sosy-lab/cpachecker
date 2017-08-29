@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 public abstract class SMGListCandidate<S> {
@@ -45,5 +46,21 @@ public abstract class SMGListCandidate<S> {
 
   public S getShape() {
     return shape;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(startObject, model, shape);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof SMGListCandidate<?>)) {
+      return false;
+    }
+    SMGListCandidate<?> other = (SMGListCandidate<?>) o;
+    return Objects.equals(startObject, other.startObject)
+        && Objects.equals(model, other.model)
+        && Objects.equals(shape, other.shape);
   }
 }
