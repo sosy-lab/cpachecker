@@ -42,6 +42,8 @@ import com.google.common.collect.ImmutableList;
 
 public final class CEnumType implements CComplexType {
 
+  private static final long serialVersionUID = -986078271714119880L;
+
   private final ImmutableList<CEnumerator> enumerators;
   private final String name;
   private final String origName;

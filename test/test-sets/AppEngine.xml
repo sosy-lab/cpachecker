@@ -180,6 +180,6 @@
 
   <columns>
     <column title="total">time for CPAchecker</column>
-    <column title="reached">reached set</column>
+    <column title="reached">Size of reached set</column>
   </columns>
 </benchmark>

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.objects;
 
+import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 
 
@@ -30,4 +31,5 @@ public interface SMGObjectVisitor {
   public void visit(SMGObject pObject);
   public void visit(SMGRegion pObject);
   public void visit(SMGSingleLinkedList pObject);
+  public void visit(SMGDoublyLinkedList pObject);
 }

@@ -237,7 +237,11 @@ public class Interval implements Serializable{
     if (low >= 0) {
       top = high;
     } else {
-      top = Math.max(Math.abs(low), high);
+      if (low == Long.MIN_VALUE) {
+        top = Long.MAX_VALUE;
+      } else {
+        top = Math.max(Math.abs(low), high);
+      }
     }
     newHigh = Math.min(top, other.high - 1);
 

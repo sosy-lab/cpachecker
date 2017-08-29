@@ -104,7 +104,7 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
     bvmgr             = new BitvectorManager(rmgr);
     predmgr           = new PredicateManager(config, manager, cfa);
     transferRelation  = new BDDTransferRelation(manager, bvmgr, predmgr, logger, config, cfa);
-    reducer           = new BDDReducer(manager, predmgr);
+    reducer           = new BDDReducer(predmgr);
   }
 
   public void injectRefinablePrecision() throws InvalidConfigurationException {

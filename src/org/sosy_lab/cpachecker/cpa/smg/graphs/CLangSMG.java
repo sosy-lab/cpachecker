@@ -153,6 +153,18 @@ public class CLangSMG extends SMG {
     addObject(pObject);
   }
 
+  public Set<SMGEdgePointsTo> getPointerToObject(SMGObject obj) {
+    Set<SMGEdgePointsTo> result = new HashSet<>();
+
+    for (SMGEdgePointsTo pt : getPTEdges().values()) {
+      if (pt.getObject() == obj) {
+        result.add(pt);
+      }
+    }
+
+    return result;
+  }
+
   /**
    * Add a global object to the SMG
    *
@@ -298,9 +310,26 @@ public class CLangSMG extends SMG {
      * TODO: Refactor into generic methods for substracting SubSMGs (see above)
      */
     Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects(), seen));
+
+    // Mark all reachable from ExternallyAllocated objects as safe for remove
+    workqueue.addAll(stray_objects);
+    while ( ! workqueue.isEmpty()) {
+      SMGObject processed = workqueue.remove();
+      if (isObjectExternallyAllocated(processed)) {
+        filter.filterByObject(processed);
+        for (SMGEdgeHasValue outbound : getHVEdges(filter)) {
+          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
+          if (stray_objects.contains(pointedObject) && !isObjectExternallyAllocated(pointedObject)) {
+            setExternallyAllocatedFlag(pointedObject, true);
+            workqueue.add(pointedObject);
+          }
+        }
+      }
+    }
+
     for (SMGObject stray_object : stray_objects) {
       if (stray_object.notNull()) {
-        if (isObjectValid(stray_object)) {
+        if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
           setMemoryLeak();
         }
         removeObjectAndEdges(stray_object);
@@ -499,7 +528,9 @@ public class CLangSMG extends SMG {
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
 
-    filter.filterAtOffset((int) pLocation.getOffset());
+    if (pLocation.isReference()) {
+      filter.filterAtOffset((int) pLocation.getOffset());
+    }
 
     // Remember, edges may overlap with different types
     Set<SMGEdgeHasValue> edgesToForget = getHVEdges(filter);

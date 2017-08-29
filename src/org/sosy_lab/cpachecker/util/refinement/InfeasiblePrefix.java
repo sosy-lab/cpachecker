@@ -65,19 +65,17 @@ public class InfeasiblePrefix {
     pathFormulas = pPathFormulas;
   }
 
-  public static InfeasiblePrefix buildForPredicateDomain(final ARGPath pInfeasiblePrefix,
-      final List<BooleanFormula> pInterpolantSequence,
-      final List<BooleanFormula> pPathFormulas,
+  public static InfeasiblePrefix buildForPredicateDomain(final RawInfeasiblePrefix pRawInfeasiblePrefix,
       final FormulaManagerView pFmgr) {
 
     List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
-    for (BooleanFormula itp : pInterpolantSequence) {
+    for (BooleanFormula itp : pRawInfeasiblePrefix.interpolantSequence) {
       simpleInterpolantSequence.add(pFmgr.extractVariableNames(pFmgr.uninstantiate(itp)));
     }
 
-    return new InfeasiblePrefix(pInfeasiblePrefix,
+    return new InfeasiblePrefix(pRawInfeasiblePrefix.prefix,
         simpleInterpolantSequence,
-        pPathFormulas);
+        pRawInfeasiblePrefix.pathFormulas);
   }
 
   public static InfeasiblePrefix buildForValueDomain(final ARGPath pInfeasiblePrefix,
@@ -91,16 +89,12 @@ public class InfeasiblePrefix {
     return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence);
   }
 
-  public Set<String> extractSetOfVariables() {
+  public Set<String> extractSetOfIdentifiers() {
     return FluentIterable.from(interpolantSequence).transformAndConcat(new Function<Set<String>, Iterable<String>>() {
       @Override
       public Iterable<String> apply(Set<String> itp) {
         return itp;
       }}).toSet();
-  }
-
-  public List<Set<String>> extractListOfVariables() {
-    return FluentIterable.from(interpolantSequence).toList();
   }
 
   public int getNonTrivialLength() {
@@ -132,5 +126,21 @@ public class InfeasiblePrefix {
 
   public List<BooleanFormula> getPathFormulae() {
     return pathFormulas;
+  }
+
+  public static class RawInfeasiblePrefix {
+
+    private final ARGPath prefix;
+    private final List<BooleanFormula> interpolantSequence;
+    private final List<BooleanFormula> pathFormulas;
+
+    public RawInfeasiblePrefix(final ARGPath pInfeasiblePrefix,
+        final List<BooleanFormula> pInterpolantSequence,
+        final List<BooleanFormula> pPathFormulas) {
+
+      this.prefix = pInfeasiblePrefix;
+      this.interpolantSequence = pInterpolantSequence;
+      this.pathFormulas = pPathFormulas;
+    }
   }
 }

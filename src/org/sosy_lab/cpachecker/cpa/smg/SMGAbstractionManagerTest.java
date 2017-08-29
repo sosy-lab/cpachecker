@@ -73,18 +73,18 @@ public class SMGAbstractionManagerTest {
   }
 
   @Test
-  public void testExecute() {
+  public void testExecute() throws SMGInconsistentException {
     SMGAbstractionManager manager = new SMGAbstractionManager(smg);
-    CLangSMG afterAbstraction = manager.execute();
+    manager.execute();
 
-    SMGRegion globalVar = afterAbstraction.getObjectForVisibleVariable("pointer");
-    Set<SMGEdgeHasValue> hvs = afterAbstraction.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalVar));
+    SMGRegion globalVar = smg.getObjectForVisibleVariable("pointer");
+    Set<SMGEdgeHasValue> hvs = smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalVar));
     Assert.assertEquals(1, hvs.size());
     SMGEdgeHasValue hv = Iterables.getOnlyElement(hvs);
-    SMGEdgePointsTo pt = afterAbstraction.getPointer(hv.getValue());
+    SMGEdgePointsTo pt = smg.getPointer(hv.getValue());
     SMGObject segment = pt.getObject();
     Assert.assertTrue(segment.isAbstract());
-    Set<SMGObject> heap = afterAbstraction.getHeapObjects();
+    Set<SMGObject> heap = smg.getHeapObjects();
     Assert.assertEquals(2, heap.size());
   }
 }

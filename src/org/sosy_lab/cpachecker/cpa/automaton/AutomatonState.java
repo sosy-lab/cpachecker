@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -52,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 import java.io.IOException;
@@ -186,6 +188,7 @@ public class AutomatonState
 
   private final Map<? extends Property, ResultValue<?>> violatedPropertyInstance;
 
+  //private transient final ExpressionTree<AExpression> candidateInvariants;
   private int matches = 0;
   private int failedMatches = 0;
 
@@ -195,7 +198,6 @@ public class AutomatonState
       ImmutableList<Pair<AStatement, Boolean>> pInstantiatedAssumes, List<AAstNode> pShadowCode,
       int successfulMatches, int failedMatches,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
-
     return automatonStateFactory(pVars, pInternalState, pInternalState.getTransitions(), pAutomatonCPA,
         pInstantiatedAssumes, pShadowCode, successfulMatches, failedMatches, false, pViolatedProperties);
   }
@@ -241,7 +243,8 @@ public class AutomatonState
         successfulMatches, failedMatches, pIntermediateTarget, pViolatedProperties);
   }
 
-  private AutomatonState(Map<String, AutomatonVariable> pVars,
+  private AutomatonState(
+      Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       List<AutomatonTransition> pOutgoingTransitions,
       ControlAutomatonCPA pAutomatonCPA,
@@ -251,7 +254,6 @@ public class AutomatonState
       int pFailedMatches,
       boolean pIntermediateTarget,
       Map<? extends Property, ResultValue<?>> pViolatedProperties) {
-
     vars = checkNotNull(pVars);
     internalState = checkNotNull(pInternalState);
     leavingTransitions = ImmutableList.copyOf(checkNotNull(pOutgoingTransitions));
@@ -261,6 +263,7 @@ public class AutomatonState
     checkFeasibility = pIntermediateTarget;
     assumptions = pInstantiatedAssumes;
     shadowCode = ImmutableList.copyOf(pShadowCode);
+    //this.candidateInvariants = pCandidateInvariants;
 
     if (isTarget()) {
       checkArgument(pViolatedProperties.size() > 0);
@@ -624,5 +627,9 @@ public class AutomatonState
     return shadowCode;
   }
 
+  public ExpressionTree<AExpression> getCandidateInvariants() {
+    // TODO Auto-generated method stub
+    return null;
+  }
 
 }

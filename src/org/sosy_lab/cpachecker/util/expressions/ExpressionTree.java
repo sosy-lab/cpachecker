@@ -24,8 +24,9 @@
 package org.sosy_lab.cpachecker.util.expressions;
 
 
-public interface ExpressionTree extends Iterable<ExpressionTree> {
 
-  <T> T accept(ExpressionTreeVisitor<T> pVisitor);
+public interface ExpressionTree<LeafType> {
+
+  <T, E extends Throwable> T accept(ExpressionTreeVisitor<LeafType, T, E> pVisitor) throws E;
 
 }

@@ -25,13 +25,13 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
+
 import org.sosy_lab.solver.api.FormulaType;
-import org.sosy_lab.solver.api.FunctionFormulaManager;
+import org.sosy_lab.solver.api.FunctionDeclaration;
 import org.sosy_lab.solver.api.NumeralFormula;
 import org.sosy_lab.solver.api.NumeralFormulaManager;
-import org.sosy_lab.solver.api.UfDeclaration;
-
-import com.google.common.collect.ImmutableList;
+import org.sosy_lab.solver.api.UFManager;
 
 /**
  * As not all solvers support non-linear arithmetics,
@@ -50,15 +50,15 @@ public class NonLinearUFNumeralFormulaManager
   private static final String UF_DIVIDE_NAME = "_/_";
   private static final String UF_MODULO_NAME = "_%_";
 
-  private final UfDeclaration<ResultFormulaType> multUfDecl;
-  private final UfDeclaration<ResultFormulaType> divUfDecl;
-  private final UfDeclaration<ResultFormulaType> modUfDecl;
+  private final FunctionDeclaration<ResultFormulaType> multUfDecl;
+  private final FunctionDeclaration<ResultFormulaType> divUfDecl;
+  private final FunctionDeclaration<ResultFormulaType> modUfDecl;
 
-  private final FunctionFormulaManager functionManager;
+  private final UFManager functionManager;
 
   NonLinearUFNumeralFormulaManager(FormulaWrappingHandler pWrappingHandler,
       NumeralFormulaManager<ParamFormulaType, ResultFormulaType> numeralFormulaManager,
-      FunctionFormulaManager pFunctionManager) {
+      UFManager pFunctionManager) {
     super(pWrappingHandler, numeralFormulaManager);
     functionManager = checkNotNull(pFunctionManager);
     FormulaType<ResultFormulaType> formulaType = manager.getFormulaType();
@@ -68,15 +68,15 @@ public class NonLinearUFNumeralFormulaManager
     modUfDecl = createBinaryFunction(UF_MODULO_NAME, formulaType);
   }
 
-  private UfDeclaration<ResultFormulaType> createBinaryFunction(
+  private FunctionDeclaration<ResultFormulaType> createBinaryFunction(
       String name, FormulaType<ResultFormulaType> formulaType) {
-    return functionManager.declareUninterpretedFunction(
+    return functionManager.declareUF(
         formulaType + "_" + name, formulaType, formulaType, formulaType);
   }
 
   private ResultFormulaType makeUf(
-      UfDeclaration<ResultFormulaType> decl, ParamFormulaType t1, ParamFormulaType t2) {
-    return functionManager.callUninterpretedFunction(decl, ImmutableList.of(t1, t2));
+      FunctionDeclaration<ResultFormulaType> decl, ParamFormulaType t1, ParamFormulaType t2) {
+    return functionManager.callUF(decl, ImmutableList.of(t1, t2));
   }
 
   @Override

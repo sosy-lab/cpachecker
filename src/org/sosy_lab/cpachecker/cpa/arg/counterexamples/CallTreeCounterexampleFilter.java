@@ -26,17 +26,17 @@ package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 import static com.google.common.base.Predicates.*;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 
 /**
  * A {@link CounterexampleFilter} that ignores the concrete edges of paths

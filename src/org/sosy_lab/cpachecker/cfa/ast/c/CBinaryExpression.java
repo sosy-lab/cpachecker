@@ -155,6 +155,26 @@ public class CBinaryExpression extends ABinaryExpression implements CExpression 
         throw new AssertionError("Unhandled case statement");
       }
     }
+
+    public BinaryOperator getOppositLogicalOperator() {
+      assert isLogicalOperator();
+      switch (this) {
+        case LESS_EQUAL:
+          return GREATER_THAN;
+        case LESS_THAN:
+          return GREATER_EQUAL;
+        case GREATER_EQUAL:
+          return LESS_THAN;
+        case GREATER_THAN:
+          return LESS_EQUAL;
+        case EQUALS:
+          return NOT_EQUALS;
+        case NOT_EQUALS:
+          return EQUALS;
+        default:
+          return this;
+      }
+    }
   }
 
   @Override

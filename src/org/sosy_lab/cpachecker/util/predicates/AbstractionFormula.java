@@ -173,7 +173,7 @@ public class AbstractionFormula implements Serializable {
       return new AbstractionFormula(
           mgr,
           GlobalInfo.getInstance().getAbstractionManager()
-          .buildRegionFromFormulaWithUnknownAtoms(notInstantiated), notInstantiated,
+          .convertFormulaToRegion(notInstantiated), notInstantiated,
           instantiatedFormula, blockFormula, ImmutableSet.<Integer> of());
     }
   }

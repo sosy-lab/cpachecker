@@ -36,7 +36,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nullable;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -55,6 +54,8 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistic
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialCertificateTypeProvider;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.GraphPartitionerFactory.PartitioningHeuristics;
+import org.sosy_lab.cpachecker.pcc.util.ProofStatesInfoCollector;
+import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix = "pcc.partitioning")
 public class PartitioningIOHelper {
@@ -75,6 +76,7 @@ public class PartitioningIOHelper {
   private int numPartitions;
   private List<Pair<AbstractState[], AbstractState[]>> partitions;
   private Statistics currentGraphStatistics;
+  private ProofStatesInfoCollector infoCollector;
 
   public PartitioningIOHelper(final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
@@ -215,6 +217,9 @@ public class PartitioningIOHelper {
 
   private void writePartition(final ObjectOutputStream pOut, final AbstractState[] pPartitionNodes,
       AbstractState[] pAdjacentNodesOutside) throws IOException {
+    if(infoCollector!=null) {
+      infoCollector.addInfoForStates(pPartitionNodes);
+    }
     pOut.writeObject(pPartitionNodes);
     pOut.writeObject(pAdjacentNodesOutside);
   }
@@ -228,6 +233,10 @@ public class PartitioningIOHelper {
     for (Set<Integer> partition : partitionDescription.getSecond()) {
       writePartition(pOut, partition, partitionDescription.getFirst());
     }
+  }
+
+  public void setProofInfoCollector(final ProofStatesInfoCollector pInfoCollector) {
+    infoCollector = pInfoCollector;
   }
 
   public Statistics getPartitioningStatistc() {

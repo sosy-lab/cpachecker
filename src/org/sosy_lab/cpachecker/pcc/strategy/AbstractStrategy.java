@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.pcc.util.ProofStatesInfoCollector;
 import org.sosy_lab.cpachecker.util.Triple;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -63,6 +64,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   protected LogManager logger;
   protected PCStrategyStatistics stats;
+  protected ProofStatesInfoCollector proofInfo;
   private Collection<Statistics> pccStats = new ArrayList<>();
 
   @Option(secure=true,
@@ -82,7 +84,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     numThreads = Math.max(1, numThreads);
     numThreads = Math.min(Runtime.getRuntime().availableProcessors(), numThreads);
     logger = pLogger;
-    stats = new PCStrategyStatistics();
+    proofInfo = new ProofStatesInfoCollector(pConfig);
+    stats = new PCStrategyStatistics(file);
     pccStats.add(stats);
   }
 
@@ -125,6 +128,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
     } catch (InterruptedException e) {
       logger.log(Level.SEVERE, "Proof cannot be written due to time out during proof construction");
     }
+
+    logger.log(Level.INFO, proofInfo.getInfoAsString());
   }
 
   protected abstract void writeProofToStream(ObjectOutputStream out, UnmodifiableReachedSet reached)
@@ -183,7 +188,11 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
   @Override
   public Collection<Statistics> getAdditionalProofGenerationStatistics(){
-    // by default do nothing and return the empty set
+    if(proofInfo != null) {
+      Collection<Statistics> stats = new ArrayList<>();
+      stats.add(proofInfo);
+      return stats;
+    }
     return Collections.emptySet();
   }
 
@@ -196,6 +205,15 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
 
     protected int countIterations = 0;
     protected int proofSize = 0;
+    protected final long fileProofSize;
+
+    public PCStrategyStatistics(final Path pFile) {
+      if (pFile != null) {
+        fileProofSize = pFile.toFile().length();
+      } else {
+        fileProofSize = -1;
+      }
+    }
 
     @Override
     public String getName() {
@@ -236,6 +254,7 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
           + stopTimer.getNumberOfIntervals()
           + ")");
       out.println(" Time for checking property:          "   + propertyCheckingTimer);
+      out.println("Proof file size (bytes):                      "  + fileProofSize);
     }
 
     public void increaseProofSize(int pIncrement) {

@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
+import com.google.errorprone.annotations.ForOverride;
 
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.AbstractSetBasedCounterexampleFilter;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CounterexampleFilter;
@@ -44,9 +44,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.solver.api.BooleanFormula;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
-import com.google.errorprone.annotations.ForOverride;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 
 /**
  * An abstract {@link CounterexampleFilter} implementation

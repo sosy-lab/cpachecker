@@ -221,7 +221,7 @@ public class ToBitvectorFormulaVisitor implements
     int sourceSize = sourceInfo.getSize();
     int targetSize = targetInfo.getSize();
     BitvectorFormula sourceFormula = pCast.getCasted().accept(this, pEnvironment);
-    if (sourceSize == targetSize || sourceFormula == null) {
+    if (sourceFormula == null) {
       return sourceFormula;
     }
     if (sourceSize < targetSize) {

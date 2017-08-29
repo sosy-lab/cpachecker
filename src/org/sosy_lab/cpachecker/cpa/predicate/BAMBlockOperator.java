@@ -27,10 +27,8 @@ import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 @Options
 public class BAMBlockOperator extends BlockOperator {
@@ -46,10 +44,10 @@ public class BAMBlockOperator extends BlockOperator {
    * @see{@link BlockOperator#isBlockEnd}
    */
   @Override
-  public boolean isBlockEnd(CFANode succLoc, CFANode predLoc, CFAEdge edge, PathFormula pPf) {
-    return super.isBlockEnd(succLoc, predLoc, edge, pPf)
-        || partitioning.isCallNode(succLoc)
-        || partitioning.isReturnNode(succLoc);
+  public boolean isBlockEnd(CFANode loc, int thresholdValue) {
+    return super.isBlockEnd(loc, thresholdValue)
+        || partitioning.isCallNode(loc)
+        || partitioning.isReturnNode(loc);
   }
 
   @Override

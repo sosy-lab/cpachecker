@@ -26,8 +26,12 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import java.util.Set;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,25 +39,36 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathTemplate;
+import org.sosy_lab.common.io.Files;
+import org.sosy_lab.common.io.Path;
+import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.GraphBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.InvariantProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.predicates.AssignmentToPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.PathChecker;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
@@ -62,14 +77,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.Model;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 
 @Options(prefix="bmc")
 public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
@@ -80,9 +99,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       + "cpa.predicate.targetStateSatCheck=true.")
   private boolean checkTargetStates = true;
 
-  @Option(secure=true, description="dump counterexample formula to file")
+  @Option(secure=true, description="Export auxiliary invariants used for induction.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private PathTemplate dumpCounterexampleFormula = PathTemplate.ofFormatString("ErrorPath.%d.smt2");
+  private Path invariantsExport = Paths.get("invariants.graphml");
 
   private final ConfigurableProgramAnalysis cpa;
 
@@ -94,6 +113,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final Configuration config;
   private final CFA cfa;
   private final AssignmentToPathAllocator assignmentToPathAllocator;
+
+  private final ARGPathExporter argPathExporter;
 
   public BMCAlgorithm(Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA,
                       Configuration pConfig, LogManager pLogger,
@@ -117,9 +138,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-    MachineModel machineModel = predCpa.getMachineModel();
+    MachineModel machineModel = pCFA.getMachineModel();
 
     assignmentToPathAllocator = new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);
+    argPathExporter = new ARGPathExporter(config, logger, cfa);
   }
 
   @Override
@@ -135,10 +157,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Override
   protected CandidateGenerator getCandidateInvariants() {
-    if (getTargetLocations().isEmpty()) {
+    if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
-      return new StaticCandidateProvider(Sets.<CandidateInvariant>newHashSet(TargetLocationCandidateInvariant.INSTANCE));
+      Set<CFANode> loopHeads = getLoopHeads();
+      return new StaticCandidateProvider(
+          Sets.<CandidateInvariant>newHashSet(new TargetLocationCandidateInvariant(loopHeads)));
     }
   }
 
@@ -156,7 +180,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * It does so by asking the solver for a satisfying assignment.
    */
   @Override
-  protected void analyzeCounterexample(final ReachedSet pReachedSet, final ProverEnvironment pProver)
+  protected void analyzeCounterexample(
+      final BooleanFormula pCounterexampleFormula,
+      final ReachedSet pReachedSet,
+      final ProverEnvironment pProver)
       throws CPATransferException, InterruptedException {
     if (!(cpa instanceof ARGCPA)) {
       logger.log(Level.INFO, "Error found, but error path cannot be created without ARGCPA");
@@ -198,10 +225,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         pProver.push(branchingFormula);
       }
 
-      Model model;
-
+      List<ValueAssignment> model;
       try {
-
         // need to ask solver for satisfiability again,
         // otherwise model doesn't contain new predicates
         boolean stillSatisfiable = !pProver.isUnsat();
@@ -212,7 +237,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return;
         }
 
-        model = pProver.getModel();
+        model = ImmutableList.copyOf(pProver.getModel());
 
       } catch (SolverException e) {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
@@ -238,56 +263,96 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return;
       }
 
-      // create and store CounterexampleInfo object
-      CounterexampleInfo counterexample;
-
+      BooleanFormula cexFormula = pCounterexampleFormula;
 
       // replay error path for a more precise satisfying assignment
-      Solver solver = this.solver;
-      PathFormulaManager pmgr = this.pmgr;
+      PathChecker pathChecker;
+      try {
+        Solver solver = this.solver;
+        PathFormulaManager pmgr = this.pmgr;
 
-      // SMTInterpol does not support reusing the same solver
-      if (solver.getVersion().toLowerCase().contains("smtinterpol")) {
-        try {
+        if (solver.getVersion().toLowerCase().contains("smtinterpol")) {
+          // SMTInterpol does not support reusing the same solver
           solver = Solver.create(config, logger, shutdownNotifier);
           FormulaManagerView formulaManager = solver.getFormulaManager();
           pmgr = new PathFormulaManagerImpl(formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
-        } catch (InvalidConfigurationException e) {
-          // Configuration has somehow changed and can no longer be used to create the solver and path formula manager
-          logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
-          return;
-        }
-      }
-      try {
-        PathChecker pathChecker = new PathChecker(logger, pmgr, solver, assignmentToPathAllocator);
-        CounterexampleTraceInfo info = pathChecker.checkPath(targetPath);
-
-        if (info.isSpurious()) {
-          logger.log(Level.WARNING, "Inconsistent replayed error path!");
-          counterexample = CounterexampleInfo.feasible(targetPath, RichModel
-              .of(model));
-
-        } else {
-          counterexample = CounterexampleInfo.feasible(targetPath, info.getModel());
-
-          counterexample.addFurtherInformation(
-              solver.getFormulaManager().dumpFormula(
-                  solver.getFormulaManager().getBooleanFormulaManager().and(
-                      info.getCounterExampleFormulas()
-                  )),
-              dumpCounterexampleFormula);
+          // cannot dump pCounterexampleFormula, PathChecker would use wrong FormulaManager for it
+          cexFormula = solver.getFormulaManager().getBooleanFormulaManager().makeBoolean(true);
         }
 
-      } catch (SolverException | CPATransferException e) {
-        // path is now suddenly a problem
+        pathChecker = new PathChecker(config, logger, pmgr, solver, assignmentToPathAllocator);
+
+      } catch (InvalidConfigurationException e) {
+        // Configuration has somehow changed and can no longer be used to create the solver and path formula manager
         logger.logUserException(Level.WARNING, e, "Could not replay error path to get a more precise model");
-        counterexample = CounterexampleInfo.feasible(targetPath, RichModel
-            .of(model));
+        return;
       }
-      ((ARGCPA) cpa).addFeasibleCounterexample(targetPath.getLastState(), counterexample);
+
+      CounterexampleTraceInfo cexInfo =
+          CounterexampleTraceInfo.feasible(
+              ImmutableList.<BooleanFormula>of(cexFormula), model, branchingInformation);
+      CounterexampleInfo counterexample =
+          pathChecker.createCounterexample(targetPath, cexInfo, shouldCheckBranching);
+      //counterexample.getTargetState().addCounterexampleInformation(counterexample);
+
 
     } finally {
       stats.errorPathCreation.stop();
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    super.collectStatistics(pStatsCollection);
+    pStatsCollection.add(
+        new Statistics() {
+
+          @Override
+          public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+            ARGState rootState =
+                AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class);
+            if (rootState != null && invariantsExport != null) {
+              try (Writer w = Files.openOutputFile(invariantsExport)) {
+                argPathExporter.writeProofWitness(
+                    w,
+                    rootState,
+                    Predicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    GraphBuilder.CFA_FULL,
+                    new InvariantProvider() {
+
+                      @Override
+                      public ExpressionTree<Object> provideInvariantFor(
+                          CFAEdge pCFAEdge,
+                          Optional<? extends Collection<? extends ARGState>> pStates) {
+                        try {
+                          CFANode node = pCFAEdge.getSuccessor();
+                          ExpressionTree<Object> result =
+                              invariantGenerator.getAsExpressionTree().getInvariantFor(node);
+                          if (ExpressionTrees.getFalse().equals(result)
+                              && !pStates.isPresent()) {
+                            return ExpressionTrees.getTrue();
+                          }
+                          return result;
+
+                        } catch (CPAException e) {
+                          return ExpressionTrees.getTrue();
+                        } catch (InterruptedException e) {
+                          return ExpressionTrees.getTrue();
+                        }
+                      }
+                    });
+              } catch (IOException e) {
+                logger.logUserException(
+                    Level.WARNING, e, "Could not write invariants to file " + invariantsExport);
+              }
+            }
+          }
+
+          @Override
+          public String getName() {
+            return null; // return null because we do not print statistics
+          }
+        });
   }
 }

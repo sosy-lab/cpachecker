@@ -85,44 +85,9 @@ public class CallstackReducer implements Reducer {
     }
   }
 
-  private static boolean isEqual(CallstackState reducedTargetElement,
-      CallstackState candidateElement) {
-    if (reducedTargetElement.getDepth() != candidateElement.getDepth()) { return false; }
-
-    while (reducedTargetElement != null) {
-      if (!reducedTargetElement.getCallNode().equals(candidateElement.getCallNode())
-          || !reducedTargetElement.getCurrentFunction().equals(candidateElement.getCurrentFunction())) { return false; }
-      reducedTargetElement = reducedTargetElement.getPreviousState();
-      candidateElement = candidateElement.getPreviousState();
-    }
-
-    return true;
-  }
-
   @Override
   public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
-    return new CallstackStateWithEquals((CallstackState) pElementKey);
-  }
-
-  private static class CallstackStateWithEquals {
-
-    private final CallstackState state;
-
-    public CallstackStateWithEquals(CallstackState pElement) {
-      state = pElement;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (!(other instanceof CallstackStateWithEquals)) { return false; }
-
-      return isEqual(state, ((CallstackStateWithEquals) other).state);
-    }
-
-    @Override
-    public int hashCode() {
-      return (state.getDepth() * 17 + state.getCurrentFunction().hashCode()) * 31 + state.getCallNode().hashCode();
-    }
+    return new CallstackStateEqualsWrapper((CallstackState) pElementKey);
   }
 
   @Override

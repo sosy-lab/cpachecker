@@ -32,20 +32,25 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.TrinaryEqualable.Equality;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonAction.CPAModification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+
+import javax.annotation.Nullable;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * A transition in the automaton implements one of the pattern matching methods.
@@ -61,10 +66,116 @@ public class AutomatonTransition {
   private final boolean assumptionTruth;
   private final ImmutableList<AStatement> assumption;
   private final ImmutableList<AAstNode> shadowCode;
+  private final ExpressionTree<AExpression> candidateInvariants;
   private final ImmutableList<AutomatonAction> actions;
+  private final StringExpression violatedPropertyDescription;
 
   private final ImmutableSet<? extends SafetyProperty> violatedWhenEnteringTarget;
   private final ImmutableSet<? extends SafetyProperty> violatedWhenAssertionFailed;
+
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumption,
+      ExpressionTree<AExpression> pCandidateInvariants,
+      List<AutomatonAction> pActions,
+      String pFollowStateName) {
+    this(
+        pTrigger,
+        pAssertions,
+        pAssumption,
+        pCandidateInvariants,
+        pActions,
+        pFollowStateName,
+        null,
+        null);
+  }
+
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumption,
+      List<AutomatonAction> pActions,
+      AutomatonInternalState pFollowState,
+      StringExpression pViolatedPropertyDescription) {
+
+    this(
+        pTrigger,
+        pAssertions,
+        pAssumption,
+        ExpressionTrees.<AExpression>getTrue(),
+        pActions,
+        pFollowState.getName(),
+        pFollowState,
+        pViolatedPropertyDescription);
+  }
+
+  public AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumption,
+      ExpressionTree<AExpression> pCandidateInvariants,
+      List<AutomatonAction> pActions,
+      AutomatonInternalState pFollowState,
+      StringExpression pViolatedPropertyDescription) {
+
+    this(
+        pTrigger,
+        pAssertions,
+        pAssumption,
+        pCandidateInvariants,
+        pActions,
+        pFollowState.getName(),
+        pFollowState,
+        pViolatedPropertyDescription);
+  }
+
+  AutomatonTransition(
+      AutomatonBoolExpr pTrigger,
+      List<AutomatonBoolExpr> pAssertions,
+      List<CStatement> pAssumption,
+      ExpressionTree<AExpression> pCandidateInvariants,
+      List<AutomatonAction> pActions,
+      String pFollowStateName,
+      AutomatonInternalState pFollowState,
+      StringExpression pViolatedPropertyDescription) {
+
+    this.trigger = checkNotNull(pTrigger);
+
+    if (pAssumption == null) {
+      this.assumption = ImmutableList.of();
+    } else {
+      this.assumption = ImmutableList.<AStatement>copyOf(pAssumption);
+    }
+
+    this.candidateInvariants = checkNotNull(pCandidateInvariants);
+
+    this.violatedWhenEnteringTarget = ImmutableSet.of();
+    this.violatedWhenAssertionFailed = ImmutableSet.of();
+    this.shadowCode = ImmutableList.of();
+    this.assumptionTruth = true;
+
+    this.actions = ImmutableList.copyOf(pActions);
+    this.followStateName = checkNotNull(pFollowStateName);
+    this.followState = pFollowState;
+    this.violatedPropertyDescription = pViolatedPropertyDescription;
+
+    if (pAssertions.isEmpty()) {
+      this.assertion = AutomatonBoolExpr.TRUE;
+    } else {
+      AutomatonBoolExpr lAssertion = null;
+      for (AutomatonBoolExpr nextAssertion : pAssertions) {
+        if (lAssertion == null) {
+          // first iteration
+          lAssertion = nextAssertion;
+        } else {
+          // other iterations
+          lAssertion = new AutomatonBoolExpr.And(lAssertion, nextAssertion);
+        }
+      }
+      this.assertion = lAssertion;
+    }
+  }
 
   /**
    * When the parser instances this class it can not assign a followstate because
@@ -188,6 +299,9 @@ public class AutomatonTransition {
       this.assumption = ImmutableList.<AStatement>copyOf(pAssumption);
       this.assumptionTruth = pAssumeTruth;
     }
+
+    this.candidateInvariants = null; // backwards
+    this.violatedPropertyDescription = new StringExpression("");
 
     this.actions = ImmutableList.copyOf(pActions);
     this.followStateName = checkNotNull(pFollowStateName);
@@ -502,4 +616,17 @@ public class AutomatonTransition {
     return shadowCode;
   }
 
+  public String getViolatedPropertyDescription(AutomatonExpressionArguments pArgs) {
+    if (violatedPropertyDescription == null) {
+      if (getFollowState().isTarget()) {
+          return getFollowState().getName();
+      }
+      return null;
+    }
+    return (String)violatedPropertyDescription.eval(pArgs).getValue();
+  }
+
+  public ExpressionTree<AExpression> getCandidateInvariants() {
+    return candidateInvariants;
+  }
 }

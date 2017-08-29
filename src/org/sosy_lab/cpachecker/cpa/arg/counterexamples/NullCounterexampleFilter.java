@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
 /**
  * Dummy implementation of {@link CounterexampleFilter}

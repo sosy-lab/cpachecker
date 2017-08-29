@@ -36,6 +36,11 @@ public interface AbstractQueryableState extends AbstractState {
   /**
    * Checks whether this AbstractState satisfies the property.
    * Each CPA defines which properties can be evaluated.
+   *
+   * This method is never called from outside, but it should be used
+   * as "type-safe" version of {@link #evaluateProperty(String)} internally
+   * and {@link #evaluateProperty(String)} can forward to this method.
+   *
    * @param property the property to be checked
    * @return if the property is satisfied
    * @throws InvalidQueryException if the property is not given in the (CPA-specific) syntax

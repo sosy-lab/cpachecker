@@ -211,10 +211,6 @@ public final class ApronCPA implements ConfigurableProgramAnalysis, ProofChecker
     return cfa;
   }
 
-  public boolean isSplitDisequalites() {
-    return splitDisequalities;
-  }
-
   @Override
   public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
       Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {

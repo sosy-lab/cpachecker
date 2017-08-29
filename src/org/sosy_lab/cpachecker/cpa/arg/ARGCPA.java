@@ -25,14 +25,8 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -45,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -73,8 +67,14 @@ import org.sosy_lab.cpachecker.cpa.arg.counterexamples.PathEqualityCounterexampl
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+
+import javax.annotation.Nullable;
 
 @Options(prefix="cpa.arg")
 public class ARGCPA extends AbstractSingleWrapperCPA implements
@@ -166,7 +166,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     }
     stopOperator = new ARGStopSep(getWrappedCpa().getStopOperator(), logger, config);
     cexFilter = createCounterexampleFilter(config, logger, cpa);
-    ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa.getMachineModel(), cfa.getLanguage());
+    ARGPathExporter argPathExporter = new ARGPathExporter(config, logger, cfa);
     cexExporter = new CEXExporter(config, logger, argPathExporter);
     machineModel = cfa.getMachineModel();
     cexSummary = new CounterexamplesSummary(config, logger, machineModel);

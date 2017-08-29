@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -234,12 +235,18 @@ public class ValueAnalysisPathInterpolator
 
     // if doing lazy abstraction, use the node closest to the root node where new information is present
     if (doLazyAbstraction) {
-      return errorPath.obtainTransitionAt(interpolationOffset);
+      PathIterator it = errorPath.pathIterator();
+      for (int i = 0; i < interpolationOffset; i++) {
+        it.advance();
+      }
+      return Pair.of(it.getAbstractState(), it.getIncomingEdge());
     }
 
     // otherwise, just use the successor of the root node
     else {
-      return errorPath.obtainTransitionAt(1);
+      PathIterator firstElem = errorPath.pathIterator();
+      firstElem.advance();
+      return Pair.of(firstElem.getAbstractState(), firstElem.getOutgoingEdge());
     }
   }
 }

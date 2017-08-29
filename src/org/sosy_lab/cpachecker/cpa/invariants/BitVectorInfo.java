@@ -27,6 +27,7 @@ import java.math.BigInteger;
 
 import org.eclipse.cdt.internal.core.dom.parser.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -46,7 +47,7 @@ public class BitVectorInfo {
   private final BigInteger maxValue;
 
   private BitVectorInfo(int pSize, boolean pSigned) {
-    Preconditions.checkArgument(pSize > 0, "bit vector size must be greater than zero");
+    Preconditions.checkArgument(pSize >= 0, "bit vector size must not be negative");
     size = pSize;
     signed = pSigned;
     minValue = !signed ? BigInteger.ZERO : BigInteger.valueOf(2).pow(size - 1).negate();
@@ -107,12 +108,13 @@ public class BitVectorInfo {
     final int size;
     final boolean signed;
     if (type instanceof CType) {
-      int sizeInChars = !(type instanceof CSimpleType)
-          ? pMachineModel.getSizeofPtr()
-          : pMachineModel.getSizeof((CType) type);
+      int sizeInChars = ((CType) type).accept(new BaseSizeofVisitor(pMachineModel));
+      if (sizeInChars == 0) {
+        sizeInChars = pMachineModel.getSizeofPtr();
+      }
       size = sizeInChars * pMachineModel.getSizeofCharInBits();
-      assert size > 0;
-      signed = type instanceof CSimpleType ? pMachineModel.isSigned((CSimpleType) type) : false;
+      assert size >= 0;
+      signed = (type instanceof CSimpleType) && pMachineModel.isSigned((CSimpleType) type);
     } else if (type instanceof JSimpleType) {
       switch (((JSimpleType) type).getType()) {
       case BOOLEAN:
@@ -153,7 +155,7 @@ public class BitVectorInfo {
     return from(size, signed);
   }
 
-  public static boolean isSupported(MachineModel pMachineModel, Type pType) {
+  public static boolean isSupported(Type pType) {
     Type type = pType;
     if (type instanceof CType) {
       type = ((CType) type).getCanonicalType();

@@ -27,23 +27,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
+import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.Iterables;
 
-import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.concurrency.Threads;
@@ -56,7 +47,6 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -77,20 +67,29 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.solver.Model;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BasicProverEnvironment;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.InterpolatingProverEnvironment;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
 import org.sosy_lab.solver.api.ProverEnvironment;
+import org.sosy_lab.solver.api.SolverContext.ProverOptions;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Throwables;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
 
 @Options(prefix="cpa.predicate.refinement")
@@ -103,18 +102,19 @@ public final class InterpolationManager {
   private final Timer interpolantVerificationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
 
-  public void printStatistics(PrintStream out) {
-    out.println("  Counterexample analysis:            " + cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
+  public void printStatistics(StatisticsWriter w0) {
+    w0.put("Counterexample analysis", cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
+    StatisticsWriter w1 = w0.beginLevel();
     if (cexAnalysisGetUsefulBlocksTimer.getNumberOfIntervals() > 0) {
-      out.println("    Cex.focusing:                     " + cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
+      w1.put("Cex.focusing", cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
     }
-    out.println("    Refinement sat check:             " + satCheckTimer);
+    w1.put("Refinement sat check", satCheckTimer);
     if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
-      out.println("    Reused formulas on solver stack:  " + reusedFormulasOnSolverStack + " (Avg: " + div(reusedFormulasOnSolverStack, satCheckTimer.getNumberOfIntervals()) + ")");
+      w1.put("Reused formulas on solver stack", reusedFormulasOnSolverStack + " (Avg: " + div(reusedFormulasOnSolverStack, satCheckTimer.getNumberOfIntervals()) + ")");
     }
-    out.println("    Interpolant computation:          " + getInterpolantTimer);
+    w1.put("Interpolant computation", getInterpolantTimer);
     if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
-      out.println("    Interpolant verification:         " + interpolantVerificationTimer);
+      w1.put("Interpolant verification", interpolantVerificationTimer);
     }
   }
 
@@ -212,10 +212,6 @@ public final class InterpolationManager {
     } else {
       interpolator = null;
     }
-  }
-
-  public Appender dumpCounterexample(CounterexampleTraceInfo cex) {
-    return fmgr.dumpFormula(bfmgr.and(cex.getCounterExampleFormulas()));
   }
 
   /**
@@ -335,7 +331,7 @@ public final class InterpolationManager {
         logger.logUserException(Level.FINEST, e, "Interpolation failed, attempting to solve without interpolation");
 
         // Maybe the solver can handle the formulas if we do not attempt to interpolate
-        try (ProverEnvironment prover = solver.newProverEnvironmentWithModelGeneration()) {
+        try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           for (BooleanFormula block : f) {
             prover.push(block);
           }
@@ -591,7 +587,8 @@ public final class InterpolationManager {
     BooleanFormula branchingFormula = pmgr.buildBranchingFormula(elementsOnPath);
 
     if (bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, RichModel.of(getModel(pProver)), ImmutableMultimap.<Integer, Integer>of());
+      return CounterexampleTraceInfo.feasible(
+          f, getModel(pProver), ImmutableMultimap.<Integer, Integer>of());
     }
 
     // add formula to solver environment
@@ -602,8 +599,9 @@ public final class InterpolationManager {
     boolean stillSatisfiable = !pProver.isUnsat();
 
     if (stillSatisfiable) {
-      Model model = getModel(pProver);
-      return CounterexampleTraceInfo.feasible(f, RichModel.of(model), pmgr.getBranchingPredicateValuesFromModel(model));
+      List<ValueAssignment> model = getModel(pProver);
+      return CounterexampleTraceInfo.feasible(
+          f, model, pmgr.getBranchingPredicateValuesFromModel(model));
 
     } else {
       // this should not happen
@@ -612,18 +610,18 @@ public final class InterpolationManager {
       dumpInterpolationProblem(f);
       dumpFormulaToFile("formula", branchingFormula, f.size());
 
-      return CounterexampleTraceInfo.feasible(f, RichModel.empty(),
-          HashMultimap.<Integer, Integer>create());
+      return CounterexampleTraceInfo.feasible(
+          f, ImmutableList.<ValueAssignment>of(), HashMultimap.<Integer, Integer>create());
     }
   }
 
-  private Model getModel(BasicProverEnvironment<?> pItpProver) {
+  private List<ValueAssignment> getModel(BasicProverEnvironment<?> pItpProver) {
     try {
-      return pItpProver.getModel();
+      return ImmutableList.copyOf(pItpProver.getModel());
     } catch (SolverException e) {
       logger.log(Level.WARNING, "Solver could not produce model, variable assignment of error path can not be dumped.");
       logger.logDebugException(e);
-      return Model.empty();
+      return ImmutableList.of();
     }
   }
 

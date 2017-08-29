@@ -70,7 +70,6 @@ import org.sosy_lab.cpachecker.core.counterexample.IDExpression;
 import org.sosy_lab.cpachecker.core.counterexample.LeftHandSide;
 import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.core.counterexample.MemoryName;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -123,18 +122,9 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return createConcreteStatePath(path);
   }
 
-  public RichModel allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
-
-    pPath.remove(pPath.size() - 1);
-
+  public CFAPathWithAssumptions allocateAssignmentsToPath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
-
-    CFAPathWithAssumptions pathWithAssignments =
-        CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
-
-    RichModel model = RichModel.empty();
-
-    return model.withAssignmentInformation(pathWithAssignments);
+    return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
   private ConcreteStatePath createConcreteStatePath(List<Pair<ValueAnalysisState, CFAEdge>> pPath) {
@@ -362,7 +352,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     long biggestStoredOffsetInPath = 0;
 
     for (MemoryLocation loc : pCollection) {
-      if (loc.getOffset() > biggestStoredOffsetInPath) {
+      if (loc.isReference() && loc.getOffset() > biggestStoredOffsetInPath) {
         biggestStoredOffsetInPath = loc.getOffset();
       }
     }
@@ -455,7 +445,10 @@ public class ValueAnalysisConcreteErrorPathAllocator {
       LeftHandSide lhs = createBaseIdExpresssion(heapLoc);
       assert pVariableAddressMap.containsKey(lhs);
       Address baseAddress = pVariableAddressMap.get(lhs);
-      Address address = baseAddress.addOffset( BigInteger.valueOf(heapLoc.getOffset()));
+      Address address = baseAddress;
+      if (heapLoc.isReference()) {
+        address = baseAddress.addOffset(BigInteger.valueOf(heapLoc.getOffset()));
+      }
       result.put(address, value);
     }
 

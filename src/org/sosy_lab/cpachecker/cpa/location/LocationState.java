@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
@@ -197,6 +198,9 @@ public abstract class LocationState implements AbstractStateWithLocation, Abstra
         }
       } else if (parts[0].toLowerCase().equals("functionname")) {
         return this.locationNode.getFunctionName().equals(parts[1]);
+      } else if (parts[0].toLowerCase().equals("label")) {
+        return this.locationNode instanceof CLabelNode ?
+            ((CLabelNode) this.locationNode).getLabel().equals(parts[1]) : false;
       } else {
         throw new InvalidQueryException("The Query \"" + pProperty
             + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");

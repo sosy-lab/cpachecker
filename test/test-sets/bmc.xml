@@ -49,9 +49,9 @@
 
   <columns>
     <column title="total">time for CPAchecker</column>
-    <column title="reached">reached set</column>
-    <column title="targets">target elements</column>
-    <column title="sat check time">final sat check</column>
-    <column title="assertions check time">bounding assertions check</column>
+    <column title="reached">Size of reached set</column>
+    <column title="targets">Number of target states</column>
+    <column title="sat check time">Time for final sat check</column>
+    <column title="assertions check time">Time for bounding assertions check</column>
   </columns>
 </benchmark>

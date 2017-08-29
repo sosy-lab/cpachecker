@@ -90,6 +90,8 @@ public interface AutomatonExpression {
       str = str.replaceAll("\\$[Ll]ocation", pArgs.getCfaEdge().getFileLocation().toString());
       // replace $file
       str = str.replaceAll("\\$[Ff]ile", pArgs.getCfaEdge().getFileLocation().getFileName());
+      // replace $states
+      str = str.replaceAll("\\$[Ss]tates", pArgs.getAbstractStates().toString());
       // replace Transition Variables and AutomatonVariables
       str = pArgs.replaceVariables(str);
       if (str == null) {

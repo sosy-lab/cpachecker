@@ -37,9 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -57,6 +55,8 @@ import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSet
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitionChecker;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -169,6 +169,8 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
       throws IOException, InvalidConfigurationException, InterruptedException {
     Pair<PartialReachedSetDirectedGraph, List<Set<Integer>>> partitioning =
         ioHelper.computePartialReachedSetAndPartition(pReached);
+
+    ioHelper.setProofInfoCollector(proofInfo);
 
     ioHelper.writeMetadata(pOut, pReached.size(), partitioning.getSecond().size());
     for (Set<Integer> partition : partitioning.getSecond()) {

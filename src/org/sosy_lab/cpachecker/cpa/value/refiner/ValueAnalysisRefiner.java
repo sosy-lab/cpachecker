@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -43,8 +44,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.defaults.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -62,7 +64,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantM
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 import org.sosy_lab.cpachecker.util.refinement.GenericRefiner;
@@ -111,15 +113,8 @@ public class ValueAnalysisRefiner
   public static ValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
-    if (argCpa == null) {
-      throw new InvalidConfigurationException(ValueAnalysisRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
-    }
-
-    final ValueAnalysisCPA valueAnalysisCpa = CPAs.retrieveCPA(pCpa, ValueAnalysisCPA.class);
-    if (valueAnalysisCpa == null) {
-      throw new InvalidConfigurationException(ValueAnalysisRefiner.class.getSimpleName() + " needs a ValueAnalysisCPA");
-    }
+    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
+    final ValueAnalysisCPA valueAnalysisCpa = retrieveCPA(pCpa, ValueAnalysisCPA.class);
 
     valueAnalysisCpa.injectRefinablePrecision();
 
@@ -416,8 +411,19 @@ public class ValueAnalysisRefiner
    * @return the model for the given error path
    */
   @Override
-  protected RichModel createModel(ARGPath errorPath) throws InterruptedException, CPAException {
-    return concreteErrorPathAllocator.allocateAssignmentsToPath(checker.evaluate(errorPath));
+  protected CFAPathWithAssumptions createModel(ARGPath errorPath) throws InterruptedException, CPAException {
+    List<Pair<ValueAnalysisState, CFAEdge>> concretePath = checker.evaluate(errorPath);
+    if (concretePath.size() < errorPath.getInnerEdges().size()) {
+      // If concretePath is shorter than errorPath, this means that errorPath is actually
+      // infeasible and should have been ruled out during refinement.
+      // This happens because the value analysis does not always perform fully-precise
+      // counterexample checks during refinement, for example if PathConditionsCPA is used.
+      // This should be fixed, because return an infeasible counterexample to the user is wrong,
+      // but we cannot do this here, so we just give up creating the model.
+      logger.log(Level.WARNING, "Counterexample is imprecise and may be wrong.");
+      return super.createModel(errorPath);
+    }
+    return concreteErrorPathAllocator.allocateAssignmentsToPath(concretePath);
   }
 
   @Override

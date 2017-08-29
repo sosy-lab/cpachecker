@@ -53,6 +53,10 @@ public interface AbstractStateWithLocations extends AbstractState {
    * (for example the entering edges), depending on how the current CPA
    * defines CFA iteration.
    *
+   * For a given abstract state the order of outgoing edges is fixed.
+   * The implementors should guarantee this property,
+   * because the runtime of the analysis might depend on it.
+   *
    * Callers may assume that for a state s and the set E of edges
    * return by the call <code>s.getOutgoingEdges()</code>,
    * the transfer relation of this CPA will return no successor state

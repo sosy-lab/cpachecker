@@ -73,21 +73,9 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
   public static final SMGRefiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
 
-    final ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
-    if (argCpa == null) {
-      throw new InvalidConfigurationException(SMGRefiner.class.getSimpleName() + " needs to be wrapped in an ARGCPA");
-    }
-
-    final SMGCPA smgCpa = CPAs.retrieveCPA(pCpa, SMGCPA.class);
-    if (smgCpa == null) {
-      throw new InvalidConfigurationException(SMGRefiner.class.getSimpleName() + " needs a SMGCPA");
-    }
-
+    final ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
+    final SMGCPA smgCpa = retrieveCPA(pCpa, SMGCPA.class);
     Set<ControlAutomatonCPA> automatonCpas = CPAs.asIterable(pCpa).filter(ControlAutomatonCPA.class).toSet();
-
-    if (automatonCpas == null) {
-      throw new InvalidConfigurationException(SMGRefiner.class.getSimpleName() + " needs a ControlAutomatonCPA");
-    }
 
     smgCpa.injectRefinablePrecision();
 
@@ -108,7 +96,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     final GenericPrefixProvider<SMGState> prefixProvider =
         new SMGPrefixProvider(logger, cfa, config, emptyState);
 
-    final SMGInterpolantManager smgInterpolantManager = new SMGInterpolantManager(smgCpa.getMachineModel(), logger, cfa);
+    final SMGInterpolantManager smgInterpolantManager = new SMGInterpolantManager(smgCpa
+        .getMachineModel(), logger, cfa, smgCpa.getExternalAllocationSize());
 
     return new SMGRefiner(argCpa,
         checker,
@@ -186,7 +175,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
   }
 
   @Override
-  public boolean isErrorPathFeasible(ARGPath pErrorPath) throws CPAException, InterruptedException {
+  protected boolean isErrorPathFeasible(ARGPath pErrorPath) throws CPAException, InterruptedException {
     return checker.isFeasible(pErrorPath, automatonCpas);
   }
 

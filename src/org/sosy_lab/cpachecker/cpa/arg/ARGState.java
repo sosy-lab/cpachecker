@@ -23,20 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import com.google.common.base.Function;
+import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -46,8 +39,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Sets;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class ARGState extends AbstractSingleWrapperState implements Comparable<ARGState>, Graphable {
 
@@ -217,7 +219,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
   }
 
   public boolean isCovered() {
-    assert !destroyed : "Don't use destroyed ARGState " + this;
+    //assert !destroyed : "Don't use destroyed ARGState " + this;
     return mCoveredBy != null;
   }
 

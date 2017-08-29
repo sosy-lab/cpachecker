@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cpa.invariants.CompoundMathematicalInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Instances of implementations of this interface are operators that can
  * be applied to two simple interval operands, producing a compound state
@@ -60,7 +62,95 @@ public enum IICOperator implements Operator<SimpleInterval, SimpleInterval, Comp
       if (!pSecondOperand.hasLowerBound() || !pSecondOperand.hasUpperBound()) {
         return CompoundMathematicalInterval.of(pFirstOperand);
       }
-      return CompoundMathematicalInterval.of(pFirstOperand).modulo(pSecondOperand.getLowerBound().abs().max(pSecondOperand.getUpperBound().abs()));
+      if (pSecondOperand.isSingleton()) {
+        return CompoundMathematicalInterval.of(
+            ISIOperator.MODULO.apply(pFirstOperand, pSecondOperand.getLowerBound()));
+      }
+
+      CompoundMathematicalInterval result = CompoundMathematicalInterval.bottom();
+      if (pFirstOperand.containsNegative()) {
+        BigInteger negUB = pFirstOperand.closestNegativeToZero();
+        SimpleInterval asPositive =
+            pFirstOperand.hasLowerBound()
+                ? SimpleInterval.of(negUB.negate(), pFirstOperand.getLowerBound().negate())
+                : SimpleInterval.singleton(negUB.negate()).extendToPositiveInfinity();
+        result = result.unionWith(applyPositiveUnknown(asPositive, pSecondOperand).negate());
+      }
+
+      if (pFirstOperand.containsPositive()) {
+        BigInteger posLB = pFirstOperand.closestPositiveToZero();
+        SimpleInterval positivePart =
+            pFirstOperand.hasUpperBound()
+                ? SimpleInterval.of(posLB, pFirstOperand.getUpperBound())
+                : SimpleInterval.singleton(posLB).extendToPositiveInfinity();
+        result = result.unionWith(applyPositiveUnknown(positivePart, pSecondOperand));
+      }
+
+      return result;
+    }
+
+    private CompoundMathematicalInterval applyPositiveUnknown(
+        SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+      if (pSecondOperand.isSingleton()) {
+        return CompoundMathematicalInterval.of(
+            ISIOperator.MODULO.apply(pFirstOperand, pSecondOperand.getLowerBound()));
+      }
+
+      Preconditions.checkArgument(!pFirstOperand.containsNegative());
+      Preconditions.checkArgument(!pFirstOperand.containsZero());
+
+      CompoundMathematicalInterval result = CompoundMathematicalInterval.bottom();
+      if (pSecondOperand.containsNegative()) {
+        BigInteger negUB = pSecondOperand.closestNegativeToZero();
+        SimpleInterval asPositive =
+            pSecondOperand.hasLowerBound()
+                ? SimpleInterval.of(negUB.negate(), pSecondOperand.getLowerBound().negate())
+                : SimpleInterval.singleton(negUB.negate()).extendToPositiveInfinity();
+        result = result.unionWith(applyPositivePositive(pFirstOperand, asPositive));
+      }
+
+      if (pSecondOperand.containsPositive()) {
+        BigInteger posLB = pSecondOperand.closestPositiveToZero();
+        SimpleInterval positivePart =
+            pSecondOperand.hasUpperBound()
+                ? SimpleInterval.of(posLB, pSecondOperand.getUpperBound())
+                : SimpleInterval.singleton(posLB).extendToPositiveInfinity();
+        result = result.unionWith(applyPositivePositive(pFirstOperand, positivePart));
+      }
+
+      return result;
+    }
+
+    private CompoundMathematicalInterval applyPositivePositive(
+        SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+      if (pSecondOperand.isSingleton()) {
+        return CompoundMathematicalInterval.of(
+            ISIOperator.MODULO.apply(pFirstOperand, pSecondOperand.getLowerBound()));
+      }
+
+      Preconditions.checkArgument(!pFirstOperand.containsNegative());
+      Preconditions.checkArgument(!pFirstOperand.containsZero());
+      Preconditions.checkArgument(!pSecondOperand.containsNegative());
+      Preconditions.checkArgument(!pSecondOperand.containsZero());
+
+      if (pFirstOperand.hasUpperBound()
+          && pSecondOperand.getLowerBound().compareTo(pFirstOperand.getUpperBound()) > 0) {
+        return CompoundMathematicalInterval.of(pFirstOperand);
+      }
+      BigInteger resultUpperBound;
+      if (pFirstOperand.hasUpperBound()) {
+        if (pSecondOperand.hasUpperBound()) {
+          resultUpperBound = pFirstOperand.getUpperBound().min(pSecondOperand.getUpperBound());
+        } else {
+          resultUpperBound = pFirstOperand.getUpperBound();
+        }
+      } else if (pSecondOperand.hasUpperBound()) {
+        resultUpperBound = pSecondOperand.getUpperBound();
+      } else {
+        return CompoundMathematicalInterval.of(
+            SimpleInterval.singleton(BigInteger.ZERO).extendToPositiveInfinity());
+      }
+      return CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, resultUpperBound));
     }
 
   },

@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 
-class Variable {
+public class Variable {
   private final String name;
   private final CType type;
 

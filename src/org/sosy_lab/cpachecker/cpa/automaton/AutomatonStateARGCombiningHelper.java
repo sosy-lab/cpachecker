@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
-import java.util.Map;
-import java.util.Map.Entry;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
+import java.util.Map;
+import java.util.Map.Entry;
 
 
 public class AutomatonStateARGCombiningHelper {

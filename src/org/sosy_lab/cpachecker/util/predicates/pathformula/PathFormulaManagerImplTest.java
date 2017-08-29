@@ -99,7 +99,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
         .build();
 
     fmgr = new FormulaManagerView(
-        factory.getSolverContext().getFormulaManager(), config, TestLogManager.getInstance());
+        context.getFormulaManager(), config, TestLogManager.getInstance());
 
     pfmgrFwd =
         new PathFormulaManagerImpl(

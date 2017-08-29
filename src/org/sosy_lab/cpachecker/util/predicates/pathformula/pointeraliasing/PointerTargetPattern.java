@@ -36,13 +36,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 
 import com.google.common.base.Predicate;
 
-class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
+public class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
 
-  private PointerTargetPattern() {
+  protected PointerTargetPattern() {
     this.matchRange = false;
   }
 
-  private PointerTargetPattern(final String base) {
+  protected PointerTargetPattern(final String base) {
     this.base = base;
     this.containerOffset = 0;
     this.properOffset = 0;
@@ -86,14 +86,14 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   }
 
   public void setRange(final int size) {
-    assert containerOffset != null && properOffset != null : "Strating address is inexact";
+    assert containerOffset != null && properOffset != null : "Starting address is inexact";
     this.containerOffset += properOffset;
     this.properOffset = containerOffset + size;
     this.matchRange = true;
     this.containerType = null;
   }
 
-  void setProperOffset(final int properOffset) {
+  public void setProperOffset(final int properOffset) {
     assert !matchRange : "Contradiction in target pattern: properOffset";
     this.properOffset = properOffset;
   }
@@ -116,7 +116,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
    * Increase containerOffset by properOffset, unset properOffset and set containerType.
    * Useful for array subscript visitors.
    */
-  void shift(final CType containerType) {
+  public void shift(final CType containerType) {
     assert !matchRange : "Contradiction in target pattern: shift";
     this.containerType = containerType;
     if (containerOffset != null) {
@@ -133,7 +133,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
    * Increase containerOffset by properOffset, set properOffset and containerType.
    * Useful for field access visitors.
    */
-  void shift(final CType containerType, final int properOffset) {
+  public void shift(final CType containerType, final int properOffset) {
     shift(containerType);
     this.properOffset = properOffset;
   }
@@ -141,7 +141,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   /**
    * Unset everything, except base
    */
-  void retainBase() {
+  public void retainBase() {
     assert !matchRange : "Contradiction in target pattern: retainBase";
     containerType = null;
     properOffset = null;
@@ -151,7 +151,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   /**
    * Unset all criteria
    */
-  void clear() {
+  public void clear() {
     assert !matchRange : "Contradiction in target pattern: clear";
     base = null;
     containerType = null;
@@ -199,7 +199,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     return base != null && containerOffset != null && properOffset != null;
   }
 
-  public boolean isSemiexact() {
+  public boolean isSemiExact() {
     return containerOffset != null && properOffset != null;
   }
 

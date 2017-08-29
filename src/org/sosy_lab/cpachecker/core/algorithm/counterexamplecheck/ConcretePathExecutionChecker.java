@@ -49,7 +49,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
@@ -164,7 +164,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
     timer.start();
     CounterexampleInfo ceInfo = cpa.getCounterexamples().get(pErrorState);
 
-    Appender pathProgram = PathToConcreteProgramTranslator.translatePaths(pRootState, pErrorPathStates, ceInfo.getTargetPathModel());
+    Appender pathProgram = PathToConcreteProgramTranslator.translatePaths(pRootState, pErrorPathStates, ceInfo.getCFAPathWithAssignments());
 
     // write program to disk
     try (Writer w = Files.openOutputFile(cFile)) {

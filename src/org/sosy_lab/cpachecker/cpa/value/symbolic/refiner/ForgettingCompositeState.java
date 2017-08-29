@@ -26,8 +26,9 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
@@ -43,9 +44,9 @@ public class ForgettingCompositeState
   private final ValueAnalysisState values;
   private final ConstraintsState constraints;
 
-  public static ForgettingCompositeState getInitialState() {
-    return new ForgettingCompositeState(new ValueAnalysisState(),
-                                        new ConstraintsState());
+  public static ForgettingCompositeState getInitialState(MachineModel pMachineModel) {
+    return new ForgettingCompositeState(
+        new ValueAnalysisState(pMachineModel), new ConstraintsState());
   }
 
   /**

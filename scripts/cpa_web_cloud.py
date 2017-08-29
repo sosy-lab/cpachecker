@@ -102,7 +102,7 @@ def _create_argument_parser():
                             + "otherwise it is used as a prefix for the resulting files.")
     parser.add_argument("--resultFilePattern",
                      dest="result_file_pattern", type=str,
-                     default=None,
+                     default="**",
                      help="Only files matching this glob pattern are transported back to the client.")
 
     parser.add_argument("-T", "--timelimit",

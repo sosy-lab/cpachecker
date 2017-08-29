@@ -38,6 +38,7 @@ import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.WeavingLocation;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -89,7 +90,7 @@ public class VariableClassification {
       ImmutableMap.<String, Partition>of(),
       ImmutableMap.<Pair<CFAEdge, Integer>, Partition>of());
 
-  private final LogManager logger;
+  private final LogManagerWithoutDuplicates logger;
 
   VariableClassification(boolean pHasRelevantNonIntAddVars,
       Set<String> pIntBoolVars,
@@ -120,7 +121,7 @@ public class VariableClassification {
     edgeToPartitions = ImmutableMap.copyOf(pEdgeToPartitions);
     assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
     assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
-    logger = pLogger;
+    logger = new LogManagerWithoutDuplicates(pLogger);
   }
 
   @VisibleForTesting
@@ -334,7 +335,7 @@ public class VariableClassification {
 
       // check for overflow
       if(newScore < oldScore) {
-        logger.log(Level.WARNING,
+        logger.logOnce(Level.WARNING,
             "Highest possible value reached in score computation."
                 + " Error path prefix preference may not be applied reliably.");
         logger.logf(Level.FINE,

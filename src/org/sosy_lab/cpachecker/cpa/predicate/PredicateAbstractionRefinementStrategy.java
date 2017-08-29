@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -43,7 +43,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -70,10 +69,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision.LocationInstance
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapWriter;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
@@ -88,7 +85,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 
 import java.io.IOException;
@@ -170,19 +166,15 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
   private int refinementCount = 0; // this is modulo restartAfterRefinements
 
-  private int heuristicsCount = 0;
-
-  private boolean lastRefinementUsedHeuristics = false;
-  private boolean lastRefinementWasStatic = false;
   private boolean atomicPredicates = false;
 
-  private final Optional<LoopStructure> loopstructure;
+  //private final Optional<LoopStructure> loopstructure;
+
   protected final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
+
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final PredicateAbstractionManager predAbsMgr;
-  private final PredicateStaticRefiner staticRefiner;
   private final FormulaMeasuring formulaMeasuring;
   private final PredicateMapWriter precisionWriter;
 
@@ -253,7 +245,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
   }
 
-  public PredicateAbstractionRefinementStrategy(final Configuration config,
+  /*public PredicateAbstractionRefinementStrategy(final Configuration config,
       final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
       final PredicateAbstractionManager pPredAbsMgr,
       final PredicateStaticRefiner pStaticRefiner, final Solver pSolver,
@@ -277,80 +269,62 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     } else {
       precisionWriter = null;
     }
+  }*/
+
+  public PredicateAbstractionRefinementStrategy(
+      final Configuration config,
+      final LogManager pLogger,
+      final PredicateAbstractionManager pPredAbsMgr,
+      final Solver pSolver)
+      throws InvalidConfigurationException {
+    super(pSolver);
+
+    config.inject(this, PredicateAbstractionRefinementStrategy.class);
+
+    logger = pLogger;
+    //loopstructure = Optional.of(null);
+    fmgr = pSolver.getFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
+    predAbsMgr = pPredAbsMgr;
+    formulaMeasuring = new FormulaMeasuring(fmgr);
+
+    if (dumpPredicates && dumpPredicatesFile != null) {
+      precisionWriter = new PredicateMapWriter(config, fmgr);
+    } else {
+      precisionWriter = null;
+    }
   }
 
   private ListMultimap<LocationInstance, AbstractionPredicate> newPredicates;
 
 
-  @Override
-  public boolean needsInterpolants() {
-    return !useStaticRefinement();
-  }
-
-  private boolean useStaticRefinement() {
-    return (staticRefiner != null) && (heuristicsCount == 0);
-  }
-
-  public boolean wasLastRefinementStatic() {
-    return lastRefinementWasStatic;
-  }
-
-  public void setUseAtomicPredicates(boolean atomicPredicates) {
+  final void setUseAtomicPredicates(boolean atomicPredicates) {
     this.atomicPredicates = atomicPredicates;
   }
 
-  @Override
-  public void performRefinement(ARGReachedSet pReached, List<ARGState> abstractionStatesTrace,
-      List<BooleanFormula> pInterpolants, boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
-
-    pRepeatedCounterexample = !lastRefinementUsedHeuristics && pRepeatedCounterexample;
-
-    if (useStaticRefinement()) {
-      staticRefinerTime.start();
-      try {
-        UnmodifiableReachedSet reached = pReached.asReachedSet();
-        ARGState root = (ARGState)reached.getFirstState();
-
-        PredicatePrecision heuristicPrecision;
-        try {
-          heuristicPrecision = staticRefiner.extractPrecisionFromCfa(pReached.asReachedSet(), abstractionStatesTrace, atomicPredicates);
-        } catch (CPATransferException | SolverException e) {
-          throw new CPAException("Static refinement failed", e);
-        }
-
-        shutdownNotifier.shutdownIfNecessary();
-        for (ARGState refinementRoot : Lists.newArrayList(root.getChildren())) {
-          pReached.removeSubtree(refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
-        }
-
-        heuristicsCount++;
-        lastRefinementUsedHeuristics = true;
-        lastRefinementWasStatic = true;
-      } finally {
-        staticRefinerTime.stop();
-      }
-    } else {
-      lastRefinementUsedHeuristics = false;
-      lastRefinementWasStatic = false;
-      super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
-      newPredicates = null;
-    }
+  //@Override
+  protected final void startRefinementOfPath() {
+    checkState(newPredicates == null);
+    // needs to be a fully deterministic data structure,
+    // thus a Multimap based on a LinkedHashMap
+    // (we iterate over the keys)
+    newPredicates = MultimapBuilder.linkedHashKeys().arrayListValues().build();
   }
 
   @Override
-  protected boolean performRefinementForState(BooleanFormula pInterpolant, ARGState pInterpolationPoint) {
+  protected final boolean performRefinementForState(BooleanFormula pInterpolant, ARGState interpolationPoint) {
     checkState(newPredicates != null);
     checkArgument(!bfmgr.isTrue(pInterpolant));
 
     predicateCreation.start();
     {
-      final Iterator<CFANode> locs = AbstractStates.extractWeavedOnLocations(pInterpolationPoint).iterator();
+      final Iterator<CFANode> locs = AbstractStates.extractWeavedOnLocations(interpolationPoint).iterator();
       Preconditions.checkState(locs.hasNext());
 
       final CFANode loc = locs.next();
       Preconditions.checkState(!locs.hasNext());
 
-      final PredicateAbstractState state = getPredicateState(pInterpolationPoint);
+      final PredicateAbstractState state = getPredicateState(interpolationPoint);
       final PathFormula blockFormula = state.getAbstractionFormula().getBlockFormula();
 
       Preconditions.checkNotNull(state);
@@ -373,7 +347,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
    * @param pInterpolant The interpolant formula.
    * @return A set of predicates.
    */
-  protected final Collection<AbstractionPredicate> convertInterpolant(
+  private final Collection<AbstractionPredicate> convertInterpolant(
       final BooleanFormula pInterpolant, PathFormula blockFormula) {
 
     BooleanFormula interpolant = pInterpolant;
@@ -390,7 +364,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
 
       itpSimplification.start();
       // need to call extractPredicates() for registering all predicates
-      allPredsCount = predAbsMgr.extractPredicates(interpolant).size();
+      allPredsCount = predAbsMgr.getPredicatesForAtomsOf(interpolant).size();
       interpolant = predAbsMgr.buildAbstraction(fmgr.uninstantiate(interpolant), blockFormula).asInstantiatedFormula();
       itpSimplification.stop();
 
@@ -405,14 +379,14 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     }
 
     if (atomicPredicates) {
-      preds = predAbsMgr.extractPredicates(interpolant);
+      preds = predAbsMgr.getPredicatesForAtomsOf(interpolant);
 
       if (useBddInterpolantSimplification) {
         irrelevantPredsInItp.setNextValue(allPredsCount-preds.size());
       }
 
     } else {
-      preds = ImmutableList.of(predAbsMgr.createPredicateFor(fmgr.uninstantiate(interpolant)));
+      preds = ImmutableList.of(predAbsMgr.getPredicateFor(interpolant));
     }
     assert !preds.isEmpty() : "Interpolant without relevant predicates: " + pInterpolant + "; simplified to " + interpolant;
 
@@ -422,7 +396,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
   }
 
   @Override
-  protected void finishRefinementOfPath(ARGState pUnreachableState,
+  protected final void finishRefinementOfPath(ARGState pUnreachableState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample, Set<Property> pPropertiesAtTarget)
       throws CPAException, InterruptedException {
@@ -433,11 +407,13 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     PredicatePrecision newPrecision = newPrecAndRefinementRoot.getFirst();
     ARGState refinementRoot = newPrecAndRefinementRoot.getSecond();
 
-    updateARGTree(newPrecision, refinementRoot, pReached);
+    updateARG(newPrecision, refinementRoot, pReached);
+
+    newPredicates = null;
   }
 
-  private void updateARGTree(final PredicatePrecision pNewPrecision,
-      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
+  protected void updateARG(PredicatePrecision pNewPrecision, ARGState pRefinementRoot,
+      ARGReachedSet pReached) {
 
     argUpdate.start();
 
@@ -475,7 +451,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
     argUpdate.stop();
   }
 
-  protected Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
+  private final Pair<PredicatePrecision, ARGState> computeNewPrecision(ARGState pUnreachableState,
       List<ARGState> pAffectedStates, ARGReachedSet pReached,
       boolean pRepeatedCounterexample, Set<Property> pPropertiesAtTarget)
       throws RefinementFailedException, InterruptedException {
@@ -484,8 +460,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       CFANode loc = AbstractStates.extractLocationMaybeWeaved(pUnreachableState);
       int locInstance = getPredicateState(pUnreachableState)
                                        .getAbstractionLocationsOnPath().get(loc);
-      newPredicates.put(new LocationInstance(loc, locInstance),
-          predAbsMgr.createPredicateFor(bfmgr.makeBoolean(false)));
+      newPredicates.put(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
       pAffectedStates.add(pUnreachableState);
     }
 
@@ -614,18 +589,18 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy {
       Set<String> predVariables = fmgr.extractVariableNames(pred.getSymbolicAtom());
 
       boolean loopRelated = false;
-      for (String var: predVariables) {
+      /*for (String var: predVariables) {
         if (loopstructure.get().getLoopExitConditionVariables().contains(var)) {
           loopRelated = true;
           break;
         }
-      }
+      }*/
 
       PropertyStats.INSTANCE.trackPropertyPredicate(entry.getValue(), loopRelated, pPropertiesAtTarget);
     }
   }
 
-  protected final PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
+  private PredicatePrecision extractPredicatePrecision(Precision oldPrecision) throws IllegalStateException {
     PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
     if (oldPredicatePrecision == null) {
       throw new IllegalStateException("Could not find the PredicatePrecision for the error element");

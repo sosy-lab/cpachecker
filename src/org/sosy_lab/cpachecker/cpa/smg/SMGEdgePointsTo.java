@@ -24,15 +24,30 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 
 public class SMGEdgePointsTo extends SMGEdge {
-  final private int offset;
+  private final int offset;
+  private final SMGTargetSpecifier tg;
 
   public SMGEdgePointsTo(int pValue, SMGObject pObject, int pOffset) {
     super(pValue, pObject);
     offset = pOffset;
+
+    if (pObject instanceof SMGRegion) {
+      tg = SMGTargetSpecifier.REGION;
+    } else {
+      tg = SMGTargetSpecifier.UNKNOWN;
+    }
   }
+
+  public SMGEdgePointsTo(int pValue, SMGObject pObject, int pOffset, SMGTargetSpecifier pTg) {
+    super(pValue, pObject);
+    offset = pOffset;
+    tg = pTg;
+  }
+
   @Override
   public String toString() {
     return value + "->" + object.getLabel() + "+" + offset + 'b';
@@ -53,11 +68,14 @@ public class SMGEdgePointsTo extends SMGEdge {
     }
 
     if (value != other.value) {
-      if (offset == ((SMGEdgePointsTo)other).offset && object == other.object) {
+      if (offset == ((SMGEdgePointsTo) other).offset
+          && object == other.object
+          && (tg == SMGTargetSpecifier.UNKNOWN || ((SMGEdgePointsTo) other).tg == SMGTargetSpecifier.UNKNOWN || tg == ((SMGEdgePointsTo) other).tg)) {
         return false;
       }
     } else
-      if (offset != ((SMGEdgePointsTo)other).offset || object != other.object) {
+      if (offset != ((SMGEdgePointsTo) other).offset || object != other.object
+          || tg != ((SMGEdgePointsTo) other).tg) {
         return false;
       }
 
@@ -66,7 +84,7 @@ public class SMGEdgePointsTo extends SMGEdge {
 
   @Override
   public int hashCode() {
-    return 31 * super.hashCode() + offset;
+    return 31 * super.hashCode() + (offset + tg.hashCode());
   }
 
   @Override
@@ -76,6 +94,10 @@ public class SMGEdgePointsTo extends SMGEdge {
     }
     SMGEdgePointsTo other = (SMGEdgePointsTo) obj;
     return super.equals(obj)
-        && offset == other.offset;
+        && offset == other.offset && tg == other.tg;
+  }
+
+  public SMGTargetSpecifier getTargetSpecifier() {
+    return tg;
   }
 }

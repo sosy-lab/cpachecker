@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
-import static com.google.common.base.Preconditions.*;
-
-import java.util.List;
-
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
-import org.sosy_lab.solver.api.BooleanFormula;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
+
+import org.sosy_lab.solver.api.BooleanFormula;
+import org.sosy_lab.solver.api.Model.ValueAssignment;
+
+import java.util.List;
 
 
 /**
@@ -43,12 +43,15 @@ public class CounterexampleTraceInfo {
 
     private final boolean spurious;
     private final ImmutableList<BooleanFormula> interpolants;
-    private final RichModel mCounterexampleModel;
+    private final ImmutableList<ValueAssignment> mCounterexampleModel;
     private final ImmutableList<BooleanFormula> mCounterexampleFormula;
     private final ImmutableMultimap<Integer, Integer> branchingDirections;
 
-    private CounterexampleTraceInfo(boolean pSpurious, ImmutableList<BooleanFormula> pInterpolants,
-        RichModel pCounterexampleModel, ImmutableList<BooleanFormula> pCounterexampleFormula,
+    private CounterexampleTraceInfo(
+        boolean pSpurious,
+        ImmutableList<BooleanFormula> pInterpolants,
+        ImmutableList<ValueAssignment> pCounterexampleModel,
+        ImmutableList<BooleanFormula> pCounterexampleFormula,
         ImmutableMultimap<Integer, Integer> pBranchingPreds) {
       spurious = pSpurious;
       interpolants = pInterpolants;
@@ -76,10 +79,10 @@ public class CounterexampleTraceInfo {
     }
 
     public static CounterexampleTraceInfo feasible(List<BooleanFormula> pCounterexampleFormula,
-        RichModel pModel, Multimap<Integer, Integer> preds) {
+        Iterable<ValueAssignment> pModel, Multimap<Integer, Integer> preds) {
       return new CounterexampleTraceInfo(false,
           ImmutableList.<BooleanFormula>of(),
-          checkNotNull(pModel),
+          ImmutableList.copyOf(pModel),
           ImmutableList.copyOf(pCounterexampleFormula),
           ImmutableMultimap.copyOf(preds)
           );
@@ -113,7 +116,7 @@ public class CounterexampleTraceInfo {
       return mCounterexampleFormula;
     }
 
-    public RichModel getModel() {
+    public ImmutableList<ValueAssignment> getModel() {
       checkState(!spurious);
       return mCounterexampleModel;
     }

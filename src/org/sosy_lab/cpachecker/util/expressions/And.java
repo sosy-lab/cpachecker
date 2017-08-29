@@ -23,37 +23,46 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
-import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicates;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
+public class And<LeafType> extends AbstractExpressionTree<LeafType>
+    implements Iterable<ExpressionTree<LeafType>> {
 
-public class And implements ExpressionTree {
+  private final ImmutableSet<ExpressionTree<LeafType>> operands;
 
-  private final List<ExpressionTree> operands;
+  private final int hashCode;
 
-  private And(Collection<? extends ExpressionTree> pOperands) {
-    if (pOperands.size() < 2) {
-      throw new IllegalArgumentException("Conjunction must have at least two operands.");
-    }
-    operands = ImmutableList.copyOf(pOperands);
+  private And(ImmutableSet<ExpressionTree<LeafType>> pOperands) {
+    assert Iterables.size(pOperands) >= 2;
+    assert !Iterables.contains(pOperands, ExpressionTrees.getFalse());
+    assert !Iterables.contains(pOperands, ExpressionTrees.getTrue());
+    assert !FluentIterable.from(pOperands).anyMatch(Predicates.instanceOf(And.class));
+    operands = pOperands;
+    hashCode = operands.hashCode();
   }
 
   @Override
-  public Iterator<ExpressionTree> iterator() {
+  public Iterator<ExpressionTree<LeafType>> iterator() {
     return operands.iterator();
   }
 
   @Override
-  public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
+  public <T, E extends Throwable> T accept(ExpressionTreeVisitor<LeafType, T, E> pVisitor)
+      throws E {
     return pVisitor.visit(this);
   }
 
   @Override
   public int hashCode() {
-    return operands.hashCode();
+    return hashCode;
   }
 
   @Override
@@ -62,24 +71,49 @@ public class And implements ExpressionTree {
       return true;
     }
     if (pObj instanceof And) {
-      return operands.equals(((And) pObj).operands);
+      And<?> other = (And<?>) pObj;
+      return hashCode == other.hashCode && operands.equals(other.operands);
     }
     return false;
   }
 
-  @Override
-  public String toString() {
-    return ToCodeVisitor.INSTANCE.visit(this);
+  public static <LeafType> ExpressionTree<LeafType> of(
+      ExpressionTree<LeafType> pOp1, ExpressionTree<LeafType> pOp2) {
+    return of(ImmutableList.of(pOp1, pOp2));
   }
 
-  public static ExpressionTree of(Collection<? extends ExpressionTree> pOperands) {
-    if (pOperands.isEmpty()) {
-      throw new IllegalArgumentException("You must provide at least one operand.");
+  public static <LeafType> ExpressionTree<LeafType> of(
+      Iterable<ExpressionTree<LeafType>> pOperands) {
+    // If one of the operands is false, return false
+    if (Iterables.contains(pOperands, ExpressionTrees.getFalse())) {
+      return ExpressionTrees.getFalse();
     }
-    if (pOperands.size() == 1) {
-      return pOperands.iterator().next();
+    // Filter out trivial operands and flatten the hierarchy
+    ImmutableSet<ExpressionTree<LeafType>> operands =
+        FluentIterable.from(pOperands)
+            .filter(Predicates.not(Predicates.equalTo(ExpressionTrees.<LeafType>getTrue())))
+            .transformAndConcat(
+                new Function<ExpressionTree<LeafType>, Iterable<ExpressionTree<LeafType>>>() {
+
+                  @Override
+                  public Iterable<ExpressionTree<LeafType>> apply(
+                      ExpressionTree<LeafType> pOperand) {
+                    if (pOperand instanceof And) {
+                      return (And<LeafType>) pOperand;
+                    }
+                    return Collections.singleton(pOperand);
+                  }
+                })
+            .toSet();
+    // If there are no operands, return the neutral element
+    if (operands.isEmpty()) {
+      return ExpressionTrees.getTrue();
     }
-    return new And(pOperands);
+    // If there is only one operand, return it
+    if (operands.size() == 1) {
+      return operands.iterator().next();
+    }
+    return new And<>(operands);
   }
 
 }

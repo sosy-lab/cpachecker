@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.MainCPAStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorklistEntryComparator
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -1356,7 +1355,7 @@ public class TigerAlgorithm
   private TestCase createTestcase(final CounterexampleInfo pCex, final PresenceCondition pPresenceCondition) {
     try (StatCpuTimer t = tigerStats.createTestcaseTime.start()) {
 
-      final RichModel model = pCex.getTargetPathModel();
+      final CFAPathWithAssumptions model = pCex.getCFAPathWithAssignments();
       final List<TestStep> testSteps = calculateTestSteps(model);
 
       TestCase testcase = new TestCase(testCaseId++,
@@ -1377,16 +1376,14 @@ public class TigerAlgorithm
     }
   }
 
-  private List<TestStep> calculateTestSteps(RichModel pModel) {
+  private List<TestStep> calculateTestSteps(CFAPathWithAssumptions path) {
     List<TestStep> testSteps = new ArrayList<>();
 
     boolean lastValueWasOuput = true;
     TestStep curStep = null;
 
-    CFAPathWithAssumptions path = pModel.getCFAPathWithAssignments();
-
     for (CFAEdgeWithAssumptions edge : path) {
-      List<AExpressionStatement> expStmts = edge.getExpStmts();
+      Collection<AExpressionStatement> expStmts = edge.getExpStmts();
       for (AExpressionStatement expStmt : expStmts) {
         if (expStmt.getExpression() instanceof CBinaryExpression) {
           CBinaryExpression exp = (CBinaryExpression) expStmt.getExpression();

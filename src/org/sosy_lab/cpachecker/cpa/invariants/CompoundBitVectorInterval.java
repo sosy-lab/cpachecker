@@ -987,7 +987,9 @@ public class CompoundBitVectorInterval implements CompoundInterval, BitVectorTyp
     if (pValue.equals(BigInteger.ONE)) {
       return this;
     }
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getMuliply(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
+    return applyOperationToAllAndUnite(
+        ISCOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler),
+        pValue);
   }
 
   /**

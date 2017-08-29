@@ -23,40 +23,80 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
-import java.util.Collections;
-import java.util.Iterator;
+import java.math.BigInteger;
+import java.util.Objects;
 
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
 import com.google.common.base.Function;
 
+public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 
-public class LeafExpression implements ExpressionTree {
+  public static final Function<AExpressionStatement, ExpressionTree<AExpression>>
+      FROM_EXPRESSION_STATEMENT =
+          new Function<AExpressionStatement, ExpressionTree<AExpression>>() {
 
-  private final AExpression expression;
+            @Override
+            public ExpressionTree<AExpression> apply(AExpressionStatement pExpressionStatement) {
+              return of(pExpressionStatement.getExpression());
+            }
+          };
 
-  private LeafExpression(AExpression pExpression) {
-    this.expression = pExpression;
+  public static ExpressionTree<AExpression> fromStatement(
+      AStatement pStatement, CBinaryExpressionBuilder pBinaryExpressionBuilder) {
+    if (pStatement instanceof AExpressionStatement) {
+      return FROM_EXPRESSION_STATEMENT.apply((AExpressionStatement) pStatement);
+    }
+    if (pStatement instanceof CAssignment) {
+      CAssignment assignment = (CAssignment) pStatement;
+      if (assignment.getRightHandSide() instanceof CExpression) {
+        CExpression expression = (CExpression) assignment.getRightHandSide();
+        CBinaryExpression assumeExp =
+            pBinaryExpressionBuilder.buildBinaryExpressionUnchecked(
+                assignment.getLeftHandSide(), expression, CBinaryExpression.BinaryOperator.EQUALS);
+        return of((AExpression) assumeExp);
+      }
+    }
+    return ExpressionTrees.getTrue();
   }
 
-  public AExpression getExpression() {
+  private final LeafType expression;
+
+  private final boolean assumeTruth;
+
+  private final int hashCode;
+
+  private LeafExpression(LeafType pExpression, boolean pAssumeTruth, int pHashCode) {
+    this.expression = Objects.requireNonNull(pExpression);
+    this.assumeTruth = pAssumeTruth;
+    this.hashCode = pHashCode;
+  }
+
+  public LeafType getExpression() {
     return expression;
   }
 
-  @Override
-  public Iterator<ExpressionTree> iterator() {
-    return Collections.emptyIterator();
+  public boolean assumeTruth() {
+    return assumeTruth;
   }
 
   @Override
-  public <T> T accept(ExpressionTreeVisitor<T> pVisitor) {
+  public <T, E extends Throwable> T accept(ExpressionTreeVisitor<LeafType, T, E> pVisitor)
+      throws E {
     return pVisitor.visit(this);
   }
 
   @Override
   public int hashCode() {
-    return expression.hashCode();
+    return hashCode;
   }
 
   @Override
@@ -65,27 +105,52 @@ public class LeafExpression implements ExpressionTree {
       return true;
     }
     if (pObj instanceof LeafExpression) {
-      return expression.equals(((LeafExpression) pObj).expression);
+      LeafExpression<?> other = (LeafExpression<?>) pObj;
+      return assumeTruth == other.assumeTruth && expression.equals(other.expression);
     }
     return false;
   }
 
-  @Override
-  public String toString() {
-    return ToCodeVisitor.INSTANCE.visit(this);
+  public LeafExpression<LeafType> negate() {
+    return new LeafExpression<>(expression, !assumeTruth, -hashCode);
   }
 
-  public static ExpressionTree of(AExpression pExpression) {
-    return new LeafExpression(pExpression);
+  public static <LeafType> ExpressionTree<LeafType> of(LeafType pLeafExpression) {
+    return of(pLeafExpression, true);
   }
 
-  public static final Function<AExpressionStatement, LeafExpression> FROM_STATEMENT =
-      new Function<AExpressionStatement, LeafExpression>() {
-
-        @Override
-        public LeafExpression apply(AExpressionStatement s) {
-          return new LeafExpression(s.getExpression());
-        }
-  };
+  @SuppressWarnings("unchecked")
+  public static <LeafType> ExpressionTree<LeafType> of(
+      LeafType pLeafExpression, boolean pAssumeTruth) {
+    LeafType leafExpression = pLeafExpression;
+    boolean assumeTruth = pAssumeTruth;
+    if (leafExpression instanceof CBinaryExpression) {
+      CBinaryExpression binaryExpression = (CBinaryExpression) pLeafExpression;
+      if (binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) {
+        assumeTruth = !assumeTruth;
+        leafExpression =
+            (LeafType)
+                new CBinaryExpression(
+                    binaryExpression.getFileLocation(),
+                    binaryExpression.getExpressionType(),
+                    binaryExpression.getCalculationType(),
+                    binaryExpression.getOperand1(),
+                    binaryExpression.getOperand2(),
+                    BinaryOperator.EQUALS);
+      }
+    }
+    if (leafExpression instanceof AIntegerLiteralExpression) {
+      AIntegerLiteralExpression expression = (AIntegerLiteralExpression) pLeafExpression;
+      if (expression.getValue().equals(BigInteger.ZERO)) {
+        return assumeTruth
+            ? ExpressionTrees.<LeafType>getFalse()
+            : ExpressionTrees.<LeafType>getTrue();
+      }
+      return assumeTruth
+          ? ExpressionTrees.<LeafType>getTrue()
+          : ExpressionTrees.<LeafType>getFalse();
+    }
+    return new LeafExpression<>(leafExpression, assumeTruth, assumeTruth ? leafExpression.hashCode() : -leafExpression.hashCode());
+  }
 
 }

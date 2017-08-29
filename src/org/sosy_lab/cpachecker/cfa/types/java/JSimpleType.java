@@ -39,6 +39,8 @@ import com.google.common.base.Strings;
  */
 public class JSimpleType implements JType {
 
+  private static final long serialVersionUID = 7153757299840260748L;
+
   private final JBasicType type;
   private final boolean isPrimitive;
 

@@ -344,8 +344,6 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     assert interpolants.size() == formulas.size() - 1;
     assert interpolants.size() ==  path.size();
 
-    List<Vertex> changedElements = new ArrayList<>();
-
     for (Pair<BooleanFormula, Vertex> interpolationPoint : Pair.zipList(interpolants, path)) {
       BooleanFormula itp = interpolationPoint.getFirst();
       Vertex p = interpolationPoint.getSecond();
@@ -360,7 +358,6 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       if (!solver.implies(stateFormula, itp)) {
         p.setStateFormula(bfmgr.and(stateFormula, itp));
         p.cleanCoverage();
-        changedElements.add(p);
       }
     }
 

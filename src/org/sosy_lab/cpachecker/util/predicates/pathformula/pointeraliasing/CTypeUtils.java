@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 /**
  * Utility class with helper methods for CTypes.
  */
-class CTypeUtils {
+public class CTypeUtils {
 
   private CTypeUtils() { }
 
@@ -113,7 +113,7 @@ class CTypeUtils {
     return type instanceof CArrayType || type instanceof CCompositeType;
   }
 
-  static CType implicitCastToPointer(CType type) {
+  public static CType implicitCastToPointer(CType type) {
     type = CTypeUtils.simplifyType(type);
     if (type instanceof CArrayType) {
       return new CPointerType(false,
@@ -126,7 +126,7 @@ class CTypeUtils {
     }
   }
 
-  static boolean isSimpleType(final CType type) {
+  public static boolean isSimpleType(final CType type) {
     return !(type instanceof CArrayType) && !(type instanceof CCompositeType);
   }
 

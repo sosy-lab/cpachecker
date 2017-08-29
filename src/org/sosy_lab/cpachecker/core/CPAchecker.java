@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.presence.interfaces.PresenceCondition;
 import org.sosy_lab.cpachecker.util.statistics.Stats;
@@ -434,7 +435,6 @@ public class CPAchecker {
 
     stats.startAnalysisTimer();
     try {
-
       do {
         status = status.update(algorithm.run(reached));
 
@@ -518,7 +518,7 @@ public class CPAchecker {
          initialLocations = builder.build();
         break;
       case TARGET:
-        TargetLocationProvider tlp = new TargetLocationProvider(factory.getReachedSetFactory(), shutdownNotifier, logger, config, pCfa);
+        TargetLocationProvider tlp = new TargetLocationProviderImpl(factory.getReachedSetFactory(), shutdownNotifier, logger, config, pCfa);
         initialLocations = tlp.tryGetAutomatonTargetLocations(pAnalysisEntryFunction);
         break;
       default:

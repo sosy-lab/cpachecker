@@ -35,7 +35,7 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
   ALLOW_SIGNED_WRAP_AROUND {
 
     @Override
-    boolean isSignedWrapAroundAllowed() {
+    public boolean isSignedWrapAroundAllowed() {
       return true;
     }
   },
@@ -43,7 +43,7 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
   FORBID_SIGNED_WRAP_AROUND {
 
     @Override
-    boolean isSignedWrapAroundAllowed() {
+    public boolean isSignedWrapAroundAllowed() {
       return false;
     }
   };
@@ -70,7 +70,7 @@ public enum CompoundBitVectorIntervalManagerFactory implements CompoundIntervalM
     return new CompoundBitVectorIntervalManager(pBitVectorInfo, isSignedWrapAroundAllowed(), compositeHandler);
   }
 
-  abstract boolean isSignedWrapAroundAllowed();
+  public abstract boolean isSignedWrapAroundAllowed();
 
   public void addOverflowEventHandler(OverflowEventHandler pOverflowEventHandler) {
     overflowEventHandlers.add(pOverflowEventHandler);

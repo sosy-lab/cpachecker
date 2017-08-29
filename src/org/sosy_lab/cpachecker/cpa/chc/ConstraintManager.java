@@ -721,7 +721,12 @@ public class ConstraintManager {
     return q.hasSolution();
   }
 
-
+  /**
+   * Compute over-approximation of convex hull of two constraints.
+   * TODO: Currently the over-approximation is always very imprecise (it is just the top element)
+   * @param cn1 the first constraint
+   * @param cn2s the second constraint
+   */
   public static Constraint convexHull(Constraint cn1, Constraint cn2s) {
     return new Constraint();
   }

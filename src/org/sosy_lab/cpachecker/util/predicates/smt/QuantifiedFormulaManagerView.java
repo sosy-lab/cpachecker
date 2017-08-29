@@ -70,6 +70,12 @@ public class QuantifiedFormulaManagerView
     return manager.forall(unwrap(pVariables), pBody);
   }
 
+  @Override
+  public BooleanFormula mkQuantifier(Quantifier q,
+      List<? extends Formula> pVariables, BooleanFormula pBody) {
+    return manager.mkQuantifier(q, unwrap(pVariables), pBody);
+  }
+
   public <T extends Formula> BooleanFormula forall(T pVariable, BooleanFormula pBody) {
     return manager.forall(Collections.singletonList(unwrap(pVariable)), pBody);
   }
@@ -111,7 +117,7 @@ public class QuantifiedFormulaManagerView
 
   /**
    * @return  An (restricted) existential quantified formula.
-   * @see{@link #all(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)}
+   * @see #forall(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)
    */
   public <R extends IntegerFormula> BooleanFormula exists (
       final R pVariable,
@@ -143,41 +149,5 @@ public class QuantifiedFormulaManagerView
     return ImmutableList.of(
         ifm.greaterOrEquals(pVariable, pLowerBound),
         ifm.lessOrEquals(pVariable, pUpperBound));
-  }
-
-  @Override
-  @Deprecated
-  public boolean isQuantifier(BooleanFormula pF) {
-    return manager.isQuantifier(pF);
-  }
-
-  @Override
-  @Deprecated
-  public boolean isForall(BooleanFormula pF) {
-    return manager.isForall(pF);
-  }
-
-  @Override
-  @Deprecated
-  public boolean isExists(BooleanFormula pF) {
-    return manager.isExists(pF);
-  }
-
-  @Override
-  @Deprecated
-  public int numQuantifierBound(BooleanFormula pF) {
-    return manager.numQuantifierBound(pF);
-  }
-
-  @Override
-  @Deprecated
-  public BooleanFormula getQuantifierBody(BooleanFormula pF) {
-    return manager.getQuantifierBody(pF);
-  }
-
-  @Override
-  @Deprecated
-  public boolean isBoundByQuantifier(Formula pF) {
-    return manager.isBoundByQuantifier(pF);
   }
 }

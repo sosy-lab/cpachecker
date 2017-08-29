@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 
-class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeException>{
+public class BaseVisitor implements CExpressionVisitor<Variable, UnrecognizedCCodeException>{
 
   public BaseVisitor(final CFAEdge cfaEdge, final PointerTargetSetBuilder pts) {
     this.cfaEdge = cfaEdge;

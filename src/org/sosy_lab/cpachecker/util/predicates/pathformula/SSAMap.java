@@ -123,6 +123,7 @@ public class SSAMap implements Serializable {
       return varTypes.get(name);
     }
 
+    @SuppressWarnings("CheckReturnValue")
     public SSAMapBuilder setIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);

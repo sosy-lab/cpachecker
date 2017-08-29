@@ -27,6 +27,7 @@ import java.math.BigInteger;
 
 import javax.annotation.Nullable;
 
+import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInfo;
 import org.sosy_lab.cpachecker.cpa.invariants.BitVectorInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
@@ -190,16 +191,126 @@ public enum IIIOperatorFactory {
        * and any value of the second operand interval as divisors.
        */
       @Override
-      public BitVectorInterval apply(BitVectorInterval pFirstOperand, BitVectorInterval pSecondOperand) {
+      public BitVectorInterval apply(
+          BitVectorInterval pFirstOperand, BitVectorInterval pSecondOperand) {
         checkBitVectorCompatibility(pFirstOperand, pSecondOperand);
 
         if (!pSecondOperand.hasLowerBound() || !pSecondOperand.hasUpperBound()) {
           return pFirstOperand;
         }
-        return ISIOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler)
-            .apply(pFirstOperand, pSecondOperand.getLowerBound().abs().max(pSecondOperand.getUpperBound().abs()));
+
+        if (pSecondOperand.isSingleton()) {
+          Operator<BitVectorInterval, BigInteger, BitVectorInterval> operator =
+              ISIOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler);
+          return operator.apply(pFirstOperand, pSecondOperand.getLowerBound());
+        }
+
+        BitVectorInfo info = pFirstOperand.getBitVectorInfo();
+        BitVectorInterval result = null;
+
+        if (pFirstOperand.containsNegative()) {
+          BigInteger negUB = pFirstOperand.closestNegativeToZero();
+          BitVectorInterval asPositive =
+              pFirstOperand.hasLowerBound()
+                  ? pFirstOperand.getLowerBound().equals(info.getMinValue())
+                      ? BitVectorInterval.of(info, negUB.negate(), info.getMaxValue())
+                      : BitVectorInterval.of(
+                          info, negUB.negate(), pFirstOperand.getLowerBound().negate())
+                  : BitVectorInterval.singleton(info, negUB.negate()).extendToMaxValue();
+          result =
+              applyPositiveUnknown(asPositive, pSecondOperand)
+                  .negate(pAllowSignedWrapAround, pOverflowEventHandler);
+        }
+
+        if (pFirstOperand.containsPositive()) {
+          BigInteger posLB = pFirstOperand.closestPositiveToZero();
+          BitVectorInterval positivePart =
+              pFirstOperand.hasUpperBound()
+                  ? BitVectorInterval.of(info, posLB, pFirstOperand.getUpperBound())
+                  : BitVectorInterval.singleton(info, posLB).extendToMaxValue();
+          BitVectorInterval posResult = applyPositiveUnknown(positivePart, pSecondOperand);
+          result = result == null ? posResult : BitVectorInterval.span(result, posResult);
+        }
+
+        assert result != null;
+        return result;
       }
 
+      private BitVectorInterval applyPositiveUnknown(
+          BitVectorInterval pFirstOperand, BitVectorInterval pSecondOperand) {
+        if (pSecondOperand.isSingleton()) {
+          Operator<BitVectorInterval, BigInteger, BitVectorInterval> operator =
+              ISIOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler);
+          return operator.apply(pFirstOperand, pSecondOperand.getLowerBound());
+        }
+
+        Preconditions.checkArgument(!pFirstOperand.containsNegative());
+        Preconditions.checkArgument(!pFirstOperand.containsZero());
+
+        BitVectorInfo info = pFirstOperand.getBitVectorInfo();
+        BitVectorInterval result = null;
+
+        if (pSecondOperand.containsNegative()) {
+          BigInteger negUB = pSecondOperand.closestNegativeToZero();
+          BitVectorInterval asPositive =
+              pSecondOperand.hasLowerBound()
+                  ? pSecondOperand.getLowerBound().equals(info.getMinValue())
+                      ? BitVectorInterval.of(info, negUB.negate(), info.getMaxValue())
+                      : BitVectorInterval.of(
+                          info, negUB.negate(), pSecondOperand.getLowerBound().negate())
+                  : BitVectorInterval.singleton(info, negUB.negate()).extendToMaxValue();
+          result = applyPositivePositive(pFirstOperand, asPositive);
+        }
+
+        if (pSecondOperand.containsPositive()) {
+          BigInteger posLB = pSecondOperand.closestPositiveToZero();
+          BitVectorInterval positivePart =
+              pSecondOperand.hasUpperBound()
+                  ? BitVectorInterval.of(info, posLB, pSecondOperand.getUpperBound())
+                  : BitVectorInterval.singleton(info, posLB).extendToMaxValue();
+          BitVectorInterval posResult = applyPositivePositive(pFirstOperand, positivePart);
+          result = result == null ? posResult : BitVectorInterval.span(result, posResult);
+        }
+
+        assert result != null;
+        return result;
+      }
+
+      private BitVectorInterval applyPositivePositive(
+          BitVectorInterval pFirstOperand, BitVectorInterval pSecondOperand) {
+        if (pSecondOperand.isSingleton()) {
+          Operator<BitVectorInterval, BigInteger, BitVectorInterval> operator =
+              ISIOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler);
+          return operator.apply(pFirstOperand, pSecondOperand.getLowerBound());
+        }
+
+        Preconditions.checkArgument(!pFirstOperand.containsNegative());
+        Preconditions.checkArgument(!pFirstOperand.containsZero());
+        Preconditions.checkArgument(!pSecondOperand.containsNegative());
+        Preconditions.checkArgument(!pSecondOperand.containsZero());
+
+        if (pFirstOperand.hasUpperBound()
+            && pSecondOperand.getLowerBound().compareTo(pFirstOperand.getUpperBound()) > 0) {
+          return pFirstOperand;
+        }
+        BitVectorInfo info = pFirstOperand.getBitVectorInfo();
+        BigInteger resultUpperBound;
+        if (pFirstOperand.hasUpperBound()) {
+          if (pSecondOperand.hasUpperBound()) {
+            resultUpperBound =
+                pFirstOperand
+                    .getUpperBound()
+                    .min(pSecondOperand.getUpperBound().subtract(BigInteger.ONE));
+          } else {
+            resultUpperBound = pFirstOperand.getUpperBound();
+          }
+        } else if (pSecondOperand.hasUpperBound()) {
+          resultUpperBound = pSecondOperand.getUpperBound().subtract(BigInteger.ONE);
+        } else {
+          return BitVectorInterval.singleton(info, BigInteger.ZERO).extendToMaxValue();
+        }
+        return BitVectorInterval.of(info, BigInteger.ZERO, resultUpperBound);
+      }
     };
   }
 

@@ -168,10 +168,10 @@ public class RegionPresenceConditionManager implements PresenceConditionManager 
     RegionPresenceCondition cond = (RegionPresenceCondition) pCond;
     Set<PresenceCondition> predicates = Sets.newLinkedHashSet();
 
-    for (Region predicate : mgr.extractPredicates(cond.getRegion())) {
+    /*for (Region predicate : mgr.extractPredicates(cond.getRegion())) {
       RegionPresenceCondition pc = new RegionPresenceCondition(predicate);
       predicates.add(pc);
-    }
+    }*/
 
     return predicates;
   }

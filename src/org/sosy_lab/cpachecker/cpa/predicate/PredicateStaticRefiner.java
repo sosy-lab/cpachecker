@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
+
 import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
@@ -32,6 +35,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,37 +58,56 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.MultiEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.SafetyProperty;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.StaticRefiner;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.PathChecker;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.solver.SolverException;
 import org.sosy_lab.solver.api.BooleanFormula;
 import org.sosy_lab.solver.api.BooleanFormulaManager;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.Writer;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 
-@Options(prefix="staticRefiner")
-public class PredicateStaticRefiner extends StaticRefiner {
+@Options(prefix = "staticRefiner")
+public class PredicateStaticRefiner extends StaticRefiner
+    implements ARGBasedRefiner, StatisticsProvider {
 
   @Option(secure=true, description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
   private boolean applyScoped = true;
@@ -102,50 +125,161 @@ public class PredicateStaticRefiner extends StaticRefiner {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumePredicatesFile = null;
 
+  @Option(secure = true, description = "split generated heuristic predicates into atoms")
+  private boolean atomicPredicates = true;
+
+  private final StatTimer totalTime = new StatTimer("Total time for static refinement");
+  private final StatTimer satCheckTime = new StatTimer("Time for path feasibility check");
+  private final StatTimer predicateExtractionTime = new StatTimer("Time for predicate extraction from CFA");
+  private final StatTimer argUpdateTime = new StatTimer("Time for ARG update");
+  private final StatInt foundPredicates = new StatInt(StatKind.SUM, "Number of predicates found statically");
+
+  private final ShutdownNotifier shutdownNotifier;
+
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
   private final BooleanFormulaManager booleanManager;
   private final PredicateAbstractionManager predAbsManager;
-  private final Optional<LoopStructure> loopStructure;
+  private final BlockFormulaStrategy blockFormulaStrategy;
+  private final InterpolationManager itpManager;
+  private final PathChecker pathChecker;
   private final Solver solver;
   private final CFA cfa;
+  private final ARGBasedRefiner delegate;
 
-  private Multimap<String, AStatementEdge> directlyAffectingStatements;
+  private boolean usedStaticRefinement = false;
 
   public PredicateStaticRefiner(
       Configuration pConfig,
       LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       Solver pSolver,
       PathFormulaManager pPathFormulaManager,
-      FormulaManagerView pFormulaManagerView,
       PredicateAbstractionManager pPredAbsManager,
-      CFA pCfa) throws InvalidConfigurationException {
+      BlockFormulaStrategy pBlockFormulaStrategy,
+      InterpolationManager pItpManager,
+      PathChecker pPathChecker,
+      CFA pCfa,
+      ARGBasedRefiner pDelegate)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger);
 
     pConfig.inject(this);
 
+    this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
-    this.loopStructure = cfa.getLoopStructure();
-
     this.pathFormulaManager = pPathFormulaManager;
     this.predAbsManager = pPredAbsManager;
+    this.blockFormulaStrategy = pBlockFormulaStrategy;
+    this.itpManager = pItpManager;
+    this.pathChecker = pPathChecker;
     this.solver = pSolver;
-    this.formulaManagerView = pFormulaManagerView;
+    this.formulaManagerView = pSolver.getFormulaManager();
     this.booleanManager = formulaManagerView.getBooleanFormulaManager();
+    this.delegate = pDelegate;
 
     if (assumePredicatesFile != null) {
       dumpAssumePredicate(assumePredicatesFile);
     }
   }
 
+  @Override
+  public CounterexampleInfo performRefinementForPath(
+      final ARGReachedSet pReached, final ARGPath allStatesTrace)
+      throws CPAException, InterruptedException {
+    // We do heuristics-based refinement only once.
+    if (usedStaticRefinement) {
+      return delegate.performRefinementForPath(pReached, allStatesTrace);
+    }
+
+    totalTime.start();
+    try {
+      return performStaticRefinementForPath(pReached, allStatesTrace);
+    } finally {
+      totalTime.stop();
+    }
+  }
+
+  private CounterexampleInfo performStaticRefinementForPath(
+      final ARGReachedSet pReached, final ARGPath allStatesTrace)
+      throws CPAException, InterruptedException {
+    logger.log(Level.FINEST, "Starting heuristics-based refinement.");
+
+    Set<ARGState> elementsOnPath = getAllStatesOnPathsTo(allStatesTrace.getLastState());
+    // No branches/merges in path, it is precise.
+    // We don't need to care about creating extra predicates for branching etc.
+    boolean branchingOccurred = true;
+    if (elementsOnPath.size() == allStatesTrace.size()) {
+      elementsOnPath = Collections.emptySet();
+      branchingOccurred = false;
+    }
+
+    // create path with all abstraction location elements (excluding the initial element)
+    // the last element is the element corresponding to the error location
+    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.transformPath(allStatesTrace);
+    final List<BooleanFormula> formulas =
+        blockFormulaStrategy.getFormulasForPath(
+            allStatesTrace.getFirstState(), abstractionStatesTrace);
+
+    CounterexampleTraceInfo counterexample;
+    satCheckTime.start();
+    try {
+      counterexample =
+          itpManager.buildCounterexampleTrace(
+              formulas,
+              Lists.<AbstractState>newArrayList(abstractionStatesTrace),
+              elementsOnPath,
+              false);
+    } finally {
+      satCheckTime.stop();
+    }
+
+    // if error is spurious refine
+    if (counterexample.isSpurious()) {
+      logger.log(Level.FINEST, "Error trace is spurious, refining the abstraction");
+      usedStaticRefinement = true;
+
+      UnmodifiableReachedSet reached = pReached.asReachedSet();
+      ARGState root = (ARGState) reached.getFirstState();
+      ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size() - 1);
+
+      PredicatePrecision heuristicPrecision;
+      predicateExtractionTime.start();
+      try {
+        heuristicPrecision = extractPrecisionFromCfa(pReached.asReachedSet(), targetState);
+      } catch (CPATransferException | SolverException e) {
+        throw new CPAException("Static refinement failed", e);
+      } finally {
+        predicateExtractionTime.stop();
+      }
+
+      shutdownNotifier.shutdownIfNecessary();
+      argUpdateTime.start();
+      for (ARGState refinementRoot : ImmutableList.copyOf(root.getChildren())) {
+        pReached.removeSubtree(
+            refinementRoot, heuristicPrecision, Predicates.instanceOf(PredicatePrecision.class));
+      }
+      argUpdateTime.stop();
+
+      return CounterexampleInfo.spurious();
+
+    } else {
+      // we have a real error
+      logger.log(Level.FINEST, "Error trace is not spurious");
+      return pathChecker.handleFeasibleCounterexample(
+          allStatesTrace, counterexample, branchingOccurred);
+    }
+  }
+
   private boolean isAssumeOnLoopVariable(AssumeEdge e) {
-    if (!loopStructure.isPresent()) {
+    if (!cfa.getLoopStructure().isPresent()) {
       return false;
     }
     Collection<String> referenced = CIdExpressionCollectorVisitor.getVariablesOfExpression((CExpression) e.getExpression());
+    LoopStructure loopStructure = cfa.getLoopStructure().get();
 
     for (String var: referenced) {
-      if (loopStructure.get().getLoopExitConditionVariables().contains(var)) {
+      if (loopStructure.getLoopExitConditionVariables().contains(var)) {
         return true;
       }
     }
@@ -153,12 +287,8 @@ public class PredicateStaticRefiner extends StaticRefiner {
     return false;
   }
 
-  private void buildDirectlyAffectingStatements() {
-    if (directlyAffectingStatements != null) {
-      return;
-    }
-
-    directlyAffectingStatements = LinkedHashMultimap.create();
+  private Multimap<String, AStatementEdge> buildDirectlyAffectingStatements() {
+    Multimap<String, AStatementEdge> directlyAffectingStatements = LinkedHashMultimap.create();
 
     for (CFANode u : cfa.getAllNodes()) {
       Deque<CFAEdge> edgesToHandle = Queues.newArrayDeque(CFAUtils.leavingEdges(u));
@@ -179,6 +309,7 @@ public class PredicateStaticRefiner extends StaticRefiner {
         }
       }
     }
+    return directlyAffectingStatements;
   }
 
   private boolean isContradicting(AssumeEdge assume, AStatementEdge stmt)
@@ -212,7 +343,43 @@ public class PredicateStaticRefiner extends StaticRefiner {
      */
   }
 
-  private boolean hasContradictingOperationInFlow(AssumeEdge e)
+  private boolean hasContradictingOperationInFlow(
+      AssumeEdge e, Multimap<String, AStatementEdge> directlyAffectingStatements)
+      throws SolverException, CPATransferException, InterruptedException {
+    Collection<String> referenced = CIdExpressionCollectorVisitor.getVariablesOfExpression((CExpression) e.getExpression());
+    for (String varName: referenced) {
+      Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varName);
+      for (AStatementEdge stmtEdge: affectedByStmts) {
+        if (isContradicting(e, stmtEdge)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes(
+      Multimap<String, AStatementEdge> directlyAffectingStatements)
+      throws SolverException, CPATransferException, InterruptedException {
+    Set<AssumeEdge> result = new HashSet<>();
+
+    for (CFANode u : cfa.getAllNodes()) {
+      for (CFAEdge e : CFAUtils.leavingEdges(u)) {
+        if (e instanceof AssumeEdge) {
+          AssumeEdge assume = (AssumeEdge) e;
+          if (!isAssumeOnLoopVariable(assume)) {
+            if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
+              result.add(assume);
+            }
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /*private boolean hasContradictingOperationInFlow(AssumeEdge e)
       throws SolverException, CPATransferException, InterruptedException {
     buildDirectlyAffectingStatements();
 
@@ -226,26 +393,6 @@ public class PredicateStaticRefiner extends StaticRefiner {
       }
     }
     return false;
-  }
-
-  private Set<AssumeEdge> getAllNonLoopControlFlowAssumes()
-      throws SolverException, CPATransferException, InterruptedException {
-    Set<AssumeEdge> result = new HashSet<>();
-
-    for (CFANode u : cfa.getAllNodes()) {
-      for (CFAEdge e : CFAUtils.leavingEdges(u)) {
-        if (e instanceof AssumeEdge) {
-          AssumeEdge assume = (AssumeEdge) e;
-          if (!isAssumeOnLoopVariable(assume)) {
-            if (hasContradictingOperationInFlow(assume)) {
-              result.add(assume);
-            }
-          }
-        }
-      }
-    }
-
-    return result;
   }
 
   private Set<AssumeEdge> getAssumeEdgesAlongPath(UnmodifiableReachedSet reached, ARGState targetState,
@@ -300,6 +447,44 @@ public class PredicateStaticRefiner extends StaticRefiner {
     }
 
     return result;
+  }*/
+
+  private Set<AssumeEdge> getAssumeEdgesAlongPath(
+      UnmodifiableReachedSet reached,
+      ARGState targetState,
+      Multimap<String, AStatementEdge> directlyAffectingStatements)
+      throws SolverException, CPATransferException, InterruptedException {
+    Set<AssumeEdge> result = new HashSet<>();
+
+    Set<ARGState> allStatesOnPath = ARGUtils.getAllStatesOnPathsTo(targetState);
+    for (ARGState s: allStatesOnPath) {
+      CFANode u = AbstractStates.extractLocation(s);
+      for (CFAEdge e : CFAUtils.leavingEdges(u)) {
+        CFANode v = e.getSuccessor();
+        Collection<AbstractState> reachedOnV = reached.getReached(v);
+
+        boolean edgeOnTrace = false;
+        for (AbstractState ve : reachedOnV) {
+          if (allStatesOnPath.contains(ve)) {
+            edgeOnTrace = true;
+            break;
+          }
+        }
+
+        if (edgeOnTrace) {
+          if (e instanceof AssumeEdge) {
+            AssumeEdge assume = (AssumeEdge) e;
+            if (!isAssumeOnLoopVariable(assume)) {
+              if (hasContradictingOperationInFlow(assume, directlyAffectingStatements)) {
+                result.add(assume);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return result;
   }
 
   public Optional<PredicatePrecision> derivePrecFromStateWithAssumptions(AbstractState pFullState)
@@ -342,23 +527,26 @@ public class PredicateStaticRefiner extends StaticRefiner {
    *
    * @return a precision for the predicate CPA
    */
-  public PredicatePrecision extractPrecisionFromCfa(UnmodifiableReachedSet pReached,
-      List<ARGState> abstractionStatesTrace, boolean atomicPredicates)
-          throws SolverException, CPATransferException, InterruptedException {
+  private PredicatePrecision extractPrecisionFromCfa(
+      UnmodifiableReachedSet pReached, ARGState targetState)
+      throws SolverException, CPATransferException, InterruptedException {
     logger.log(Level.FINER, "Extracting precision from CFA...");
 
     // Determine the ERROR location of the path (last node)
-    ARGState targetState = abstractionStatesTrace.get(abstractionStatesTrace.size()-1);
     CFANode targetLocation = AbstractStates.extractLocation(targetState);
 
     // Determine the assume edges that should be considered for predicate extraction
     Set<AssumeEdge> assumeEdges = new HashSet<>();
 
+    Multimap<String, AStatementEdge> directlyAffectingStatements =
+        buildDirectlyAffectingStatements();
+
     if (addAllControlFlowAssumes) {
-      assumeEdges.addAll(getAllNonLoopControlFlowAssumes());
+      assumeEdges.addAll(getAllNonLoopControlFlowAssumes(directlyAffectingStatements));
     } else {
       if (addAllErrorTraceAssumes) {
-        assumeEdges.addAll(getAssumeEdgesAlongPath(pReached, targetState, true, true));
+        assumeEdges.addAll(
+            getAssumeEdgesAlongPath(pReached, targetState, directlyAffectingStatements));
       }
       if (addAssumesByBoundedBackscan) {
         assumeEdges.addAll(getTargetLocationAssumes(Lists.newArrayList(targetLocation)).values());
@@ -414,6 +602,13 @@ public class PredicateStaticRefiner extends StaticRefiner {
       functionPredicates.putAll(function, preds);
     }
 
+    Set<AbstractionPredicate> allPredicates = new HashSet<>();
+    allPredicates.addAll(globalPredicates);
+    allPredicates.addAll(functionPredicates.values());
+    foundPredicates.setNextValue(allPredicates.size());
+
+    logger.log(Level.FINER, "Extracting finished, found", allPredicates.size(), "predicates");
+
     return new PredicatePrecision(
         ImmutableMultimap.<PredicatePrecision.LocationInstance, AbstractionPredicate>of(),
         ImmutableMultimap.<CFANode, AbstractionPredicate>of(),
@@ -428,16 +623,15 @@ public class PredicateStaticRefiner extends StaticRefiner {
 
     Collection<AbstractionPredicate> preds;
     if (pAtomicPredicates) {
-      preds = predAbsManager.extractPredicates(relevantAssumesFormula);
+      preds = predAbsManager.getPredicatesForAtomsOf(relevantAssumesFormula);
     } else {
-      preds = ImmutableList.of(predAbsManager.createPredicateFor(
-          formulaManagerView.uninstantiate(relevantAssumesFormula)));
+      preds = ImmutableList.of(predAbsManager.getPredicateFor(relevantAssumesFormula));
     }
 
     return preds;
   }
 
-  protected void dumpAssumePredicate(Path target) {
+  private void dumpAssumePredicate(Path target) {
     try (Writer w = Files.openOutputFile(target)) {
       for (CFANode u : cfa.getAllNodes()) {
         for (CFAEdge e: CFAUtils.leavingEdges(u)) {
@@ -460,5 +654,31 @@ public class PredicateStaticRefiner extends StaticRefiner {
     }
   }
 
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(new Stats());
+    if (delegate instanceof StatisticsProvider) {
+      ((StatisticsProvider) delegate).collectStatistics(pStatsCollection);
+    }
+  }
 
+  private class Stats implements Statistics {
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+      StatisticsWriter.writingStatisticsTo(pOut)
+          .ifUpdatedAtLeastOnce(totalTime)
+          .put(foundPredicates)
+          .spacer()
+          .put(totalTime)
+          .beginLevel()
+          .put(satCheckTime)
+          .putIfUpdatedAtLeastOnce(predicateExtractionTime)
+          .putIfUpdatedAtLeastOnce(argUpdateTime);
+    }
+
+    @Override
+    public String getName() {
+      return "Static Predicate Refiner";
+    }
+  }
 }

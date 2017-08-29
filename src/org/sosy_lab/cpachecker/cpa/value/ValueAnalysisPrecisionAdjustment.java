@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -63,19 +64,19 @@ import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
-@Options(prefix="cpa.value.blk")
+@Options(prefix="cpa.value.abstraction")
 public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, StatisticsProvider {
 
-  @Option(secure=true, description="restrict abstractions to branching points")
+  @Option(secure=true, description="restrict abstraction computations to branching points")
   private boolean alwaysAtBranch = false;
 
-  @Option(secure=true, description="restrict abstractions to join points")
+  @Option(secure=true, description="restrict abstraction computations to join points")
   private boolean alwaysAtJoin = false;
 
-  @Option(secure=true, description="restrict abstractions to function calls/returns")
+  @Option(secure=true, description="restrict abstraction computations to function calls/returns")
   private boolean alwaysAtFunction = false;
 
-  @Option(secure=true, description="restrict abstractions to loop heads")
+  @Option(secure=true, description="restrict abstraction computations to loop heads")
   private boolean alwaysAtLoop = false;
 
   @Option(secure=true, description="toggle liveness abstraction")
@@ -84,28 +85,44 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
   @Option(secure=true, description="restrict liveness abstractions to nodes with more than one entering and/or leaving edge")
   private boolean onlyAtNonLinearCFA = false;
 
+  @Option(secure=true, description="skip abstraction computations until the given number of iterations are reached,"
+      + " after that decision is based on then current level of determinism,"
+      + " setting the option to -1 always performs abstraction computations")
+  @IntegerOption(min=-1)
+  private int iterationThreshold = -1;
+
+  @Option(secure=true, description="threshold for level of determinism, in percent,"
+      + " up-to which abstraction computations are performed (and iteration threshold was reached)")
+  @IntegerOption(min=0, max=100)
+  private int determinismThreshold = 85;
+
+  private final ValueAnalysisTransferRelation transfer;
+
   private final ImmutableSet<CFANode> loopHeads;
 
-  // statistics
+  private final Optional<LiveVariables> liveVariables;
+
+  private Boolean performPrecisionBasedAbstraction = null;
+
+  private final Statistics statistics;
+
   final StatCounter abstractions    = new StatCounter("Number of abstraction computations");
   final StatTimer totalLiveness     = new StatTimer("Total time for liveness abstraction");
   final StatTimer totalAbstraction  = new StatTimer("Total time for abstraction computation");
   final StatTimer totalEnforcePath  = new StatTimer("Total time for path thresholds");
   private Set<MemoryLocation> trackedMemoryLocation = new HashSet<>();
 
-  private final Statistics statistics;
-
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
   }
 
-  private final Optional<LiveVariables> liveVariables;
-
-  public ValueAnalysisPrecisionAdjustment(Configuration pConfig, CFA pCfa)
+  public ValueAnalysisPrecisionAdjustment(Configuration pConfig, final ValueAnalysisTransferRelation pTransfer, final CFA pCfa)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
+
+    transfer = pTransfer;
 
     if (alwaysAtLoop && pCfa.getAllLoopHeads().isPresent()) {
       loopHeads = pCfa.getAllLoopHeads().get();
@@ -160,7 +177,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
     // compute the abstraction based on the value-analysis precision
     totalAbstraction.start();
-    enforcePrecision(resultState, location, pPrecision);
+    if (performPrecisionBasedAbstraction()) {
+      enforcePrecision(resultState, location, pPrecision);
+    }
     totalAbstraction.stop();
 
     // compute the abstraction for assignment thresholds
@@ -173,7 +192,34 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
     // all memory locations contained in the state here are both tracked and have a known valuation
     trackedMemoryLocation.addAll(resultState.getTrackedMemoryLocations());
 
+    resultState = resultState.equals(pState) ? pState : resultState;
+
     return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
+  }
+
+  /**
+   * This method decides whether or not to perform abstraction computations. These are computed
+   * if the iteration threshold is deactivated, or if the level of determinism, by the time the
+   * iteration threshold was reached, is lower then the threshold for the level of determinism.
+   *
+   * @return true, if abstractions should be computed, else false
+   */
+  private boolean performPrecisionBasedAbstraction() {
+    if (iterationThreshold == -1) {
+      return true;
+    }
+
+    if (transfer.getCurrentNumberOfIterations() < iterationThreshold) {
+      return false;
+    }
+
+    if (performPrecisionBasedAbstraction == null) {
+      performPrecisionBasedAbstraction = (transfer.getCurrentLevelOfDeterminism() < determinismThreshold)
+          ? true
+          : false;
+    }
+
+    return performPrecisionBasedAbstraction;
   }
 
   private void enforceLiveness(ValueAnalysisState pState, LocationState location, ValueAnalysisState resultState) {

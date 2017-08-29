@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.conditions.path;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -66,4 +67,6 @@ public interface PathCondition {
    * @see org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA#adjustPrecision()
    */
   boolean adjustPrecision();
+
+  Reducer getReducer();
 }

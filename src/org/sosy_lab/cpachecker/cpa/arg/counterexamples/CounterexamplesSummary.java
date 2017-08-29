@@ -42,11 +42,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
-import org.sosy_lab.cpachecker.core.counterexample.RichModel;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
@@ -198,8 +197,8 @@ public class CounterexamplesSummary implements IterationStatistics {
           // TODO this check does not avoid dummy-paths in BAM, that might exist in main-reachedSet.
         } else {
 
-          RichModel model = createModelForPath(path);
-          cex = CounterexampleInfo.feasible(path, model);
+          CFAPathWithAssumptions model = createModelForPath(path);
+          cex = CounterexampleInfo.feasiblePrecise(path, model);
         }
       }
 
@@ -211,7 +210,7 @@ public class CounterexamplesSummary implements IterationStatistics {
     return allCexs;
   }
 
-  private RichModel createModelForPath(ARGPath pPath) {
+  private CFAPathWithAssumptions createModelForPath(ARGPath pPath) {
     final ConfigurableProgramAnalysis cpa = GlobalInfo.getInstance().getCPA().get();
 
     FluentIterable<ConfigurableProgramAnalysisWithConcreteCex> cpas =
@@ -231,11 +230,7 @@ public class CounterexamplesSummary implements IterationStatistics {
       }
     }
 
-    if(result == null) {
-      return RichModel.empty();
-    } else {
-      return RichModel.empty().withAssignmentInformation(result);
-    }
+    return result;
   }
 
   public <T extends AbstractState & Targetable> void removeInfeasibleState(Set<ARGState> toRemove) {

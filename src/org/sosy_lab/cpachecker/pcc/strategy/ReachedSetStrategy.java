@@ -72,6 +72,7 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
         reachedSet[i] = ((ARGState) reachedSet[i]).getWrappedState();
       }
     }
+    proofInfo.addInfoForStates(reachedSet);
     orderReachedSetByLocation(reachedSet);
   }
 

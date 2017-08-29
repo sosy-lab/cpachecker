@@ -26,9 +26,9 @@ package org.sosy_lab.cpachecker.cpa.uninitvars;
 import java.util.Collection;
 import java.util.Iterator;
 
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class UninitializedVariablesDomain implements AbstractDomain {
 
@@ -36,6 +36,11 @@ public class UninitializedVariablesDomain implements AbstractDomain {
   public AbstractState join(AbstractState element1, AbstractState element2) {
       UninitializedVariablesState uninitVarsElement1 = (UninitializedVariablesState)element1;
       UninitializedVariablesState uninitVarsElement2 = (UninitializedVariablesState)element2;
+
+    if (uninitVarsElement2.getGlobalVariables().containsAll(uninitVarsElement1.getGlobalVariables())
+        && uninitVarsElement2.getLocalVariables().containsAll(uninitVarsElement1.getLocalVariables())) {
+      return uninitVarsElement2;
+    }
 
       UninitializedVariablesState newElement = uninitVarsElement1.clone();
 

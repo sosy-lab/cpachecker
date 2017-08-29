@@ -1,17 +1,17 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
+import com.google.common.base.Objects;
+import com.google.common.collect.ImmutableSet;
+
+import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.solver.api.BooleanFormula;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.solver.api.BooleanFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-
-import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Policy with a local bound.
@@ -81,7 +81,7 @@ public class PolicyBound {
   }
 
   public PolicyAbstractedState getPredecessor() {
-    return predecessor.getLatestVersion();
+    return predecessor;
   }
 
   public PathFormula getFormula() {

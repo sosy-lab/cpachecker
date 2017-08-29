@@ -53,17 +53,20 @@ public class UFCheckingInterpolatingProverEnvironmentWithAssumptions<T>
   }
 
   @Override
-  public BooleanFormula getInterpolant(List<T> formulasOfA) throws SolverException {
+  public BooleanFormula getInterpolant(List<T> formulasOfA)
+      throws SolverException, InterruptedException {
     return delegate.getInterpolant(formulasOfA);
   }
 
   @Override
-  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas) {
+  public List<BooleanFormula> getSeqInterpolants(List<Set<T>> partitionedFormulas)
+      throws SolverException, InterruptedException {
     return delegate.getSeqInterpolants(partitionedFormulas);
   }
 
   @Override
-  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree) {
+  public List<BooleanFormula> getTreeInterpolants(List<Set<T>> partitionedFormulas, int[] startOfSubTree)
+      throws SolverException, InterruptedException {
     return delegate.getTreeInterpolants(partitionedFormulas, startOfSubTree);
   }
 }

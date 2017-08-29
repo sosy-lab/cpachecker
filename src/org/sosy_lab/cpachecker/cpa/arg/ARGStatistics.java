@@ -44,7 +44,7 @@ import org.sosy_lab.common.io.Path;
 import org.sosy_lab.common.io.Paths;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.IterationStatistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
@@ -97,7 +97,7 @@ public class ARGStatistics implements IterationStatistics {
   @Option(secure = true, name = "graphml.file", description = "Export final ARG as .graphml file."
       + " The .graphml file will be in die GraphML dialect of the tool \"yEd\".")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path graphMLFile = Paths.get("ARG.graphml");
+  private Path proofWitness = null;
 
   @Option(secure=true, name="simplifiedARG.file",
       description="export final ARG as .dot file, showing only loop heads and function entries/exits")
@@ -148,7 +148,7 @@ public class ARGStatistics implements IterationStatistics {
     if (argFile == null
         && simplifiedArgFile == null
         && refinementGraphFile == null
-        && graphMLFile == null
+        && proofWitness == null
         && simplifiedGraphMLFile == null) {
       exportARG = false;
     }
@@ -272,9 +272,9 @@ public class ARGStatistics implements IterationStatistics {
       }
     }
 
-    if (graphMLFile != null
+    if (proofWitness != null
         && (exportType == ExportType.GRAPHML || exportType == ExportType.BOTH)) {
-      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, graphMLFile))) {
+      try (Writer w = Files.openOutputFile(adjustPathNameForPartitioning(rootState, proofWitness))) {
         ARGToGraphMLWriter.write(
             w, rootState, ARGUtils.CHILDREN_OF_STATE, Predicates.alwaysTrue(), isTargetPathEdge);
       } catch (IOException e) {
@@ -323,13 +323,6 @@ public class ARGStatistics implements IterationStatistics {
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write refinement graph to file");
       }
-    }
-  }
-
-  @Override
-  public void printIterationStatistics(PrintStream pOut, ReachedSet pReached) {
-    if (dumpArgInEachCpaIteration) {
-      printStatistics(pOut, Result.UNKNOWN, pReached);
     }
   }
 
@@ -402,4 +395,12 @@ public class ARGStatistics implements IterationStatistics {
 
     return statesPerLevel;
   }
+
+  @Override
+  public void printIterationStatistics(PrintStream pOut, ReachedSet pReached) {
+    if (dumpArgInEachCpaIteration) {
+      printStatistics(pOut, Result.UNKNOWN, pReached);
+    }
+  }
+
 }

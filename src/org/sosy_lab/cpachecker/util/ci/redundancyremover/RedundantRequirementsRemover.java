@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,6 +39,8 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
 public class RedundantRequirementsRemover {
@@ -64,8 +67,9 @@ public class RedundantRequirementsRemover {
   }
 
   public static abstract class RedundantRequirementsRemoverImplementation<S extends AbstractState, V>
-      implements Comparator<V> {
+      implements Comparator<V>, Serializable {
 
+    private static final long serialVersionUID = 2610823786116954949L;
     private SortingArrayHelper sortHelper = new SortingArrayHelper();
 
     protected abstract boolean covers(final V covering, final V covered);
@@ -181,7 +185,10 @@ public class RedundantRequirementsRemover {
       }
     }
 
-    private class SortingArrayHelper implements Comparator<V[]> {
+    @SuppressFBWarnings(value="SE_INNER_CLASS", justification="Cannot make class static as suggested because require generic type parameters of outer class. Removing interface Serializable is also no option because it introduces another warning suggesting to implement Serializable interface.")
+    private class SortingArrayHelper implements Comparator<V[]>, Serializable {
+
+      private static final long serialVersionUID = 3970718511743910013L;
 
       @Override
       public int compare(final V[] arg0, final V[] arg1) {
@@ -201,9 +208,11 @@ public class RedundantRequirementsRemover {
     }
 
 
-
+    @SuppressFBWarnings(value="SE_INNER_CLASS", justification="Cannot make class static as suggested because require generic type parameters of outer class. Removing interface Serializable is also no option because it introduces another warning suggesting to implement Serializable interface.")
     private class SortingHelper implements
-        Comparator<Pair<V[][], Pair<ARGState, Collection<ARGState>>>> {
+        Comparator<Pair<V[][], Pair<ARGState, Collection<ARGState>>>>, Serializable {
+
+      private static final long serialVersionUID = 3894486288294859800L;
 
       @Override
       public int compare(final Pair<V[][], Pair<ARGState, Collection<ARGState>>> arg0,
@@ -221,9 +230,9 @@ public class RedundantRequirementsRemover {
         // compare first
         if (firstArg[0].length != secondArg[0].length) { return -(firstArg[0].length - secondArg[0].length); }
 
-        int r = sortHelper.compare(firstArg[0], secondArg[0]);
+        int r = sortHelper.compare(secondArg[0],firstArg[0]);
 
-        if (r != 0) { return -r; }
+        if (r != 0) { return r; }
 
         // compare remaining parts
         if (firstArg.length != secondArg.length) { return -(firstArg.length - secondArg.length); }

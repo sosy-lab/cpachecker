@@ -27,6 +27,7 @@ import java.util.Deque;
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathPosition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
@@ -38,7 +39,7 @@ public interface EdgeInterpolator<S extends ForgetfulState<?>, I extends Interpo
       ARGPath errorPath,
       CFAEdge currentEdge,
       Deque<S> callstack,
-      int offset,
+      PathPosition offset,
       I inputInterpolant
   ) throws CPAException, InterruptedException;
 

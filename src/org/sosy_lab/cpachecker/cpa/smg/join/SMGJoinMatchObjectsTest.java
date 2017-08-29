@@ -118,7 +118,7 @@ public class SMGJoinMatchObjectsTest {
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL,  smg1, smg2, mapping1, mapping2, srcObj1, diffSizeObject);
     Assert.assertFalse(mo.isDefined());
 
-    smg2.addObject(srcObj2, false);
+    smg2.addObject(srcObj2, false, false);
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, srcObj1, srcObj2);
     Assert.assertFalse(mo.isDefined());
   }

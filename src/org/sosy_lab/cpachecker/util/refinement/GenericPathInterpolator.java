@@ -220,7 +220,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
         pInterpolant = interpolator.deriveInterpolant(pErrorPathPrefix,
                                                      pathIterator.getOutgoingEdge(),
                                                      callstack,
-                                                     pathIterator.getIndex(),
+                                                     pathIterator.getPosition(),
                                                      pInterpolant);
       }
 
@@ -350,8 +350,12 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final ARGPath pErrorPathPrefix,
       final Map<ARGState, I> pInterpolants
   ) {
-    if(errorPath != pErrorPathPrefix) {
-      for (ARGState state : errorPath.obtainSuffix(pErrorPathPrefix.size()).asStatesList()) {
+    if (pErrorPathPrefix.size() < errorPath.size()) {
+      PathIterator it = errorPath.pathIterator();
+      for (int i = 0; i < pErrorPathPrefix.size(); i++) {
+        it.advance();
+      }
+      for (ARGState state : it.getSuffixInclusive().asStatesList()) {
         pInterpolants.put(state, interpolantManager.getFalseInterpolant());
       }
     }

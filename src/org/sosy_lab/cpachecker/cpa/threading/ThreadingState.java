@@ -31,11 +31,16 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -43,7 +48,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 
 /** This immutable state represents a location state combined with a callstack state. */
-public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable {
+public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable, AbstractQueryableState {
+
+  private static final String PROPERTY_DEADLOCK = "deadlock";
 
   final static int MIN_THREAD_NUM = 0;
 
@@ -74,7 +81,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
         locks);
   }
 
-  public ThreadingState updateThreadAndCopy(String id, AbstractState stack, AbstractState loc) {
+  public ThreadingState updateLocationAndCopy(String id, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
     Preconditions.checkArgument(threads.containsKey(id), "updating non-existing thread");
     return new ThreadingState(
@@ -231,13 +238,76 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     return threads;
   }
 
+
+  @Override
+  public String getCPAName() {
+    return "ThreadingCPA";
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    if (PROPERTY_DEADLOCK.equals(pProperty)) {
+      try {
+        return hasDeadlock();
+      } catch (UnrecognizedCodeException e) {
+        throw new InvalidQueryException("deadlock-check had a problem", e);
+      }
+    }
+    throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+  }
+
+  /**
+   * check, whether one of the outgoing edges can be visited
+   * without requiring a already used lock.
+   */
+  private boolean hasDeadlock() throws UnrecognizedCodeException {
+    FluentIterable<CFAEdge> edges = FluentIterable.from(getOutgoingEdges());
+
+    // no need to check for existing locks after program termination -> ok
+
+    // no need to check for existing locks after thread termination
+    // -> TODO what about a missing ATOMIC_LOCK_RELEASE?
+
+    // no need to check VERIFIER_ATOMIC, ATOMIC_LOCK or LOCAL_ACCESS_LOCK,
+    // because they cannot cause deadlocks, as there is always one thread to go
+    // (=> the thread that has the lock).
+    // -> TODO what about a missing ATOMIC_LOCK_RELEASE?
+
+    // no outgoing edges, i.e. program terminates -> no deadlock possible
+    if (edges.isEmpty()) {
+      return false;
+    }
+
+    for (CFAEdge edge : edges) {
+      String newLock = ThreadingTransferRelation.getLockId(edge);
+      if (newLock == null || !hasLock(newLock)) {
+        // no new lock required or the new lock is not yet used,
+        // -> this edge can be visited, no deadlock
+        return false;
+      }
+    }
+
+    // of no edge can be visited, there is a deadlock
+    return true;
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    return checkProperty(pProperty);
+  }
+
+  @Override
+  public void modifyProperty(String pModification) throws InvalidQueryException {
+    throw new InvalidQueryException("not implemented by " + this.getClass().getCanonicalName());
+  }
+
   /** A ThreadState describes the state of a single thread. */
   private static class ThreadState {
 
     // String :: identifier for the thread TODO change to object or memory-location
     // CallstackState +  LocationState :: thread-position
     private final AbstractState location;
-    private final AbstractState callstack;
+    private final CallstackStateEqualsWrapper callstack;
 
     // Each thread is assigned to an Integer
     // TODO do we really need this? -> needed for identification of cloned functions.
@@ -245,7 +315,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
     ThreadState(AbstractState pLocation, AbstractState pCallstack, int  pNum) {
       location = pLocation;
-      callstack =pCallstack;
+      callstack = new CallstackStateEqualsWrapper((CallstackState)pCallstack);
       num= pNum;
     }
 
@@ -254,7 +324,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     }
 
     public AbstractState getCallstack() {
-      return callstack;
+      return callstack.getState();
     }
 
     public int getNum() {

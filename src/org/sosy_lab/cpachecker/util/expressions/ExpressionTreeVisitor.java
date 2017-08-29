@@ -24,12 +24,16 @@
 package org.sosy_lab.cpachecker.util.expressions;
 
 
-public interface ExpressionTreeVisitor<T> {
+public interface ExpressionTreeVisitor<LeafType, T, E extends Throwable> {
 
-  T visit(And pAnd);
+  T visit(And<LeafType> pAnd) throws E;
 
-  T visit(Or pOr);
+  T visit(Or<LeafType> pOr) throws E;
 
-  T visit(LeafExpression pLeafExpression);
+  T visit(LeafExpression<LeafType> pLeafExpression) throws E;
+
+  T visitTrue() throws E;
+
+  T visitFalse() throws E;
 
 }

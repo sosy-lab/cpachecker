@@ -266,7 +266,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           result= mgr.makeLessOrEqual(f1, f2, signed);
           break;
         case EQUALS:
-          result= mgr.makeEqual(f1, f2);
+          result= handleEquals(exp, f1, f2);
           break;
         case NOT_EQUALS:
           result= conv.bfmgr.not(mgr.makeEqual(f1, f2));
@@ -294,6 +294,32 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
          : "Returntype and Formulatype do not match in visit(CBinaryExpression): " + exp;
 
     return castedResult;
+  }
+
+  private BooleanFormula handleEquals(CBinaryExpression exp, Formula f1, Formula f2)
+      throws UnrecognizedCCodeException {
+    assert exp.getOperator() == BinaryOperator.EQUALS;
+    CExpression e1 = exp.getOperand1();
+    CExpression e2 = exp.getOperand2();
+    if (e2.equals(CIntegerLiteralExpression.ZERO)
+        && e1 instanceof CBinaryExpression
+        && ((CBinaryExpression) e1).getOperator() == BinaryOperator.BINARY_OR) {
+      // This is code like "(a | b) == 0".
+      // According to LDV, GCC sometimes produces this during weaving,
+      // but for non-bitprecise analysis it can be handled in a better way as (a == 0) || (b == 0).
+      // TODO Maybe refactor AutomatonASTComparator into something generic
+      // and use this to match such cases.
+
+      final CBinaryExpression or = (CBinaryExpression) e1;
+      final Formula zero = f2;
+      final Formula a =
+          processOperand(or.getOperand1(), exp.getCalculationType(), exp.getExpressionType());
+      final Formula b =
+          processOperand(or.getOperand2(), exp.getCalculationType(), exp.getExpressionType());
+
+      return conv.bfmgr.and(mgr.makeEqual(a, zero), mgr.makeEqual(b, zero));
+    }
+    return mgr.makeEqual(f1, f2);
   }
 
   /**
@@ -710,7 +736,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
 
       final CType realReturnType = conv.getReturnType(e, edge);
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
-      return conv.ffmgr.declareAndCallUninterpretedFunction(functionName, resultFormulaType, arguments);
+      return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
   }
 

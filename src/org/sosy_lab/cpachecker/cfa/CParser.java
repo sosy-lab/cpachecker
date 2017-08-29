@@ -98,6 +98,21 @@ public interface CParser extends Parser {
   ParseResult parseString(List<FileContentToParse> code, CSourceOriginMapping sourceOriginMapping) throws CParserException, InvalidConfigurationException;
 
   /**
+   * Parse the content of a String into a CFA.
+   *
+   * @param pFileName the file name.
+   * @param pCode the code to parse.
+   * @param pSourceOriginMapping a mapping from real input file locations to original file locations (before pre-processing).
+   * @param pScope an optional external scope to be used.
+   * @return the parse result.
+   * @throws CParserException if the parser cannot handle the C code.
+   * @throws InvalidConfigurationException if the configuration is invalid.
+   */
+  ParseResult parseString(
+      String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
+      throws CParserException, InvalidConfigurationException;
+
+  /**
    * Method for parsing a string that contains exactly one function with exactly
    * one statement. Only the AST for the statement is returned, the function
    * declaration is stripped.
