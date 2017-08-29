@@ -85,7 +85,6 @@ public class SMGSingleLinkedListFinder implements SMGAbstractionFinder {
       return;
     }
 
-    pProgress.putCandidiateMap(pObject);
     createCandidatesOfObject(pObject, pSmg, pSmgState, pProgress);
   }
 

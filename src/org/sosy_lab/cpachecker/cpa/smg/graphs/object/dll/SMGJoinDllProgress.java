@@ -47,8 +47,8 @@ class SMGJoinDllProgress
 
     if (pHasToBeLastInSequence) {
       /*Due to the nature of the algorithm, this is always the second segment to be joined from the start*/
-      assert candidateLength.get(Pair.of(pPrevCandidate, SMGJoinStatus.EQUAL)) == 1;
-      candidateLength.put(Pair.of(pPrevCandidate, pStatus), 2);
+      assert candidateLength.get(pPrevCandidate, SMGJoinStatus.EQUAL) == 1;
+      candidateLength.put(pPrevCandidate, pStatus, 2);
       return;
     }
 
@@ -56,8 +56,11 @@ class SMGJoinDllProgress
   }
 
   public void initializeCandidiate(SMGDoublyLinkedListCandidate pCandidate) {
-    candidates.get(pCandidate.getStartObject()).put(Pair.of(pCandidate.getShape().getNfo(), pCandidate.getShape().getPfo()), pCandidate);
-    candidateLength.put(Pair.of(pCandidate, SMGJoinStatus.EQUAL), 1);
+    candidates.put(
+        pCandidate.getStartObject(),
+        Pair.of(pCandidate.getShape().getNfo(), pCandidate.getShape().getPfo()),
+        pCandidate);
+    candidateLength.put(pCandidate, SMGJoinStatus.EQUAL, 1);
   }
 
   @Override

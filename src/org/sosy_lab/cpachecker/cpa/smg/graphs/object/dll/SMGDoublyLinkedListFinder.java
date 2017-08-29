@@ -89,7 +89,6 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
       return;
     }
 
-    pProgress.putCandidiateMap(pObject);
     createCandidatesOfObject(pObject, pSmg, pSmgState, pProgress);
   }
 

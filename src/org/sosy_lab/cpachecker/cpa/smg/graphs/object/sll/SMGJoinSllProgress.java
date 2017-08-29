@@ -31,7 +31,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGJoinAbstractListProgress
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.util.Pair;
 
 class SMGJoinSllProgress
     extends SMGJoinAbstractListProgress<Integer, SMGSingleLinkedListCandidate> {
@@ -39,8 +38,8 @@ class SMGJoinSllProgress
   public SMGJoinSllProgress() {}
 
   public void initializeCandidiate(SMGSingleLinkedListCandidate pCandidate) {
-    candidates.get(pCandidate.getStartObject()).put(pCandidate.getShape().getNfo(), pCandidate);
-    candidateLength.put(Pair.of(pCandidate, SMGJoinStatus.EQUAL), 1);
+    candidates.put(pCandidate.getStartObject(), pCandidate.getShape().getNfo(), pCandidate);
+    candidateLength.put(pCandidate, SMGJoinStatus.EQUAL, 1);
   }
 
   @Override
