@@ -78,6 +78,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -918,6 +919,14 @@ public class SMGTransferRelation
   private List<SMGState> handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
     String varName = pVarDecl.getName();
     CType cType = expressionEvaluator.getRealExpressionType(pVarDecl);
+
+    if (cType.isIncomplete() && cType instanceof CElaboratedType) {
+      // for incomplete types, we do not add variables.
+      // we are not allowed to read or write them, dereferencing is possible.
+      // example: "struct X; extern struct X var; void main() { }"
+      // TODO currently we assume that only CElaboratedTypes are unimportant when incomplete.
+      return ImmutableList.of(pState);
+    }
 
     SMGObject newObject = pState.getObjectForVisibleVariable(varName);
       /*
