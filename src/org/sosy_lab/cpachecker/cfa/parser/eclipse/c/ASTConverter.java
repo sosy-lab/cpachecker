@@ -2339,21 +2339,45 @@ class ASTConverter {
     }
   }
 
-  // TODO: Can we somehow handle wide-char-arrays and corresponding Strings?
-  // E.g., 'wchar_t a[] = L"abc";' is valid, whereas 'char a[] = L"abc";' is not.
   private boolean areInitializerAssignable(
       CType pDeclarationType, CExpression pInitializerExpression) {
-
     return pDeclarationType.canBeAssignedFrom(pInitializerExpression.getExpressionType())
-        || ((pDeclarationType instanceof CArrayType)
-            && CTypes.copyDequalified(((CArrayType) pDeclarationType).getType().getCanonicalType())
-                .equals(CNumericTypes.CHAR)
-            && (pInitializerExpression instanceof CStringLiteralExpression))
+        || isStringInitialization(pDeclarationType, pInitializerExpression)
         || ((pInitializerExpression instanceof CIntegerLiteralExpression)
             // the literal '0' is by default treated as a Null-Pointer in context
             // of pointers (C-Standard 11 §6.3.2.3 (3))
             && (((CIntegerLiteralExpression) pInitializerExpression).getValue().intValue() == 0)
             && pDeclarationType.canBeAssignedFrom(CPointerType.POINTER_TO_VOID));
+  }
+
+  /**
+   * This method determines whether the initialization is valid in accordance to C11 Standard,
+   * §6.7.9, (32).
+   *
+   * @param pDeclarationType the type of the lhs of the initialization
+   * @param pInitializerExpression the rhs expression of the initialization
+   * @return <code>true</code> if the initialization assigns a {@link CStringLiteralExpression} to
+   *     an array or pointer of/to <code>char</code>, <code>false</code> otherwise.
+   */
+  private boolean isStringInitialization(
+      CType pDeclarationType, CExpression pInitializerExpression) {
+    // TODO: Can we somehow handle wide-char-arrays and corresponding Strings?
+    // E.g., 'wchar_t a[] = L"abc";' is valid, whereas 'char a[] = L"abc";' is not.
+    if (pInitializerExpression instanceof CStringLiteralExpression) {
+
+      // Not null default that results in false without an exception if the declaration type is
+      // neither array nor pointer and allows to drop a redundant second check for CArrayType or
+      // CPointerType
+      CType canonicalType = CPointerType.POINTER_TO_VOID;
+      if (pDeclarationType instanceof CArrayType) {
+        canonicalType = ((CArrayType) pDeclarationType).getType().getCanonicalType();
+      }
+      if (pDeclarationType instanceof CPointerType) {
+        canonicalType = ((CPointerType) pDeclarationType).getType().getCanonicalType();
+      }
+      return CTypes.copyDequalified(canonicalType).equals(CNumericTypes.CHAR);
+    }
+    return false;
   }
 
   private List<CParameterDeclaration> convert(IASTParameterDeclaration[] ps) {
