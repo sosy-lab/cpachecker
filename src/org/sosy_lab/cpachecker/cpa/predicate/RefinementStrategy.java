@@ -66,8 +66,6 @@ public abstract class RefinementStrategy {
   private final StatInt numberOfAffectedStates = new StatInt(StatKind.SUM, "Number of affected states");
   private final StatInt totalPathLengthToInfeasibility = new StatInt(StatKind.AVG, "Length of refined path (in blocks)");
 
-  protected List<ARGState> absTrace;
-
   protected AbstractStatistics basicRefinementStatistics = new AbstractStatistics() {
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
@@ -101,7 +99,6 @@ public abstract class RefinementStrategy {
       List<BooleanFormula> pInterpolants,
       boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
-    absTrace = abstractionStatesTrace;
     // Hook
     startRefinementOfPath();
 
@@ -121,7 +118,8 @@ public abstract class RefinementStrategy {
     List<ARGState> changedElements = rootOfInfeasibleArgAndChangedElements.getSecond();
 
     // Hook
-    finishRefinementOfPath(infeasiblePartOfARG, changedElements, pReached, pRepeatedCounterexample);
+    finishRefinementOfPath(infeasiblePartOfARG, changedElements,
+        pReached, abstractionStatesTrace, pRepeatedCounterexample);
 
     // TODO find a way to uncomment this assert. In combination with
     // PredicateCPAGlobalRefiner and the PredicateAbstractionGlobalRefinementStrategy
@@ -244,6 +242,7 @@ public abstract class RefinementStrategy {
    * @param unreachableState The first state in the path which is infeasible (this identifies the path).
    * @param affectedStates The list of states that were affected by the refinement (ordered from root to target state).
    * @param reached The reached set.
+   * @param abstractionStatesTrace The abstraction states on the error path
    * @param repeatedCounterexample Whether the counterexample has been found before.
    * @throws CPAException may be thrown in subclasses
    * @throws InterruptedException may be thrown in subclasses
@@ -253,6 +252,7 @@ public abstract class RefinementStrategy {
       final ARGState unreachableState,
       List<ARGState> affectedStates,
       ARGReachedSet reached,
+      List<ARGState> abstractionStatesTrace,
       boolean repeatedCounterexample) throws CPAException, InterruptedException;
 
   public abstract Statistics getStatistics();

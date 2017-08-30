@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -193,7 +192,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
   @Override
   protected void finishRefinementOfPath(ARGState infeasiblePartOfART,
       List<ARGState> changedElements, ARGReachedSet pReached,
-      boolean pRepeatedCounterexample)
+      List<ARGState> abstractionStatesTrace, boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
     checkState(lastAbstraction != null);
     lastAbstraction = null;
@@ -222,10 +221,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       @SuppressWarnings("unchecked")
       List<ARGState> all = (List<ARGState>)(List<? extends AbstractState>)pReached.asReachedSet().asCollection().stream().
           filter(x->getPredicateState(x).isAbstractionState()).collect(Collectors.toList());
-      sliceEdges(all, infeasiblePartOfART);
+      sliceEdges(all, infeasiblePartOfART, abstractionStatesTrace);
       initialSliceDone = true;
     } else {
-      sliceEdges(changedElements,infeasiblePartOfART);
+      sliceEdges(changedElements,infeasiblePartOfART, abstractionStatesTrace);
     }
     stats.sliceEdges.stop();
 
@@ -255,7 +254,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     }
   }
 
-  private void sliceEdges(final List<ARGState> pChangedElements, ARGState pInfeasiblePartOfART) {
+  private void sliceEdges(final List<ARGState> pChangedElements,
+      ARGState pInfeasiblePartOfART, List<ARGState> pAbstractionStatesTrace)
+      throws InterruptedException, CPAException {
     final List<ARGState> allChangedStates;
     //get the corresponding forked states:
     allChangedStates = pChangedElements.stream()
@@ -279,8 +280,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     // Therefore we need to make sure that allChangedStates at least contains
     // all abstraction states on the error path:
     if (minimalSlicing) {
-      // TODO: refactor RefinementStrategy o that we can get absTrace in a different way:
-      allChangedStates.addAll(absTrace.stream().
+      allChangedStates.addAll(pAbstractionStatesTrace.stream().
           filter(x->!allChangedStates.contains(x)).
           collect(Collectors.toList()));
     }
@@ -290,8 +290,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
       Set<ARGState> segmentStateSet = new HashSet<>();
       for (ARGState key : segmentMap.keySet()) {
-        // TODO: Refactor RefinementStrategy so that we do not need to pass absTrace via this hack:
-        boolean infeasible = checkEdge(currentState, key, segmentMap.get(key), absTrace, pInfeasiblePartOfART, pChangedElements);
+        boolean infeasible = checkEdge(currentState, key, segmentMap.get(key),
+            pAbstractionStatesTrace, pInfeasiblePartOfART, pChangedElements);
         infeasibleMap.put(key, infeasible);
         segmentStateSet.addAll(segmentMap.get(key));
       }
@@ -313,7 +313,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
 
   private boolean checkEdge(ARGState startState, ARGState endState,
       List<ARGState> segmentList, final List<ARGState> abstractionStatesTrace,
-      ARGState pInfeasiblePartOfART, List<ARGState> pChangedElements) {
+      ARGState pInfeasiblePartOfART, List<ARGState> pChangedElements)
+          throws InterruptedException, CPAException {
     boolean infeasible = false;
     final boolean mustBeInfeasible = mustBeInfeasible(startState, endState,
         abstractionStatesTrace, pInfeasiblePartOfART, pChangedElements);
@@ -333,22 +334,22 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
     return infeasible;
   }
 
-  private boolean isInfeasibleEdge(ARGState start, ARGState stop, List<ARGState> segmentList) {
+  private boolean isInfeasibleEdge(ARGState start, ARGState stop, List<ARGState> segmentList)
+      throws InterruptedException, CPAException {
     boolean infeasible = false;
-    try {
-      SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
-      PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
-      BooleanFormula formula = buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true).getFormula();
-      try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-        thmProver.push(formula);
-        if (thmProver.isUnsat()) {
-          infeasible = true;
-        } else {
-          infeasible =  false;
-        }
+
+    SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
+    PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
+    BooleanFormula formula = buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true).getFormula();
+    try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      thmProver.push(formula);
+      if (thmProver.isUnsat()) {
+        infeasible = true;
+      } else {
+        infeasible = false;
       }
-    } catch (SolverException|InterruptedException|CPATransferException  e){
-      // TODO: What should we do here?
+    } catch (SolverException  e){
+         throw new CPAException("Solver Failure", e);
     }
     return infeasible;
   }
