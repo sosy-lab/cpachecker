@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 
@@ -51,22 +52,18 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
     toRemove = HashMultimap.create();
   }
 
+  public SetMultiMapBuilder(int pSizeCoef) {
+    sizeCoef = pSizeCoef;
+    origMap = ImmutableMultimap.of();
+    toAdd = HashMultimap.create();
+    toRemove = HashMultimap.create();
+  }
+
   public SetMultiMapBuilder(SetMultiMapBuilder<K, V> pSetMultiMapBuilder) {
     sizeCoef = pSetMultiMapBuilder.sizeCoef;
     if (pSetMultiMapBuilder.origMap.size() > sizeCoef * (pSetMultiMapBuilder.toAdd.size() +
         pSetMultiMapBuilder.toRemove.size())) {
-      Builder<K, V> builder = ImmutableMultimap.builder();
-      if (pSetMultiMapBuilder.toRemove.isEmpty()) {
-        builder.putAll(pSetMultiMapBuilder.origMap);
-        builder.putAll(pSetMultiMapBuilder.toAdd);
-      } else {
-        for (Entry<K, V> entry: pSetMultiMapBuilder.origMap.entries()) {
-          if (!pSetMultiMapBuilder.toRemove.containsEntry(entry.getKey(), entry.getValue()))
-          builder.put(entry);
-        }
-        builder.putAll(pSetMultiMapBuilder.toAdd);
-      }
-      origMap = builder.build();
+      origMap = build(pSetMultiMapBuilder);
       toAdd = HashMultimap.create();
       toRemove = HashMultimap.create();
     } else {
@@ -76,9 +73,25 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
     }
   }
 
+  public void build() {
+//    origMap = build(this);
+//    toAdd = HashMultimap.create();
+//    toRemove = HashMultimap.create();
+  }
 
-  public ImmutableMultimap<K, V> build() {
-    return ImmutableMultimap.copyOf(origMap);
+  private ImmutableMultimap<K, V> build(SetMultiMapBuilder<K, V> pSetMultiMapBuilder) {
+    Builder<K, V> builder = ImmutableMultimap.builder();
+    if (pSetMultiMapBuilder.toRemove.isEmpty()) {
+      builder.putAll(pSetMultiMapBuilder.origMap);
+      builder.putAll(pSetMultiMapBuilder.toAdd);
+    } else {
+      for (Entry<K, V> entry: pSetMultiMapBuilder.origMap.entries()) {
+        if (!pSetMultiMapBuilder.toRemove.containsEntry(entry.getKey(), entry.getValue()))
+          builder.put(entry);
+      }
+      builder.putAll(pSetMultiMapBuilder.toAdd);
+    }
+    return builder.build();
   }
 
   @Override
@@ -109,6 +122,17 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
     return !resultSet.isEmpty();
   }
 
+  private int countValues(Multimap<K, V> pMap, int pCount, @Nullable Object pO) {
+    int res = pCount;
+    for (V value : pMap.values()) {
+      if (value.equals(pO)) {
+        if (res++ > 0)
+          return res;
+      }
+    }
+    return res;
+  }
+
   @Override
   public boolean containsValue(@Nullable Object pO) {
     int count = 0;
@@ -117,22 +141,16 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
         count--;
       }
     }
-    for (V value : toAdd.values()) {
-      if (value.equals(pO)) {
-        if (++count > 0) {
-          return true;
-        }
-      }
+    count = countValues(toAdd, count, pO);
+    if (count > 0) {
+      return true;
     }
     if (count == 0) {
       return origMap.containsValue(pO);
     } else {
-      for (V value : origMap.values()) {
-        if (value.equals(pO)) {
-          if (++count > 0) {
-            return true;
-          }
-        }
+      count = countValues(origMap, count, pO);
+      if (count > 0) {
+        return true;
       }
     }
     return false;
@@ -176,9 +194,8 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
   public boolean putAll(@Nullable K pK, Iterable<? extends V> pIterable) {
     boolean res = false;
     for (V value : pIterable) {
-      if (put(pK, value)) {
+      if (put(pK, value))
         res = true;
-      }
     }
     return res;
   }
@@ -282,5 +299,27 @@ public class SetMultiMapBuilder<K, V> implements SetMultimap<K, V> {
       mapView.put(key, get(key));
     }
     return mapView;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj instanceof SetMultiMapBuilder) {
+      Set<Entry<K, V>> entries = entries();
+      for (Object otherEntry : ((SetMultiMapBuilder<?, ?>) obj).entries()) {
+        if (!entries.contains(otherEntry)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(origMap, toAdd, toRemove);
   }
 }

@@ -352,7 +352,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     }
 
     public final SMGAddressValueAndStateList evaluateExternalAllocation(
-        CFunctionCallExpression pFunctionCall, SMGState pState) throws SMGInconsistentException {
+        CFunctionCallExpression pFunctionCall, SMGState pState) {
       SMGState currentState = pState;
 
       String functionName = pFunctionCall.getFunctionNameExpression().toASTString();

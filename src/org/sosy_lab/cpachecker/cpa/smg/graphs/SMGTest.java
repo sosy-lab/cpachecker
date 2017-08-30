@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
 
 import java.util.HashSet;
-import java.util.Set;
 import java.util.TreeMap;
 
 

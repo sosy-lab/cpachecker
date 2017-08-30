@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.objects.sll;
 
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
 import java.math.BigInteger;
 
 public class SMGSingleLinkedListShape implements Comparable<SMGSingleLinkedListShape> {
