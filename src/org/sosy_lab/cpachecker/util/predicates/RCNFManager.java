@@ -271,7 +271,7 @@ public class RCNFManager implements StatisticsProvider {
                 sizeAfterExpansion, out.size()
             );
           } catch (ArithmeticException ex) {
-            sizeAfterExpansion = expansionResultSizeLimit + 1;
+            sizeAfterExpansion = expansionResultSizeLimit + 1L;
             break;
           }
           asConjunctions.add(out);

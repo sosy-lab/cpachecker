@@ -61,6 +61,7 @@ class ShutdownHook extends Thread {
 
   // We want to use Thread.stop() to force the main thread to stop
   // when interrupted by the user.
+  @SuppressWarnings("ThreadJoinLoop") // interrupt is used on purpose by disableAndStop()
   @Override
   public void run() {
 
@@ -75,7 +76,7 @@ class ShutdownHook extends Thread {
       // from immediate termination.)
       try {
         mainThread.join();
-      } catch (InterruptedException e) {}
+      } catch (InterruptedException expected) {}
     }
   }
 }
