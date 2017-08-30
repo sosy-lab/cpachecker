@@ -96,6 +96,7 @@ import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTDesignatedInitializer;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
 import org.sosy_lab.common.log.LogManager;
@@ -139,6 +140,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
@@ -2209,8 +2211,49 @@ class ASTConverter {
     return new CDesignatedInitializer(fileLoc, designators, cInit);
   }
 
-  private CInitializerList convert(IASTInitializerList iList, @Nullable CVariableDeclaration declaration) {
+  private CInitializer convert(
+      IASTInitializerList iList, @Nullable CVariableDeclaration declaration) {
+
     List<CInitializer> initializerList = new ArrayList<>();
+
+    if (declaration != null && iList.getSize() == 1) {
+      CType type = declaration.getType();
+
+      if (type instanceof CSimpleType) {
+        IASTInitializerClause result = unpackBracedInitializer(iList);
+        if (result != null) {
+          return convert(result, declaration);
+        }
+      } else if (type instanceof CArrayType) {
+        CType innerType = ((CArrayType) type).getType().getCanonicalType();
+        IASTInitializerClause result = iList.getClauses()[0];
+
+        if (!(result instanceof CASTDesignatedInitializer)) {
+          if (innerType instanceof CSimpleType && result instanceof IASTInitializerList) {
+            result = unpackBracedInitializer((IASTInitializerList) result);
+          } else if (innerType instanceof CArrayType || innerType instanceof CComplexType) {
+            CVariableDeclaration nestedDeclaration =
+                new CVariableDeclaration(
+                    declaration.getFileLocation(),
+                    declaration.isGlobal(),
+                    declaration.getCStorageClass(),
+                    innerType,
+                    declaration.getName(),
+                    declaration.getOrigName(),
+                    declaration.getQualifiedName(),
+                    null);
+
+            initializerList.add(convert(result, nestedDeclaration));
+            return new CInitializerList(initializerList.get(0).getFileLocation(), initializerList);
+          }
+
+          if (result != null) {
+            return convert(result, declaration);
+          }
+        }
+      }
+    }
+
     for (IASTInitializerClause i : iList.getClauses()) {
       CInitializer newI = convert(i, declaration);
       if (newI != null) {
@@ -2221,6 +2264,17 @@ class ASTConverter {
     return new CInitializerList(getLocation(iList), initializerList);
   }
 
+  private @Nullable IASTInitializerClause unpackBracedInitializer(IASTInitializerList pIList) {
+    if (pIList.getSize() == 1) {
+      IASTInitializerClause clause = pIList.getClauses()[0];
+      if (clause instanceof IASTInitializerList) {
+        return unpackBracedInitializer((IASTInitializerList) clause);
+      }
+      return clause;
+    }
+    return null;
+  }
+
   private CInitializer convert(IASTEqualsInitializer i, @Nullable CVariableDeclaration declaration) {
     IASTInitializerClause ic = i.getInitializerClause();
     if (ic instanceof IASTExpression) {
@@ -2229,6 +2283,18 @@ class ASTConverter {
       CAstNode initializer = convertExpressionWithSideEffects(e);
       if (initializer == null) {
         return null;
+      }
+
+      // According to C-Standard 11 § 6.7.9 (11), (13)
+      // XXX: Are there more cases to be checked, other than initializer being a CExpression
+      if ((initializer instanceof CExpression)
+          && !areInitializerAssignable(declaration.getType(), ((CExpression) initializer))) {
+        throw parseContext.parseError(
+            "Types of declarator and initializer are not assignment compatible ("
+                + "Original code was: "
+                + i.getRawSignature()
+                + ")",
+            declaration);
       }
 
       if (initializer instanceof CAssignment) {
@@ -2271,6 +2337,23 @@ class ASTConverter {
     } else {
       throw parseContext.parseError("unknown initializer: " + i.getClass().getSimpleName(), i);
     }
+  }
+
+  // TODO: Can we somehow handle wide-char-arrays and corresponding Strings?
+  // E.g., 'wchar_t a[] = L"abc";' is valid, whereas 'char a[] = L"abc";' is not.
+  private boolean areInitializerAssignable(
+      CType pDeclarationType, CExpression pInitializerExpression) {
+
+    return pDeclarationType.canBeAssignedFrom(pInitializerExpression.getExpressionType())
+        || ((pDeclarationType instanceof CArrayType)
+            && CTypes.copyDequalified(((CArrayType) pDeclarationType).getType().getCanonicalType())
+                .equals(CNumericTypes.CHAR)
+            && (pInitializerExpression instanceof CStringLiteralExpression))
+        || ((pInitializerExpression instanceof CIntegerLiteralExpression)
+            // the literal '0' is by default treated as a Null-Pointer in context
+            // of pointers (C-Standard 11 §6.3.2.3 (3))
+            && (((CIntegerLiteralExpression) pInitializerExpression).getValue().intValue() == 0)
+            && pDeclarationType.canBeAssignedFrom(CPointerType.POINTER_TO_VOID));
   }
 
   private List<CParameterDeclaration> convert(IASTParameterDeclaration[] ps) {
