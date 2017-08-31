@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.util.Iterator;
@@ -31,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
@@ -168,9 +170,7 @@ public class SMG {
    * @param pValue Value to remove
    */
   final public void removeValue(final Integer pValue) {
-
-    assert pValue != 0;
-
+    Preconditions.checkArgument(pValue != 0, "Can not remove NULL from SMG");
     values = values.removeAndCopy(pValue);
     neq = neq.removeValueAndCopy(pValue);
     pathPredicate.removeValue(pValue);
@@ -199,9 +199,7 @@ public class SMG {
    * @param pObj Object to remove
    */
   final public void removeObjectAndEdges(final SMGObject pObj) {
-
-    assert pObj != SMGNullObject.INSTANCE;
-
+    Preconditions.checkArgument(pObj != SMGNullObject.INSTANCE, "Can not remove NULL from SMG");
     removeObject(pObj);
     hv_edges = hv_edges.removeAllEdgesOfObjectAndCopy(pObj);
     pt_edges = pt_edges.removeAllEdgesOfObjectAndCopy(pObj);
@@ -274,8 +272,7 @@ public class SMG {
    * @param pValue the Source of the Points-To edge to be removed
    */
   final public void removePointsToEdge(int pValue) {
-    assert pValue != 0;
-
+    Preconditions.checkArgument(pValue != 0, "Can not remove NULL from SMG");
     pt_edges = pt_edges.removeEdgeWithValueAndCopy(pValue);
   }
 
@@ -290,10 +287,7 @@ public class SMG {
    * @param pValidity Validity to set.
    */
   public void setValidity(SMGObject pObject, boolean pValidity) {
-    if (! objects.contains(pObject)) {
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
+    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     object_validity = object_validity.putAndCopy(pObject, pValidity);
   }
 
@@ -308,10 +302,7 @@ public class SMG {
    * @param pExternal Validity to set.
    */
   public void setExternallyAllocatedFlag(SMGObject pObject, boolean pExternal) {
-    if (! objects.contains(pObject)) {
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
+    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     objectAllocationIdentity = objectAllocationIdentity.putAndCopy(pObject, new ExternalObjectFlag(pExternal));
   }
 
@@ -443,12 +434,8 @@ public class SMG {
    * TODO: Test
    * TODO: Consistency check: no value can point to more objects
    */
-  final public SMGObject getObjectPointedBy(Integer pValue) {
-    if (!values.contains(
-        pValue)) {
-      throw new IllegalArgumentException("Value [" + pValue + "] not in SMG");
-    }
-
+  public final @Nullable SMGObject getObjectPointedBy(Integer pValue) {
+    Preconditions.checkArgument(values.contains(pValue), "Value [" + pValue + "] not in SMG");
     if (pt_edges.containsEdgeWithValue(pValue)) {
       return pt_edges.getEdgeWithValue(pValue).getObject();
     } else {
@@ -465,10 +452,7 @@ public class SMG {
    * @return True if Object is valid, False if it is invalid.
    */
   final public boolean isObjectValid(SMGObject pObject) {
-    if ( ! objects.contains(pObject)) {
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
+    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     return object_validity.get(pObject);
   }
 
@@ -477,10 +461,7 @@ public class SMG {
    * Throws {@link IllegalAccessException} if pObject is not present is the SMG
    */
   final public Boolean isObjectExternallyAllocated(SMGObject pObject) {
-    if ( ! objects.contains(pObject)) {
-      throw new IllegalArgumentException("Object [" + pObject + "] not in SMG");
-    }
-
+    Preconditions.checkArgument(objects.contains(pObject), "Object [" + pObject + "] not in SMG");
     return objectAllocationIdentity.get(pObject).isExternal();
   }
 
@@ -573,21 +554,17 @@ public class SMG {
 
   public void mergeValues(int pV1, int pV2) {
 
-    if (!values.contains(pV2)) {
-      /*Might merge predicates?*/
-      addValue(pV2);
-    }
+    /*Might merge predicates?*/
+    addValue(pV2);
 
     /* Value might not have been added yet */
-    if (!values.contains(pV1)) {
-      addValue(pV1);
-    }
+    addValue(pV1);
 
     if (pV1 == pV2) {
       return;
     }
 
-    if (pV2 == NULL_ADDRESS) {
+    if (pV2 == NULL_ADDRESS) { // swap
       int tmp = pV1;
       pV1 = pV2;
       pV2 = tmp;
@@ -598,8 +575,7 @@ public class SMG {
 
     removeValue(pV2);
 
-    Set<SMGEdgeHasValue> old_hv_edges = getHVEdges(SMGEdgeHasValueFilter.valueFilter(pV2));
-    for (SMGEdgeHasValue old_hve : old_hv_edges) {
+    for (SMGEdgeHasValue old_hve : getHVEdges(SMGEdgeHasValueFilter.valueFilter(pV2))) {
       SMGEdgeHasValue newHvEdge =
           new SMGEdgeHasValue(old_hve.getType(), old_hve.getOffset(), old_hve.getObject(), pV1);
       hv_edges = hv_edges.removeEdgeAndCopy(old_hve);

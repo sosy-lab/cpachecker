@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -267,17 +268,7 @@ public class CLangSMG extends SMG {
   public void pruneUnreachable() {
     Set<SMGObject> seen = new HashSet<>();
     Set<Integer> seen_values = new HashSet<>();
-    Queue<SMGObject> workqueue = new ArrayDeque<>();
-
-    for (CLangStackFrame frame : getStackFrames()) {
-      for (SMGObject stack_object : frame.getAllObjects()) {
-        workqueue.add(stack_object);
-      }
-    }
-
-    workqueue.addAll(getGlobalObjects().values());
-
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    collectReachableObjectsAndValues(seen, seen_values);
 
     /*
      * TODO: Refactor into generic methods for obtaining reachable/unreachable
@@ -286,43 +277,25 @@ public class CLangSMG extends SMG {
      * TODO: Perhaps introduce a SubSMG class which would be a SMG tied
      * to a certain (Clang)SMG and guaranteed to be a subset of it?
      */
-
-    while ( ! workqueue.isEmpty()) {
-      SMGObject processed = workqueue.remove();
-      if ( ! seen.contains(processed)) {
-        seen.add(processed);
-        filter.filterByObject(processed);
-        for (SMGEdgeHasValue outbound : getHVEdges(filter)) {
-          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
-          if ( pointedObject != null && ! seen.contains(pointedObject)) {
-            workqueue.add(pointedObject);
-          }
-          seen_values.add(outbound.getValue());
-        }
-      }
-    }
-
-    /*
-     * TODO: Refactor into generic methods for substracting SubSMGs (see above)
-     */
     Set<SMGObject> stray_objects = new HashSet<>(Sets.difference(getObjects(), seen));
 
     // Mark all reachable from ExternallyAllocated objects as safe for remove
-    workqueue.addAll(stray_objects);
-    while ( ! workqueue.isEmpty()) {
-      SMGObject processed = workqueue.remove();
+    Queue<SMGObject> workqueue2 = new ArrayDeque<>(stray_objects);
+    while (!workqueue2.isEmpty()) {
+      SMGObject processed = workqueue2.remove();
       if (isObjectExternallyAllocated(processed)) {
-        filter.filterByObject(processed);
-        for (SMGEdgeHasValue outbound : getHVEdges(filter)) {
+        for (SMGEdgeHasValue outbound :
+            getHVEdges(new SMGEdgeHasValueFilter().filterByObject(processed))) {
           SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
           if (stray_objects.contains(pointedObject) && !isObjectExternallyAllocated(pointedObject)) {
             setExternallyAllocatedFlag(pointedObject, true);
-            workqueue.add(pointedObject);
+            workqueue2.add(pointedObject);
           }
         }
       }
     }
 
+    // remove all unreachable objects
     for (SMGObject stray_object : stray_objects) {
       if (stray_object != SMGNullObject.INSTANCE) {
         if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
@@ -333,8 +306,8 @@ public class CLangSMG extends SMG {
       }
     }
 
-    Set<Integer> stray_values = new HashSet<>(Sets.difference(getValues(), seen_values));
-    for (Integer stray_value : stray_values) {
+    // remove all unreachable values
+    for (Integer stray_value : Sets.difference(getValues(), seen_values)) {
       if (stray_value != SMG.NULL_ADDRESS) {
         // Here, we can't just remove stray value, we also have to remove the points-to edge
         if (isPointer(stray_value)) {
@@ -347,6 +320,31 @@ public class CLangSMG extends SMG {
 
     if (CLangSMG.performChecks()) {
       CLangSMGConsistencyVerifier.verifyCLangSMG(CLangSMG.logger, this);
+    }
+  }
+
+  private void collectReachableObjectsAndValues(
+      Set<SMGObject> seenObjects, Set<Integer> seenValues) {
+
+    // basis: get all direct reachabale objects
+    Queue<SMGObject> workqueue = new ArrayDeque<>(getGlobalObjects().values());
+    for (CLangStackFrame frame : getStackFrames()) {
+      workqueue.addAll(frame.getAllObjects());
+    }
+
+    // search all indirect reachable objects
+    while (!workqueue.isEmpty()) {
+      SMGObject obj = workqueue.remove();
+      if (seenObjects.add(obj)) {
+        for (SMGEdgeHasValue outbound :
+            getHVEdges(new SMGEdgeHasValueFilter().filterByObject(obj))) {
+          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
+          if (pointedObject != null) {
+            workqueue.add(pointedObject);
+          }
+          seenValues.add(outbound.getValue());
+        }
+      }
     }
   }
 
@@ -552,11 +550,9 @@ public class CLangSMG extends SMG {
     } else if (global_objects.containsKey(locId)) {
 
       return global_objects.get(locId);
-    } else if (hasHeapObjectWithId(locId)) {
-
-      return getHeapObjectWithId(locId);
     } else {
-      return null;
+
+      return Iterables.tryFind(heap_objects, object -> object.getLabel().equals(locId)).orNull();
     }
   }
 
@@ -637,28 +633,6 @@ public class CLangSMG extends SMG {
     }
   }
 
-  private SMGObject getHeapObjectWithId(String pLocId) {
-
-    for (SMGObject object : heap_objects) {
-      if (object.getLabel().equals(pLocId)) {
-        return object;
-      }
-    }
-
-    throw new AssertionError("Heap has no such object");
-  }
-
-  private boolean hasHeapObjectWithId(String pLocId) {
-
-    for (SMGObject object : heap_objects) {
-      if (object.getLabel().equals(pLocId)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   private MemoryLocation resolveMemLoc(SMGEdgeHasValue hvEdge) {
 
     SMGObject object = hvEdge.getObject();
@@ -714,14 +688,18 @@ public class CLangSMG extends SMG {
     int pLocationOnStack = 0;
 
     for (CLangStackFrame frame : stack_objects) {
-      List<String> stackVariables = new ArrayList<>(frame.getVariables().keySet());
-      Collections.sort(stackVariables);
       String functionName = frame.getFunctionDeclaration().getName();
 
-      for (String variable : stackVariables) {
-        SMGObject smgObject = frame.getVariable(variable);
-        getMemoryPathsFromObject(smgObject, pResult, pReached, SMGObjectPosition.STACK, null,
-            functionName, pLocationOnStack, variable);
+      for (Entry<String, SMGRegion> entry : frame.getVariables().entrySet()) {
+        getMemoryPathsFromObject(
+            entry.getValue(),
+            pResult,
+            pReached,
+            SMGObjectPosition.STACK,
+            null,
+            functionName,
+            pLocationOnStack,
+            entry.getKey());
       }
 
       if (frame.getReturnObject() != null) {
@@ -736,12 +714,16 @@ public class CLangSMG extends SMG {
 
   private void getMemoryPathsFromGlobalVariables(Set<SMGMemoryPath> pResult,
       Set<SMGObject> pReached) {
-    List<String> globalVariables = new ArrayList<>(global_objects.keySet());
-    Collections.sort(globalVariables);
-
-    for (String variable : globalVariables) {
-      SMGRegion varObject = global_objects.get(variable);
-      getMemoryPathsFromObject(varObject, pResult, pReached, SMGObjectPosition.GLOBAL, null, null, null, variable);
+    for (Entry<String, SMGRegion> entry : global_objects.entrySet()) {
+      getMemoryPathsFromObject(
+          entry.getValue(),
+          pResult,
+          pReached,
+          SMGObjectPosition.GLOBAL,
+          null,
+          null,
+          null,
+          entry.getKey());
     }
   }
 
@@ -852,12 +834,16 @@ public class CLangSMG extends SMG {
 
   private void getHeapObjectMemoryPathsFromGlobalVariables(Map<SMGObject, SMGMemoryPath> pResult,
       Set<SMGObject> pReached) {
-    List<String> globalVariables = new ArrayList<>(global_objects.keySet());
-    Collections.sort(globalVariables);
-
-    for (String variable : globalVariables) {
-      SMGRegion varObject = global_objects.get(variable);
-      getHeapObjectMemoryPathsFromObject(varObject, pResult, pReached, SMGObjectPosition.GLOBAL, null, null, null, variable);
+    for (Entry<String, SMGRegion> entry : global_objects.entrySet()) {
+      getHeapObjectMemoryPathsFromObject(
+          entry.getValue(),
+          pResult,
+          pReached,
+          SMGObjectPosition.GLOBAL,
+          null,
+          null,
+          null,
+          entry.getKey());
     }
   }
 
@@ -866,14 +852,18 @@ public class CLangSMG extends SMG {
     int pLocationOnStack = 0;
 
     for (CLangStackFrame frame : stack_objects) {
-      List<String> stackVariables = new ArrayList<>(frame.getVariables().keySet());
-      Collections.sort(stackVariables);
       String functionName = frame.getFunctionDeclaration().getName();
 
-      for (String variable : stackVariables) {
-        SMGObject smgObject = frame.getVariable(variable);
-        getHeapObjectMemoryPathsFromObject(smgObject, pResult, pReached, SMGObjectPosition.STACK, null,
-            functionName, pLocationOnStack, variable);
+      for (Entry<String, SMGRegion> entry : frame.getVariables().entrySet()) {
+        getHeapObjectMemoryPathsFromObject(
+            entry.getValue(),
+            pResult,
+            pReached,
+            SMGObjectPosition.STACK,
+            null,
+            functionName,
+            pLocationOnStack,
+            entry.getKey());
       }
 
       if (frame.getReturnObject() == null) {

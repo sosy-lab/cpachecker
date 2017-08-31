@@ -1468,12 +1468,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
       if (join.isDefined()) {
         SMGJoinStatus jss = join.getStatus();
-        boolean result = jss == SMGJoinStatus.EQUAL || jss == SMGJoinStatus.RIGHT_ENTAIL;
 
         /* Only stop if either reached has memleak or this state has no memleak to avoid
          * losing memleak information.
-        */
-        if (result) {
+         */
+        if (jss == SMGJoinStatus.EQUAL || jss == SMGJoinStatus.RIGHT_ENTAIL) {
 
           SMGState s1 = new SMGState(reachedState);
           SMGState s2 = new SMGState(this);
