@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.defaults;
 
 import com.google.common.base.Preconditions;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -38,11 +39,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   private final AbstractDomain abstractDomain;
-  private final String mergeType;
-  private final String stopType;
-  private final TransferRelation transferRelation;
 
-  protected AbstractCPA(String mergeType, String stopType, TransferRelation transfer) {
+  /* The operators can be overridden in sub-classes. Thus we allow Null as possible assignment. */
+  private final @Nullable String mergeType;
+  private final @Nullable String stopType;
+  private final @Nullable TransferRelation transferRelation;
+
+  protected AbstractCPA(String mergeType, String stopType, @Nullable TransferRelation transfer) {
     this(mergeType, stopType, new FlatLatticeDomain(), transfer);
   }
 
@@ -56,7 +59,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
   }
 
   /** Use this constructor, if Merge- and StopOperator are fixed. */
-  protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, TransferRelation transfer) {
+  protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, @Nullable TransferRelation transfer) {
     this.abstractDomain = domain;
     this.mergeType = mergeType;
     this.stopType = stopType;
