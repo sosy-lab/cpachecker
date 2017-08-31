@@ -49,7 +49,7 @@ public class LocationCPABackwards extends AbstractCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new LocationTransferRelation(stateFactory);
+    return new LocationTransferRelationBackwards(stateFactory);
   }
 
   @Override
