@@ -92,7 +92,7 @@ public class CFABuilder extends LlvmAstVisitor {
   // TODO: Aliases (@a = %b) and IFuncs (@a = ifunc @..)
 
   private static final String RETURN_VAR_NAME = "__retval__";
-  private static final String TMP_VAR_PREFIX = "__tmp_";
+  private static final String TMP_VAR_PREFIX = "__t_";
 
   private static final CFunctionDeclaration ABORT_FUNC_DECL = new CFunctionDeclaration(
           FileLocation.DUMMY,
