@@ -2290,11 +2290,12 @@ class ASTConverter {
       if ((initializer instanceof CExpression)
           && !areInitializerAssignable(declaration.getType(), ((CExpression) initializer))) {
         throw parseContext.parseError(
-            "Types of declarator and initializer are not assignment compatible ("
-                + "Original code was: "
-                + i.getRawSignature()
-                + ")",
-            declaration);
+            "Type "
+                + declaration.getType()
+                + " of declaration and type "
+                + ((CExpression) initializer).getExpressionType()
+                + " of initializer are not assignment compatible",
+            e);
       }
 
       if (initializer instanceof CAssignment) {
