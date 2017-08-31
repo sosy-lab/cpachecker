@@ -27,8 +27,6 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-import org.llvm.TypeRef;
-import org.llvm.TypeRef.TypeKind;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -44,6 +42,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.llvm_j.LLVMException;
+import org.sosy_lab.llvm_j.TypeRef;
+import org.sosy_lab.llvm_j.TypeRef.TypeKind;
 
 /**
  * Converts LLVM types to {@link CType CTypes}.
@@ -64,7 +65,7 @@ public class LlvmTypeConverter {
     logger = pLogger;
   }
 
-  public CType getCType(final TypeRef pLlvmType) {
+  public CType getCType(final TypeRef pLlvmType) throws LLVMException {
     final boolean isConst = false;
     final boolean isVolatile = false;
 
@@ -118,7 +119,7 @@ public class LlvmTypeConverter {
     }
   }
 
-  private CType createStructType(final TypeRef pStructType) {
+  private CType createStructType(final TypeRef pStructType) throws LLVMException {
     final boolean isConst = false;
     final boolean isVolatile = false;
 
@@ -144,7 +145,7 @@ public class LlvmTypeConverter {
     return new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, members, structName, origName);
   }
 
-  private String getStructName(TypeRef pStructType) {
+  private String getStructName(TypeRef pStructType) throws LLVMException {
     if (pStructType.isStructNamed()) {
       return pStructType.getStructName();
 
@@ -162,7 +163,7 @@ public class LlvmTypeConverter {
     return pStructName + PREFIX_STRUCT_MEMBER + pI;
   }
 
-  private CType getFunctionType(TypeRef pFuncType) {
+  private CType getFunctionType(TypeRef pFuncType) throws LLVMException {
     CType returnType = getCType(pFuncType.getReturnType());
 
     int paramNumber = pFuncType.countParamTypes();

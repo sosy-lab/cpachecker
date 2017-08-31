@@ -31,7 +31,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
-import org.llvm.Module;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -40,6 +39,8 @@ import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.LLVMParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.llvm_j.LLVMException;
+import org.sosy_lab.llvm_j.Module;
 
 /**
  * Parser for the LLVM intermediate language to a CFA.
@@ -71,6 +72,10 @@ public class LlvmParser implements Parser {
     try {
       addLlvmLookupDirs();
       llvmModule = Module.parseIR(pFilename);
+
+    } catch (LLVMException pE) {
+      throw new LLVMParserException(pE);
+
     } finally {
       parseTimer.stop();
     }
@@ -80,7 +85,12 @@ public class LlvmParser implements Parser {
     }
     // TODO: Handle/show errors in parser
 
-    return buildCfa(llvmModule, pFilename);
+    try {
+      return buildCfa(llvmModule, pFilename);
+
+    } catch (LLVMException pE) {
+      throw new LLVMParserException(pE);
+    }
   }
 
   private void addLlvmLookupDirs() {
@@ -113,7 +123,7 @@ public class LlvmParser implements Parser {
     Module.addLibraryLookupPaths(libDirs);
   }
 
-  private ParseResult buildCfa(final Module pModule, final String pFilename) {
+  private ParseResult buildCfa(final Module pModule, final String pFilename) throws LLVMException {
     return cfaBuilder.build(pModule, pFilename);
   }
 

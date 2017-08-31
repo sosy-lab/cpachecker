@@ -29,10 +29,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import org.llvm.BasicBlock;
-import org.llvm.Function;
-import org.llvm.Module;
-import org.llvm.Value;
+import org.sosy_lab.llvm_j.BasicBlock;
+import org.sosy_lab.llvm_j.Function;
+import org.sosy_lab.llvm_j.LLVMException;
+import org.sosy_lab.llvm_j.Module;
+import org.sosy_lab.llvm_j.Value;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -74,7 +75,7 @@ public abstract class LlvmAstVisitor {
     globalDeclarations = new ArrayList<>();
   }
 
-  public void visit(final Module pItem) {
+  public void visit(final Module pItem) throws LLVMException {
     if (pItem.getFirstFunction() == null)
       return;
 
@@ -87,7 +88,7 @@ public abstract class LlvmAstVisitor {
     iterateOverFunctions(pItem);
   }
 
-  private void addFunctionDeclarations(final Module pItem) {
+  private void addFunctionDeclarations(final Module pItem) throws LLVMException {
     for (Value func : pItem) {
       String funcName = func.getValueName();
       assert !funcName.isEmpty();
@@ -130,7 +131,7 @@ public abstract class LlvmAstVisitor {
       edge.getSuccessor().addEnteringEdge(edge);
   }
 
-  private void iterateOverFunctions(final Module pItem) {
+  private void iterateOverFunctions(final Module pItem) throws LLVMException {
     Function lastFunc = pItem.getLastFunction().asFunction();
     Function currFunc = null;
     do {
@@ -187,7 +188,7 @@ public abstract class LlvmAstVisitor {
       final FunctionEntryNode pEntryNode,
       final String pFuncName,
       final SortedMap<Integer, BasicBlockInfo> pBasicBlocks
-  ) {
+  ) throws LLVMException {
     if (pFunction.countBasicBlocks() == 0)
       return null;
 
@@ -219,7 +220,7 @@ public abstract class LlvmAstVisitor {
   private void addJumpsBetweenBasicBlocks(
       final Function pFunction,
       final SortedMap<Integer, BasicBlockInfo> pBasicBlocks
-  ) {
+  ) throws LLVMException {
     // for every basic block, get the last instruction and
     // add edges from it to labels where it jumps
     for (BasicBlock bb : pFunction) {
@@ -282,8 +283,11 @@ public abstract class LlvmAstVisitor {
   /**
    * Create a chain of nodes and edges corresponding to one basic block.
    */
-  private BasicBlockInfo handleInstructions(FunctionExitNode exitNode,
-                                            String funcName, final BasicBlock pItem) {
+  private BasicBlockInfo handleInstructions(
+      final FunctionExitNode exitNode,
+      final String funcName,
+      final BasicBlock pItem
+  ) throws LLVMException {
     assert pItem.getFirstInstruction() != null; // empty BB not supported
 
     Value lastI = pItem.getLastInstruction();
@@ -359,10 +363,12 @@ public abstract class LlvmAstVisitor {
       }
   }
 
-  protected abstract FunctionEntryNode visitFunction(final Value pItem);
-  protected abstract void declareFunction(final Value pItem);
-  protected abstract List<CAstNode> visitInstruction(Value pItem, String pFunctionName);
-  protected abstract CExpression getBranchCondition(Value pItem, String funcName);
+  protected abstract FunctionEntryNode visitFunction(final Value pItem) throws LLVMException;
+  protected abstract void declareFunction(final Value pItem) throws LLVMException;
+  protected abstract List<CAstNode> visitInstruction(Value pItem, String pFunctionName)
+      throws LLVMException;
+  protected abstract CExpression getBranchCondition(Value pItem, String funcName)
+      throws LLVMException;
 
   protected abstract ADeclaration visitGlobalItem(final Value pItem);
 }
