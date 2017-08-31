@@ -99,6 +99,16 @@ public class CLangSMG extends SMG {
    */
   static private boolean perform_checks = false;
 
+  private List<SMGObject> invalidObjects = new ArrayList<>();
+
+  public void reportInvalidObject(SMGObject pSMGObject) {
+    invalidObjects.add(pSMGObject);
+  }
+
+  public List<SMGObject> getInvalidObjects() {
+    return invalidObjects;
+  }
+
   static public void setPerformChecks(boolean pSetting, LogManager logger) {
     CLangSMG.perform_checks = pSetting;
     CLangSMG.logger = logger;
@@ -326,6 +336,8 @@ public class CLangSMG extends SMG {
     for (SMGObject stray_object : stray_objects) {
       if (stray_object != SMGNullObject.INSTANCE) {
         if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
+          //TODO: report stray_object as error
+          reportInvalidObject(stray_object);
           setMemoryLeak();
         }
         removeObjectAndEdges(stray_object);

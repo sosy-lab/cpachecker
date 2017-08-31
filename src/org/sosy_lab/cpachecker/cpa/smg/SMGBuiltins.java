@@ -161,6 +161,7 @@ public class SMGBuiltins {
 
     if (bufferAddress.isUnknown() || countValue.isUnknown()) {
       currentState = currentState.setInvalidWrite();
+      currentState.setErrorDescription("Can't evaluate dst or count for memset");
       return SMGAddressValueAndState.of(currentState);
     }
 
@@ -459,6 +460,8 @@ public class SMGBuiltins {
         logger.log(Level.INFO, "Free on expression ", pointerExp.toASTString(),
             " is invalid, because the target of the address could not be calculated.");
         SMGState invalidFreeState = currentState.setInvalidFree();
+        invalidFreeState.setErrorDescription("Free on expression " + pointerExp.toASTString() +
+            " is invalid, because the target of the address could not be calculated.");
         resultStates.add(invalidFreeState);
         continue;
       }
@@ -598,10 +601,13 @@ public class SMGBuiltins {
         if (sizeValue.isUnknown()) {
           currentState = currentState.setInvalidWrite();
           currentState = currentState.setInvalidRead();
+          currentState.setErrorDescription("Can't evaluate memcpy dst and src");
         } else if (targetStr1Address.isUnknown()) {
           currentState = currentState.setInvalidWrite();
+          currentState.setErrorDescription("Can't evaluate memcpy dst");
         } else {
           currentState = currentState.setInvalidRead();
+          currentState.setErrorDescription("Can't evaluate memcpy src");
         }
       }
       if (targetStr1Address.isUnknown()) {
@@ -623,6 +629,7 @@ public class SMGBuiltins {
 
     if (sourceRangeSize > source.getSize() - sourceRangeOffset) {
       currentState = currentState.setInvalidRead();
+      currentState.setErrorDescription("Overread on memcpy");
     } else {
       currentState.copy(source, target, sourceRangeOffset, sourceRangeSize, targetRangeOffset);
     }

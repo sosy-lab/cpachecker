@@ -96,9 +96,11 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
@@ -507,6 +509,8 @@ public class SMGTransferRelation
   private SMGState checkAndSetErrorRelation(SMGState smgState) {
     if (smgPredicateManager.isErrorPathFeasible(smgState)) {
       smgState = smgState.setInvalidRead();
+      smgState.setErrorDescription("Predicate extension shows possibility of overflow on current "
+          + "code block");
     }
     return smgState.resetErrorRelation();
   }
@@ -651,6 +655,8 @@ public class SMGTransferRelation
           newStates = builtins.evaluateConfigurableAllocationFunction(cFCExpression, newState, pCfaEdge).asSMGStateList();
 
           for (SMGState state : newStates) {
+            state.setErrorDescription("Calling '" + functionName + "' and not using the result, "
+                + "resulting in memory leak.");
             state.setMemLeak();
           }
         }
@@ -884,14 +890,26 @@ public class SMGTransferRelation
                 pFieldOffset, pRValueType.toASTString(""), pMemoryOfField.toString());
         return msg;
       });
-
-      return pNewState.setInvalidWrite();
+      SMGState newState = pNewState.setInvalidWrite();
+      newState.setErrorDescription("Field (" + pFieldOffset + ", " + pRValueType.toASTString("")
+          + ") does not fit object " + pMemoryOfField);
+      newState.addInvalidObject(pMemoryOfField);
+      return newState;
     }
 
     if (pValue.isUnknown()) {
       return pNewState;
     }
 
+    if (pRValueType instanceof CPointerType && !(pValue instanceof SMGAddressValue)) {
+      if (pValue instanceof SMGKnownSymValue) {
+        SMGExplicitValue explicit = pNewState.getExplicit((SMGKnownSymValue) pValue);
+        if (!explicit.isUnknown()) {
+          pValue = SMGKnownAddVal.valueOf(SMGNullObject.INSTANCE, (SMGKnownExpValue)explicit,
+              (SMGKnownSymValue)pValue);
+        }
+      }
+    }
     return pNewState.writeValue(pMemoryOfField, pFieldOffset, pRValueType, pValue).getState();
   }
 
