@@ -138,8 +138,15 @@ public class SMGPredicateManager {
     if (pRelation.getSecondValue() == 0) {
       secondSize = firstSize;
     }
-    Formula formulaOne = efmgr.makeVariable(firstSize, nameOne);
-    Formula formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
+    BitvectorFormula formulaOne = efmgr.makeVariable(firstSize, nameOne);
+    BitvectorFormula formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
+    if (firstSize != secondSize) {
+      if (firstSize > secondSize) {
+        formulaTwo = efmgr.extend(formulaTwo, firstSize - secondSize, true);
+      } else {
+        formulaOne = efmgr.extend(formulaOne, secondSize - firstSize, true);
+      }
+    }
     BinaryOperator op = pRelation.getOperator();
     result = createBooleanFormula(formulaOne, formulaTwo, op);
     if (conjunction) {
