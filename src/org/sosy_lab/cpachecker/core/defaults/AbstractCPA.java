@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.defaults;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -45,12 +46,20 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
     this(mergeType, stopType, new FlatLatticeDomain(), transfer);
   }
 
+  /** When using this constructor, you have to override the methods for getting Merge- and StopOperator.
+   * This can be useful for cases where the operators are configurable or are initialized lazily. */
+  protected AbstractCPA(AbstractDomain domain, TransferRelation transfer) {
+    this.abstractDomain = domain;
+    this.mergeType = null;
+    this.stopType = null;
+    this.transferRelation = transfer;
+  }
+
+  /** Use this constructor, if Merge- and StopOperator are fixed. */
   protected AbstractCPA(String mergeType, String stopType, AbstractDomain domain, TransferRelation transfer) {
     this.abstractDomain = domain;
-
     this.mergeType = mergeType;
     this.stopType = stopType;
-
     this.transferRelation = transfer;
   }
 
@@ -61,7 +70,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public MergeOperator getMergeOperator() {
-    return buildMergeOperator(mergeType);
+    return buildMergeOperator(Preconditions.checkNotNull(mergeType));
   }
 
   protected MergeOperator buildMergeOperator(String pMergeType) {
@@ -70,7 +79,7 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
         return MergeSepOperator.getInstance();
 
       case "JOIN":
-        return new MergeJoinOperator(abstractDomain);
+        return new MergeJoinOperator(getAbstractDomain());
 
       default:
         throw new AssertionError("unknown merge operator");
@@ -79,16 +88,16 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public StopOperator getStopOperator() {
-    return buildStopOperator(stopType);
+    return buildStopOperator(Preconditions.checkNotNull(stopType));
   }
 
   protected StopOperator buildStopOperator(String pStopType) throws AssertionError {
     switch (pStopType.toUpperCase()) {
       case "SEP":
-        return new StopSepOperator(abstractDomain);
+        return new StopSepOperator(getAbstractDomain());
 
       case "JOIN":
-        return new StopJoinOperator(abstractDomain);
+        return new StopJoinOperator(getAbstractDomain());
 
       case "NEVER":
         return new StopNeverOperator();
@@ -103,6 +112,6 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return transferRelation;
+    return Preconditions.checkNotNull(transferRelation);
   }
 }
