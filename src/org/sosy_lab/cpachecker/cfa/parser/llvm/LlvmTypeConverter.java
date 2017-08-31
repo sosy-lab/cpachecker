@@ -46,14 +46,12 @@ import org.sosy_lab.llvm_j.LLVMException;
 import org.sosy_lab.llvm_j.TypeRef;
 import org.sosy_lab.llvm_j.TypeRef.TypeKind;
 
-/**
- * Converts LLVM types to {@link CType CTypes}.
- */
+/** Converts LLVM types to {@link CType CTypes}. */
 public class LlvmTypeConverter {
 
-  private final static String PREFIX_LITERAL_STRUCT = "lit_struc_";
-  private final static String PREFIX_STRUCT_MEMBER = "mem_";
-  private final static CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
+  private static final String PREFIX_LITERAL_STRUCT = "lit_struc_";
+  private static final String PREFIX_STRUCT_MEMBER = "mem_";
+  private static final CSimpleType ARRAY_LENGTH_TYPE = CNumericTypes.LONG_LONG_INT;
 
   private static int structCount = 0;
 
@@ -92,12 +90,14 @@ public class LlvmTypeConverter {
         return createStructType(pLlvmType);
 
       case Array:
-        CIntegerLiteralExpression arrayLength = new CIntegerLiteralExpression(
-            FileLocation.DUMMY,
-            ARRAY_LENGTH_TYPE,
-            BigInteger.valueOf(pLlvmType.getArrayLength()));
+        CIntegerLiteralExpression arrayLength =
+            new CIntegerLiteralExpression(
+                FileLocation.DUMMY,
+                ARRAY_LENGTH_TYPE,
+                BigInteger.valueOf(pLlvmType.getArrayLength()));
 
-        return new CArrayType(isConst, isVolatile, getCType(pLlvmType.getElementType()), arrayLength);
+        return new CArrayType(
+            isConst, isVolatile, getCType(pLlvmType.getElementType()), arrayLength);
 
       case Pointer:
         if (pLlvmType.getPointerAddressSpace() != 0) {
@@ -142,7 +142,8 @@ public class LlvmTypeConverter {
       members.add(memDecl);
     }
 
-    return new CCompositeType(isConst, isVolatile, ComplexTypeKind.STRUCT, members, structName, origName);
+    return new CCompositeType(
+        isConst, isVolatile, ComplexTypeKind.STRUCT, members, structName, origName);
   }
 
   private String getStructName(TypeRef pStructType) throws LLVMException {
@@ -175,16 +176,14 @@ public class LlvmTypeConverter {
       parameterTypes.add(cParamType);
     }
 
-    boolean takesVarArgs = pFuncType.isFunctionVarArg(); // TODO: do we have to call this method on pFuncType directly?
+    boolean takesVarArgs =
+        pFuncType.isFunctionVarArg(); // TODO: do we have to call this method on pFuncType directly?
 
     return new CFunctionType(returnType, parameterTypes, takesVarArgs);
   }
 
   private CType getIntegerType(
-      final int pIntegerWidth,
-      final boolean pIsConst,
-      final boolean pIsVolatile
-  ) {
+      final int pIntegerWidth, final boolean pIsConst, final boolean pIsVolatile) {
     final boolean isSigned = true;
     final boolean isComplex = false;
     final boolean isImaginary = false;
@@ -192,7 +191,7 @@ public class LlvmTypeConverter {
 
     final boolean isLong = false;
     boolean isShort = false;
-    boolean isLonglong = false;
+    boolean isLongLong = false;
 
     CBasicType basicType;
 
@@ -214,7 +213,7 @@ public class LlvmTypeConverter {
       case 64:
         basicType = CBasicType.INT;
         // We use long long since it is 8 bytes for both 32 and 64 bit machines
-        isLonglong = true;
+        isLongLong = true;
         break;
       default:
         throw new AssertionError("Unhandled integer bitwidth " + pIntegerWidth);
@@ -230,8 +229,7 @@ public class LlvmTypeConverter {
         isUnsigned,
         isComplex,
         isImaginary,
-        isLonglong
-    );
+        isLongLong);
   }
 
   private CType getFloatType(final TypeKind pType) {
@@ -246,9 +244,9 @@ public class LlvmTypeConverter {
         return getSimplestCType(CBasicType.FLOAT);
 
       case Double:
-        if (machineModel.getSizeofDouble()*8 == 64) {
+        if (machineModel.getSizeofDouble() * 8 == 64) {
           return getSimplestCType(CBasicType.DOUBLE);
-        } else if (machineModel.getSizeofLongDouble()*8 == 64) {
+        } else if (machineModel.getSizeofLongDouble() * 8 == 64) {
           return getSimplestCType(CBasicType.DOUBLE, true);
 
         } else {
@@ -300,5 +298,4 @@ public class LlvmTypeConverter {
         isImaginary,
         isLongLong);
   }
-
 }

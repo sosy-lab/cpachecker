@@ -43,10 +43,9 @@ import org.sosy_lab.llvm_j.LLVMException;
 import org.sosy_lab.llvm_j.Module;
 
 /**
- * Parser for the LLVM intermediate language to a CFA.
- * LLVM IR is a typed, assembler-like language that uses the SSA form by default.
- * Because of this, parsing is quite simple: there is no need for scoping
- * and expression trees are always flat.
+ * Parser for the LLVM intermediate language to a CFA. LLVM IR is a typed, assembler-like language
+ * that uses the SSA form by default. Because of this, parsing is quite simple: there is no need for
+ * scoping and expression trees are always flat.
  */
 public class LlvmParser implements Parser {
 
@@ -56,10 +55,7 @@ public class LlvmParser implements Parser {
   private final Timer parseTimer = new Timer();
   private final Timer cfaCreationTimer = new Timer();
 
-  public LlvmParser(
-      final LogManager pLogger,
-      final MachineModel pMachineModel
-  ) {
+  public LlvmParser(final LogManager pLogger, final MachineModel pMachineModel) {
     logger = pLogger;
     cfaBuilder = new CFABuilder(logger, pMachineModel);
   }

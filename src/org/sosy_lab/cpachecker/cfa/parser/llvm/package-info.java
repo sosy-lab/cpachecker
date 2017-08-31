@@ -22,7 +22,5 @@
  *    http://cpachecker.sosy-lab.org
  */
 
-/**
- * LLVM IR -> CFA parser
- */
+/** LLVM IR -> CFA parser */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
