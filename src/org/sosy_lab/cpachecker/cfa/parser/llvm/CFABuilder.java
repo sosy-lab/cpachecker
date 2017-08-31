@@ -733,7 +733,11 @@ public class CFABuilder extends LlvmAstVisitor {
       String paramName = getName(v);
 
       CType paramType = typeConverter.getCType(v.typeOf());
-      CParameterDeclaration parameter = new CParameterDeclaration(FileLocation.DUMMY, paramType, paramName);
+      CParameterDeclaration parameter =
+          new CParameterDeclaration(getLocation(v), paramType, paramName);
+      parameter.setQualifiedName(getQualifiedName(paramName, functionName));
+
+      variableDeclarations.put(v.getAddress(), parameter);
       parameters.add(parameter);
     }
 
