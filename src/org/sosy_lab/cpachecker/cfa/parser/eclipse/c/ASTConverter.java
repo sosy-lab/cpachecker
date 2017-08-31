@@ -2357,8 +2357,8 @@ class ASTConverter {
    *
    * @param pDeclarationType the type of the lhs of the initialization
    * @param pInitializerExpression the rhs expression of the initialization
-   * @return <code>true</code> if the initialization assigns a {@link CStringLiteralExpression} to
-   *     an array or pointer of/to <code>char</code>, <code>false</code> otherwise.
+   * @return if the initialization assigns a {@link CStringLiteralExpression} to an array or pointer
+   *     of/to <b><code>char</code></b>
    */
   private boolean isStringInitialization(
       CType pDeclarationType, CExpression pInitializerExpression) {

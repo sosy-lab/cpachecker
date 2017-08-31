@@ -139,9 +139,7 @@ public interface CType extends Type {
                   CTypes.copyDequalified(rightPointedToType))));
     }
 
-    // XXX: I can't find it specified explicitly in the Standard, but apparently
-    // it is handled this way by compilers and makes sense... I'll use it for now
-    // and look for a helpful reference in the Standard later...
+    // Cf. C-Standard §6.3.2.1 (3)
     if (leftHandSide instanceof CPointerType && rightHandSide instanceof CArrayType) {
       CPointerType pointerLeft = (CPointerType) leftHandSide;
       CArrayType arrayRight = (CArrayType) rightHandSide;
