@@ -32,7 +32,18 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -82,20 +93,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 /**
  * This transfer relation computes the live variables for each location. For
  * C-Programs addressed variables (e.g. &a) are considered as being always live.
@@ -128,6 +125,12 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
     pConfig.inject(this);
     logger = pLogger;
     cfa = pCFA;
+
+    if (!cfa.getVarClassification().isPresent() && cfa.getLanguage() == Language.C) {
+      throw new AssertionError(
+          "Without information of the variable classification"
+              + " the live variables analysis cannot be used.");
+    }
 
     VariableClassification variableClassification;
     if (pLang == Language.C) {
