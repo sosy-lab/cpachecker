@@ -291,7 +291,14 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
           startNode = originalEdge.getPredecessor();
           endNode = originalEdge.getSuccessor();
         }
-        abstractEdges.set(iterator.getIndex(), BlankEdge.buildNoopEdge(startNode, endNode));
+        abstractEdges.set(
+            iterator.getIndex(),
+            new BlankEdge(
+                originalEdge.getRawStatement(),
+                originalEdge.getFileLocation(),
+                startNode,
+                endNode,
+                "sliced edge"));
       }
 
       if (originalEdge != null) {

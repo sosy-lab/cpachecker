@@ -313,8 +313,7 @@ public abstract class LlvmAstVisitor {
       List<CAstNode> expressions = visitInstruction(I, funcName);
       if (expressions == null) {
         curNode = newNode(funcName);
-        addEdge(new BlankEdge(I.toString(), FileLocation.DUMMY,
-                             prevNode, curNode, BlankEdge.REPLACEMENT_LABEL));
+        addEdge(new BlankEdge(I.toString(), FileLocation.DUMMY, prevNode, curNode, "noop"));
         prevNode = curNode;
         continue;
       }
@@ -332,8 +331,8 @@ public abstract class LlvmAstVisitor {
                                            FileLocation.DUMMY, prevNode, exitNode));
         } else if (I.isUnreachableInst()) {
           curNode = exitNode;
-          addEdge(new BlankEdge(I.toString(), FileLocation.DUMMY,
-                               prevNode, curNode, "skipped unnecessary edges"));
+          addEdge(
+              new BlankEdge(I.toString(), FileLocation.DUMMY, prevNode, curNode, "unreachable"));
         } else {
           curNode = newNode(funcName);
           addEdge(new CStatementEdge(expr.toASTString() + I.toString(), (CStatement)expr,
