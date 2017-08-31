@@ -306,7 +306,7 @@ public abstract class LlvmAstVisitor {
       if (expressions == null) {
         curNode = newNode(funcName);
         addEdge(new BlankEdge(I.toString(), FileLocation.DUMMY,
-                             prevNode, curNode, "(noop)"));
+                             prevNode, curNode, BlankEdge.REPLACEMENT_LABEL));
         prevNode = curNode;
         continue;
       }
@@ -325,7 +325,7 @@ public abstract class LlvmAstVisitor {
         } else if (I.isUnreachableInst()) {
           curNode = exitNode;
           addEdge(new BlankEdge(I.toString(), FileLocation.DUMMY,
-                               prevNode, curNode, "(unreachable)"));
+                               prevNode, curNode, "skipped unnecessary edges"));
         } else {
           curNode = newNode(funcName);
           addEdge(new CStatementEdge(expr.toASTString() + I.toString(), (CStatement)expr,
