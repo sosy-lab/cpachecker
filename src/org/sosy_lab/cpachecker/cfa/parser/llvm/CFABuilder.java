@@ -605,11 +605,7 @@ public class CFABuilder extends LlvmAstVisitor {
   ) throws LLVMException {
     final long itemId = pItem.getAddress();
     if (!variableDeclarations.containsKey(itemId)) {
-      String assignedVar = pItem.getValueName();
-
-      if (assignedVar.isEmpty()) {
-        assignedVar = getTempVar();
-      }
+      String assignedVar = getName(pItem);
 
       final boolean isGlobal = pItem.isGlobalValue();
       // TODO: Support static and other storage classes
@@ -688,9 +684,37 @@ public class CFABuilder extends LlvmAstVisitor {
     }
   }
 
+  private String getName(final Value pValue) {
+    String name = pValue.getValueName();
+    if (name.isEmpty()) {
+      name = getTempVar();
+    }
+    return prepareName(name);
+  }
+
   private String getTempVar() {
     tmpVarCount++;
     return TMP_VAR_PREFIX + tmpVarCount;
+  }
+
+  // Converts a valid LLVM name to a valid C name, so that CPAchecker
+  // can work with it without problems.
+  private String prepareName(String pRawName) {
+    char[] asArray = pRawName.toCharArray();
+    StringBuilder newName = new StringBuilder();
+    for (int i = 0; i < asArray.length; i++) {
+      char curr = asArray[i];
+      if (curr == '_' || Character.isAlphabetic(curr) || (i > 0 && Character.isDigit(curr))) {
+        newName.append(curr);
+      } else {
+        if (i == 0) {
+          newName.append('_');
+        }
+        // Represent chars that are not allowed as their number representation
+        newName.append((int) curr);
+      }
+    }
+    return newName.toString();
   }
 
   @Override
@@ -705,12 +729,8 @@ public class CFABuilder extends LlvmAstVisitor {
     // Parameters
     List<Value> paramVs = pFuncDef.getParams();
     List<CParameterDeclaration> parameters = new ArrayList<>(paramVs.size());
-    int unnamed_value = 1;
     for (Value v : paramVs) {
-      String paramName = v.getValueName();
-      if (paramName.isEmpty()) {
-        paramName = Integer.toString(++unnamed_value);
-      }
+      String paramName = getName(v);
 
       CType paramType = typeConverter.getCType(v.typeOf());
       CParameterDeclaration parameter = new CParameterDeclaration(FileLocation.DUMMY, paramType, paramName);
