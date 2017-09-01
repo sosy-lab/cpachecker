@@ -272,7 +272,7 @@ public class ThreadState implements AbstractState, AbstractStateWithLocation, Pa
 
   @Override
   public String toString() {
-    return threadSet.toString();
+    return getCurrentThreadName();
   }
 
   public static class StoredThreadState extends ThreadState {

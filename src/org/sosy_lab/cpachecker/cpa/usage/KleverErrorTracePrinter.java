@@ -221,14 +221,20 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       warning = null;
     }
 
+    Element lastWarningEdge = null;
+
     while (iterator.hasNext()) {
       CFAEdge pEdge = iterator.next();
 
       Element edge = printEdge(builder, pEdge);
 
       if (pEdge == warning) {
-        builder.addDataElementChild(edge, KeyDef.WARNING, usage.getWarningMessage());
+        lastWarningEdge = edge;
       }
+    }
+
+    if (lastWarningEdge != null) {
+      builder.addDataElementChild(lastWarningEdge, KeyDef.WARNING, usage.getWarningMessage());
     }
   }
 

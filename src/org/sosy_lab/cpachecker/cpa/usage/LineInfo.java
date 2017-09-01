@@ -31,7 +31,7 @@ public class LineInfo implements Comparable<LineInfo> {
   private final int line;
   private final CFANode node;
 
-  public LineInfo(int l, CFANode n){
+  public LineInfo(int l, CFANode n) {
     line = l;
     node = n;
   }

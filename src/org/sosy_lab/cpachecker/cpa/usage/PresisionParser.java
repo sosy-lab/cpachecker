@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import com.google.common.base.Preconditions;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -36,7 +37,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralGlobalVariableIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.GeneralLocalVariableIdentifier;
@@ -71,7 +71,7 @@ public class PresisionParser {
           //N1 - it's node identifier
           if (node != null && info != null) {
             if (!precision.add(node, info)) {
-              throw new CPAException("Node " + node + " is already in presision");
+              logger.log(Level.WARNING, "Node " + node + " is already in presision");
             }
           }
           node = getNode(Integer.parseInt(line.substring(1)));
@@ -79,46 +79,51 @@ public class PresisionParser {
         } else if (line.length() > 0) {
           // it's information about local statistics
           localSet = line.split(";");
-          if (localSet[0].equalsIgnoreCase("g")) {
-            //Global variable
-            id = new GeneralGlobalVariableIdentifier(localSet[1], Integer.parseInt(localSet[2]));
-          } else if (localSet[0].equalsIgnoreCase("l")) {
-            //Local identifier
-            id = new GeneralLocalVariableIdentifier(localSet[1], Integer.parseInt(localSet[2]));
-          } else if (localSet[0].equalsIgnoreCase("s") || localSet[0].equalsIgnoreCase("f")) {
-            //Structure (field) identifier
-            id = new GeneralStructureFieldIdentifier(localSet[1], Integer.parseInt(localSet[2]));
-          } else if (localSet[0].equalsIgnoreCase("r")) {
-            //Return identifier, it's not interesting for us
-            continue;
-          } else {
-            logger.log(Level.WARNING, "Can't resolve such line: " + line);
+
+          if (shouldBeSkipped(localSet)) {
             continue;
           }
-          if (localSet[3].equalsIgnoreCase("global")) {
-            type = DataType.GLOBAL;
-          } else if (localSet[3].equalsIgnoreCase("local")){
-            type = DataType.LOCAL;
-          } else {
-            logger.log(Level.WARNING, "Can't resolve such data type: " + localSet[3]);
-            continue;
-          }
+          id = parseId(localSet[0], localSet[1], Integer.parseInt(localSet[2]));
+          Preconditions.checkNotNull(id, localSet + " can not be parsed, please, move all checks to shouldBeSkipped()");
+          type = DataType.valueOf(localSet[3].toUpperCase());
           info.put(id, type);
         }
       }
       if (node != null && info != null) {
         if (!precision.add(node, info)) {
-          throw new CPAException("Node " + node + " is already in presision");
+          logger.log(Level.WARNING, "Node " + node + " is already in presision");
         }
       }
     } catch(FileNotFoundException e) {
       logger.log(Level.WARNING, "Cannot open file " + file);
     } catch (IOException e) {
       logger.log(Level.SEVERE, "Exception during precision parsing: " + e.getMessage());
-    } catch (CPAException e) {
-      logger.log(Level.WARNING, "Can't parse presision: " + e.getMessage());
     }
     return precision;
+  }
+
+  private GeneralIdentifier parseId(String type, String name, Integer deref) {
+    if (type.equalsIgnoreCase("g")) {
+      //Global variable
+      return new GeneralGlobalVariableIdentifier(name, deref);
+    } else if (type.equalsIgnoreCase("l")) {
+      //Local identifier
+      return new GeneralLocalVariableIdentifier(name, deref);
+    } else if (type.equalsIgnoreCase("s") || type.equalsIgnoreCase("f")) {
+      //Structure (field) identifier
+      return new GeneralStructureFieldIdentifier(name, deref);
+    } else {
+      logger.log(Level.WARNING, "Can't resolve such type: " + type);
+    }
+    return null;
+  }
+
+  private boolean shouldBeSkipped(String[] set) {
+    if (set[0].equalsIgnoreCase("r")) {
+      //Return identifier, it's not interesting for us
+      return true;
+    }
+    return false;
   }
 
   private CFANode getNode(int id) {

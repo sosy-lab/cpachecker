@@ -193,9 +193,9 @@ public class LockTransferRelation extends SingleEdgeTransferRelation
   private List<AbstractLockEffect> convertAnnotationToLockEffect(Map<String, String> map, LockEffect e) {
     List<AbstractLockEffect> result = new LinkedList<>();
 
-    for (String lockName : map.keySet()) {
-      result.add(e.cloneWithTarget(LockIdentifier.of(lockName, map.get(lockName))));
-    }
+    map.forEach(
+        (lockName, var) -> result.add(e.cloneWithTarget(LockIdentifier.of(lockName, var)))
+    );
     return result;
   }
 
@@ -226,7 +226,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation
         if (currentAnnotation.captureLocks.size() > 0) {
           for (String lockName : currentAnnotation.captureLocks.keySet()) {
             LockIdentifier tagerId = LockIdentifier.of(lockName, currentAnnotation.captureLocks.get(lockName));
-            Optional<LockInfo> lock = findLockByName(tagerId.getName());
+            Optional<LockInfo> lock = findLockByName(lockName);
             if (lock.isPresent()) {
               result.add(AcquireLockEffect.createEffectForId(tagerId, lock.get().maxLock));
             } else {

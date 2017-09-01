@@ -79,11 +79,13 @@ public class BinderFunctionInfo {
       List<ParameterInfo> tmpInfo = new LinkedList<>();
       for (String option : options) {
         pOption = option.split(":");
+        int dereference;
         if (pOption.length == 1) {
-          tmpInfo.add(new ParameterInfo(Access.valueOf(pOption[0]), 0));
+          dereference = 0;
         } else {
-          tmpInfo.add(new ParameterInfo(Access.valueOf(pOption[0]), Integer.parseInt(pOption[1])));
+          dereference = Integer.parseInt(pOption[1]);
         }
+        tmpInfo.add(new ParameterInfo(Access.valueOf(pOption[0]), dereference));
       }
       line = pConfig.getProperty(name + ".linkInfo");
       if (line != null) {
@@ -92,11 +94,13 @@ public class BinderFunctionInfo {
         LinkerInfo[] lInfo = new LinkerInfo[2];
         for (int i = 0; i < 2; i++) {
           pOption = options[i].split(":");
+          int dereference;
           if (pOption.length == 1) {
-            lInfo[i] = new LinkerInfo(Integer.parseInt(pOption[0]), 0);
+            dereference = 0;
           } else {
-            lInfo[i] = new LinkerInfo(Integer.parseInt(pOption[0]), Integer.parseInt(pOption[1]));
+            dereference = Integer.parseInt(pOption[1]);
           }
+          lInfo[i] = new LinkerInfo(Integer.parseInt(pOption[0]), dereference);
         }
         linkInfo = Pair.of(lInfo[0], lInfo[1]);
       } else {

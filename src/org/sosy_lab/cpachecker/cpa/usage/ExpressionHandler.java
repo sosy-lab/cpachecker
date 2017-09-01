@@ -39,15 +39,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cpa.loopinvariants.polynom.visitors.Visitor.NoException;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.IdentifierCreator;
 
 public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoException> {
 
-  private List<Pair<CExpression, Access>> result;
+  private List<Pair<AbstractIdentifier, Access>> result;
   protected Access accessMode;
+  private IdentifierCreator creator;
 
-  public void setMode(Access mode) {
+  public ExpressionHandler(Access mode, String functionName) {
     result = new LinkedList<>();
     accessMode = mode;
+    creator = new IdentifierCreator(functionName);
   }
 
   @Override
@@ -116,10 +120,11 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
   }
 
   private void addExpression(CExpression e) {
-    result.add(Pair.of(e, accessMode));
+    AbstractIdentifier id = creator.createIdentifier(e, 0);
+    result.add(Pair.of(id, accessMode));
   }
 
-  public List<Pair<CExpression, Access>> getProcessedExpressions() {
+  public List<Pair<AbstractIdentifier, Access>> getProcessedExpressions() {
     return result;
   }
 
