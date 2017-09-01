@@ -42,6 +42,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -291,7 +292,14 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
           startNode = originalEdge.getPredecessor();
           endNode = originalEdge.getSuccessor();
         }
-        abstractEdges.set(iterator.getIndex(), BlankEdge.buildNoopEdge(startNode, endNode));
+        abstractEdges.set(
+            iterator.getIndex(),
+            new BlankEdge(
+                originalEdge == null ? "" : originalEdge.getRawStatement(),
+                originalEdge == null ? FileLocation.DUMMY : originalEdge.getFileLocation(),
+                startNode,
+                endNode,
+                "sliced edge"));
       }
 
       if (originalEdge != null) {

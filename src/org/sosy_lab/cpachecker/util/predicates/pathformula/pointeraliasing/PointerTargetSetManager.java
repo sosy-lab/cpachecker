@@ -641,15 +641,20 @@ class PointerTargetSetManager {
   BooleanFormula getNextBaseAddressInequality(
       final String newBase, final PersistentSortedMap<String, CType> bases, final String lastBase) {
     final FormulaType<?> pointerType = typeHandler.getPointerType();
-    final Formula newBaseFormula = formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(newBase));
+    final Formula newBaseFormula =
+        formulaManager.makeVariableWithoutSSAIndex(
+            pointerType, PointerTargetSet.getBaseName(newBase));
     if (lastBase != null) {
       final CType lastType = bases.get(lastBase);
       final int lastSize =
           lastType.isIncomplete()
               ? options.defaultAllocationSize()
               : typeHandler.getSizeof(lastType);
-      final Formula rhs = formulaManager.makePlus(formulaManager.makeVariable(pointerType, PointerTargetSet.getBaseName(lastBase)),
-                                                  formulaManager.makeNumber(pointerType, lastSize * typeHandler.getBitsPerByte()));
+      final Formula rhs =
+          formulaManager.makePlus(
+              formulaManager.makeVariableWithoutSSAIndex(
+                  pointerType, PointerTargetSet.getBaseName(lastBase)),
+              formulaManager.makeNumber(pointerType, lastSize * typeHandler.getBitsPerByte()));
       // The condition rhs > 0 prevents overflows in case of bit-vector encoding
       return formulaManager.makeAnd(formulaManager.makeGreaterThan(rhs, formulaManager.makeNumber(pointerType, 0L), true),
                                     formulaManager.makeGreaterOrEqual(newBaseFormula, rhs, true));

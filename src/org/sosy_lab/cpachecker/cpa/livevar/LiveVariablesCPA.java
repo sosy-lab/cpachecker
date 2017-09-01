@@ -31,26 +31,19 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopJoinOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 
 @Options
-public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
+public class LiveVariablesCPA extends AbstractCPA {
 
   @Option(secure=true, name = "merge", toUppercase = true, values = { "SEP", "JOIN" },
       description = "which merge operator to use for LiveVariablesCPA")
@@ -60,12 +53,6 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
       description = "which stop operator to use for LiveVariablesCPA")
   private String stopType = "SEP";
 
-  private final AbstractDomain domain;
-  private final LiveVariablesTransferRelation transfer;
-  private final MergeOperator merge;
-  private final StopOperator stop;
-  private final LogManager logger;
-
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LiveVariablesCPA.class);
   }
@@ -73,54 +60,26 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
   private LiveVariablesCPA(final Configuration pConfig,
                            final LogManager pLogger,
                            final CFA cfa) throws InvalidConfigurationException {
+    super(
+        DelegateAbstractDomain.getInstance(),
+        new LiveVariablesTransferRelation(
+            cfa.getVarClassification(), pConfig, cfa.getLanguage(), cfa, pLogger));
     pConfig.inject(this, LiveVariablesCPA.class);
-
-    logger = pLogger;
-    domain = DelegateAbstractDomain.<LiveVariablesState>getInstance();
-
-    if (!cfa.getVarClassification().isPresent() && cfa.getLanguage() == Language.C) {
-      throw new AssertionError("Without information of the variable classification"
-          + " the live variables analysis cannot be used.");
-    }
-    transfer = new LiveVariablesTransferRelation(
-        cfa.getVarClassification(), pConfig, cfa.getLanguage(), cfa, logger);
-
-    if (mergeType.equals("SEP")) {
-      merge = MergeSepOperator.getInstance();
-    } else {
-      merge = new MergeJoinOperator(domain);
-    }
-
-    if (stopType.equals("JOIN")) {
-      stop = new StopJoinOperator(domain);
-    } else {
-      stop = new StopSepOperator(domain);
-    }
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return domain;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return transfer;
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    return buildMergeOperator(mergeType);
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stop;
+    return buildStopOperator(stopType);
   }
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return transfer.getInitialState(pNode);
+    return ((LiveVariablesTransferRelation) getTransferRelation()).getInitialState(pNode);
   }
 
   /**
@@ -129,7 +88,7 @@ public class LiveVariablesCPA implements ConfigurableProgramAnalysis {
    * @return a Multimap containing the variables that are live at each location
    */
   public Multimap<CFANode, Wrapper<ASimpleDeclaration>> getLiveVariables() {
-    return transfer.getLiveVariables();
+    return ((LiveVariablesTransferRelation) getTransferRelation()).getLiveVariables();
   }
 
 }

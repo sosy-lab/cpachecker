@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -409,7 +408,7 @@ public class SMGRefiner implements Refiner {
   private boolean isSimilarRepeatedRefinement(Collection<SMGPrecisionIncrement> currentIncrement) {
 
     boolean isSimilar = false;
-    int currentRefinementId = new TreeSet<>(currentIncrement).hashCode();
+    int currentRefinementId = new HashSet<>(currentIncrement).hashCode();
 
     previousRefinementIds.add(currentRefinementId);
 

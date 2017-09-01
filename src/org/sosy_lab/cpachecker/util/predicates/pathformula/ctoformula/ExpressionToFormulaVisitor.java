@@ -727,9 +727,11 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
             FloatingPointFormula n;
             // x / y -> rounded towards 0
             if (BuiltinFloatFunctions.matchesFmod(functionName)) {
-              n = fpfmgr.divide(param0, param1, FloatingPointRoundingMode.TOWARD_ZERO);
+              n = fpfmgr.divide(param0, param1);
+              n = fpfmgr.round(n, FloatingPointRoundingMode.TOWARD_ZERO);
             } else {
-              n = fpfmgr.divide(param0,  param1, FloatingPointRoundingMode.NEAREST_TIES_TO_EVEN);
+              n = fpfmgr.divide(param0, param1);
+              n = fpfmgr.round(n, FloatingPointRoundingMode.NEAREST_TIES_TO_EVEN);
             }
 
             // x - (n * y)
@@ -880,6 +882,95 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
                     conv.bfmgr.ifThenElse(fpfmgr.lessThan(param, fp_zero), one, zero)));
           }
         }
+      } else if (BuiltinFloatFunctions.matchesModf(functionName)) {
+
+        if (parameters.size() == 2) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param =
+                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+
+            FloatingPointFormula zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
+            FloatingPointFormula nan = fpfmgr.makeNaN((FloatingPointType) formulaType);
+            FloatingPointFormula rounded =
+                fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_ZERO);
+
+            return conv.bfmgr.ifThenElse(
+                fpfmgr.isNaN(param),
+                nan,
+                conv.bfmgr.ifThenElse(
+                    fpfmgr.isInfinity(param), zero, fpfmgr.subtract(param, rounded)));
+          }
+        }
+      } else if (BuiltinFloatFunctions.matchesCeil(functionName)) {
+
+        Formula result =
+            roundingBuiltin(functionName, parameters, FloatingPointRoundingMode.TOWARD_POSITIVE);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesFloor(functionName)) {
+
+        Formula result =
+            roundingBuiltin(functionName, parameters, FloatingPointRoundingMode.TOWARD_NEGATIVE);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesTrunc(functionName)) {
+
+        Formula result =
+            roundingBuiltin(functionName, parameters, FloatingPointRoundingMode.TOWARD_ZERO);
+
+        if (result != null) {
+          return result;
+        }
+      } else if (BuiltinFloatFunctions.matchesRound(functionName)) {
+
+        if (parameters.size() == 1) {
+          CType paramType = getTypeOfBuiltinFloatFunction(functionName);
+          FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+          if (formulaType.isFloatingPointType()) {
+            FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+            FloatingPointFormula param =
+                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula zero = fpfmgr.makeNumber(0, (FloatingPointType) formulaType);
+            FloatingPointFormula fp_half = fpfmgr.makeNumber(0.5, (FloatingPointType) formulaType);
+            FloatingPointFormula fp_neg_half =
+                fpfmgr.makeNumber(-0.5, (FloatingPointType) formulaType);
+
+            FloatingPointFormula integral =
+                fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_ZERO);
+            FloatingPointFormula rounded_negative_Infinity =
+                fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_NEGATIVE);
+            FloatingPointFormula rounded_positive_Infinity =
+                fpfmgr.round(param, FloatingPointRoundingMode.TOWARD_POSITIVE);
+
+            // XXX: Currently MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
+            // which corresponds to the semantics of 'round'.
+            // Hence, we represent those semantics by the formula below, until there
+            // is a release of MathSAT supporting NEAREST_TIE_AWAY.
+            //
+            // It would be possible to rewrite this code calling roundingBuiltin with
+            // NEAREST_TIE_AWAY, catching IllegalArgumentExceptions and in this case
+            // proceeding with the hand-built formula below.
+            // The benefits of that try-catch approach are debatable and I don't consider
+            // it to be of much help for the readability of the code.
+            return conv.bfmgr.ifThenElse(
+                fpfmgr.greaterThan(param, zero),
+                conv.bfmgr.ifThenElse(
+                    fpfmgr.greaterOrEquals(fpfmgr.subtract(param, integral), fp_half),
+                    rounded_positive_Infinity,
+                    integral),
+                conv.bfmgr.ifThenElse(
+                    fpfmgr.lessOrEquals(fpfmgr.subtract(param, integral), fp_neg_half),
+                    rounded_negative_Infinity,
+                    integral));
+          }
+        }
       } else if (!CtoFormulaConverter.PURE_EXTERNAL_FUNCTIONS.contains(functionName)) {
         if (parameters.isEmpty()) {
           // function of arity 0
@@ -941,6 +1032,38 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
       final FormulaType<?> resultFormulaType = conv.getFormulaTypeFromCType(realReturnType);
       return conv.ffmgr.declareAndCallUF(functionName, resultFormulaType, arguments);
     }
+  }
+
+  /**
+   * The built-in rounding functions of C can all be expressed by the SMT floating point function
+   * <code>round</code>, given the corresponding <code>RoundingMode</code>.
+   *
+   * @param pFunctionName name of built-in function
+   * @param pParameters parameter list of built-in function
+   * @param pRoundingMode the <code>RoundindMode</code> corresponding to the built-in function
+   * @return a {@link Formula} representing the semantics of the rounding function, <code>null
+   *     </code> if the length of pParameters or the type of its members do not match
+   * @throws UnrecognizedCCodeException re-throw from internal calls
+   */
+  private @Nullable Formula roundingBuiltin(
+      String pFunctionName, List<CExpression> pParameters, FloatingPointRoundingMode pRoundingMode)
+      throws UnrecognizedCCodeException {
+
+    if (pParameters.size() == 1) {
+      CType paramType = getTypeOfBuiltinFloatFunction(pFunctionName);
+      FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
+      if (formulaType.isFloatingPointType()) {
+        FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
+        FloatingPointFormula param =
+            (FloatingPointFormula) processOperand(pParameters.get(0), paramType, paramType);
+
+        FloatingPointFormula rounded = fpfmgr.round(param, pRoundingMode);
+
+        return rounded;
+      }
+    }
+
+    return null;
   }
 
   /**

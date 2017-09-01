@@ -27,7 +27,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 
 public interface SMGAbstractionBlock {
 
-  public boolean isBlocked(SMGAbstractionCandidate candidate, CLangSMG smg)
-      throws SMGInconsistentException;
+  public boolean isBlocked(SMGAbstractionCandidate candidate, CLangSMG smg);
 
 }

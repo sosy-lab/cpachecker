@@ -163,7 +163,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
       case "END_BLOCK":
         return new SMGStopOperator(getAbstractDomain());
       case "NEVER":
-        return new StopNeverOperator();
+        return StopNeverOperator.getInstance();
       case "SEP":
         return new StopSepOperator(getAbstractDomain());
       default:

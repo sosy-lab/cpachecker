@@ -295,7 +295,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final FormulaType<?> returnFormulaType = getFormulaTypeFromCType(returnType);
 
     if (options.useQuantifiersOnArrays()) {
-      Formula counter = fmgr.makeVariable(voidPointerFormulaType, functionName + "__counter");
+      Formula counter =
+          fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, functionName + "__counter");
       return fmgr.getQuantifiedFormulaManager()
           .forall(
               counter,
@@ -370,7 +371,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   Formula makeFormulaForTarget(final PointerTarget target) {
     return fmgr.makePlus(
-        fmgr.makeVariable(voidPointerFormulaType, target.getBaseName()),
+        fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, target.getBaseName()),
         fmgr.makeNumber(voidPointerFormulaType, target.getOffset()));
   }
 

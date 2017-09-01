@@ -415,7 +415,7 @@ public class CtoFormulaConverter {
    * This method does not handle scoping!
    */
   protected Formula makeConstant(String name, CType type) {
-    return fmgr.makeVariable(getFormulaTypeFromCType(type), name);
+    return fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name);
   }
 
   /**

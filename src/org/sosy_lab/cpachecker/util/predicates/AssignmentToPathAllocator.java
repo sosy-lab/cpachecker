@@ -552,7 +552,8 @@ public class AssignmentToPathAllocator {
         Address address = Address.valueOf(constant.getValue());
 
         //TODO ugly, refactor?
-        String constantName = PointerTargetSet.getBase(name);
+        String constantName =
+            PointerTargetSet.getBase(FormulaManagerView.parseName(name).getFirst());
         LeftHandSide leftHandSide = createLeftHandSide(constantName);
         addressOfVariables.put(leftHandSide, address);
       }

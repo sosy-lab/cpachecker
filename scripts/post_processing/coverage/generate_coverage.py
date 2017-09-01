@@ -497,7 +497,8 @@ class GenerateFirstThenCollect(ComputeCoverage):
         # sanity check
         assert (cpachecker_result.found_property_violation() or
                 cex_generated == 0)
-        if cpachecker_result.found_bug():
+        if (cpachecker_result.found_property_violation() and 
+            cpachecker_result.found_bug()):
             self.logger.error(
                 'Found an assertion violation. Inspect counterexamples '
                 'before collecting a coverage measure.')
@@ -588,6 +589,7 @@ def create_arg_parser():
              File containing an assumption automaton.""")
     parser.add_argument(
         "-cex_dir",
+        required=True,
         help=("Directory where traces sampling the execution space are "
               "located. If the option -only_collect_coverage is not "
               "present, then this directory must not exist, since it will "

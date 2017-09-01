@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -551,11 +552,14 @@ class DynamicMemoryHandler {
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
         rhs instanceof CFunctionCallExpression &&
         !rhsExpression.isNondetValue() && rhsExpression.isValue()) {
-      final Set<String> rhsVariables = conv.fmgr.extractVariableNames(rhsExpression.asValue().getValue());
+      // TODO: can we store this information in a different way than as a Formula and avoid the need for extractVariableNames?
+      final Set<String> rhsVariables =
+          conv.fmgr.extractVariableNames(rhsExpression.asValue().getValue());
       // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
       for (final String mangledVariable : rhsVariables) {
         if (PointerTargetSet.isBaseName(mangledVariable)) {
-          final String variable = PointerTargetSet.getBase(mangledVariable);
+          final String variable =
+              PointerTargetSet.getBase(FormulaManagerView.parseName(mangledVariable).getFirst());
           if (pts.isTemporaryDeferredAllocationPointer(variable)) {
             if (!isAllocation) {
               if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
