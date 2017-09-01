@@ -304,6 +304,9 @@ public class ThreadCreateTransformer {
       if (var instanceof CUnaryExpression) {
         //&t
         var = ((CUnaryExpression)var).getOperand();
+      } else if (var instanceof CCastExpression) {
+        //(void *(*)(void * ))(& ldv_factory_scenario_4)
+        var = ((CCastExpression)var).getOperand();
       } else {
         throw new CParserException("Unsupported parameter expression " + var);
       }
