@@ -2254,7 +2254,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     boolean change = false;
 
-    for (String variable : ImmutableSet.copyOf((heap.getGlobalObjects().keySet()))) {
+    for (String variable : heap.getGlobalObjects().keySet()) {
       MemoryLocation globalVar = MemoryLocation.valueOf(variable);
       if (!pTrackedStackVariables.contains(globalVar)) {
         heap.removeGlobalVariableAndEdges(variable);
@@ -2264,8 +2264,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     for (CLangStackFrame frame : heap.getStackFrames()) {
       String functionName = frame.getFunctionDeclaration().getName();
-
-      for (String variable : ImmutableSet.copyOf(frame.getVariables().keySet())) {
+      for (String variable : frame.getVariables().keySet()) {
         MemoryLocation var = MemoryLocation.valueOf(functionName, variable);
 
         if (!pTrackedStackVariables.contains(var)) {
