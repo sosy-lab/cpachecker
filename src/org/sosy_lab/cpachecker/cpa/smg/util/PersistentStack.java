@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.util;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import java.util.Iterator;
@@ -93,5 +94,10 @@ public class PersistentStack<T> implements Iterable<T> {
   @Override
   public boolean equals(Object o) {
     return o instanceof PersistentStack && delegate.equals(((PersistentStack<?>) o).delegate);
+  }
+
+  @Override
+  public String toString() {
+    return "[" + Joiner.on(", ").join(delegate.values()) + "]";
   }
 }

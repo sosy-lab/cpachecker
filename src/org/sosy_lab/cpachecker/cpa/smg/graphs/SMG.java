@@ -603,6 +603,11 @@ public class SMG {
     public boolean isExternal() {
       return external;
     }
+
+    @Override
+    public String toString() {
+      return "" + external;
+    }
   }
 
   protected void clearValuesHvePte() {

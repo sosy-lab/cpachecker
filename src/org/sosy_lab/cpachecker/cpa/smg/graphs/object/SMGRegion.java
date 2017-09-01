@@ -43,7 +43,7 @@ public final class SMGRegion extends SMGObject implements SMGObjectTemplate {
 
   @Override
   public String toString() {
-    return "REGION("+ getLabel() + ", " + getSize() + "b)\n" + "level=" + getLevel();
+    return "REGION("+ getLabel() + ", " + getSize() + "b, " + "level=" + getLevel() + ")";
   }
 
   @Override
