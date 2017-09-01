@@ -115,7 +115,7 @@ public class CoreComponentsFactory {
       description="Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
 
-  @Option(description="Save results of local analysis")
+  @Option(secure=true, description="Save results of local analysis")
   private boolean saveLocalResults = false;
 
   @Option(secure=true, name="restartAfterUnknown",
