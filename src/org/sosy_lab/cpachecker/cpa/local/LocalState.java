@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.local;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashMap;
@@ -35,6 +36,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
+import org.sosy_lab.cpachecker.util.identifiers.ConstantIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 
@@ -143,12 +145,23 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   }
 
   private boolean checkSharednessOfComposedIds(AbstractIdentifier name) {
+    return checkStatusOfComposedIds(name, this::isGlobal);
+  }
+
+  private boolean checkLocalityOfComposedIds(AbstractIdentifier name) {
+    return checkStatusOfComposedIds(name, this::isLocal);
+  }
+
+  private boolean checkStatusOfComposedIds(AbstractIdentifier name,
+      Predicate<? super AbstractIdentifier> pred) {
     return from(name.getComposedIdentifiers())
-        .anyMatch(id -> isGlobal(id));
+        .anyMatch(pred);
   }
 
   public void set(AbstractIdentifier name, DataType type) {
-    if (name.isGlobal()) {
+    if (name.isGlobal() ||
+        !name.isDereferenced() ||
+        name instanceof ConstantIdentifier) {
       //Don't save obvious information
       return;
     }
@@ -164,8 +177,11 @@ public class LocalState implements LatticeAbstractState<LocalState> {
   public DataType getType(AbstractIdentifier pName) {
     DataType directResult = getDataInfo(pName);
     if (checkSharednessOfComposedIds(pName)) {
-      putIntoDataInfo(pName, DataType.GLOBAL);
+      //putIntoDataInfo(pName, DataType.GLOBAL);
       return DataType.GLOBAL;
+    }
+    if (directResult == null && checkLocalityOfComposedIds(pName)) {
+      return DataType.LOCAL;
     }
     return directResult;
   }
