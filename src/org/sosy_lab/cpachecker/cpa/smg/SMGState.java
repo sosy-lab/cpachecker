@@ -2266,9 +2266,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       String functionName = frame.getFunctionDeclaration().getName();
       for (String variable : frame.getVariables().keySet()) {
         MemoryLocation var = MemoryLocation.valueOf(functionName, variable);
-
         if (!pTrackedStackVariables.contains(var)) {
-          heap.removeStackVariableAndEdges(variable, frame);
+          heap.forgetFunctionStackVariable(var, false);
           change = true;
         }
       }

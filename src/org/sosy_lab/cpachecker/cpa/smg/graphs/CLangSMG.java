@@ -934,19 +934,6 @@ public class CLangSMG extends SMG {
     removeObjectAndEdges(obj);
   }
 
-  public void removeStackVariableAndEdges(String pVariable, CLangStackFrame frame) {
-
-    if (!frame.containsVariable(pVariable)) {
-      return;
-    }
-
-    SMGObject obj = frame.getVariable(pVariable);
-
-    stack_objects = stack_objects.replace(f -> f == frame, frame.removeVariable(pVariable));
-
-    removeObjectAndEdges(obj);
-  }
-
   public Optional<SMGEdgeHasValue> forget(SMGMemoryPath pLocation) {
 
     Optional<SMGEdgeHasValue> edgeToForget = getHVEdgeFromMemoryLocation(pLocation);
@@ -963,7 +950,7 @@ public class CLangSMG extends SMG {
   public SMGStateInformation forgetStackVariable(MemoryLocation pMemoryLocation) {
 
     if (pMemoryLocation.isOnFunctionStack()) {
-      return forgetFunctionStackVariable(pMemoryLocation);
+      return forgetFunctionStackVariable(pMemoryLocation, true);
     } else {
       return forgetGlobalVariable(pMemoryLocation);
     }
@@ -1001,7 +988,10 @@ public class CLangSMG extends SMG {
         isObjectExternallyAllocated(pObj));
   }
 
-  private SMGStateInformation forgetFunctionStackVariable(MemoryLocation pMemoryLocation) {
+  /** returns information about the removed variable if 'createInfo' is set, else Null. */
+  @Nullable
+  public SMGStateInformation forgetFunctionStackVariable(
+      MemoryLocation pMemoryLocation, boolean createInfo) {
 
     CLangStackFrame frame = getFrame(pMemoryLocation);
     String variableName = pMemoryLocation.getIdentifier();
@@ -1012,8 +1002,11 @@ public class CLangSMG extends SMG {
 
     SMGObject reg = frame.getVariable(variableName);
 
-    SMGStateInformation info = createStateInfo(reg);
-    removeStackVariableAndEdges(variableName, frame);
+    SMGStateInformation info = createInfo ? createStateInfo(reg) : null; // lazy
+
+    stack_objects = stack_objects.replace(f -> f == frame, frame.removeVariable(variableName));
+
+    removeObjectAndEdges(reg);
 
     return info;
   }
