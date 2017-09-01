@@ -62,16 +62,11 @@ public class LocalVariableIdentifier extends VariableIdentifier {
 
   @Override
   public LocalVariableIdentifier cloneWithDereference(int pDereference) {
-    return new LocalVariableIdentifier(name, type, function, dereference);
+    return new LocalVariableIdentifier(name, type, function, pDereference);
   }
 
   public String getFunction() {
     return function;
-  }
-
-  @Override
-  public SingleIdentifier clearDereference() {
-    return new LocalVariableIdentifier(name, type, function, 0);
   }
 
   @Override

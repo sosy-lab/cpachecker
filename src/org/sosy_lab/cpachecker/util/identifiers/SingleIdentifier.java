@@ -98,8 +98,6 @@ public abstract class SingleIdentifier implements AbstractIdentifier {
     return info;
   }
 
-  public abstract SingleIdentifier clearDereference();
-
   public abstract String toLog();
 
   public abstract GeneralIdentifier getGeneralId();

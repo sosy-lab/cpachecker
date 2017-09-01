@@ -81,11 +81,6 @@ public class StructureIdentifier extends SingleIdentifier{
   }
 
   @Override
-  public SingleIdentifier clearDereference() {
-    return new StructureIdentifier(name, type, 0, owner);
-  }
-
-  @Override
   public boolean isGlobal() {
     return owner.isGlobal();
   }

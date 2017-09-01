@@ -40,11 +40,6 @@ public class FunctionIdentifier extends SingleIdentifier {
   }
 
   @Override
-  public SingleIdentifier clearDereference() {
-    return new FunctionIdentifier(name, type, 0);
-  }
-
-  @Override
   public String toLog() {
     return "func;" + name + ";" + dereference;
   }

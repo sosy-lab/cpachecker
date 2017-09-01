@@ -75,11 +75,6 @@ public class StructureFieldIdentifier extends StructureIdentifier {
   }
 
   @Override
-  public SingleIdentifier clearDereference() {
-    return new StructureFieldIdentifier(name, type, 0, owner);
-  }
-
-  @Override
   public Collection<AbstractIdentifier> getComposedIdentifiers() {
     return Collections.emptySet();
   }
