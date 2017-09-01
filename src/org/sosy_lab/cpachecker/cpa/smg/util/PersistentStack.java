@@ -74,7 +74,7 @@ public class PersistentStack<T> implements Iterable<T> {
         }
       }
     }
-    return this;
+    throw new AssertionError("no match found");
   }
 
   public int size() {
