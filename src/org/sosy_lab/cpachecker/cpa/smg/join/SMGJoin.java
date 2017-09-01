@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Iterator;
 import java.util.Map;
@@ -54,9 +53,7 @@ final public class SMGJoin {
     SMGNodeMapping mapping2 = new SMGNodeMapping();
 
     Map<String, SMGRegion> globals_in_smg1 = opSMG1.getGlobalObjects();
-    ImmutableList<CLangStackFrame> stack_in_smg1 = ImmutableList.copyOf(opSMG1.getStackFrames());
     Map<String, SMGRegion> globals_in_smg2 = opSMG2.getGlobalObjects();
-    ImmutableList<CLangStackFrame> stack_in_smg2 = ImmutableList.copyOf(opSMG2.getStackFrames());
 
     for (String globalVar : Sets.union(globals_in_smg1.keySet(), globals_in_smg2.keySet())) {
       SMGRegion globalInSMG1 = globals_in_smg1.get(globalVar);
@@ -75,8 +72,8 @@ final public class SMGJoin {
       mapping2.map(globalInSMG2, finalObject);
     }
 
-    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.reverse().iterator();
-    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.reverse().iterator();
+    Iterator<CLangStackFrame> smg1stackIterator = opSMG1.getStackFrames().iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = opSMG2.getStackFrames().iterator();
 
     //TODO assert stack smg1 == stack smg2
 
@@ -110,8 +107,8 @@ final public class SMGJoin {
       status = jss.getStatus();
     }
 
-    smg1stackIterator = stack_in_smg1.iterator();
-    smg2stackIterator = stack_in_smg2.iterator();
+    smg1stackIterator = opSMG1.getStackFrames().iterator();
+    smg2stackIterator = opSMG2.getStackFrames().iterator();
     Iterator<CLangStackFrame> destSmgStackIterator = smg.getStackFrames().iterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {

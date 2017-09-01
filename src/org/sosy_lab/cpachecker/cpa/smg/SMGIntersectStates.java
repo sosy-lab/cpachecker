@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
@@ -63,9 +62,7 @@ public final class SMGIntersectStates {
     mapping2.map(SMGNullObject.INSTANCE, SMGNullObject.INSTANCE);
 
     Map<String, SMGRegion> globals_in_smg1 = pHeap1.getGlobalObjects();
-    ImmutableList<CLangStackFrame> stack_in_smg1 = ImmutableList.copyOf(pHeap1.getStackFrames());
     Map<String, SMGRegion> globals_in_smg2 = pHeap2.getGlobalObjects();
-    ImmutableList<CLangStackFrame> stack_in_smg2 = ImmutableList.copyOf(pHeap2.getStackFrames());
 
     Set<SMGEdgeHasValue> singleHveEdge1 = new HashSet<>();
     Set<SMGEdgeHasValue> singleHveEdge2 = new HashSet<>();
@@ -86,8 +83,8 @@ public final class SMGIntersectStates {
       mapping2.map(globalInSMG2, finalObject);
     }
 
-    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.reverse().iterator();
-    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.reverse().iterator();
+    Iterator<CLangStackFrame> smg1stackIterator = pHeap1.getStackFrames().iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = pHeap2.getStackFrames().iterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
@@ -132,8 +129,8 @@ public final class SMGIntersectStates {
       }
     }
 
-    smg1stackIterator = stack_in_smg1.reverse().iterator();
-    smg2stackIterator = stack_in_smg2.reverse().iterator();
+    smg1stackIterator = pHeap1.getStackFrames().iterator();
+    smg2stackIterator = pHeap2.getStackFrames().iterator();
 
     while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
