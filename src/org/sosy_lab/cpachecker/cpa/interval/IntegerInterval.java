@@ -16,7 +16,7 @@ public class IntegerInterval implements NumberInterface {
      */
     private final Long high;
 
-    private static final IntegerInterval EMPTY = new IntegerInterval(null, null);
+    public static final IntegerInterval EMPTY = new IntegerInterval(null, null);
     public static final IntegerInterval UNBOUND = new IntegerInterval(Long.MIN_VALUE, Long.MAX_VALUE);
     public static final IntegerInterval BOOLEAN_INTERVAL = new IntegerInterval(0L, 1L);
     public static final IntegerInterval ZERO = new IntegerInterval(0L, 0L);
