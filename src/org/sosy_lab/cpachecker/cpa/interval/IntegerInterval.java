@@ -559,7 +559,8 @@ public class IntegerInterval implements NumberInterface {
      */
     @Override
     public NumberInterface negate() {
-        return new IntegerInterval(scalarTimes(high, -1L), scalarTimes(low, -1L));
+        IntegerInterval i = new IntegerInterval(scalarTimes(high, -1L), scalarTimes(low, -1L));
+        return i;
     }
 
     /**

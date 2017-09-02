@@ -17,8 +17,8 @@ public class DoubleInterval implements NumberInterface {
      */
     private final Double high;
 
-    private static final DoubleInterval EMPTY = new DoubleInterval(null, null);
-    public static final DoubleInterval UNBOUND = new DoubleInterval(Double.MIN_VALUE, Double.MAX_VALUE);
+    public static final DoubleInterval EMPTY = new DoubleInterval(null, null);
+    public static final DoubleInterval UNBOUND = new DoubleInterval(-Double.MAX_VALUE, Double.MAX_VALUE);
     public static final IntegerInterval BOOLEAN_INTERVAL = new IntegerInterval(0L, 1L);
     public static final DoubleInterval ZERO = new DoubleInterval(0.0, 0.0);
     public static final DoubleInterval ONE = new DoubleInterval(1.0, 1.0);
@@ -271,7 +271,7 @@ public class DoubleInterval implements NumberInterface {
         if (low >= 0) {
             top = high;
         } else {
-            if (low == Double.MIN_VALUE) {
+            if (low == -Double.MAX_VALUE) {
                 top = Double.MAX_VALUE;
             } else {
                 top = Math.max(Math.abs(low), high);
@@ -393,7 +393,7 @@ public class DoubleInterval implements NumberInterface {
 
     /**
      * This method adds an interval from this interval, overflow is handled by
-     * setting the bound to Double.MIN_VALUE or Double.MAX_VALUE respectively.
+     * setting the bound to -Double.MAX_VALUE or Double.MAX_VALUE respectively.
      *
      * @param interval
      *            the interval to add
@@ -411,7 +411,7 @@ public class DoubleInterval implements NumberInterface {
 
     /**
      * This method adds a constant offset to this interval, overflow is handled
-     * by setting the bound to Double.MIN_VALUE or Double.MAX_VALUE
+     * by setting the bound to -Double.MAX_VALUE or Double.MAX_VALUE
      * respectively.
      *
      * @param offset
@@ -424,7 +424,7 @@ public class DoubleInterval implements NumberInterface {
 
     /**
      * This method subtracts an interval from this interval, overflow is handled
-     * by setting the bound to Double.MIN_VALUE or Double.MAX_VALUE
+     * by setting the bound to -Double.MAX_VALUE or Double.MAX_VALUE
      * respectively.
      *
      * @param other
@@ -439,7 +439,7 @@ public class DoubleInterval implements NumberInterface {
 
     /**
      * This method subtracts a constant offset to this interval, overflow is
-     * handled by setting the bound to Double.MIN_VALUE or Double.MAX_VALUE
+     * handled by setting the bound to -Double.MAX_VALUE or Double.MAX_VALUE
      * respectively.
      *
      * @param offset
@@ -615,23 +615,23 @@ public class DoubleInterval implements NumberInterface {
      * @param upperBound
      *            the upper bound to set
      * @return an upper bounded interval, i.e. the lower bound is set to
-     *         Double.MIN_VALUE, the upper bound is set to the given upper bound
+     *         -Double.MAX_VALUE, the upper bound is set to the given upper bound
      */
 
     public static NumberInterface createUpperBoundedInterval(Double upperBound) {
-        return new DoubleInterval(Double.MIN_VALUE, upperBound);
+        return new DoubleInterval(-Double.MAX_VALUE, upperBound);
     }
 
     /**
      * This method adds two scalar values and returns their sum, or on overflow
-     * Double.MAX_VALUE or Double.MIN_VALUE, respectively.
+     * Double.MAX_VALUE or -Double.MAX_VALUE, respectively.
      *
      * @param x
      *            the first scalar operand
      * @param y
      *            the second scalar operand
      * @return the sum of the first and second scalar operand or on overflow
-     *         Double.MAX_VALUE and Double.MIN_VALUE, respectively.
+     *         Double.MAX_VALUE and -Double.MAX_VALUE, respectively.
      */
     private static Double scalarPlus(Double x, Double y) {
         Double result = x + y;
@@ -639,7 +639,7 @@ public class DoubleInterval implements NumberInterface {
         if ((Math.signum(x) + Math.signum(y) == 2) && Math.signum(result) == -1) {
             result = Double.MAX_VALUE;
         } else if ((Math.signum(x) + Math.signum(y) == -2) && Math.signum(result) == +1) {
-            result = Double.MIN_VALUE;
+            result = -Double.MAX_VALUE;
         }
 
         return result;
@@ -647,20 +647,20 @@ public class DoubleInterval implements NumberInterface {
 
     /**
      * This method multiplies two scalar values and returns their product, or on
-     * overflow Double.MAX_VALUE or Double.MIN_VALUE, respectively.
+     * overflow Double.MAX_VALUE or -Double.MAX_VALUE, respectively.
      *
      * @param x
      *            the first scalar operand
      * @param y
      *            the second scalar operand
      * @return the product of the first and second scalar operand or on overflow
-     *         Double.MAX_VALUE and Double.MIN_VALUE, respectively.
+     *         Double.MAX_VALUE and -Double.MAX_VALUE, respectively.
      */
     private static Double scalarTimes(Double x, Double y) {
-        Double bound = (Math.signum(x) == Math.signum(y)) ? Double.MAX_VALUE : Double.MIN_VALUE;
+        Double bound = (Math.signum(x) == Math.signum(y)) ? Double.MAX_VALUE : -Double.MAX_VALUE;
 
         // if overflow occurs, return the respective bound
-        if (x != 0 && ((y > 0 && y > (bound / x)) || (y < 0 && y < (bound / x)))) {
+        if (x != 0.0 && ((y > 0.0 && y > (bound / x)) || (y < 0.0 && y < (bound / x)))) {
             return bound;
         } else {
             return x * y;

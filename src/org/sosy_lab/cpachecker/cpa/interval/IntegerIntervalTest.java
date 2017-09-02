@@ -215,13 +215,13 @@ public class IntegerIntervalTest {
     public void testTimes() throws Exception {
         IntegerInterval i23 = new IntegerInterval(2L, 3L);
         IntegerInterval i14 = new IntegerInterval(1L, 4L);
-        IntegerInterval i_1_4 = new IntegerInterval(-4L, -1L);
+        IntegerInterval i_4_1 = new IntegerInterval(-4L, -1L);
         IntegerInterval iExpected212 = new IntegerInterval(2L, 12L);
         IntegerInterval iExpected_4_4 = new IntegerInterval(Long.MIN_VALUE, -4L); //Long.MIN_VALUE
 
 //        assertEquals(IntegerInterval.EMPTY, inn.times(i14));
         assertEquals(iExpected212, i23.times(i14));
-        assertEquals(iExpected_4_4, i_1_4.times(i14));
+        assertEquals(iExpected_4_4, i_4_1.times(i14));
     }
 
     @Test
