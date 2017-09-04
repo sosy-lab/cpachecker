@@ -90,14 +90,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Option(
       secure = true,
-      name = "cpa.arg.useARGStopJoin",
-      description =
-          "whether to use the stop operator for slicing abstractions"
-    )
-  private boolean useARGStopJoin = false;
-
-  @Option(
-      secure = true,
       name = "cpa.arg.useARGMergeLocationBased",
       description =
           "whether to use the merge operator for slicing abstractions"
@@ -151,19 +143,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public ForcedCoveringStopOperator getStopOperator() {
-    if (useARGStopJoin) {
-      return new ARGStopJoin(
+    return new ARGStopSep(
         getWrappedCpa().getStopOperator(),
         logger,
         inCPAEnabledAnalysis,
         keepCoveredStatesInReached);
-    } else {
-      return new ARGStopSep(
-        getWrappedCpa().getStopOperator(),
-        logger,
-        inCPAEnabledAnalysis,
-        keepCoveredStatesInReached);
-    }
   }
 
   @Override
