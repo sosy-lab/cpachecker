@@ -292,9 +292,7 @@ public class ARGState extends AbstractSingleWrapperState
 
   void setMergedWith(ARGState pMergedWith) {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    // Deactivated since we do merge more than once for splitting.
-    // TODO: find way to still check this for when we are not splitting
-    //assert mergedWith == null : "Second merging of element " + this;
+    assert mergedWith == null : "Second merging of element " + this;
 
     mergedWith = pMergedWith;
   }
