@@ -154,11 +154,14 @@ public class ReportGenerator {
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
         fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
-        console.println("Graphical representation included in the \"" + reportFile.getFileName() + "\" file.");
+        console.println("Graphical representation included in the \".\\" + reportFile.getParent().getName(1) + "\\" + reportFile.getFileName() + "\" file.");
       }
 
     } else {
       StringBuilder counterExFiles = new StringBuilder();
+      counterExFiles.append("Graphical representation included in the \".\\");
+      counterExFiles.append(counterExampleFiles.getPath(1).getParent().getName(1));
+      counterExFiles.append("\\");
       for (CounterexampleInfo counterExample : counterExamples) {
         fillOutTemplate(
             counterExample,
@@ -166,14 +169,13 @@ public class ReportGenerator {
             pCfa,
             dotBuilder,
             pStatistics);
-        counterExFiles.append("\"");
         counterExFiles.append(counterExampleFiles.getPath(counterExample.getUniqueId()).getFileName());
         counterExFiles.append("\"");
         counterExFiles.append(" ");
       }
       String info = counterExamples.size() > 1 ? "files." : "file.";
       counterExFiles.append(info);
-      console.println("Graphical representation included in the " + counterExFiles.toString());
+      console.println(counterExFiles.toString());
     }
   }
 
