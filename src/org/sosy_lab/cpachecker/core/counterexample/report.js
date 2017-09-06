@@ -933,7 +933,7 @@ function init() {
             var nodeIndex = "" + node.index;
             if (Object.keys(combinedNodesLabels).includes(nodeIndex))
                 return combinedNodesLabels[nodeIndex];
-            else return "N" + nodeIndex + "\n" + node.rpid;
+            else return "N" + nodeIndex;
         }
         
         // Decide the shape of the nodes based on type
@@ -1501,12 +1501,17 @@ function init() {
 	function addEventsToCfa() {
 		d3.selectAll(".cfa-node").on("mouseover", function(d) { 
 			var message;
-			if (d in cfaJson.combinedNodes) {
-				message = "type: combining node <br>";
-			} else if (parseInt(d) > 100000) {
+			if (parseInt(d) > 100000) {
 				message = "type: function call node <br>" + "dblclick: Select function";
 			} else {
-				message = "type: normal element";
+				var node = cfaJson.nodes.find(function(n) {
+					return n.index === parseInt(d);
+				});
+				message = "function: " + node.func;
+				if (d in cfaJson.combinedNodes) {
+					message += "<br> combines nodes: " + Math.min.apply(null, cfaJson.combinedNodes[d]) + "-" + Math.max.apply(null, cfaJson.combinedNodes[d]);
+				}
+				message += "<br> reverse postorder Id: " + node.rpid;
 			}
 			showToolTipBox(d3.event, message); 
 		}).on("mouseout", function() { 
