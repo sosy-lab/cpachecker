@@ -1497,6 +1497,19 @@ function init() {
 		return g;
 	}
 	
+    // Retrieve the node in which this node was merged - used for the node events
+	// FIXME: this is a duplicate function already contained in error path controller, currently no better way to call it
+    function getMergingNode(index) {
+        var result = "";
+        Object.keys(cfaJson.combinedNodes).some(function(key) {
+            if (cfaJson.combinedNodes[key].includes(index)) {
+                result = key;
+                return result;
+            }
+        })
+        return result;
+    }
+	
 	// Add desired events to CFA nodes and edges
 	function addEventsToCfa() {
 		d3.selectAll(".cfa-node").on("mouseover", function(d) { 
@@ -1603,28 +1616,32 @@ function init() {
 	// Add desired events to ARG the nodes
 	function addEventsToArg() {
 		d3.selectAll(".arg-node")
-			.on("mouseover", function(d) {
-				var node = argJson.nodes.find(function(it) {
-					return it.index === parseInt(d);
-				})
-				var message = "function: " + node.func + "<br>";
-				if (node.type) {
-					message += "type: " + node.type + "<br>";
-				}
-				message += "dblclick: jump to CFA node";
-				showToolTipBox(d3.event, message); 
-			}).on("mouseout", function() { 
-				hideToolTipBox(); 
-			}).on("dblclick", function() {
-				$("#set-tab-1").click();
-				if (!d3.select(".marked-cfa-node").empty()) {
-					d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
-				}
-				var selection = d3.select("#cfa-node" + d3.select(this).select("tspan").text().split("N")[1]);
-				selection.classed("marked-cfa-node", true);
-				var boundingRect = selection.node().getBoundingClientRect();
-				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
-			});
+		.on("mouseover", function(d) {
+			var node = argJson.nodes.find(function(it) {
+				return it.index === parseInt(d);
+			})
+			var message = "function: " + node.func + "<br>";
+			if (node.type) {
+				message += "type: " + node.type + "<br>";
+			}
+			message += "dblclick: jump to CFA node";
+			showToolTipBox(d3.event, message); 
+		}).on("mouseout", function() { 
+			hideToolTipBox(); 
+		}).on("dblclick", function() {
+			$("#set-tab-1").click();
+			if (!d3.select(".marked-cfa-node").empty()) {
+				d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
+			}
+			var nodeId = d3.select(this).select("tspan").text().split("N")[1];
+			if (cfaJson.mergedNodes.includes(parseInt(nodeId))) {
+				nodeId = getMergingNode(parseInt(nodeId));
+			}
+			var selection = d3.select("#cfa-node" + nodeId);
+			selection.classed("marked-cfa-node", true);
+			var boundingRect = selection.node().getBoundingClientRect();
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
+		});
 		d3.selectAll(".arg-dummy")
 			.on("mouseover", function(d) {
 				showToolTipBox(d3.event, "type: placeholder <br> dblclick: jump to Target node");
