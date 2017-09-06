@@ -1401,6 +1401,9 @@ function init() {
 			addEventsToCfa();
 			d3.select("#cfa-toolbar").style("visibility", "visible");
 			d3.select("#cfa-container").classed("cfa-content", true);
+			d3.selectAll(".cfa-svg").each(function(d, i) {
+				d3.select(this).attr("width", Math.max(d3.select(this).attr("width"), d3.select(this.parentNode).style("width").split("px")[0]));
+			});
 			d3.selectAll(".cfa-graph").style("visibility", "visible");
 			if (cfaSplit) {
 				$("#renderStateModal").modal("hide");
