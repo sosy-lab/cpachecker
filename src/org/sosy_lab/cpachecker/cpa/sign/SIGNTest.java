@@ -137,7 +137,6 @@ public class SIGNTest {
 
     @Test
     public void testEvaluateLessOperator() throws Exception {
-        SIGN empty = SIGN.EMPTY;
         SIGN plus = SIGN.PLUS;
         SIGN minus = SIGN.MINUS;
         SIGN plusMinus = SIGN.PLUSMINUS;
@@ -156,7 +155,6 @@ public class SIGNTest {
 
     @Test
     public void testEvaluateLessEqualOperator() throws Exception {
-        SIGN empty = SIGN.EMPTY;
         SIGN plus = SIGN.PLUS;
         SIGN minus = SIGN.MINUS;
         SIGN plusMinus = SIGN.PLUSMINUS;
@@ -177,12 +175,9 @@ public class SIGNTest {
     public void testEvaluateEqualOperator() throws Exception {
         SIGN empty = SIGN.EMPTY;
         SIGN plus = SIGN.PLUS;
-        SIGN minus = SIGN.MINUS;
         SIGN plusMinus = SIGN.PLUSMINUS;
         SIGN zero = SIGN.ZERO;
-        SIGN all = SIGN.ALL;
-        SIGN plus0 = SIGN.PLUS0;
-        SIGN minus0 = SIGN.MINUS0;
+
 
         assertEquals(empty, empty.evaluateEqualOperator(plusMinus));
         assertEquals(empty, plus.evaluateEqualOperator(empty));
