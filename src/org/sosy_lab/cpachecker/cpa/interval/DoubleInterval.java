@@ -492,6 +492,9 @@ public class DoubleInterval implements NumberInterface {
     }
 
     /**
+     * This method should not be used for double!!!
+     *
+     *
      * This method performs an arithmetical left shift of the interval bounds.
      *
      * @param offset
@@ -529,6 +532,9 @@ public class DoubleInterval implements NumberInterface {
     }
 
     /**
+     * This method should not be used for double!!!
+     *
+     *
      * This method performs an arithmetical right shift of the interval bounds.
      * If the offset maybe less than zero an unbound interval is returned.
      *
