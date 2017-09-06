@@ -27,15 +27,20 @@ import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -47,6 +52,8 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 @Options
@@ -87,13 +94,15 @@ public class CoverageStatistics extends AbstractStatistics {
     }
 
     if (writeToStdout) {
-      CoverageReportStdoutSummary writer = new CoverageReportStdoutSummary();
-      writer.write(cov, pOut);
+      CoverageReportStdoutSummary.write(cov.getInfosPerFile(), pOut);
     }
 
     if (writeToFile && outputCoverageFile != null) {
-      CoverageReportGcov writer = new CoverageReportGcov(logger);
-      writer.write(cov, outputCoverageFile);
+      try (Writer w = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
+        CoverageReportGcov.write(cov.getInfosPerFile(), w);
+      } catch (IOException e) {
+        logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
+      }
     }
 
   }

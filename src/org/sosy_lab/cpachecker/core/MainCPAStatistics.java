@@ -288,7 +288,10 @@ class MainCPAStatistics implements Statistics {
         Map<String, FileCoverageInformation> infosPerFile =
             CoverageCollector.fromReachedSet(reached, cfa).collectCoverage();
 
+        out.println("Code Coverage");
+        out.println("-----------------------------");
         CoverageReportStdoutSummary.write(infosPerFile, out);
+
         if (outputCoverageFile != null) {
           try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
             CoverageReportGcov.write(infosPerFile, gcovOut);

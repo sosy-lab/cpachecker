@@ -52,15 +52,15 @@ public class FileCoverageInformation {
   final Set<AssumeEdge> allAssumes = new HashSet<>();
   final Set<AssumeEdge> visitedAssumes = new HashSet<>();
 
-  void addVisitedAssume(AssumeEdge pEdge) {
+  public void addVisitedAssume(AssumeEdge pEdge) {
     visitedAssumes.add(pEdge);
   }
 
-  void addExistingAssume(AssumeEdge pEdge) {
+  public void addExistingAssume(AssumeEdge pEdge) {
     allAssumes.add(pEdge);
   }
 
-  void addVisitedFunction(String pName, int pCount) {
+  public void addVisitedFunction(String pName, int pCount) {
     if (visitedFunctions.containsKey(pName)) {
       visitedFunctions.put(pName, visitedFunctions.get(pName) + pCount);
     } else {
@@ -68,11 +68,11 @@ public class FileCoverageInformation {
     }
   }
 
-  void addExistingFunction(String pName, int pFirstLine, int pLastLine) {
+  public void addExistingFunction(String pName, int pFirstLine, int pLastLine) {
     allFunctions.add(new FunctionInfo(pName, pFirstLine, pLastLine));
   }
 
-  void addVisitedLine(int pLine) {
+  public void addVisitedLine(int pLine) {
     checkArgument(pLine > 0);
     if (visitedLines.containsKey(pLine)) {
       visitedLines.put(pLine, visitedLines.get(pLine) + 1);
@@ -86,7 +86,7 @@ public class FileCoverageInformation {
     return visitedLines.containsKey(pLine) ? visitedLines.get(pLine) : 0;
   }
 
-  void addExistingLine(int pLine) {
+  public void addExistingLine(int pLine) {
     checkArgument(pLine > 0);
     allLines.add(pLine);
   }
