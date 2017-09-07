@@ -172,6 +172,12 @@ class CmdLineArguments {
               .settingProperty("analysis.summaryEdges", "true")
               .settingProperty("cpa.callstack.skipRecursion", "true")
               .withDescription("skip recursive function calls"),
+          new PropertyAddingCmdLineArgument("-benchmark")
+              .settingProperty("output.disable", "true")
+              .settingProperty("coverage.enabled", "false")
+              .settingProperty("statistics.memory", "false")
+              .withDescription(
+                  "disable assertions and optional features such as output files for improved performance"),
           new CmdLineArgument1("-setprop") {
 
             @Override
