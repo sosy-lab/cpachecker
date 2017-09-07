@@ -499,7 +499,7 @@ public class DoubleInterval implements NumberInterface {
      *            Interval offset to perform an arithmetical left shift on the
      *            interval bounds. If the offset maybe less than zero an unbound
      *            interval is returned.
-     * @return Assertion error
+     * @return assertion error
      */
     @Override
     public NumberInterface shiftLeft(NumberInterface offset) {
@@ -512,11 +512,11 @@ public class DoubleInterval implements NumberInterface {
      * @param offset
      *            Interval offset to perform an arithmetical right shift on the
      *            interval bounds
-     * @return Assertion error
+     * @return assertion error
      */
     @Override
     public NumberInterface shiftRight(NumberInterface offset) {
-        throw new AssertionError("trying to perform ShiftLeft on floating point operands");
+        throw new AssertionError("trying to perform ShiftRight on floating point operands");
     }
 
     /**
