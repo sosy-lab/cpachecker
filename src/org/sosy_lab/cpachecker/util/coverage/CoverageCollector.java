@@ -30,16 +30,10 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multiset;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -63,97 +57,25 @@ public abstract class CoverageCollector {
     return new CounterexampleCoverageCollector(pPath);
   }
 
-  public Map<String, FileCoverageInformation> collectCoverage() {
+  public CoverageData collectCoverage() {
     // Add information about existing functions
-    Map<String, FileCoverageInformation> infosPerFile = collectExistingFunctions();
+    CoverageData infosPerFile = collectExistingFunctions();
 
     // Add information about existing locations
     for (CFAEdge e : collectExistingEdges()) {
-      handleExistedEdge(e, infosPerFile);
+      infosPerFile.handleEdgeCoverage(e, false);
     }
 
     // Add information about covered locations
     for (CFAEdge e : collectCoveredEdges()) {
-      handleCoveredEdge(e, infosPerFile);
+      infosPerFile.handleEdgeCoverage(e, true);
     }
     return infosPerFile;
   }
 
   protected abstract Multiset<CFAEdge> collectExistingEdges();
-  protected abstract Map<String, FileCoverageInformation> collectExistingFunctions();
+  protected abstract CoverageData collectExistingFunctions();
   protected abstract Multiset<CFAEdge> collectCoveredEdges();
-
-  private void handleExistedEdge(
-      final CFAEdge pEdge,
-      final Map<String, FileCoverageInformation> pCollectors) {
-
-    final FileLocation loc = pEdge.getFileLocation();
-    if (loc.getStartingLineNumber() == 0) {
-      // dummy location
-      return;
-    }
-    if (pEdge instanceof ADeclarationEdge
-        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
-      // Function declarations span the complete body, this is not desired.
-      return;
-    }
-
-    final FileCoverageInformation collector = getFileInfoTarget(loc, pCollectors);
-
-    if (pEdge instanceof AssumeEdge) {
-      collector.addExistingAssume((AssumeEdge) pEdge);
-    }
-
-    //Do not extract lines from edge - there are not origin lines
-    collector.addExistingLine(loc.getStartingLineInOrigin());
-  }
-
-  public static boolean coversLine(CFAEdge pEdge) {
-    FileLocation loc = pEdge.getFileLocation();
-    if (loc.getStartingLineNumber() == 0) {
-      return false;
-    }
-    if (pEdge instanceof ADeclarationEdge
-        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
-      return false;
-    }
-    return true;
-  }
-  private void handleCoveredEdge(
-      final CFAEdge pEdge,
-      final Map<String, FileCoverageInformation> pCollectors) {
-
-    FileLocation loc = pEdge.getFileLocation();
-    if (!coversLine(pEdge)) {
-      return;
-    }
-
-    final FileCoverageInformation collector = getFileInfoTarget(loc, pCollectors);
-
-    if (pEdge instanceof AssumeEdge) {
-      collector.addVisitedAssume((AssumeEdge) pEdge);
-    }
-
-    //Do not extract lines from edge - there are not origin lines
-    collector.addVisitedLine(loc.getStartingLineInOrigin());
-  }
-
-  protected FileCoverageInformation getFileInfoTarget(
-      final FileLocation pLoc,
-      final Map<String, FileCoverageInformation> pTargets) {
-
-    assert pLoc.getStartingLineNumber() != 0; // Cannot produce coverage info for dummy file location
-
-    String file = pLoc.getFileName();
-    FileCoverageInformation fileInfos = pTargets.get(file);
-
-    if (fileInfos == null) {
-      fileInfos = new FileCoverageInformation();
-      pTargets.put(file, fileInfos);
-    }
-
-    return fileInfos;
-  }
 
   protected Multiset<FunctionEntryNode> getFunctionEntriesFromReached(UnmodifiableReachedSet pReached) {
     if (pReached instanceof ForwardingReachedSet) {
@@ -227,8 +149,8 @@ class CounterexampleCoverageCollector extends CoverageCollector {
   }
 
   @Override
-  protected Map<String, FileCoverageInformation> collectExistingFunctions() {
-    return new HashMap<>();
+  protected CoverageData collectExistingFunctions() {
+    return new CoverageData();
   }
 }
 class ReachedSetCoverageCollector extends CoverageCollector {
@@ -292,27 +214,16 @@ class ReachedSetCoverageCollector extends CoverageCollector {
   }
 
   @Override
-  protected Map<String, FileCoverageInformation> collectExistingFunctions() {
+  protected CoverageData collectExistingFunctions() {
     Multiset<FunctionEntryNode> reachedLocations = getFunctionEntriesFromReached(reached);
-    Map<String, FileCoverageInformation> infosPerFile = new HashMap<>();
+    CoverageData infosPerFile = new CoverageData();
 
     // Add information about existing functions
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
-      final FileLocation loc = entryNode.getFileLocation();
-      if (loc.getStartingLineNumber() == 0) {
-        // dummy location
-        continue;
-      }
-      final String functionName = entryNode.getFunctionName();
-      final FileCoverageInformation infos = getFileInfoTarget(loc, infosPerFile);
-
-      final int startingLine = loc.getStartingLineInOrigin();
-      final int endingLine = loc.getEndingLineInOrigin();
-
-      infos.addExistingFunction(functionName, startingLine, endingLine);
+      infosPerFile.putExistingFunction(entryNode);
 
       if (reachedLocations.contains(entryNode)) {
-        infos.addVisitedFunction(entryNode.getFunctionName(), reachedLocations.count(entryNode));
+        infosPerFile.addVisitedFunction(entryNode, reachedLocations.count(entryNode));
       }
     }
     return infosPerFile;

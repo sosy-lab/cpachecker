@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import java.io.PrintStream;
-import java.util.Map;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 public class CoverageReportStdoutSummary {
 
-  public static void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut) {
+  public static void write(CoverageData pCoverage, PrintStream pStdOut) {
     long numTotalConditions = 0;
     long numTotalFunctions = 0;
     long numTotalLines = 0;
@@ -38,7 +37,7 @@ public class CoverageReportStdoutSummary {
     long numVisitedFunctions = 0;
     long numVisitedLines = 0;
 
-    for (FileCoverageInformation info: pCoverage.values()) {
+    for (FileCoverageInformation info : pCoverage.getInfosPerFile().values()) {
       numTotalFunctions =+ info.allFunctions.size();
       numVisitedFunctions =+ info.visitedFunctions.size();
 

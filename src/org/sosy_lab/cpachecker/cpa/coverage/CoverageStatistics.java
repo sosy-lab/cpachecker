@@ -39,6 +39,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
@@ -74,12 +75,12 @@ public class CoverageStatistics extends AbstractStatistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     if (writeToStdout) {
-      CoverageReportStdoutSummary.write(cov.getInfosPerFile(), pOut);
+      CoverageReportStdoutSummary.write(cov, pOut);
     }
 
     if (writeToFile && outputCoverageFile != null) {
       try (Writer w = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
-        CoverageReportGcov.write(cov.getInfosPerFile(), w);
+        CoverageReportGcov.write(cov, w);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
       }

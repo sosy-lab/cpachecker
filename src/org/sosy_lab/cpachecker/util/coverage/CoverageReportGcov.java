@@ -39,10 +39,10 @@ public class CoverageReportGcov {
   private final static String FUNCTIONDATA = "FNDA:";
   private final static String LINEDATA = "DA:";
 
-  public static void write(Map<String, FileCoverageInformation> pCoverage, Writer w)
-      throws IOException {
+  public static void write(CoverageData pCoverage, Writer w) throws IOException {
 
-    for (Map.Entry<String, FileCoverageInformation> entry : pCoverage.entrySet()) {
+    for (Map.Entry<String, FileCoverageInformation> entry :
+        pCoverage.getInfosPerFile().entrySet()) {
       String sourcefile = entry.getKey();
       FileCoverageInformation fileInfos = entry.getValue();
 

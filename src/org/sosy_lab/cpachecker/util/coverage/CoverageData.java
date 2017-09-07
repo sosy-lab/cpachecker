@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.coverage;
+package org.sosy_lab.cpachecker.util.coverage;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,18 +31,30 @@ import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation;
 
-
-class CoverageData {
+public final class CoverageData {
 
   private final Map<String, FileCoverageInformation> infosPerFile = new HashMap<>();
 
-  FileCoverageInformation getFileInfoTarget(
-      final FileLocation pLoc,
-      final Map<String, FileCoverageInformation> pTargets) {
+  public static boolean coversLine(CFAEdge pEdge) {
+    FileLocation loc = pEdge.getFileLocation();
+    if (loc.getStartingLineNumber() == 0) {
+      // dummy location
+      return false;
+    }
+    if (pEdge instanceof ADeclarationEdge
+        && (((ADeclarationEdge) pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
+      // Function declarations span the complete body, this is not desired.
+      return false;
+    }
+    return true;
+  }
 
-    assert pLoc.getStartingLineNumber() != 0; // Cannot produce coverage info for dummy file location
+  private FileCoverageInformation getFileInfoTarget(
+      final FileLocation pLoc, final Map<String, FileCoverageInformation> pTargets) {
+
+    assert pLoc.getStartingLineNumber()
+        != 0; // Cannot produce coverage info for dummy file location
 
     String file = pLoc.getFileName();
     FileCoverageInformation fileInfos = pTargets.get(file);
@@ -55,7 +67,7 @@ class CoverageData {
     return fileInfos;
   }
 
-  boolean putExistingFunction(FunctionEntryNode pNode) {
+  public boolean putExistingFunction(FunctionEntryNode pNode) {
     final String functionName = pNode.getFunctionName();
     final FileLocation loc = pNode.getFileLocation();
 
@@ -74,21 +86,11 @@ class CoverageData {
     return true;
   }
 
-  void handleEdgeCoverage(
-      final CFAEdge pEdge,
-      final boolean pVisited) {
-
+  public void handleEdgeCoverage(final CFAEdge pEdge, final boolean pVisited) {
+    if (!coversLine(pEdge)) {
+      return;
+    }
     final FileLocation loc = pEdge.getFileLocation();
-    if (loc.getStartingLineNumber() == 0) {
-      // dummy location
-      return;
-    }
-    if (pEdge instanceof ADeclarationEdge
-        && (((ADeclarationEdge)pEdge).getDeclaration() instanceof AFunctionDeclaration)) {
-      // Function declarations span the complete body, this is not desired.
-      return;
-    }
-
     final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
 
     final int startingLine = loc.getStartingLineInOrigin();
@@ -99,11 +101,9 @@ class CoverageData {
     }
 
     if (pEdge instanceof AssumeEdge) {
+      collector.addExistingAssume((AssumeEdge) pEdge);
       if (pVisited) {
-        collector.addExistingAssume((AssumeEdge) pEdge);
         collector.addVisitedAssume((AssumeEdge) pEdge);
-      } else {
-        collector.addExistingAssume((AssumeEdge) pEdge);
       }
     }
 
@@ -115,11 +115,15 @@ class CoverageData {
   }
 
   public void addVisitedFunction(FunctionEntryNode pEntryNode) {
-    FileCoverageInformation infos = getFileInfoTarget(pEntryNode.getFileLocation(), infosPerFile);
-    infos.addVisitedFunction(pEntryNode.getFunctionName(), 1);
+    addVisitedFunction(pEntryNode, 1);
   }
 
-  public Map<String, FileCoverageInformation> getInfosPerFile() {
+  public void addVisitedFunction(FunctionEntryNode pEntryNode, int count) {
+    FileCoverageInformation infos = getFileInfoTarget(pEntryNode.getFileLocation(), infosPerFile);
+    infos.addVisitedFunction(pEntryNode.getFunctionName(), count);
+  }
+
+  Map<String, FileCoverageInformation> getInfosPerFile() {
     return infosPerFile;
   }
 }
