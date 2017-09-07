@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -220,6 +221,11 @@ class ReachedSetCoverageCollector extends CoverageCollector {
 
     // Add information about existing functions
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+      final FileLocation loc = entryNode.getFileLocation();
+      if (loc.getStartingLineNumber() == 0) {
+        // dummy location
+        continue;
+      }
       infosPerFile.putExistingFunction(entryNode);
 
       if (reachedLocations.contains(entryNode)) {
