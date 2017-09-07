@@ -495,75 +495,28 @@ public class DoubleInterval implements NumberInterface {
      * This method should not be used for double!!!
      *
      *
-     * This method performs an arithmetical left shift of the interval bounds.
-     *
      * @param offset
      *            Interval offset to perform an arithmetical left shift on the
      *            interval bounds. If the offset maybe less than zero an unbound
      *            interval is returned.
-     * @return new interval that represents the result of the arithmetical left
-     *         shift
+     * @return Assertion error
      */
     @Override
     public NumberInterface shiftLeft(NumberInterface offset) {
-        // TODO shift for Doubles???
-        // create an unbound interval upon trying to shift by a possibly
-        // negative offset
-        DoubleInterval tempOffset = (DoubleInterval) offset.asDecimal();
-        if (ZERO.mayBeGreaterThan(tempOffset)) {
-            return UNBOUND;
-        } else {
-            // if lower bound is negative, shift it by upper bound of offset,
-            // else by lower bound of offset
-            Long newLow = low
-                    .longValue() << ((low < 0.0) ? tempOffset.getHigh().longValue() : tempOffset.getLow().longValue());
-            // [-1;5] [1,2] -1 << 2 = 2
-            // if upper bound is negative, shift it by lower bound of offset,
-            // else by upper bound of offset
-            Long newHigh = high
-                    .longValue() << ((high < 0.0) ? tempOffset.getLow().longValue() : tempOffset.getHigh().longValue());
-
-            if ((low < 0 && newLow > low) || (high > 0 && newHigh < high)) {
-                return UNBOUND;
-            } else {
-                return new DoubleInterval(newLow.doubleValue(), newHigh.doubleValue());
-            }
-        }
+        throw new AssertionError("trying to perform ShiftLeft on floating point operands");
     }
 
     /**
      * This method should not be used for double!!!
      *
-     *
-     * This method performs an arithmetical right shift of the interval bounds.
-     * If the offset maybe less than zero an unbound interval is returned.
-     *
      * @param offset
      *            Interval offset to perform an arithmetical right shift on the
      *            interval bounds
-     * @return new interval that represents the result of the arithmetical right
-     *         shift
+     * @return Assertion error
      */
     @Override
     public NumberInterface shiftRight(NumberInterface offset) {
-        // create an unbound interval upon trying to shift by a possibly
-        // negative offset
-        DoubleInterval tempOffset = (DoubleInterval) offset.asDecimal();
-        if (ZERO.mayBeGreaterThan(tempOffset)) {
-            return UNBOUND;
-        } else {
-            // if lower bound is negative, shift it by lower bound of offset,
-            // else by upper bound of offset
-            Long newLow = low
-                    .longValue() >> ((low < 0L) ? tempOffset.getLow().longValue() : tempOffset.getHigh().longValue());
-
-            // if upper bound is negative, shift it by upper bound of offset,
-            // else by lower bound of offset
-            Long newHigh = high
-                    .longValue() >> ((high < 0L) ? tempOffset.getHigh().longValue() : tempOffset.getLow().longValue());
-
-            return new DoubleInterval(newLow.doubleValue(), newHigh.doubleValue());
-        }
+        throw new AssertionError("trying to perform ShiftLeft on floating point operands");
     }
 
     /**
