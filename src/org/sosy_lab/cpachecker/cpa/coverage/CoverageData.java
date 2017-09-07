@@ -36,19 +36,7 @@ import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation;
 
 class CoverageData {
 
-  public enum CoverageMode { NONE, REACHED, TRANSFER }
-
-  private final Map<String, FileCoverageInformation> infosPerFile;
-  private final CoverageMode coverageMode;
-
-  public CoverageData(CoverageMode pMode) {
-    this.infosPerFile = new HashMap<>();
-    this.coverageMode = pMode;
-  }
-
-  public CoverageMode getCoverageMode() {
-    return coverageMode;
-  }
+  private final Map<String, FileCoverageInformation> infosPerFile = new HashMap<>();
 
   FileCoverageInformation getFileInfoTarget(
       final FileLocation pLoc,

@@ -23,17 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -42,16 +37,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
@@ -74,25 +61,18 @@ public class CoverageStatistics extends AbstractStatistics {
 
   private final LogManager logger;
   private final CoverageData cov;
-  private final CFA cfa;
 
-  public CoverageStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA, CoverageData pCov)
+  public CoverageStatistics(Configuration pConfig, LogManager pLogger, CoverageData pCov)
       throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
     this.logger = pLogger;
     this.cov = pCov;
-    this.cfa = pCFA;
   }
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-
-    if (cov.getCoverageMode() == CoverageMode.REACHED) {
-      computeCoverageFromReached(pReached);
-    }
-
     if (writeToStdout) {
       CoverageReportStdoutSummary.write(cov.getInfosPerFile(), pOut);
     }
@@ -109,50 +89,6 @@ public class CoverageStatistics extends AbstractStatistics {
 
   @Override
   public String getName() {
-    return String.format("Code Coverage (Mode: %s)", cov.getCoverageMode().toString());
+    return String.format("Code Coverage (Mode: Transfer)");
   }
-
-  public void computeCoverageFromReached(
-      final UnmodifiableReachedSet pReached) {
-
-    Set<CFANode> reachedLocations = getAllLocationsFromReached(pReached);
-
-    //Add information about visited locations
-    for (CFANode node : cfa.getAllNodes()) {
-       //This part adds lines, which are only on edges, such as "return" or "goto"
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        boolean visited = reachedLocations.contains(edge.getPredecessor())
-            && reachedLocations.contains(edge.getSuccessor());
-
-        cov.handleEdgeCoverage(edge, visited);
-      }
-    }
-
-    // Add information about visited functions
-    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
-      if (cov.putExistingFunction(entryNode)) {
-        if (reachedLocations.contains(entryNode)) {
-          cov.addVisitedFunction(entryNode);
-        }
-      }
-    }
-
-  }
-
-  private Set<CFANode> getAllLocationsFromReached(UnmodifiableReachedSet pReached) {
-    if (pReached instanceof ForwardingReachedSet) {
-      pReached = ((ForwardingReachedSet)pReached).getDelegate();
-    }
-
-    if (pReached instanceof LocationMappedReachedSet) {
-      return ((LocationMappedReachedSet)pReached).getLocations();
-
-    } else {
-      return from(pReached)
-                  .transform(EXTRACT_LOCATION)
-                  .filter(notNull())
-                  .toSet();
-    }
-  }
-
 }

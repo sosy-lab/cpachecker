@@ -26,14 +26,11 @@ package org.sosy_lab.cpachecker.cpa.coverage;
 import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.defaults.IdentityTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
@@ -46,9 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 
-@Options
 public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
@@ -65,33 +60,18 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   // STATIC!! only one instance for CPAchecker
   private static CoverageData cov = null;
 
-  @Option(secure=true, name="coverage.mode",
-      description="How should coverage be determined? "
-          + "REACHED: from the final ARG, "
-          + "TRANSFER: from the edges that explored by the transfer relation")
-  private CoverageMode mode = CoverageMode.NONE;
-
   public CoverageCPA(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
-
-    pConfig.inject(this);
-
     domain = new FlatLatticeDomain(CoverageState.getSingleton());
     stop = new StopSepOperator(domain);
     merge = new MergeJoinOperator(domain);
 
-    if (mode != CoverageMode.NONE) {
-      if (cov == null) {
-        cov = new CoverageData(mode);
-      } else {
-        assert cov.getCoverageMode() == mode;
-      }
+    if (cov == null) {
+      cov = new CoverageData();
     }
 
-    transfer = mode == CoverageMode.TRANSFER
-        ? new CoverageTransferRelation(pCFA, cov)
-        : IdentityTransferRelation.INSTANCE;
+    transfer = new CoverageTransferRelation(pCFA, cov);
 
-    stats = new CoverageStatistics(pConfig, pLogger, pCFA, cov);
+    stats = new CoverageStatistics(pConfig, pLogger, cov);
   }
 
   @Override
@@ -121,9 +101,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (cov != null && cov.getCoverageMode() != CoverageMode.NONE) {
-      pStatsCollection.add(stats);
-    }
+    pStatsCollection.add(stats);
   }
 
 }
