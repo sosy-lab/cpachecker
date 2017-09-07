@@ -31,7 +31,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
-import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
+import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonAbstractState;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -48,28 +49,20 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
-    AutomaticCPAFactory factory = AutomaticCPAFactory.forType(CoverageCPA.class);
-    return factory;
+    return AutomaticCPAFactory.forType(CoverageCPA.class);
   }
 
   private final TransferRelation transfer;
   private final AbstractDomain domain;
-  private final MergeOperator merge;
   private final StopOperator stop;
   private final Statistics stats;
 
   // STATIC!! only one instance for CPAchecker
-  private static CoverageData cov = null;
+  private static final CoverageData cov = new CoverageData();
 
   public CoverageCPA(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
-    domain = new FlatLatticeDomain(CoverageState.getSingleton());
+    domain = new FlatLatticeDomain(SingletonAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
-    merge = new MergeJoinOperator(domain);
-
-    if (cov == null) {
-      cov = new CoverageData();
-    }
-
     transfer = new CoverageTransferRelation(pCFA, cov);
 
     stats = new CoverageStatistics(pConfig, pLogger, cov);
@@ -87,7 +80,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    return MergeSepOperator.getInstance();
   }
 
   @Override
@@ -97,7 +90,7 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
-    return CoverageState.getSingleton();
+    return SingletonAbstractState.INSTANCE;
   }
 
   @Override

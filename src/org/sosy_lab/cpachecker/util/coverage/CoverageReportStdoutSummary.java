@@ -39,18 +39,13 @@ public class CoverageReportStdoutSummary {
 
     for (FileCoverageInformation info : pCoverage.getInfosPerFile().values()) {
       numTotalFunctions += info.allFunctions.size();
-      numVisitedFunctions += info.visitedFunctions.size();
+      numVisitedFunctions += info.visitedFunctions.entrySet().size();
 
       numTotalConditions += info.allAssumes.size();
       numVisitedConditions += info.visitedAssumes.size();
 
       numTotalLines += info.allLines.size();
-
-      for (Integer line : info.allLines) {
-        if (info.getVisitedLine(line) > 0) {
-          numVisitedLines += 1;
-        }
-      }
+      numVisitedLines += info.visitedLines.entrySet().size();
     }
 
     if (numTotalFunctions > 0) {

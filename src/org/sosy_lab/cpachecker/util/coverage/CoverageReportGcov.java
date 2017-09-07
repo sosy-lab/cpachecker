@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.coverage;
 
+import com.google.common.collect.Multiset;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Paths;
@@ -57,8 +58,8 @@ public class CoverageReportGcov {
         w.append("#" + FUNCTION + info.lastLine + "\n");
       }
 
-      for (String name : fileInfos.visitedFunctions.keySet()) {
-        w.append(FUNCTIONDATA + fileInfos.visitedFunctions.get(name) + "," + name + "\n");
+      for (Multiset.Entry<String> functionEntry : fileInfos.visitedFunctions.entrySet()) {
+        w.append(FUNCTIONDATA + functionEntry.getCount() + "," + functionEntry.getElement() + "\n");
       }
 
       /* Now save information about lines
