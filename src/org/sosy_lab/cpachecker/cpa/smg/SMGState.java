@@ -220,6 +220,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
     blockEnded = pBlockEnded;
+    noteDescription = pOriginalState.noteDescription;
+    errorDescription = pOriginalState.errorDescription;
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
