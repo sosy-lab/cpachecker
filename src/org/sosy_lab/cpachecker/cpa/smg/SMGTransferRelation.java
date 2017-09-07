@@ -894,8 +894,8 @@ public class SMGTransferRelation
         return msg;
       });
       SMGState newState = pNewState.setInvalidWrite();
-      newState.setErrorDescription("Field (" + pFieldOffset + ", " + pRValueType.toASTString("")
-          + ") does not fit object " + pMemoryOfField);
+      newState.setErrorDescription("Field with type " + pRValueType.toASTString("") + " can't be"
+              + " written at offset " + pFieldOffset + " bit of object " + pMemoryOfField);
       newState.addInvalidObject(pMemoryOfField);
       return newState;
     }

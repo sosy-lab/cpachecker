@@ -1300,7 +1300,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       //Attempt to write to invalid object
       SMGState newState = setInvalidWrite();
-      newState.setErrorDescription("Attempt to write to invalid/deallocate object");
+      newState.setErrorDescription("Attempt to write to invalid/deallocated object");
       return new SMGStateEdgePair(newState);
     }
 

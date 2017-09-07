@@ -95,8 +95,10 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
       throws SMGInconsistentException, UnrecognizedCCodeException {
 
+    SMGState newState = pSmgState.setInvalidRead();
     if (pOffset.isUnknown() || pObject == null) {
-      return SMGValueAndState.of(pSmgState.setInvalidRead());
+      newState.setErrorDescription("Can't evaluate offset or object");
+      return SMGValueAndState.of(newState);
     }
 
     int fieldOffset = pOffset.getAsInt();
@@ -110,8 +112,11 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       logger.log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
            fieldOffset, ", ", pType.toASTString(""), ")",
           " does not fit object ", pObject, ".");
+      newState.setErrorDescription(pEdge.getRawStatement() + ": Field with type \"" +
+          pType.toASTString("") + "\" can't be read from offset " + fieldOffset +
+          " bit of object " + pObject + ".");
 
-      return SMGValueAndState.of(pSmgState.setInvalidRead());
+      return SMGValueAndState.of(newState);
     }
 
     return pSmgState.forceReadValue(pObject, fieldOffset, pType);
