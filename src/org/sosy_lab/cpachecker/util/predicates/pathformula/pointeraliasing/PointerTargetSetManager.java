@@ -580,7 +580,7 @@ class PointerTargetSetManager {
       List<BooleanFormula> constraints = new ArrayList<>();
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final int offset = typeHandler.getBitOffset(compositeType, memberName);
+        final long offset = typeHandler.getBitOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
         if (ssa.getIndex(newPrefix) > 0) {
@@ -679,8 +679,8 @@ class PointerTargetSetManager {
   private static PersistentSortedMap<String, PersistentList<PointerTarget>> addToTarget(final String base,
                          final MemoryRegion region,
                          final @Nullable CType containerType,
-                         final int properOffset,
-                         final int containerOffset,
+                         final long properOffset,
+                         final long containerOffset,
                          final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
                          MemoryRegionManager regionMgr) {
     String regionName = regionMgr.getPointerAccessName(region);
@@ -712,8 +712,8 @@ class PointerTargetSetManager {
       final @Nullable MemoryRegion region,
       final CType cType,
       final @Nullable CType containerType,
-      final int properOffset,
-      final int containerOffset,
+      final long properOffset,
+      final long containerOffset,
       PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentSortedMap<CompositeField, Boolean> fields) {
     checkIsSimplified(cType);
@@ -739,7 +739,7 @@ class PointerTargetSetManager {
       final String type = CTypeUtils.typeToString(compositeType);
       typeHandler.addCompositeTypeToCache(compositeType);
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final int offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
+        final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
         if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration.getType(), memberDeclaration.getName());
           targets = addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);

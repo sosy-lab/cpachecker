@@ -112,18 +112,18 @@ public class SMGJoinFieldsTest {
 
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
 
-    Map<Integer, Pair<Integer, Integer>> fieldMap1 = new HashMap<>();
-    Map<Integer, Pair<Integer, Integer>> fieldMap2 = new HashMap<>();
+    Map<Long, Pair<Integer, Integer>> fieldMap1 = new HashMap<>();
+    Map<Long, Pair<Integer, Integer>> fieldMap2 = new HashMap<>();
 
-    fieldMap1.put(0, Pair.of(0, 32));
-    fieldMap1.put(32, Pair.of(0, 8));
-    fieldMap1.put(64, Pair.of(-1, 64));
-    fieldMap1.put(72, Pair.of(value1, 56));
+    fieldMap1.put(0L, Pair.of(0, 32));
+    fieldMap1.put(32L, Pair.of(0, 8));
+    fieldMap1.put(64L, Pair.of(-1, 64));
+    fieldMap1.put(72L, Pair.of(value1, 56));
 
-    fieldMap2.put(0, Pair.of(100, 32));
-    fieldMap2.put(32, Pair.of(0, 8));
-    fieldMap2.put(64, Pair.of(value2, 64));
-    fieldMap2.put(72, Pair.of(-1, 56));
+    fieldMap2.put(0L, Pair.of(100, 32));
+    fieldMap2.put(32L, Pair.of(0, 8));
+    fieldMap2.put(64L, Pair.of(value2, 64));
+    fieldMap2.put(72L, Pair.of(-1, 56));
 
     checkFields(smg1, fieldMap1, obj1);
     checkFields(smg2, fieldMap2, obj2);
@@ -131,7 +131,7 @@ public class SMGJoinFieldsTest {
 
   }
 
-  private void checkFields(SMG pSmg, Map<Integer, Pair<Integer, Integer>> pFieldMap, SMGObject pObj) {
+  private void checkFields(SMG pSmg, Map<Long, Pair<Integer, Integer>> pFieldMap, SMGObject pObj) {
 
     SMGEdgeHasValueFilter filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
     Set<SMGEdgeHasValue> edges = pSmg.getHVEdges(filterOnSMG);
@@ -140,7 +140,7 @@ public class SMGJoinFieldsTest {
 
     for (SMGEdgeHasValue edge : edges) {
 
-      int offset = edge.getOffset();
+      long offset = edge.getOffset();
 
       assertThat(pFieldMap).containsKey(offset);
 
@@ -238,7 +238,7 @@ public class SMGJoinFieldsTest {
     for (SMGEdgeHasValue hv : hvSet) {
       assertThat(hv.getValue()).isEqualTo(SMG.NULL_ADDRESS);
       assertThat(hv.getObject()).isSameAs(obj1);
-      assertThat(hv.getOffset()).isAnyOf(112, 144);
+      assertThat(hv.getOffset()).isAnyOf(112L, 144L);
       if (hv.getOffset() == 112) {
         assertThat(hv.getSizeInBits(MachineModel.LINUX64)).isEqualTo(16);
       } else {
@@ -327,7 +327,7 @@ public class SMGJoinFieldsTest {
       } else if (edge.getOffset() == 16) {
         seenTwo = true;
       }
-      assertThat(edge.getOffset()).isAnyOf(0, 16);
+      assertThat(edge.getOffset()).isAnyOf(0L, 16L);
       assertThat(edge.getType()).isEqualTo(mockType4b);
       assertThat(values).doesNotContain(Integer.valueOf(edge.getValue()));
       values.add(Integer.valueOf(edge.getValue()));

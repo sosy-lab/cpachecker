@@ -42,9 +42,9 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 public abstract class SMGEdge {
   final protected int value;
   final protected SMGObject object;
-  private final int offset;
+  private final long offset;
 
-  SMGEdge(int pValue, SMGObject pObject, int pOffset) {
+  SMGEdge(int pValue, SMGObject pObject, long pOffset) {
     value = pValue;
     object = pObject;
     offset = pOffset;
@@ -58,7 +58,7 @@ public abstract class SMGEdge {
     return object;
   }
 
-  public int getOffset() {
+  public long getOffset() {
     return offset;
   }
 

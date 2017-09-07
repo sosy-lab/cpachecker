@@ -111,7 +111,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
 
     for (SMGEdgeHasValue hveNext : hvesOfObject) {
 
-      int nfo = hveNext.getOffset();
+      long nfo = hveNext.getOffset();
       CType nfoType = hveNext.getType();
       int nextPointer = hveNext.getValue();
 
@@ -120,7 +120,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
       }
 
       SMGEdgePointsTo nextPointerEdge = pSmg.getPointer(nextPointer);
-      int hfo = nextPointerEdge.getOffset();
+      long hfo = nextPointerEdge.getOffset();
       SMGTargetSpecifier nextPointerTg = nextPointerEdge.getTargetSpecifier();
 
       if (!(nextPointerTg == SMGTargetSpecifier.REGION
@@ -154,7 +154,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
 
       for (SMGEdgeHasValue hvePrev : nextObjectHves) {
 
-        int pfo = hvePrev.getOffset();
+        long pfo = hvePrev.getOffset();
         CType pfoType = hvePrev.getType();
         int prevPointer = hvePrev.getValue();
 
@@ -223,9 +223,9 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
       startTraversal(nextObject, pSmg, pSmgState, pProgress);
     }
 
-    Integer nfo = pPrevCandidate.getShape().getNfo();
-    Integer pfo = pPrevCandidate.getShape().getPfo();
-    Integer hfo = pPrevCandidate.getShape().getHfo();
+    Long nfo = pPrevCandidate.getShape().getNfo();
+    Long pfo = pPrevCandidate.getShape().getPfo();
+    Long hfo = pPrevCandidate.getShape().getHfo();
 
     SMGDoublyLinkedListCandidate candidate;
 
@@ -413,7 +413,7 @@ public class SMGDoublyLinkedListFinder implements SMGAbstractionFinder {
     return true;
   }
 
-  private void getSubSmgOf(SMGObject pObject, int nfo, int pfo, CLangSMG inputSmg,
+  private void getSubSmgOf(SMGObject pObject, long nfo, long pfo, CLangSMG inputSmg,
       Set<Integer> pValues, Set<SMGObject> pObjects) {
 
     Set<SMGObject> toBeChecked = new HashSet<>();

@@ -35,7 +35,7 @@ public class SMGDoublyLinkedListCandidate extends SMGListCandidate<SMGDoublyLink
   private final CType pfoType;
   private final CType nfoType;
 
-  public SMGDoublyLinkedListCandidate(SMGObject pObject, int pHfo, int pPfo, int pNfo,
+  public SMGDoublyLinkedListCandidate(SMGObject pObject, long pHfo, long pPfo, long pNfo,
       CType pPfoType, CType nNfoType, MachineModel pModel) {
     super(pObject, pModel, new SMGDoublyLinkedListShape(pHfo, pPfo, pNfo));
     pfoType = pPfoType;

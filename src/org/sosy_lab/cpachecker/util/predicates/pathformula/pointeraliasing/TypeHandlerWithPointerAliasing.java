@@ -58,7 +58,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * modifiable integers instead of the immutable Integer class.
    */
   private final Multiset<CCompositeType> sizes = HashMultiset.create();
-  private final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
+  private final Map<CCompositeType, HashMap<String, Long>> offsets = new HashMap<>();
 
   public TypeHandlerWithPointerAliasing(LogManager pLogger, MachineModel pMachineModel,
       FormulaEncodingWithPointerAliasingOptions pOptions) {
@@ -139,16 +139,16 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * @param memberName The name of the member of the composite type.
    * @return The offset of the member in the composite type in bits.
    */
-  int getBitOffset(CCompositeType compositeType, final String memberName) {
+  long getBitOffset(CCompositeType compositeType, final String memberName) {
     checkIsSimplified(compositeType);
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-    Multiset<String> multiset = offsets.get(compositeType);
+    HashMap<String, Long> multiset = offsets.get(compositeType);
     if (multiset == null) {
       addCompositeTypeToCache(compositeType);
       multiset = offsets.get(compositeType);
       assert multiset != null : "Failed adding composite type to cache: " + compositeType;
     }
-    return multiset.count(memberName);
+    return multiset.get(memberName);
   }
 
   /**
@@ -170,14 +170,14 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     assert compositeType.getKind() != ComplexTypeKind.ENUM
         : "Enums are not composite: " + compositeType;
 
-    final Multiset<String> members = HashMultiset.create();
-    int offset = 0;
-    int bitFieldsSize = 0;
+    final HashMap<String, Long> members = new HashMap<>();
+    long offset = 0;
+    long bitFieldsSize = 0;
     Iterator<CCompositeTypeMemberDeclaration> memberIt = compositeType.getMembers().iterator();
     while (memberIt.hasNext()) {
       final CCompositeTypeMemberDeclaration memberDeclaration = memberIt.next();
-      int bitPreciseOffset = offset * sizeOfByte + bitFieldsSize;
-      members.setCount(memberDeclaration.getName(), bitPreciseOffset);
+      long bitPreciseOffset = offset * sizeOfByte + bitFieldsSize;
+      members.put(memberDeclaration.getName(), bitPreciseOffset);
       final CType memberType = getSimplifiedType(memberDeclaration);
       final CCompositeType memberCompositeType;
       if (memberType instanceof CCompositeType) {
@@ -215,7 +215,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
             if (memberSize == 0) {
               bitFieldsSize =
-                  machineModel.calculatePaddedBitsize(0, bitFieldsSize, innerType, sizeOfByte);
+                  machineModel.calculatePaddedBitsize(0L, bitFieldsSize, innerType, sizeOfByte);
             } else {
               bitFieldsSize =
                   machineModel.calculateNecessaryBitfieldOffset(

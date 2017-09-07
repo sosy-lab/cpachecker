@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -257,7 +257,7 @@ public class SMGExpressionEvaluator {
       throws UnrecognizedCCodeException {
 
     List<CCompositeTypeMemberDeclaration> membersOfType = pOwnerType.getMembers();
-    OptionalInt offset = OptionalInt.empty();
+    OptionalLong offset = OptionalLong.empty();
     CType resultType = pOwnerType;
 
     CSizeOfVisitor sizeofVisitor = getSizeOfVisitor(pEdge, pState, Optional.of(pExpression));
@@ -277,7 +277,7 @@ public class SMGExpressionEvaluator {
 
     SMGExplicitValue smgValue = null;
     if (offset.isPresent() && !resultType.equals(pOwnerType)) {
-      smgValue = SMGKnownExpValue.valueOf(offset.getAsInt());
+      smgValue = SMGKnownExpValue.valueOf(offset.getAsLong());
       resultType = getRealExpressionType(resultType);
     } else {
       smgValue = SMGUnknownValue.getInstance();

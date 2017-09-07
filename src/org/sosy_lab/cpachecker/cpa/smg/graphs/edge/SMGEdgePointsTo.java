@@ -40,7 +40,7 @@ public class SMGEdgePointsTo extends SMGEdge {
 
   private final SMGTargetSpecifier tg;
 
-  public SMGEdgePointsTo(int pValue, SMGObject pObject, int pOffset) {
+  public SMGEdgePointsTo(int pValue, SMGObject pObject, long pOffset) {
     this(
         pValue,
         pObject,
@@ -48,7 +48,7 @@ public class SMGEdgePointsTo extends SMGEdge {
         pObject instanceof SMGRegion ? SMGTargetSpecifier.REGION : SMGTargetSpecifier.UNKNOWN);
   }
 
-  public SMGEdgePointsTo(int pValue, SMGObject pObject, int pOffset, SMGTargetSpecifier pTg) {
+  public SMGEdgePointsTo(int pValue, SMGObject pObject, long pOffset, SMGTargetSpecifier pTg) {
     super(pValue, pObject, pOffset);
     tg = pTg;
   }

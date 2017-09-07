@@ -32,7 +32,7 @@ public class SMGEdgeHasValueTemplate extends SMGEdgeTemplate
 
   public SMGEdgeHasValueTemplate(SMGObjectTemplate pAbstractObject,
       int pAbstractValue,
-      int pOffset,
+      long pOffset,
       CType pType) {
     super(pAbstractObject, pAbstractValue, pOffset);
     type = pType;

@@ -28,7 +28,7 @@ import static com.google.common.truth.Truth8.assertThat;
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
-import java.util.OptionalInt;
+import java.util.OptionalLong;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -147,7 +147,7 @@ public class MachineModelGetOffsetTest {
   @Test
   public void testFailingGetFieldOffsetInStructDueToIntermediateIncompleteType() {
     assertThat(model.getFieldOffsetInBits(BOUND_TO_FAIL_STRUCT, testField))
-        .isAnyOf(OptionalInt.of(0), OptionalInt.empty());
+        .isAnyOf(OptionalLong.of(0), OptionalLong.empty());
     // Offset-calculation does not fail, if we lookup a field in front of
     // an erroneous intermediately inserted incomplete type.
     //

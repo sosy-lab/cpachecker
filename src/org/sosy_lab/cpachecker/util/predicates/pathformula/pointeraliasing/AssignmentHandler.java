@@ -582,7 +582,7 @@ class AssignmentHandler {
       result = bfmgr.makeTrue();
       for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
         final String memberName = memberDeclaration.getName();
-        final int offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
+        final long offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
         final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
         // Optimizing away the assignments from uninitialized fields
         if (conv.isRelevantField(lvalueCompositeType, memberName)
@@ -1051,7 +1051,7 @@ class AssignmentHandler {
    */
   private Pair<? extends Location, CType> shiftCompositeLvalue(final CType lvalueType,
                                                                final Location lvalue,
-                                                               final int offset,
+                                                               final long offset,
                                                                final String memberName,
                                                                final CType memberType) {
     final CType newLvalueType = checkIsSimplified(memberType);
@@ -1081,7 +1081,7 @@ class AssignmentHandler {
    * @return A tuple of expression and type after the shift.
    */
   private Pair<? extends Expression, CType> shiftCompositeRvalue(final Expression rvalue,
-                                                                 final int offset,
+                                                                 final long offset,
                                                                  final String memberName,
                                                                  final CType rvalueType,
                                                                  final CType memberType) {
