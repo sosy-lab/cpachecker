@@ -985,10 +985,6 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 # mergeType
 cpa.bdd.merge = "join"
 
-# Threshold for unrolling blocks before stopping. A value of 0 disables the
-# threshold.
-cpa.blockcount.threshold = 1
-
 # depth of recursion bound
 cpa.callstack.depth = 0
 
