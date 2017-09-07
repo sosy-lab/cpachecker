@@ -1200,6 +1200,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       throws SMGInconsistentException {
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       SMGState newState = setInvalidRead();
+      newState.setErrorDescription("Try to read from freed/invalid object " + pObject);
       return SMGValueAndState.of(newState);
     }
 
