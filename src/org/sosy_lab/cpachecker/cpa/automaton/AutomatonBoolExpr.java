@@ -31,8 +31,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
@@ -62,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -747,17 +751,23 @@ interface AutomatonBoolExpr extends AutomatonExpression {
           FunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
           AFunctionCall call = summaryEdge.getExpression();
           if (call instanceof AFunctionCallAssignmentStatement) {
+            Iterable<? extends CFAEdge> potentialFurtherMatches =
+                CFAUtils.enteringEdges(summaryEdge.getSuccessor())
+                .filter(e ->
+                    (e instanceof AStatementEdge && call.equals(((AStatementEdge) e).getStatement()))
+                 || (e instanceof FunctionReturnEdge && summaryEdge.equals(((FunctionReturnEdge) e).getSummaryEdge())));
             leavingEdges = Iterables.concat(
                 leavingEdges,
-                CFAUtils.enteringEdges(summaryEdge.getSuccessor())
-                  .filter(AStatementEdge.class)
-                  .filter(statementEdge -> call.equals(statementEdge.getStatement())));
+                potentialFurtherMatches);
           }
         }
       }
       if (Iterables.isEmpty(leavingEdges)) {
         return CONST_FALSE;
       }
+
+      leavingEdges = skipSplitDeclarationEdges(leavingEdges, pArgs);
+
       ResultValue<Boolean> result = null;
       for (CFAEdge successorEdge : leavingEdges) {
         result = operandExpression.eval(
@@ -773,6 +783,25 @@ interface AutomatonBoolExpr extends AutomatonExpression {
       }
       assert result != null;
       return result;
+    }
+
+    private Collection<CFAEdge> skipSplitDeclarationEdges(
+        Iterable<CFAEdge> pEdges, AutomatonExpressionArguments pArgs) throws CPATransferException {
+      List<CFAEdge> edges = new ArrayList<>();
+      for (CFAEdge edge : pEdges) {
+        if (CONST_TRUE.equals(MatchSplitDeclaration.INSTANCE.eval(
+            new AutomatonExpressionArguments(
+                pArgs.getState(),
+                pArgs.getAutomatonVariables(),
+                pArgs.getAbstractStates(),
+                edge,
+                pArgs.getLogger())))) {
+          edges.addAll(skipSplitDeclarationEdges(CFAUtils.leavingEdges(edge.getSuccessor()), pArgs));
+        } else {
+          edges.add(edge);
+        }
+      }
+      return edges;
     }
 
     @Override
@@ -822,13 +851,25 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         } else if (decl instanceof AVariableDeclaration) {
           AVariableDeclaration varDecl = (AVariableDeclaration) decl;
           CFANode successor = edge.getSuccessor();
-          Iterator<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(successor).iterator();
+          Iterator<CFAEdge> leavingEdges = CFAUtils.leavingEdges(successor).iterator();
           if (!leavingEdges.hasNext()) {
             return CONST_FALSE;
           }
           CFAEdge successorEdge = leavingEdges.next();
           if (leavingEdges.hasNext()) {
-            return CONST_FALSE;
+            CFAEdge alternativeSuccessorEdge = leavingEdges.next();
+            if (leavingEdges.hasNext()) {
+              return CONST_FALSE;
+            } else if (successorEdge instanceof FunctionCallEdge
+                && alternativeSuccessorEdge instanceof CFunctionSummaryStatementEdge) {
+              successorEdge = alternativeSuccessorEdge;
+            } else if (successorEdge instanceof CFunctionSummaryStatementEdge
+                && alternativeSuccessorEdge instanceof FunctionCallEdge) {
+              // nothing to do
+            }
+            else {
+              return CONST_FALSE;
+            }
           }
           if (successorEdge instanceof AStatementEdge) {
             AStatementEdge statementEdge = (AStatementEdge) successorEdge;
