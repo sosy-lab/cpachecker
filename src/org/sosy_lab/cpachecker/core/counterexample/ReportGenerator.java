@@ -31,6 +31,7 @@ import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -154,14 +155,10 @@ public class ReportGenerator {
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
         fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
-        console.println("Graphical representation included in the \".\\" + reportFile.getParent().getName(1) + "\\" + reportFile.getFileName() + "\" file.");
+        console.println("Graphical representation included in the file \"" + reportFile + "\".");
       }
 
     } else {
-      StringBuilder counterExFiles = new StringBuilder();
-      counterExFiles.append("Graphical representation included in the \".\\");
-      counterExFiles.append(counterExampleFiles.getPath(1).getParent().getName(1));
-      counterExFiles.append("\\");
       for (CounterexampleInfo counterExample : counterExamples) {
         fillOutTemplate(
             counterExample,
@@ -169,12 +166,19 @@ public class ReportGenerator {
             pCfa,
             dotBuilder,
             pStatistics);
-        counterExFiles.append(counterExampleFiles.getPath(counterExample.getUniqueId()).getFileName());
-        counterExFiles.append("\"");
-        counterExFiles.append(" ");
       }
-      String info = counterExamples.size() > 1 ? "files." : "file.";
-      counterExFiles.append(info);
+
+      StringBuilder counterExFiles = new StringBuilder();
+      counterExFiles.append("Graphical representation included in the file");
+      if (counterExamples.size() > 1) {
+        counterExFiles.append('s');
+      }
+      counterExFiles.append(" \"");
+      Joiner.on("\", \"")
+          .appendTo(
+              counterExFiles,
+              counterExamples.transform(cex -> counterExampleFiles.getPath(cex.getUniqueId())));
+      counterExFiles.append("\".");
       console.println(counterExFiles.toString());
     }
   }
