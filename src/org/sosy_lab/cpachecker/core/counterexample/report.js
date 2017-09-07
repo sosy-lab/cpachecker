@@ -887,12 +887,12 @@ function init() {
                         graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, "" + source + target + sourceGraph), id: "cfa-edge_" + source + "-" + target, class: edgeClassDecider(edge, source, "" + source + target + sourceGraph), style: "stroke-dasharray: 5, 5;"});
                     }
                     graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy"});
-                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: "split edge", labelStyle: "font-size: 12px;", id: "cfa-split-edge_"+ source + "-" + target , class: "cfa-split-edge", style: "stroke-dasharray: 5, 5;"});
+                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: "", labelStyle: "font-size: 12px;", id: "cfa-split-edge_"+ source + "-" + target , class: "cfa-split-edge", style: "stroke-dasharray: 5, 5;"});
                 } else if (sourceGraph > targetGraph) {
                     graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "cfa-dummy", id: "dummy-" + target});
                     graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: edge.stmt, labelStyle: labelStyleDecider(edge, "" + source + target + sourceGraph, source), id:"cfa-edge_" + source + "-" + target, class: edgeClassDecider(edge, "" + source + target + sourceGraph, source), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
                     graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy", id: "node" + source});
-                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: "split edge", labelStyle: "font-size: 12px;", id:"cfa-split-edge_" + source + "-" + target, class: "cfa-split-edge", arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
+                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: "", labelStyle: "font-size: 12px;", id:"cfa-split-edge_" + source + "-" + target, class: "cfa-split-edge", arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
                 }
             });
         }
@@ -1265,12 +1265,12 @@ function init() {
             				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
             				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
             				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-            				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+            				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
             			} else if (sourceGraph > targetGraph) {
             				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
             				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
             				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-            				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+            				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
             			}
         			} else {
             			sourceGraph = getGraphForNode(edge.source);
@@ -1279,12 +1279,12 @@ function init() {
                 			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
                 			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
                 			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-                			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+                			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
             			} else if (sourceGraph > targetGraph) {
             				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
             				graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
             				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-            				graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+            				graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
             			}
         			}
         		});
@@ -1545,7 +1545,7 @@ function init() {
 			var selection = d3.select("#cfa-node" + d3.select(this).attr("id").split("-")[1]);
 			selection.classed("marked-cfa-node", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 		})
 		d3.selectAll(".cfa-edge")
 			.on("mouseover", function(d) { 
@@ -1587,7 +1587,7 @@ function init() {
 				var selection = d3.select("#cfa-edge_" + edgeSourceTarget.split("-")[0] + "-" + edgeSourceTarget.split("-")[1]);
 				selection.classed("marked-cfa-edge", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
+				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 			})
 	}
 	
@@ -1654,7 +1654,7 @@ function init() {
 				var selection = d3.select("#arg-node" + d3.select(this).attr("id").split("-")[1]);
 				selection.classed("marked-arg-node", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft());
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 			});
 		d3.selectAll(".arg-edge")
 			.on("mouseover", function(d) {
@@ -1686,7 +1686,7 @@ function init() {
 				var selection = d3.select("#arg-edge" + edgeSourceTarget.split("-")[0] + edgeSourceTarget.split("-")[1]);
 				selection.classed("marked-arg-edge", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft());
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 			});
 	}
 	
