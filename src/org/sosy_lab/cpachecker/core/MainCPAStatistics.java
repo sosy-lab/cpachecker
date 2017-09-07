@@ -285,8 +285,7 @@ class MainCPAStatistics implements Statistics {
       printSubStatistics(out, result, reached);
 
       if (exportCoverage && cfa != null) {
-        CoverageData infosPerFile =
-            CoverageCollector.fromReachedSet(reached, cfa).collectCoverage();
+        CoverageData infosPerFile = CoverageCollector.fromReachedSet(reached, cfa);
 
         out.println("Code Coverage");
         out.println("-----------------------------");

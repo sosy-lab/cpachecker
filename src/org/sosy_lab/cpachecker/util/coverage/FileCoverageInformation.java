@@ -60,8 +60,8 @@ class FileCoverageInformation {
     allAssumes.add(pEdge);
   }
 
-  void addVisitedFunction(String pName, int pCount) {
-    visitedFunctions.add(pName, pCount);
+  void addVisitedFunction(String pName) {
+    visitedFunctions.add(pName);
   }
 
   void addExistingFunction(String pName, int pFirstLine, int pLastLine) {

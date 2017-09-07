@@ -26,37 +26,20 @@ package org.sosy_lab.cpachecker.cpa.coverage;
 import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Collections;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
 public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
   private final CoverageData cov;
 
-  public CoverageTransferRelation(CFA pCFA, CoverageData pCov) {
+  public CoverageTransferRelation(CoverageData pCov) {
     cov = Preconditions.checkNotNull(pCov);
-
-    // ------------ Existing lines ----------------
-    for (CFANode node : pCFA.getAllNodes()) {
-      // This part adds lines, which are only on edges, such as "return" or "goto"
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        cov.handleEdgeCoverage(edge, false);
-      }
-    }
-
-    // ------------ Existing functions -------------
-    for (FunctionEntryNode entryNode : pCFA.getAllFunctionHeads()) {
-      cov.putExistingFunction(entryNode);
-    }
-
   }
 
   @Override
@@ -70,7 +53,7 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
 
   private void handleEdge(CFAEdge pEdge) {
 
-    cov.handleEdgeCoverage(pEdge, true);
+    cov.addVisitedEdge(pEdge);
 
     if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
       cov.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());

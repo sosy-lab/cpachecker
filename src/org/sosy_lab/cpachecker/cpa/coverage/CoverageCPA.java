@@ -61,9 +61,11 @@ public class CoverageCPA implements ConfigurableProgramAnalysis, StatisticsProvi
   private static final CoverageData cov = new CoverageData();
 
   public CoverageCPA(Configuration pConfig, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+    cov.putCFA(pCFA);
+
     domain = new FlatLatticeDomain(SingletonAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
-    transfer = new CoverageTransferRelation(pCFA, cov);
+    transfer = new CoverageTransferRelation(cov);
 
     stats = new CoverageStatistics(pConfig, pLogger, cov);
   }
