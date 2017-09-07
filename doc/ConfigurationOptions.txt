@@ -745,11 +745,7 @@ counterexample.removeInfeasibleErrors = false
 coverage.enabled = true
 
 # print coverage info to file
-coverage.export = true
 coverage.file = "coverage.info"
-
-# print coverage summary to stdout
-coverage.stdout = true
 
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()

@@ -47,14 +47,6 @@ import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 @Options
 public class CoverageStatistics extends AbstractStatistics {
 
-  @Option(secure=true, name="coverage.stdout",
-      description="print coverage summary to stdout")
-  private boolean writeToStdout = true;
-
-  @Option(secure=true, name="coverage.export",
-      description="print coverage info to file")
-  private boolean writeToFile = true;
-
   @Option(secure=true, name="coverage.file",
       description="print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -74,18 +66,15 @@ public class CoverageStatistics extends AbstractStatistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    if (writeToStdout) {
-      CoverageReportStdoutSummary.write(cov, pOut);
-    }
+    CoverageReportStdoutSummary.write(cov, pOut);
 
-    if (writeToFile && outputCoverageFile != null) {
+    if (outputCoverageFile != null) {
       try (Writer w = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
         CoverageReportGcov.write(cov, w);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
       }
     }
-
   }
 
   @Override
