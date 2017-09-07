@@ -1257,15 +1257,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     // If the value represents an address, and the address is known,
     // add the necessary points-To edge.
     if (pValue instanceof SMGAddressValue) {
-      if (!containsValue(value)) {
-        SMGAddress address = ((SMGAddressValue) pValue).getAddress();
+      SMGAddress address = ((SMGAddressValue) pValue).getAddress();
 
-        if (!address.isUnknown()) {
-          addPointsToEdge(
-              address.getObject(),
-              address.getOffset().getAsLong(),
-              value);
-        }
+      if (!address.isUnknown()) {
+        addPointsToEdge(
+            address.getObject(),
+            address.getOffset().getAsLong(),
+            value);
       }
     }
 
