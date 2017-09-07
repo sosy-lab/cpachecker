@@ -172,6 +172,7 @@
         		var prevId = parseInt(selection.attr("id").substring("errpath-".length)) - 1;
         		selection.classed("clickedErrPathElement", false);
         		d3.select("#errpath-" + prevId).classed("clickedErrPathElement", true);
+        		$("#value-assignment").scrollTop($("#value-assignment").scrollTop() - 18);
         		markErrorPathElementInTab("Prev", prevId);
         	}
         };
@@ -179,6 +180,7 @@
         $scope.errPathStartClicked = function() {
         	d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
         	d3.select("#errpath-0").classed("clickedErrPathElement", true);
+        	$("#value-assignment").scrollTop(0);
         	markErrorPathElementInTab("Start", 0);
         };
         
@@ -188,6 +190,7 @@
         		var nextId = parseInt(selection.attr("id").substring("errpath-".length)) + 1;
         		selection.classed("clickedErrPathElement", false);
         		d3.select("#errpath-" + nextId).classed("clickedErrPathElement", true);
+            	$("#value-assignment").scrollTop($("#value-assignment").scrollTop() + 18);
         		markErrorPathElementInTab("Next", nextId);
         	}
         };

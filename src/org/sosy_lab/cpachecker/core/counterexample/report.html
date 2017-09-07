@@ -80,7 +80,7 @@
         <p class="markedDescriptions">Matches in edge-description: {{numOfDescriptionMatches}}</p>
       </div>
     </header>
-	<div class="fileContent" ng-controller="ValueAssignmentsController">
+	<div class="fileContent" ng-controller="ValueAssignmentsController" id="value-assignment">
       <table id="err-table">
         <tr id="errpath-{{$index}}" ng-repeat="line in errorPath">
           <td ng-click="showValues($event)" data-toggle="popover" data-placement="right"
