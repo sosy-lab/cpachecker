@@ -60,7 +60,8 @@ public class SMGOptions {
 
   public static enum UnknownFunctionHandling {
     STRICT,
-    ASSUME_SAFE
+    ASSUME_SAFE,
+    ASSUME_EXTERNAL_ALLOCATED
   }
 
   @Option(

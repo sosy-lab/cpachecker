@@ -2088,7 +2088,7 @@ cpa.smg.handleNonFreedMemoryInMainAsMemLeak = false
 
 # Sets how unknown functions are handled.
 cpa.smg.handleUnknownFunctions = STRICT
-  enum:     [STRICT, ASSUME_SAFE]
+  enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
 # Memory allocation functions
 cpa.smg.memoryAllocationFunctions = {"malloc"}

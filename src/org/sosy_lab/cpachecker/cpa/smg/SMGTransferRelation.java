@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.AssumeVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.LValueAssignmentVisitor;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
@@ -694,11 +695,13 @@ public class SMGTransferRelation
 
       } else {
         switch (options.getHandleUnknownFunctions()) {
-        case STRICT:
-          throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
+          case STRICT:
+            throw new CPATransferException("Unknown function '" + functionName + "' may be unsafe. See the cpa.smg.handleUnknownFunction option.");
           case ASSUME_SAFE:
             return ImmutableList.of(state);
-        default:
+          case ASSUME_EXTERNAL_ALLOCATED:
+            return handleSafeExternFuction(cFCExpression, state, pCfaEdge).asSMGStateList();
+          default:
           throw new AssertionError("Unhandled enum value in switch: " + options.getHandleUnknownFunctions());
         }
       }
@@ -867,6 +870,36 @@ public class SMGTransferRelation
     }
 
     return pNewState;
+  }
+  public SMGAddressValueAndStateList handleSafeExternFuction(CFunctionCallExpression pFunctionCallExpression,
+      SMGState pSmgState, CFAEdge pCfaEdge) throws CPATransferException {
+    String functionName = pFunctionCallExpression.getFunctionNameExpression().toString();
+    List<CExpression> parameters = pFunctionCallExpression.getParameterExpressions();
+    for (int i = 0; i < parameters.size(); i++) {
+      CExpression param = parameters.get(i);
+      CType paramType = expressionEvaluator.getRealExpressionType(param);
+      if (paramType instanceof CPointerType || paramType instanceof CArrayType) {
+        //assign external value to param
+        SMGAddressValueAndStateList addressOfFieldAndStates = expressionEvaluator.evaluateAddress(pSmgState, pCfaEdge, param);
+        for (SMGAddressAndState addressOfFieldAndState : addressOfFieldAndStates.asAddressAndStateList()) {
+          SMGAddress smgAddress = addressOfFieldAndState.getObject();
+          if (!smgAddress.isUnknown() && !smgAddress.getObject().equals(SMGNullObject.INSTANCE) &&
+              smgAddress.getObject().getSize() >= machineModel.getBitSizeofPtr()) {
+            SMGAddressValue newParamValue = pSmgState.addExternalAllocation(
+                functionName + "_Param_No_" + i + "_ID" + SMGValueFactory.getNewValue());
+            pSmgState = assignFieldToState(pSmgState, pCfaEdge, smgAddress.getObject(),
+                smgAddress.getOffset().getAsLong(), newParamValue, paramType);
+          }
+        }
+      }
+    }
+
+    CType returnValueType = expressionEvaluator.getRealExpressionType(pFunctionCallExpression.getExpressionType());
+    if (returnValueType instanceof CPointerType || returnValueType instanceof CArrayType) {
+      SMGAddressValue returnValue = pSmgState.addExternalAllocation(functionName + SMGValueFactory.getNewValue());
+      return SMGAddressValueAndStateList.of(SMGAddressValueAndState.of(pSmgState, returnValue));
+    }
+    return SMGAddressValueAndStateList.of(pSmgState);
   }
 
   SMGState writeValue(SMGState pNewState, SMGObject pMemoryOfField, long pFieldOffset,
