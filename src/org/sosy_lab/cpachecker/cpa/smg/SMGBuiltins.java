@@ -174,7 +174,7 @@ public class SMGBuiltins {
 
     SMGObject bufferMemory =  bufferAddress.getObject();
 
-    int offset =  bufferAddress.getOffset().getAsInt();
+    long offset =  bufferAddress.getOffset().getAsLong();
 
     if (ch.equals(SMGKnownSymValue.ZERO)) {
       // Create one large edge
@@ -623,15 +623,20 @@ public class SMGBuiltins {
     SMGObject source = sourceStr2Address.getObject();
     SMGObject target = targetStr1Address.getObject();
 
-    int sourceRangeOffset = sourceStr2Address.getOffset().getAsInt();
-    int sourceRangeSize = sizeValue.getAsInt() * machineModel.getSizeofCharInBits() + sourceRangeOffset;
-    int targetRangeOffset = targetStr1Address.getOffset().getAsInt();
+    long sourceOffset = sourceStr2Address.getOffset().getAsLong();
+    long sourceLastCopyBitOffset = sizeValue.getAsLong() * machineModel.getSizeofCharInBits() +
+        sourceOffset;
+    long targetOffset = targetStr1Address.getOffset().getAsLong();
 
-    if (sourceRangeSize > source.getSize() - sourceRangeOffset) {
+    if (sourceLastCopyBitOffset > source.getSize()) {
       currentState = currentState.setInvalidRead();
       currentState.setErrorDescription("Overread on memcpy");
+    } else if(targetOffset > target.getSize() - (sizeValue.getAsLong() * machineModel
+        .getSizeofCharInBits())) {
+      currentState = currentState.setInvalidWrite();
+      currentState.setErrorDescription("Overwrite on memcpy");
     } else {
-      currentState.copy(source, target, sourceRangeOffset, sourceRangeSize, targetRangeOffset);
+      currentState.copy(source, target, sourceOffset, sourceLastCopyBitOffset, targetOffset);
     }
 
     return SMGAddressValueAndState.of(currentState, targetStr1Address);

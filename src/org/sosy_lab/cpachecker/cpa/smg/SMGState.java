@@ -1786,37 +1786,37 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   /**
    * Copys (shallow) the hv-edges of source in the given source range
    * to the target at the given target offset. Note that the source
-   * range (pSourceRangeSize - pSourceRangeOffset) has to fit into
-   * the target range ( size of pTarget - pTargetRangeOffset).
-   * Also, pSourceRangeOffset has to be less or equal to the size
+   * range (pSourceLastCopyBitOffset - pSourceOffset) has to fit into
+   * the target range ( size of pTarget - pTargetOffset).
+   * Also, pSourceOffset has to be less or equal to the size
    * of the source Object.
    *
    * This method is mainly used to assign struct variables.
    *
    * @param pSource the SMGObject providing the hv-edges
    * @param pTarget the target of the copy process
-   * @param pTargetRangeOffset begin the copy of source at this offset
-   * @param pSourceRangeSize the size of the copy of source (not the size of the copy, but the size to the last bit of the source which should be copied).
-   * @param pSourceRangeOffset insert the copy of source into target at this offset
+   * @param pTargetOffset begin the copy of source at this offset
+   * @param pSourceLastCopyBitOffset the size of the copy of source (not the size of the copy, but the size to the last bit of the source which should be copied).
+   * @param pSourceOffset insert the copy of source into target at this offset
    * @throws SMGInconsistentException thrown if the copying leads to an inconsistent SMG.
    */
-  public SMGState copy(SMGObject pSource, SMGObject pTarget, long pSourceRangeOffset,
-      long pSourceRangeSize, long pTargetRangeOffset) throws SMGInconsistentException {
+  public SMGState copy(SMGObject pSource, SMGObject pTarget, long pSourceOffset,
+      long pSourceLastCopyBitOffset, long pTargetOffset) throws SMGInconsistentException {
 
     SMGState newSMGState = this;
 
-    long copyRange = pSourceRangeSize - pSourceRangeOffset;
+    long copyRange = pSourceLastCopyBitOffset - pSourceOffset;
 
-    assert pSource.getSize() >= pSourceRangeSize;
-    assert pSourceRangeOffset >= 0;
-    assert pTargetRangeOffset >= 0;
+    assert pSource.getSize() >= pSourceLastCopyBitOffset;
+    assert pSourceOffset >= 0;
+    assert pTargetOffset >= 0;
     assert copyRange >= 0;
     assert copyRange <= pTarget.getSize();
 
     // If copy range is 0, do nothing
     if (copyRange == 0) { return newSMGState; }
 
-    long targetRangeSize = pTargetRangeOffset + copyRange;
+    long targetRangeSize = pTargetOffset + copyRange;
 
     SMGEdgeHasValueFilter filterSource = new SMGEdgeHasValueFilter();
     filterSource.filterByObject(pSource);
@@ -1827,7 +1827,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     Set<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
 
     for (SMGEdgeHasValue edge : targetEdges) {
-      if (edge.overlapsWith(pTargetRangeOffset, targetRangeSize, heap.getMachineModel())) {
+      if (edge.overlapsWith(pTargetOffset, targetRangeSize, heap.getMachineModel())) {
         boolean hvEdgeIsZero = edge.getValue() == SMG.NULL_ADDRESS;
         heap.removeHasValueEdge(edge);
         if (hvEdgeIsZero) {
@@ -1840,9 +1840,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
           long zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits(maModel);
 
-          if (zeroEdgeOffset < pTargetRangeOffset) {
+          if (zeroEdgeOffset < pTargetOffset) {
             SMGEdgeHasValue newZeroEdge =
-                new SMGEdgeHasValue(Math.toIntExact(pTargetRangeOffset - zeroEdgeOffset),
+                new SMGEdgeHasValue(Math.toIntExact(pTargetOffset - zeroEdgeOffset),
                     zeroEdgeOffset, object, 0);
             heap.addHasValueEdge(newZeroEdge);
           }
@@ -1861,10 +1861,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     Set<SMGEdgeHasValue> sourceEdges = getHVEdges(filterSource);
 
     // Shift the source edge offset depending on the target range offset
-    long copyShift = pTargetRangeOffset - pSourceRangeOffset;
+    long copyShift = pTargetOffset - pSourceOffset;
 
     for (SMGEdgeHasValue edge : sourceEdges) {
-      if (edge.overlapsWith(pSourceRangeOffset, pSourceRangeSize, heap.getMachineModel())) {
+      if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset, heap.getMachineModel())) {
         long offset = edge.getOffset() + copyShift;
         newSMGState = writeValue(pTarget, offset, edge.getType(), edge.getValue()).getState();
       }
