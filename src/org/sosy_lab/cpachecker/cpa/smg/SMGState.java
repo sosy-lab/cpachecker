@@ -1724,7 +1724,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
       SMGState newState = setInvalidFree();
       newState.addInvalidObject(smgObject);
-      newState.setErrorDescription("Invalid free at " + offset + " offset from allocated is found");
+      if (offset % 8 != 0) {
+        newState.setErrorDescription("Invalid free at " + offset + " bit offset from allocated is "
+            + "found");
+      } else {
+        newState.setErrorDescription("Invalid free at " + offset / 8 + " byte offset from "
+            + "allocated is found");
+      }
       return newState;
     }
 

@@ -880,9 +880,10 @@ public class SMGTransferRelation
 
     //FIXME Does not work with variable array length.
     //TODO: write value with bit precise size
+    int memoryBitSize = pMemoryOfField.getSize();
+    int rValueTypeBitSize = expressionEvaluator.getBitSizeof(pEdge, pRValueType, pNewState);
     boolean doesNotFitIntoObject = pFieldOffset < 0
-        || pFieldOffset + expressionEvaluator.getBitSizeof(pEdge, pRValueType, pNewState) >
-        pMemoryOfField.getSize();
+        || pFieldOffset + rValueTypeBitSize > memoryBitSize;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
@@ -894,9 +895,15 @@ public class SMGTransferRelation
       });
       SMGState newState = pNewState.setInvalidWrite();
       if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
-        newState.setErrorDescription("Field with size " + expressionEvaluator.getBitSizeof(pEdge,
-            pRValueType, pNewState) + " bit can't be written at offset " + pFieldOffset
-            + " bit of object " + pMemoryOfField.getSize() + " bit size");
+        if (rValueTypeBitSize % 8 != 0 || pFieldOffset % 8 != 0 || memoryBitSize % 8 != 0) {
+          newState.setErrorDescription(
+              "Field with size " + rValueTypeBitSize + " bit can't be written at offset "
+                  + pFieldOffset + " bit of object " + memoryBitSize + " bit size");
+        } else {
+          newState.setErrorDescription("Field with size " + rValueTypeBitSize / 8 + " byte can't "
+              + "be written at offset " + pFieldOffset / 8 + " byte of object " +
+              memoryBitSize / 8 + " byte size");
+        }
         newState.addInvalidObject(pMemoryOfField);
       } else {
         newState.setErrorDescription("NULL pointer dereference on write");

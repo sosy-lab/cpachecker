@@ -194,14 +194,18 @@ public class SMGExpressionEvaluator {
       SMGExplicitValue pOffset, CType pType, CFAEdge pEdge) throws SMGInconsistentException, UnrecognizedCCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
-      return SMGValueAndState.of(pSmgState);
+      SMGState newState = pSmgState.setInvalidRead();
+      newState.setErrorDescription("Can't evaluate offset or object");
+      return SMGValueAndState.of(newState);
     }
 
-    int fieldOffset = pOffset.getAsInt();
+    long fieldOffset = pOffset.getAsLong();
 
     //FIXME Does not work with variable array length.
+    int typeBitSize = getBitSizeof(pEdge, pType, pSmgState);
+    int objectBitSize = pObject.getSize();
     boolean doesNotFitIntoObject = fieldOffset < 0
-        || fieldOffset + getBitSizeof(pEdge, pType, pSmgState) > pObject.getSize();
+        || fieldOffset + typeBitSize > objectBitSize;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
@@ -209,7 +213,22 @@ public class SMGExpressionEvaluator {
           + fieldOffset + ", " + pType.toASTString("") + ")"
           + " does not fit object " + pObject.toString() + ".");
 
-      return SMGValueAndState.of(pSmgState);
+      SMGState newState = pSmgState.setInvalidRead();
+      if (!pObject.equals(SMGNullObject.INSTANCE)) {
+        if (typeBitSize % 8 != 0 || fieldOffset % 8 != 0 || objectBitSize % 8 != 0) {
+          newState.setErrorDescription("Field with " + typeBitSize
+              + " bit size can't be read from offset " + fieldOffset + " bit of "
+              + "object " + objectBitSize + " bit size");
+        } else {
+          newState.setErrorDescription("Field with " + typeBitSize / 8
+              + " byte size can't be read from offset " + fieldOffset / 8 + " byte of "
+              + "object " + objectBitSize / 8 + " byte size");
+        }
+        newState.addInvalidObject(pObject);
+      } else {
+        newState.setErrorDescription("NULL pointer dereference on read");
+      }
+      return SMGValueAndState.of(newState);
     }
 
     // We don't want to modify the state while reading
