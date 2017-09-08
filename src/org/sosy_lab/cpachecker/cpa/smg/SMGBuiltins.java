@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndStateList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
@@ -610,14 +611,23 @@ public class SMGBuiltins {
           currentState.setErrorDescription("Can't evaluate memcpy src");
         }
       }
+      if (!sourceStr2Address.isUnknown() && sourceStr2Address.getObject().equals(SMGNullObject.INSTANCE)) {
+        currentState = currentState.setInvalidRead();
+        currentState.setErrorDescription("Memcpy src is null pointer");
+      }
+      if (!targetStr1Address.isUnknown() && targetStr1Address.getObject().equals(SMGNullObject.INSTANCE)) {
+        currentState = currentState.setInvalidWrite();
+        currentState.setErrorDescription("Memcpy to null pointer dst");
+      }
+
       if (targetStr1Address.isUnknown()) {
         currentState.unknownWrite();
-        return SMGAddressValueAndState.of(currentState);
       } else {
         //TODO More precise clear of values
         currentState.writeUnknownValueInUnknownField(targetStr1Address.getAddress().getObject());
-        return SMGAddressValueAndState.of(currentState);
       }
+
+      return SMGAddressValueAndState.of(currentState);
     }
 
     SMGObject source = sourceStr2Address.getObject();
