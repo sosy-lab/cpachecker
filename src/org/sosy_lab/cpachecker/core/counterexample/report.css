@@ -194,6 +194,10 @@ body {
 	stroke-width: 5px !important;
 }
 
+.marked-cfa-node-label {
+    fill: #ff00ff !important;
+}
+
 .marked-arg-node > rect {
 	outline: #8B008B solid thick !important;
 }

@@ -279,12 +279,21 @@
     			selection.classed("marked-cfa-node", true);
     			var boundingRect = selection.node().getBoundingClientRect();
     			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container").scrollLeft());
-        		return;
+    			if (actualSourceAndTarget.source in cfaJson.combinedNodes) {
+    				d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
+                    selection.selectAll("tspan").each(function(d,i) {
+                    	if (d3.select(this).html().includes(errPathEntry.source)) {
+                    		d3.select(this).classed("marked-cfa-node-label", true);
+                    	}
+                    });
+    			}
+    			return;
         	}
 			if (!d3.select(".marked-cfa-edge").empty()) {
 				d3.select(".marked-cfa-edge").classed("marked-cfa-edge", false);
 			}
 			d3.selectAll(".marked-cfa-node").classed("marked-cfa-node", false);
+			d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
 			var selection = d3.select("#cfa-edge_" + actualSourceAndTarget.source + "-" + actualSourceAndTarget.target);
 			selection.classed("marked-cfa-edge", true);
 			var boundingRect = selection.node().getBoundingClientRect();
