@@ -1200,7 +1200,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       throws SMGInconsistentException {
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       SMGState newState = setInvalidRead();
-      newState.setErrorDescription("Try to read from freed/invalid object " + pObject);
+      newState.setErrorDescription("Try to read from deallocated object");
+      newState.addInvalidObject(pObject);
       return SMGValueAndState.of(newState);
     }
 
@@ -1301,7 +1302,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       //Attempt to write to invalid object
       SMGState newState = setInvalidWrite();
-      newState.setErrorDescription("Attempt to write to invalid/deallocated object");
+      newState.setErrorDescription("Attempt to write to deallocated object");
+      newState.addInvalidObject(pObject);
       return new SMGStateEdgePair(newState);
     }
 
@@ -1705,6 +1707,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       return newState;
     }
 
+    if (!heap.isObjectValid(smgObject)) {
+      // you may not invoke free multiple times on
+      // the same object
+
+      SMGState newState = setInvalidFree();
+      newState.addInvalidObject(smgObject);
+      newState.setErrorDescription("Double free is found");
+      return newState;
+    }
+
     if (!(offset == 0) && !heap.isObjectExternallyAllocated(smgObject)) {
       // you may not invoke free on any address that you
       // didn't get through a malloc invocation.
@@ -1713,16 +1725,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       SMGState newState = setInvalidFree();
       newState.addInvalidObject(smgObject);
       newState.setErrorDescription("Invalid free at " + offset + " offset from allocated is found");
-      return newState;
-    }
-
-    if (!heap.isObjectValid(smgObject)) {
-      // you may not invoke free multiple times on
-      // the same object
-
-      SMGState newState = setInvalidFree();
-      newState.addInvalidObject(smgObject);
-      newState.setErrorDescription("Double free is found");
       return newState;
     }
 

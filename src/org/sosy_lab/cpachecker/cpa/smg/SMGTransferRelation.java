@@ -893,9 +893,14 @@ public class SMGTransferRelation
         return msg;
       });
       SMGState newState = pNewState.setInvalidWrite();
-      newState.setErrorDescription("Field with type " + pRValueType.toASTString("") + " can't be"
-              + " written at offset " + pFieldOffset + " bit of object " + pMemoryOfField);
-      newState.addInvalidObject(pMemoryOfField);
+      if (!pMemoryOfField.equals(SMGNullObject.INSTANCE)) {
+        newState.setErrorDescription("Field with size " + expressionEvaluator.getBitSizeof(pEdge,
+            pRValueType, pNewState) + " bit can't be written at offset " + pFieldOffset
+            + " bit of object " + pMemoryOfField.getSize() + " bit size");
+        newState.addInvalidObject(pMemoryOfField);
+      } else {
+        newState.setErrorDescription("NULL pointer dereference on write");
+      }
       return newState;
     }
 
