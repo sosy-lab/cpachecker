@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -969,6 +970,11 @@ public class SMGTransferRelation
     if (newObject == null) {
       int typeSize = expressionEvaluator.getBitSizeof(pEdge, cType, pState);
 
+      // Handle incomplete type of extern variables as externally allocated
+      if (options.isHandleExternVariableAsExternalAllocation() && cType.isIncomplete() &&
+          pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
+        typeSize = options.getExternalAllocationSize();
+      }
       if (pVarDecl.isGlobal()) {
         newObject = pState.addGlobalVariable(typeSize, varName);
       } else {
@@ -997,9 +1003,15 @@ public class SMGTransferRelation
     if (newInitializer != null) {
       return handleInitializer(pState, pVarDecl, pEdge, pObject, 0, cType, newInitializer);
     } else if (pVarDecl.isGlobal()) {
-
-      // Global variables without initializer are nullified in C
-      pState = writeValue(pState, pObject, 0, cType, SMGKnownSymValue.ZERO, pEdge);
+      // Don't nullify extern variables
+      if (pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
+        if (options.isHandleExternVariableAsExternalAllocation()) {
+          pState.setExternallyAllocatedFlag(pObject);
+        }
+      } else {
+        // Global variables without initializer are nullified in C
+        pState = writeValue(pState, pObject, 0, cType, SMGKnownSymValue.ZERO, pEdge);
+      }
     }
 
     return ImmutableList.of(pState);

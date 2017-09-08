@@ -2078,6 +2078,10 @@ cpa.smg.externalAllocationSize = Integer.MAX_VALUE
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
 
+# Handle extern variables with incomplete type (extern int array[]) as
+# external allocation
+cpa.smg.handleExternVariableAsExternalAllocation = false
+
 # with this option enabled, memory that is not freed before the end of main
 # is reported as memleak even if it is reachable from local variables in main
 cpa.smg.handleNonFreedMemoryInMainAsMemLeak = false

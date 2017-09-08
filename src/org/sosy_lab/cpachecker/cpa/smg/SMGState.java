@@ -1608,6 +1608,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return SMGKnownAddVal.valueOf(new_value, new_object, options.getExternalAllocationSize()/2);
   }
 
+  public void setExternallyAllocatedFlag(SMGObject pObject) {
+    heap.setExternallyAllocatedFlag(pObject, true);
+  }
+
   /** memory allocated on the stack is automatically freed when leaving the current function scope */
   public SMGAddressValue addNewStackAllocation(int pSize, String pLabel)
       throws SMGInconsistentException {

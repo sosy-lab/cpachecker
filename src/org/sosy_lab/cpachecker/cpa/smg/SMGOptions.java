@@ -57,7 +57,11 @@ public class SMGOptions {
       name = "handleUnknownFunctions",
       description = "Sets how unknown functions are handled.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
-  public static enum UnknownFunctionHandling {STRICT, ASSUME_SAFE}
+
+  public static enum UnknownFunctionHandling {
+    STRICT,
+    ASSUME_SAFE
+  }
 
   @Option(
       secure = true,
@@ -166,7 +170,18 @@ public class SMGOptions {
       description = "Describes when SMG graphs should be dumped.")
   private SMGExportLevel exportSMG = SMGExportLevel.NEVER;
 
-  public static enum SMGExportLevel {NEVER, LEAF, INTERESTING, EVERY}
+  @Option(
+      secure = true,
+      name = "handleExternVariableAsExternalAllocation",
+      description = "Handle extern variables with incomplete type (extern int array[]) as external allocation")
+  private boolean handleExternVariableAsExternalAllocation = false;
+
+  public static enum SMGExportLevel {
+    NEVER,
+    LEAF,
+    INTERESTING,
+    EVERY
+  }
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -258,5 +273,9 @@ public class SMGOptions {
 
   public SMGExportLevel getExportSMGLevel() {
     return exportSMG;
+  }
+
+  public boolean isHandleExternVariableAsExternalAllocation() {
+    return handleExternVariableAsExternalAllocation;
   }
 }
