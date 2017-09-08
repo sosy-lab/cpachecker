@@ -205,7 +205,8 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         notifyReachedSetUpdateListeners(reached);
 
         if (stats.countRefinements == maxRefinementNum) {
-          logger.log(Level.FINE, "Max number of CEGAR iterations " + maxRefinementNum + " achieved");
+          logger.log(Level.WARNING, "Aborting analysis because maximum number of refinements " + maxRefinementNum + " used");
+          status = status.withPrecise(false);
           break;
         }
 
