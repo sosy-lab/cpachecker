@@ -116,7 +116,38 @@ public enum MachineModel {
       1, // void
       1, // bool
       8 // pointer
-      );
+  ),
+
+  /** Machine model representing an ARM machine with alignment: */
+  ARM(
+      // numeric types
+      2, // short
+      4, // int
+      4, // long int
+      8, // long long int
+      4, // float
+      8, // double
+      8, // long double
+
+      // other
+      1, // void
+      1, // bool
+      4, // pointer
+
+      //  alignof numeric types
+      2, // short
+      4, // int
+      4, // long int
+      4, // long long int
+      4, // float
+      4, // double
+      4, // long double
+
+      // alignof other
+      1, // void
+      4, // bool
+      4 // pointer
+  );
   // numeric types
   private final int sizeofShort;
   private final int sizeofInt;
