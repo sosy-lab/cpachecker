@@ -183,6 +183,17 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
   )
   private boolean printIntermediateStatistics = true;
 
+  /* The option is useful for some preanalysis,
+   * for instance, the first analysis is fast and provides some hints to the next ones
+   * Is used, for example, in CPALockator
+   */
+  @Option(
+    secure = true,
+    description =
+        "wether to start next algorithm independently from the previous result"
+  )
+  private boolean alwaysRestart = false;
+
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final ShutdownRequestListener logShutdownListener;
@@ -342,8 +353,10 @@ public class RestartAlgorithm implements Algorithm, StatisticsProvider, ReachedS
 
           } else if (!(from(currentReached).anyMatch(IS_TARGET_STATE) && !status.isPrecise())) {
 
-            // sound analysis and completely finished, terminate
-            return status;
+            if (!(alwaysRestart && configFilesIterator.hasNext())) {
+              // sound analysis and completely finished, terminate
+              return status;
+            }
           }
           lastAnalysisTerminated = true;
           isLastReachedSetUsable = true;
