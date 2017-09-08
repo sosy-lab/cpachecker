@@ -32,6 +32,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -591,8 +592,9 @@ public class SMGExpressionEvaluator {
       SMGAddressValue arrayAddress = arrayAddressAndState.getObject();
       SMGState newState = arrayAddressAndState.getSmgState();
 
+      CExpression subscriptExpression = exp.getSubscriptExpression();
       List<SMGExplicitValueAndState> subscriptValueAndStates = evaluateExplicitValue(
-          newState, cfaEdge, exp.getSubscriptExpression());
+          newState, cfaEdge, subscriptExpression);
 
       for (SMGExplicitValueAndState subscriptValueAndState : subscriptValueAndStates) {
         SMGExplicitValue subscriptValue = subscriptValueAndState.getObject();
@@ -601,17 +603,22 @@ public class SMGExpressionEvaluator {
         if (subscriptValue.isUnknown()) {
           if (newState.isTrackPredicatesEnabled()  && !arrayAddress.isUnknown()) {
             SMGValueAndStateList subscriptSymbolicValueAndStates =
-                evaluateNonAddressValue(newState, cfaEdge, exp.getSubscriptExpression());
+                evaluateNonAddressValue(newState, cfaEdge, subscriptExpression);
             for (SMGValueAndState symbolicValueAndState: subscriptSymbolicValueAndStates.getValueAndStateList()) {
               SMGSymbolicValue value = symbolicValueAndState.getObject();
               newState = subscriptValueAndState.getSmgState();
               if (!value.isUnknown() && !newState
                   .isObjectExternallyAllocated(arrayAddress.getObject())) {
-                int size = arrayAddress.getObject().getSize();
-                int typeSize = getBitSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
-                int index = (size / typeSize) + 1;
-                int subscriptSize = getBitSizeof(cfaEdge, exp.getSubscriptExpression().getExpressionType(), newState, exp);
-                newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(index),
+                int arrayBitSize = arrayAddress.getObject().getSize();
+                int typeBitSize = getBitSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
+                int maxIndex = arrayBitSize / typeBitSize;
+                int subscriptSize = getBitSizeof(cfaEdge, subscriptExpression.getExpressionType(), newState, exp);
+                if (subscriptExpression instanceof CCastExpression) {
+                  CCastExpression castExpression = (CCastExpression) subscriptExpression;
+                  int originSize = getBitSizeof(cfaEdge, castExpression.getOperand().getExpressionType(), newState);
+                  subscriptSize = Integer.min(subscriptSize, originSize);
+                }
+                newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(maxIndex),
                     subscriptSize, cfaEdge);
               }
             }
