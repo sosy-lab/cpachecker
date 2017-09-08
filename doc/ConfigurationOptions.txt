@@ -2777,3 +2777,262 @@ precision.template.performEnumerativeRefinement = true
 precision.template.templateConstantThreshold = 100
 
 # Strategy for filtering variables out of templates using liveness
+precision.template.varFiltering = ALL_LIVE
+  enum:     [INTERPOLATION_BASED, ALL_LIVE, ONE_LIVE, ALL]
+
+# If this option is used, variables that are addressed may get tracked
+# depending on the rest of the precision. When this option is disabled, a
+# variable that is addressed is definitely not tracked.
+precision.trackAddressedVariables = true
+
+# If this option is used, booleans from the cfa are tracked.
+precision.trackBooleanVariables = true
+
+# If this option is used, variables that have type double or float are
+# tracked.
+precision.trackFloatVariables = true
+
+# If this option is used, variables, that are only used in simple
+# calculations (add, sub, lt, gt, eq) are tracked.
+precision.trackIntAddVariables = true
+
+# If this option is used, variables that are only compared for equality are
+# tracked.
+precision.trackIntEqualVariables = true
+
+# If this option is used, all variables that are of a different
+# classification than IntAdd, IntEq and Boolean get tracked by the precision.
+precision.trackVariablesBesidesEqAddBool = true
+
+# blacklist regex for variables that won't be tracked by the CPA using this
+# precision
+precision.variableBlacklist = ""
+
+# whitelist regex for variables that will always be tracked by the CPA using
+# this precision
+precision.variableWhitelist = ""
+
+# Quantifier elimination strategy
+rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP
+  enum:     [QE_LIGHT_THEN_DROP, QE, DROP]
+
+# Expand equality atoms. E.g. 'x=a' gets expanded into 'x >= a AND x <= a'.
+# Can lead to stronger weakenings.
+rcnf.expandEquality = false
+
+# Limit on the size of the resulting number of lemmas from the explicit
+# expansion
+rcnf.expansionResultSizeLimit = 100
+
+# print reached set to graph file
+reachedSet.dot = "reached.dot"
+
+# print reached set to text file
+reachedSet.export = false
+reachedSet.file = "reached.txt"
+
+# Generate HTML report with analysis result.
+report.export = true
+
+# File name for analysis report in case no counterexample was found.
+report.file = "Report.html"
+
+# set path to file which contains the condition
+residualprogram.assumptionFile = no default value
+
+# set specification file to automaton which guides analysis along assumption
+# produced by incomplete analysis,e.g.,
+# config/specification/AssumptionGuidingAutomaton.spc, to enable residual
+# program from combination of program and assumption condition
+residualprogram.assumptionGuider = no default value
+
+# write residual program to file
+residualprogram.file = "residualProgram.c"
+
+# which strategy to use to generate the residual program
+residualprogram.strategy = CONDITION
+  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
+
+# combine (partial) ARGs obtained by restarts of the analysis after an
+# unknown result with a different configuration
+restartAlgorithm.combineARGsAfterRestart = false
+
+# List of files with configurations to use. A filename can be suffixed with
+# :if-interrupted, :if-failed, and :if-terminated which means that this
+# configuration will only be used if the previous configuration ended with a
+# matching condition. What also can be added is :use-reached then the reached
+# set of the preceding analysis is taken and provided to the next analysis.
+restartAlgorithm.configFiles = no default value
+
+# print the statistics of each component of the restart algorithm directly
+# after the components computation is finished
+restartAlgorithm.printIntermediateStatistics = true
+
+# List of files with configurations to use. 2 filenames expected.
+restartAlgorithmWithARGReplay.configFiles = no default value
+
+# Extract and cache unsat cores for satisfiability checking
+solver.cacheUnsatCores = true
+
+# improve sat-checks with additional constraints for UFs
+solver.checkUFs = false
+
+# Which solver to use specifically for interpolation (default is to use the
+# main one).
+solver.interpolationSolver = no default value
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# Which SMT solver to use.
+solver.solver = SMTINTERPOL
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
+
+# comma-separated list of files with specifications that should be checked
+# (see config/specification/ for examples)
+specification = []
+
+# export abstract states as formula, e.g. for re-using them as
+# PredicatePrecision.
+statesToFormulas.exportFile = no default value
+
+# export formulas for all program locations or just the important
+# locations,which include loop-heads, funtion-calls and function-exits.
+statesToFormulas.exportOnlyImporantLocations = false
+
+# instead of writing the exact state-representation as a single formula,
+# write its atoms as a list of formulas. Therefore we ignore operators for
+# conjunction and disjunction.
+statesToFormulas.splitFormulas = LOCATION
+  enum:     [LOCATION, STATE, ATOM]
+
+# Add all assumptions from the control flow automaton to the precision.
+staticRefiner.addAllControlFlowAssumes = false
+
+# Add all assumptions along a error trace to the precision.
+staticRefiner.addAllErrorTraceAssumes = false
+
+# Add all assumptions along the error trace to the precision.
+staticRefiner.addAssumesByBoundedBackscan = true
+
+# Apply mined predicates on the corresponding scope. false = add them to the
+# global precision.
+staticRefiner.applyScoped = true
+
+# Dump CFA assume edges as SMTLIB2 formulas to a file.
+staticRefiner.assumePredicatesFile = no default value
+
+# split generated heuristic predicates into atoms
+staticRefiner.atomicPredicates = true
+
+# collect at most this number of assumes along a path, backwards from each
+# target (= error) location
+staticRefiner.maxBackscanPathAssumes = 1
+
+# write some statistics to disk
+statistics.export = true
+statistics.file = "Statistics.txt"
+
+# track memory usage of JVM during runtime
+statistics.memory = true
+
+# print statistics to console
+statistics.print = false
+
+# which stop operator to use for LiveVariablesCPA
+stop = "SEP"
+  allowed values: [SEP, JOIN, NEVER]
+
+# When checking for the termination property, use this configuration file
+# instead of the current one.
+termination.config = no default value
+
+# Number of generalized eigenvectors in the geometric nontermination
+# argument.
+termination.lassoAnalysis.eigenvectors = 3
+
+# Shell command used to call the external SMT solver.
+termination.lassoAnalysis.externalSolverCommand = "./lib/native/x86_64-linux/z3 -smt2 -in SMTLIB2_COMPLIANT=true "
+
+# Analysis type used for synthesis of linear termination arguments.
+termination.lassoAnalysis.linear.analysisType = LINEAR_WITH_GUESSES
+  enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
+
+# If true, an external tool is used as SMT solver instead of SMTInterpol.
+# This affects only synthesis of linear termination arguments.
+termination.lassoAnalysis.linear.externalSolver = false
+
+# Maximal number of functions used in a ranking function template.
+termination.lassoAnalysis.maxTemplateFunctions = 3
+
+# Number of non-strict supporting invariants for each Motzkin transformation
+# during synthesis of termination arguments.
+termination.lassoAnalysis.nonStrictInvariants = 3
+
+# Analysis type used for synthesis of non-linear termination arguments.
+termination.lassoAnalysis.nonlinear.analysisType = LINEAR_WITH_GUESSES
+  enum:     [DISABLED, LINEAR, LINEAR_WITH_GUESSES, NONLINEAR]
+
+# If true, an external tool is used as SMT solver instead of SMTInterpol.
+# This affects only synthesis of non-linear termination arguments and
+# non-termination arguments.
+termination.lassoAnalysis.nonlinear.externalSolver = false
+
+# Number of strict supporting invariants for each Motzkin transformation
+# during synthesis of termination arguments.
+termination.lassoAnalysis.strictInvariants = 2
+
+# Simplifies loop and stem formulas.
+termination.lassoBuilder.simplify = false
+
+# maximal number of repeated ranking functions per loop before stopping
+# analysis
+termination.maxRepeatedRankingFunctionsPerLoop = 10
+
+# Strategy used to prepare reched set and ARG for next iteration after
+# successful refinement of the termination argument.
+termination.resetReachedSetStrategy = REMOVE_LOOP
+  enum:     [REMOVE_TARGET_STATE, REMOVE_LOOP, RESET]
+
+# A human readable representation of the synthesized (non-)termination
+# arguments is exported to this file.
+termination.resultFile = "terminationAnalysisResult.txt"
+
+# Use the counterexample model to provide test-vector values
+testHarnessExport.useModel = true
+
+# File for exporting the witness automaton in DOT format.
+witness.automatonDumpFile = no default value
+
+# Check that the value of the programhash field of the witness matches the
+# SHA-1 hash value computed for the source code.
+witness.checkProgramHash = true
+
+# Consider assumptions that are provided with the path automaton?
+witness.considerAssumptions = true
+
+# Match the branching information at a branching location.
+witness.matchAssumeCase = true
+
+# Match the character offset within the file.
+witness.matchOffset = true
+
+# Match the line numbers within the origin (mapping done by preprocessor line
+# markers).
+witness.matchOriginLine = true
+
+# Match the thread identifier for concurrent programs.
+witness.matchThreadId = true
+
+# Enforce strict validity checks regarding the witness format, such as
+# checking for the presence of required fields.
+witness.strictChecking = true
+
+# When validating a correctness witness, use this configuration file instead
+# of the current one.
+witness.validation.correctness.config = no default value
+
+# The witness to validate.
+witness.validation.file = no default value
+
+# When validating a violation witness, use this configuration file instead of
+# the current one.
+witness.validation.violation.config = no default value
