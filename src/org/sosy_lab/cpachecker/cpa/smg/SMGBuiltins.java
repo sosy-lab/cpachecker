@@ -631,7 +631,7 @@ public class SMGBuiltins {
     if (sourceLastCopyBitOffset > source.getSize()) {
       currentState = currentState.setInvalidRead();
       currentState.setErrorDescription("Overread on memcpy");
-    } else if(targetOffset > target.getSize() - (sizeValue.getAsLong() * machineModel
+    } else if (targetOffset > target.getSize() - (sizeValue.getAsLong() * machineModel
         .getSizeofCharInBits())) {
       currentState = currentState.setInvalidWrite();
       currentState.setErrorDescription("Overwrite on memcpy");

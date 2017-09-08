@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -65,6 +66,10 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public int getSizeInBits(MachineModel pMachineModel) {
+    if (!(type instanceof CVoidType) && type.isIncomplete()) {
+      throw new IllegalArgumentException("Cannot compute size of " + object.getLabel() + " with "
+          + "incomplete type " + type);
+    }
     return pMachineModel.getBitSizeof(type);
   }
 
