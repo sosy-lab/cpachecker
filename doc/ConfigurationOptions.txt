@@ -2853,6 +2853,9 @@ residualprogram.file = "residualProgram.c"
 residualprogram.strategy = CONDITION
   enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
 
+# wether to start next algorithm independently from the previous result
+restartAlgorithm.alwaysRestart = false
+
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
 restartAlgorithm.combineARGsAfterRestart = false
