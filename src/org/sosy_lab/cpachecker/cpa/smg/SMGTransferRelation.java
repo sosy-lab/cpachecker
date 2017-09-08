@@ -184,6 +184,8 @@ public class SMGTransferRelation
         s -> new SMGState(s, blockOperator.isBlockEnd(edge.getSuccessor(), 0)));
     logger.log(Level.ALL, "state with id", state.getId(), "has successors with ids",
         Collections2.transform(successors, SMGState::getId));
+    // Verify predicate on error feasibility
+    successors = Collections2.transform(successors, s -> checkAndSetErrorRelation(s));
     return successors;
   }
 
@@ -212,7 +214,7 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
       throws CPATransferException {
-    SMGState smgState = checkAndSetErrorRelation(state);
+    SMGState smgState = new SMGState(state);
     Collection<SMGState> successors;
     SMGObject tmpFieldMemory = smgState.getFunctionReturnObject();
     if (tmpFieldMemory != null) {
@@ -276,7 +278,7 @@ public class SMGTransferRelation
 
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall exprOnSummary = summaryEdge.getExpression();
-    SMGState newState = checkAndSetErrorRelation(smgState);
+    SMGState newState = new SMGState(smgState);
 
     assert newState.getStackFrame().getFunctionDeclaration().equals(functionReturnEdge.getFunctionEntry().getFunctionDefinition());
 
@@ -472,8 +474,6 @@ public class SMGTransferRelation
   private List<SMGState> handleAssumption(SMGState smgState, CExpression expression, CFAEdge cfaEdge,
       boolean truthValue, boolean createNewStateIfNecessary) throws CPATransferException {
 
-    smgState = checkAndSetErrorRelation(smgState);
-
     // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be refactored to be able to handle complex expressions
     expression = eliminateOuterEquals(expression);
 
@@ -508,9 +508,8 @@ public class SMGTransferRelation
 
   private SMGState checkAndSetErrorRelation(SMGState smgState) {
     if (smgPredicateManager.isErrorPathFeasible(smgState)) {
-      smgState = smgState.setInvalidRead();
-      smgState.setErrorDescription("Predicate extension shows possibility of overflow on current "
-          + "code block");
+      smgState = smgState.setInvalidRead().setInvalidWrite();
+      smgState.setErrorDescription("Possible overflow");
     }
     return smgState.resetErrorRelation();
   }
