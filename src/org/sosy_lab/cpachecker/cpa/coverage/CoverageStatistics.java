@@ -31,6 +31,7 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -47,6 +48,8 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageData.CoverageMode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
 
 @Options
@@ -68,6 +71,7 @@ public class CoverageStatistics extends AbstractStatistics {
   private final LogManager logger;
   private final CoverageData cov;
   private final CFA cfa;
+  private final Configuration config;
 
   public CoverageStatistics(Configuration pConfig, LogManager pLogger, CFA pCFA, CoverageData pCov)
       throws InvalidConfigurationException {
@@ -77,6 +81,7 @@ public class CoverageStatistics extends AbstractStatistics {
     this.logger = pLogger;
     this.cov = pCov;
     this.cfa = pCFA;
+    this.config = pConfig;
   }
 
   @Override
@@ -87,13 +92,23 @@ public class CoverageStatistics extends AbstractStatistics {
     }
 
     if (writeToStdout) {
-      CoverageReportStdoutSummary writer = new CoverageReportStdoutSummary();
-      writer.write(cov, pOut);
+      CoverageReportStdoutSummary writer;
+      try {
+        writer = new CoverageReportStdoutSummary(config);
+        writer.write(cov.getInfosPerFile(), pOut);
+      } catch (InvalidConfigurationException e) {
+        logger.log(Level.WARNING, e.getMessage());
+      }
     }
 
     if (writeToFile && outputCoverageFile != null) {
-      CoverageReportGcov writer = new CoverageReportGcov(logger);
-      writer.write(cov, outputCoverageFile);
+      CoverageReportGcov writer;
+      try {
+        writer = new CoverageReportGcov(config, logger);
+        writer.write(cov.getInfosPerFile(), pOut);
+      } catch (InvalidConfigurationException e) {
+        logger.log(Level.WARNING, e.getMessage());
+      }
     }
 
   }

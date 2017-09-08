@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.coverage;
 
 import java.io.PrintStream;
 import java.util.Map;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -33,7 +32,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 @Options
-class CoverageReportStdoutSummary implements CoverageWriter {
+public class CoverageReportStdoutSummary implements CoverageWriter {
 
   @Option(secure=true,
       name="coverage.stdout",

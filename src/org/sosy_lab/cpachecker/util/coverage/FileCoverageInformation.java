@@ -29,10 +29,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 
-class FileCoverageInformation {
+public class FileCoverageInformation {
 
   static class FunctionInfo {
     final String name;
@@ -59,6 +58,10 @@ class FileCoverageInformation {
 
   public void addExistingAssume(AssumeEdge pEdge) {
     allAssumes.add(pEdge);
+  }
+
+  public void addVisitedFunction(String pName) {
+    addVisitedFunction(pName, 1);
   }
 
   public void addVisitedFunction(String pName, int pCount) {

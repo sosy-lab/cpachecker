@@ -23,27 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation;
 
 
 class CoverageData {
 
   public enum CoverageMode { NONE, REACHED, TRANSFER }
 
-  private final Map<String, FileCoverage> infosPerFile;
+  private final Map<String, FileCoverageInformation> infosPerFile;
   private final CoverageMode coverageMode;
 
   public CoverageData(CoverageMode pMode) {
@@ -55,17 +50,17 @@ class CoverageData {
     return coverageMode;
   }
 
-  FileCoverage getFileInfoTarget(
+  FileCoverageInformation getFileInfoTarget(
       final FileLocation pLoc,
-      final Map<String, FileCoverage> pTargets) {
+      final Map<String, FileCoverageInformation> pTargets) {
 
     assert pLoc.getStartingLineNumber() != 0; // Cannot produce coverage info for dummy file location
 
     String file = pLoc.getFileName();
-    FileCoverage fileInfos = pTargets.get(file);
+    FileCoverageInformation fileInfos = pTargets.get(file);
 
     if (fileInfos == null) {
-      fileInfos = new FileCoverage();
+      fileInfos = new FileCoverageInformation();
       pTargets.put(file, fileInfos);
     }
 
@@ -81,7 +76,7 @@ class CoverageData {
       return false;
     }
 
-    final FileCoverage infos = getFileInfoTarget(loc, infosPerFile);
+    final FileCoverageInformation infos = getFileInfoTarget(loc, infosPerFile);
 
     final int startingLine = loc.getStartingLineInOrigin();
     final int endingLine = loc.getEndingLineInOrigin();
@@ -106,7 +101,7 @@ class CoverageData {
       return;
     }
 
-    final FileCoverage collector = getFileInfoTarget(loc, infosPerFile);
+    final FileCoverageInformation collector = getFileInfoTarget(loc, infosPerFile);
 
     final int startingLine = loc.getStartingLineInOrigin();
     final int endingLine = loc.getEndingLineInOrigin();
@@ -132,61 +127,12 @@ class CoverageData {
   }
 
   public void addVisitedFunction(FunctionEntryNode pEntryNode) {
-    FileCoverage infos = getFileInfoTarget(pEntryNode.getFileLocation(), infosPerFile);
+    FileCoverageInformation infos = getFileInfoTarget(pEntryNode.getFileLocation(), infosPerFile);
     infos.addVisitedFunction(pEntryNode.getFunctionName());
   }
 
-  public Map<String, FileCoverage> getInfosPerFile() {
+  public Map<String, FileCoverageInformation> getInfosPerFile() {
     return infosPerFile;
-  }
-
-  public static class FileCoverage {
-
-    public static class FunctionInfo {
-      final String name;
-      final int firstLine;
-      final int lastLine;
-
-      FunctionInfo(String pName, int pFirstLine, int pLastLine) {
-        name = pName;
-        firstLine = pFirstLine;
-        lastLine = pLastLine;
-      }
-    }
-
-    final BitSet visitedLines = new BitSet();
-    final Set<Integer> allLines = new HashSet<>();
-    final Set<String> visitedFunctions = new HashSet<>();
-    final Set<FunctionInfo> allFunctions = new HashSet<>();
-    final Set<AssumeEdge> allAssumes = new HashSet<>();
-    final Set<AssumeEdge> visitedAssumes = new HashSet<>();
-
-    public void addVisitedAssume(AssumeEdge pEdge) {
-      visitedAssumes.add(pEdge);
-    }
-
-    public void addExistingAssume(AssumeEdge pEdge) {
-      allAssumes.add(pEdge);
-    }
-
-    public void addVisitedFunction(String pName) {
-      visitedFunctions.add(pName);
-    }
-
-    public void addExistingFunction(String pName, int pFirstLine, int pLastLine) {
-      allFunctions.add(new FunctionInfo(pName, pFirstLine, pLastLine));
-    }
-
-    public void addVisitedLine(int pLine) {
-      checkArgument(pLine > 0);
-      visitedLines.set(pLine);
-    }
-
-    public void addExistingLine(int pLine) {
-      checkArgument(pLine > 0);
-      allLines.add(pLine);
-    }
-
   }
 
 }
