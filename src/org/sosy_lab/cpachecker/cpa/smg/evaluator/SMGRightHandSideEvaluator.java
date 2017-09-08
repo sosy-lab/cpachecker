@@ -103,20 +103,29 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
     }
 
     long fieldOffset = pOffset.getAsLong();
+    int typeBitSize = getBitSizeof(pEdge, pType, pSmgState);
+    int objectBitSize = pObject.getSize();
 
     //FIXME Does not work with variable array length.
     boolean doesNotFitIntoObject = fieldOffset < 0
-        || fieldOffset + getBitSizeof(pEdge, pType, pSmgState) > pObject.getSize();
+        || fieldOffset + typeBitSize > objectBitSize;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
       logger.log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
            fieldOffset, ", ", pType.toASTString(""), ")",
           " does not fit object ", pObject, ".");
-      if (pObject.equals(SMGNullObject.INSTANCE)) {
-        errState.setErrorDescription("Field with " + getBitSizeof(pEdge, pType, pSmgState)
-            + " bit size can't be read from offset " + fieldOffset + " bit of "
-            + "object " + pObject.getSize() + " bit size");
+      if (!pObject.equals(SMGNullObject.INSTANCE)) {
+        if (typeBitSize % 8 != 0 || fieldOffset % 8 != 0 || objectBitSize % 8 != 0) {
+          errState.setErrorDescription("Field with " + typeBitSize
+              + " bit size can't be read from offset " + fieldOffset + " bit of "
+              + "object " + objectBitSize + " bit size");
+        } else {
+          errState.setErrorDescription("Field with " + typeBitSize / 8
+              + " byte size can't be read from offset " + fieldOffset / 8 + " byte of "
+              + "object " + objectBitSize / 8 + " byte size");
+
+        }
         errState.addInvalidObject(pObject);
       } else {
         errState.setErrorDescription("NULL pointer dereference on read");
