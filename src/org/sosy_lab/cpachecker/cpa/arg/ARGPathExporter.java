@@ -382,7 +382,7 @@ public class ARGPathExporter {
     }
 
     public WitnessWriter(
-        String pDefaultSourceFileName,
+        @Nullable String pDefaultSourceFileName,
         WitnessType pGraphType,
         InvariantProvider pInvariantProvider) {
       this.defaultSourcefileName = pDefaultSourceFileName;
