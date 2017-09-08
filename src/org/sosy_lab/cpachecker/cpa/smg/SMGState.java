@@ -1354,6 +1354,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.isObjectExternallyAllocated(pObject);
   }
 
+  public boolean isObjectValid(SMGObject pObject) {
+    return heap.isObjectValid(pObject);
+  }
+
   public boolean isBlockEnded() {
     return blockEnded;
   }
