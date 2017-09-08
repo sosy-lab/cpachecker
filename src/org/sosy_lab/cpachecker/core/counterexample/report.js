@@ -518,7 +518,7 @@
     				d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
     				// revert zoom and remove listeners
     				d3.selectAll(".cfa-svg").each(function(d, i) {
-    					d3.select(this).on("zoom", null).on("wheel.zoom", null);
+    					d3.select(this).on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
     				});
     			} else {
     				$scope.zoomEnabled = true;
@@ -531,6 +531,7 @@
     								+ d3.event.scale + ")");
     					});        			
     					svg.call(zoom);
+    					svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
     				});
     			}
     		};
@@ -606,7 +607,7 @@
     				d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
     				// revert zoom and remove listeners
     				d3.selectAll(".arg-svg").each(function(d, i) {
-    					d3.select(this).on("zoom", null).on("wheel.zoom", null);
+    					d3.select(this).on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
     				});
     			} else {
     				$scope.zoomEnabled = true;
@@ -619,6 +620,7 @@
     								+ d3.event.scale + ")");
     					});        			
     					svg.call(zoom);
+    					svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
     				});
     			}
     		};
@@ -1524,6 +1526,7 @@ function init() {
 	
 	// Add desired events to CFA nodes and edges
 	function addEventsToCfa() {
+		addPanEvent(".cfa-svg");
 		d3.selectAll(".cfa-node").on("mouseover", function(d) { 
 			var message;
 			if (parseInt(d) > 100000) {
@@ -1627,6 +1630,7 @@ function init() {
 	
 	// Add desired events to ARG the nodes
 	function addEventsToArg() {
+		addPanEvent(".arg-svg");
 		d3.selectAll(".arg-node")
 		.on("mouseover", function(d) {
 			var node = argJson.nodes.find(function(it) {
@@ -1700,6 +1704,20 @@ function init() {
 				var boundingRect = selection.node().getBoundingClientRect();
 				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 			});
+	}
+	
+	// Use D3 zoom behavior to add pan event
+	function addPanEvent(itemsToSelect) {
+		d3.selectAll(itemsToSelect).each(function(d, i) {
+			var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
+			var zoom = d3.behavior.zoom().on("zoom", function() {
+				svgGroup.attr("transform", "translate("
+						+ d3.event.translate + ")" + "scale("
+						+ d3.event.scale + ")");
+			});        			
+			svg.call(zoom);
+			svg.on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
+		});
 	}
 	
 	// On mouse over display tool tip box
