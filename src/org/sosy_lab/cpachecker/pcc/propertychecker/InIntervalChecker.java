@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.interval.IntegerInterval;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 
@@ -60,7 +60,7 @@ public class InIntervalChecker extends PerElementPropertyChecker {
   public boolean satisfiesProperty(AbstractState pElemToCheck) throws UnsupportedOperationException {
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(label)) {
-      IntervalAnalysisState state = AbstractStates.extractStateByType(pElemToCheck, IntervalAnalysisState.class);
+        UnifyAnalysisState state = AbstractStates.extractStateByType(pElemToCheck, UnifyAnalysisState.class);
       if (state != null) {
         NumberInterface interval = state.getInterval(varName);
         //TODO Number instead Long

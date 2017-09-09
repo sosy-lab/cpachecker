@@ -25,14 +25,14 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
-import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
 
 
 public class RedundantRequirementsRemoverSignStateImplementation extends
-RedundantRequirementsRemoverImplementation<SignState, NumberInterface>{
+RedundantRequirementsRemoverImplementation<UnifyAnalysisState, NumberInterface>{
 
   private static final long serialVersionUID = 7689875020110766102L;
 
@@ -77,7 +77,7 @@ RedundantRequirementsRemoverImplementation<SignState, NumberInterface>{
   }
 
   @Override
-  protected NumberInterface getAbstractValue(SignState pAbstractState, String pVarOrConst) {
+  protected NumberInterface getAbstractValue(UnifyAnalysisState pAbstractState, String pVarOrConst) {
     // if pVarOrConst number, number<0 MINUS, number=0 ZERO, number>0 PLUS
     // otherwise getSignForVariable
 
@@ -111,9 +111,9 @@ RedundantRequirementsRemoverImplementation<SignState, NumberInterface>{
   }
 
   @Override
-  protected SignState extractState(AbstractState pWrapperState) {
+  protected UnifyAnalysisState extractState(AbstractState pWrapperState) {
     // AbstractStates.extractStateByType....
-    return AbstractStates.extractStateByType(pWrapperState, SignState.class); // TODO
+    return AbstractStates.extractStateByType(pWrapperState, UnifyAnalysisState.class); // TODO
   }
 
 }

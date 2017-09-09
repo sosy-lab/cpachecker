@@ -50,12 +50,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.interval.IntegerInterval;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
-import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -132,7 +131,7 @@ public class TranslatorTest {
 
   @Test
   public void testSignTranslator() {
-    SignState sStateTest = SignState.TOP;
+      UnifyAnalysisState sStateTest = UnifyAnalysisState.TOP;
     sStateTest = sStateTest.assignSignToVariable("var1", SIGN.PLUS);
     sStateTest = sStateTest.assignSignToVariable("var2", SIGN.MINUS);
     sStateTest = sStateTest.assignSignToVariable("var3", SIGN.ZERO);
@@ -186,7 +185,7 @@ public class TranslatorTest {
     intervals = intervals.putAndCopy("fun::varC", new IntegerInterval((long) -15, (long) -3));
 
 
-    IntervalAnalysisState iStateTest = new IntervalAnalysisState(intervals, referenceMap);
+    UnifyAnalysisState iStateTest = new UnifyAnalysisState(intervals, referenceMap);
     IntervalRequirementsTranslator iReqTransTest =
         new IntervalRequirementsTranslator(LogManager.createTestLogManager());
 
@@ -262,7 +261,7 @@ public class TranslatorTest {
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     // Test method convertToFormula() with empty IntervalAnalysisState
-    convertedToFormula = iReqTransTest.convertToFormula(new IntervalAnalysisState(), ssaTest, null);
+    convertedToFormula = iReqTransTest.convertToFormula(new UnifyAnalysisState(), ssaTest, null);
     Truth.assertThat(convertedToFormula.getFirst()).isEmpty();
     s = "(define-fun req () Bool true)";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
@@ -271,7 +270,7 @@ public class TranslatorTest {
     intervals = PathCopyingPersistentTreeMap.of();
     referenceMap = PathCopyingPersistentTreeMap.of();
     intervals = intervals.putAndCopy("var1", new IntegerInterval((long) 0, Long.MAX_VALUE));
-    IntervalAnalysisState anotherIStateTest = new IntervalAnalysisState(intervals, referenceMap);
+    UnifyAnalysisState anotherIStateTest = new UnifyAnalysisState(intervals, referenceMap);
 
     convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest, null);
     content = new ArrayList<>();

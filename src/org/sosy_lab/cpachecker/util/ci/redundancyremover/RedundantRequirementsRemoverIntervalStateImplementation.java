@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.interval.CreatorIntegerInterval;
 import org.sosy_lab.cpachecker.cpa.interval.IntegerInterval;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
 
 
 public class RedundantRequirementsRemoverIntervalStateImplementation extends
-    RedundantRequirementsRemoverImplementation<IntervalAnalysisState, NumberInterface> {
+    RedundantRequirementsRemoverImplementation<UnifyAnalysisState, NumberInterface> {
 
   private static final long serialVersionUID = 1323131138350817689L;
 
@@ -74,7 +74,7 @@ public class RedundantRequirementsRemoverIntervalStateImplementation extends
   }
 
   @Override
-  protected NumberInterface getAbstractValue(IntervalAnalysisState pAbstractState, String pVarOrConst) {
+  protected NumberInterface getAbstractValue(UnifyAnalysisState pAbstractState, String pVarOrConst) {
     // if pVarOrConst number, return interval [pVarOrConst,pVarOrConst]
     // if state contains pVarOrConst return interval saved in state
     // otherwise unboundedInterval
@@ -103,9 +103,9 @@ public class RedundantRequirementsRemoverIntervalStateImplementation extends
   }
 
   @Override
-  protected IntervalAnalysisState extractState(AbstractState pWrapperState) {
+  protected UnifyAnalysisState extractState(AbstractState pWrapperState) {
     // AbstractStates.extractState..
-    return AbstractStates.extractStateByType(pWrapperState, IntervalAnalysisState.class); // TODO so?
+    return AbstractStates.extractStateByType(pWrapperState, UnifyAnalysisState.class); // TODO so?
   }
 
 }

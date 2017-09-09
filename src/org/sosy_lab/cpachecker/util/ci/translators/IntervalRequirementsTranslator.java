@@ -29,23 +29,23 @@ import java.util.Collection;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
-public class IntervalRequirementsTranslator extends CartesianRequirementsTranslator<IntervalAnalysisState> {
+public class IntervalRequirementsTranslator extends CartesianRequirementsTranslator<UnifyAnalysisState> {
 
   public IntervalRequirementsTranslator(final LogManager pLog) {
-    super(IntervalAnalysisState.class, pLog);
+    super(UnifyAnalysisState.class, pLog);
   }
 
   @Override
-  protected List<String> getVarsInRequirements(final IntervalAnalysisState pRequirement) {
+  protected List<String> getVarsInRequirements(final UnifyAnalysisState pRequirement) {
     return new ArrayList<>(pRequirement.getIntervalMap().keySet());
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(final IntervalAnalysisState pRequirement,
+  protected List<String> getListOfIndependentRequirements(final UnifyAnalysisState pRequirement,
       final SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (String var : pRequirement.getIntervalMap().keySet()) {

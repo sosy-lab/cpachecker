@@ -26,19 +26,7 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Ordering;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
-import org.sosy_lab.cpachecker.cpa.sign.SignState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,6 +34,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 
 
 public class RedundantRequirementsRemover {
@@ -61,9 +57,9 @@ public class RedundantRequirementsRemover {
 
     if (reqStateClass.equals(ValueAnalysisState.class)) {
       remover = new RedundantRequirementsValueAnalysisStateImplementation();
-    } else if (reqStateClass.equals(IntervalAnalysisState.class)) {
+    } else if (reqStateClass.equals(UnifyAnalysisState.class)) {
       remover = new RedundantRequirementsRemoverIntervalStateImplementation();
-    } else if (reqStateClass.equals(SignState.class)) {
+    } else if (reqStateClass.equals(UnifyAnalysisState.class)) {
       remover = new RedundantRequirementsRemoverSignStateImplementation();
     } else {
       return requirements;

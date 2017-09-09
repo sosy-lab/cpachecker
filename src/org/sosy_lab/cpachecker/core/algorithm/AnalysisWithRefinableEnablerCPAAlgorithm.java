@@ -75,7 +75,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeMergeAgreeCPAEnabledAnalysisOperator;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPABackwards;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -130,7 +130,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   enum Enabler {
     APRON(ApronState.class, ApronCPA.class),
     // INTERVAL refinement currently not supported in trunk
-    INTERVAL(IntervalAnalysisState.class, IntervalAnalysisCPA.class),
+    INTERVAL(UnifyAnalysisState.class, IntervalAnalysisCPA.class),
     OCTAGON(OctagonState.class, OctagonCPA.class),
     PREDICATE(PredicateAbstractState.class, PredicateCPA.class),
     VALUE(ValueAnalysisState.class, ValueAnalysisCPA.class);

@@ -29,10 +29,9 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.interval.IntegerInterval;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
-import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -113,9 +112,9 @@ public class RedundancyRemoverTest {
     // varOrConst x -> Interval [-1,4]
     // varOrConst y -> unbound interval
 
-    IntervalAnalysisState intervalState1 = new IntervalAnalysisState().addInterval("1", new IntegerInterval(1L, 1L), 0);
+      UnifyAnalysisState intervalState1 = new UnifyAnalysisState().addInterval("1", new IntegerInterval(1L, 1L), 0);
     //IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new Interval(-1L, 4L), 0);
-    IntervalAnalysisState intervalState3 = new IntervalAnalysisState().addInterval("y", IntegerInterval.UNBOUND, 0);
+      UnifyAnalysisState intervalState3 = new UnifyAnalysisState().addInterval("y", IntegerInterval.UNBOUND, 0);
 
     RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
     Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState1, "1")).isEqualTo(new IntegerInterval(1L, 1L));
@@ -254,11 +253,11 @@ public class RedundancyRemoverTest {
     // varOrConst x -> PLUSMINUS
     // varOrConst y -> ALL
     RedundantRequirementsRemoverSignStateImplementation signImpl = new RedundantRequirementsRemoverSignStateImplementation();
-    SignState signState1 = SignState.TOP.assignSignToVariable("-1", SIGN.MINUS);
-    SignState signState2 = SignState.TOP.assignSignToVariable("0", SIGN.ZERO);
-    SignState signState3 = SignState.TOP.assignSignToVariable("1", SIGN.PLUS);
-    SignState signState4 = SignState.TOP.assignSignToVariable("x", SIGN.PLUSMINUS);
-    SignState signState5 = SignState.TOP.assignSignToVariable("y", SIGN.ALL);
+    UnifyAnalysisState signState1 = UnifyAnalysisState.TOP.assignSignToVariable("-1", SIGN.MINUS);
+    UnifyAnalysisState signState2 = UnifyAnalysisState.TOP.assignSignToVariable("0", SIGN.ZERO);
+    UnifyAnalysisState signState3 = UnifyAnalysisState.TOP.assignSignToVariable("1", SIGN.PLUS);
+    UnifyAnalysisState signState4 = UnifyAnalysisState.TOP.assignSignToVariable("x", SIGN.PLUSMINUS);
+    UnifyAnalysisState signState5 = UnifyAnalysisState.TOP.assignSignToVariable("y", SIGN.ALL);
 
     Truth.assertThat(signImpl.getAbstractValue(signState1, "-1")).isEqualTo(SIGN.MINUS);
     Truth.assertThat(signImpl.getAbstractValue(signState2, "0")).isEqualTo(SIGN.ZERO);

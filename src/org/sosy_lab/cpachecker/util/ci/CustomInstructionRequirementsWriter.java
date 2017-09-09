@@ -24,18 +24,23 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathCounterTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -45,14 +50,6 @@ import org.sosy_lab.cpachecker.util.ci.translators.IntervalRequirementsTranslato
 import org.sosy_lab.cpachecker.util.ci.translators.PredicateRequirementsTranslator;
 import org.sosy_lab.cpachecker.util.ci.translators.SignRequirementsTranslator;
 import org.sosy_lab.cpachecker.util.ci.translators.ValueRequirementsTranslator;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
 
 public class CustomInstructionRequirementsWriter {
 
@@ -126,11 +123,11 @@ public class CustomInstructionRequirementsWriter {
   }
 
   private void createRequirementTranslator(final ConfigurableProgramAnalysis cpa) throws CPAException {
-    if (requirementsState.equals(SignState.class)) {
+    if (requirementsState.equals(UnifyAnalysisState.class)) {
       abstractReqTranslator = new SignRequirementsTranslator(logger);
     } else if (requirementsState.equals(ValueAnalysisState.class)) {
       abstractReqTranslator = new ValueRequirementsTranslator(logger);
-    } else if (requirementsState.equals(IntervalAnalysisState.class)) {
+    } else if (requirementsState.equals(UnifyAnalysisState.class)) {
       abstractReqTranslator = new IntervalRequirementsTranslator(logger);
     } else if (requirementsState.equals(PredicateAbstractState.class)) {
       PredicateCPA pCpa = CPAs.retrieveCPA(cpa, PredicateCPA.class);
