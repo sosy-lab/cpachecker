@@ -64,11 +64,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 
-public class SignTransferRelation extends ForwardingTransferRelation<SignState, SignState, SingletonPrecision> {
+public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalysisState, UnifyAnalysisState, SingletonPrecision> {
 
   LogManager logger;
 
@@ -83,7 +84,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
+  protected UnifyAnalysisState handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
 
     CExpression expression = pCfaEdge.getExpression().or(CIntegerLiteralExpression.ZERO); // 0 is the default in C
@@ -92,7 +93,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleFunctionCallEdge(FunctionCallEdge pCfaEdge, List<? extends AExpression> pArguments,
+  protected UnifyAnalysisState handleFunctionCallEdge(FunctionCallEdge pCfaEdge, List<? extends AExpression> pArguments,
       List<? extends AParameterDeclaration> pParameters, String pCalledFunctionName) throws CPATransferException {
     if (!pCfaEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
       assert (pParameters.size() == pArguments.size());
@@ -113,7 +114,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleFunctionReturnEdge(FunctionReturnEdge pCfaEdge, FunctionSummaryEdge pFnkCall,
+  protected UnifyAnalysisState handleFunctionReturnEdge(FunctionReturnEdge pCfaEdge, FunctionSummaryEdge pFnkCall,
       AFunctionCall pSummaryExpr, String pCallerFunctionName) throws CPATransferException {
 
     // x = fun();
@@ -125,7 +126,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       String returnVarName = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
       String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
       logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignForVariable(returnVarName));
-      SignState result = state
+      UnifyAnalysisState result = state
               .leaveFunction(functionName)
               .assignSignToVariable(assignedVarName, state.getSignForVariable(returnVarName));
       return result;
@@ -263,7 +264,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
+  protected UnifyAnalysisState handleAssumption(CAssumeEdge pCfaEdge, CExpression pExpression, boolean pTruthAssumption)
       throws CPATransferException {// TODO more complex things
     // Analyse only expressions of the form x op y
     if (!(pExpression instanceof CBinaryExpression)) {
@@ -284,7 +285,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleDeclarationEdge(ADeclarationEdge pCfaEdge, ADeclaration pDecl) throws CPATransferException {
+  protected UnifyAnalysisState handleDeclarationEdge(ADeclarationEdge pCfaEdge, ADeclaration pDecl) throws CPATransferException {
     if (!(pDecl instanceof AVariableDeclaration)) {
       return state;
     }
@@ -307,7 +308,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
   }
 
   @Override
-  protected SignState handleStatementEdge(AStatementEdge pCfaEdge, AStatement pStatement) throws CPATransferException {
+  protected UnifyAnalysisState handleStatementEdge(AStatementEdge pCfaEdge, AStatement pStatement) throws CPATransferException {
     // expression is a binary expression e.g. a = b.
     if (pStatement instanceof AAssignment) {
       return handleAssignment((AAssignment)pStatement, pCfaEdge);
@@ -325,7 +326,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
       throw new UnrecognizedCodeException("only assignments are supported at this time", pCfaEdge);
   }
 
-  private SignState handleAssignment(AAssignment pAssignExpr, CFAEdge edge)
+  private UnifyAnalysisState handleAssignment(AAssignment pAssignExpr, CFAEdge edge)
       throws CPATransferException {
     AExpression left = pAssignExpr.getLeftHandSide();
     // a = ...
@@ -351,7 +352,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<SignState, 
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
   }
 
-  private SignState handleAssignmentToVariable(SignState pState, String pVarIdent, ARightHandSide pRightExpr, CFAEdge edge)
+  private UnifyAnalysisState handleAssignmentToVariable(UnifyAnalysisState pState, String pVarIdent, ARightHandSide pRightExpr, CFAEdge edge)
       throws CPATransferException {
     if (pRightExpr instanceof CRightHandSide) {
       CRightHandSide right = (CRightHandSide)pRightExpr;

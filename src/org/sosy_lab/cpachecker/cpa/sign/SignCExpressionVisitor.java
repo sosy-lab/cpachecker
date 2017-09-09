@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 
@@ -61,11 +62,11 @@ public class SignCExpressionVisitor
 
   private CFAEdge edgeOfExpr;
 
-  private SignState state;
+  private UnifyAnalysisState state;
 
   private SignTransferRelation transferRel;
 
-  public SignCExpressionVisitor(CFAEdge pEdgeOfExpr, SignState pState, SignTransferRelation pTransferRel) {
+  public SignCExpressionVisitor(CFAEdge pEdgeOfExpr, UnifyAnalysisState pState, SignTransferRelation pTransferRel) {
     edgeOfExpr = pEdgeOfExpr;
     state = pState;
     transferRel = pTransferRel;

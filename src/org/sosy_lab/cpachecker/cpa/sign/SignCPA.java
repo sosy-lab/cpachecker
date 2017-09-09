@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 
 @Options(prefix = "cpa.sign")
 public class SignCPA extends AbstractCPA implements ProofCheckerCPA {
@@ -54,7 +55,7 @@ public class SignCPA extends AbstractCPA implements ProofCheckerCPA {
     super(
         "irrelvant",
         "irrelevant",
-        DelegateAbstractDomain.<SignState>getInstance(),
+        DelegateAbstractDomain.<UnifyAnalysisState>getInstance(),
         new SignTransferRelation(pLogger));
     config.inject(this);
   }
@@ -75,6 +76,6 @@ public class SignCPA extends AbstractCPA implements ProofCheckerCPA {
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return SignState.TOP;
+    return UnifyAnalysisState.TOP;
   }
 }
