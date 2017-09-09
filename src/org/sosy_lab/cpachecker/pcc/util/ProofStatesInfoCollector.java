@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options(prefix = "pcc")
@@ -59,9 +59,9 @@ public class ProofStatesInfoCollector implements Statistics {
   }
 
   private void collectValueAnalysisInfo(final AbstractState[] partialProofStates) {
-    ValueAnalysisState vState;
+      UnifyAnalysisState vState;
     for (AbstractState state : partialProofStates) {
-      vState = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+      vState = AbstractStates.extractStateByType(state, UnifyAnalysisState.class);
       if (vState != null) {
         numValuesInValueAnalysisStates += vState.getConstantsMapView().size();
       }

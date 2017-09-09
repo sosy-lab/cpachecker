@@ -66,9 +66,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
@@ -87,7 +87,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisRefiner
-    extends GenericRefiner<ValueAnalysisState, ValueAnalysisInterpolant> {
+    extends GenericRefiner<UnifyAnalysisState, ValueAnalysisInterpolant> {
 
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
@@ -152,13 +152,13 @@ public class ValueAnalysisRefiner
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final CFA cfa = valueAnalysisCpa.getCFA();
 
-    final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
+    final StrongestPostOperator<UnifyAnalysisState> strongestPostOp =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
-    final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
+    final GenericPrefixProvider<UnifyAnalysisState> prefixProvider =
         new ValueAnalysisPrefixProvider(
             logger, cfa, config, valueAnalysisCpa.getShutdownNotifier());
 
@@ -175,9 +175,9 @@ public class ValueAnalysisRefiner
 
   ValueAnalysisRefiner(final ARGCPA pArgCPA,
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
-      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
+      final StrongestPostOperator<UnifyAnalysisState> pStrongestPostOperator,
       final PathExtractor pPathExtractor,
-      final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
+      final GenericPrefixProvider<UnifyAnalysisState> pPrefixProvider,
       final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
@@ -203,7 +203,7 @@ public class ValueAnalysisRefiner
   @Override
   protected void refineUsingInterpolants(
       final ARGReachedSet pReached,
-      final InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree
+      final InterpolationTree<UnifyAnalysisState, ValueAnalysisInterpolant> pInterpolationTree
       ) throws InterruptedException {
     final UnmodifiableReachedSet reached = pReached.asReachedSet();
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(reached);
@@ -421,7 +421,7 @@ public class ValueAnalysisRefiner
    */
   @Override
   protected CFAPathWithAssumptions createModel(ARGPath errorPath) throws InterruptedException, CPAException {
-    List<Pair<ValueAnalysisState, List<CFAEdge>>> concretePath = checker.evaluate(errorPath);
+    List<Pair<UnifyAnalysisState, List<CFAEdge>>> concretePath = checker.evaluate(errorPath);
     if (concretePath.size() < errorPath.getInnerEdges().size()) {
       // If concretePath is shorter than errorPath, this means that errorPath is actually
       // infeasible and should have been ruled out during refinement.

@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
@@ -97,20 +97,20 @@ public class ValueTransferBasedStrongestPostOperator
       final CFAEdge pOperation
   ) throws CPAException, InterruptedException {
 
-    ValueAnalysisState oldValues = pOrigin.getValueState();
+    UnifyAnalysisState oldValues = pOrigin.getValueState();
     ConstraintsState oldConstraints = pOrigin.getConstraintsState();
 
 
     assert oldValues != null && oldConstraints != null;
 
-    final Collection<ValueAnalysisState> successors =
+    final Collection<UnifyAnalysisState> successors =
         valueTransfer.getAbstractSuccessorsForEdge(oldValues, pPrecision, pOperation);
 
     if (isContradiction(successors)) {
       return Optional.empty();
 
     } else {
-      final ValueAnalysisState valuesSuccessor = Iterables.getOnlyElement(successors);
+      final UnifyAnalysisState valuesSuccessor = Iterables.getOnlyElement(successors);
 
       Collection<? extends AbstractState> constraintsSuccessors =
           constraintsTransfer.getAbstractSuccessorsForEdge(
@@ -132,7 +132,7 @@ public class ValueTransferBasedStrongestPostOperator
         return Optional.empty();
 
       } else {
-        Optional<ValueAnalysisState> valueStrengthenResult =
+        Optional<UnifyAnalysisState> valueStrengthenResult =
             strengthenValueState(valuesSuccessor, constraintsSuccessor, pPrecision, pOperation);
 
         if (!valueStrengthenResult.isPresent()) {
@@ -168,8 +168,8 @@ public class ValueTransferBasedStrongestPostOperator
     // independent of scope.
     final ConstraintsState constraintsState = pNext.getConstraintsState();
 
-    ValueAnalysisState currentValueState = pNext.getValueState();
-    ValueAnalysisState callStateValueState = callState.getValueState();
+    UnifyAnalysisState currentValueState = pNext.getValueState();
+    UnifyAnalysisState callStateValueState = callState.getValueState();
 
     currentValueState = currentValueState.rebuildStateAfterFunctionCall(
             callStateValueState, (FunctionExitNode) pEdge.getPredecessor());
@@ -184,17 +184,17 @@ public class ValueTransferBasedStrongestPostOperator
       final ARGPath pErrorPath,
       final Precision pPrecision
   ) {
-    ValueAnalysisState oldValueState = pNext.getValueState();
+    UnifyAnalysisState oldValueState = pNext.getValueState();
 
     assert pPrecision instanceof VariableTrackingPrecision;
-    ValueAnalysisState newValueState =
+    UnifyAnalysisState newValueState =
         valueStrongestPost.performAbstraction(oldValueState, pCurrNode, pErrorPath, pPrecision);
 
     return getNewCompositeState(newValueState, pNext.getConstraintsState());
   }
 
-  private Optional<ValueAnalysisState> strengthenValueState(
-      final ValueAnalysisState pValues,
+  private Optional<UnifyAnalysisState> strengthenValueState(
+      final UnifyAnalysisState pValues,
       final ConstraintsState pConstraints,
       final Precision pPrecision,
       final CFAEdge pOperation
@@ -212,14 +212,14 @@ public class ValueTransferBasedStrongestPostOperator
     } else {
       final AbstractState onlyState = Iterables.getOnlyElement(strengthenResult);
 
-      return Optional.of((ValueAnalysisState) onlyState);
+      return Optional.of((UnifyAnalysisState) onlyState);
     }
   }
 
 
   private Optional<ConstraintsState> strengthenConstraintsState(
       final ConstraintsState pConstraintsState,
-      final ValueAnalysisState pValueState,
+      final UnifyAnalysisState pValueState,
       final CFAEdge pOperation
   ) throws CPATransferException, InterruptedException {
 
@@ -243,7 +243,7 @@ public class ValueTransferBasedStrongestPostOperator
     return pAbstractStates.isEmpty();
   }
 
-  private ForgettingCompositeState getNewCompositeState(final ValueAnalysisState pNextValueState,
+  private ForgettingCompositeState getNewCompositeState(final UnifyAnalysisState pNextValueState,
       final ConstraintsState pConstraints) {
 
     return new ForgettingCompositeState(pNextValueState, pConstraints);

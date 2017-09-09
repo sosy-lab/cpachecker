@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.CExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ExpressionTransformer;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.JExpressionTransformer;
@@ -54,12 +54,12 @@ public class ConstraintFactory {
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
   private final String functionName;
-  private final ValueAnalysisState valueState;
+  private final UnifyAnalysisState valueState;
 
   private SymbolicValueFactory expressionFactory;
 
 
-  private ConstraintFactory(String pFunctionName, ValueAnalysisState pValueState, MachineModel pMachineModel,
+  private ConstraintFactory(String pFunctionName, UnifyAnalysisState pValueState, MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger) {
 
     machineModel = pMachineModel;
@@ -69,7 +69,7 @@ public class ConstraintFactory {
     expressionFactory = SymbolicValueFactory.getInstance();
   }
 
-  public static ConstraintFactory getInstance(String pFunctionName, ValueAnalysisState pValueState,
+  public static ConstraintFactory getInstance(String pFunctionName, UnifyAnalysisState pValueState,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     return new ConstraintFactory(pFunctionName, pValueState, pMachineModel, pLogger);
   }

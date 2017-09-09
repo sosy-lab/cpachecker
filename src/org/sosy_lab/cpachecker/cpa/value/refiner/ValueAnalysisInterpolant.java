@@ -37,7 +37,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -45,7 +45,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map
  * from memory locations to values, representing a variable assignment.
  */
-public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState> {
+public class ValueAnalysisInterpolant implements Interpolant<UnifyAnalysisState> {
   /**
    * the variable assignment of the interpolant
    */
@@ -96,7 +96,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
 
   @SuppressWarnings("unchecked")
   @Override
-  public <T extends Interpolant<ValueAnalysisState>> T join(final T pOther) {
+  public <T extends Interpolant<UnifyAnalysisState>> T join(final T pOther) {
     assert pOther instanceof ValueAnalysisInterpolant;
 
     return (T) join0((ValueAnalysisInterpolant) pOther);
@@ -201,12 +201,12 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
    * @return a value-analysis state that represents the same variable assignment as the interpolant
    */
   @Override
-  public ValueAnalysisState reconstructState() {
+  public UnifyAnalysisState reconstructState() {
     if (assignment == null || assignmentTypes == null) {
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
 
     } else {
-      return new ValueAnalysisState(
+      return new UnifyAnalysisState(
           Optional.empty(),
           PathCopyingPersistentTreeMap.copyOf(assignment),
           PathCopyingPersistentTreeMap.copyOf(assignmentTypes));
@@ -226,7 +226,7 @@ public class ValueAnalysisInterpolant implements Interpolant<ValueAnalysisState>
     return assignment.toString();
   }
 
-  public boolean strengthen(ValueAnalysisState valueState, ARGState argState) {
+  public boolean strengthen(UnifyAnalysisState valueState, ARGState argState) {
     if (isTrivial()) {
       return false;
     }

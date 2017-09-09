@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -55,7 +54,7 @@ public class RedundantRequirementsRemover {
 
     RedundantRequirementsRemoverImplementation<? extends AbstractState, ? extends Object> remover;
 
-    if (reqStateClass.equals(ValueAnalysisState.class)) {
+    if (reqStateClass.equals(UnifyAnalysisState.class)) {
       remover = new RedundantRequirementsValueAnalysisStateImplementation();
     } else if (reqStateClass.equals(UnifyAnalysisState.class)) {
       remover = new RedundantRequirementsRemoverIntervalStateImplementation();

@@ -48,8 +48,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
@@ -66,7 +66,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class ValueAnalysisImpactRefiner
-  extends GenericRefiner<ValueAnalysisState, ValueAnalysisInterpolant>
+  extends GenericRefiner<UnifyAnalysisState, ValueAnalysisInterpolant>
   implements UnsoundRefiner {
 
   // statistics
@@ -88,7 +88,7 @@ public class ValueAnalysisImpactRefiner
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final CFA cfa = valueAnalysisCpa.getCFA();
 
-    final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
+    final StrongestPostOperator<UnifyAnalysisState> strongestPostOperator =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
     final PathExtractor pathExtractor = new PathExtractor(logger, config);
@@ -96,7 +96,7 @@ public class ValueAnalysisImpactRefiner
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
 
-    final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
+    final GenericPrefixProvider<UnifyAnalysisState> prefixProvider =
         new ValueAnalysisPrefixProvider(
             logger, cfa, config, valueAnalysisCpa.getShutdownNotifier());
 
@@ -113,9 +113,9 @@ public class ValueAnalysisImpactRefiner
 
   ValueAnalysisImpactRefiner(final ARGCPA pArgCPA,
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
-      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
+      final StrongestPostOperator<UnifyAnalysisState> pStrongestPostOperator,
       final PathExtractor pPathExtractor,
-      final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
+      final GenericPrefixProvider<UnifyAnalysisState> pPrefixProvider,
       final Configuration pConfig, final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
       throws InvalidConfigurationException {
@@ -134,7 +134,7 @@ public class ValueAnalysisImpactRefiner
 
   @Override
   protected void refineUsingInterpolants(final ARGReachedSet pReached,
-      InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree) {
+      InterpolationTree<UnifyAnalysisState, ValueAnalysisInterpolant> pInterpolationTree) {
 
     timeStrengthen.start();
     Set<ARGState> strengthenedStates = strengthenStates(pInterpolationTree);
@@ -211,7 +211,7 @@ public class ValueAnalysisImpactRefiner
         VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
   }
 
-  private Set<ARGState> strengthenStates(InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> interpolationTree) {
+  private Set<ARGState> strengthenStates(InterpolationTree<UnifyAnalysisState, ValueAnalysisInterpolant> interpolationTree) {
     Set<ARGState> strengthenedStates = new HashSet<>();
 
     for (Map.Entry<ARGState, ValueAnalysisInterpolant> entry : interpolationTree.getInterpolantMapping()) {
@@ -219,7 +219,7 @@ public class ValueAnalysisImpactRefiner
 
         ARGState state                = entry.getKey();
         ValueAnalysisInterpolant itp  = entry.getValue();
-        ValueAnalysisState valueState = AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+        UnifyAnalysisState valueState = AbstractStates.extractStateByType(state, UnifyAnalysisState.class);
 
         if (itp.strengthen(valueState, state)) {
           strengthenedStates.add(state);
@@ -265,7 +265,7 @@ public class ValueAnalysisImpactRefiner
     }
   }
 
-  private void removeInfeasiblePartsOfArg(InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> interpolationTree,
+  private void removeInfeasiblePartsOfArg(InterpolationTree<UnifyAnalysisState, ValueAnalysisInterpolant> interpolationTree,
       ARGReachedSet reached) {
     for (ARGState root : interpolationTree.obtainCutOffRoots()) {
       reached.cutOffSubtree(root);

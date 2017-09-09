@@ -54,10 +54,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -118,7 +118,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
 
   private final OctagonManager octagonManager;
   private final TransferRelation octagonTransfer;
-  private final FeasibilityChecker<ValueAnalysisState> valueChecker;
+  private final FeasibilityChecker<UnifyAnalysisState> valueChecker;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -131,7 +131,7 @@ class OctagonArgBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
       final CFA pCfa,
       final OctagonManager pOctagonManager,
       final TransferRelation pOctagonTransfer,
-      final FeasibilityChecker<ValueAnalysisState> pValueAnalysisFeasibilityChecker,
+      final FeasibilityChecker<UnifyAnalysisState> pValueAnalysisFeasibilityChecker,
       final ValueAnalysisPathInterpolator pValueAnalysisPathInterpolator)
       throws InvalidConfigurationException {
 

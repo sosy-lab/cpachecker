@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -125,7 +124,7 @@ public class CustomInstructionRequirementsWriter {
   private void createRequirementTranslator(final ConfigurableProgramAnalysis cpa) throws CPAException {
     if (requirementsState.equals(UnifyAnalysisState.class)) {
       abstractReqTranslator = new SignRequirementsTranslator(logger);
-    } else if (requirementsState.equals(ValueAnalysisState.class)) {
+    } else if (requirementsState.equals(UnifyAnalysisState.class)) {
       abstractReqTranslator = new ValueRequirementsTranslator(logger);
     } else if (requirementsState.equals(UnifyAnalysisState.class)) {
       abstractReqTranslator = new IntervalRequirementsTranslator(logger);

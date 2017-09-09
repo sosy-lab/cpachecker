@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
@@ -71,7 +71,7 @@ public class CExpressionTransformer extends ExpressionTransformer
 
   public CExpressionTransformer(
       final String pFunctionName,
-      final ValueAnalysisState pValueState,
+      final UnifyAnalysisState pValueState,
       final MachineModel pMachineModel,
       final LogManagerWithoutDuplicates pLogger
   ) {
@@ -290,7 +290,7 @@ public class CExpressionTransformer extends ExpressionTransformer
     }
   }
 
-  private ExpressionValueVisitor getValueVisitor(final ValueAnalysisState pState) {
+  private ExpressionValueVisitor getValueVisitor(final UnifyAnalysisState pState) {
     return new ExpressionValueVisitor(pState, functionName, machineModel, logger);
   }
 

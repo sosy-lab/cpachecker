@@ -24,10 +24,9 @@
 package org.sosy_lab.cpachecker.util.states;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Classes implementing this interface provide means for altering the value of
@@ -49,6 +48,6 @@ public interface MemoryLocationValueHandler {
    *    Other causes for this exception may be implementation-dependent
    */
   void handle(MemoryLocation pMemLocation, Type pType,
-      ValueAnalysisState pState, ExpressionValueVisitor pValueVisitor)
+          UnifyAnalysisState pState, ExpressionValueVisitor pValueVisitor)
       throws UnrecognizedCCodeException;
 }

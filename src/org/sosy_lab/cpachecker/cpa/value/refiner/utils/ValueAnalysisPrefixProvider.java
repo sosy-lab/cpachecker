@@ -28,12 +28,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
 
-public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnalysisState> {
+public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<UnifyAnalysisState> {
 
   /**
    * This method acts as the constructor of the class.
@@ -47,7 +47,7 @@ public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnal
 
     super(
         new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa),
-        new ValueAnalysisState(pCfa.getMachineModel()),
+        new UnifyAnalysisState(pCfa.getMachineModel()),
         pLogger,
         pCfa,
         config,

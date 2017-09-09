@@ -25,28 +25,27 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * A composite state of {@link ValueAnalysisState} and {@link ConstraintsState}
+ * A composite state of {@link UnifyAnalysisState} and {@link ConstraintsState}
  * that allows to remove and re-add values.
  */
 public class ForgettingCompositeState
     implements ForgetfulState<ValueAnalysisInformation> {
 
-  private final ValueAnalysisState values;
+  private final UnifyAnalysisState values;
   private final ConstraintsState constraints;
 
   public static ForgettingCompositeState getInitialState(MachineModel pMachineModel) {
     return new ForgettingCompositeState(
-        new ValueAnalysisState(pMachineModel), new ConstraintsState());
+        new UnifyAnalysisState(pMachineModel), new ConstraintsState());
   }
 
   /**
@@ -56,14 +55,14 @@ public class ForgettingCompositeState
    * @param pConstraints the constraints state to use
    */
   public ForgettingCompositeState(
-      final ValueAnalysisState pValues,
+      final UnifyAnalysisState pValues,
       final ConstraintsState pConstraints
   ) {
-    values = ValueAnalysisState.copyOf(pValues);
+    values = UnifyAnalysisState.copyOf(pValues);
     constraints = pConstraints.copyOf();
   }
 
-  public ValueAnalysisState getValueState() {
+  public UnifyAnalysisState getValueState() {
     return values;
   }
 
@@ -104,7 +103,7 @@ public class ForgettingCompositeState
   }
 
   /**
-   * Returns the size of the wrapped {@link ValueAnalysisState}.
+   * Returns the size of the wrapped {@link UnifyAnalysisState}.
    */
   @Override
   public int getSize() {

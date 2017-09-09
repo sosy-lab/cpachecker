@@ -24,7 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.constraints;
 
 import com.google.common.collect.Iterables;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -63,7 +68,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityCh
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.StateSimplifier;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
@@ -72,13 +77,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEnc
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * Transfer relation for Symbolic Execution Analysis.
@@ -333,7 +331,7 @@ public class ConstraintsTransferRelation
 
   private ConstraintsState simplify(
       final ConstraintsState pState,
-      final ValueAnalysisState pValueState
+      final UnifyAnalysisState pValueState
   ) {
     return simplifier.simplify(pState, pValueState);
   }
@@ -359,7 +357,7 @@ public class ConstraintsTransferRelation
       ConstraintsState currStateToStrengthen = newStates.get(0);
       StrengthenOperator strengthenOperator = null;
 
-      if (currStrengtheningState instanceof ValueAnalysisState) {
+      if (currStrengtheningState instanceof UnifyAnalysisState) {
         strengthenOperator = new ValueAnalysisStrengthenOperator();
 
       } else if (currStrengtheningState instanceof AutomatonState) {
@@ -406,13 +404,13 @@ public class ConstraintsTransferRelation
         final CFAEdge pCfaEdge
     ) throws CPATransferException, InterruptedException {
 
-      assert pValueState instanceof ValueAnalysisState;
+      assert pValueState instanceof UnifyAnalysisState;
 
       if (!(pCfaEdge instanceof AssumeEdge)) {
         return Optional.empty();
       }
 
-      final ValueAnalysisState valueState = (ValueAnalysisState) pValueState;
+      final UnifyAnalysisState valueState = (UnifyAnalysisState) pValueState;
       final AssumeEdge assume = (AssumeEdge) pCfaEdge;
 
       Collection<ConstraintsState> newStates = new ArrayList<>();
@@ -433,7 +431,7 @@ public class ConstraintsTransferRelation
 
       } catch (SolverException e) {
         throw new CPATransferException(
-            "Error while strengthening ConstraintsState with ValueAnalysisState", e);
+            "Error while strengthening ConstraintsState with UnifyAnalysisState", e);
       }
 
       // newState == null represents the bottom element, so we return an empty collection

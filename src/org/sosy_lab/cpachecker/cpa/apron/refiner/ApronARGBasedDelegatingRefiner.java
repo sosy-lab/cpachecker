@@ -57,9 +57,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.octagon.refiner.OctagonAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.ApronManager;
@@ -83,7 +83,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
    */
   private final ValueAnalysisPathInterpolator interpolatingRefiner;
 
-  private final FeasibilityChecker<ValueAnalysisState> valueAnalysisChecker;
+  private final FeasibilityChecker<UnifyAnalysisState> valueAnalysisChecker;
 
   /**
    * the hash code of the previous error path
@@ -133,7 +133,7 @@ class ApronARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, Sta
       final CFA pCfa,
       final ApronManager pApronManager,
       final TransferRelation pApronTransfer,
-      final FeasibilityChecker<ValueAnalysisState> pValueAnalysisFeasibilityChecker,
+      final FeasibilityChecker<UnifyAnalysisState> pValueAnalysisFeasibilityChecker,
       final ValueAnalysisPathInterpolator pValueAnalysisPathInterpolator)
       throws InvalidConfigurationException {
 

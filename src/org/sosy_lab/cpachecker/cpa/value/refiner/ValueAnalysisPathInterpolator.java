@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -40,7 +41,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.UseDefBasedInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisEdgeInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
@@ -56,12 +57,9 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-
 @Options(prefix="cpa.value.refinement")
 public class ValueAnalysisPathInterpolator
-    extends GenericPathInterpolator<ValueAnalysisState, ValueAnalysisInterpolant> {
+    extends GenericPathInterpolator<UnifyAnalysisState, ValueAnalysisInterpolant> {
 
   @Option(secure=true, description="whether to perform (more precise) edge-based interpolation or (more efficient) path-based interpolation")
   private boolean performEdgeBasedInterpolation = true;
@@ -84,9 +82,9 @@ public class ValueAnalysisPathInterpolator
   private final ValueAnalysisInterpolantManager interpolantManager;
 
   public ValueAnalysisPathInterpolator(
-      final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
-      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
-      final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
+      final FeasibilityChecker<UnifyAnalysisState> pFeasibilityChecker,
+      final StrongestPostOperator<UnifyAnalysisState> pStrongestPostOperator,
+      final GenericPrefixProvider<UnifyAnalysisState> pPrefixProvider,
       final Configuration pConfig,
       final LogManager pLogger,
       final ShutdownNotifier pShutdownNotifier,

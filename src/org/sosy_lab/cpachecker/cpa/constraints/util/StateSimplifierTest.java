@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA.ComparisonType;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
@@ -98,7 +98,7 @@ public class StateSimplifierTest {
 
   @Test
   public void testRemoveOutdatedConstraints_allConstraintsOutdated() {
-    final ValueAnalysisState initialValueState = new ValueAnalysisState(machineModel);
+    final UnifyAnalysisState initialValueState = new UnifyAnalysisState(machineModel);
 
     ConstraintsState constraintsState = getSampleConstraints();
 
@@ -110,7 +110,7 @@ public class StateSimplifierTest {
 
   @Test
   public void testRemoveOutdatedConstraints_group1ConstraintOutdated() {
-    final ValueAnalysisState valueState = getCompleteValueState();
+    final UnifyAnalysisState valueState = getCompleteValueState();
 
     valueState.forget(group1MemLoc1);
     valueState.forget(group2MemLoc1);
@@ -134,7 +134,7 @@ public class StateSimplifierTest {
 
   @Test
   public void testRemoveOutdatedConstraints_allButOneConstraintsOutdated() {
-    final ValueAnalysisState valueState = getCompleteValueState();
+    final UnifyAnalysisState valueState = getCompleteValueState();
 
     valueState.forget(group1MemLoc1);
     valueState.forget(group1MemLoc2);
@@ -159,8 +159,8 @@ public class StateSimplifierTest {
     return state;
   }
 
-  private ValueAnalysisState getCompleteValueState() {
-    ValueAnalysisState state = new ValueAnalysisState(machineModel);
+  private UnifyAnalysisState getCompleteValueState() {
+    UnifyAnalysisState state = new UnifyAnalysisState(machineModel);
 
     state.assignConstant(group1MemLoc1, group1Id1, defaultNumericType);
     state.assignConstant(group1MemLoc2, group1Id2, defaultNumericType);

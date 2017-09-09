@@ -48,7 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class JExpressionTransformer extends ExpressionTransformer
     implements JRightHandSideVisitor<SymbolicExpression, UnrecognizedCodeException> {
 
-  public JExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState) {
+  public JExpressionTransformer(String pFunctionName, UnifyAnalysisState pValueState) {
     super(pFunctionName, pValueState);
   }
 

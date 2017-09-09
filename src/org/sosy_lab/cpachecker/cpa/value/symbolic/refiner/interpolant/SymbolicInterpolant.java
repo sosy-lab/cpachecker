@@ -27,13 +27,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsInformation;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
@@ -77,7 +76,7 @@ public class SymbolicInterpolant implements Interpolant<ForgettingCompositeState
 
   @Override
   public ForgettingCompositeState reconstructState() {
-    final ValueAnalysisState values = valueInterpolant.reconstructState();
+    final UnifyAnalysisState values = valueInterpolant.reconstructState();
 
     ConstraintsState constraints = new ConstraintsState(constraintsInformation.getConstraints(),
                                                         constraintsInformation.getAssignments());

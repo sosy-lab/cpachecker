@@ -77,7 +77,7 @@ import org.sosy_lab.cpachecker.core.counterexample.Memory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -95,7 +95,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {
 
-    List<Pair<ValueAnalysisState, List<CFAEdge>>> path = new ArrayList<>(pPath.size());
+    List<Pair<UnifyAnalysisState, List<CFAEdge>>> path = new ArrayList<>(pPath.size());
 
     PathIterator it = pPath.fullPathIterator();
 
@@ -107,8 +107,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
         innerEdges.add(it.getIncomingEdge());
       } while (!it.isPositionWithState());
 
-      ValueAnalysisState state =
-          AbstractStates.extractStateByType(it.getAbstractState(), ValueAnalysisState.class);
+      UnifyAnalysisState state =
+          AbstractStates.extractStateByType(it.getAbstractState(), UnifyAnalysisState.class);
 
       if (state == null) {
         return null;
@@ -121,13 +121,13 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   }
 
   public CFAPathWithAssumptions allocateAssignmentsToPath(
-      List<Pair<ValueAnalysisState, List<CFAEdge>>> pPath) {
+      List<Pair<UnifyAnalysisState, List<CFAEdge>>> pPath) {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath);
     return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
   private ConcreteStatePath createConcreteStatePath(
-      List<Pair<ValueAnalysisState, List<CFAEdge>>> pPath) {
+      List<Pair<UnifyAnalysisState, List<CFAEdge>>> pPath) {
 
     List<ConcreteStatePathNode> result = new ArrayList<>(pPath.size());
 
@@ -138,9 +138,9 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     Map<LeftHandSide, Address> variableAddresses =
         generateVariableAddresses(FluentIterable.from(pPath).transform(Pair::getFirst));
 
-    for (Pair<ValueAnalysisState, List<CFAEdge>> edgeStatePair : pPath) {
+    for (Pair<UnifyAnalysisState, List<CFAEdge>> edgeStatePair : pPath) {
 
-      ValueAnalysisState valueState = edgeStatePair.getFirst();
+      UnifyAnalysisState valueState = edgeStatePair.getFirst();
       List<CFAEdge> edges = edgeStatePair.getSecond();
 
       if (edges.size() > 1) {
@@ -182,7 +182,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   }
 
   private ConcreteState createConcreteStateForMultiEdge(
-      ValueAnalysisState pValueState, Set<CLeftHandSide> alreadyAssigned, CFAEdge innerEdge) {
+      UnifyAnalysisState pValueState, Set<CLeftHandSide> alreadyAssigned, CFAEdge innerEdge) {
     ConcreteState state;
 
     // We know only values for LeftHandSides that have not yet been assigned.
@@ -205,7 +205,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return state;
   }
 
-  public static ConcreteState createConcreteState(ValueAnalysisState pValueState) {
+  public static ConcreteState createConcreteState(UnifyAnalysisState pValueState) {
     Map<LeftHandSide, Address> variableAddresses =
         generateVariableAddresses(Collections.singleton(pValueState));
     // We assign every variable to the heap, thats why the variable map is empty.
@@ -319,7 +319,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return true;
   }
 
-  private static Map<LeftHandSide, Address> generateVariableAddresses(Iterable<ValueAnalysisState> pPath) {
+  private static Map<LeftHandSide, Address> generateVariableAddresses(Iterable<UnifyAnalysisState> pPath) {
 
     // Get all base IdExpressions for memory locations, ignoring the offset
     Multimap<IDExpression, MemoryLocation> memoryLocationsInPath =
@@ -367,19 +367,19 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   }
 
   private static Multimap<IDExpression, MemoryLocation> getAllMemoryLocationsInPath(
-      Iterable<ValueAnalysisState> pPath) {
+      Iterable<UnifyAnalysisState> pPath) {
 
     Multimap<IDExpression, MemoryLocation> result = HashMultimap.create();
 
-    for (ValueAnalysisState valueState : pPath) {
+    for (UnifyAnalysisState valueState : pPath) {
       putIfNotExists(valueState, result);
     }
     return result;
   }
 
   private static void putIfNotExists(
-      ValueAnalysisState pState, Multimap<IDExpression, MemoryLocation> memoryLocationMap) {
-    ValueAnalysisState valueState = pState;
+      UnifyAnalysisState pState, Multimap<IDExpression, MemoryLocation> memoryLocationMap) {
+    UnifyAnalysisState valueState = pState;
 
     for (MemoryLocation loc : valueState.getConstantsMapView().keySet()) {
       IDExpression idExp = createBaseIdExpresssion(loc);
@@ -399,7 +399,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     }
   }
 
-  private static Map<String, Memory> allocateAddresses(ValueAnalysisState pValueState,
+  private static Map<String, Memory> allocateAddresses(UnifyAnalysisState pValueState,
       Map<LeftHandSide, Address> pVariableAddressMap) {
 
     Map<Address, Object> values = createHeapValues(pValueState, pVariableAddressMap);
@@ -407,7 +407,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
     return ImmutableMap.of(MEMORY_NAME, new Memory(MEMORY_NAME, values));
   }
 
-  private static Map<Address, Object> createHeapValues(ValueAnalysisState pValueState,
+  private static Map<Address, Object> createHeapValues(UnifyAnalysisState pValueState,
       Map<LeftHandSide, Address> pVariableAddressMap) {
 
     Map<MemoryLocation, NumberInterface> valueView = pValueState.getConstantsMapView();

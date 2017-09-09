@@ -33,8 +33,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -64,10 +64,10 @@ public abstract class ApronDelegatingRefiner implements Refiner {
     final ShutdownNotifier shutdownNotifier = apronCPA.getShutdownNotifier();
     final CFA cfa = apronCPA.getCFA();
 
-    final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
+    final StrongestPostOperator<UnifyAnalysisState> strongestPostOp =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
-    final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
+    final FeasibilityChecker<UnifyAnalysisState> feasibilityChecker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
 
     final ValueAnalysisPathInterpolator interpolatingRefiner =

@@ -34,8 +34,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.SortingPathExtractor;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisInterpolantManager;
@@ -65,7 +65,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final CFA cfa = valueAnalysisCpa.getCFA();
 
-    final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
+    final StrongestPostOperator<UnifyAnalysisState> strongestPostOp =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
     final ValueAnalysisFeasibilityChecker checker =
@@ -87,8 +87,8 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
   ValueAnalysisGlobalRefiner(
       final ARGCPA pArgCpa,
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
-      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
-      final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
+      final StrongestPostOperator<UnifyAnalysisState> pStrongestPostOperator,
+      final GenericPrefixProvider<UnifyAnalysisState> pPrefixProvider,
       final PrefixSelector pPrefixSelector,
       final Configuration pConfig,
       final LogManager pLogger,
@@ -115,7 +115,7 @@ public class ValueAnalysisGlobalRefiner extends ValueAnalysisRefiner {
    * This method creates the interpolation tree, depending on the selected interpolation strategy.
    */
   @Override
-  protected InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> createInterpolationTree(
+  protected InterpolationTree<UnifyAnalysisState, ValueAnalysisInterpolant> createInterpolationTree(
       final List<ARGPath> targetsPaths) {
     return new InterpolationTree<>(
         ValueAnalysisInterpolantManager.getInstance(),

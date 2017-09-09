@@ -30,19 +30,19 @@ import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
-public class ValueRequirementsTranslator extends CartesianRequirementsTranslator<ValueAnalysisState> {
+public class ValueRequirementsTranslator extends CartesianRequirementsTranslator<UnifyAnalysisState> {
 
   public ValueRequirementsTranslator(final LogManager pLog) {
-    super(ValueAnalysisState.class, pLog);
+    super(UnifyAnalysisState.class, pLog);
   }
 
   @Override
-  protected List<String> getVarsInRequirements(final ValueAnalysisState pRequirement) {
+  protected List<String> getVarsInRequirements(final UnifyAnalysisState pRequirement) {
     List<String> list = new ArrayList<>(pRequirement.getConstantsMapView().size());
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
       list.add(memLoc.getAsSimpleString());
@@ -51,7 +51,7 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(final ValueAnalysisState pRequirement,
+  protected List<String> getListOfIndependentRequirements(final UnifyAnalysisState pRequirement,
       final SSAMap pIndices, final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {

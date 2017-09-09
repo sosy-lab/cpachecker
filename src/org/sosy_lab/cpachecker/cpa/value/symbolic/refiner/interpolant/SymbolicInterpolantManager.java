@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.interpolant;
 
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.util.ConstraintsInformation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 
@@ -51,7 +51,7 @@ public class SymbolicInterpolantManager implements InterpolantManager<Forgetting
 
   @Override
   public SymbolicInterpolant createInterpolant(ForgettingCompositeState state) {
-    final ValueAnalysisState values = state.getValueState();
+    final UnifyAnalysisState values = state.getValueState();
     final ConstraintsState constraints = state.getConstraintsState();
 
     return new SymbolicInterpolant(values.getInformation(),

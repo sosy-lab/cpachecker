@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * Strongest post-operator using {@link ValueAnalysisTransferRelation}.
  */
-public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator<ValueAnalysisState> {
+public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator<UnifyAnalysisState> {
 
   private final ValueAnalysisTransferRelation transfer;
 
@@ -73,13 +73,13 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
   }
 
   @Override
-  public Optional<ValueAnalysisState> getStrongestPost(
-      final ValueAnalysisState pOrigin,
+  public Optional<UnifyAnalysisState> getStrongestPost(
+      final UnifyAnalysisState pOrigin,
       final Precision pPrecision,
       final CFAEdge pOperation
   ) throws CPAException {
 
-    final Collection<ValueAnalysisState> successors =
+    final Collection<UnifyAnalysisState> successors =
         transfer.getAbstractSuccessorsForEdge(pOrigin, pPrecision, pOperation);
 
     if (successors.isEmpty()) {
@@ -91,23 +91,23 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
   }
 
   @Override
-  public ValueAnalysisState handleFunctionCall(ValueAnalysisState state, CFAEdge edge,
-      Deque<ValueAnalysisState> callstack) {
+  public UnifyAnalysisState handleFunctionCall(UnifyAnalysisState state, CFAEdge edge,
+      Deque<UnifyAnalysisState> callstack) {
     callstack.push(state);
     return state;
   }
 
   @Override
-  public ValueAnalysisState handleFunctionReturn(ValueAnalysisState next, CFAEdge edge,
-      Deque<ValueAnalysisState> callstack) {
+  public UnifyAnalysisState handleFunctionReturn(UnifyAnalysisState next, CFAEdge edge,
+      Deque<UnifyAnalysisState> callstack) {
 
-    final ValueAnalysisState callState = callstack.pop();
+    final UnifyAnalysisState callState = callstack.pop();
     return next.rebuildStateAfterFunctionCall(callState, (FunctionExitNode)edge.getPredecessor());
   }
 
   @Override
-  public ValueAnalysisState performAbstraction(
-      final ValueAnalysisState pNext,
+  public UnifyAnalysisState performAbstraction(
+      final UnifyAnalysisState pNext,
       final CFANode pCurrNode,
       final ARGPath pErrorPath,
       final Precision pPrecision

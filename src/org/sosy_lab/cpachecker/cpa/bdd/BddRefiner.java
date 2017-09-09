@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -65,10 +65,10 @@ public abstract class BddRefiner implements Refiner {
 
     bddCpa.injectRefinablePrecision();
 
-    final StrongestPostOperator<ValueAnalysisState> strongestPostOperator =
+    final StrongestPostOperator<UnifyAnalysisState> strongestPostOperator =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
-    final FeasibilityChecker<ValueAnalysisState> feasibilityChecker =
+    final FeasibilityChecker<UnifyAnalysisState> feasibilityChecker =
         new ValueAnalysisFeasibilityChecker(strongestPostOperator, logger, cfa, config);
 
     final ValueAnalysisPathInterpolator pathInterpolator =

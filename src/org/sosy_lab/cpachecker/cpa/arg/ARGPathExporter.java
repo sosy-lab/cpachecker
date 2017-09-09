@@ -119,9 +119,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.graphexport.Edge;
 import org.sosy_lab.cpachecker.cpa.arg.graphexport.TransitionCondition;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -272,8 +272,8 @@ public class ARGPathExporter {
               return ExpressionTrees.getTrue();
             }
             for (ARGState state : pStates.get()) {
-              ValueAnalysisState valueAnalysisState =
-                  AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+                UnifyAnalysisState valueAnalysisState =
+                  AbstractStates.extractStateByType(state, UnifyAnalysisState.class);
               ExpressionTree<Object> stateInvariant = ExpressionTrees.getTrue();
               if (valueAnalysisState != null) {
                 ConcreteState concreteState =

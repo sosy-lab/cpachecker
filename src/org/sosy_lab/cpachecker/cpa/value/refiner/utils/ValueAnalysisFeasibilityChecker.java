@@ -23,8 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -34,21 +35,18 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class ValueAnalysisFeasibilityChecker
-    extends GenericFeasibilityChecker<ValueAnalysisState> {
+    extends GenericFeasibilityChecker<UnifyAnalysisState> {
 
-  private final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
+  private final StrongestPostOperator<UnifyAnalysisState> strongestPostOp;
   private final VariableTrackingPrecision precision;
   private final MachineModel machineModel;
 
@@ -59,7 +57,7 @@ public class ValueAnalysisFeasibilityChecker
    * @param pCfa the cfa in use
    */
   public ValueAnalysisFeasibilityChecker(
-      final StrongestPostOperator<ValueAnalysisState> pStrongestPostOp,
+      final StrongestPostOperator<UnifyAnalysisState> pStrongestPostOp,
       final LogManager pLogger,
       final CFA pCfa,
       final Configuration config
@@ -67,7 +65,7 @@ public class ValueAnalysisFeasibilityChecker
 
     super(
         pStrongestPostOp,
-        new ValueAnalysisState(pCfa.getMachineModel()),
+        new UnifyAnalysisState(pCfa.getMachineModel()),
         ValueAnalysisCPA.class,
         pLogger,
         config,
@@ -78,16 +76,16 @@ public class ValueAnalysisFeasibilityChecker
     machineModel = pCfa.getMachineModel();
   }
 
-  public List<Pair<ValueAnalysisState, List<CFAEdge>>> evaluate(final ARGPath path)
+  public List<Pair<UnifyAnalysisState, List<CFAEdge>>> evaluate(final ARGPath path)
       throws CPAException, InterruptedException {
 
     try {
-      List<Pair<ValueAnalysisState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
-      ValueAnalysisState next = new ValueAnalysisState(machineModel);
+      List<Pair<UnifyAnalysisState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
+      UnifyAnalysisState next = new UnifyAnalysisState(machineModel);
 
       PathIterator iterator = path.fullPathIterator();
       while (iterator.hasNext()) {
-        Optional<ValueAnalysisState> successor;
+        Optional<UnifyAnalysisState> successor;
         CFAEdge outgoingEdge;
         List<CFAEdge> allOutgoingEdges = new ArrayList<>();
         do {

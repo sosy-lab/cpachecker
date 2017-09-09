@@ -32,9 +32,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
@@ -63,10 +63,10 @@ public abstract class OctagonDelegatingRefiner implements Refiner {
     final CFA cfa = octagonCPA.getCFA();
     final ShutdownNotifier shutdownNotifier = octagonCPA.getShutdownNotifier();
 
-    final StrongestPostOperator<ValueAnalysisState> valuePostOp =
+    final StrongestPostOperator<UnifyAnalysisState> valuePostOp =
         new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
 
-    final FeasibilityChecker<ValueAnalysisState> valueChecker =
+    final FeasibilityChecker<UnifyAnalysisState> valueChecker =
         new ValueAnalysisFeasibilityChecker(valuePostOp, logger, cfa, config);
 
     final ValueAnalysisPathInterpolator interpolatingRefiner =

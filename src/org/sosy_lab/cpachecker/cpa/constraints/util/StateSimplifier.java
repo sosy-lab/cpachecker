@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.ConstraintTrivialityCh
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 /**
  * Simplifier for {@link ConstraintsState}s.
  * Provides different methods for simplifying a <code>ConstraintsState</code>
- * through {@link #simplify(ConstraintsState, ValueAnalysisState)}.
+ * through {@link #simplify(ConstraintsState, UnifyAnalysisState)}.
  */
 @Options(prefix = "cpa.constraints")
 public class StateSimplifier {
@@ -77,7 +77,7 @@ public class StateSimplifier {
    */
   public ConstraintsState simplify(
       final ConstraintsState pState,
-      final ValueAnalysisState pValueState
+      final UnifyAnalysisState pValueState
   ) {
     ConstraintsState newState = pState;
 
@@ -134,7 +134,7 @@ public class StateSimplifier {
    */
   public ConstraintsState removeOutdatedConstraints(
       final ConstraintsState pState,
-      final ValueAnalysisState pValueState
+      final UnifyAnalysisState pValueState
   ) {
     ConstraintsState newState = pState.copyOf();
 
@@ -248,7 +248,7 @@ public class StateSimplifier {
     return true;
   }
 
-  private Set<SymbolicIdentifier> getExistingSymbolicIds(final ValueAnalysisState pValueState) {
+  private Set<SymbolicIdentifier> getExistingSymbolicIds(final UnifyAnalysisState pValueState) {
     final Collection<NumberInterface> valueStateConstants = pValueState.getConstantsMapView().values();
     Set<SymbolicIdentifier> symbolicValues = new HashSet<>();
 

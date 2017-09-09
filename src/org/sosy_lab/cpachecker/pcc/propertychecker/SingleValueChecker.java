@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -57,7 +57,7 @@ public class SingleValueChecker extends PerElementPropertyChecker {
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(labelLocVarVal)) {
       NumberInterface value =
-          AbstractStates.extractStateByType(pElemToCheck, ValueAnalysisState.class).getConstantsMapView()
+          AbstractStates.extractStateByType(pElemToCheck, UnifyAnalysisState.class).getConstantsMapView()
               .get(varValRep);
       if (value == null || !value.isExplicitlyKnown() ||
           !(value.equals(varValBigInt) || value.equals(varValLong))) { return false; }

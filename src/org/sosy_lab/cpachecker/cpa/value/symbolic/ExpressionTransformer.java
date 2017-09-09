@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -51,9 +51,9 @@ public class ExpressionTransformer {
 
   protected final String functionName;
 
-  protected ValueAnalysisState valueState;
+  protected UnifyAnalysisState valueState;
 
-  public ExpressionTransformer(String pFunctionName, ValueAnalysisState pValueState) {
+  public ExpressionTransformer(String pFunctionName, UnifyAnalysisState pValueState) {
     functionName = pFunctionName;
     valueState = pValueState;
   }

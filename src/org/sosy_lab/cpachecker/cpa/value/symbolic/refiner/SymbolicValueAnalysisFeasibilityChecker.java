@@ -30,8 +30,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsTransferRelation;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
@@ -64,7 +64,7 @@ public class SymbolicValueAnalysisFeasibilityChecker
   }
 
   private static ForgettingCompositeState getInitialCompositeState(MachineModel pMachineModel) {
-    final ValueAnalysisState valueState = new ValueAnalysisState(pMachineModel);
+    final UnifyAnalysisState valueState = new UnifyAnalysisState(pMachineModel);
     final ConstraintsState constraintsState = new ConstraintsState();
 
     return new ForgettingCompositeState(valueState, constraintsState);

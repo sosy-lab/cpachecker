@@ -80,7 +80,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -92,7 +92,7 @@ public class ProofSlicer {
   public UnmodifiableReachedSet sliceProof(final UnmodifiableReachedSet pReached) {
     AbstractState first = pReached.getFirstState();
     if (first != null && first instanceof ARGState && AbstractStates.extractLocation(first) != null
-        && AbstractStates.extractStateByType(first, ValueAnalysisState.class) != null
+        && AbstractStates.extractStateByType(first, UnifyAnalysisState.class) != null
         && AbstractStates.extractStateByType(first, CallstackState.class) != null
         && ((ARGState) first).getWrappedState() instanceof CompositeState) {
       numNotCovered=0;
@@ -467,17 +467,17 @@ public class ProofSlicer {
     List<AbstractState> newStates = new ArrayList<>(compOldStates.size());
 
     for (AbstractState state : compOldStates) {
-      newStates.add(state instanceof ValueAnalysisState ?
-          sliceState((ValueAnalysisState) state, necessaryVars) :
+      newStates.add(state instanceof UnifyAnalysisState ?
+          sliceState((UnifyAnalysisState) state, necessaryVars) :
           state);
     }
 
     return new ARGState(new CompositeState(newStates), null);
   }
 
-  private ValueAnalysisState sliceState(final ValueAnalysisState vState,
+  private UnifyAnalysisState sliceState(final UnifyAnalysisState vState,
       final Collection<String> necessaryVars) {
-    ValueAnalysisState returnState = ValueAnalysisState.copyOf(vState);
+    UnifyAnalysisState returnState = UnifyAnalysisState.copyOf(vState);
 
     for (MemoryLocation ml : vState.getConstantsMapView().keySet()) {
       if (!necessaryVars.contains(getVarName(ml))) {

@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -32,15 +35,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.ForgettingCompositeState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.SymbolicStrongestPostOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Optional;
 
 /**
  * Strongest-post operator with the semantics of
@@ -69,13 +68,13 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
       final Precision pPrecision,
       final CFAEdge pOperation
   ) throws CPAException {
-    Optional<ValueAnalysisState> successor =
+    Optional<UnifyAnalysisState> successor =
         explicitStrongestPost.getStrongestPost(pOrigin.getValueState(), pPrecision, pOperation);
 
     if (!successor.isPresent()) {
       return Optional.empty();
     } else {
-      ValueAnalysisState next = successor.get();
+      UnifyAnalysisState next = successor.get();
       return Optional.of(new ForgettingCompositeState(next, INITIAL_CONSTRAINTS));
     }
   }
@@ -86,21 +85,21 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
       final CFAEdge pEdge,
       final Deque<ForgettingCompositeState> pCallstack
   ) {
-    Deque<ValueAnalysisState> valueCallstack = transformToValueStack(pCallstack);
+    Deque<UnifyAnalysisState> valueCallstack = transformToValueStack(pCallstack);
     assert pCallstack.size() == valueCallstack.size();
 
     pCallstack.push(pState);
-    ValueAnalysisState result =
+    UnifyAnalysisState result =
         explicitStrongestPost.handleFunctionCall(pState.getValueState(), pEdge, valueCallstack);
 
     assert pCallstack.size() == valueCallstack.size();
     return new ForgettingCompositeState(result, INITIAL_CONSTRAINTS);
   }
 
-  private Deque<ValueAnalysisState> transformToValueStack(
+  private Deque<UnifyAnalysisState> transformToValueStack(
       final Deque<ForgettingCompositeState> pCallstack
   ) {
-    Deque<ValueAnalysisState> valueCallstack = new ArrayDeque<>(pCallstack.size());
+    Deque<UnifyAnalysisState> valueCallstack = new ArrayDeque<>(pCallstack.size());
 
     for (ForgettingCompositeState s : pCallstack) {
       valueCallstack.add(s.getValueState());
@@ -115,11 +114,11 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
       final CFAEdge pEdge,
       final Deque<ForgettingCompositeState> pCallstack
   ) {
-    Deque<ValueAnalysisState> valueCallstack = transformToValueStack(pCallstack);
+    Deque<UnifyAnalysisState> valueCallstack = transformToValueStack(pCallstack);
     assert pCallstack.size() == valueCallstack.size();
 
     pCallstack.pop();
-    ValueAnalysisState result =
+    UnifyAnalysisState result =
         explicitStrongestPost.handleFunctionReturn(pNext.getValueState(), pEdge, valueCallstack);
 
     assert pCallstack.size() == valueCallstack.size();
@@ -133,7 +132,7 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
       final ARGPath pErrorPath,
       final Precision pPrecision
   ) {
-    ValueAnalysisState result = explicitStrongestPost.performAbstraction(
+    UnifyAnalysisState result = explicitStrongestPost.performAbstraction(
         pNext.getValueState(), pCurrNode, pErrorPath, pPrecision);
 
     return new ForgettingCompositeState(result, INITIAL_CONSTRAINTS);

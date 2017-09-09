@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class RedundantRequirementsValueAnalysisStateImplementation extends
-    RedundantRequirementsRemoverImplementation<ValueAnalysisState, NumberInterface> {
+    RedundantRequirementsRemoverImplementation<UnifyAnalysisState, NumberInterface> {
 
   private static final long serialVersionUID = 2875464105471673418L;
 
@@ -79,7 +79,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
   }
 
   @Override
-  protected NumberInterface getAbstractValue(ValueAnalysisState pAbstractState, String pVarOrConst) {
+  protected NumberInterface getAbstractValue(UnifyAnalysisState pAbstractState, String pVarOrConst) {
     // if pVarOrConst number, return NumericValue
     // if state contains pVarOrConst return value saved in state
     // otherwise unknown
@@ -111,9 +111,9 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
   }
 
   @Override
-  protected ValueAnalysisState extractState(AbstractState pWrapperState) {
+  protected UnifyAnalysisState extractState(AbstractState pWrapperState) {
     // AbstractStates.extractStateByType....
-    return AbstractStates.extractStateByType(pWrapperState, ValueAnalysisState.class);
+    return AbstractStates.extractStateByType(pWrapperState, UnifyAnalysisState.class);
   }
 
 }

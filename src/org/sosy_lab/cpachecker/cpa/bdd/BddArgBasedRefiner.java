@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisPathInterpolator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -59,7 +59,7 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
    */
   private final ValueAnalysisPathInterpolator interpolatingRefiner;
 
-  private final FeasibilityChecker<ValueAnalysisState> checker;
+  private final FeasibilityChecker<UnifyAnalysisState> checker;
 
   private int previousErrorPathId = -1;
 
@@ -68,7 +68,7 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
   private int numberOfSuccessfulValueAnalysisRefinements = 0;
 
   BddArgBasedRefiner(
-      final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
+      final FeasibilityChecker<UnifyAnalysisState> pFeasibilityChecker,
       final ValueAnalysisPathInterpolator pPathInterpolator) {
     checker = pFeasibilityChecker;
     interpolatingRefiner = pPathInterpolator;

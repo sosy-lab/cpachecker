@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.IdentifierAssignment;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -91,14 +91,14 @@ public class ConstraintsStrengthenOperator implements Statistics {
    *    an empty <code>Collection</code>, if the resulting state is not reachable and
    *    a <code>Collection</code> containing all reachable states, otherwise
    */
-  public Collection<ValueAnalysisState> strengthen(
-      final ValueAnalysisState pStateToStrengthen,
+  public Collection<UnifyAnalysisState> strengthen(
+      final UnifyAnalysisState pStateToStrengthen,
       final ConstraintsState pStrengtheningState,
       final CFAEdge pEdge
   ) {
     totalTime.start();
     try {
-      ValueAnalysisState newState;
+        UnifyAnalysisState newState;
 
       if (adoptDefinites) {
         newState =
@@ -124,12 +124,12 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
   }
 
-  private ValueAnalysisState evaluateAssignment(
+  private UnifyAnalysisState evaluateAssignment(
       final IdentifierAssignment pAssignment,
-      final ValueAnalysisState pValueState
+      final UnifyAnalysisState pValueState
   ) {
 
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(pValueState);
+      UnifyAnalysisState newElement = UnifyAnalysisState.copyOf(pValueState);
 
     for (Map.Entry<? extends SymbolicIdentifier, NumberInterface> onlyValidAssignment : pAssignment.entrySet()) {
       final SymbolicIdentifier identifierToReplace = onlyValidAssignment.getKey();
@@ -143,8 +143,8 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
   // replaces symbolic expressions that are not used anywhere yet with a new symbolic identifier.
   // this method does not copy the given value analysis state, but works directly with it
-  private ValueAnalysisState simplifySymbolicValues(
-      final ValueAnalysisState pValueState,
+  private UnifyAnalysisState simplifySymbolicValues(
+      final UnifyAnalysisState pValueState,
       final ConstraintsState pConstraints,
       final CFAEdge pEdge
   ) {
@@ -223,10 +223,10 @@ public class ConstraintsStrengthenOperator implements Statistics {
   private boolean isIndependentInValueState(
       final SymbolicValue pValue,
       final MemoryLocation pMemLoc,
-      final ValueAnalysisState pState
+      final UnifyAnalysisState pState
   ) {
 
-    ValueAnalysisState stateWithoutValue = ValueAnalysisState.copyOf(pState);
+      UnifyAnalysisState stateWithoutValue = UnifyAnalysisState.copyOf(pState);
     stateWithoutValue.forget(pMemLoc);
 
     Collection<SymbolicIdentifier> identifiersInValue =
@@ -261,7 +261,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
     return false;
   }
 
-  private Collection<SymbolicIdentifier> getIdentifiersInState(final ValueAnalysisState pState) {
+  private Collection<SymbolicIdentifier> getIdentifiersInState(final UnifyAnalysisState pState) {
     Collection<SymbolicIdentifier> ret = new HashSet<>();
 
     for (NumberInterface v : pState.getConstantsMapView().values()) {

@@ -86,7 +86,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -133,7 +132,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
     INTERVAL(UnifyAnalysisState.class, IntervalAnalysisCPA.class),
     OCTAGON(OctagonState.class, OctagonCPA.class),
     PREDICATE(PredicateAbstractState.class, PredicateCPA.class),
-    VALUE(ValueAnalysisState.class, ValueAnalysisCPA.class);
+    VALUE(UnifyAnalysisState.class, ValueAnalysisCPA.class);
 
     private final Class<? extends AbstractState> stateClass;
     private final Class<? extends ConfigurableProgramAnalysis> cpaClass;

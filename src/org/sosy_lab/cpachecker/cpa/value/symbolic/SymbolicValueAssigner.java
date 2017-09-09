@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 /**
  * This class allows assignment of new {@link SymbolicIdentifier}s
- * to {@link MemoryLocation}s of {@link ValueAnalysisState} object.
+ * to {@link MemoryLocation}s of {@link UnifyAnalysisState} object.
  * If property <code>cpa.value.symbolic.useSymbolicValues</code> is set to <code>false</code>,
  * memory locations passed to {@link #handle} will just be removed from the state.
  */
@@ -103,14 +103,14 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
    *
    * @param pVarLocation the memory location of the variable to handle
    * @param pVarType the type of th evariable
-   * @param pState the {@link ValueAnalysisState} to use.
+   * @param pState the {@link UnifyAnalysisState} to use.
    *    Value assignments will happen in this state
    * @param pValueVisitor a value visitor for possibly needed evaluations or computations
    * @throws UnrecognizedCCodeException thrown if a {@link MemoryLocation} can't be evaluated
    */
   @Override
   public void handle(MemoryLocation pVarLocation, Type pVarType,
-      ValueAnalysisState pState, ExpressionValueVisitor pValueVisitor)
+          UnifyAnalysisState pState, ExpressionValueVisitor pValueVisitor)
       throws UnrecognizedCCodeException {
 
     if (isEligibleForSymbolicValue(pVarType)) {
@@ -134,7 +134,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
    * @param pValueVisitor value visitor for evaluating the memory location of struct members
    * @throws UnrecognizedCCodeException thrown if a memory location can't be evaluated
    */
-  private void assignNewSymbolicIdentifier(ValueAnalysisState pState,
+  private void assignNewSymbolicIdentifier(UnifyAnalysisState pState,
       MemoryLocation pVarLocation,
       Type pVarType, ExpressionValueVisitor pValueVisitor) throws UnrecognizedCCodeException {
 
@@ -149,7 +149,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
   }
 
 
-  private void addSymbolicTracking(ValueAnalysisState pState,
+  private void addSymbolicTracking(UnifyAnalysisState pState,
       MemoryLocation pVarLocation, JType pVarType) {
 
     if (pVarType instanceof JSimpleType) {
@@ -160,7 +160,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
     }
   }
 
-  private void addSymbolicTracking(ValueAnalysisState pState,
+  private void addSymbolicTracking(UnifyAnalysisState pState,
       MemoryLocation pVarLocation, CType pVarType, ExpressionValueVisitor pValueVisitor)
       throws UnrecognizedCCodeException {
 
@@ -183,7 +183,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
     }
   }
 
-  private void assignSymbolicIdentifier(ValueAnalysisState pState,
+  private void assignSymbolicIdentifier(UnifyAnalysisState pState,
       MemoryLocation pVarLocation, Type pVarType) {
 
     SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
@@ -195,7 +195,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
   }
 
   private void fillStructWithSymbolicIdentifiers(
-      ValueAnalysisState pState, MemoryLocation pStructLocation, CCompositeType pStructType,
+      UnifyAnalysisState pState, MemoryLocation pStructLocation, CCompositeType pStructType,
       ExpressionValueVisitor pValueVisitor)
       throws UnrecognizedCCodeException {
 
@@ -220,7 +220,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
   }
 
   private void fillArrayWithSymbolicIdentifiers(
-      final ValueAnalysisState pState,
+      final UnifyAnalysisState pState,
       final MemoryLocation pArrayLocation,
       final CArrayType pArrayType,
       final ExpressionValueVisitor pValueVisitor

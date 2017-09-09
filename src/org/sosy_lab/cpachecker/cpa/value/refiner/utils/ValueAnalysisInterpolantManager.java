@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 
 /**
- * InterpolantManager for interpolants of {@link ValueAnalysisState}.
+ * InterpolantManager for interpolants of {@link UnifyAnalysisState}.
  */
 public class ValueAnalysisInterpolantManager
-    implements InterpolantManager<ValueAnalysisState, ValueAnalysisInterpolant> {
+    implements InterpolantManager<UnifyAnalysisState, ValueAnalysisInterpolant> {
 
   private static final ValueAnalysisInterpolantManager SINGLETON =
       new ValueAnalysisInterpolantManager();
@@ -50,7 +50,7 @@ public class ValueAnalysisInterpolantManager
   }
 
   @Override
-  public ValueAnalysisInterpolant createInterpolant(ValueAnalysisState state) {
+  public ValueAnalysisInterpolant createInterpolant(UnifyAnalysisState state) {
     return state.createInterpolant();
   }
 
