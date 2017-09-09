@@ -233,31 +233,4 @@ public class DoubleIntervalTest {
         assertEquals(iExpected, i14.divide(i22));
         assertEquals(iExpectedUnbound, i22.divide(izz));
     }
-
-    @Test
-    public void testShifteft() throws Exception {
-        DoubleInterval i_2_1 = new DoubleInterval(-2.0, -1.0);
-        DoubleInterval i14 = new DoubleInterval(1.0, 4.0);
-        DoubleInterval i_20= new DoubleInterval(-2.0, -0.0);
-        DoubleInterval iExpected = new DoubleInterval(-32.0, 0.0);
-        DoubleInterval iExpectedUnbound = DoubleInterval.UNBOUND;
-
-        assertEquals(iExpectedUnbound, i14.shiftLeft(i_2_1));
-        assertEquals(iExpectedUnbound, i_2_1.shiftLeft(i_20));
-        assertEquals(iExpected, i_20.shiftLeft(i14));
-    }
-
-    @Test
-    public void testShiftRight() throws Exception {
-        DoubleInterval i_2_1 = new DoubleInterval(-2.0, -1.0);
-        DoubleInterval i14 = new DoubleInterval(1.0, 4.0);
-        DoubleInterval i_20= new DoubleInterval(-2.0, -0.0);
-        DoubleInterval iExpected = new DoubleInterval(-1.0, 0.0);
-        DoubleInterval iExpectedUnbound = DoubleInterval.UNBOUND;
-
-        assertEquals(iExpectedUnbound, i14.shiftRight(i_2_1));
-        assertEquals(iExpectedUnbound, i_2_1.shiftRight(i_20));
-        assertEquals(iExpected, i_20.shiftRight(i14));
-    }
-
 }
