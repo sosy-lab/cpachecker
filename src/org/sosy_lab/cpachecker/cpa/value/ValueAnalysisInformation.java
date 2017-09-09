@@ -40,7 +40,7 @@ public class ValueAnalysisInformation {
   private final PersistentMap<MemoryLocation, NumberInterface> assignments;
   private final PersistentMap<MemoryLocation, Type> locationTypes;
 
-  protected ValueAnalysisInformation(
+  /*protected*/ public ValueAnalysisInformation(
       final PersistentMap<MemoryLocation, NumberInterface> pAssignments,
       final PersistentMap<MemoryLocation, Type> pLocationTypes) {
     assignments = pAssignments;

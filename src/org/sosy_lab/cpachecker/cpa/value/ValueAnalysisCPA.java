@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
@@ -99,7 +100,7 @@ public class ValueAnalysisCPA
   }
 
   private final AbstractDomain abstractDomain =
-      DelegateAbstractDomain.<ValueAnalysisState>getInstance();
+      DelegateAbstractDomain.<UnifyAnalysisState>getInstance();
   private VariableTrackingPrecision precision;
   private ValueAnalysisPrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisCPAStatistics statistics;
@@ -254,7 +255,7 @@ public class ValueAnalysisCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new ValueAnalysisState(cfa.getMachineModel());
+    return new UnifyAnalysisState(cfa.getMachineModel());
   }
 
   @Override

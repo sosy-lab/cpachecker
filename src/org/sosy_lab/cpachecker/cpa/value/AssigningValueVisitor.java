@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -61,7 +62,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 class AssigningValueVisitor extends ExpressionValueVisitor {
 
-  private ValueAnalysisState assignableState;
+  private UnifyAnalysisState assignableState;
 
   private Collection<String> booleans;
 
@@ -70,11 +71,11 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   private final ValueTransferOptions options;
 
   public AssigningValueVisitor(
-      ValueAnalysisState assignableState,
+          UnifyAnalysisState assignableState,
       boolean truthValue,
       Collection<String> booleanVariables,
       String functionName,
-      ValueAnalysisState state,
+      UnifyAnalysisState state,
       MachineModel machineModel,
       LogManagerWithoutDuplicates logger,
       ValueTransferOptions options) {

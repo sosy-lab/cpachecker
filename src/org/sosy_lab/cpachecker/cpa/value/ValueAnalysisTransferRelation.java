@@ -124,6 +124,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
@@ -145,7 +146,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 public class ValueAnalysisTransferRelation
-    extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
+    extends ForwardingTransferRelation<UnifyAnalysisState, UnifyAnalysisState, VariableTrackingPrecision>
     implements StatisticsProvider {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
@@ -240,7 +241,7 @@ public class ValueAnalysisTransferRelation
    * Save the old State for strengthen.
    * Do not change or modify this state!
    */
-  private ValueAnalysisState oldState;
+  private UnifyAnalysisState oldState;
 
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
@@ -272,10 +273,10 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected Collection<ValueAnalysisState> postProcessing(ValueAnalysisState successor, CFAEdge edge) {
+  protected Collection<UnifyAnalysisState> postProcessing(UnifyAnalysisState successor, CFAEdge edge) {
     // always return a new state (requirement for strengthening states with interpolants)
     if (successor != null) {
-      successor = ValueAnalysisState.copyOf(successor);
+      successor = UnifyAnalysisState.copyOf(successor);
     }
 
     return super.postProcessing(successor, edge);
@@ -292,17 +293,17 @@ public class ValueAnalysisTransferRelation
     // but I'm not sure of the behavior of calling strengthen, so
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
-    oldState = (ValueAnalysisState)pAbstractState;
+    oldState = (UnifyAnalysisState)pAbstractState;
     if (stats != null) {
       stats.incrementIterations();
     }
   }
 
   @Override
-  protected ValueAnalysisState handleFunctionCallEdge(FunctionCallEdge callEdge,
+  protected UnifyAnalysisState handleFunctionCallEdge(FunctionCallEdge callEdge,
       List<? extends AExpression> arguments, List<? extends AParameterDeclaration> parameters,
       String calledFunctionName) throws UnrecognizedCCodeException {
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+      UnifyAnalysisState newElement = UnifyAnalysisState.copyOf(state);
 
     assert (parameters.size() == arguments.size())
         || callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs();
@@ -348,22 +349,22 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected ValueAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
+  protected UnifyAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       assert "default return".equals(cfaEdge.getDescription())
               || "skipped unnecessary edges".equals(cfaEdge.getDescription())
               || BlankEdge.REPLACEMENT_LABEL.equals(cfaEdge.getDescription());
 
       // clone state, because will be changed through removing all variables of current function's scope
-      state = ValueAnalysisState.copyOf(state);
-      state.dropFrame(functionName);
+      state = UnifyAnalysisState.copyOf(state);
+      state.dropFrameValue(functionName);
     }
 
     return state;
   }
 
   @Override
-  protected ValueAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
+  protected UnifyAnalysisState handleReturnStatementEdge(AReturnStatementEdge returnEdge)
       throws UnrecognizedCCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
@@ -372,8 +373,8 @@ public class ValueAnalysisTransferRelation
     // clone state, because will be changed through removing all variables of current function's scope.
     // The assignment of the global 'state' is safe, because the 'old state'
     // is available in the visitor and is not used for further computation.
-    state = ValueAnalysisState.copyOf(state);
-    state.dropFrame(functionName);
+    state = UnifyAnalysisState.copyOf(state);
+    state.dropFrameValue(functionName);
 
     AExpression expression = returnEdge.getExpression().orNull();
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
@@ -408,11 +409,11 @@ public class ValueAnalysisTransferRelation
    * @return new abstract state
    */
   @Override
-  protected ValueAnalysisState handleFunctionReturnEdge(FunctionReturnEdge functionReturnEdge,
+  protected UnifyAnalysisState handleFunctionReturnEdge(FunctionReturnEdge functionReturnEdge,
       FunctionSummaryEdge summaryEdge, AFunctionCall exprOnSummary, String callerFunctionName)
     throws UnrecognizedCodeException {
 
-    ValueAnalysisState newElement  = ValueAnalysisState.copyOf(state);
+      UnifyAnalysisState newElement  = UnifyAnalysisState.copyOf(state);
 
     com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
         functionReturnEdge.getFunctionEntry().getReturnVariable();
@@ -544,8 +545,8 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected ValueAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
-    ValueAnalysisState newState = ValueAnalysisState.copyOf(state);
+  protected UnifyAnalysisState handleFunctionSummaryEdge(CFunctionSummaryEdge cfaEdge) throws CPATransferException {
+    UnifyAnalysisState newState = UnifyAnalysisState.copyOf(state);
     AFunctionCall functionCall  = cfaEdge.getExpression();
 
     if (functionCall instanceof AFunctionCallAssignmentStatement) {
@@ -565,12 +566,12 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected ValueAnalysisState handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthValue)
+  protected UnifyAnalysisState handleAssumption(AssumeEdge cfaEdge, AExpression expression, boolean truthValue)
     throws UnrecognizedCCodeException {
     return handleAssumption(expression, truthValue);
   }
 
-  private ValueAnalysisState handleAssumption(AExpression expression, boolean truthValue)
+  private UnifyAnalysisState handleAssumption(AExpression expression, boolean truthValue)
       throws UnrecognizedCCodeException {
 
     if (stats != null) {
@@ -592,7 +593,7 @@ public class ValueAnalysisTransferRelation
     }
 
     if (!value.isExplicitlyKnown()) {
-      ValueAnalysisState element = ValueAnalysisState.copyOf(state);
+      UnifyAnalysisState element = UnifyAnalysisState.copyOf(state);
 
       AssigningValueVisitor avv =
           new AssigningValueVisitor(
@@ -627,7 +628,7 @@ public class ValueAnalysisTransferRelation
     } else if (representsBoolean(value, truthValue)) {
       // we do not know more than before, and the assumption is fulfilled, so return a copy of the old state
       // we need to return a copy, otherwise precision adjustment might reset too much information, even on the original state
-      return ValueAnalysisState.copyOf(state);
+      return UnifyAnalysisState.copyOf(state);
 
     } else {
       // assumption not fulfilled
@@ -673,7 +674,7 @@ public class ValueAnalysisTransferRelation
 
 
   @Override
-  protected ValueAnalysisState handleDeclarationEdge(ADeclarationEdge declarationEdge, ADeclaration declaration)
+  protected UnifyAnalysisState handleDeclarationEdge(ADeclarationEdge declarationEdge, ADeclaration declaration)
       throws UnrecognizedCCodeException {
 
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
@@ -681,7 +682,7 @@ public class ValueAnalysisTransferRelation
       return state;
     }
 
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+    UnifyAnalysisState newElement = UnifyAnalysisState.copyOf(state);
     AVariableDeclaration decl = (AVariableDeclaration) declaration;
     Type declarationType = decl.getType();
 
@@ -713,7 +714,7 @@ public class ValueAnalysisTransferRelation
     if (addressedVariables.contains(decl.getQualifiedName())
         && declarationType instanceof CType
         && ((CType) declarationType).getCanonicalType() instanceof CPointerType) {
-      ValueAnalysisState.addToBlacklist(memoryLocation);
+      UnifyAnalysisState.addToBlacklist(memoryLocation);
     }
 
     if (init instanceof AInitializerExpression) {
@@ -794,7 +795,7 @@ public class ValueAnalysisTransferRelation
   }
 
   @Override
-  protected ValueAnalysisState handleStatementEdge(AStatementEdge cfaEdge, AStatement expression)
+  protected UnifyAnalysisState handleStatementEdge(AStatementEdge cfaEdge, AStatement expression)
     throws UnrecognizedCodeException {
 
     if (expression instanceof CFunctionCall) {
@@ -835,7 +836,7 @@ public class ValueAnalysisTransferRelation
     return state;
   }
 
-  private ValueAnalysisState handleFunctionAssignment(
+  private UnifyAnalysisState handleFunctionAssignment(
       CFunctionCallAssignmentStatement pFunctionCallAssignment)
       throws UnrecognizedCCodeException {
 
@@ -844,7 +845,7 @@ public class ValueAnalysisTransferRelation
     final CType leftSideType = leftSide.getExpressionType();
     final ExpressionValueVisitor evv = getVisitor();
 
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+    UnifyAnalysisState newElement = UnifyAnalysisState.copyOf(state);
 
     NumberInterface newValue = evv.evaluate(functionCallExp, leftSideType);
 
@@ -862,14 +863,14 @@ public class ValueAnalysisTransferRelation
     return newElement;
   }
 
-  private ValueAnalysisState handleCallToFree(CFunctionCall pExpression) {
+  private UnifyAnalysisState handleCallToFree(CFunctionCall pExpression) {
     // Needed for erasing values
     missingInformationList.add(new MissingInformation(pExpression.getFunctionCallExpression()));
 
     return state;
   }
 
-  private ValueAnalysisState handleAssignment(AAssignment assignExpression, CFAEdge cfaEdge)
+  private UnifyAnalysisState handleAssignment(AAssignment assignExpression, CFAEdge cfaEdge)
       throws UnrecognizedCodeException {
     AExpression op1    = assignExpression.getLeftHandSide();
     ARightHandSide op2 = assignExpression.getRightHandSide();
@@ -948,7 +949,7 @@ public class ValueAnalysisTransferRelation
 
           // changes array value in old state
           handleAssignmentToArray(arrayToChange, (int) concreteIndex, op2);
-          return ValueAnalysisState.copyOf(state);
+          return UnifyAnalysisState.copyOf(state);
         }
       }
     } else {
@@ -980,11 +981,11 @@ public class ValueAnalysisTransferRelation
 
   /** This method analyses the expression with the visitor and assigns the value to lParam.
    * The method returns a new state, that contains (a copy of) the old state and the new assignment. */
-  private ValueAnalysisState handleAssignmentToVariable(
+  private UnifyAnalysisState handleAssignmentToVariable(
       MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
           throws UnrecognizedCCodeException {
     // here we clone the state, because we get new information or must forget it.
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+    UnifyAnalysisState newElement = UnifyAnalysisState.copyOf(state);
     handleAssignmentToVariable(newElement, assignedVar, lType, exp, visitor);
     return newElement;
   }
@@ -992,7 +993,7 @@ public class ValueAnalysisTransferRelation
   /** This method analyses the expression with the visitor and assigns the value to lParam
    *  to the given value Analysis state.
    */
-  private void handleAssignmentToVariable(ValueAnalysisState newElement,
+  private void handleAssignmentToVariable(UnifyAnalysisState newElement,
       MemoryLocation assignedVar, final Type lType, ARightHandSide exp, ExpressionValueVisitor visitor)
       throws UnrecognizedCCodeException {
 
@@ -1065,7 +1066,7 @@ public class ValueAnalysisTransferRelation
    * field references and assigns them to the given value state.
    *
    */
-  private void handleAssignmentToStruct(ValueAnalysisState pNewElement,
+  private void handleAssignmentToStruct(UnifyAnalysisState pNewElement,
       MemoryLocation pAssignedVar,
       CCompositeType pLType, CExpression pExp,
       ExpressionValueVisitor pVisitor) throws UnrecognizedCCodeException {
@@ -1203,7 +1204,7 @@ public class ValueAnalysisTransferRelation
   private class  FieldAccessExpressionValueVisitor extends ExpressionValueVisitor {
     private final RTTState jortState;
 
-    public FieldAccessExpressionValueVisitor(RTTState pJortState, ValueAnalysisState pState) {
+    public FieldAccessExpressionValueVisitor(RTTState pJortState, UnifyAnalysisState pState) {
       super(pState, functionName, machineModel, logger);
       jortState = pJortState;
     }
@@ -1266,19 +1267,19 @@ public class ValueAnalysisTransferRelation
   @Override
   public Collection<? extends AbstractState> strengthen(AbstractState element, List<AbstractState> elements, CFAEdge cfaEdge, Precision precision)
     throws CPATransferException {
-    assert element instanceof ValueAnalysisState;
+    assert element instanceof UnifyAnalysisState;
 
-    ArrayList<ValueAnalysisState> toStrengthen = new ArrayList<>();
-    ArrayList<ValueAnalysisState> result = new ArrayList<>();
-    toStrengthen.add((ValueAnalysisState) element);
-    result.add((ValueAnalysisState) element);
+    ArrayList<UnifyAnalysisState> toStrengthen = new ArrayList<>();
+    ArrayList<UnifyAnalysisState> result = new ArrayList<>();
+    toStrengthen.add((UnifyAnalysisState) element);
+    result.add((UnifyAnalysisState) element);
 
     for (AbstractState ae : elements) {
       if (ae instanceof RTTState) {
         result.clear();
-        for (ValueAnalysisState state : toStrengthen) {
+        for (UnifyAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
-          Collection<ValueAnalysisState> ret = strengthen((RTTState)ae, cfaEdge);
+          Collection<UnifyAnalysisState> ret = strengthen((RTTState)ae, cfaEdge);
           if (ret == null) {
             result.add(state);
           } else {
@@ -1289,10 +1290,10 @@ public class ValueAnalysisTransferRelation
         toStrengthen.addAll(result);
       } else if (ae instanceof AutomatonState) {
         result.clear();
-        for (ValueAnalysisState state : toStrengthen) {
+        for (UnifyAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           AutomatonState autoState = (AutomatonState) ae;
-          Collection<ValueAnalysisState> ret = strengthenAutomatonAssume(autoState, state, cfaEdge);
+          Collection<UnifyAnalysisState> ret = strengthenAutomatonAssume(autoState, state, cfaEdge);
           if (ret == null) {
             result.add(state);
           } else {
@@ -1304,10 +1305,10 @@ public class ValueAnalysisTransferRelation
       } else if (ae instanceof ConstraintsState) {
         result.clear();
 
-        for (ValueAnalysisState state : toStrengthen) {
+        for (UnifyAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
-          Collection<ValueAnalysisState> ret =
-              constraintsStrengthenOperator.strengthen((ValueAnalysisState) element, (ConstraintsState) ae, cfaEdge);
+          Collection<UnifyAnalysisState> ret =
+              constraintsStrengthenOperator.strengthen((UnifyAnalysisState) element, (ConstraintsState) ae, cfaEdge);
 
           if (ret == null) {
             result.add(state);
@@ -1329,9 +1330,9 @@ public class ValueAnalysisTransferRelation
 
         result.clear();
 
-        for (ValueAnalysisState state : toStrengthen) {
+        for (UnifyAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
-          ValueAnalysisState newState =
+          UnifyAnalysisState newState =
               strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, NumberInterface.UnknownValue.getInstance());
 
           newState = handleModf(rightHandSide, pointerState, newState);
@@ -1346,7 +1347,7 @@ public class ValueAnalysisTransferRelation
 
     // Do post processing
     final Collection<AbstractState> postProcessedResult = new ArrayList<>(result.size());
-    for (ValueAnalysisState rawResult : result) {
+    for (UnifyAnalysisState rawResult : result) {
       // The original state has already been post-processed
       if (rawResult == element) {
         postProcessedResult.add(element);
@@ -1371,10 +1372,10 @@ public class ValueAnalysisTransferRelation
    * @return the strengthened state.
    * @throws UnrecognizedCCodeException if the C code involved is not recognized.
    */
-  private ValueAnalysisState handleModf(
-      ARightHandSide pRightHandSide, PointerState pPointerState, ValueAnalysisState pState)
+  private UnifyAnalysisState handleModf(
+      ARightHandSide pRightHandSide, PointerState pPointerState, UnifyAnalysisState pState)
       throws UnrecognizedCCodeException, AssertionError {
-    ValueAnalysisState state = pState;
+    UnifyAnalysisState state = pState;
     if (pRightHandSide instanceof AFunctionCallExpression) {
       AFunctionCallExpression functionCallExpression = (AFunctionCallExpression) pRightHandSide;
       AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
@@ -1439,8 +1440,8 @@ public class ValueAnalysisTransferRelation
     return state;
   }
 
-  private ValueAnalysisState strengthenWithPointerInformation(
-      ValueAnalysisState pValueState,
+  private UnifyAnalysisState strengthenWithPointerInformation(
+      UnifyAnalysisState pValueState,
       PointerState pPointerInfo,
       ARightHandSide pRightHandSide,
       Type pTargetType,
@@ -1449,7 +1450,7 @@ public class ValueAnalysisTransferRelation
       NumberInterface pValue)
       throws UnrecognizedCCodeException {
 
-    ValueAnalysisState newState = pValueState;
+    UnifyAnalysisState newState = pValueState;
 
     NumberInterface value = pValue;
     MemoryLocation target = null;
@@ -1534,7 +1535,7 @@ public class ValueAnalysisTransferRelation
     }
 
     if (target != null && type != null && shouldAssign) {
-      newState = ValueAnalysisState.copyOf(pValueState);
+      newState = UnifyAnalysisState.copyOf(pValueState);
       newState.assignConstant(target, value, type);
     }
 
@@ -1618,9 +1619,9 @@ public class ValueAnalysisTransferRelation
     return null;
   }
 
-  private Collection<ValueAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, ValueAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<UnifyAnalysisState> strengthenAutomatonAssume(AutomatonState pAutomatonState, UnifyAnalysisState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
-    ValueAnalysisState state = pState;
+    UnifyAnalysisState state = pState;
 
     for (AExpression assumption : pAutomatonState.getAssumptions()) {
       state = handleAssumption(assumption, true);
@@ -1639,9 +1640,9 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  private Collection<ValueAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {
+  private Collection<UnifyAnalysisState> strengthen(RTTState rttState, CFAEdge edge) {
 
-    ValueAnalysisState newElement = ValueAnalysisState.copyOf(oldState);
+    UnifyAnalysisState newElement = UnifyAnalysisState.copyOf(oldState);
 
     if (missingFieldVariableObject) {
       newElement.assignConstant(getRTTScopedVariableName(
@@ -1711,7 +1712,7 @@ public class ValueAnalysisTransferRelation
         new FieldAccessExpressionValueVisitor(pJortState, oldState));
   }
 
-  private ValueAnalysisState handleNotScopedVariable(RTTState rttState, ValueAnalysisState newElement) {
+  private UnifyAnalysisState handleNotScopedVariable(RTTState rttState, UnifyAnalysisState newElement) {
 
    String objectScope = NameProvider.getInstance()
                                     .getObjectScope(rttState, functionName, notScopedField);

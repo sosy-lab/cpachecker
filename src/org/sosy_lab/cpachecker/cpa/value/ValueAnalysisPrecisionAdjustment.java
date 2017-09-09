@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -159,17 +160,17 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
       AbstractState fullState)
       throws CPAException, InterruptedException {
 
-    return prec((ValueAnalysisState)pState,
+    return prec((UnifyAnalysisState)pState,
         (VariableTrackingPrecision)pPrecision,
         AbstractStates.extractStateByType(fullState, LocationState.class),
         AbstractStates.extractStateByType(fullState, UniqueAssignmentsInPathConditionState.class));
   }
 
-  private Optional<PrecisionAdjustmentResult> prec(ValueAnalysisState pState,
+  private Optional<PrecisionAdjustmentResult> prec(UnifyAnalysisState pState,
       VariableTrackingPrecision pPrecision,
       LocationState location,
       UniqueAssignmentsInPathConditionState assignments) {
-    ValueAnalysisState resultState = ValueAnalysisState.copyOf(pState);
+    UnifyAnalysisState resultState = UnifyAnalysisState.copyOf(pState);
 
     if(doLivenessAbstraction && liveVariables.isPresent()) {
       TimerWrapper totalLiveness = totalLivenessTimer.getNewTimer();
@@ -232,7 +233,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
     return performPrecisionBasedAbstraction;
   }
 
-  private void enforceLiveness(ValueAnalysisState pState, LocationState location, ValueAnalysisState resultState) {
+  private void enforceLiveness(UnifyAnalysisState pState, LocationState location, UnifyAnalysisState resultState) {
     CFANode actNode = location.getLocationNode();
 
     boolean hasMoreThanOneEnteringLeavingEdge = actNode.getNumEnteringEdges() > 1 || actNode.getNumLeavingEdges() > 1;
@@ -263,7 +264,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
    * @param state the current state
    * @param precision the current precision
    */
-  private void enforcePrecision(ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
+  private void enforcePrecision(UnifyAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
     if (abstractAtEachLocation()
         || abstractAtBranch(location)
         || abstractAtJoin(location)
@@ -314,7 +315,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
    * @param precision the current precision
    * @param assignments the assignment information
    */
-  private void enforcePathThreshold(ValueAnalysisState state,
+  private void enforcePathThreshold(UnifyAnalysisState state,
       VariableTrackingPrecision precision,
       UniqueAssignmentsInPathConditionState assignments) {
 

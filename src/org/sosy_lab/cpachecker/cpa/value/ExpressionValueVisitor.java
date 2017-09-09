@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface.UnknownValue;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -59,7 +60,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   private boolean missingPointer = false;
 
   // This state is read-only! No writing or modification allowed!
-  protected final ValueAnalysisState readableState;
+  protected final UnifyAnalysisState readableState;
 
   /** This Visitor returns the numeral value for an expression.
    *
@@ -68,7 +69,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
    */
-  public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
+  public ExpressionValueVisitor(UnifyAnalysisState pState, String pFunctionName,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     super(pFunctionName, pMachineModel, pLogger);
     readableState = pState;
@@ -366,7 +367,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     }
   }
 
-  public ValueAnalysisState getState() {
+  public UnifyAnalysisState getState() {
     return readableState;
   }
 }

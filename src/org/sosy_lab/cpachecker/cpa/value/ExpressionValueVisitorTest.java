@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
 @RunWith(Parameterized.class)
@@ -93,7 +94,7 @@ public class ExpressionValueVisitorTest {
 
     evv =
         new ExpressionValueVisitor(
-            new ValueAnalysisState(machineModel), "dummy_function", machineModel, logger);
+            new UnifyAnalysisState(machineModel), "dummy_function", machineModel, logger);
   }
 
   /**

@@ -28,16 +28,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
-class ValueAnalysisReducer extends GenericReducer<ValueAnalysisState, VariableTrackingPrecision> {
+class ValueAnalysisReducer extends GenericReducer<UnifyAnalysisState, VariableTrackingPrecision> {
 
   @Override
-  protected ValueAnalysisState getVariableReducedState0(
-      ValueAnalysisState pExpandedState, Block pContext, CFANode pCallNode) {
-    ValueAnalysisState clonedElement = ValueAnalysisState.copyOf(pExpandedState);
+  protected UnifyAnalysisState getVariableReducedState0(
+      UnifyAnalysisState pExpandedState, Block pContext, CFANode pCallNode) {
+    UnifyAnalysisState clonedElement = UnifyAnalysisState.copyOf(pExpandedState);
     for (MemoryLocation trackedVar : pExpandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
@@ -49,13 +50,13 @@ class ValueAnalysisReducer extends GenericReducer<ValueAnalysisState, VariableTr
   }
 
   @Override
-  protected ValueAnalysisState getVariableExpandedState0(
-      ValueAnalysisState pRootState, Block pReducedContext, ValueAnalysisState pReducedState) {
+  protected UnifyAnalysisState getVariableExpandedState0(
+      UnifyAnalysisState pRootState, Block pReducedContext, UnifyAnalysisState pReducedState) {
     // the expanded state will contain:
     // - all variables of the reduced state -> copy the state
     // - all non-block variables of the rootState -> copy those values
     // - not the variables of rootState used in the block -> just ignore those values
-    ValueAnalysisState diffElement = ValueAnalysisState.copyOf(pReducedState);
+    UnifyAnalysisState diffElement = UnifyAnalysisState.copyOf(pReducedState);
 
     for (MemoryLocation trackedVar : pRootState.getTrackedMemoryLocations()) {
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
@@ -98,15 +99,15 @@ class ValueAnalysisReducer extends GenericReducer<ValueAnalysisState, VariableTr
 
   @Override
   protected Object getHashCodeForState0(
-      ValueAnalysisState pElementKey, VariableTrackingPrecision pPrecisionKey) {
+      UnifyAnalysisState pElementKey, VariableTrackingPrecision pPrecisionKey) {
     return Pair.of(pElementKey, pPrecisionKey);
   }
 
   @Override
-  protected ValueAnalysisState rebuildStateAfterFunctionCall0(
-      ValueAnalysisState pRootState,
-      ValueAnalysisState entryState,
-      ValueAnalysisState pExpandedState,
+  protected UnifyAnalysisState rebuildStateAfterFunctionCall0(
+      UnifyAnalysisState pRootState,
+      UnifyAnalysisState entryState,
+      UnifyAnalysisState pExpandedState,
       FunctionExitNode exitLocation) {
     return pExpandedState.rebuildStateAfterFunctionCall(pRootState, exitLocation);
   }

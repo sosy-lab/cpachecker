@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -77,7 +78,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     StatInt numberOfGlobalVariables = new StatInt(StatKind.COUNT, "Number of global variables");
 
     for (AbstractState currentAbstractState : reached) {
-      ValueAnalysisState currentState = AbstractStates.extractStateByType(currentAbstractState, ValueAnalysisState.class);
+        UnifyAnalysisState currentState = AbstractStates.extractStateByType(currentAbstractState, UnifyAnalysisState.class);
 
       numberOfVariables.setNextValue(currentState.getSize());
       numberOfGlobalVariables.setNextValue(currentState.getNumberOfGlobalVariables());
