@@ -44,11 +44,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, UnrecognizedCCodeException>
         implements CRightHandSideVisitor<NumberInterface, UnrecognizedCCodeException> {
 
-    private final IntervalAnalysisState readableState;
+    private final UnifyAnalysisState readableState;
 
     private final CFAEdge cfaEdge;
 
-    public ExpressionValueVisitor(IntervalAnalysisState pState, CFAEdge edge) {
+    public ExpressionValueVisitor(UnifyAnalysisState pState, CFAEdge edge) {
         readableState = pState;
         cfaEdge = edge;
     }

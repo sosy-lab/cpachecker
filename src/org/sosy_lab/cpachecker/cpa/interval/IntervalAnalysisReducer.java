@@ -30,12 +30,12 @@ import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Pair;
 
-class IntervalAnalysisReducer extends GenericReducer<IntervalAnalysisState, Precision> {
+class IntervalAnalysisReducer extends GenericReducer<UnifyAnalysisState, Precision> {
 
     @Override
-    protected IntervalAnalysisState getVariableReducedState0(IntervalAnalysisState pExpandedState, Block pContext,
+    protected UnifyAnalysisState getVariableReducedState0(UnifyAnalysisState pExpandedState, Block pContext,
             CFANode pCallNode) {
-        IntervalAnalysisState clonedElement = pExpandedState;
+        UnifyAnalysisState clonedElement = pExpandedState;
         for (String trackedVar : pExpandedState.getIntervalMap().keySet()) {
             // ignore offset (like "3" from "array[3]") to match assignments in
             // loops ("array[i]=12;")
@@ -47,14 +47,14 @@ class IntervalAnalysisReducer extends GenericReducer<IntervalAnalysisState, Prec
     }
 
     @Override
-    protected IntervalAnalysisState getVariableExpandedState0(IntervalAnalysisState pRootState, Block pReducedContext,
-            IntervalAnalysisState pReducedState) {
+    protected UnifyAnalysisState getVariableExpandedState0(UnifyAnalysisState pRootState, Block pReducedContext,
+            UnifyAnalysisState pReducedState) {
         // the expanded state will contain:
         // - all variables of the reduced state -> copy the state
         // - all non-block variables of the rootState -> copy those values
         // - not the variables of rootState used in the block -> just ignore
         // those values
-        IntervalAnalysisState diffElement = pReducedState;
+        UnifyAnalysisState diffElement = pReducedState;
 
         for (String trackedVar : pRootState.getIntervalMap().keySet()) {
             // ignore offset ("3" from "array[3]") to match assignments in loops
@@ -89,16 +89,16 @@ class IntervalAnalysisReducer extends GenericReducer<IntervalAnalysisState, Prec
     }
 
     @Override
-    protected Object getHashCodeForState0(IntervalAnalysisState pElementKey, Precision pPrecisionKey) {
+    protected Object getHashCodeForState0(UnifyAnalysisState pElementKey, Precision pPrecisionKey) {
         return Pair.of(pElementKey.getIntervalMap(), pPrecisionKey);
     }
 
     @Override
-    protected IntervalAnalysisState rebuildStateAfterFunctionCall0(IntervalAnalysisState pRootState,
-            IntervalAnalysisState entryState, IntervalAnalysisState pExpandedState, FunctionExitNode exitLocation) {
+    protected UnifyAnalysisState rebuildStateAfterFunctionCall0(UnifyAnalysisState pRootState,
+            UnifyAnalysisState entryState, UnifyAnalysisState pExpandedState, FunctionExitNode exitLocation) {
 
-        IntervalAnalysisState rootState = pRootState;
-        IntervalAnalysisState expandedState = pExpandedState;
+        UnifyAnalysisState rootState = pRootState;
+        UnifyAnalysisState expandedState = pExpandedState;
 
         return expandedState.rebuildStateAfterFunctionCall(rootState, exitLocation);
     }

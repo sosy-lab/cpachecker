@@ -85,7 +85,7 @@ public class IntervalAnalysisCPA extends AbstractCPA
      */
     private IntervalAnalysisCPA(Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA cfa)
             throws InvalidConfigurationException {
-        super("irrelevant", "sep", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
+        super("irrelevant", "sep", DelegateAbstractDomain.<UnifyAnalysisState>getInstance(), null);
         config.inject(this);
         writer = new StateToFormulaWriter(config, pLogger, shutdownNotifier, cfa);
         logger = pLogger;
@@ -93,7 +93,7 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#
      * getMergeOperator()
      */
@@ -109,13 +109,13 @@ public class IntervalAnalysisCPA extends AbstractCPA
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#
      * getInitialState(org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode)
      */
     @Override
     public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-        return new IntervalAnalysisState();
+        return new UnifyAnalysisState();
     }
 
     @Override

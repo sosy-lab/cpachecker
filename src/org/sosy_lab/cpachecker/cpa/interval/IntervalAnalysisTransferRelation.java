@@ -63,7 +63,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class IntervalAnalysisTransferRelation
-        extends ForwardingTransferRelation<Collection<IntervalAnalysisState>, IntervalAnalysisState, Precision> {
+        extends ForwardingTransferRelation<Collection<UnifyAnalysisState>, UnifyAnalysisState, Precision> {
 
     private final boolean splitIntervals;
     private final int threshold;
@@ -77,14 +77,14 @@ public class IntervalAnalysisTransferRelation
     }
 
     @Override
-    protected Collection<IntervalAnalysisState> postProcessing(Collection<IntervalAnalysisState> successors,
+    protected Collection<UnifyAnalysisState> postProcessing(Collection<UnifyAnalysisState> successors,
             CFAEdge edge) {
         return new HashSet<>(successors);
     }
 
     @Override
-    protected Collection<IntervalAnalysisState> handleBlankEdge(BlankEdge cfaEdge) {
-        IntervalAnalysisState newState = state;
+    protected Collection<UnifyAnalysisState> handleBlankEdge(BlankEdge cfaEdge) {
+        UnifyAnalysisState newState = state;
         if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
             assert "default return".equals(cfaEdge.getDescription())
                     || "skipped unnecessary edges".equals(cfaEdge.getDescription());
@@ -106,11 +106,11 @@ public class IntervalAnalysisTransferRelation
      * @return new abstract state.
      */
     @Override
-    protected Collection<IntervalAnalysisState> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
+    protected Collection<UnifyAnalysisState> handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
             CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
             throws UnrecognizedCodeException {
 
-        IntervalAnalysisState newState = state;
+        UnifyAnalysisState newState = state;
         Optional<CVariableDeclaration> retVar = fnkCall.getFunctionEntry().getReturnVariable();
         if (retVar.isPresent()) {
             newState = newState.removeInterval(retVar.get().getQualifiedName());
@@ -143,7 +143,7 @@ public class IntervalAnalysisTransferRelation
      * @return the successor state
      */
     @Override
-    protected Collection<IntervalAnalysisState> handleFunctionCallEdge(CFunctionCallEdge callEdge,
+    protected Collection<UnifyAnalysisState> handleFunctionCallEdge(CFunctionCallEdge callEdge,
             List<CExpression> arguments, List<CParameterDeclaration> parameters, String calledFunctionName)
             throws UnrecognizedCCodeException {
 
@@ -155,7 +155,7 @@ public class IntervalAnalysisTransferRelation
             assert parameters.size() == arguments.size();
         }
 
-        IntervalAnalysisState newState = state;
+        UnifyAnalysisState newState = state;
 
         // set the interval of each formal parameter to the interval of its
         // respective actual parameter
@@ -178,9 +178,9 @@ public class IntervalAnalysisTransferRelation
      * @return the successor states
      */
     @Override
-    protected Collection<IntervalAnalysisState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
+    protected Collection<UnifyAnalysisState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
             throws UnrecognizedCCodeException {
-        IntervalAnalysisState newState = state.dropFrame(functionName);
+        UnifyAnalysisState newState = state.dropFrame(functionName);
 
         // assign the value of the function return to a new variable
         if (returnEdge.asAssignment().isPresent()) {
@@ -205,7 +205,7 @@ public class IntervalAnalysisTransferRelation
      * @return the successor states
      */
     @Override
-    protected Collection<IntervalAnalysisState> handleAssumption(CAssumeEdge cfaEdge, CExpression expression,
+    protected Collection<UnifyAnalysisState> handleAssumption(CAssumeEdge cfaEdge, CExpression expression,
             boolean truthValue) throws UnrecognizedCCodeException {
 
         if ((truthValue ? new CreatorIntegerInterval().factoryMethod(null).ZERO()
@@ -230,7 +230,7 @@ public class IntervalAnalysisTransferRelation
         // and the other one represented with an interval (example "x<[3;5]").
         // If none of the operands is an identifier, nothing is done.
 
-        IntervalAnalysisState newState = state;
+        UnifyAnalysisState newState = state;
         ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
         NumberInterface interval1 = operand1.accept(visitor);
         NumberInterface interval2 = operand2.accept(visitor);
@@ -314,7 +314,7 @@ public class IntervalAnalysisTransferRelation
      *            singular interval where to split
      * @return two states
      */
-    private Collection<IntervalAnalysisState> splitInterval(IntervalAnalysisState newState, CExpression lhs,
+    private Collection<UnifyAnalysisState> splitInterval(UnifyAnalysisState newState, CExpression lhs,
             NumberInterface interval, NumberInterface splitPoint) {
 
         assert splitPoint.getLow().equals(splitPoint.getHigh()) : "invalid splitpoint for interval";
@@ -326,7 +326,7 @@ public class IntervalAnalysisTransferRelation
         if (splitIntervals || interval.getLow().equals(splitPoint.getHigh())
                 || interval.getHigh().equals(splitPoint.getHigh())) {
 
-            Collection<IntervalAnalysisState> successors = new ArrayList<>();
+            Collection<UnifyAnalysisState> successors = new ArrayList<>();
 
             // TODO change to NumberInterface
             NumberInterface part1 = interval
@@ -348,7 +348,7 @@ public class IntervalAnalysisTransferRelation
         }
     }
 
-    private IntervalAnalysisState addInterval(IntervalAnalysisState newState, CExpression lhs,
+    private UnifyAnalysisState addInterval(UnifyAnalysisState newState, CExpression lhs,
             NumberInterface interval) {
         // we currently only handle IdExpressions and ignore more complex
         // Expressions
@@ -370,10 +370,10 @@ public class IntervalAnalysisTransferRelation
      * @return the successor state
      */
     @Override
-    protected Collection<IntervalAnalysisState> handleDeclarationEdge(CDeclarationEdge declarationEdge,
+    protected Collection<UnifyAnalysisState> handleDeclarationEdge(CDeclarationEdge declarationEdge,
             CDeclaration declaration) throws UnrecognizedCCodeException {
 
-        IntervalAnalysisState newState = state;
+        UnifyAnalysisState newState = state;
         if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
             CVariableDeclaration decl = (CVariableDeclaration) declarationEdge.getDeclaration();
 
@@ -409,9 +409,9 @@ public class IntervalAnalysisTransferRelation
      * @return the successor
      */
     @Override
-    protected Collection<IntervalAnalysisState> handleStatementEdge(CStatementEdge cfaEdge, CStatement expression)
+    protected Collection<UnifyAnalysisState> handleStatementEdge(CStatementEdge cfaEdge, CStatement expression)
             throws UnrecognizedCodeException {
-        IntervalAnalysisState successor = state;
+        UnifyAnalysisState successor = state;
         // expression is an assignment operation, e.g. a = b;
         if (expression instanceof CAssignment) {
             CAssignment assignExpression = (CAssignment) expression;
@@ -424,16 +424,16 @@ public class IntervalAnalysisTransferRelation
         return soleSuccessor(successor);
     }
 
-    private NumberInterface evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression,
+    private NumberInterface evaluateInterval(UnifyAnalysisState readableState, CRightHandSide expression,
             CFAEdge cfaEdge) throws UnrecognizedCCodeException {
         return expression.accept(new ExpressionValueVisitor(readableState, cfaEdge));
     }
 
-    private Collection<IntervalAnalysisState> soleSuccessor(IntervalAnalysisState successor) {
+    private Collection<UnifyAnalysisState> soleSuccessor(UnifyAnalysisState successor) {
         return Collections.singleton(successor);
     }
 
-    private Collection<IntervalAnalysisState> noSuccessors() {
+    private Collection<UnifyAnalysisState> noSuccessors() {
         return Collections.emptySet();
     }
 }
