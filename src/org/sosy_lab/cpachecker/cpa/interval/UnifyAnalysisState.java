@@ -256,9 +256,8 @@ public class UnifyAnalysisState
         case VALUE:
             return getPseudoPartitionKeyValue();
         default:
-            break;
+            return null;
         }
-        return null;
     }
 
     @Override
@@ -275,9 +274,8 @@ public class UnifyAnalysisState
         case VALUE:
             return getFormulaApproximationValue(pManager);
         default:
-            break;
+            return null;
         }
-        return null;
     }
 
     @Override
@@ -290,9 +288,8 @@ public class UnifyAnalysisState
         case VALUE:
             return toDOTLabelValue();
         default:
-            break;
+            return null;
         }
-        return null;
     }
 
     @Override
@@ -310,24 +307,22 @@ public class UnifyAnalysisState
         case VALUE:
             return "ValueAnalysis";
         default:
-            break;
+            return null;
         }
-        return null;
     }
 
     @Override
     public UnifyAnalysisState join(UnifyAnalysisState pOther) throws CPAException, InterruptedException {
         switch (numericalType) {
         case SIGN:
-            return signStateJoin(pOther);
+            return stateJoinSign(pOther);
         case INTERVAL:
-            return intervalStateJoin(pOther);
+            return stateJoinInterval(pOther);
         case VALUE:
-            return valueStateJoin(pOther);
+            return stateJoinValue(pOther);
         default:
-            break;
+            return null;
         }
-        return null;
     }
 
     @Override
@@ -354,9 +349,8 @@ public class UnifyAnalysisState
         case VALUE:
             return valueIsLessOrEqual(pOther);
         default:
-            break;
+            return false;
         }
-        return false;
     }
 
     @Override
@@ -369,9 +363,8 @@ public class UnifyAnalysisState
         case VALUE:
             return equalsValue(pObj);
         default:
-            break;
+            return false;
         }
-        return false;
     }
 
     @Override
@@ -384,9 +377,8 @@ public class UnifyAnalysisState
         case VALUE:
             return checkPropertyValue(pProperty);
         default:
-            break;
+            return false;
         }
-        return false;
     }
 
     private boolean IsLessOrEqualSign(UnifyAnalysisState pSuperset) {
@@ -408,7 +400,7 @@ public class UnifyAnalysisState
         return true;
     }
 
-    private UnifyAnalysisState signStateJoin(UnifyAnalysisState pToJoin) {
+    private UnifyAnalysisState stateJoinSign(UnifyAnalysisState pToJoin) {
         if (pToJoin.equals(this)) {
             return pToJoin;
         }
@@ -460,9 +452,8 @@ public class UnifyAnalysisState
         case VALUE:
             return toStringValue();
         default:
-            break;
+            return null;
         }
-        return null;
     }
 
     /**
@@ -586,7 +577,6 @@ public class UnifyAnalysisState
                 return (varName2.covers(varName1));
             }
         }
-
         return false;
     }
 
@@ -744,7 +734,7 @@ public class UnifyAnalysisState
      * @return a new state representing the join of this element and the reached
      *         state
      */
-    private UnifyAnalysisState intervalStateJoin(UnifyAnalysisState reachedState) {
+    private UnifyAnalysisState stateJoinInterval(UnifyAnalysisState reachedState) {
         boolean changed = false;
         PersistentMap<String, NumberInterface> newIntervals = PathCopyingPersistentTreeMap.of();
         PersistentMap<String, Integer> newReferences = referenceCounts;
@@ -1257,7 +1247,7 @@ public class UnifyAnalysisState
      * @return a new state representing the join of this element and the other
      *         element
      */
-    public UnifyAnalysisState valueStateJoin(UnifyAnalysisState reachedState) {
+    public UnifyAnalysisState stateJoinValue(UnifyAnalysisState reachedState) {
         PersistentMap<MemoryLocation, NumberInterface> newConstantsMap = PathCopyingPersistentTreeMap.of();
         PersistentMap<MemoryLocation, Type> newlocToTypeMap = PathCopyingPersistentTreeMap.of();
 
