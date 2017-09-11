@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
@@ -221,6 +222,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return The base address for the formula.
    */
   Formula makeBaseAddressOfTerm(final Formula address) {
+    if (options.useHavocAbstraction()) {
+      return bfmgr.makeBoolean(true);
+    }
     return ptsMgr.makePointerDereference("__BASE_ADDRESS_OF__", voidPointerFormulaType, address);
   }
 
@@ -1045,6 +1049,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (!truthAssumption) {
       result = bfmgr.not(result);
+    }
+
+    if (options.useHavocAbstraction()) {
+      if (!e.accept(new IsRelevantWithHavocAbstractionVisitor(this))) {
+        result = bfmgr.makeBoolean(true);
+      }
     }
 
     pts.addEssentialFields(ev.getInitializedFields());
