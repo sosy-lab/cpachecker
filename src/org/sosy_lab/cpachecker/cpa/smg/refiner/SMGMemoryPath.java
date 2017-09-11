@@ -118,7 +118,7 @@ public class SMGMemoryPath {
       return false;
     }
     SMGMemoryPath other = (SMGMemoryPath) obj;
-    return globalStart != other.globalStart
+    return globalStart == other.globalStart
         && Objects.equal(locationOnStack, other.locationOnStack)
         && Objects.equal(functionName, other.functionName)
         && Objects.equal(pathOffsets, other.pathOffsets)
