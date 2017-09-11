@@ -159,32 +159,6 @@ public class SMGJoinFieldsTest {
   }
 
   @Test
-  public void getHVSetWithoutNullValuesOnObjectTest() {
-    SMGRegion obj1 = new SMGRegion(64, "1");
-    SMGRegion obj2 = new SMGRegion(64, "1");
-
-    SMGEdgeHasValue obj1hv1at0 = new SMGEdgeHasValue(mockType4b, 0, obj1, value1);
-    SMGEdgeHasValue obj1hv0at4 = new SMGEdgeHasValue(mockType4b, 32, obj1, SMG.NULL_ADDRESS);
-    SMGEdgeHasValue obj2hv2at0 = new SMGEdgeHasValue(mockType4b, 0, obj2, value2);
-    SMGEdgeHasValue obj2hv0at4 = new SMGEdgeHasValue(mockType4b, 32, obj2, SMG.NULL_ADDRESS);
-
-    smg1.addObject(obj1);
-    smg1.addObject(obj2);
-    smg1.addValue(value1);
-    smg1.addValue(value2);
-    smg1.addHasValueEdge(obj1hv0at4);
-    smg1.addHasValueEdge(obj1hv1at0);
-    smg1.addHasValueEdge(obj2hv0at4);
-    smg1.addHasValueEdge(obj2hv2at0);
-
-    Set<SMGEdgeHasValue> hvSet = SMGJoinFields.getHVSetWithoutNullValuesOnObject(smg1, obj1);
-    assertThat(hvSet).contains(obj1hv1at0);
-    assertThat(hvSet).contains(obj2hv2at0);
-    assertThat(hvSet).contains(obj2hv0at4);
-    assertThat(hvSet).hasSize(3);
-  }
-
-  @Test
   public void getHVSetOfMissingNullValuesTest() {
     SMGRegion obj1 = new SMGRegion(64, "1");
     SMGRegion obj2 = new SMGRegion(64, "2");
@@ -287,11 +261,11 @@ public class SMGJoinFieldsTest {
     smg2.addPointsToEdge(new SMGEdgePointsTo(value1, obj, 160));
     smg2.addHasValueEdge(hv666for4at28in2);
 
-    Set<SMGEdgeHasValue> compSet1 = SMGJoinFields.getCompatibleHVEdgeSet(smg1, smg2, obj, obj);
-    assertThat(compSet1).hasSize(4);
+    SMGJoinFields.setCompatibleHVEdgesToSMG(smg1, smg2, obj, obj);
+    assertThat(smg1.getHVEdges()).hasSize(4);
 
-    Set<SMGEdgeHasValue> compSet2 = SMGJoinFields.getCompatibleHVEdgeSet(smg2, smg1, obj, obj);
-    assertThat(compSet2).hasSize(4);
+    SMGJoinFields.setCompatibleHVEdgesToSMG(smg2, smg1, obj, obj);
+    assertThat(smg1.getHVEdges()).hasSize(4);
   }
 
   @Test

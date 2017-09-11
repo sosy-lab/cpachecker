@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -54,10 +53,8 @@ class SMGJoinFields {
     final SMG origSMG1 = new SMG(pSMG1);
     final SMG origSMG2 = new SMG(pSMG2);
 
-    Set<SMGEdgeHasValue> H1Prime = getCompatibleHVEdgeSet(pSMG1, pSMG2, pObj1, pObj2);
-    pSMG1.replaceHVSet(H1Prime);
-    Set<SMGEdgeHasValue> H2Prime = getCompatibleHVEdgeSet(pSMG2, pSMG1, pObj2, pObj1);
-    pSMG2.replaceHVSet(H2Prime);
+    setCompatibleHVEdgesToSMG(pSMG1, pSMG2, pObj1, pObj2);
+    setCompatibleHVEdgesToSMG(pSMG2, pSMG1, pObj2, pObj1);
 
     status = joinFieldsRelaxStatus(origSMG1, pSMG1, status, SMGJoinStatus.RIGHT_ENTAIL, pObj1);
     status = joinFieldsRelaxStatus(origSMG2, pSMG2, status, SMGJoinStatus.LEFT_ENTAIL, pObj2);
@@ -65,11 +62,13 @@ class SMGJoinFields {
     Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, pSMG2, pObj1, pObj2);
     Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, pSMG1, pObj2, pObj1);
 
-    H1Prime.addAll(smg1Extension);
-    H2Prime.addAll(smg2Extension);
+    for (SMGEdgeHasValue edge : smg1Extension) {
+      pSMG1.addHasValueEdge(edge);
+    }
+    for (SMGEdgeHasValue edge : smg2Extension) {
+      pSMG2.addHasValueEdge(edge);
+    }
 
-    pSMG1.replaceHVSet(H1Prime);
-    pSMG2.replaceHVSet(H2Prime);
 
     newSMG1 = pSMG1;
     newSMG2 = pSMG2;
@@ -118,11 +117,23 @@ class SMGJoinFields {
     return pCurStatus;
   }
 
-  static public Set<SMGEdgeHasValue> getCompatibleHVEdgeSet(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> newHVSet = Sets.newHashSet(getHVSetWithoutNullValuesOnObject(pSMG1, pObj1));
-    newHVSet.addAll(getHVSetOfCommonNullValues(pSMG1, pSMG2, pObj1, pObj2));
-    newHVSet.addAll(getHVSetOfMissingNullValues(pSMG1, pSMG2, pObj1, pObj2));
-    return newHVSet;
+  static public void setCompatibleHVEdgesToSMG(SMG pSMG, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
+    SMGEdgeHasValueFilter nullValueFilter = SMGEdgeHasValueFilter.objectFilter(pObj1);
+    nullValueFilter.filterHavingValue(SMG.NULL_ADDRESS);
+
+    Set<SMGEdgeHasValue> edgesToRemove = pSMG.getHVEdges(nullValueFilter);
+    Set<SMGEdgeHasValue> edgesToAdd1 = SMGJoinFields.getHVSetOfCommonNullValues(pSMG, pSMG2, pObj1, pObj2);
+    Set<SMGEdgeHasValue> edgesToAdd2 = SMGJoinFields.getHVSetOfMissingNullValues(pSMG, pSMG2, pObj1,pObj2);
+
+    for (SMGEdgeHasValue edge : edgesToRemove) {
+      pSMG.removeHasValueEdge(edge);
+    }
+    for (SMGEdgeHasValue edge : edgesToAdd1) {
+      pSMG.addHasValueEdge(edge);
+    }
+    for (SMGEdgeHasValue edge : edgesToAdd2) {
+      pSMG.addHasValueEdge(edge);
+    }
   }
 
   static public Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
@@ -186,12 +197,6 @@ class SMGJoinFields {
     }
 
     return Collections.unmodifiableSet(retset);
-  }
-
-  /** get edges for all objects, except the Null-edges of the given object. */
-  static public Set<SMGEdgeHasValue> getHVSetWithoutNullValuesOnObject(SMG pSMG, SMGObject pObj) {
-    SMGEdgeHasValueFilter nullValueFilter = SMGEdgeHasValueFilter.objectFilter(pObj).filterHavingValue(SMG.NULL_ADDRESS);
-    return Sets.difference(pSMG.getHVEdges(), pSMG.getHVEdges(nullValueFilter));
   }
 
   private static void checkResultConsistencySingleSide(SMG pSMG1, SMGEdgeHasValueFilter nullEdges1,
