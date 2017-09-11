@@ -146,4 +146,6 @@ public interface PathFormulaManager {
    * Prints some information about the PathFormulaManager.
    */
   public void printStatistics(PrintStream out);
+
+  public BooleanFormula addBitwiseAxiomsIfNeeded(BooleanFormula pMainFormula, BooleanFormula pEsxtractionFormula);
 }

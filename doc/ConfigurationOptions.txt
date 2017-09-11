@@ -1946,7 +1946,7 @@ cpa.predicate.useArraysForHeap = false
 cpa.predicate.useBitwiseAxioms = false
 
 # For multithreaded programs this is an overapproximation of possible values
-# of shared variables
+# of shared variables.
 cpa.predicate.useHavocAbstraction = false
 
 # Use regions for pointer analysis. So called Burstall&Bornat (BnB) memory
