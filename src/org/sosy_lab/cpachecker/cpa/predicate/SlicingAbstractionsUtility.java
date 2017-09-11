@@ -208,8 +208,10 @@ public class SlicingAbstractionsUtility {
     }
 
     // Now we need to reverse the segments so that they are in correct order:
-    for (ARGState key: segmentMap.keySet()) {
-      segmentMap.put(key, ((PersistentList<ARGState>) segmentMap.get(key)).reversed());
+    for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
+      ARGState key = entry.getKey();
+      List<ARGState> segment = entry.getValue();
+      segmentMap.put(key, ((PersistentList<ARGState>) segment).reversed());
     }
 
     return segmentMap;
@@ -348,8 +350,9 @@ public class SlicingAbstractionsUtility {
     final Map<ARGState,List<ARGState>> incomingSegmentMap = calculateIncomingSegments(originalState);
 
     // copy the outgoing edges:
-    for (ARGState endState : outgoingSegmentMap.keySet()) {
-      List<ARGState> intermediateStateList = outgoingSegmentMap.get(endState);
+    for (Map.Entry<ARGState, List<ARGState>> entry : outgoingSegmentMap.entrySet()) {
+      ARGState endState = entry.getKey();
+      List<ARGState> intermediateStateList = entry.getValue();
       copyEdge(intermediateStateList, originalState, endState, forkedState, endState, pReached);
       // if we have a self-loop, we have to make a self-loop from forkedState->forkedState:
       if (endState == originalState) {
@@ -358,8 +361,9 @@ public class SlicingAbstractionsUtility {
     }
 
     // copy the incoming edges:
-    for (ARGState startState : incomingSegmentMap.keySet()) {
-      List<ARGState> intermediateStateList = incomingSegmentMap.get(startState);
+    for (Map.Entry<ARGState, List<ARGState>> entry : incomingSegmentMap.entrySet()) {
+      ARGState startState = entry.getKey();
+      List<ARGState> intermediateStateList = entry.getValue();
       copyEdge(intermediateStateList, startState, originalState, startState, forkedState, pReached);
     }
   }

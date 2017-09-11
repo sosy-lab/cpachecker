@@ -289,17 +289,22 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy {
       Map<ARGState, List<ARGState>> segmentMap = SlicingAbstractionsUtility.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
       Set<ARGState> segmentStateSet = new HashSet<>();
-      for (ARGState key : segmentMap.keySet()) {
-        boolean infeasible = checkEdge(currentState, key, segmentMap.get(key),
+      for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
+        ARGState key = entry.getKey();
+        List<ARGState> segment = entry.getValue();
+        boolean infeasible = checkEdge(currentState, key, segment,
             pAbstractionStatesTrace, pInfeasiblePartOfART, pChangedElements);
         infeasibleMap.put(key, infeasible);
-        segmentStateSet.addAll(segmentMap.get(key));
+        segmentStateSet.addAll(segment);
       }
-      for (ARGState key : infeasibleMap.keySet()) {
-        if (infeasibleMap.get(key) == false) {
-          segmentStateSet.removeAll(segmentMap.get(key));
+      for (Map.Entry<ARGState, Boolean> entry : infeasibleMap.entrySet()) {
+        ARGState key = entry.getKey();
+        boolean isInfeasible = entry.getValue();
+        List<ARGState> segment = segmentMap.get(key);
+        if (!isInfeasible) {
+          segmentStateSet.removeAll(segment);
         } else {
-          if (segmentMap.get(key).size()==0) {
+          if (segment.size()==0) {
             key.removeParent(currentState);
           }
         }
