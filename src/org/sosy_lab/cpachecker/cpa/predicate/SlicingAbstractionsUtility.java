@@ -30,11 +30,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
@@ -72,7 +72,7 @@ public class SlicingAbstractionsUtility {
   public static Map<ARGState, List<ARGState>> calculateIncomingSegments(ARGState originState) {
     checkArgument(getPredicateState(originState).isAbstractionState());
 
-    final Map<ARGState, List<ARGState>> result = new HashMap<>();
+    final Map<ARGState, List<ARGState>> result = new TreeMap<>();
     final List<ARGState> startAbstractionStates = calculateStartStates(originState);
 
     // This looks a bit expensive, but we cannot simply write this method like calculateOutgoingSegments!
@@ -137,8 +137,8 @@ public class SlicingAbstractionsUtility {
     // Used data structures:
     final Collection<ARGState> outgoingStates = originState.getChildren();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
-    final Map<ARGState, PersistentList<ARGState>> frontier = new HashMap<>();
-    final Map<ARGState, List<ARGState>> segmentMap = new HashMap<>();
+    final Map<ARGState, PersistentList<ARGState>> frontier = new TreeMap<>();
+    final Map<ARGState, List<ARGState>> segmentMap = new TreeMap<>();
 
     // prepare initial state
     frontier.put(originState, PersistentLinkedList.of());
@@ -274,7 +274,7 @@ public class SlicingAbstractionsUtility {
   }
 
   private static PathFormulaBuilder buildFormulaBuilder(ARGState start, ARGState stop, List<ARGState> segmentList) {
-    final Map<ARGState, PathFormulaBuilder> finishedBuilders = new HashMap<>();
+    final Map<ARGState, PathFormulaBuilder> finishedBuilders = new TreeMap<>();
     List<ARGState> allList = new ArrayList<>(segmentList);
     allList.add(0, start);
     allList.add(stop);
