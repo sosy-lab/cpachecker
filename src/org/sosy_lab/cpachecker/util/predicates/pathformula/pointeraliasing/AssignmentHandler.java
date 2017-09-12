@@ -277,13 +277,6 @@ class AssignmentHandler {
                                                        lhsLocation.isAliased(), // Defer index update for UFs, but not for variables
                                                        updatedRegions));
     }
-    if (lhsLocation.isAliased()) {
-      finishAssignments(
-          typeHandler.getSimplifiedType(variable),
-          lhsLocation.asAliased(),
-          PointerTargetPattern.forLeftHandSide(variable, typeHandler, edge, pts),
-          updatedRegions);
-    }
     return result;
   }
 
