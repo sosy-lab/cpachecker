@@ -466,6 +466,14 @@ public class SMGTransferRelation
     return newStates;
   }
 
+  // Current SMGState is not fully persistent
+  @Override
+  protected void setInfo(
+      AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
+    super.setInfo(abstractState, abstractPrecision, cfaEdge);
+    state = new SMGState(state);
+  }
+
   @Override
   protected Collection<SMGState> handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
