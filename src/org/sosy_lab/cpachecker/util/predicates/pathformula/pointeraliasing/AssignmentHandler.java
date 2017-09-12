@@ -181,7 +181,6 @@ class AssignmentHandler {
           rhs,
           rhsExpression,
           lhsType,
-          lhsVisitor,
           lhsLearnedPointerTypes,
           rhsLearnedPointersTypes);
     }
