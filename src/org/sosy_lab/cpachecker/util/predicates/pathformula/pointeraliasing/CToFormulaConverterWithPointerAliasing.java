@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
@@ -221,6 +222,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return The base address for the formula.
    */
   Formula makeBaseAddressOfTerm(final Formula address) {
+    if (options.useHavocAbstraction()) {
+      return bfmgr.makeBoolean(true);
+    }
     return ptsMgr.makePointerDereference("__BASE_ADDRESS_OF__", voidPointerFormulaType, address);
   }
 
@@ -850,7 +854,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false, null);
+    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
   }
 
   /**
@@ -986,9 +990,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
       if (initializer != null) {
-        result = assignmentHandler.handleAssignment(lhs, lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
+        result =
+            assignmentHandler.handleAssignment(
+                lhs, lhs, ((CInitializerExpression) initializer).getExpression(), true);
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
-        result = assignmentHandler.handleAssignment(lhs, lhs, null, false, null);
+        result = assignmentHandler.handleAssignment(lhs, lhs, null, true);
       } else {
         result = bfmgr.makeTrue();
       }
@@ -1045,6 +1051,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     if (!truthAssumption) {
       result = bfmgr.not(result);
+    }
+
+    if (options.useHavocAbstraction()) {
+      if (!e.accept(new IsRelevantWithHavocAbstractionVisitor(this))) {
+        result = bfmgr.makeBoolean(true);
+      }
     }
 
     pts.addEssentialFields(ev.getInitializedFields());

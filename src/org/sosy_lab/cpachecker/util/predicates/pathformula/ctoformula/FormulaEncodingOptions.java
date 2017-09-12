@@ -103,6 +103,10 @@ public class FormulaEncodingOptions {
       + "which returns either the normal value or an UF representing the overflow.")
   private boolean encodeOverflowsWithUFs = false;
 
+  @Option(secure=true,
+      description = "For multithreaded programs this is an overapproximation of possible values of shared variables.")
+  private boolean useHavocAbstraction = false;
+
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
   }
@@ -158,5 +162,9 @@ public class FormulaEncodingOptions {
 
   public boolean encodeOverflowsWithUFs() {
     return encodeOverflowsWithUFs;
+  }
+
+  public boolean useHavocAbstraction() {
+    return useHavocAbstraction;
   }
 }

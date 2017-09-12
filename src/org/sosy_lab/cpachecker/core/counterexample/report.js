@@ -172,6 +172,7 @@
         		var prevId = parseInt(selection.attr("id").substring("errpath-".length)) - 1;
         		selection.classed("clickedErrPathElement", false);
         		d3.select("#errpath-" + prevId).classed("clickedErrPathElement", true);
+        		$("#value-assignment").scrollTop($("#value-assignment").scrollTop() - 18);
         		markErrorPathElementInTab("Prev", prevId);
         	}
         };
@@ -179,6 +180,7 @@
         $scope.errPathStartClicked = function() {
         	d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
         	d3.select("#errpath-0").classed("clickedErrPathElement", true);
+        	$("#value-assignment").scrollTop(0);
         	markErrorPathElementInTab("Start", 0);
         };
         
@@ -188,6 +190,7 @@
         		var nextId = parseInt(selection.attr("id").substring("errpath-".length)) + 1;
         		selection.classed("clickedErrPathElement", false);
         		d3.select("#errpath-" + nextId).classed("clickedErrPathElement", true);
+            	$("#value-assignment").scrollTop($("#value-assignment").scrollTop() + 18);
         		markErrorPathElementInTab("Next", nextId);
         	}
         };
@@ -276,12 +279,21 @@
     			selection.classed("marked-cfa-node", true);
     			var boundingRect = selection.node().getBoundingClientRect();
     			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container").scrollLeft());
-        		return;
+    			if (actualSourceAndTarget.source in cfaJson.combinedNodes) {
+    				d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
+                    selection.selectAll("tspan").each(function(d,i) {
+                    	if (d3.select(this).html().includes(errPathEntry.source)) {
+                    		d3.select(this).classed("marked-cfa-node-label", true);
+                    	}
+                    });
+    			}
+    			return;
         	}
 			if (!d3.select(".marked-cfa-edge").empty()) {
 				d3.select(".marked-cfa-edge").classed("marked-cfa-edge", false);
 			}
 			d3.selectAll(".marked-cfa-node").classed("marked-cfa-node", false);
+			d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
 			var selection = d3.select("#cfa-edge_" + actualSourceAndTarget.source + "-" + actualSourceAndTarget.target);
 			selection.classed("marked-cfa-edge", true);
 			var boundingRect = selection.node().getBoundingClientRect();
@@ -506,7 +518,7 @@
     				d3.select("#cfa-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
     				// revert zoom and remove listeners
     				d3.selectAll(".cfa-svg").each(function(d, i) {
-    					d3.select(this).on("zoom", null).on("wheel.zoom", null);
+    					d3.select(this).on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
     				});
     			} else {
     				$scope.zoomEnabled = true;
@@ -519,6 +531,7 @@
     								+ d3.event.scale + ")");
     					});        			
     					svg.call(zoom);
+    					svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
     				});
     			}
     		};
@@ -594,7 +607,7 @@
     				d3.select("#arg-zoom-button").html("<i class='glyphicon glyphicon-unchecked'></i>");
     				// revert zoom and remove listeners
     				d3.selectAll(".arg-svg").each(function(d, i) {
-    					d3.select(this).on("zoom", null).on("wheel.zoom", null);
+    					d3.select(this).on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
     				});
     			} else {
     				$scope.zoomEnabled = true;
@@ -607,6 +620,7 @@
     								+ d3.event.scale + ")");
     					});        			
     					svg.call(zoom);
+    					svg.on("dblclick.zoom", null).on("touchstart.zoom", null);
     				});
     			}
     		};
@@ -887,12 +901,12 @@ function init() {
                         graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: edge.stmt, labelStyle: labelStyleDecider(edge, source, "" + source + target + sourceGraph), id: "cfa-edge_" + source + "-" + target, class: edgeClassDecider(edge, source, "" + source + target + sourceGraph), style: "stroke-dasharray: 5, 5;"});
                     }
                     graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy"});
-                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: "split edge", labelStyle: "font-size: 12px;", id: "cfa-split-edge_"+ source + "-" + target , class: "cfa-split-edge", style: "stroke-dasharray: 5, 5;"});
+                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: "", labelStyle: "font-size: 12px;", id: "cfa-split-edge_"+ source + "-" + target , class: "cfa-split-edge", style: "stroke-dasharray: 5, 5;"});
                 } else if (sourceGraph > targetGraph) {
                     graphMap[sourceGraph].setNode("" + source + target + sourceGraph, {label: "", class: "cfa-dummy", id: "dummy-" + target});
                     graphMap[sourceGraph].setEdge(source, "" + source + target + sourceGraph, {label: edge.stmt, labelStyle: labelStyleDecider(edge, "" + source + target + sourceGraph, source), id:"cfa-edge_" + source + "-" + target, class: edgeClassDecider(edge, "" + source + target + sourceGraph, source), arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"})
                     graphMap[targetGraph].setNode("" + target + source + targetGraph, {label: "", class: "dummy", id: "node" + source});
-                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: "split edge", labelStyle: "font-size: 12px;", id:"cfa-split-edge_" + source + "-" + target, class: "cfa-split-edge", arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
+                    graphMap[targetGraph].setEdge("" + target + source + targetGraph, target, {label: "", labelStyle: "font-size: 12px;", id:"cfa-split-edge_" + source + "-" + target, class: "cfa-split-edge", arrowhead: "undirected", style: "stroke-dasharray: 5, 5;"});
                 }
             });
         }
@@ -933,7 +947,7 @@ function init() {
             var nodeIndex = "" + node.index;
             if (Object.keys(combinedNodesLabels).includes(nodeIndex))
                 return combinedNodesLabels[nodeIndex];
-            else return "N" + nodeIndex + "\n" + node.rpid;
+            else return "N" + nodeIndex;
         }
         
         // Decide the shape of the nodes based on type
@@ -1265,12 +1279,12 @@ function init() {
             				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
             				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
             				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-            				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+            				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
             			} else if (sourceGraph > targetGraph) {
             				errorGraphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
             				errorGraphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
             				errorGraphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-            				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+            				errorGraphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
             			}
         			} else {
             			sourceGraph = getGraphForNode(edge.source);
@@ -1279,12 +1293,12 @@ function init() {
                 			graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
                 			graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)});
                 			graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-                			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+                			graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
             			} else if (sourceGraph > targetGraph) {
             				graphMap[sourceGraph].setNode("" + edge.source + edge.target + sourceGraph, {label: "", class: "arg-dummy", id: "dummy-" + edge.target});
             				graphMap[sourceGraph].setEdge(edge.source, "" + edge.source + edge.target + sourceGraph, {label: edge.label, id: "arg-edge" + edge.source + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: edgeClassDecider(edge)})
             				graphMap[targetGraph].setNode("" + edge.target + edge.source + targetGraph, {label: "", class: "dummy"});
-            				graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "split edge", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
+            				graphMap[targetGraph].setEdge("" + edge.target + edge.source + targetGraph, edge.target, {label: "", labelStyle: "font-size: 12px;", id: "arg-edge_" + edge.source + "-" + edge.target, arrowhead: "undirected", style: "stroke-dasharray: 5, 5;", class: "arg-split-edge"});
             			}
         			}
         		});
@@ -1401,6 +1415,9 @@ function init() {
 			addEventsToCfa();
 			d3.select("#cfa-toolbar").style("visibility", "visible");
 			d3.select("#cfa-container").classed("cfa-content", true);
+			d3.selectAll(".cfa-svg").each(function(d, i) {
+				d3.select(this).attr("width", Math.max(d3.select(this).attr("width"), d3.select(this.parentNode).style("width").split("px")[0]));
+			});
 			d3.selectAll(".cfa-graph").style("visibility", "visible");
 			if (cfaSplit) {
 				$("#renderStateModal").modal("hide");
@@ -1494,16 +1511,35 @@ function init() {
 		return g;
 	}
 	
+    // Retrieve the node in which this node was merged - used for the node events
+	// FIXME: this is a duplicate function already contained in error path controller, currently no better way to call it
+    function getMergingNode(index) {
+        var result = "";
+        Object.keys(cfaJson.combinedNodes).some(function(key) {
+            if (cfaJson.combinedNodes[key].includes(index)) {
+                result = key;
+                return result;
+            }
+        })
+        return result;
+    }
+	
 	// Add desired events to CFA nodes and edges
 	function addEventsToCfa() {
+		addPanEvent(".cfa-svg");
 		d3.selectAll(".cfa-node").on("mouseover", function(d) { 
 			var message;
-			if (d in cfaJson.combinedNodes) {
-				message = "type: combining node <br>";
-			} else if (parseInt(d) > 100000) {
+			if (parseInt(d) > 100000) {
 				message = "type: function call node <br>" + "dblclick: Select function";
 			} else {
-				message = "type: normal element";
+				var node = cfaJson.nodes.find(function(n) {
+					return n.index === parseInt(d);
+				});
+				message = "function: " + node.func;
+				if (d in cfaJson.combinedNodes) {
+					message += "<br> combines nodes: " + Math.min.apply(null, cfaJson.combinedNodes[d]) + "-" + Math.max.apply(null, cfaJson.combinedNodes[d]);
+				}
+				message += "<br> reverse postorder Id: " + node.rpid;
 			}
 			showToolTipBox(d3.event, message); 
 		}).on("mouseout", function() { 
@@ -1524,7 +1560,7 @@ function init() {
 			var selection = d3.select("#cfa-node" + d3.select(this).attr("id").split("-")[1]);
 			selection.classed("marked-cfa-node", true);
 			var boundingRect = selection.node().getBoundingClientRect();
-			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 		})
 		d3.selectAll(".cfa-edge")
 			.on("mouseover", function(d) { 
@@ -1566,7 +1602,7 @@ function init() {
 				var selection = d3.select("#cfa-edge_" + edgeSourceTarget.split("-")[0] + "-" + edgeSourceTarget.split("-")[1]);
 				selection.classed("marked-cfa-edge", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
+				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 			})
 	}
 	
@@ -1594,29 +1630,34 @@ function init() {
 	
 	// Add desired events to ARG the nodes
 	function addEventsToArg() {
+		addPanEvent(".arg-svg");
 		d3.selectAll(".arg-node")
-			.on("mouseover", function(d) {
-				var node = argJson.nodes.find(function(it) {
-					return it.index === parseInt(d);
-				})
-				var message = "function: " + node.func + "<br>";
-				if (node.type) {
-					message += "type: " + node.type + "<br>";
-				}
-				message += "dblclick: jump to CFA node";
-				showToolTipBox(d3.event, message); 
-			}).on("mouseout", function() { 
-				hideToolTipBox(); 
-			}).on("dblclick", function() {
-				$("#set-tab-1").click();
-				if (!d3.select(".marked-cfa-node").empty()) {
-					d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
-				}
-				var selection = d3.select("#cfa-node" + d3.select(this).select("tspan").text().split("N")[1]);
-				selection.classed("marked-cfa-node", true);
-				var boundingRect = selection.node().getBoundingClientRect();
-				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft());
-			});
+		.on("mouseover", function(d) {
+			var node = argJson.nodes.find(function(it) {
+				return it.index === parseInt(d);
+			})
+			var message = "function: " + node.func + "<br>";
+			if (node.type) {
+				message += "type: " + node.type + "<br>";
+			}
+			message += "dblclick: jump to CFA node";
+			showToolTipBox(d3.event, message); 
+		}).on("mouseout", function() { 
+			hideToolTipBox(); 
+		}).on("dblclick", function() {
+			$("#set-tab-1").click();
+			if (!d3.select(".marked-cfa-node").empty()) {
+				d3.select(".marked-cfa-node").classed("marked-cfa-node", false);
+			}
+			var nodeId = d3.select(this).select("tspan").text().split("N")[1];
+			if (cfaJson.mergedNodes.includes(parseInt(nodeId))) {
+				nodeId = getMergingNode(parseInt(nodeId));
+			}
+			var selection = d3.select("#cfa-node" + nodeId);
+			selection.classed("marked-cfa-node", true);
+			var boundingRect = selection.node().getBoundingClientRect();
+			$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#cfa-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
+		});
 		d3.selectAll(".arg-dummy")
 			.on("mouseover", function(d) {
 				showToolTipBox(d3.event, "type: placeholder <br> dblclick: jump to Target node");
@@ -1629,7 +1670,7 @@ function init() {
 				var selection = d3.select("#arg-node" + d3.select(this).attr("id").split("-")[1]);
 				selection.classed("marked-arg-node", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft());
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 			});
 		d3.selectAll(".arg-edge")
 			.on("mouseover", function(d) {
@@ -1661,8 +1702,22 @@ function init() {
 				var selection = d3.select("#arg-edge" + edgeSourceTarget.split("-")[0] + edgeSourceTarget.split("-")[1]);
 				selection.classed("marked-arg-edge", true);
 				var boundingRect = selection.node().getBoundingClientRect();
-				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft());
+				$("#arg-container").scrollTop(boundingRect.top + $("#arg-container").scrollTop() - 200).scrollLeft(boundingRect.left + $("#arg-container").scrollLeft() - $("#errorpath_section").width() - 2 * boundingRect.width);
 			});
+	}
+	
+	// Use D3 zoom behavior to add pan event
+	function addPanEvent(itemsToSelect) {
+		d3.selectAll(itemsToSelect).each(function(d, i) {
+			var svg = d3.select(this), svgGroup = d3.select(this.firstChild);
+			var zoom = d3.behavior.zoom().on("zoom", function() {
+				svgGroup.attr("transform", "translate("
+						+ d3.event.translate + ")" + "scale("
+						+ d3.event.scale + ")");
+			});        			
+			svg.call(zoom);
+			svg.on("zoom", null).on("wheel.zoom", null).on("dblclick.zoom", null).on("touchstart.zoom", null);
+		});
 	}
 	
 	// On mouse over display tool tip box

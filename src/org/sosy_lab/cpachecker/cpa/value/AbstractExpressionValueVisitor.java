@@ -1645,7 +1645,8 @@ public abstract class AbstractExpressionValueVisitor
       // int or long, so we have to cast if the actual type is int.
       case SHIFT_LEFT:
         if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          numResult = ((int) lVal) << rVal;
+          final int intResult = ((int) lVal) << rVal;
+          numResult = intResult;
         } else {
           numResult = lVal << rVal;
         }
@@ -1653,7 +1654,8 @@ public abstract class AbstractExpressionValueVisitor
 
       case SHIFT_RIGHT_SIGNED:
         if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          numResult = ((int) lVal) >> rVal;
+          final int intResult = ((int) lVal) >> rVal;
+          numResult = intResult;
         } else {
           numResult = lVal >> rVal;
         }
@@ -1661,7 +1663,8 @@ public abstract class AbstractExpressionValueVisitor
 
       case SHIFT_RIGHT_UNSIGNED:
         if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          numResult = ((int) lVal) >>> rVal;
+          final int intResult = ((int) lVal) >>> rVal;
+          numResult = intResult;
         } else {
           numResult = lVal >>> rVal;
         }

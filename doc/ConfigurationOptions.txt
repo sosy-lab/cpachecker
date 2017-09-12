@@ -466,6 +466,9 @@ cegar.domainScoreThreshold = 1024
 # whether or not global refinement is performed
 cegar.globalRefinement = false
 
+# Max number of refinement iterations, -1 for no limit
+cegar.maxIterations = -1
+
 # Which refinement algorithm to use? (give class name, required for CEGAR) If
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
 # omitted.
@@ -745,16 +748,7 @@ counterexample.removeInfeasibleErrors = false
 coverage.enabled = true
 
 # print coverage info to file
-coverage.export = true
 coverage.file = "coverage.info"
-
-# How should coverage be determined? REACHED: from the final ARG, TRANSFER:
-# from the edges that explored by the transfer relation
-coverage.mode = NONE
-  enum:     [NONE, REACHED, TRANSFER]
-
-# print coverage summary to stdout
-coverage.stdout = true
 
 # CPA to use (see doc/Configuration.txt for more documentation on this)
 cpa = CompositeCPA.class.getCanonicalName()
@@ -993,10 +987,6 @@ cpa.bdd.logfile = "BDDCPA_tracked_variables.log"
 
 # mergeType
 cpa.bdd.merge = "join"
-
-# Threshold for unrolling blocks before stopping. A value of 0 disables the
-# threshold.
-cpa.blockcount.threshold = 1
 
 # depth of recursion bound
 cpa.callstack.depth = 0
@@ -1955,6 +1945,10 @@ cpa.predicate.useArraysForHeap = false
 # used in bitwise operations, and add axioms like (0 & n = 0)
 cpa.predicate.useBitwiseAxioms = false
 
+# For multithreaded programs this is an overapproximation of possible values
+# of shared variables.
+cpa.predicate.useHavocAbstraction = false
+
 # Use regions for pointer analysis. So called Burstall&Bornat (BnB) memory
 # regions will be used for pointer analysis. BnB regions are based not only
 # on type, but also on structure field names. If the field is not accessed by
@@ -2862,6 +2856,9 @@ residualprogram.file = "residualProgram.c"
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
   enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
+
+# wether to start next algorithm independently from the previous result
+restartAlgorithm.alwaysRestart = false
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration

@@ -133,6 +133,7 @@ public class CFunctionPointerResolver {
   private final Collection<FunctionEntryNode> candidateFunctions;
 
   private @Nullable final ImmutableSetMultimap<String, String> candidateFunctionsForField;
+  private @Nullable final ImmutableSetMultimap<String, String> candidateFunctionsForGlobals;
 
   private final BiPredicate<CFunctionCall, CFunctionType> matchingFunctionCall;
 
@@ -177,8 +178,13 @@ public class CFunctionPointerResolver {
             ImmutableSetMultimap.copyOf(
                 ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector)
                     .getFieldMatching());
+        candidateFunctionsForGlobals =
+            ImmutableSetMultimap.copyOf(
+                ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector)
+                    .getGlobalsMatching());
       } else {
         candidateFunctionsForField = null;
+        candidateFunctionsForGlobals = null;
       }
 
       if (logger.wouldBeLogged(Level.ALL)) {
@@ -189,6 +195,7 @@ public class CFunctionPointerResolver {
     } else {
       candidateFunctions = cfa.getAllFunctionHeads();
       candidateFunctionsForField = null;
+      candidateFunctionsForGlobals = null;
     }
   }
 
@@ -303,17 +310,25 @@ public class CFunctionPointerResolver {
       if (expression instanceof CPointerExpression) {
         expression = ((CPointerExpression) expression).getOperand();
       }
+      Set<String> matchedFuncs;
       if( expression instanceof CFieldReference) {
         String fieldName = ((CFieldReference)expression).getFieldName();
-        Set<String> matchedFuncs = candidateFunctionsForField.get(fieldName);
-        if (matchedFuncs.isEmpty()) {
-          //TODO means, that our heuristics missed something
-          funcs = Collections.emptySet();
-        } else {
-          funcs = from(funcs).
-              filter(f -> matchedFuncs.contains(f.getFunctionName())).
-              toSet();
-        }
+        matchedFuncs = candidateFunctionsForField.get(fieldName);
+
+      } else if (expression instanceof CIdExpression) {
+        String variableName = ((CIdExpression)expression).getName();
+        matchedFuncs = candidateFunctionsForGlobals.get(variableName);
+
+      } else {
+        matchedFuncs = Collections.emptySet();
+      }
+
+      if (matchedFuncs.isEmpty()) {
+        funcs = Collections.emptySet();
+      } else {
+        funcs = from(funcs).
+            filter(f -> matchedFuncs.contains(f.getFunctionName())).
+            toSet();
       }
     }
 

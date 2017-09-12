@@ -263,6 +263,12 @@ public class CtoFormulaConverter {
       return false;
     }
 
+    if (options.useHavocAbstraction()) {
+      if (!lhs.accept(new IsRelevantWithHavocAbstractionVisitor(this))) {
+        return false;
+      }
+    }
+
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       return lhs.accept(new IsRelevantLhsVisitor(this));
     } else {
@@ -271,6 +277,16 @@ public class CtoFormulaConverter {
   }
 
   protected final boolean isRelevantVariable(final CSimpleDeclaration var) {
+    if (options.useHavocAbstraction()) {
+      if (var instanceof CVariableDeclaration) {
+        CVariableDeclaration vDecl = (CVariableDeclaration) var;
+        if (vDecl.isGlobal()) {
+          return false;
+        } else if (vDecl.getType() instanceof CPointerType) {
+          return false;
+        }
+      }
+    }
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
       return var.getName().equals(RETURN_VARIABLE_NAME) ||
            variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());

@@ -60,25 +60,29 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.optional.SMGOptionalObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddVal;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGIsLessOrEqual;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoin;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.optional.SMGOptionalObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownAddVal;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.smgvalue.SMGUnknownValue;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -1464,12 +1468,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
       if (join.isDefined()) {
         SMGJoinStatus jss = join.getStatus();
-        boolean result = jss == SMGJoinStatus.EQUAL || jss == SMGJoinStatus.RIGHT_ENTAIL;
 
         /* Only stop if either reached has memleak or this state has no memleak to avoid
          * losing memleak information.
-        */
-        if (result) {
+         */
+        if (jss == SMGJoinStatus.EQUAL || jss == SMGJoinStatus.RIGHT_ENTAIL) {
 
           SMGState s1 = new SMGState(reachedState);
           SMGState s2 = new SMGState(this);
@@ -2251,7 +2254,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     boolean change = false;
 
-    for (String variable : ImmutableSet.copyOf((heap.getGlobalObjects().keySet()))) {
+    for (String variable : heap.getGlobalObjects().keySet()) {
       MemoryLocation globalVar = MemoryLocation.valueOf(variable);
       if (!pTrackedStackVariables.contains(globalVar)) {
         heap.removeGlobalVariableAndEdges(variable);
@@ -2261,12 +2264,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     for (CLangStackFrame frame : heap.getStackFrames()) {
       String functionName = frame.getFunctionDeclaration().getName();
-
-      for (String variable : ImmutableSet.copyOf(frame.getVariables().keySet())) {
+      for (String variable : frame.getVariables().keySet()) {
         MemoryLocation var = MemoryLocation.valueOf(functionName, variable);
-
         if (!pTrackedStackVariables.contains(var)) {
-          heap.removeStackVariableAndEdges(variable, frame);
+          heap.forgetFunctionStackVariable(var, false);
           change = true;
         }
       }
@@ -2291,6 +2292,6 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   public CLangStackFrame getStackFrame() {
-    return heap.getStackFrames().peek();
+    return Iterables.getLast(heap.getStackFrames());
   }
 }

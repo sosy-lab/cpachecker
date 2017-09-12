@@ -210,4 +210,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
     delegate.printStatistics(out);
   }
+
+  @Override
+  public BooleanFormula addBitwiseAxiomsIfNeeded(final BooleanFormula pMainFormula, final BooleanFormula pExtractionFormula) {
+    return delegate.addBitwiseAxiomsIfNeeded(pMainFormula, pExtractionFormula);
+  }
 }

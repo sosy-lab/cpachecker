@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -43,7 +42,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
  * This CPA tracks the value of the artificial program counter variable
  * introduced by single loop transformation.
  */
-public class ProgramCounterCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
+public class ProgramCounterCPA extends AbstractCPA {
 
   private final CFA cfa;
 

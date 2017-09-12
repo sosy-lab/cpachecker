@@ -319,7 +319,7 @@ public class AutomatonGraphmlCommon {
 
     public GraphMlBuilder(
         WitnessType pGraphType,
-        String pDefaultSourceFileName,
+        @Nullable String pDefaultSourceFileName,
         CFA pCfa,
         VerificationTaskMetaData pVerificationTaskMetaData)
         throws ParserConfigurationException, DOMException, IOException {

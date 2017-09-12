@@ -23,26 +23,22 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 /**
  * This class implements a faster way to test, if one smg is less or equal to another.
  * Simply joining two smg and requesting its status takes too long.
- *
  */
 public class SMGIsLessOrEqual {
 
@@ -69,6 +65,23 @@ public class SMGIsLessOrEqual {
       return false;
     }
 
+    if (!maybeGlobalsLessOrEqual(pSMG1, pSMG2)) {
+      return false;
+    }
+
+    if (!maybeStackLessOrEqual(pSMG1, pSMG2)) {
+      return false;
+    }
+
+    if (!maybeHeapLessOrEqual(pSMG1, pSMG2)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /** returns whether globals variables are "maybe LEQ" or "definitely not LEQ". */
+  private static boolean maybeGlobalsLessOrEqual(CLangSMG pSMG1, CLangSMG pSMG2) {
     Map<String, SMGRegion> globals_in_smg1 = pSMG1.getGlobalObjects();
     Map<String, SMGRegion> globals_in_smg2 = pSMG2.getGlobalObjects();
 
@@ -94,11 +107,13 @@ public class SMGIsLessOrEqual {
       }
     }
 
-    Deque<CLangStackFrame> stack_in_smg1 = pSMG1.getStackFrames();
-    Deque<CLangStackFrame> stack_in_smg2 = pSMG2.getStackFrames();
+    return true;
+  }
 
-    Iterator<CLangStackFrame> smg1stackIterator = stack_in_smg1.descendingIterator();
-    Iterator<CLangStackFrame> smg2stackIterator = stack_in_smg2.descendingIterator();
+  /** returns whether variables on the stack are "maybe LEQ" or "definitely not LEQ". */
+  private static boolean maybeStackLessOrEqual(CLangSMG pSMG1, CLangSMG pSMG2) {
+    Iterator<CLangStackFrame> smg1stackIterator = pSMG1.getStackFrames().iterator();
+    Iterator<CLangStackFrame> smg2stackIterator = pSMG2.getStackFrames().iterator();
 
     // Check, whether the stack frames of smg1 are less or equal to smg 2
     while (smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {
@@ -122,10 +137,7 @@ public class SMGIsLessOrEqual {
         return false;
       }
 
-      Set<String> localVars = new HashSet<>();
-      localVars.addAll(frameInSMG1.getVariables().keySet());
-
-      for (String localVar : localVars) {
+      for (String localVar : frameInSMG1.getVariables().keySet()) {
 
         //technically, one should look if any SMGHVE exist in additional region in SMG1
         if ((!frameInSMG2.containsVariable(localVar))) {
@@ -141,7 +153,11 @@ public class SMGIsLessOrEqual {
       }
     }
 
-    // Check, whether the heap of smg1 is less or equal to smg 2
+    return true;
+  }
+
+  /** returns whether two heaps are "maybe LEQ" or "definitely not LEQ". */
+  private static boolean maybeHeapLessOrEqual(CLangSMG pSMG1, CLangSMG pSMG2) {
     Set<SMGObject> heap_in_smg1 = pSMG1.getHeapObjects();
     Set<SMGObject> heap_in_smg2 = pSMG2.getHeapObjects();
 
@@ -165,8 +181,9 @@ public class SMGIsLessOrEqual {
     return true;
   }
 
-  private static boolean isLessOrEqualFields(CLangSMG pSMG1, CLangSMG pSMG2, SMGObject pSMGObject1,
-      SMGObject pSMGObject2) {
+  /** check whether an object is LEQ than another object. */
+  private static boolean isLessOrEqualFields(
+      CLangSMG pSMG1, CLangSMG pSMG2, SMGObject pSMGObject1, SMGObject pSMGObject2) {
 
     if (pSMGObject1.getSize() != pSMGObject2.getSize()) {
       throw new IllegalArgumentException("SMGJoinFields object arguments need to have identical size");
@@ -179,8 +196,8 @@ public class SMGIsLessOrEqual {
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pSMGObject1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pSMGObject2);
 
-    Set<SMGEdgeHasValue> HVE1 = filterForSMG1.filterSet(pSMG1.getHVEdges());
-    Set<SMGEdgeHasValue> HVE2 = filterForSMG2.filterSet(pSMG2.getHVEdges());
+    Iterable<SMGEdgeHasValue> HVE1 = filterForSMG1.filter(pSMG1.getHVEdges());
+    Iterable<SMGEdgeHasValue> HVE2 = filterForSMG2.filter(pSMG2.getHVEdges());
 
     //TODO Merge Zero.
     for (SMGEdgeHasValue edge1 : HVE1) {

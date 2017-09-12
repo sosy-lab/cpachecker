@@ -292,8 +292,8 @@ public class ValueAnalysisRefiner
   private VariableTrackingPrecision extractValuePrecision(Precision precision) {
     return (VariableTrackingPrecision)
         Precisions.asIterable(precision)
-            .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
-            .get(0);
+            .firstMatch(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+            .get();
   }
 
   /**

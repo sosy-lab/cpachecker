@@ -346,14 +346,16 @@ class DynamicMemoryHandler {
     final Formula result = conv.makeConstant(PointerTargetSet.getBaseName(base), baseType);
     if (isZeroing) {
       AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
-      final BooleanFormula initialization = assignmentHandler.makeAssignment(
-        type,
-        CNumericTypes.SIGNED_CHAR,
-        AliasedLocation.ofAddress(result),
-        Value.ofValue(conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
-        PointerTargetPattern.forBase(base),
-        true,
-        null);
+      final BooleanFormula initialization =
+          assignmentHandler.makeDestructiveAssignment(
+              type,
+              CNumericTypes.SIGNED_CHAR,
+              AliasedLocation.ofAddress(result),
+              Value.ofValue(
+                  conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
+              true,
+              null);
+
       constraints.addConstraint(initialization);
     }
     conv.addPreFilledBase(base, type, false, isZeroing, constraints, pts);
@@ -543,7 +545,6 @@ class DynamicMemoryHandler {
       final CRightHandSide rhs,
       final Expression rhsExpression,
       final CType lhsType,
-      final CExpressionVisitorWithPointerAliasing visitor,
       final Map<String, CType> lhsLearnedPointerTypes,
       final Map<String, CType> rhsLearnedPointerTypes)
       throws UnrecognizedCCodeException, InterruptedException {
@@ -568,7 +569,7 @@ class DynamicMemoryHandler {
               } else {
                 // We can defer the allocation and start tracking the variable in the LHS
                 final Optional<String> lhsPointer =
-                    lhs.accept(visitor.getPointerApproximatingVisitor());
+                    lhs.accept(new PointerApproximatingVisitor(typeHandler, edge));
                 lhsPointer.ifPresent(
                     (s) -> {
                       pts.removeDeferredAllocationPointer(s)
@@ -602,7 +603,7 @@ class DynamicMemoryHandler {
     // Track currently deferred allocations
     if (conv.options.deferUntypedAllocations() && !isAllocation) {
       handleDeferredAllocationsInAssignment(
-          lhs, rhs, lhsType, visitor, lhsLearnedPointerTypes, rhsLearnedPointerTypes);
+          lhs, rhs, lhsType, lhsLearnedPointerTypes, rhsLearnedPointerTypes);
     }
   }
 
@@ -620,7 +621,6 @@ class DynamicMemoryHandler {
       final CLeftHandSide lhs,
       final CRightHandSide rhs,
       final CType lhsType,
-      final CExpressionVisitorWithPointerAliasing visitor,
       final Map<String, CType> lhsLearnedPointerTypes,
       final Map<String, CType> rhsLearnedPointerTypes)
       throws UnrecognizedCCodeException, InterruptedException {
@@ -648,6 +648,8 @@ class DynamicMemoryHandler {
     } else {
       toHandle = Optional.empty();
     }
+    final PointerApproximatingVisitor pointerApproximatingVisitor =
+        new PointerApproximatingVisitor(typeHandler, edge);
 
     // Reveal the type from usages (type casts, comparisons) in both sides
     for (Map.Entry<String, CType> entry : lhsLearnedPointerTypes.entrySet()) {
@@ -659,8 +661,7 @@ class DynamicMemoryHandler {
 
     // Reveal the type from the assignment itself (i.e. lhs from rhs and vice versa)
     if (toHandle.isPresent()) {
-      Optional<String> s =
-          toHandle.get().getFirst().accept(visitor.getPointerApproximatingVisitor());
+      Optional<String> s = toHandle.get().getFirst().accept(pointerApproximatingVisitor);
       if (s.isPresent()
           && !lhsLearnedPointerTypes.containsKey(s.get())
           && !rhsLearnedPointerTypes.containsKey(s.get())) {
@@ -674,16 +675,16 @@ class DynamicMemoryHandler {
           .forEach(_d -> handleDeferredAllocationPointerRemoval(lhs));
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises
-      Optional<String> lhsPointer = lhs.accept(visitor.getPointerApproximatingVisitor());
+      Optional<String> lhsPointer = lhs.accept(pointerApproximatingVisitor);
       if (lhsPointer.isPresent() && pts.canRemoveDeferredAllocationPointer(lhsPointer.get())) {
         pts.removeDeferredAllocationPointer(lhsPointer.get());
       }
     }
 
     // And now propagate points-to bindings from the RHS to the LHS
-    Optional<String> l = lhs.accept(visitor.getPointerApproximatingVisitor());
+    Optional<String> l = lhs.accept(pointerApproximatingVisitor);
     if (l.isPresent() && rhs != null) {
-      rhs.accept(visitor.getPointerApproximatingVisitor())
+      rhs.accept(pointerApproximatingVisitor)
           .ifPresent(r -> pts.addDeferredAllocationPointer(l.get(), r));
     }
   }

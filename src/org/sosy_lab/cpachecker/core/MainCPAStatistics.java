@@ -79,9 +79,9 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
-import org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
@@ -285,10 +285,12 @@ class MainCPAStatistics implements Statistics {
       printSubStatistics(out, result, reached);
 
       if (exportCoverage && cfa != null) {
-        Map<String, FileCoverageInformation> infosPerFile =
-            CoverageCollector.fromReachedSet(reached, cfa).collectCoverage();
+        CoverageData infosPerFile = CoverageCollector.fromReachedSet(reached, cfa);
 
+        out.println("Code Coverage");
+        out.println("-----------------------------");
         CoverageReportStdoutSummary.write(infosPerFile, out);
+
         if (outputCoverageFile != null) {
           try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
             CoverageReportGcov.write(infosPerFile, gcovOut);

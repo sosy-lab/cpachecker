@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.util.coverage;
 
 import java.io.PrintStream;
-import java.util.Map;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 public class CoverageReportStdoutSummary {
 
-  public static void write(Map<String, FileCoverageInformation> pCoverage, PrintStream pStdOut) {
+  public static void write(CoverageData pCoverage, PrintStream pStdOut) {
     long numTotalConditions = 0;
     long numTotalFunctions = 0;
     long numTotalLines = 0;
@@ -38,24 +37,16 @@ public class CoverageReportStdoutSummary {
     long numVisitedFunctions = 0;
     long numVisitedLines = 0;
 
-    for (FileCoverageInformation info: pCoverage.values()) {
-      numTotalFunctions =+ info.allFunctions.size();
-      numVisitedFunctions =+ info.visitedFunctions.size();
+    for (FileCoverageInformation info : pCoverage.getInfosPerFile().values()) {
+      numTotalFunctions += info.allFunctions.size();
+      numVisitedFunctions += info.visitedFunctions.entrySet().size();
 
-      numTotalConditions =+ info.allAssumes.size();
-      numVisitedConditions =+ info.visitedAssumes.size();
+      numTotalConditions += info.allAssumes.size();
+      numVisitedConditions += info.visitedAssumes.size();
 
-      numTotalLines =+ info.allLines.size();
-
-      for (Integer line : info.allLines) {
-        if (info.getVisitedLine(line) > 0) {
-          numVisitedLines += 1;
-        }
-      }
+      numTotalLines += info.allLines.size();
+      numVisitedLines += info.visitedLines.entrySet().size();
     }
-
-    pStdOut.println("Code Coverage");
-    pStdOut.println("-----------------------------");
 
     if (numTotalFunctions > 0) {
       final double functionCoverage = numVisitedFunctions / (double) numTotalFunctions;

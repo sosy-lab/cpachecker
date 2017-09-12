@@ -109,6 +109,11 @@ public interface BAMDataManager {
 
   void clearExpandedStateToExpandedPrecision();
 
+  /** Some benchmarks are complicated and
+   *  all intermediate cache entries can not be stored due to large memory consumption,
+   *  then there is a way to clear all caches and to restore ARG completely. */
+  void clear();
+
   /** return a matching precision for the given state, or Null if state is not found. */
   @Nullable
   Precision getExpandedPrecisionForState(AbstractState pState);

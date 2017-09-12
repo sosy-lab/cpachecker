@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.uninitvars;
 
+import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -38,8 +39,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-
-import java.util.Collection;
 
 @Options(prefix = "cpa.uninitvars")
 public class UninitializedVariablesCPA extends AbstractCPA implements StatisticsProvider {
@@ -60,7 +59,7 @@ public class UninitializedVariablesCPA extends AbstractCPA implements Statistics
   private final UninitializedVariablesStatistics statistics;
 
   private UninitializedVariablesCPA(Configuration config) throws InvalidConfigurationException {
-    super("irrelevant", "irrelevant", new UninitializedVariablesDomain(), null);
+    super(new UninitializedVariablesDomain(), null);
     config.inject(this);
     statistics = new UninitializedVariablesStatistics(printWarnings);
   }
