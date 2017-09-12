@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
 import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -559,25 +559,21 @@ class AssignmentHandler {
       final Set<MemoryRegion> updatedRegions,
       final List<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
-    Preconditions.checkArgument(
-        lvalue.isAliased(),
-        "Array elements are always aliased (i.e. can't be encoded with variables)");
-    final CType lvalueElementType = checkIsSimplified(lvalueArrayType.getType());
+    checkArgument(lvalue.isAliased(), "Array elements are always aliased");
+    final CType lvalueElementType = lvalueArrayType.getType();
 
-    // There are only two cases of assignment to an array
-    Preconditions.checkArgument(
-        // Initializing array with a value (possibly nondet), useful for stack declarations and
-        // memset implementation
+    // There are two cases of assignment to an array
+    // - Initialization with a value (possibly nondet), useful for stack declarations and memset
+    // - Array assignment as part of a structure assignment
+    checkArgument(
         (rvalue.isValue() && isSimpleType(rvalueType))
-            ||
-            // Array assignment (needed for structure assignment implementation)
-            // Only possible from another array of the same type
-            (rvalue.asLocation().isAliased()
+            || (rvalue.asLocation().isAliased()
                 && rvalueType instanceof CArrayType
-                && checkIsSimplified(((CArrayType) rvalueType).getType())
-                    .equals(lvalueElementType)),
-        "Impossible array assignment due to incompatible types: assignment of %s to %s",
+                && ((CArrayType) rvalueType).getType().equals(lvalueElementType)),
+        "Impossible array assignment due to incompatible types: assignment of %s with type %s to %s with type %s",
+        rvalue,
         rvalueType,
+        lvalue,
         lvalueArrayType);
 
     OptionalInt lvalueLength = lvalueArrayType.getLengthAsInt();
@@ -625,25 +621,16 @@ class AssignmentHandler {
       final List<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
     // There are two cases of assignment to a structure/union
-    if (!(
-    // Initialization with a value (possibly nondet), useful for stack declarations and memset
-    // implementation
-    (rvalue.isValue() && isSimpleType(rvalueType))
-        ||
-        // Structure assignment
-        rvalueType.equals(lvalueCompositeType))) {
-      throw new UnrecognizedCCodeException(
-          "Impossible structure assignment due to incompatible types:"
-              + " assignment of "
-              + rvalue
-              + " with type "
-              + rvalueType
-              + " to "
-              + lvalue
-              + " with type "
-              + lvalueCompositeType,
-          edge);
-    }
+    // - Initialization with a value (possibly nondet), useful for stack declarations and memset
+    // - Structure assignment
+    checkArgument(
+        (rvalue.isValue() && isSimpleType(rvalueType)) || rvalueType.equals(lvalueCompositeType),
+        "Impossible assignment due to incompatible types: assignment of %s with type %s to %s with type %s",
+        rvalue,
+        rvalueType,
+        lvalue,
+        lvalueCompositeType);
+
     BooleanFormula result = bfmgr.makeTrue();
     for (final CCompositeTypeMemberDeclaration memberDeclaration :
         lvalueCompositeType.getMembers()) {
@@ -714,15 +701,11 @@ class AssignmentHandler {
       final @Nullable Set<MemoryRegion> updatedRegions,
       final @Nullable List<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
-    checkIsSimplified(lvalueType);
-    checkIsSimplified(rvalueType);
     // Arrays and functions are implicitly converted to pointers
     rvalueType = implicitCastToPointer(rvalueType);
 
-    Preconditions.checkArgument(isSimpleType(lvalueType),
-                                "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
-    Preconditions.checkArgument(isSimpleType(rvalueType),
-                                "To assign to/from arrays/structures/unions use makeDestructiveAssignment");
+    checkArgument(isSimpleType(lvalueType));
+    checkArgument(isSimpleType(rvalueType));
 
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
