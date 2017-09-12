@@ -126,7 +126,8 @@ class AssignmentHandler {
    * @param lhs The left hand side of an assignment.
    * @param lhsForChecking The left hand side of an assignment to check.
    * @param rhs Either {@code null} or the right hand side of the assignment.
-   * @param useOldSSAIndices A flag indicating batch mode (i.e., no SSA increments for UFs)
+   * @param useOldSSAIndicesIfAliased A flag indicating whether we can use old SSA indices for
+   *     aliased locations (because the location was not used before)
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
@@ -136,7 +137,7 @@ class AssignmentHandler {
       final CLeftHandSide lhsForChecking,
       final CType lhsType,
       final @Nullable CRightHandSide rhs,
-      final boolean useOldSSAIndices)
+      final boolean useOldSSAIndicesIfAliased)
       throws UnrecognizedCCodeException, InterruptedException {
     if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
@@ -166,9 +167,7 @@ class AssignmentHandler {
     // LHS handling
     final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
-    checkArgument(
-        !useOldSSAIndices || lhsLocation.isAliased(),
-        "Cannot defer SSA index update for non-aliased location");
+    final boolean useOldSSAIndices = useOldSSAIndicesIfAliased && lhsLocation.isAliased();
 
     final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
@@ -231,10 +230,10 @@ class AssignmentHandler {
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
       final @Nullable CRightHandSide rhs,
-      final boolean useOldSSAIndices)
+      final boolean useOldSSAIndicesIfAliased)
       throws UnrecognizedCCodeException, InterruptedException {
     return handleAssignment(
-        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, useOldSSAIndices);
+        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, useOldSSAIndicesIfAliased);
   }
 
   /**
@@ -270,20 +269,11 @@ class AssignmentHandler {
   private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
       final CIdExpression variable, final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCCodeException, InterruptedException {
-    CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
-    final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
     BooleanFormula result = conv.bfmgr.makeTrue();
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CLeftHandSide lhs = assignment.getLeftHandSide();
       result =
-          conv.bfmgr.and(
-              result,
-              handleAssignment(
-                  lhs,
-                  lhs,
-                                                       assignment.getRightHandSide(),
-                  lhsLocation.isAliased() // Defer index update for UFs, but not for variables
-                  ));
+          conv.bfmgr.and(result, handleAssignment(lhs, lhs, assignment.getRightHandSide(), true));
     }
     return result;
   }

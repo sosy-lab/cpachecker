@@ -992,9 +992,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       if (initializer != null) {
         result =
             assignmentHandler.handleAssignment(
-                lhs, lhs, ((CInitializerExpression) initializer).getExpression(), false);
+                lhs, lhs, ((CInitializerExpression) initializer).getExpression(), true);
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
-        result = assignmentHandler.handleAssignment(lhs, lhs, null, false);
+        result = assignmentHandler.handleAssignment(lhs, lhs, null, true);
       } else {
         result = bfmgr.makeTrue();
       }
