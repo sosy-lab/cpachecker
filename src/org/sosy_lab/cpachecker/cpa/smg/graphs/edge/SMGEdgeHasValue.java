@@ -66,10 +66,6 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public int getSizeInBits(MachineModel pMachineModel) {
-    if (!(type instanceof CVoidType) && type.isIncomplete()) {
-      throw new IllegalArgumentException("Cannot compute size of " + object.getLabel() + " with "
-          + "incomplete type " + type);
-    }
     return pMachineModel.getBitSizeof(type);
   }
 
