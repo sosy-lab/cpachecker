@@ -166,6 +166,10 @@ class AssignmentHandler {
     // LHS handling
     final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
+    checkArgument(
+        !batchMode || lhsLocation.isAliased(),
+        "Cannot defer SSA index update for non-aliased location");
+
     final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
     pts.addEssentialFields(lhsVisitor.getUsedFields());
@@ -186,8 +190,19 @@ class AssignmentHandler {
           rhsLearnedPointersTypes);
     }
 
+    Set<MemoryRegion> updatedRegions = new HashSet<>();
+
     final BooleanFormula result =
-        makeAssignment(lhsType, rhsType, lhsLocation, rhsExpression, pattern, batchMode);
+        makeDestructiveAssignment(
+            lhsType, rhsType, lhsLocation, rhsExpression, batchMode, updatedRegions);
+
+    if (!batchMode) {
+      if (lhsLocation.isAliased()) {
+        finishAssignments(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
+      } else { // Unaliased lvalue
+        assert updatedRegions.isEmpty();
+      }
+    }
 
     for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
       pts.addField(field.getFirst(), field.getSecond());
@@ -396,54 +411,6 @@ class AssignmentHandler {
     return true;
   }
 
-  /**
-   * Creates a formula for an assignment.
-   *
-   * @param lvalueType The type of the lvalue.
-   * @param rvalueType The type of the rvalue.
-   * @param lvalue The location of the lvalue.
-   * @param rvalue The rvalue expression.
-   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices for UFs or not.
-   * @return A formula for the assignment.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
-   * @throws InterruptedException If the execution was interrupted.
-   */
-  BooleanFormula makeAssignment(
-      CType lvalueType,
-      final CType rvalueType,
-      final Location lvalue,
-      final Expression rvalue,
-      final @Nullable PointerTargetPattern pattern,
-      final boolean useOldSSAIndices)
-      throws UnrecognizedCCodeException, InterruptedException {
-    // Its a definite value assignment, a nondet assignment (SSA index update) or a nondet assignment among other
-    // assignments to the same UF version (in this case an absense of aliasing should be somehow guaranteed, as in the
-    // case of initialization assignments)
-    //assert rvalue != null || !useOldSSAIndices || updatedRegions != null; // otherwise the call is useless
-    checkNotNull(rvalue);
-
-    checkIsSimplified(lvalueType);
-
-    checkArgument(
-        !useOldSSAIndices || lvalue.isAliased(),
-        "Cannot defer SSA index update for non-aliased location");
-
-    Set<MemoryRegion> updatedRegions = new HashSet<>();
-
-    final BooleanFormula result =
-        makeDestructiveAssignment(
-            lvalueType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
-
-    if (!useOldSSAIndices) {
-      if (lvalue.isAliased()) {
-        finishAssignments(lvalueType, lvalue.asAliased(), pattern, updatedRegions);
-      } else { // Unaliased lvalue
-        assert updatedRegions.isEmpty();
-      }
-    }
-    return result;
-  }
-
   private void finishAssignments(
       CType lvalueType,
       final AliasedLocation lvalue,
@@ -476,7 +443,7 @@ class AssignmentHandler {
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
-  private BooleanFormula makeDestructiveAssignment(
+  BooleanFormula makeDestructiveAssignment(
       CType lvalueType,
       CType rvalueType,
       final Location lvalue,
