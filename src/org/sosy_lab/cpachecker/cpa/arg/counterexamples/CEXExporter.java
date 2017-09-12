@@ -249,8 +249,7 @@ public class CEXExporter {
     if (exportCounterexampleCoverage && coveragePrefixTemplate != null) {
       Path outputPath = coveragePrefixTemplate.getPath(counterexample.getUniqueId());
       try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
-        CoverageReportGcov.write(
-            CoverageCollector.fromCounterexample(targetPath).collectCoverage(), gcovFile);
+        CoverageReportGcov.write(CoverageCollector.fromCounterexample(targetPath), gcovFile);
       } catch (IOException e) {
         logger.logUserException(
             Level.WARNING, e, "Could not write coverage information for counterexample to file");

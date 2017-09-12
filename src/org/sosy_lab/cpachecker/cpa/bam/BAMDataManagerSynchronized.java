@@ -158,4 +158,11 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
       return manager.getExpandedPrecisionForState(pState);
     }
   }
+
+  @Override
+  public void clear() {
+    synchronized (this) {
+      manager.clear();
+    }
+  }
 }

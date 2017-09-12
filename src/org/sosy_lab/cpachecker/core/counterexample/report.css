@@ -184,9 +184,18 @@ body {
 	outline: #8B008B solid thick !important;
 }
 
+.marked-cfa-node > polygon {
+	stroke: #8B008B !important;
+	stroke-width: 5px !important;
+}
+
 .marked-cfa-node > circle {
 	stroke: #8B008B !important;
 	stroke-width: 5px !important;
+}
+
+.marked-cfa-node-label {
+    fill: #ff00ff !important;
 }
 
 .marked-arg-node > rect {

@@ -124,17 +124,10 @@ public interface CType extends Type {
       }
 
       // Cf. C-Standard §6.5.16.1 (1), third and fourth constraint.
-      return ((leftPointedToType instanceof CPointerType
-              && !(rightPointedToType instanceof CPointerType)
-              && (((CPointerType) leftPointedToType).getType().isVolatile()
-                      == rightPointedToType.isVolatile()
-                  && (((CPointerType) leftPointedToType).getType().isConst()
-                      == rightPointedToType.isConst())))
-          || (leftPointedToType instanceof CVoidType && !(rightPointedToType instanceof CVoidType))
-          || (rightPointedToType instanceof CVoidType && !(leftPointedToType instanceof CVoidType))
-          || ((leftPointedToType.isConst() || !rightPointedToType.isConst())
-              && (leftPointedToType.isVolatile() || !rightPointedToType.isVolatile())
-              && CTypes.areTypesCompatible(
+      return (((leftPointedToType.isConst() || !rightPointedToType.isConst())
+              && (leftPointedToType.isVolatile() || !rightPointedToType.isVolatile()))
+          && ((leftPointedToType instanceof CVoidType || rightPointedToType instanceof CVoidType)
+              || CTypes.areTypesCompatible(
                   CTypes.copyDequalified(leftPointedToType),
                   CTypes.copyDequalified(rightPointedToType))));
     }

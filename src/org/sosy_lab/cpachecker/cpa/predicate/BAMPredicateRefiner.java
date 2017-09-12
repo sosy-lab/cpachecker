@@ -232,7 +232,8 @@ public abstract class BAMPredicateRefiner implements Refiner {
 
           // start new block with empty formula
           currentFormula = getOnlyElement(currentFormulas);
-          abstractionFormulas.add(currentFormula.getFormula());
+          BooleanFormula bFormula = pfmgr.addBitwiseAxiomsIfNeeded(currentFormula.getFormula(), currentFormula.getFormula());
+          abstractionFormulas.add(bFormula);
           currentFormula = pfmgr.makeEmptyPathFormula(currentFormula);
 
         } else {

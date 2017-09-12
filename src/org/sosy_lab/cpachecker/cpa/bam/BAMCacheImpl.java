@@ -308,4 +308,12 @@ public class BAMCacheImpl implements BAMCache {
   public String getName() {
     return "BAMCache";
   }
+
+  @Override
+  public void clear() {
+    preciseReachedCache.clear();
+    returnCache.clear();
+    blockARGCache.clear();
+    lastAnalyzedBlockCache = null;
+  }
 }

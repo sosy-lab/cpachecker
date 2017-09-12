@@ -500,6 +500,20 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
+  public BooleanFormula addBitwiseAxiomsIfNeeded(final BooleanFormula pMainFormula
+      , final BooleanFormula pExtractionFormula) {
+    if (fmgr.useBitwiseAxioms()) {
+      BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(pExtractionFormula);
+      if (!fmgr.getBooleanFormulaManager().isTrue(bitwiseAxioms)) {
+        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
+        return fmgr.getBooleanFormulaManager().and(pMainFormula, bitwiseAxioms);
+      }
+    }
+
+    return pMainFormula;
+  }
+
+  @Override
   public void printStatistics(PrintStream out) {
     converter.printStatistics(out);
   }

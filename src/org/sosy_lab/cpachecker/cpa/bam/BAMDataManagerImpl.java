@@ -288,4 +288,13 @@ public class BAMDataManagerImpl implements BAMDataManager {
     Collections.sort(sorted, (x, y) -> Integer.compare(getId(x.getKey()), getId(y.getKey())));
     return sorted;
   }
+
+  @Override
+  public void clear() {
+    initialStateToReachedSet.clear();
+    expandedStateToBlock.clear();
+    expandedStateToExpandedPrecision.clear();
+    expandedStateToReducedState.clear();
+    bamCache.clear();
+  }
 }

@@ -27,7 +27,7 @@ import static org.sosy_lab.cpachecker.cmdline.CmdLineArguments.putIfNotExistent;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -94,29 +94,6 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
       Iterator<String> argsIt)
       throws InvalidCmdlineArgumentException;
 
-
-  /** The arg is a short replacement for an option with a constant value. */
-  static class CmdLineArgument0 extends CmdLineArgument {
-
-    private final String option;
-    private final String value;
-
-    CmdLineArgument0(String pName, String pOption, String pValue) {
-      super(pName);
-      option = pOption;
-      value = pValue;
-    }
-
-    @Override
-    final void apply0(
-        Map<String, String> properties,
-        String currentArg,
-        Iterator<String> argsIt)
-        throws InvalidCmdlineArgumentException {
-      putIfNotExistent(properties, option, value);
-    }
-  }
-
   /** The arg is a short replacement for an option with 'one' value given as next argument. */
   static class CmdLineArgument1 extends CmdLineArgument {
 
@@ -168,22 +145,24 @@ abstract class CmdLineArgument implements Comparable<CmdLineArgument> {
     }
   }
 
+  /** This is a command-line argument that sets some properties to fixed values. */
   static class PropertyAddingCmdLineArgument extends CmdLineArgument {
 
-    private final Map<String, String> additionalIfNotExistentArgs;
-    private final Map<String, String> additionalArgs;
+    private final Map<String, String> additionalIfNotExistentArgs = new HashMap<>();
+    private final Map<String, String> additionalArgs = new HashMap<>();
 
-    PropertyAddingCmdLineArgument(
-        String pName,
-        Map<String, String> pAdditionalIfNotExistentArgs,
-        Map<String, String> pAdditionalArgs) {
+    PropertyAddingCmdLineArgument(String pName) {
       super(pName);
-      additionalIfNotExistentArgs = pAdditionalIfNotExistentArgs;
-      additionalArgs = pAdditionalArgs;
     }
 
-    PropertyAddingCmdLineArgument(String pName, Map<String, String> pAdditionalIfNotExistentArgs) {
-      this(pName, pAdditionalIfNotExistentArgs, Collections.emptyMap());
+    PropertyAddingCmdLineArgument settingProperty(String pName, String pValue) {
+      additionalIfNotExistentArgs.put(pName, pValue);
+      return this;
+    }
+
+    PropertyAddingCmdLineArgument overridingProperty(String pName, String pValue) {
+      additionalArgs.put(pName, pValue);
+      return this;
     }
 
     @Override

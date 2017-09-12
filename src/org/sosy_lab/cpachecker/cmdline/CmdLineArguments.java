@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static com.google.common.collect.ImmutableMap.of;
 import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_EXIT_CODE;
 import static org.sosy_lab.cpachecker.cmdline.CPAMain.ERROR_OUTPUT;
 
@@ -47,7 +46,6 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.IO;
-import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument0;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.PropertyAddingCmdLineArgument;
 import org.sosy_lab.cpachecker.core.CPAchecker;
@@ -100,19 +98,26 @@ class CmdLineArguments {
 
   private static final ImmutableSortedSet<CmdLineArgument> CMD_LINE_ARGS =
       ImmutableSortedSet.of(
-          new CmdLineArgument0("-stats", "statistics.print", "true")
+          new PropertyAddingCmdLineArgument("-stats")
+              .settingProperty("statistics.print", "true")
               .withDescription("collect statistics during the analysis and print them afterwards"),
-          new CmdLineArgument0("-noout", "output.disable", "true")
+          new PropertyAddingCmdLineArgument("-noout")
+              .settingProperty("output.disable", "true")
               .withDescription("disable all output (except directly specified files)"),
-          new CmdLineArgument0("-java", "language", "JAVA")
+          new PropertyAddingCmdLineArgument("-java")
+              .settingProperty("language", "JAVA")
               .withDescription("language of the sourcefile"),
-          new CmdLineArgument0("-32", "analysis.machineModel", "Linux32")
+          new PropertyAddingCmdLineArgument("-32")
+              .settingProperty("analysis.machineModel", "Linux32")
               .withDescription("set machine model to LINUX32"),
-          new CmdLineArgument0("-64", "analysis.machineModel", "Linux64")
+          new PropertyAddingCmdLineArgument("-64")
+              .settingProperty("analysis.machineModel", "Linux64")
               .withDescription("set machine model to LINUX64"),
-          new CmdLineArgument0("-preprocess", "parser.usePreprocessor", "true")
+          new PropertyAddingCmdLineArgument("-preprocess")
+              .settingProperty("parser.usePreprocessor", "true")
               .withDescription("execute a preprocessor before starting the analysis"),
-          new CmdLineArgument0("-secureMode", SECURE_MODE_OPTION, "true")
+          new PropertyAddingCmdLineArgument("-secureMode")
+              .settingProperty(SECURE_MODE_OPTION, "true")
               .withDescription("allow to use only secure options"),
           new CmdLineArgument1("-witness", "witness.validation.file")
               .withDescription("the witness to validate"),
@@ -155,17 +160,24 @@ class CmdLineArguments {
               properties.put(CompositeCPA.class.getSimpleName() + ".cpas", arg);
             }
           }.withDescription("set CPAs for the analysis"),
-          new PropertyAddingCmdLineArgument(
-                  "-cbmc",
-                  of("analysis.checkCounterexamples", "true", "counterexample.checker", "CBMC"))
+          new PropertyAddingCmdLineArgument("-cbmc")
+              .settingProperty("analysis.checkCounterexamples", "true")
+              .settingProperty("counterexample.checker", "CBMC")
               .withDescription("use CBMC as counterexample checker"),
-          new PropertyAddingCmdLineArgument(
-                  "-nolog", of("log.level", "off", "log.consoleLevel", "off"))
+          new PropertyAddingCmdLineArgument("-nolog")
+              .settingProperty("log.level", "off")
+              .settingProperty("log.consoleLevel", "off")
               .withDescription("disable logging"),
-          new PropertyAddingCmdLineArgument(
-                  "-skipRecursion",
-                  of("analysis.summaryEdges", "true", "cpa.callstack.skipRecursion", "true"))
+          new PropertyAddingCmdLineArgument("-skipRecursion")
+              .settingProperty("analysis.summaryEdges", "true")
+              .settingProperty("cpa.callstack.skipRecursion", "true")
               .withDescription("skip recursive function calls"),
+          new PropertyAddingCmdLineArgument("-benchmark")
+              .settingProperty("output.disable", "true")
+              .settingProperty("coverage.enabled", "false")
+              .settingProperty("statistics.memory", "false")
+              .withDescription(
+                  "disable assertions and optional features such as output files for improved performance"),
           new CmdLineArgument1("-setprop") {
 
             @Override
@@ -195,10 +207,10 @@ class CmdLineArguments {
               System.exit(0);
             }
           }.withDescription("print all possible options on StdOut"),
-          new PropertyAddingCmdLineArgument(
-                  "-printUsedOptions",
-                  of(PRINT_USED_OPTIONS_OPTION, "true", "analysis.disable", "true"),
-                  of("log.consoleLevel", "SEVERE"))
+          new PropertyAddingCmdLineArgument("-printUsedOptions")
+              .settingProperty(PRINT_USED_OPTIONS_OPTION, "true")
+              .settingProperty("analysis.disable", "true")
+              .overridingProperty("log.consoleLevel", "SEVERE")
               .withDescription("print all used options"),
           new CmdLineArgument("-h", "-help") {
 
