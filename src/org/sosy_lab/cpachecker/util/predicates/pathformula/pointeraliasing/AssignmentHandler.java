@@ -126,7 +126,7 @@ class AssignmentHandler {
    * @param lhs The left hand side of an assignment.
    * @param lhsForChecking The left hand side of an assignment to check.
    * @param rhs Either {@code null} or the right hand side of the assignment.
-   * @param batchMode A flag indicating batch mode (i.e., no SSA increments for UFs)
+   * @param useOldSSAIndices A flag indicating batch mode (i.e., no SSA increments for UFs)
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
@@ -136,7 +136,7 @@ class AssignmentHandler {
       final CLeftHandSide lhsForChecking,
       final CType lhsType,
       final @Nullable CRightHandSide rhs,
-      final boolean batchMode)
+      final boolean useOldSSAIndices)
       throws UnrecognizedCCodeException, InterruptedException {
     if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
@@ -167,16 +167,13 @@ class AssignmentHandler {
     final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = lhs.accept(lhsVisitor).asLocation();
     checkArgument(
-        !batchMode || lhsLocation.isAliased(),
+        !useOldSSAIndices || lhsLocation.isAliased(),
         "Cannot defer SSA index update for non-aliased location");
 
     final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
     pts.addEssentialFields(lhsVisitor.getInitializedFields());
     pts.addEssentialFields(lhsVisitor.getUsedFields());
     // the pattern matching possibly aliased locations
-    final PointerTargetPattern pattern = lhsLocation.isUnaliasedLocation()
-        ? null
-        : PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
 
     if (conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) {
       DynamicMemoryHandler memoryHandler = new DynamicMemoryHandler(conv, edge, ssa, pts, constraints, errorConditions, regionMgr);
@@ -190,14 +187,16 @@ class AssignmentHandler {
           rhsLearnedPointersTypes);
     }
 
-    Set<MemoryRegion> updatedRegions = new HashSet<>();
+    Set<MemoryRegion> updatedRegions = useOldSSAIndices ? null : new HashSet<>();
 
     final BooleanFormula result =
         makeDestructiveAssignment(
-            lhsType, rhsType, lhsLocation, rhsExpression, batchMode, updatedRegions);
+            lhsType, rhsType, lhsLocation, rhsExpression, useOldSSAIndices, updatedRegions);
 
-    if (!batchMode) {
+    if (!useOldSSAIndices) {
       if (lhsLocation.isAliased()) {
+        final PointerTargetPattern pattern
+            = PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
         finishAssignments(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
       } else { // Unaliased lvalue
         assert updatedRegions.isEmpty();
@@ -232,10 +231,10 @@ class AssignmentHandler {
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
       final @Nullable CRightHandSide rhs,
-      final boolean batchMode)
+      final boolean useOldSSAIndices)
       throws UnrecognizedCCodeException, InterruptedException {
     return handleAssignment(
-        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, batchMode);
+        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, useOldSSAIndices);
   }
 
   /**
@@ -453,6 +452,9 @@ class AssignmentHandler {
       throws UnrecognizedCCodeException {
     checkIsSimplified(lvalueType);
     checkIsSimplified(rvalueType);
+    checkArgument(
+        !useOldSSAIndices || updatedRegions == null,
+        "With old SSA indices returning updated regions does not make sense");
 
     if (lvalueType instanceof CArrayType) {
       return makeDestructiveArrayAssignment(
