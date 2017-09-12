@@ -44,6 +44,7 @@ import java.util.function.BiConsumer;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -243,7 +244,7 @@ class AssignmentHandler {
    * @throws InterruptedException It the execution was interrupted.
    */
   BooleanFormula handleInitializationAssignments(
-      final CLeftHandSide variable, final CType declarationType, final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCCodeException, InterruptedException {
+      final CIdExpression variable, final CType declarationType, final List<CExpressionAssignmentStatement> assignments) throws UnrecognizedCCodeException, InterruptedException {
     if (options.useQuantifiersOnArrays()
         && (declarationType instanceof CArrayType)
         && !assignments.isEmpty()) {
@@ -263,7 +264,7 @@ class AssignmentHandler {
    * @throws InterruptedException It the execution was interrupted.
    */
   private BooleanFormula handleInitializationAssignmentsWithoutQuantifier(
-      final CLeftHandSide variable, final List<CExpressionAssignmentStatement> assignments)
+      final CIdExpression variable, final List<CExpressionAssignmentStatement> assignments)
       throws UnrecognizedCCodeException, InterruptedException {
     CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
@@ -292,7 +293,7 @@ class AssignmentHandler {
    *
    * <p>If we cannot make an assignment of the form {@code <variable> = <value>}, we fall back to
    * the normal initialization in
-   * {@link #handleInitializationAssignmentsWithoutQuantifier(CLeftHandSide, List)}.
+   * {@link #handleInitializationAssignmentsWithoutQuantifier(CIdExpression, List)}.
    *
    * @param pLeftHandSide The left hand side of the statement. Needed for fallback scenario.
    * @param pAssignments A list of assignment statements.
@@ -300,10 +301,10 @@ class AssignmentHandler {
    * @return A boolean formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
-   * @see #handleInitializationAssignmentsWithoutQuantifier(CLeftHandSide, List)
+   * @see #handleInitializationAssignmentsWithoutQuantifier(CIdExpression, List)
    */
   private BooleanFormula handleInitializationAssignmentsWithQuantifier(
-      final CLeftHandSide pLeftHandSide,
+      final CIdExpression pLeftHandSide,
       final List<CExpressionAssignmentStatement> pAssignments,
       final boolean pUseOldSSAIndices)
       throws UnrecognizedCCodeException, InterruptedException {
