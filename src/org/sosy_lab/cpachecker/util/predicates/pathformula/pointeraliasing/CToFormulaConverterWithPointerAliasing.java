@@ -854,7 +854,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     AssignmentHandler assignmentHandler = new AssignmentHandler(this, edge, function, ssa, pts, constraints, errorConditions, regionMgr);
-    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false, null);
+    return assignmentHandler.handleAssignment(lhs, lhsForChecking, lhsType, rhs, false);
   }
 
   /**
@@ -990,9 +990,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (initializer instanceof CInitializerExpression || initializer == null) {
 
       if (initializer != null) {
-        result = assignmentHandler.handleAssignment(lhs, lhs, ((CInitializerExpression) initializer).getExpression(), false, null);
+        result =
+            assignmentHandler.handleAssignment(
+                lhs, lhs, ((CInitializerExpression) initializer).getExpression(), false);
       } else if (isRelevantVariable(declaration) && !declarationType.isIncomplete()) {
-        result = assignmentHandler.handleAssignment(lhs, lhs, null, false, null);
+        result = assignmentHandler.handleAssignment(lhs, lhs, null, false);
       } else {
         result = bfmgr.makeTrue();
       }

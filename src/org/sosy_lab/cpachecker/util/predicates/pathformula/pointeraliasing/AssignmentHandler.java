@@ -128,7 +128,6 @@ class AssignmentHandler {
    * @param lhsForChecking The left hand side of an assignment to check.
    * @param rhs Either {@code null} or the right hand side of the assignment.
    * @param batchMode A flag indicating batch mode.
-   * @param destroyedRegions Either {@code null} or a set of destroyed memory regions.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
@@ -138,8 +137,7 @@ class AssignmentHandler {
       final CLeftHandSide lhsForChecking,
       final CType lhsType,
       final @Nullable CRightHandSide rhs,
-      final boolean batchMode,
-      final @Nullable Set<MemoryRegion> destroyedRegions)
+      final boolean batchMode)
       throws UnrecognizedCCodeException, InterruptedException {
     if (!conv.isRelevantLeftHandSide(lhsForChecking)) {
       // Optimization for unused variables and fields
@@ -190,13 +188,7 @@ class AssignmentHandler {
     }
 
     final BooleanFormula result =
-        makeAssignment(lhsType,
-                          rhsType,
-                          lhsLocation,
-                          rhsExpression,
-                          pattern,
-                          batchMode,
-                          destroyedRegions);
+        makeAssignment(lhsType, rhsType, lhsLocation, rhsExpression, pattern, batchMode);
 
     for (final Pair<CCompositeType, String> field : rhsAddressedFields) {
       pts.addField(field.getFirst(), field.getSecond());
@@ -226,11 +218,10 @@ class AssignmentHandler {
       final CLeftHandSide lhs,
       final CLeftHandSide lhsForChecking,
       final @Nullable CRightHandSide rhs,
-      final boolean batchMode,
-      final @Nullable Set<MemoryRegion> destroyedRegions)
+      final boolean batchMode)
       throws UnrecognizedCCodeException, InterruptedException {
     return handleAssignment(
-        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, batchMode, destroyedRegions);
+        lhs, lhsForChecking, typeHandler.getSimplifiedType(lhs), rhs, batchMode);
   }
 
   /**
@@ -268,14 +259,18 @@ class AssignmentHandler {
       throws UnrecognizedCCodeException, InterruptedException {
     CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
     final Location lhsLocation = variable.accept(lhsVisitor).asLocation();
-    final Set<MemoryRegion> updatedRegions = new HashSet<>();
     BooleanFormula result = conv.bfmgr.makeTrue();
     for (CExpressionAssignmentStatement assignment : assignments) {
       final CLeftHandSide lhs = assignment.getLeftHandSide();
-      result = conv.bfmgr.and(result, handleAssignment(lhs, lhs,
+      result =
+          conv.bfmgr.and(
+              result,
+              handleAssignment(
+                  lhs,
+                  lhs,
                                                        assignment.getRightHandSide(),
-                                                       lhsLocation.isAliased(), // Defer index update for UFs, but not for variables
-                                                       updatedRegions));
+                  lhsLocation.isAliased() // Defer index update for UFs, but not for variables
+                  ));
     }
     return result;
   }
@@ -410,7 +405,6 @@ class AssignmentHandler {
    * @param lvalue The location of the lvalue.
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
-   * @param updatedRegions Either {@code null} or a set of updated regions.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
@@ -421,8 +415,7 @@ class AssignmentHandler {
       final Location lvalue,
       final Expression rvalue,
       final @Nullable PointerTargetPattern pattern,
-      final boolean useOldSSAIndices,
-      @Nullable Set<MemoryRegion> updatedRegions)
+      final boolean useOldSSAIndices)
       throws UnrecognizedCCodeException, InterruptedException {
     // Its a definite value assignment, a nondet assignment (SSA index update) or a nondet assignment among other
     // assignments to the same UF version (in this case an absense of aliasing should be somehow guaranteed, as in the
@@ -432,9 +425,7 @@ class AssignmentHandler {
 
     checkIsSimplified(lvalueType);
 
-    if (updatedRegions == null) {
-      updatedRegions = new HashSet<>();
-    }
+    Set<MemoryRegion> updatedRegions = new HashSet<>();
     List<Variable> updatedVariables = new ArrayList<>();
 
     final BooleanFormula result = makeDestructiveAssignment(lvalueType, rvalueType,
