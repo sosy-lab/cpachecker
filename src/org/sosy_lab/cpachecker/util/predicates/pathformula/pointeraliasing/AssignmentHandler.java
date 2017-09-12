@@ -33,7 +33,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -127,7 +126,7 @@ class AssignmentHandler {
    * @param lhs The left hand side of an assignment.
    * @param lhsForChecking The left hand side of an assignment to check.
    * @param rhs Either {@code null} or the right hand side of the assignment.
-   * @param batchMode A flag indicating batch mode.
+   * @param batchMode A flag indicating batch mode (i.e., no SSA increments for UFs)
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
@@ -404,7 +403,7 @@ class AssignmentHandler {
    * @param rvalueType The type of the rvalue.
    * @param lvalue The location of the lvalue.
    * @param rvalue The rvalue expression.
-   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
+   * @param useOldSSAIndices A flag indicating if we should use the old SSA indices for UFs or not.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution was interrupted.
@@ -425,34 +424,21 @@ class AssignmentHandler {
 
     checkIsSimplified(lvalueType);
 
-    Set<MemoryRegion> updatedRegions = new HashSet<>();
-    List<Variable> updatedVariables = new ArrayList<>();
+    checkArgument(
+        !useOldSSAIndices || lvalue.isAliased(),
+        "Cannot defer SSA index update for non-aliased location");
 
-    final BooleanFormula result = makeDestructiveAssignment(lvalueType, rvalueType,
-                                                            lvalue, rvalue,
-                                                            useOldSSAIndices,
-                                                            updatedRegions,
-                                                            updatedVariables);
+    Set<MemoryRegion> updatedRegions = new HashSet<>();
+
+    final BooleanFormula result =
+        makeDestructiveAssignment(
+            lvalueType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
 
     if (!useOldSSAIndices) {
       if (lvalue.isAliased()) {
-        assert updatedVariables.isEmpty();
         finishAssignments(lvalueType, lvalue.asAliased(), pattern, updatedRegions);
       } else { // Unaliased lvalue
         assert updatedRegions.isEmpty();
-        assert ImmutableSet.copyOf(updatedVariables).size() == updatedVariables.size()
-            : "non-unique elements in " + updatedVariables;
-        if (isSimpleType(lvalueType)) {
-          assert updatedVariables.equals(
-              Collections.singletonList(
-                  Variable.create(lvalue.asUnaliased().getVariableName(), lvalueType)));
-        }
-
-        for (final Variable variable : updatedVariables) {
-          final String name = variable.getName();
-          final CType type = variable.getType();
-          conv.makeFreshIndex(name, type, ssa); // increment index in SSAMap
-        }
       }
     }
     return result;
@@ -487,7 +473,6 @@ class AssignmentHandler {
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
    * @param updatedRegions Either {@code null} or a set of updated regions.
-   * @param updatedVariables Either {@code null} or a set of updated variables.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
@@ -497,40 +482,23 @@ class AssignmentHandler {
       final Location lvalue,
       final Expression rvalue,
       final boolean useOldSSAIndices,
-      final @Nullable Set<MemoryRegion> updatedRegions,
-      final @Nullable List<Variable> updatedVariables)
+      final @Nullable Set<MemoryRegion> updatedRegions)
       throws UnrecognizedCCodeException {
     checkIsSimplified(lvalueType);
     checkIsSimplified(rvalueType);
 
     if (lvalueType instanceof CArrayType) {
       return makeDestructiveArrayAssignment(
-          (CArrayType) lvalueType,
-          rvalueType,
-          lvalue,
-          rvalue,
-          useOldSSAIndices,
-          updatedRegions,
-          updatedVariables);
+          (CArrayType) lvalueType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
+
     } else if (lvalueType instanceof CCompositeType) {
       final CCompositeType lvalueCompositeType = (CCompositeType) lvalueType;
       return makeDestructiveCompositeAssignment(
-          lvalueCompositeType,
-          rvalueType,
-          lvalue,
-          rvalue,
-          useOldSSAIndices,
-          updatedRegions,
-          updatedVariables);
+          lvalueCompositeType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
+
     } else { // Simple assignment
       return makeSimpleDestructiveAssignment(
-          lvalueType,
-          rvalueType,
-          lvalue,
-          rvalue,
-          useOldSSAIndices,
-          updatedRegions,
-          updatedVariables);
+          lvalueType, rvalueType, lvalue, rvalue, useOldSSAIndices, updatedRegions);
     }
   }
 
@@ -540,8 +508,7 @@ class AssignmentHandler {
       final Location lvalue,
       final Expression rvalue,
       final boolean useOldSSAIndices,
-      final Set<MemoryRegion> updatedRegions,
-      final List<Variable> updatedVariables)
+      final Set<MemoryRegion> updatedRegions)
       throws UnrecognizedCCodeException {
     checkArgument(lvalue.isAliased(), "Array elements are always aliased");
     final CType lvalueElementType = lvalueArrayType.getType();
@@ -588,8 +555,7 @@ class AssignmentHandler {
                   newLvalue.getFirst(),
                   newRvalue.getFirst(),
                   useOldSSAIndices,
-                  updatedRegions,
-                  updatedVariables));
+                  updatedRegions));
       offset += conv.getBitSizeof(lvalueArrayType.getType());
     }
     return result;
@@ -601,8 +567,7 @@ class AssignmentHandler {
       final Location lvalue,
       final Expression rvalue,
       final boolean useOldSSAIndices,
-      final Set<MemoryRegion> updatedRegions,
-      final List<Variable> updatedVariables)
+      final Set<MemoryRegion> updatedRegions)
       throws UnrecognizedCCodeException {
     // There are two cases of assignment to a structure/union
     // - Initialization with a value (possibly nondet), useful for stack declarations and memset
@@ -656,8 +621,7 @@ class AssignmentHandler {
                     newLvalue.getFirst(),
                     newRvalue.getFirst(),
                     useOldSSAIndices,
-                    updatedRegions,
-                    updatedVariables));
+                    updatedRegions));
       }
     }
     return result;
@@ -672,7 +636,6 @@ class AssignmentHandler {
    * @param rvalue The rvalue expression.
    * @param useOldSSAIndices A flag indicating if we should use the old SSA indices or not.
    * @param updatedRegions Either {@code null} or a set of updated regions.
-   * @param updatedVariables Either {@code null} or a set of updated variables.
    * @return A formula for the assignment.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
@@ -682,8 +645,7 @@ class AssignmentHandler {
       final Location lvalue,
       Expression rvalue,
       final boolean useOldSSAIndices,
-      final @Nullable Set<MemoryRegion> updatedRegions,
-      final @Nullable List<Variable> updatedVariables)
+      final @Nullable Set<MemoryRegion> updatedRegions)
       throws UnrecognizedCCodeException {
     // Arrays and functions are implicitly converted to pointers
     rvalueType = implicitCastToPointer(rvalueType);
@@ -706,10 +668,6 @@ class AssignmentHandler {
       targetName = regionMgr.getPointerAccessName(region);
     }
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
-    final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
-    final int newIndex = useOldSSAIndices ?
-            conv.getIndex(targetName, lvalueType, ssa) :
-            conv.getFreshIndex(targetName, lvalueType, ssa);
     final BooleanFormula result;
 
     final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
@@ -718,16 +676,22 @@ class AssignmentHandler {
             ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
             : null;
     if (!lvalue.isAliased()) { // Unaliased LHS
+      assert !useOldSSAIndices;
+      final int newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+
       if (rhs != null) {
         result = fmgr.assignment(fmgr.makeVariable(targetType, targetName, newIndex), rhs);
       } else {
         result = bfmgr.makeTrue();
       }
 
-      if (updatedVariables != null) {
-        updatedVariables.add(Variable.create(targetName, lvalueType));
-      }
     } else { // Aliased LHS
+      final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
+      final int newIndex =
+          useOldSSAIndices
+              ? conv.getIndex(targetName, lvalueType, ssa)
+              : conv.getFreshIndex(targetName, lvalueType, ssa);
+
       if (rhs != null) {
         final Formula address = lvalue.asAliased().getAddress();
         result =
