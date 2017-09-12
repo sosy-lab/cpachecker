@@ -439,15 +439,10 @@ class AssignmentHandler {
 
     checkIsSimplified(lvalueType);
 
-    if (lvalue.isAliased() && !isSimpleType(lvalueType) && updatedRegions == null) {
+    if (updatedRegions == null) {
       updatedRegions = new HashSet<>();
-    } else {
-      updatedRegions = null;
     }
-    Set<Variable> updatedVariables = null;
-    if (!lvalue.isAliased() && !isSimpleType(lvalueType)) {
-      updatedVariables = new HashSet<>();
-    }
+    List<Variable> updatedVariables = new ArrayList<>();
 
     final BooleanFormula result = makeDestructiveAssignment(lvalueType, rvalueType,
                                                             lvalue, rvalue,
@@ -457,20 +452,18 @@ class AssignmentHandler {
 
     if (!useOldSSAIndices) {
       if (lvalue.isAliased()) {
-        if (updatedRegions == null) {
-          assert isSimpleType(lvalueType) : "Should be impossible due to the first if statement";
-          MemoryRegion region = lvalue.asAliased().getMemoryRegion();
-          if(region == null) {
-            region = regionMgr.makeMemoryRegion(lvalueType);
-          }
-          updatedRegions = Collections.singleton(region);
-        }
+        assert updatedVariables.isEmpty();
         finishAssignments(lvalueType, lvalue.asAliased(), pattern, updatedRegions);
       } else { // Unaliased lvalue
-        if (updatedVariables == null) {
-          assert isSimpleType(lvalueType) : "Should be impossible due to the first if statement";
-          updatedVariables = Collections.singleton(Variable.create(lvalue.asUnaliased().getVariableName(), lvalueType));
+        assert updatedRegions.isEmpty();
+        assert ImmutableSet.copyOf(updatedVariables).size() == updatedVariables.size()
+            : "non-unique elements in " + updatedVariables;
+        if (isSimpleType(lvalueType)) {
+          assert updatedVariables.equals(
+              Collections.singletonList(
+                  Variable.create(lvalue.asUnaliased().getVariableName(), lvalueType)));
         }
+
         for (final Variable variable : updatedVariables) {
           final String name = variable.getName();
           final CType type = variable.getType();
@@ -490,6 +483,9 @@ class AssignmentHandler {
     MemoryRegion region = lvalue.getMemoryRegion();
     if(region == null) {
       region = regionMgr.makeMemoryRegion(lvalueType);
+    }
+    if (isSimpleType(lvalueType)) {
+      assert updatedRegions.contains(region);
     }
     addRetentionForAssignment(region,
                               lvalueType,
@@ -518,7 +514,7 @@ class AssignmentHandler {
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions,
-      final @Nullable Set<Variable> updatedVariables)
+      final @Nullable List<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
     checkIsSimplified(lvalueType);
     checkIsSimplified(rvalueType);
@@ -561,7 +557,7 @@ class AssignmentHandler {
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final Set<MemoryRegion> updatedRegions,
-      final Set<Variable> updatedVariables)
+      final List<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
     Preconditions.checkArgument(
         lvalue.isAliased(),
@@ -626,7 +622,7 @@ class AssignmentHandler {
       final Expression rvalue,
       final boolean useOldSSAIndices,
       final Set<MemoryRegion> updatedRegions,
-      final Set<Variable> updatedVariables)
+      final List<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
     // There are two cases of assignment to a structure/union
     if (!(
@@ -716,7 +712,7 @@ class AssignmentHandler {
       Expression rvalue,
       final boolean useOldSSAIndices,
       final @Nullable Set<MemoryRegion> updatedRegions,
-      final @Nullable Set<Variable> updatedVariables)
+      final @Nullable List<Variable> updatedVariables)
       throws UnrecognizedCCodeException {
     checkIsSimplified(lvalueType);
     checkIsSimplified(rvalueType);
