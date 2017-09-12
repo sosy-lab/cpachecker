@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
@@ -522,120 +521,178 @@ class AssignmentHandler {
       throws UnrecognizedCCodeException {
     checkIsSimplified(lvalueType);
     checkIsSimplified(rvalueType);
-    BooleanFormula result;
 
     if (lvalueType instanceof CArrayType) {
-      Preconditions.checkArgument(lvalue.isAliased(),
-                                  "Array elements are always aliased (i.e. can't be encoded with variables)");
-      final CArrayType lvalueArrayType = (CArrayType) lvalueType;
-      final CType lvalueElementType = checkIsSimplified(lvalueArrayType.getType());
-
-      // There are only two cases of assignment to an array
-      Preconditions.checkArgument(
-          // Initializing array with a value (possibly nondet), useful for stack declarations and memset implementation
-          (rvalue.isValue() && isSimpleType(rvalueType))
-              ||
-              // Array assignment (needed for structure assignment implementation)
-              // Only possible from another array of the same type
-              (rvalue.asLocation().isAliased()
-                  && rvalueType instanceof CArrayType
-                  && checkIsSimplified(((CArrayType) rvalueType).getType())
-                      .equals(lvalueElementType)),
-          "Impossible array assignment due to incompatible types: assignment of %s to %s",
+      return makeDestructiveArrayAssignment(
+          (CArrayType) lvalueType,
           rvalueType,
-          lvalueType);
-
-      OptionalInt lvalueLength = lvalueArrayType.getLengthAsInt();
-      // Try to fix the length if it's unknown (or too big)
-      // Also ignore the tail part of very long arrays to avoid very large formulae (imprecise!)
-      if (!lvalueLength.isPresent() && rvalue.isLocation()) {
-        lvalueLength = ((CArrayType) rvalueType).getLengthAsInt();
-      }
-      int length =
-          lvalueLength.isPresent()
-              ? Integer.min(options.maxArrayLength(), lvalueLength.getAsInt())
-              : options.defaultArrayLength();
-
-      result = bfmgr.makeTrue();
-      int offset = 0;
-      for (int i = 0; i < length; ++i) {
-        final Pair<AliasedLocation, CType> newLvalue = shiftArrayLvalue(lvalue.asAliased(), offset, lvalueElementType);
-        final Pair<? extends Expression, CType> newRvalue =
-                                                       shiftArrayRvalue(rvalue, rvalueType, offset, lvalueElementType);
-
-        result = bfmgr.and(result,
-                           makeDestructiveAssignment(newLvalue.getSecond(),
-                                                     newRvalue.getSecond(),
-                                                     newLvalue.getFirst(),
-                                                     newRvalue.getFirst(),
-                                                     useOldSSAIndices,
-                                                     updatedRegions,
-                                                     updatedVariables));
-         offset += conv.getBitSizeof(lvalueArrayType.getType());
-      }
-      return result;
+          lvalue,
+          rvalue,
+          useOldSSAIndices,
+          updatedRegions,
+          updatedVariables);
     } else if (lvalueType instanceof CCompositeType) {
       final CCompositeType lvalueCompositeType = (CCompositeType) lvalueType;
-      assert lvalueCompositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + lvalueCompositeType;
-      // There are two cases of assignment to a structure/union
-      if (!(
-          // Initialization with a value (possibly nondet), useful for stack declarations and memset implementation
-          (rvalue.isValue() && isSimpleType(rvalueType))
-              ||
-              // Structure assignment
-              rvalueType.equals(lvalueType))) {
-        throw new UnrecognizedCCodeException("Impossible structure assignment due to incompatible types:"
-            + " assignment of " + rvalue + " with type "+ rvalueType + " to " + lvalue + " with type "+ lvalueType, edge);
-      }
-      result = bfmgr.makeTrue();
-      for (final CCompositeTypeMemberDeclaration memberDeclaration : lvalueCompositeType.getMembers()) {
-        final String memberName = memberDeclaration.getName();
-        final int offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
-        final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
-        // Optimizing away the assignments from uninitialized fields
-        if (conv.isRelevantField(lvalueCompositeType, memberName)
-            && (
-                // Assignment to a variable, no profit in optimizing it
-                !lvalue.isAliased()
-                || // That's not a simple assignment, check the nested composite
-                !isSimpleType(newLvalueType)
-                || // This is initialization, so the assignment is mandatory
-                rvalue.isValue()
-                || // The field is tracked as essential
-                pts.tracksField(lvalueCompositeType, memberName)
-                || // The variable representing the RHS was used somewhere (i.e. has SSA index)
-                (!rvalue.isAliasedLocation()
-                    && conv.hasIndex(
-                        rvalue.asUnaliasedLocation().getVariableName()
-                            + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
-                            + memberName,
-                        newLvalueType,
-                        ssa)))) {
-          final Pair<? extends Location, CType> newLvalue =
-                                         shiftCompositeLvalue(lvalueType, lvalue, offset, memberName, memberDeclaration.getType());
-          final Pair<? extends Expression, CType> newRvalue =
-                             shiftCompositeRvalue(rvalue, offset, memberName, rvalueType, memberDeclaration.getType());
-
-          result = bfmgr.and(result,
-                             makeDestructiveAssignment(newLvalue.getSecond(),
-                                                       newRvalue.getSecond(),
-                                                       newLvalue.getFirst(),
-                                                       newRvalue.getFirst(),
-                                                       useOldSSAIndices,
-                                                       updatedRegions,
-                                                       updatedVariables));
-        }
-      }
-      return result;
+      return makeDestructiveCompositeAssignment(
+          lvalueCompositeType,
+          rvalueType,
+          lvalue,
+          rvalue,
+          useOldSSAIndices,
+          updatedRegions,
+          updatedVariables);
     } else { // Simple assignment
-      return makeSimpleDestructiveAssignment(lvalueType,
-                                             rvalueType,
-                                             lvalue,
-                                             rvalue,
-                                             useOldSSAIndices,
-                                             updatedRegions,
-                                             updatedVariables);
+      return makeSimpleDestructiveAssignment(
+          lvalueType,
+          rvalueType,
+          lvalue,
+          rvalue,
+          useOldSSAIndices,
+          updatedRegions,
+          updatedVariables);
     }
+  }
+
+  private BooleanFormula makeDestructiveArrayAssignment(
+      CArrayType lvalueArrayType,
+      CType rvalueType,
+      final Location lvalue,
+      final Expression rvalue,
+      final boolean useOldSSAIndices,
+      final Set<MemoryRegion> updatedRegions,
+      final Set<Variable> updatedVariables)
+      throws UnrecognizedCCodeException {
+    Preconditions.checkArgument(
+        lvalue.isAliased(),
+        "Array elements are always aliased (i.e. can't be encoded with variables)");
+    final CType lvalueElementType = checkIsSimplified(lvalueArrayType.getType());
+
+    // There are only two cases of assignment to an array
+    Preconditions.checkArgument(
+        // Initializing array with a value (possibly nondet), useful for stack declarations and
+        // memset implementation
+        (rvalue.isValue() && isSimpleType(rvalueType))
+            ||
+            // Array assignment (needed for structure assignment implementation)
+            // Only possible from another array of the same type
+            (rvalue.asLocation().isAliased()
+                && rvalueType instanceof CArrayType
+                && checkIsSimplified(((CArrayType) rvalueType).getType())
+                    .equals(lvalueElementType)),
+        "Impossible array assignment due to incompatible types: assignment of %s to %s",
+        rvalueType,
+        lvalueArrayType);
+
+    OptionalInt lvalueLength = lvalueArrayType.getLengthAsInt();
+    // Try to fix the length if it's unknown (or too big)
+    // Also ignore the tail part of very long arrays to avoid very large formulae (imprecise!)
+    if (!lvalueLength.isPresent() && rvalue.isLocation()) {
+      lvalueLength = ((CArrayType) rvalueType).getLengthAsInt();
+    }
+    int length =
+        lvalueLength.isPresent()
+            ? Integer.min(options.maxArrayLength(), lvalueLength.getAsInt())
+            : options.defaultArrayLength();
+
+    BooleanFormula result = bfmgr.makeTrue();
+    int offset = 0;
+    for (int i = 0; i < length; ++i) {
+      final Pair<AliasedLocation, CType> newLvalue =
+          shiftArrayLvalue(lvalue.asAliased(), offset, lvalueElementType);
+      final Pair<? extends Expression, CType> newRvalue =
+          shiftArrayRvalue(rvalue, rvalueType, offset, lvalueElementType);
+
+      result =
+          bfmgr.and(
+              result,
+              makeDestructiveAssignment(
+                  newLvalue.getSecond(),
+                  newRvalue.getSecond(),
+                  newLvalue.getFirst(),
+                  newRvalue.getFirst(),
+                  useOldSSAIndices,
+                  updatedRegions,
+                  updatedVariables));
+      offset += conv.getBitSizeof(lvalueArrayType.getType());
+    }
+    return result;
+  }
+
+  private BooleanFormula makeDestructiveCompositeAssignment(
+      final CCompositeType lvalueCompositeType,
+      CType rvalueType,
+      final Location lvalue,
+      final Expression rvalue,
+      final boolean useOldSSAIndices,
+      final Set<MemoryRegion> updatedRegions,
+      final Set<Variable> updatedVariables)
+      throws UnrecognizedCCodeException {
+    // There are two cases of assignment to a structure/union
+    if (!(
+    // Initialization with a value (possibly nondet), useful for stack declarations and memset
+    // implementation
+    (rvalue.isValue() && isSimpleType(rvalueType))
+        ||
+        // Structure assignment
+        rvalueType.equals(lvalueCompositeType))) {
+      throw new UnrecognizedCCodeException(
+          "Impossible structure assignment due to incompatible types:"
+              + " assignment of "
+              + rvalue
+              + " with type "
+              + rvalueType
+              + " to "
+              + lvalue
+              + " with type "
+              + lvalueCompositeType,
+          edge);
+    }
+    BooleanFormula result = bfmgr.makeTrue();
+    for (final CCompositeTypeMemberDeclaration memberDeclaration :
+        lvalueCompositeType.getMembers()) {
+      final String memberName = memberDeclaration.getName();
+      final int offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
+      final CType newLvalueType = typeHandler.getSimplifiedType(memberDeclaration);
+      // Optimizing away the assignments from uninitialized fields
+      if (conv.isRelevantField(lvalueCompositeType, memberName)
+          && (
+          // Assignment to a variable, no profit in optimizing it
+          !lvalue.isAliased()
+              || // That's not a simple assignment, check the nested composite
+              !isSimpleType(newLvalueType)
+              || // This is initialization, so the assignment is mandatory
+              rvalue.isValue()
+              || // The field is tracked as essential
+              pts.tracksField(lvalueCompositeType, memberName)
+              || // The variable representing the RHS was used somewhere (i.e. has SSA index)
+              (!rvalue.isAliasedLocation()
+                  && conv.hasIndex(
+                      rvalue.asUnaliasedLocation().getVariableName()
+                          + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
+                          + memberName,
+                      newLvalueType,
+                      ssa)))) {
+        final Pair<? extends Location, CType> newLvalue =
+            shiftCompositeLvalue(
+                lvalueCompositeType, lvalue, offset, memberName, memberDeclaration.getType());
+        final Pair<? extends Expression, CType> newRvalue =
+            shiftCompositeRvalue(
+                rvalue, offset, memberName, rvalueType, memberDeclaration.getType());
+
+        result =
+            bfmgr.and(
+                result,
+                makeDestructiveAssignment(
+                    newLvalue.getSecond(),
+                    newRvalue.getSecond(),
+                    newLvalue.getFirst(),
+                    newRvalue.getFirst(),
+                    useOldSSAIndices,
+                    updatedRegions,
+                    updatedVariables));
+      }
+    }
+    return result;
   }
 
   /**
