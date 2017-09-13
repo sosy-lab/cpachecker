@@ -611,21 +611,8 @@ class AssignmentHandler {
 
     checkArgument(isSimpleType(lvalueType));
     checkArgument(isSimpleType(rvalueType));
-
     assert !(lvalueType instanceof CFunctionType) : "Can't assign to functions";
 
-    String targetName;
-    MemoryRegion region;
-    if(!lvalue.isAliased()) {
-      targetName = lvalue.asUnaliased().getVariableName();
-      region = null;
-    } else {
-      region = lvalue.asAliased().getMemoryRegion();
-      if(region == null) {
-        region = regionMgr.makeMemoryRegion(lvalueType);
-      }
-      targetName = regionMgr.getPointerAccessName(region);
-    }
     final FormulaType<?> targetType = conv.getFormulaTypeFromCType(lvalueType);
     final BooleanFormula result;
 
@@ -637,6 +624,8 @@ class AssignmentHandler {
 
     if (!lvalue.isAliased()) { // Unaliased LHS
       assert !useOldSSAIndices;
+
+      final String targetName = lvalue.asUnaliased().getVariableName();
       final int newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
 
       if (rhs != null) {
@@ -646,6 +635,12 @@ class AssignmentHandler {
       }
 
     } else { // Aliased LHS
+      MemoryRegion region = lvalue.asAliased().getMemoryRegion();
+      if (region == null) {
+        region = regionMgr.makeMemoryRegion(lvalueType);
+      }
+      final String targetName = regionMgr.getPointerAccessName(region);
+
       final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
       final int newIndex;
       if (useOldSSAIndices) {
