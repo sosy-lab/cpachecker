@@ -185,17 +185,18 @@ class AssignmentHandler {
           rhsLearnedPointersTypes);
     }
 
-    Set<MemoryRegion> updatedRegions = useOldSSAIndices ? null : new HashSet<>();
+    // necessary only for update terms for new UF indices
+    Set<MemoryRegion> updatedRegions = useOldSSAIndices || options.useArraysForHeap() ? null : new HashSet<>();
 
     final BooleanFormula result =
         makeDestructiveAssignment(
             lhsType, rhsType, lhsLocation, rhsExpression, useOldSSAIndices, updatedRegions);
 
-    if (!useOldSSAIndices) {
+    if (!useOldSSAIndices && !options.useArraysForHeap()) {
       if (lhsLocation.isAliased()) {
         final PointerTargetPattern pattern
             = PointerTargetPattern.forLeftHandSide(lhs, typeHandler, edge, pts);
-        finishAssignments(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
+        finishAssignmentsForUF(lhsType, lhsLocation.asAliased(), pattern, updatedRegions);
       } else { // Unaliased lvalue
         assert updatedRegions.isEmpty();
       }
@@ -399,7 +400,7 @@ class AssignmentHandler {
     return true;
   }
 
-  private void finishAssignments(
+  private void finishAssignmentsForUF(
       CType lvalueType,
       final AliasedLocation lvalue,
       final PointerTargetPattern pattern,
@@ -645,10 +646,23 @@ class AssignmentHandler {
 
     } else { // Aliased LHS
       final int oldIndex = conv.getIndex(targetName, lvalueType, ssa);
-      final int newIndex =
-          useOldSSAIndices
-              ? conv.getIndex(targetName, lvalueType, ssa)
-              : conv.getFreshIndex(targetName, lvalueType, ssa);
+      final int newIndex;
+      if (useOldSSAIndices) {
+        assert updatedRegions == null : "Returning updated regions is only for new indices";
+        newIndex = oldIndex;
+
+      } else if (options.useArraysForHeap()) {
+        assert updatedRegions == null : "Return updated regions is only for UF encoding";
+        newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
+
+      } else {
+        assert updatedRegions != null : "UF encoding needs to update regions for new indices";
+        updatedRegions.add(region);
+        // For UFs, we use a new index without storing it such that we use the same index
+        // for multiple writes that are part of the same assignment.
+        // The new index will be stored in the SSAMap later.
+        newIndex = conv.getFreshIndex(targetName, lvalueType, ssa);
+      }
 
       if (rhs != null) {
         final Formula address = lvalue.asAliased().getAddress();
@@ -657,10 +671,6 @@ class AssignmentHandler {
                 targetName, targetType, oldIndex, newIndex, address, rhs);
       } else {
         result = bfmgr.makeTrue();
-      }
-
-      if (updatedRegions != null) {
-        updatedRegions.add(region);
       }
     }
 
@@ -692,7 +702,7 @@ class AssignmentHandler {
 
   /**
    * Add terms to the {@link #constraints} object that specify that unwritten heap cells
-   * keep their value when the SSA index is updated.
+   * keep their value when the SSA index is updated. Only used for the UF encoding.
    *
    * @param lvalueType The LHS type of the current assignment.
    * @param startAddress The start address of the written heap region.
@@ -711,10 +721,7 @@ class AssignmentHandler {
     checkNotNull(pattern);
     checkNotNull(regionsToRetain);
 
-    if (options.useArraysForHeap()) {
-      // not necessary for heap-array encoding
-      return;
-    }
+    assert !options.useArraysForHeap();
 
     checkIsSimplified(lvalueType);
     final int size = conv.getBitSizeof(lvalueType);
@@ -926,7 +933,7 @@ class AssignmentHandler {
   }
 
   /**
-   * Updates the SSA map.
+   * Updates the SSA map for memory UFs.
    *
    * @param regions A set of regions that should be added to the SSA map.
    * @param ssa The current SSA map.
