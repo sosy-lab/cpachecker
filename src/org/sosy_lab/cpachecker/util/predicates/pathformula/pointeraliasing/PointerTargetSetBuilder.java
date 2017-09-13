@@ -59,7 +59,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-
 public interface PointerTargetSetBuilder {
 
   BooleanFormula prepareBase(String name, CType type);
@@ -349,7 +348,7 @@ public interface PointerTargetSetBuilder {
                        composite, memberName);
           }
           if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
-            MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration.getType(), memberDeclaration.getName());
+            MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
             targets = ptsMgr.addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
           }
         }

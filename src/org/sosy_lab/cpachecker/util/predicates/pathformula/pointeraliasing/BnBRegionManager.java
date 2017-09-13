@@ -160,7 +160,11 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
   private final Optional<VariableClassification> varClassification;
   private final Multimap<CType, String> fieldRegions;
 
-  BnBRegionManager(Optional<VariableClassification> var, Multimap<CType, String> fieldRegions) {
+  BnBRegionManager(
+      Optional<VariableClassification> var,
+      Multimap<CType, String> fieldRegions,
+      TypeHandlerWithPointerAliasing pTypeHandler) {
+    super(pTypeHandler);
     this.fieldRegions = fieldRegions;
     this.varClassification = var;
   }

@@ -585,7 +585,7 @@ class PointerTargetSetManager {
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
         final String newPrefix = getFieldAccessName(variablePrefix, memberDeclaration);
         if (ssa.getIndex(newPrefix) > 0) {
-          MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberType, memberName);
+          MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           sharedFields.add(Pair.of(compositeType, memberName));
           constraints.add(
               makeValueImportConstraints(
@@ -742,7 +742,7 @@ class PointerTargetSetManager {
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final int offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
         if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
-          MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration.getType(), memberDeclaration.getName());
+          MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           targets = addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
         }
       }

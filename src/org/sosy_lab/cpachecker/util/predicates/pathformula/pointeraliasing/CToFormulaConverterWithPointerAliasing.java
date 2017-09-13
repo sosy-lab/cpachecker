@@ -159,8 +159,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       //use aliasingTypeHandler to simplify types
       regionMgr = buildBnBMemoryRegions();
     } else {
-      //if !useMemoryRegions then create default regions - all in one for each type
-      regionMgr = new DefaultRegionManager();
+      // if !useMemoryRegions then create default regions - all in one for each type
+      regionMgr = new DefaultRegionManager(pTypeHandler);
     }
 
     ptsMgr = new PointerTargetSetManager(options, fmgr, typeHandler, shutdownNotifier, regionMgr);
@@ -172,7 +172,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   private MemoryRegionManager buildBnBMemoryRegions() {
     if(!variableClassification.isPresent()) {
-      return new BnBRegionManager(variableClassification, ImmutableMultimap.<CType, String>of());
+      return new BnBRegionManager(variableClassification, ImmutableMultimap.of(), typeHandler);
     }
     VariableClassification var = variableClassification.get();
     Multimap<CCompositeType, String> relevant = var.getRelevantFields();
@@ -185,7 +185,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         bnb.put(type, p.getValue());
       }
     }
-    return new BnBRegionManager(variableClassification, ImmutableMultimap.<CType, String>copyOf(bnb));
+    return new BnBRegionManager(variableClassification, ImmutableMultimap.copyOf(bnb), typeHandler);
   }
 
   static String getFieldAccessName(
@@ -532,7 +532,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         if (hasIndex(newBase.getName(), newBase.getType(), ssa) &&
             isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
-          MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberType, memberName);
+          MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(cfaEdge,
                                     fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
                                     newBase,

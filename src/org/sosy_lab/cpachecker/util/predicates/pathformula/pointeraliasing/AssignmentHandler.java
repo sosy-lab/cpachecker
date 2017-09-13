@@ -597,7 +597,7 @@ class AssignmentHandler {
         final Location newLvalue;
         if (lvalue.isAliased()) {
           final MemoryRegion region =
-              regionMgr.makeMemoryRegion(lvalueCompositeType, newLvalueType, memberName);
+              regionMgr.makeMemoryRegion(lvalueCompositeType, memberDeclaration);
           newLvalue =
               Location.ofAddressWithRegion(
                   fmgr.makePlus(lvalue.asAliased().getAddress(), offsetFormula), region);
@@ -613,8 +613,7 @@ class AssignmentHandler {
         if (rvalue.isLocation()) {
           newRvalueType = newLvalueType;
           if (rvalue.isAliasedLocation()) {
-            final MemoryRegion region =
-                regionMgr.makeMemoryRegion(rvalueType, newLvalueType, memberName);
+            final MemoryRegion region = regionMgr.makeMemoryRegion(rvalueType, memberDeclaration);
             newRvalue =
                 Location.ofAddressWithRegion(
                     fmgr.makePlus(rvalue.asAliasedLocation().getAddress(), offsetFormula), region);
@@ -876,7 +875,7 @@ class AssignmentHandler {
         region = regionMgr.makeMemoryRegion(lvalueType);
       } else { // CCompositeType
         CCompositeTypeMemberDeclaration memberDeclaration = ((CCompositeType) lvalueType).getMembers().get(0);
-        region = regionMgr.makeMemoryRegion(lvalueType, checkIsSimplified(memberDeclaration.getType()), memberDeclaration.getName());
+        region = regionMgr.makeMemoryRegion(lvalueType, memberDeclaration);
       }
       //for lvalueType
       addSemiexactRetentionConstraints(pattern, region, startAddress, size, regionsToRetain);
