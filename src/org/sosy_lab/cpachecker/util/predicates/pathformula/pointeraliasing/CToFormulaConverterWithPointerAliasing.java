@@ -239,6 +239,16 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
+   * Create a formula for an address of a base (a memory location).
+   *
+   * @param baseName The name of the memory location
+   * @param baseType The type of the memory location (not the type of the pointer to it)
+   */
+  Formula makeBaseAddress(final String baseName, final CType baseType) {
+    return makeConstant(PointerTargetSet.getBaseName(baseName), CTypeUtils.getBaseType(baseType));
+  }
+
+  /**
    * Checks if a variable is only found with a single type.
    *
    * @param name The name of the variable.
@@ -946,8 +956,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     checkForLargeArray(declarationEdge, declarationType);
 
     if (errorConditions.isEnabled()) {
-      final Formula address = makeConstant(PointerTargetSet.getBaseName(declaration.getQualifiedName()),
-                                           CTypeUtils.getBaseType(declarationType));
+      final Formula address = makeBaseAddress(declaration.getQualifiedName(), declarationType);
       constraints.addConstraint(fmgr.makeEqual(makeBaseAddressOfTerm(address), address));
     }
 
@@ -1267,8 +1276,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         && !CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
       return UnaliasedLocation.ofVariableName(pVarName);
     } else {
-      final Formula address =
-          makeConstant(PointerTargetSet.getBaseName(pVarName), CTypeUtils.getBaseType(pType));
+      final Formula address = makeBaseAddress(pVarName, pType);
       return AliasedLocation.ofAddress(address);
     }
   }

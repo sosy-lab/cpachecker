@@ -421,9 +421,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         return Value.ofValue(conv.makeConstant(variableName, resultType));
       }
     } else {
-      final Formula address =
-          conv.makeConstant(
-              PointerTargetSet.getBaseName(variableName), CTypeUtils.getBaseType(resultType));
+      final Formula address = conv.makeBaseAddress(variableName, resultType);
       return AliasedLocation.ofAddress(address);
     }
   }
@@ -511,8 +509,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         return Value.ofValue(dereference(operand, operand.accept(this)).getAddress());
       } else {
         final Variable base = baseVisitor.getLastBase();
-        final Formula baseAddress = conv.makeConstant(PointerTargetSet.getBaseName(base.getName()),
-                                                      CTypeUtils.getBaseType(base.getType()));
+        final Formula baseAddress = conv.makeBaseAddress(base.getName(), base.getType());
         conv.addValueImportConstraints(
             baseAddress,
             base.getName(),

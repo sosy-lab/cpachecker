@@ -548,12 +548,7 @@ class PointerTargetSetManager {
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey())
           && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
-        final FormulaType<?> baseFormulaType =
-            typeHandler.getFormulaTypeFromCType(CTypeUtils.getBaseType(base.getValue()));
-        final Formula baseVar =
-            formulaManager.makeVariableWithoutSSAIndex(
-                baseFormulaType, PointerTargetSet.getBaseName(base.getKey()));
-
+        final Formula baseVar = conv.makeBaseAddress(base.getKey(), base.getValue());
         conv.addValueImportConstraints(
             baseVar, base.getKey(), base.getValue(), sharedFields, ssaBuilder, constraints, null);
       }

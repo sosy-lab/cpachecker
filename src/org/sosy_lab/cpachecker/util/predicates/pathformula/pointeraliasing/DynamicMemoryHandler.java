@@ -321,7 +321,8 @@ class DynamicMemoryHandler {
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
       for (String base : pts.getAllBases()) {
-        Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID);
+        Formula baseF =
+            conv.makeBaseAddress(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID);
         validFree = conv.bfmgr.or(validFree, conv.fmgr.makeEqual(operand, baseF));
       }
       errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));
@@ -342,8 +343,7 @@ class DynamicMemoryHandler {
    */
   private Formula makeAllocation(final boolean isZeroing, final CType type, final String base)
       throws UnrecognizedCCodeException, InterruptedException {
-    final CType baseType = CTypeUtils.getBaseType(type);
-    final Formula result = conv.makeConstant(PointerTargetSet.getBaseName(base), baseType);
+    final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
       AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
       final BooleanFormula initialization =
