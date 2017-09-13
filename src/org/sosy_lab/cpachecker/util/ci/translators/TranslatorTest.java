@@ -174,7 +174,6 @@ public class TranslatorTest {
   @Test
   public void testIntervalAndCartesianTranslator() {
     PersistentMap<String, NumberInterface> intervals = PathCopyingPersistentTreeMap.of();
-    PersistentMap<String, Integer> referenceMap = PathCopyingPersistentTreeMap.of();
 
     intervals = intervals.putAndCopy("var1", new IntegerInterval(Long.MIN_VALUE, (long) 5));
     intervals = intervals.putAndCopy("var2", new IntegerInterval((long) -7, Long.MAX_VALUE));
@@ -184,7 +183,7 @@ public class TranslatorTest {
     intervals = intervals.putAndCopy("fun::varC", new IntegerInterval((long) -15, (long) -3));
 
 
-    UnifyAnalysisState iStateTest = new UnifyAnalysisState(intervals, referenceMap);
+    UnifyAnalysisState iStateTest = new UnifyAnalysisState(intervals);
     IntervalRequirementsTranslator iReqTransTest =
         new IntervalRequirementsTranslator(LogManager.createTestLogManager());
 
@@ -267,9 +266,8 @@ public class TranslatorTest {
 
     // Test method convertToFormula() with another IntervalAnalysisState
     intervals = PathCopyingPersistentTreeMap.of();
-    referenceMap = PathCopyingPersistentTreeMap.of();
     intervals = intervals.putAndCopy("var1", new IntegerInterval((long) 0, Long.MAX_VALUE));
-    UnifyAnalysisState anotherIStateTest = new UnifyAnalysisState(intervals, referenceMap);
+    UnifyAnalysisState anotherIStateTest = new UnifyAnalysisState(intervals);
 
     convertedToFormula = iReqTransTest.convertToFormula(anotherIStateTest, ssaTest, null);
     content = new ArrayList<>();

@@ -104,10 +104,10 @@ public class UnifyAnalysisState
      */
     private final PersistentMap<String, NumberInterface> unifyElements;
 
-    /**
-     * the reference counts of the element
-     */
-    private final PersistentMap<String, Integer> referenceCounts;
+//    /**
+//     * the reference counts of the element
+//     */
+//    private final PersistentMap<String, Integer> referenceCounts;
     /**
      * the map that keeps the name of variables and their constant values (concrete
      * and symbolic ones)
@@ -124,22 +124,20 @@ public class UnifyAnalysisState
     /**
      * Constructor for sign
      */
-    private UnifyAnalysisState(PersistentMap<String, NumberInterface> pSignMap) {
+    private UnifyAnalysisState(PersistentMap<String, NumberInterface> pSignMap, NumericalType sign) {
         unifyElements = pSignMap;
-        referenceCounts = PathCopyingPersistentTreeMap.of();
         machineModel = null;
-        numericalType = NumericalType.SIGN;
+        numericalType = sign;
 
     }
 
     /**
      * Constructor for sign
      */
-    private UnifyAnalysisState(NumericalType nt) {
+    private UnifyAnalysisState(NumericalType sign) {
         unifyElements = PathCopyingPersistentTreeMap.of();
-        referenceCounts = PathCopyingPersistentTreeMap.of();
         machineModel = null;
-        numericalType = nt;
+        numericalType = sign;
     }
 
     /**
@@ -147,7 +145,7 @@ public class UnifyAnalysisState
      */
     public UnifyAnalysisState() {
         unifyElements = PathCopyingPersistentTreeMap.of();
-        referenceCounts = PathCopyingPersistentTreeMap.of();
+//        referenceCounts = PathCopyingPersistentTreeMap.of();
         machineModel = null;
         numericalType = NumericalType.INTERVAL;
     }
@@ -155,10 +153,9 @@ public class UnifyAnalysisState
     /**
      * Constructor for interval
      */
-    public UnifyAnalysisState(PersistentMap<String, NumberInterface> intervals,
-            PersistentMap<String, Integer> referencesMap) {
+    public UnifyAnalysisState(PersistentMap<String, NumberInterface> intervals) {
         this.unifyElements = intervals;
-        this.referenceCounts = referencesMap;
+//        this.referenceCounts = referencesMap;
         machineModel = null;
         numericalType = NumericalType.INTERVAL;
     }
@@ -186,7 +183,7 @@ public class UnifyAnalysisState
             PersistentMap<MemoryLocation, NumberInterface> pConstantsMap,
             PersistentMap<MemoryLocation, Type> pLocToTypeMap) {
         unifyElements = null;
-        referenceCounts = null;
+//        referenceCounts = null;
         machineModel = pMachineModel;
         constantsMap = checkNotNull(pConstantsMap);
         memLocToType = checkNotNull(pLocToTypeMap);
@@ -427,7 +424,7 @@ public class UnifyAnalysisState
                 }
             }
         }
-        return newMap.size() > 0 ? new UnifyAnalysisState(newMap) : result;
+        return newMap.size() > 0 ? new UnifyAnalysisState(newMap, NumericalType.SIGN) : result;
     }
 
     private static class SerialProxySign implements Serializable {
@@ -499,7 +496,7 @@ public class UnifyAnalysisState
                 newMap = newMap.putAndCopy(var, pArguments.get(var));
             }
         }
-        return unifyElements == newMap ? this : new UnifyAnalysisState(newMap);
+        return unifyElements == newMap ? this : new UnifyAnalysisState(newMap, NumericalType.SIGN);
     }
 
     /**
@@ -516,7 +513,7 @@ public class UnifyAnalysisState
             }
         }
 
-        return newMap == unifyElements ? this : new UnifyAnalysisState(newMap);
+        return newMap == unifyElements ? this : new UnifyAnalysisState(newMap, NumericalType.SIGN);
     }
 
     /**
@@ -526,7 +523,7 @@ public class UnifyAnalysisState
      */
     public UnifyAnalysisState assignSignToVariable(String pVarIdent, NumberInterface sign) {
         if (((SIGN) sign).isAll()) {
-            return unifyElements.containsKey(pVarIdent) ? new UnifyAnalysisState(unifyElements.removeAndCopy(pVarIdent))
+            return unifyElements.containsKey(pVarIdent) ? new UnifyAnalysisState(unifyElements.removeAndCopy(pVarIdent), NumericalType.SIGN)
                     : this;
         }
         return unifyElements.containsKey(pVarIdent) && getSignForVariable(pVarIdent).equals(sign) ? this
@@ -648,18 +645,6 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method returns the reference count for a given variable.
-     *
-     * @param variableName
-     *            of the variable to query the reference count on
-     * @return the reference count of the variable, or 0 if the the variable is not
-     *         yet referenced
-     */
-    private Integer getReferenceCount(String variableName) {
-        return referenceCounts.getOrDefault(variableName, 0);
-    }
-
-    /**
      * This method determines if this element contains an interval for a variable.
      *
      * @param variableName
@@ -688,14 +673,8 @@ public class UnifyAnalysisState
         }
         // only add the interval if it is not already present
         if (!unifyElements.containsKey(variableName) || !unifyElements.get(variableName).equals(interval)) {
-            int referenceCount = getReferenceCount(variableName);
 
-            if (pThreshold == -1 || referenceCount < pThreshold) {
-                return new UnifyAnalysisState(unifyElements.putAndCopy(variableName, interval),
-                        referenceCounts.putAndCopy(variableName, referenceCount + 1));
-            } else {
-                return removeInterval(variableName);
-            }
+                return new UnifyAnalysisState(unifyElements.putAndCopy(variableName, interval));
         }
         return this;
     }
@@ -710,7 +689,7 @@ public class UnifyAnalysisState
     // see ExplicitState::forget
     public UnifyAnalysisState removeInterval(String variableName) {
         if (unifyElements.containsKey(variableName)) {
-            return new UnifyAnalysisState(unifyElements.removeAndCopy(variableName), referenceCounts);
+            return new UnifyAnalysisState(unifyElements.removeAndCopy(variableName));
         }
 
         return this;
@@ -737,10 +716,9 @@ public class UnifyAnalysisState
     private UnifyAnalysisState stateJoinInterval(UnifyAnalysisState reachedState) {
         boolean changed = false;
         PersistentMap<String, NumberInterface> newIntervals = PathCopyingPersistentTreeMap.of();
-        PersistentMap<String, Integer> newReferences = referenceCounts;
 
         for (String variableName : reachedState.unifyElements.keySet()) {
-            Integer otherRefCount = reachedState.getReferenceCount(variableName);
+//            Integer otherRefCount = reachedState.getReferenceCount(variableName);
             NumberInterface otherInterval = reachedState.getInterval(variableName);
             if (unifyElements.containsKey(variableName)) {
                 // update the interval
@@ -752,24 +730,11 @@ public class UnifyAnalysisState
                 if (!mergedInterval.isUnbound()) {
                     newIntervals = newIntervals.putAndCopy(variableName, mergedInterval);
                 }
-
-                // update the references
-                Integer thisRefCount = getReferenceCount(variableName);
-                if (mergedInterval != otherInterval && thisRefCount > otherRefCount) {
-                    changed = true;
-                    newReferences = newReferences.putAndCopy(variableName, thisRefCount);
-                } else {
-                    newReferences = newReferences.putAndCopy(variableName, otherRefCount);
-                }
-
-            } else {
-                newReferences = newReferences.putAndCopy(variableName, otherRefCount);
-                changed = true;
             }
         }
 
         if (changed) {
-            return new UnifyAnalysisState(newIntervals, newReferences);
+            return new UnifyAnalysisState(newIntervals);
         } else {
             return reachedState;
         }
@@ -805,7 +770,6 @@ public class UnifyAnalysisState
                 return false;
             }
         }
-
         // else, this element < reached state on the lattice
         return true;
     }
@@ -889,10 +853,8 @@ public class UnifyAnalysisState
     public String toStringInterval() {
         StringBuilder sb = new StringBuilder();
         sb.append("[\n");
-
         for (Map.Entry<String, NumberInterface> entry : unifyElements.entrySet()) {
-            sb.append(String.format("  < %s = %s :: %s >%n", entry.getKey(), entry.getValue(),
-                    getReferenceCount(entry.getKey())));
+            sb.append(String.format("  < %s = %s >%n", entry.getKey(), entry.getValue()));
         }
 
         return sb.append("] size -> ").append(unifyElements.size()).toString();
@@ -946,8 +908,7 @@ public class UnifyAnalysisState
         sb.append("{");
         // create a string like: x = [low; high] (refCount)
         for (Entry<String, NumberInterface> entry : unifyElements.entrySet()) {
-            sb.append(String.format("%s = %s (%s), ", entry.getKey(), entry.getValue(),
-                    getReferenceCount(entry.getKey())));
+            sb.append(String.format("%s = %s, ", entry.getKey(), entry.getValue()));
         }
         sb.append("}");
 
