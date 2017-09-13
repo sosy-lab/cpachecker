@@ -163,7 +163,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       regionMgr = new DefaultRegionManager(pTypeHandler);
     }
 
-    ptsMgr = new PointerTargetSetManager(options, fmgr, typeHandler, shutdownNotifier, regionMgr);
+    ptsMgr =
+        new PointerTargetSetManager(this, options, fmgr, typeHandler, shutdownNotifier, regionMgr);
     afmgr = options.useArraysForHeap() ? fmgr.getArrayFormulaManager() : null;
 
     voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);

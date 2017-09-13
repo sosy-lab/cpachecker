@@ -28,11 +28,12 @@ import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
-import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.base.Equivalence;
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
 import com.google.common.math.IntMath;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -58,13 +59,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
@@ -127,6 +129,8 @@ class PointerTargetSetManager {
 
   private final ShutdownNotifier shutdownNotifier;
 
+  private final CToFormulaConverterWithPointerAliasing conv;
+
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
@@ -144,11 +148,13 @@ class PointerTargetSetManager {
    * @param pShutdownNotifier A notifier for external shutdowns to stop long-running algorithms.
    */
   PointerTargetSetManager(
+      CToFormulaConverterWithPointerAliasing pConv,
       FormulaEncodingWithPointerAliasingOptions pOptions,
       FormulaManagerView pFormulaManager,
       TypeHandlerWithPointerAliasing pTypeHandler,
       ShutdownNotifier pShutdownNotifier,
       MemoryRegionManager pRegionMgr) {
+    conv = pConv;
     options = pOptions;
     formulaManager = pFormulaManager;
     bfmgr = formulaManager.getBooleanFormulaManager();
@@ -537,7 +543,8 @@ class PointerTargetSetManager {
       final PersistentSortedMap<String, CType> newBases,
       final List<Pair<CCompositeType, String>> sharedFields,
       final SSAMap ssa) {
-    List<BooleanFormula> constraints = new ArrayList<>();
+    SSAMapBuilder ssaBuilder = ssa.builder();
+    Constraints constraints = new Constraints(bfmgr);
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey())
           && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
@@ -546,91 +553,18 @@ class PointerTargetSetManager {
         final Formula baseVar =
             formulaManager.makeVariableWithoutSSAIndex(
                 baseFormulaType, PointerTargetSet.getBaseName(base.getKey()));
-        constraints.add(
-            makeValueImportConstraints(
-                baseVar, base.getKey(), base.getValue(), sharedFields, ssa, null));
+
+        conv.addValueImportConstraints(
+            baseVar, base.getKey(), base.getValue(), sharedFields, ssaBuilder, constraints, null);
       }
     }
-    return bfmgr.and(constraints);
-  }
 
-  /**
-   * Create constraint that imports the old value of a variable into the memory handled with UFs.
-   *
-   * @param address The formula for the address.
-   * @param variablePrefix A prefix for variables.
-   * @param variableType The type of the variable.
-   * @param sharedFields A list of shared fields.
-   * @param ssa The SSA map.
-   * @return A boolean formula for the import constraint.
-   */
-  private <I extends Formula> BooleanFormula makeValueImportConstraints(
-      final I address,
-      final String variablePrefix,
-      final CType variableType,
-      final List<Pair<CCompositeType, String>> sharedFields,
-      final SSAMap ssa,
-      final MemoryRegion region) {
+    Verify.verify(
+        ssaBuilder.build().equals(ssa),
+        "Unexpected SSMap changes for value-import constraints: %s",
+        Sets.difference(ssaBuilder.allVariables(), ssa.allVariables()));
 
-    assert !CTypeUtils.containsArrayOutsideFunctionParameter(variableType)
-        : "Array access can't be encoded as a variable";
-
-    if (variableType instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) variableType;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-      List<BooleanFormula> constraints = new ArrayList<>();
-      for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final String memberName = memberDeclaration.getName();
-        final int offset = typeHandler.getBitOffset(compositeType, memberName);
-        final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
-        final String newPrefix = getFieldAccessName(variablePrefix, memberDeclaration);
-        if (ssa.getIndex(newPrefix) > 0) {
-          MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
-          sharedFields.add(Pair.of(compositeType, memberName));
-          constraints.add(
-              makeValueImportConstraints(
-                  formulaManager.makePlus(
-                      address, formulaManager.makeNumber(typeHandler.getPointerType(), offset)),
-                  newPrefix,
-                  memberType,
-                  sharedFields,
-                  ssa,
-                  newRegion));
-        }
-      }
-      return bfmgr.and(constraints);
-    } else if (!(variableType instanceof CFunctionType) && !variableType.isIncomplete()) {
-      if (ssa.getIndex(variablePrefix) > 0) {
-        MemoryRegion newRegion = region;
-        if(newRegion == null) {
-          newRegion = regionMgr.makeMemoryRegion(variableType);
-        }
-        final FormulaType<?> variableFormulaType = typeHandler.getFormulaTypeFromCType(variableType);
-        return formulaManager.makeEqual(
-            makeDereference(variableType, address, ssa, newRegion),
-            formulaManager.makeVariable(
-                variableFormulaType, variablePrefix, ssa.getIndex(variablePrefix)));
-      }
-      return bfmgr.makeTrue();
-    } else {
-      return bfmgr.makeTrue();
-    }
-  }
-
-  /**
-   * Creates a formula for a dereference of a type.
-   *
-   * @param type The type to be dereferenced.
-   * @param address The formula of the type's address.
-   * @param ssa The SSA map.
-   * @return A formula for the dereference of the type.
-   */
-  private <I extends Formula> Formula makeDereference(
-      final CType type, final I address, final SSAMap ssa, MemoryRegion region) {
-    final String ufName = regionMgr.getPointerAccessName(region);
-    final int index = ssa.getIndex(ufName);
-    final FormulaType<?> returnType = typeHandler.getFormulaTypeFromCType(type);
-    return makePointerDereference(ufName, returnType, index, address);
+    return constraints.get();
   }
 
   /**
