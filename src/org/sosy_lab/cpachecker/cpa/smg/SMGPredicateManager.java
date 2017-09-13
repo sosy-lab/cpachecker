@@ -143,7 +143,7 @@ public class SMGPredicateManager {
     }
     BitvectorFormula formulaOne = efmgr.makeVariable(firstSize, nameOne);
     BitvectorFormula formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
-    if (firstSize != secondSize) {
+    if (!firstSize.equals(secondSize)) {
       if (firstSize > secondSize) {
         formulaTwo = efmgr.extend(formulaTwo, firstSize - secondSize, true);
       } else {
