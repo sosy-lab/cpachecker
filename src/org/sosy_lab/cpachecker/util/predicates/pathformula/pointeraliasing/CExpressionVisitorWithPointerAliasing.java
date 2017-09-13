@@ -171,7 +171,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     this.errorConditions = errorConditions;
     this.pts = pts;
     this.regionMgr = regionMgr;
-    this.baseVisitor = new BaseVisitor(cfaEdge, pts, typeHandler);
   }
 
   /**
@@ -322,6 +321,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   public Location visit(CFieldReference e) throws UnrecognizedCCodeException {
     e = e.withExplicitPointerDereference();
 
+    BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
     final Variable variable = e.accept(baseVisitor);
     if (variable != null) {
       final String variableName = variable.getName();
@@ -438,6 +438,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     if (e.getOperator() == UnaryOperator.AMPER) {
       final CExpression operand = e.getOperand();
 
+      BaseVisitor baseVisitor = new BaseVisitor(edge, pts, typeHandler);
       final Variable baseVariable = operand.accept(baseVisitor);
       // Whether the addressed location was previously aliased (tracked with UFs)
       // If it was, there was no base variable/prefix used to hold its value and we simply return the
@@ -697,7 +698,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   private final PointerTargetSetBuilder pts;
   private final MemoryRegionManager regionMgr;
 
-  private final BaseVisitor baseVisitor;
   private final ExpressionToFormulaVisitor delegate;
 
   private final List<Pair<CCompositeType, String>> usedFields = new ArrayList<>(1);
