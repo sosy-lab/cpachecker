@@ -601,35 +601,6 @@ class PointerTargetSetManager {
   }
 
   /**
-   * Adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
-   *
-   * @param base The name of the base.
-   * @param region The region of the target.
-   * @param containerType The type of the container, might be {@code null}.
-   * @param properOffset The offset.
-   * @param containerOffset The offset in the container.
-   * @param targets The map of available targets.
-   * @param regionMgr The region manager.
-   * @return The new map of targets.
-   */
-  @CheckReturnValue
-  private static PersistentSortedMap<String, PersistentList<PointerTarget>> addToTarget(final String base,
-                         final MemoryRegion region,
-                         final @Nullable CType containerType,
-                         final int properOffset,
-                         final int containerOffset,
-                         final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
-                         MemoryRegionManager regionMgr) {
-    String regionName = regionMgr.getPointerAccessName(region);
-    PersistentList<PointerTarget> targetsForRegion =
-        targets.getOrDefault(regionName, PersistentLinkedList.of());
-    return targets.putAndCopy(regionName, targetsForRegion.with(new PointerTarget(base,
-                                                                             containerType,
-                                                                             properOffset,
-                                                                             containerOffset)));
-  }
-
-  /**
    * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
    *
    * Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
@@ -687,7 +658,14 @@ class PointerTargetSetManager {
       if(newRegion == null) {
         newRegion = regionMgr.makeMemoryRegion(cType);
       }
-      targets = addToTarget(base, newRegion, containerType, properOffset, containerOffset, targets, regionMgr);
+      String regionName = regionMgr.getPointerAccessName(newRegion);
+      PersistentList<PointerTarget> targetsForRegion =
+          targets.getOrDefault(regionName, PersistentLinkedList.of());
+      targets =
+          targets.putAndCopy(
+              regionName,
+              targetsForRegion.with(
+                  new PointerTarget(base, containerType, properOffset, containerOffset)));
     }
 
     return targets;
