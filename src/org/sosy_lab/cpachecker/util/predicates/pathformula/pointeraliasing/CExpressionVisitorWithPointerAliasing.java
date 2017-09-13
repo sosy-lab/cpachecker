@@ -513,13 +513,15 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         final Variable base = baseVisitor.getLastBase();
         final Formula baseAddress = conv.makeConstant(PointerTargetSet.getBaseName(base.getName()),
                                                       CTypeUtils.getBaseType(base.getType()));
-        conv.addValueImportConstraints(edge,
-                                       baseAddress,
-                                       base,
-                                       initializedFields,
-                                       ssa,
-                                       constraints,
-                                       null);
+        conv.addValueImportConstraints(
+            edge,
+            baseAddress,
+            base.getName(),
+            base.getType(),
+            initializedFields,
+            ssa,
+            constraints,
+            null);
         if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
           ssa.deleteVariable(base.getName());
         }

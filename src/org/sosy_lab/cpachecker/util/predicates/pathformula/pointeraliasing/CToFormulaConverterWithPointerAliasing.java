@@ -503,21 +503,23 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    *
    * @param cfaEdge The current CFA edge.
    * @param address A formula for the current address.
-   * @param base The base of  the variable.
+   * @param baseName The name of the base of the variable.
+   * @param baseType The type of the base of the variable.
    * @param fields A list of fields of the composite type.
    * @param ssa The SSA map.
    * @param constraints Additional constraints.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
-  void addValueImportConstraints(final CFAEdge cfaEdge,
-                                 final Formula address,
-                                 final Variable base,
-                                 final List<Pair<CCompositeType, String>> fields,
-                                 final SSAMapBuilder ssa,
-                                 final Constraints constraints,
-                                 @Nullable final MemoryRegion region) throws
-                                                                  UnrecognizedCCodeException {
-    final CType baseType = base.getType();
+  void addValueImportConstraints(
+      final CFAEdge cfaEdge,
+      final Formula address,
+      final String baseName,
+      final CType baseType,
+      final List<Pair<CCompositeType, String>> fields,
+      final SSAMapBuilder ssa,
+      final Constraints constraints,
+      @Nullable final MemoryRegion region)
+      throws UnrecognizedCCodeException {
     if (baseType instanceof CArrayType) {
       throw new UnrecognizedCCodeException("Array access can't be encoded as a variable", cfaEdge);
     } else if (baseType instanceof CCompositeType) {
@@ -527,15 +529,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         final String memberName = memberDeclaration.getName();
         final int offset = typeHandler.getBitOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
-        final Variable newBase =
-            Variable.create(getFieldAccessName(base.getName(), memberDeclaration), memberType);
-        if (hasIndex(newBase.getName(), newBase.getType(), ssa) &&
+        final String newBaseName = getFieldAccessName(baseName, memberDeclaration);
+        if (hasIndex(newBaseName, memberType, ssa) &&
             isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(cfaEdge,
                                     fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
-                                    newBase,
+                                    newBaseName,
+                                    memberType,
                                     fields,
                                     ssa,
                                     constraints,
@@ -548,11 +550,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       // the value previously stored in the variable).
       // Make sure to not add invalid-deref constraints for this dereference
       MemoryRegion newRegion = region;
-      if(newRegion==null) {
+      if (newRegion == null) {
         newRegion = regionMgr.makeMemoryRegion(baseType);
       }
       constraints.addConstraint(fmgr.makeEqual(makeSafeDereference(baseType, address, ssa, newRegion),
-                                               makeVariable(base.getName(), baseType, ssa)));
+                                               makeVariable(baseName, baseType, ssa)));
     }
   }
 
