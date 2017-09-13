@@ -543,7 +543,7 @@ class PointerTargetSetManager {
         final FormulaType<?> baseFormulaType =
             typeHandler.getFormulaTypeFromCType(CTypeUtils.getBaseType(base.getValue()));
         final Formula baseVar =
-            formulaManager.makeVariable(
+            formulaManager.makeVariableWithoutSSAIndex(
                 baseFormulaType, PointerTargetSet.getBaseName(base.getKey()));
         constraints.add(
             makeValueImportConstraints(
