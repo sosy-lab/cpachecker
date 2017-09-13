@@ -535,7 +535,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
         // Function call like "random()".
         // Also "malloc()" etc. just return a random value, so handle them similarly.
         // Ignore parameters and just create a fresh variable for it.
-        return makeNondet(functionName, returnType);
+        return conv.makeNondet(functionName, returnType, ssa, constraints);
 
       } else if (conv.options.isExternModelFunction(functionName)) {
         ExternModelLoader loader = new ExternModelLoader(conv.typeHandler, conv.bfmgr, conv.fmgr);
@@ -998,13 +998,13 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
           conv.logger.logfOnce(Level.WARNING, "Cannot get declaration of function %s, ignoring calls to it.",
                                functionNameExpression);
         }
-        return makeNondet(functionName, returnType);
+        return conv.makeNondet(functionName, returnType, ssa, constraints);
       }
 
       if (functionDeclaration.getType().takesVarArgs()) {
         // Create a fresh variable instead of an UF for varargs functions.
         // This is sound but slightly more imprecise (we loose the UF axioms).
-        return makeNondet(functionName, returnType);
+        return conv.makeNondet(functionName, returnType, ssa, constraints);
       }
 
       final List<CType> formalParameterTypes = functionDeclaration.getType().getParameters();
@@ -1100,13 +1100,5 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
     }
 
     return null;
-  }
-
-  protected Formula makeNondet(final String varName, final CType type) {
-    Formula newVariable = conv.makeFreshVariable(varName, type, ssa);
-    if (conv.options.addRangeConstraintsForNondet()) {
-      conv.addRangeConstraint(newVariable, type, constraints);
-    }
-    return newVariable;
   }
 }

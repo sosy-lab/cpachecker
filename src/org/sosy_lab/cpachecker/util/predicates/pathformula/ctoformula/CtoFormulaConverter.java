@@ -501,6 +501,15 @@ public class CtoFormulaConverter {
     return result;
   }
 
+  protected Formula makeNondet(
+      final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
+    Formula newVariable = makeFreshVariable(name, type, ssa);
+    if (options.addRangeConstraintsForNondet()) {
+      addRangeConstraint(newVariable, type, constraints);
+    }
+    return newVariable;
+  }
+
   Formula makeStringLiteral(String literal) {
     Formula result = stringLitToFormula.get(literal);
 

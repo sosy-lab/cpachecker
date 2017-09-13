@@ -630,10 +630,11 @@ class AssignmentHandler {
     final BooleanFormula result;
 
     final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
-    final Formula rhs =
+    Formula rhs =
         value.isPresent()
             ? conv.makeCast(rvalueType, lvalueType, value.get(), constraints, edge)
             : null;
+
     if (!lvalue.isAliased()) { // Unaliased LHS
       assert !useOldSSAIndices;
       final int newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
@@ -653,6 +654,13 @@ class AssignmentHandler {
 
       } else if (options.useArraysForHeap()) {
         assert updatedRegions == null : "Return updated regions is only for UF encoding";
+        if (rhs == null) {
+          // For arrays, we always need to add a term that connects oldIndex with newIndex
+          String nondetName =
+              "__nondet_value_" + CTypeUtils.typeToString(rvalueType).replace(' ', '_');
+          rhs = conv.makeNondet(nondetName, rvalueType, ssa, constraints);
+          rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
+        }
         newIndex = conv.makeFreshIndex(targetName, lvalueType, ssa);
 
       } else {

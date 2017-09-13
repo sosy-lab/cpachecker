@@ -1305,6 +1305,13 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.isRelevantLeftHandSide(pLhs);
   }
 
+  /** {@inheritDoc} */
+  @Override
+  protected Formula makeNondet(
+      String pVarName, CType pType, SSAMapBuilder pSsa, Constraints pConstraints) {
+    return super.makeNondet(pVarName, pType, pSsa, pConstraints);
+  }
+
   @Override
   public void printStatistics(PrintStream out) {
     regionMgr.printStatistics(out);
