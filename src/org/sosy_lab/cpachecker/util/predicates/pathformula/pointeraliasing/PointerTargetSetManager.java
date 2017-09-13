@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
@@ -574,7 +575,6 @@ class PointerTargetSetManager {
     assert !CTypeUtils.containsArrayOutsideFunctionParameter(variableType)
         : "Array access can't be encoded as a variable";
 
-
     if (variableType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) variableType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
@@ -599,7 +599,7 @@ class PointerTargetSetManager {
         }
       }
       return bfmgr.and(constraints);
-    } else {
+    } else if (!(variableType instanceof CFunctionType) && !variableType.isIncomplete()) {
       if (ssa.getIndex(variablePrefix) > 0) {
         MemoryRegion newRegion = region;
         if(newRegion == null) {
@@ -611,6 +611,8 @@ class PointerTargetSetManager {
             formulaManager.makeVariable(
                 variableFormulaType, variablePrefix, ssa.getIndex(variablePrefix)));
       }
+      return bfmgr.makeTrue();
+    } else {
       return bfmgr.makeTrue();
     }
   }

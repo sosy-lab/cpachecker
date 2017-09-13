@@ -501,28 +501,26 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   /**
    * Adds constraints for the value import.
    *
-   * @param cfaEdge The current CFA edge.
    * @param address A formula for the current address.
    * @param baseName The name of the base of the variable.
    * @param baseType The type of the base of the variable.
    * @param fields A list of fields of the composite type.
    * @param ssa The SSA map.
    * @param constraints Additional constraints.
-   * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    */
   void addValueImportConstraints(
-      final CFAEdge cfaEdge,
       final Formula address,
       final String baseName,
       final CType baseType,
       final List<Pair<CCompositeType, String>> fields,
       final SSAMapBuilder ssa,
       final Constraints constraints,
-      @Nullable final MemoryRegion region)
-      throws UnrecognizedCCodeException {
-    if (baseType instanceof CArrayType) {
-      throw new UnrecognizedCCodeException("Array access can't be encoded as a variable", cfaEdge);
-    } else if (baseType instanceof CCompositeType) {
+      @Nullable final MemoryRegion region) {
+
+    assert !CTypeUtils.containsArrayOutsideFunctionParameter(baseType)
+        : "Array access can't be encoded as a variable";
+
+    if (baseType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) baseType;
       assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
@@ -534,27 +532,31 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
             isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
-          addValueImportConstraints(cfaEdge,
-                                    fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
-                                    newBaseName,
-                                    memberType,
-                                    fields,
-                                    ssa,
-                                    constraints,
-                                    newRegion);
+          addValueImportConstraints(
+              fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset)),
+              newBaseName,
+              memberType,
+              fields,
+              ssa,
+              constraints,
+              newRegion);
         }
       }
     } else if (!(baseType instanceof CFunctionType) && !baseType.isIncomplete()) {
-      // This adds a constraint *a = a for the case where we previously tracked
-      // a variable directly and now via its address (we do not want to loose
-      // the value previously stored in the variable).
-      // Make sure to not add invalid-deref constraints for this dereference
-      MemoryRegion newRegion = region;
-      if (newRegion == null) {
-        newRegion = regionMgr.makeMemoryRegion(baseType);
+      if (hasIndex(baseName, baseType, ssa)) {
+        // This adds a constraint *a = a for the case where we previously tracked
+        // a variable directly and now via its address (we do not want to loose
+        // the value previously stored in the variable).
+        // Make sure to not add invalid-deref constraints for this dereference
+        MemoryRegion newRegion = region;
+        if (newRegion == null) {
+          newRegion = regionMgr.makeMemoryRegion(baseType);
+        }
+        constraints.addConstraint(
+            fmgr.makeEqual(
+                makeSafeDereference(baseType, address, ssa, newRegion),
+                makeVariable(baseName, baseType, ssa)));
       }
-      constraints.addConstraint(fmgr.makeEqual(makeSafeDereference(baseType, address, ssa, newRegion),
-                                               makeVariable(baseName, baseType, ssa)));
     }
   }
 

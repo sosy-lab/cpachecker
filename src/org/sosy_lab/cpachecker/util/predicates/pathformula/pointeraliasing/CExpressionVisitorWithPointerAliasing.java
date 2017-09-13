@@ -514,7 +514,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         final Formula baseAddress = conv.makeConstant(PointerTargetSet.getBaseName(base.getName()),
                                                       CTypeUtils.getBaseType(base.getType()));
         conv.addValueImportConstraints(
-            edge,
             baseAddress,
             base.getName(),
             base.getType(),
