@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.implicitCastToPointer;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
@@ -586,9 +587,8 @@ class AssignmentHandler {
               || // The variable representing the RHS was used somewhere (i.e. has SSA index)
               (!rvalue.isAliasedLocation()
                   && conv.hasIndex(
-                      rvalue.asUnaliasedLocation().getVariableName()
-                          + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
-                          + memberName,
+                      getFieldAccessName(
+                          rvalue.asUnaliasedLocation().getVariableName(), memberDeclaration),
                       newLvalueType,
                       ssa)))) {
 
@@ -605,9 +605,7 @@ class AssignmentHandler {
         } else {
           newLvalue =
               Location.ofVariableName(
-                  lvalue.asUnaliased().getVariableName()
-                      + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
-                      + memberName);
+                  getFieldAccessName(lvalue.asUnaliased().getVariableName(), memberDeclaration));
         }
 
         final CType newRvalueType;
@@ -623,9 +621,8 @@ class AssignmentHandler {
           } else {
             newRvalue =
                 Location.ofVariableName(
-                    rvalue.asUnaliasedLocation().getVariableName()
-                        + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
-                        + memberName);
+                    getFieldAccessName(
+                        rvalue.asUnaliasedLocation().getVariableName(), memberDeclaration));
           }
 
         } else {

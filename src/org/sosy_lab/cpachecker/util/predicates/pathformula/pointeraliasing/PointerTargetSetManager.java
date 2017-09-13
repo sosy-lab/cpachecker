@@ -28,6 +28,7 @@ import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.PersistentSortedMaps.merge;
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.base.Equivalence;
@@ -582,7 +583,7 @@ class PointerTargetSetManager {
         final String memberName = memberDeclaration.getName();
         final int offset = typeHandler.getBitOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
-        final String newPrefix = variablePrefix + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + memberName;
+        final String newPrefix = getFieldAccessName(variablePrefix, memberDeclaration);
         if (ssa.getIndex(newPrefix) > 0) {
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberType, memberName);
           sharedFields.add(Pair.of(compositeType, memberName));

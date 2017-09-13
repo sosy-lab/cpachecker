@@ -188,6 +188,15 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return new BnBRegionManager(variableClassification, ImmutableMultimap.<CType, String>copyOf(bnb));
   }
 
+  static String getFieldAccessName(
+      final String base, final CCompositeTypeMemberDeclaration member) {
+    return base + FIELD_NAME_SEPARATOR + member.getName();
+  }
+
+  static String getFieldAccessName(final String base, final CFieldReference fieldAccess) {
+    return base + FIELD_NAME_SEPARATOR + fieldAccess.getFieldName();
+  }
+
   /**
    * Returns the SMT symbol name for encoding a pointer access for a C type.
    *
@@ -518,8 +527,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         final String memberName = memberDeclaration.getName();
         final int offset = typeHandler.getBitOffset(compositeType, memberName);
         final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
-        final Variable newBase = Variable.create(base.getName() + FIELD_NAME_SEPARATOR + memberName,
-                                                 memberType);
+        final Variable newBase =
+            Variable.create(getFieldAccessName(base.getName(), memberDeclaration), memberType);
         if (hasIndex(newBase.getName(), newBase.getType(), ssa) &&
             isRelevantField(compositeType, memberName)) {
           fields.add(Pair.of(compositeType, memberName));
@@ -1145,7 +1154,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   private static final String POINTER_NAME_PREFIX = "*";
 
-  static final String FIELD_NAME_SEPARATOR = "$";
+  private static final String FIELD_NAME_SEPARATOR = "$";
 
   private static final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
+
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -77,10 +79,7 @@ class PointerApproximatingVisitor
   public Optional<String> visit(final CFieldReference e) throws UnrecognizedCCodeException {
     CType t = typeHandler.getSimplifiedType(e.withExplicitPointerDereference().getFieldOwner());
     if (t instanceof CCompositeType) {
-      return Optional.of(
-          ((CCompositeType) t).getQualifiedName()
-              + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR
-              + e.getFieldName());
+      return Optional.of(getFieldAccessName(((CCompositeType) t).getQualifiedName(), e));
     } else {
       throw new UnrecognizedCCodeException("Field owner of a non-composite type", edge, e);
     }
