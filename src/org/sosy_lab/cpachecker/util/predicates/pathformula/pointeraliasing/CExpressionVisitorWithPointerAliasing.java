@@ -412,18 +412,18 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   public Expression visit(final CIdExpression e) throws UnrecognizedCCodeException {
     final CType resultType = typeHandler.getSimplifiedType(e);
 
-    if (!pts.isActualBase(e.getDeclaration().getQualifiedName())
+    final String variableName = e.getDeclaration().getQualifiedName();
+    if (!pts.isActualBase(variableName)
         && !CTypeUtils.containsArray(resultType, e.getDeclaration())) {
-      Variable variable = Variable.create(e.getDeclaration().getQualifiedName(), resultType);
       if (!(e.getDeclaration() instanceof CFunctionDeclaration)) {
-        final String variableName = variable.getName();
         return UnaliasedLocation.ofVariableName(variableName);
       } else {
-        return Value.ofValue(conv.makeConstant(variable.getName(), variable.getType()));
+        return Value.ofValue(conv.makeConstant(variableName, resultType));
       }
     } else {
-      final Formula address = conv.makeConstant(PointerTargetSet.getBaseName(e.getDeclaration().getQualifiedName()),
-                                                CTypeUtils.getBaseType(resultType));
+      final Formula address =
+          conv.makeConstant(
+              PointerTargetSet.getBaseName(variableName), CTypeUtils.getBaseType(resultType));
       return AliasedLocation.ofAddress(address);
     }
   }

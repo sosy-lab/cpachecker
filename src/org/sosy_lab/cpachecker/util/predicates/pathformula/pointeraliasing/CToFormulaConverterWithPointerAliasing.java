@@ -1260,10 +1260,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       return AliasedLocation.ofAddress(address);
     } else if (!pts.isActualBase(pVarName)
         && !CTypeUtils.containsArrayOutsideFunctionParameter(pType)) {
-      Variable variable = Variable.create(pVarName, pType);
-
-      final String variableName = variable.getName();
-      return UnaliasedLocation.ofVariableName(variableName);
+      return UnaliasedLocation.ofVariableName(pVarName);
     } else {
       final Formula address =
           makeConstant(PointerTargetSet.getBaseName(pVarName), CTypeUtils.getBaseType(pType));
