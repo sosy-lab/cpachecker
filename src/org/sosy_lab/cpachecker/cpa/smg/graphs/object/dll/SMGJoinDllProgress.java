@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.util.Pair;
 
 class SMGJoinDllProgress
-    extends SMGJoinAbstractListProgress<Pair<Integer, Integer>, SMGDoublyLinkedListCandidate> {
+    extends SMGJoinAbstractListProgress<Pair<Long, Long>, SMGDoublyLinkedListCandidate> {
 
   public SMGJoinDllProgress() {}
 

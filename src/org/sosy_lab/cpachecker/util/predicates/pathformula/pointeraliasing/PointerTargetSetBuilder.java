@@ -319,8 +319,8 @@ public interface PointerTargetSetBuilder {
      */
     private void addTargets(final String base,
                             final CType cType,
-                            final int properOffset,
-                            final int containerOffset,
+                            final long properOffset,
+                            final long containerOffset,
                             final String composite,
                             final String memberName) {
       checkIsSimplified(cType);
@@ -342,7 +342,7 @@ public interface PointerTargetSetBuilder {
         final String type = CTypeUtils.typeToString(compositeType);
         final boolean isTargetComposite = type.equals(composite);
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          final int offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
+          final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
           if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
             addTargets(base, memberDeclaration.getType(), offset, containerOffset + properOffset,
                        composite, memberName);

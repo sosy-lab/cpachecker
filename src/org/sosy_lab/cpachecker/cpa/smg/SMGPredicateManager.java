@@ -108,14 +108,17 @@ public class SMGPredicateManager {
       pRelation, PredRelation pPredRelationRelation, boolean conjunction) {
     BooleanFormula result;
     BigInteger explicitValue = pRelation.getExplicitValue().getValue();
-    BitvectorFormula explicitValueFormula = efmgr.makeBitvector(
-        pPredRelationRelation.getSymbolicSize(pRelation.getSymbolicValue()), explicitValue);
-    String name = SYM_NAME + pRelation.getSymbolicValue();
-    Formula symbolicValue = efmgr.makeVariable(pPredRelationRelation.getSymbolicSize(pRelation
-        .getSymbolicValue()),
-        name);
+    int explicitSize = explicitValue.bitLength();
+    int symbolicSize = pPredRelationRelation.getSymbolicSize(pRelation.getSymbolicValue());
     BinaryOperator op = pRelation.getOperator();
-    result = createBooleanFormula(symbolicValue, explicitValueFormula, op);
+    if (explicitSize > symbolicSize && op.equals(BinaryOperator.GREATER_THAN)) {
+      result = bfmgr.makeFalse();
+    } else {
+      BitvectorFormula explicitValueFormula = efmgr.makeBitvector(symbolicSize, explicitValue);
+      String name = SYM_NAME + pRelation.getSymbolicValue();
+      Formula symbolicValue = efmgr.makeVariable(symbolicSize, name);
+      result = createBooleanFormula(symbolicValue, explicitValueFormula, op);
+    }
     if (conjunction) {
       result = bfmgr.and(result, pFormula);
     } else {
@@ -138,8 +141,15 @@ public class SMGPredicateManager {
     if (pRelation.getSecondValue() == 0) {
       secondSize = firstSize;
     }
-    Formula formulaOne = efmgr.makeVariable(firstSize, nameOne);
-    Formula formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
+    BitvectorFormula formulaOne = efmgr.makeVariable(firstSize, nameOne);
+    BitvectorFormula formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
+    if (firstSize != secondSize) {
+      if (firstSize > secondSize) {
+        formulaTwo = efmgr.extend(formulaTwo, firstSize - secondSize, true);
+      } else {
+        formulaOne = efmgr.extend(formulaOne, secondSize - firstSize, true);
+      }
+    }
     BinaryOperator op = pRelation.getOperator();
     result = createBooleanFormula(formulaOne, formulaTwo, op);
     if (conjunction) {
@@ -194,8 +204,12 @@ public class SMGPredicateManager {
   }
 
   public boolean isErrorPathFeasible(SMGState pState) {
+    if (!verifyPredicates) {
+      return false;
+    }
+
     PredRelation errorPredicate = pState.getErrorPredicateRelation();
-    if (verifyPredicates && !errorPredicate.isEmpty()) {
+    if (!errorPredicate.isEmpty()) {
       BooleanFormula errorPredicateFormula = getErrorPredicateFormula(errorPredicate, pState.getPathPredicateRelation());
       try {
         if (!isUnsat(errorPredicateFormula)) {

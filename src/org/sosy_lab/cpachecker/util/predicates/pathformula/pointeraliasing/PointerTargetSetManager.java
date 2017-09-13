@@ -620,8 +620,8 @@ class PointerTargetSetManager {
       final @Nullable MemoryRegion region,
       final CType cType,
       final @Nullable CType containerType,
-      final int properOffset,
-      final int containerOffset,
+      final long properOffset,
+      final long containerOffset,
       PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
       final PersistentSortedMap<CompositeField, Boolean> fields) {
     checkIsSimplified(cType);
@@ -647,7 +647,7 @@ class PointerTargetSetManager {
       final String type = CTypeUtils.typeToString(compositeType);
       typeHandler.addCompositeTypeToCache(compositeType);
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        final int offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
+        final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
         if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           targets = addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);

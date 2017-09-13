@@ -38,12 +38,12 @@ public class SMGEdgeHasValue extends SMGEdge {
 
   final private CType type;
 
-  public SMGEdgeHasValue(CType pType, int pOffset, SMGObject pObject, int pValue) {
+  public SMGEdgeHasValue(CType pType, long pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject, pOffset);
     type = pType;
   }
 
-  public SMGEdgeHasValue(int pSizeInBits, int pOffset, SMGObject pObject, int pValue) {
+  public SMGEdgeHasValue(int pSizeInBits, long pOffset, SMGObject pObject, int pValue) {
     super(pValue, pObject, pOffset);
     type = AnonymousTypes.createTypeWithLength(pSizeInBits);
   }
@@ -88,18 +88,18 @@ public class SMGEdgeHasValue extends SMGEdge {
       throw new IllegalArgumentException("Call of overlapsWith() on Has-Value edges pair not originating from the same object");
     }
 
-    int otStart = other.getOffset();
+    long otStart = other.getOffset();
 
-    int otEnd = otStart + pModel.getBitSizeof(other.getType());
+    long otEnd = otStart + pModel.getBitSizeof(other.getType());
 
     return overlapsWith(otStart, otEnd, pModel);
   }
 
-  public boolean overlapsWith(int pOtStart, int pOtEnd, MachineModel pModel) {
+  public boolean overlapsWith(long pOtStart, long pOtEnd, MachineModel pModel) {
 
-    int myStart = getOffset();
+    long myStart = getOffset();
 
-    int myEnd = myStart + pModel.getBitSizeof(type);
+    long myEnd = myStart + pModel.getBitSizeof(type);
 
     if (myStart < pOtStart) {
       return (myEnd > pOtStart);

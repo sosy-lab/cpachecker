@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
 
 public class SMGDoublyLinkedList extends SMGAbstractList<SMGDoublyLinkedListShape> {
 
-  public SMGDoublyLinkedList(int pSize, int pHfo, int pNfo, int pPfo,
+  public SMGDoublyLinkedList(int pSize, long pHfo, long pNfo, long pPfo,
       int pMinLength, int level) {
     super(
         pSize,
@@ -50,15 +50,15 @@ public class SMGDoublyLinkedList extends SMGAbstractList<SMGDoublyLinkedListShap
     return visitor.visit(this);
   }
 
-  public int getHfo() {
+  public long getHfo() {
     return getShape().getHfo();
   }
 
-  public int getNfo() {
+  public long getNfo() {
     return getShape().getNfo();
   }
 
-  public int getPfo() {
+  public long getPfo() {
     return getShape().getPfo();
   }
 

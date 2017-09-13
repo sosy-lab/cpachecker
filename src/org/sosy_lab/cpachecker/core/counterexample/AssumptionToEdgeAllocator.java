@@ -40,7 +40,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
@@ -795,11 +795,11 @@ public class AssumptionToEdgeAllocator {
 
     private @Nullable BigInteger getFieldOffsetInBits(CFieldReference fieldReference) {
       CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
-      OptionalInt result =
+      OptionalLong result =
           AssumptionToEdgeAllocator.getFieldOffsetInBits(
               fieldOwnerType, fieldReference.getFieldName(), machineModel);
       if (result.isPresent()) {
-        return BigInteger.valueOf(result.getAsInt());
+        return BigInteger.valueOf(result.getAsLong());
       }
       return null;
     }
@@ -2176,7 +2176,7 @@ public class AssumptionToEdgeAllocator {
     }
   }
 
-  private static OptionalInt getFieldOffsetInBits(
+  private static OptionalLong getFieldOffsetInBits(
       CType ownerType, String fieldName, MachineModel pMachineModel) {
 
     if (ownerType instanceof CElaboratedType) {

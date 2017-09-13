@@ -34,7 +34,7 @@ public class SMGSingleLinkedListCandidate extends SMGListCandidate<SMGSingleLink
 
   private final CType nfoType;
 
-  public SMGSingleLinkedListCandidate(SMGObject pStartObject, int pNfo, int pHfo, CType pNfoType,
+  public SMGSingleLinkedListCandidate(SMGObject pStartObject, long pNfo, long pHfo, CType pNfoType,
       MachineModel pModel) {
     super(pStartObject, pModel, new SMGSingleLinkedListShape(pHfo, pNfo));
     nfoType = pNfoType;

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.util.OptionalInt;
+import java.util.OptionalLong;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -272,7 +272,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       CType canonicalOwnerType = pOwnerType.getCanonicalType();
 
-      OptionalInt offset = getFieldOffsetInBits(canonicalOwnerType, pFieldName);
+      OptionalLong offset = getFieldOffsetInBits(canonicalOwnerType, pFieldName);
 
       if (!offset.isPresent()) {
         return null;
@@ -283,14 +283,14 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (pStartLocation.isOnFunctionStack()) {
 
         return MemoryLocation.valueOf(
-            pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset.getAsInt());
+            pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset.getAsLong());
       } else {
 
-        return MemoryLocation.valueOf(pStartLocation.getIdentifier(), baseOffset + offset.getAsInt());
+        return MemoryLocation.valueOf(pStartLocation.getIdentifier(), baseOffset + offset.getAsLong());
       }
     }
 
-    private OptionalInt getFieldOffsetInBits(CType ownerType, String fieldName)
+    private OptionalLong getFieldOffsetInBits(CType ownerType, String fieldName)
         throws UnrecognizedCCodeException {
 
       if (ownerType instanceof CElaboratedType) {
@@ -299,7 +299,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return evv.getMachineModel().getFieldOffsetInBits((CCompositeType) ownerType, fieldName);
       } else if (ownerType instanceof CPointerType) {
         evv.missingPointer = true;
-        return OptionalInt.empty();
+        return OptionalLong.empty();
       } else if (ownerType instanceof CProblemType) {
          /*
           * At this point CProblemType should not occur
@@ -310,7 +310,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
           * This is unfortunate but not as critical as
           * letting CPAchecker crash here.
           */
-         return OptionalInt.empty();
+         return OptionalLong.empty();
       }
 
       throw new AssertionError();

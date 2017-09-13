@@ -31,7 +31,7 @@ public interface SMGEdgeHasValueTemplateWithConcreteValue {
 
   public int getValue();
 
-  public int getOffset();
+  public long getOffset();
 
   public CType getType();
 }

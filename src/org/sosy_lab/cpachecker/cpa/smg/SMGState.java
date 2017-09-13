@@ -111,6 +111,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   private final boolean invalidWrite;
   private final boolean invalidRead;
   private final boolean invalidFree;
+  private String errorDescription;
+  private String noteDescription;
 
   private final LogManager logger;
   private final SMGOptions options;
@@ -125,6 +127,21 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
+  public String getErrorDescription() {
+    return errorDescription;
+  }
+
+  public void setErrorDescription(String pErrorDescription) {
+    errorDescription = pErrorDescription;
+  }
+
+  public String getNoteDescription() {
+    return noteDescription;
+  }
+
+  public void setNoteDescription(String pNoteDescription) {
+    noteDescription = pNoteDescription;
+  }
   /**
    * Constructor.
    *
@@ -181,6 +198,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
     blockEnded = pOriginalState.blockEnded;
+    errorDescription = pOriginalState.errorDescription;
   }
 
   /**
@@ -202,6 +220,8 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     invalidRead = pOriginalState.invalidRead;
     invalidWrite = pOriginalState.invalidWrite;
     blockEnded = pBlockEnded;
+    noteDescription = pOriginalState.noteDescription;
+    errorDescription = pOriginalState.errorDescription;
   }
 
   private SMGState(SMGState pOriginalState, Property pProperty) {
@@ -593,14 +613,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
 
     /*First, set all sub smgs of sll to be removed to invalid.*/
-    Set<Integer> restriction = ImmutableSet.of(pListSeg.getNfo());
+    Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo());
 
     removeRestrictedSubSmg(pListSeg, restriction);
 
     /*When removing sll, connect target specifier first pointer to next field*/
 
-    int nfo = pListSeg.getNfo();
-    int hfo = pListSeg.getHfo();
+    long nfo = pListSeg.getNfo();
+    long hfo = pListSeg.getHfo();
 
     SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo)));
@@ -628,16 +648,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     logger.log(Level.ALL, "Remove ", pListSeg, " in state id ", this.getId());
 
     /*First, set all sub smgs of dll to be removed to invalid.*/
-    Set<Integer> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
+    Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
 
     removeRestrictedSubSmg(pListSeg, restriction);
 
     /*When removing dll, connect target specifier first pointer to next field,
      * and target specifier last to prev field*/
 
-    int nfo = pListSeg.getNfo();
-    int pfo = pListSeg.getPfo();
-    int hfo = pListSeg.getHfo();
+    long nfo = pListSeg.getNfo();
+    long pfo = pListSeg.getPfo();
+    long hfo = pListSeg.getHfo();
 
     SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo)));
@@ -689,12 +709,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         "concrete sll segment ID " + SMGValueFactory.getNewValue(), 0);
     heap.addHeapObject(newConcreteRegion);
 
-    Set<Integer> restriction = ImmutableSet.of(pListSeg.getNfo());
+    Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo());
 
     copyRestrictedSubSmgToObject(pListSeg, newConcreteRegion, restriction);
 
-    int hfo = pListSeg.getHfo();
-    int nfo = pListSeg.getNfo();
+    long hfo = pListSeg.getHfo();
+    long nfo = pListSeg.getNfo();
 
     SMGEdgeHasValue oldSllFieldToOldRegion =
         Iterables.getOnlyElement(
@@ -777,14 +797,14 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         "concrete dll segment ID " + SMGValueFactory.getNewValue(), 0);
     heap.addHeapObject(newConcreteRegion);
 
-    Set<Integer> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
+    Set<Long> restriction = ImmutableSet.of(pListSeg.getNfo(), pListSeg.getPfo());
 
     copyRestrictedSubSmgToObject(pListSeg, newConcreteRegion, restriction);
 
     SMGTargetSpecifier tg = pPointerToAbstractObject.getTargetSpecifier();
 
-    int offsetPointingToDll;
-    int offsetPointingToRegion;
+    long offsetPointingToDll;
+    long offsetPointingToRegion;
 
     switch (tg) {
       case FIRST:
@@ -801,7 +821,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
                 + "that leads to a dll has unexpected target specifier " + tg.toString());
     }
 
-    int hfo = pListSeg.getHfo();
+    long hfo = pListSeg.getHfo();
 
     SMGEdgeHasValue oldDllFieldToOldRegion =
         Iterables.getOnlyElement(heap.getHVEdges(
@@ -884,7 +904,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   }
 
   private void copyRestrictedSubSmgToObject(SMGObject pRoot, SMGRegion pNewRegion,
-      Set<Integer> pRestriction) {
+      Set<Long> pRestriction) {
 
     Set<SMGObject> toBeChecked = new HashSet<>();
     Map<SMGObject, SMGObject> newObjectMap = new HashMap<>();
@@ -950,7 +970,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         int sizeOfHveInBits = hve.getSizeInBits(model);
         /*If a restricted field is 0, and bigger than a pointer, add 0*/
         if (sizeOfHveInBits > model.getBitSizeofPtr() && hve.getValue() == 0) {
-          int offset = hve.getOffset() + model.getBitSizeofPtr();
+          long offset = hve.getOffset() + model.getBitSizeofPtr();
           int sizeInBits = sizeOfHveInBits - model.getBitSizeofPtr();
           SMGEdgeHasValue expandedZeroEdge =
               new SMGEdgeHasValue(sizeInBits, offset, pNewRegion, 0);
@@ -1033,7 +1053,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
   }
 
-  private void removeRestrictedSubSmg(SMGObject pRoot, Set<Integer> pRestriction) {
+  private void removeRestrictedSubSmg(SMGObject pRoot, Set<Long> pRestriction) {
 
     Set<SMGObject> toBeChecked = new HashSet<>();
     Set<SMGObject> reached = new HashSet<>();
@@ -1135,7 +1155,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pType type of field
    * @return the value and the state (may be the given state)
    */
-  public SMGValueAndState forceReadValue(SMGObject pObject, int pOffset, CType pType)
+  public SMGValueAndState forceReadValue(SMGObject pObject, long pOffset, CType pType)
       throws SMGInconsistentException {
     SMGValueAndState valueAndState = readValue(pObject, pOffset, pType);
 
@@ -1176,10 +1196,12 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pType type of field
    * @return the value and the state (may be the given state)
    */
-  public SMGValueAndState readValue(SMGObject pObject, int pOffset, CType pType)
+  public SMGValueAndState readValue(SMGObject pObject, long pOffset, CType pType)
       throws SMGInconsistentException {
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       SMGState newState = setInvalidRead();
+      newState.setErrorDescription("Try to read from deallocated object");
+      newState.addInvalidObject(pObject);
       return SMGValueAndState.of(newState);
     }
 
@@ -1223,7 +1245,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pValue value to be written into field.
    * @return the edge and the new state (may be this state)
    */
-  public SMGStateEdgePair writeValue(SMGObject pObject, int pOffset,
+  public SMGStateEdgePair writeValue(SMGObject pObject, long pOffset,
       CType pType, SMGSymbolicValue pValue) throws SMGInconsistentException {
 
     int value;
@@ -1239,22 +1261,20 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     // If the value represents an address, and the address is known,
     // add the necessary points-To edge.
     if (pValue instanceof SMGAddressValue) {
-      if (!containsValue(value)) {
-        SMGAddress address = ((SMGAddressValue) pValue).getAddress();
+      SMGAddress address = ((SMGAddressValue) pValue).getAddress();
 
-        if (!address.isUnknown()) {
-          addPointsToEdge(
-              address.getObject(),
-              address.getOffset().getAsInt(),
-              value);
-        }
+      if (!address.isUnknown()) {
+        addPointsToEdge(
+            address.getObject(),
+            address.getOffset().getAsLong(),
+            value);
       }
     }
 
     return writeValue(pObject, pOffset, pType, value);
   }
 
-  public void addPointsToEdge(SMGObject pObject, int pOffset, int pValue) {
+  public void addPointsToEdge(SMGObject pObject, long pOffset, int pValue) {
 
     // If the value is not known by the SMG, add it.
     if (!containsValue(pValue)) {
@@ -1275,13 +1295,15 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    * @param pType type of field written into.
    * @param pValue value to be written into field.
    */
-  private SMGStateEdgePair writeValue(SMGObject pObject, int pOffset, CType pType, Integer pValue)
+  private SMGStateEdgePair writeValue(SMGObject pObject, long pOffset, CType pType, Integer pValue)
       throws SMGInconsistentException {
     // vgl Algorithm 1 Byte-Precise Verification of Low-Level List Manipulation FIT-TR-2012-04
 
     if (!heap.isObjectValid(pObject) && !heap.isObjectExternallyAllocated(pObject)) {
       //Attempt to write to invalid object
       SMGState newState = setInvalidWrite();
+      newState.setErrorDescription("Attempt to write to deallocated object");
+      newState.addInvalidObject(pObject);
       return new SMGStateEdgePair(newState);
     }
 
@@ -1332,6 +1354,10 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return heap.isObjectExternallyAllocated(pObject);
   }
 
+  public boolean isObjectValid(SMGObject pObject) {
+    return heap.isObjectValid(pObject);
+  }
+
   public boolean isBlockEnded() {
     return blockEnded;
   }
@@ -1368,7 +1394,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       Set<SMGEdgeHasValue> pOverlappingZeroEdges) {
 
     SMGObject object = pNew_edge.getObject();
-    int offset = pNew_edge.getOffset();
+    long offset = pNew_edge.getOffset();
 
     MachineModel maModel = heap.getMachineModel();
     int sizeOfType = pNew_edge.getSizeInBits(maModel);
@@ -1377,20 +1403,20 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     for (SMGEdgeHasValue zeroEdge : pOverlappingZeroEdges) {
       heap.removeHasValueEdge(zeroEdge);
 
-      int zeroEdgeOffset = zeroEdge.getOffset();
+      long zeroEdgeOffset = zeroEdge.getOffset();
 
-      int offset2 = offset + sizeOfType;
-      int zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBits(maModel);
+      long offset2 = offset + sizeOfType;
+      long zeroEdgeOffset2 = zeroEdgeOffset + zeroEdge.getSizeInBits(maModel);
 
       if (zeroEdgeOffset < offset) {
         SMGEdgeHasValue newZeroEdge =
-            new SMGEdgeHasValue(offset - zeroEdgeOffset, zeroEdgeOffset, object, 0);
+            new SMGEdgeHasValue(Math.toIntExact(offset - zeroEdgeOffset), zeroEdgeOffset, object, 0);
         heap.addHasValueEdge(newZeroEdge);
       }
 
       if (offset2 < zeroEdgeOffset2) {
         SMGEdgeHasValue newZeroEdge =
-            new SMGEdgeHasValue(zeroEdgeOffset2 - offset2, offset2, object, 0);
+            new SMGEdgeHasValue(Math.toIntExact(zeroEdgeOffset2 - offset2), offset2, object, 0);
         heap.addHasValueEdge(newZeroEdge);
       }
     }
@@ -1571,7 +1597,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   /** memory externally allocated could be freed by the user */
   // TODO: refactore
-  public SMGAddressValue addExternalAllocation(String pLabel) throws SMGInconsistentException {
+    public SMGAddressValue addExternalAllocation(String pLabel) {
     SMGRegion new_object = new SMGRegion(options.getExternalAllocationSize(), pLabel);
     int new_value = SMGValueFactory.getNewValue();
     SMGEdgePointsTo points_to = new SMGEdgePointsTo(new_value, new_object, options.getExternalAllocationSize()/2 );
@@ -1581,8 +1607,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     heap.setExternallyAllocatedFlag(new_object, true);
 
-    performConsistencyCheck(SMGRuntimeCheck.HALF);
     return SMGKnownAddVal.valueOf(new_value, new_object, options.getExternalAllocationSize()/2);
+  }
+
+  public void setExternallyAllocatedFlag(SMGObject pObject) {
+    heap.setExternallyAllocatedFlag(pObject, true);
   }
 
   /** memory allocated on the stack is automatically freed when leaving the current function scope */
@@ -1619,7 +1648,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *         yet exist in the SMG.
    */
   @Nullable
-  public Integer getAddress(SMGRegion memory, int offset) {
+  public Integer getAddress(SMGRegion memory, long offset) {
 
     SMGEdgePointsToFilter filter =
         SMGEdgePointsToFilter.targetObjectFilter(memory).filterAtTargetOffset(offset);
@@ -1646,7 +1675,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
    *         yet exist in the SMG.
    */
   @Nullable
-  public Integer getAddress(SMGObject memory, int offset, SMGTargetSpecifier tg) {
+  public Integer getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg) {
 
     SMGEdgePointsToFilter filter =
         SMGEdgePointsToFilter.targetObjectFilter(memory).filterAtTargetOffset(offset)
@@ -1678,8 +1707,20 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     if (!heap.isHeapObject(smgObject) && !heap.isObjectExternallyAllocated(smgObject)) {
       // You may not free any objects not on the heap.
+      SMGState newState = setInvalidFree();
+      newState.addInvalidObject(smgObject);
+      newState.setErrorDescription("Invalid free of unallocated object is found");
+      return newState;
+    }
 
-      return setInvalidFree();
+    if (!heap.isObjectValid(smgObject)) {
+      // you may not invoke free multiple times on
+      // the same object
+
+      SMGState newState = setInvalidFree();
+      newState.addInvalidObject(smgObject);
+      newState.setErrorDescription("Double free is found");
+      return newState;
     }
 
     if (!(offset == 0) && !heap.isObjectExternallyAllocated(smgObject)) {
@@ -1687,14 +1728,16 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       // didn't get through a malloc invocation.
       // TODO: externally allocated memory could be freed partially
 
-      return setInvalidFree();
-    }
-
-    if (!heap.isObjectValid(smgObject)) {
-      // you may not invoke free multiple times on
-      // the same object
-
-      return setInvalidFree();
+      SMGState newState = setInvalidFree();
+      newState.addInvalidObject(smgObject);
+      if (offset % 8 != 0) {
+        newState.setErrorDescription("Invalid free at " + offset + " bit offset from allocated is "
+            + "found");
+      } else {
+        newState.setErrorDescription("Invalid free at " + offset / 8 + " byte offset from "
+            + "allocated is found");
+      }
+      return newState;
     }
 
     heap.setValidity(smgObject, false);
@@ -1714,6 +1757,13 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     return this;
   }
 
+  public void addInvalidObject(SMGObject pSmgObject) {
+    heap.reportInvalidObject(pSmgObject);
+  }
+
+  public List<SMGObject> getInvalidObjects() {
+    return heap.getInvalidObjects();
+  }
   /**
    * Drop the stack frame representing the stack of
    * the function with the given name
@@ -1725,6 +1775,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
   public void pruneUnreachable() throws SMGInconsistentException {
     heap.pruneUnreachable();
+    if (heap.hasMemoryLeaks()) {
+      setErrorDescription("Memory leak is detected");
+    }
     //TODO: Explicit values pruning
     performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
@@ -1747,37 +1800,37 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
   /**
    * Copys (shallow) the hv-edges of source in the given source range
    * to the target at the given target offset. Note that the source
-   * range (pSourceRangeSize - pSourceRangeOffset) has to fit into
-   * the target range ( size of pTarget - pTargetRangeOffset).
-   * Also, pSourceRangeOffset has to be less or equal to the size
+   * range (pSourceLastCopyBitOffset - pSourceOffset) has to fit into
+   * the target range ( size of pTarget - pTargetOffset).
+   * Also, pSourceOffset has to be less or equal to the size
    * of the source Object.
    *
    * This method is mainly used to assign struct variables.
    *
    * @param pSource the SMGObject providing the hv-edges
    * @param pTarget the target of the copy process
-   * @param pTargetRangeOffset begin the copy of source at this offset
-   * @param pSourceRangeSize the size of the copy of source (not the size of the copy, but the size to the last bit of the source which should be copied).
-   * @param pSourceRangeOffset insert the copy of source into target at this offset
+   * @param pTargetOffset begin the copy of source at this offset
+   * @param pSourceLastCopyBitOffset the size of the copy of source (not the size of the copy, but the size to the last bit of the source which should be copied).
+   * @param pSourceOffset insert the copy of source into target at this offset
    * @throws SMGInconsistentException thrown if the copying leads to an inconsistent SMG.
    */
-  public SMGState copy(SMGObject pSource, SMGObject pTarget, int pSourceRangeOffset,
-      int pSourceRangeSize, int pTargetRangeOffset) throws SMGInconsistentException {
+  public SMGState copy(SMGObject pSource, SMGObject pTarget, long pSourceOffset,
+      long pSourceLastCopyBitOffset, long pTargetOffset) throws SMGInconsistentException {
 
     SMGState newSMGState = this;
 
-    int copyRange = pSourceRangeSize - pSourceRangeOffset;
+    long copyRange = pSourceLastCopyBitOffset - pSourceOffset;
 
-    assert pSource.getSize() >= pSourceRangeSize;
-    assert pSourceRangeOffset >= 0;
-    assert pTargetRangeOffset >= 0;
+    assert pSource.getSize() >= pSourceLastCopyBitOffset;
+    assert pSourceOffset >= 0;
+    assert pTargetOffset >= 0;
     assert copyRange >= 0;
     assert copyRange <= pTarget.getSize();
 
     // If copy range is 0, do nothing
     if (copyRange == 0) { return newSMGState; }
 
-    int targetRangeSize = pTargetRangeOffset + copyRange;
+    long targetRangeSize = pTargetOffset + copyRange;
 
     SMGEdgeHasValueFilter filterSource = new SMGEdgeHasValueFilter();
     filterSource.filterByObject(pSource);
@@ -1788,7 +1841,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     Set<SMGEdgeHasValue> targetEdges = getHVEdges(filterTarget);
 
     for (SMGEdgeHasValue edge : targetEdges) {
-      if (edge.overlapsWith(pTargetRangeOffset, targetRangeSize, heap.getMachineModel())) {
+      if (edge.overlapsWith(pTargetOffset, targetRangeSize, heap.getMachineModel())) {
         boolean hvEdgeIsZero = edge.getValue() == SMG.NULL_ADDRESS;
         heap.removeHasValueEdge(edge);
         if (hvEdgeIsZero) {
@@ -1797,19 +1850,21 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
           MachineModel maModel = heap.getMachineModel();
 
           // Shrink overlapping zero edge
-          int zeroEdgeOffset = edge.getOffset();
+          long zeroEdgeOffset = edge.getOffset();
 
-          int zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits(maModel);
+          long zeroEdgeOffset2 = zeroEdgeOffset + edge.getSizeInBits(maModel);
 
-          if (zeroEdgeOffset < pTargetRangeOffset) {
+          if (zeroEdgeOffset < pTargetOffset) {
             SMGEdgeHasValue newZeroEdge =
-                new SMGEdgeHasValue(pTargetRangeOffset - zeroEdgeOffset, zeroEdgeOffset, object, 0);
+                new SMGEdgeHasValue(Math.toIntExact(pTargetOffset - zeroEdgeOffset),
+                    zeroEdgeOffset, object, 0);
             heap.addHasValueEdge(newZeroEdge);
           }
 
           if (targetRangeSize < zeroEdgeOffset2) {
             SMGEdgeHasValue newZeroEdge =
-                new SMGEdgeHasValue(zeroEdgeOffset2 - targetRangeSize, targetRangeSize, object, 0);
+                new SMGEdgeHasValue(Math.toIntExact(zeroEdgeOffset2 - targetRangeSize),
+                    targetRangeSize, object, 0);
             heap.addHasValueEdge(newZeroEdge);
           }
         }
@@ -1820,11 +1875,11 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     Set<SMGEdgeHasValue> sourceEdges = getHVEdges(filterSource);
 
     // Shift the source edge offset depending on the target range offset
-    int copyShift = pTargetRangeOffset - pSourceRangeOffset;
+    long copyShift = pTargetOffset - pSourceOffset;
 
     for (SMGEdgeHasValue edge : sourceEdges) {
-      if (edge.overlapsWith(pSourceRangeOffset, pSourceRangeSize, heap.getMachineModel())) {
-        int offset = edge.getOffset() + copyShift;
+      if (edge.overlapsWith(pSourceOffset, pSourceLastCopyBitOffset, heap.getMachineModel())) {
+        long offset = edge.getOffset() + copyShift;
         newSMGState = writeValue(pTarget, offset, edge.getType(), edge.getValue()).getState();
       }
     }
@@ -1832,6 +1887,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     performConsistencyCheck(SMGRuntimeCheck.FULL);
     //TODO Why do I do this here?
     heap.pruneUnreachable();
+    if (heap.hasMemoryLeaks()) {
+      setErrorDescription("Memory leak is detected");
+    }
     performConsistencyCheck(SMGRuntimeCheck.FULL);
     return newSMGState;
   }

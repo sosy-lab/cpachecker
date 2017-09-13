@@ -218,11 +218,11 @@ public class SMGIsLessOrEqual {
         SMGEdgePointsTo ptE2 = pSMG2.getPointer(value);
         String label1 = ptE1.getObject().getLabel();
         String label2 = ptE2.getObject().getLabel();
-        Integer offset1 = ptE1.getOffset();
-        Integer offset2 = ptE2.getOffset();
+        long offset1 = ptE1.getOffset();
+        long offset2 = ptE2.getOffset();
 
         //TODO How does one check, if two pointers point to the same region? You would have to recover the stack frame.
-        if (!(offset1.equals(offset2) && label1.equals(label2))) {
+        if (!(offset1 == offset2 && label1.equals(label2))) {
           return false;
         }
       }

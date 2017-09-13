@@ -100,6 +100,16 @@ public class CLangSMG extends SMG {
    */
   static private boolean perform_checks = false;
 
+  private List<SMGObject> invalidObjects = new ArrayList<>();
+
+  public void reportInvalidObject(SMGObject pSMGObject) {
+    invalidObjects.add(pSMGObject);
+  }
+
+  public List<SMGObject> getInvalidObjects() {
+    return invalidObjects;
+  }
+
   static public void setPerformChecks(boolean pSetting, LogManager logger) {
     CLangSMG.perform_checks = pSetting;
     CLangSMG.logger = logger;
@@ -299,6 +309,8 @@ public class CLangSMG extends SMG {
     for (SMGObject stray_object : stray_objects) {
       if (stray_object != SMGNullObject.INSTANCE) {
         if (isObjectValid(stray_object) && !isObjectExternallyAllocated(stray_object)) {
+          //TODO: report stray_object as error
+          reportInvalidObject(stray_object);
           setMemoryLeak();
         }
         removeObjectAndEdges(stray_object);
@@ -514,7 +526,7 @@ public class CLangSMG extends SMG {
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
 
     if (pLocation.isReference()) {
-      filter.filterAtOffset((int) pLocation.getOffset());
+      filter.filterAtOffset(pLocation.getOffset());
     }
 
     // Remember, edges may overlap with different types
@@ -565,13 +577,13 @@ public class CLangSMG extends SMG {
     }
 
     SMGObject object = initialRegion.get();
-    List<Integer> offsets = pLocation.getPathOffset();
+    List<Long> offsets = pLocation.getPathOffset();
     SMGEdgeHasValue hve;
-    Iterator<Integer> it = offsets.iterator();
+    Iterator<Long> it = offsets.iterator();
 
     while (it.hasNext()) {
 
-      int offset = it.next();
+      long offset = it.next();
       Set<SMGEdgeHasValue> hves =
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
 
@@ -732,14 +744,14 @@ public class CLangSMG extends SMG {
       Integer pLocationOnStack, String pVariableName) {
 
     Set<SMGEdgeHasValue> objectHves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject));
-    List<Integer> offsets = new ArrayList<>();
-    Map<Integer, SMGObject> offsetToRegion = new HashMap<>();
-    Map<Integer, SMGMemoryPath> offsetToParent = new HashMap<>();
+    List<Long> offsets = new ArrayList<>();
+    Map<Long, SMGObject> offsetToRegion = new HashMap<>();
+    Map<Long, SMGMemoryPath> offsetToParent = new HashMap<>();
 
 
     for (SMGEdgeHasValue objectHve : objectHves) {
       Integer value = objectHve.getValue();
-      Integer offset = objectHve.getOffset();
+      long offset = objectHve.getOffset();
 
       SMGMemoryPath path =
           getSMGMemoryPath(pVariableName, offset, pPos, pFunctionName, pLocationOnStack, pParent);
@@ -759,7 +771,7 @@ public class CLangSMG extends SMG {
 
     Collections.sort(offsets);
 
-    for (Integer offset : offsets) {
+    for (long offset : offsets) {
 
       SMGObject smgObject = offsetToRegion.get(offset);
       SMGMemoryPath currentPath = offsetToParent.get(offset);
@@ -768,7 +780,7 @@ public class CLangSMG extends SMG {
     }
   }
 
-  private SMGMemoryPath getSMGMemoryPath(String pVariableName, Integer pOffset,
+  private SMGMemoryPath getSMGMemoryPath(String pVariableName, long pOffset,
       SMGObjectPosition pPos, String pFunctionName, Integer pLocationOnStack,
       SMGMemoryPath pParent) {
 
@@ -881,9 +893,9 @@ public class CLangSMG extends SMG {
       Integer pLocationOnStack, String pVariableName) {
 
     Set<SMGEdgeHasValue> objectHves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSmgObject));
-    List<Integer> offsets = new ArrayList<>();
-    Map<Integer, SMGObject> offsetToRegion = new HashMap<>();
-    Map<Integer, SMGMemoryPath> offsetToParent = new HashMap<>();
+    List<Long> offsets = new ArrayList<>();
+    Map<Long, SMGObject> offsetToRegion = new HashMap<>();
+    Map<Long, SMGMemoryPath> offsetToParent = new HashMap<>();
 
 
     for (SMGEdgeHasValue objectHve : objectHves) {
@@ -894,7 +906,7 @@ public class CLangSMG extends SMG {
       }
 
       SMGObject rObject = getObjectPointedBy(value);
-      Integer offset = objectHve.getOffset();
+      long offset = objectHve.getOffset();
 
       if (!isHeapObject(rObject) || pReached.contains(rObject)) {
         continue;
@@ -913,7 +925,7 @@ public class CLangSMG extends SMG {
 
     Collections.sort(offsets);
 
-    for (Integer offset : offsets) {
+    for (long offset : offsets) {
 
       SMGObject smgObject = offsetToRegion.get(offset);
       SMGMemoryPath currentPath = offsetToParent.get(offset);

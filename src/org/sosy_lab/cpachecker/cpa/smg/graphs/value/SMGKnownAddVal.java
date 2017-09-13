@@ -69,7 +69,7 @@ public final class SMGKnownAddVal extends SMGKnownSymValue implements SMGAddress
     return new SMGKnownAddVal(BigInteger.valueOf(pValue), pAddress);
   }
 
-  public static SMGKnownAddVal valueOf(int pValue, SMGObject object, int offset) {
+  public static SMGKnownAddVal valueOf(int pValue, SMGObject object, long offset) {
     return new SMGKnownAddVal(BigInteger.valueOf(pValue), SMGKnownAddress.valueOf(object, offset));
   }
 

@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
@@ -95,23 +96,41 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       SMGExplicitValue pOffset, CType pType, CFAEdge pEdge)
       throws SMGInconsistentException, UnrecognizedCCodeException {
 
+    SMGState errState = pSmgState.setInvalidRead();
     if (pOffset.isUnknown() || pObject == null) {
-      return SMGValueAndState.of(pSmgState.setInvalidRead());
+      errState.setErrorDescription("Can't evaluate offset or object");
+      return SMGValueAndState.of(errState);
     }
 
-    int fieldOffset = pOffset.getAsInt();
+    long fieldOffset = pOffset.getAsLong();
+    int typeBitSize = getBitSizeof(pEdge, pType, pSmgState);
+    int objectBitSize = pObject.getSize();
 
     //FIXME Does not work with variable array length.
     boolean doesNotFitIntoObject = fieldOffset < 0
-        || fieldOffset + getBitSizeof(pEdge, pType, pSmgState) > pObject.getSize();
+        || fieldOffset + typeBitSize > objectBitSize;
 
     if (doesNotFitIntoObject) {
       // Field does not fit size of declared Memory
       logger.log(Level.INFO, pEdge.getFileLocation(), ":", "Field ", "(",
            fieldOffset, ", ", pType.toASTString(""), ")",
           " does not fit object ", pObject, ".");
+      if (!pObject.equals(SMGNullObject.INSTANCE)) {
+        if (typeBitSize % 8 != 0 || fieldOffset % 8 != 0 || objectBitSize % 8 != 0) {
+          errState.setErrorDescription("Field with " + typeBitSize
+              + " bit size can't be read from offset " + fieldOffset + " bit of "
+              + "object " + objectBitSize + " bit size");
+        } else {
+          errState.setErrorDescription("Field with " + typeBitSize / 8
+              + " byte size can't be read from offset " + fieldOffset / 8 + " byte of "
+              + "object " + objectBitSize / 8 + " byte size");
 
-      return SMGValueAndState.of(pSmgState.setInvalidRead());
+        }
+        errState.addInvalidObject(pObject);
+      } else {
+        errState.setErrorDescription("NULL pointer dereference on read");
+      }
+      return SMGValueAndState.of(errState);
     }
 
     return pSmgState.forceReadValue(pObject, fieldOffset, pType);

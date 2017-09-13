@@ -1,5 +1,5 @@
 struct Recursive {
-  int s;
+  unsigned char uc;
   struct Recursive *p;
   long q;
 };
@@ -7,11 +7,9 @@ struct Recursive {
 
 int foo() {
   struct Recursive *a;
-  struct Recursive ar[10];
+  struct Recursive ar[256];
   a = malloc(sizeof(struct Recursive));
-  if (a->s >= 10) {
-    a->p = ar[a->s];
-  }
+  a->p = ar[a->uc];
   free(a);
   return 0;
 }

@@ -592,7 +592,7 @@ class AssignmentHandler {
                       newLvalueType,
                       ssa)))) {
 
-        final int offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
+        final long offset = typeHandler.getBitOffset(lvalueCompositeType, memberName);
         final Formula offsetFormula = fmgr.makeNumber(conv.voidPointerFormulaType, offset);
         final Location newLvalue;
         if (lvalue.isAliased()) {

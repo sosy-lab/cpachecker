@@ -364,15 +364,15 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       return false;
     }
 
-    Map<Integer, SMGEdgePointsTo> pointerToRegionMap =
+    Map<Long, SMGEdgePointsTo> pointerToRegionMap =
         FluentIterable.from(pointerToAbstraction).uniqueIndex(SMGEdgePointsTo::getOffset);
 
-    Map<Integer, SMGEdgePointsToTemplate> pointerToRegionTemplateMap =
+    Map<Long, SMGEdgePointsToTemplate> pointerToRegionTemplateMap =
         FluentIterable.from(pointerToRegionTemplate)
             .uniqueIndex(SMGEdgePointsToTemplate::getOffset);
 
-    for(Entry<Integer, SMGEdgePointsToTemplate> ptEntry : pointerToRegionTemplateMap.entrySet()) {
-      int offset = ptEntry.getKey();
+    for(Entry<Long, SMGEdgePointsToTemplate> ptEntry : pointerToRegionTemplateMap.entrySet()) {
+      long offset = ptEntry.getKey();
       SMGEdgePointsToTemplate pointerTemplateEdge = ptEntry.getValue();
 
       if(!pointerToRegionMap.containsKey(offset)) {
@@ -401,22 +401,22 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       return false;
     }
 
-    Map<Integer, SMGEdgeHasValue> fieldsOfRegionMap =
+    Map<Long, SMGEdgeHasValue> fieldsOfRegionMap =
         FluentIterable.from(fieldsOfRegion).uniqueIndex(SMGEdgeHasValue::getOffset);
 
     Set<SMGEdgeHasValueTemplate> fieldsOfTemplateSet = new HashSet<>(fieldsOfTemplate.getFieldTemplateContainingPointer());
     fieldsOfTemplateSet.addAll(fieldsOfTemplate.getFieldTemplateContainingPointerTemplate());
 
-    Map<Integer, SMGEdgeHasValueTemplate> fieldsOfRegionTemplateMap =
+    Map<Long, SMGEdgeHasValueTemplate> fieldsOfRegionTemplateMap =
         FluentIterable.from(fieldsOfTemplateSet).uniqueIndex(SMGEdgeHasValueTemplate::getOffset);
 
-    Map<Integer, SMGEdgeHasValueTemplateWithConcreteValue> fieldsOfRegionTemplateCVMap =
+    Map<Long, SMGEdgeHasValueTemplateWithConcreteValue> fieldsOfRegionTemplateCVMap =
         FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingValue())
             .uniqueIndex(SMGEdgeHasValueTemplateWithConcreteValue::getOffset);
 
-    for (Entry<Integer, SMGEdgeHasValue> hveEntry : fieldsOfRegionMap.entrySet()) {
+    for (Entry<Long, SMGEdgeHasValue> hveEntry : fieldsOfRegionMap.entrySet()) {
 
-      int offset = hveEntry.getKey();
+      long offset = hveEntry.getKey();
       SMGEdgeHasValue hve = hveEntry.getValue();
 
       if (fieldsOfRegionTemplateMap.containsKey(offset)) {
@@ -566,15 +566,15 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       return false;
     }
 
-    Map<Integer, SMGEdgeHasValue> fieldOffsetMap =
+    Map<Long, SMGEdgeHasValue> fieldOffsetMap =
         FluentIterable.from(fields).uniqueIndex(SMGEdgeHasValue::getOffset);
 
-    Map<Integer, SMGEdgeHasValueTemplate> fieldOffsetTemplateMap =
+    Map<Long, SMGEdgeHasValueTemplate> fieldOffsetTemplateMap =
         FluentIterable.from(fieldsTemplate).uniqueIndex(SMGEdgeHasValueTemplate::getOffset);
 
-    for(Entry<Integer, SMGEdgeHasValueTemplate> hveTmpEntry : fieldOffsetTemplateMap.entrySet()) {
+    for(Entry<Long, SMGEdgeHasValueTemplate> hveTmpEntry : fieldOffsetTemplateMap.entrySet()) {
 
-      int offset = hveTmpEntry.getKey();
+      long offset = hveTmpEntry.getKey();
       SMGEdgeHasValueTemplate pointerEdgeTemplate = hveTmpEntry.getValue();
 
       if(!fieldOffsetMap.containsKey(offset)) {
@@ -642,16 +642,16 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       return false;
     }
 
-    Map<Integer, SMGEdgePointsTo> pointerToRegionMap =
+    Map<Long, SMGEdgePointsTo> pointerToRegionMap =
         FluentIterable.from(pointerToRegion).uniqueIndex(SMGEdgePointsTo::getOffset);
 
-    Map<Integer, SMGEdgePointsToTemplate> pointerToRegionTemplateMap =
+    Map<Long, SMGEdgePointsToTemplate> pointerToRegionTemplateMap =
         FluentIterable.from(pointerToRegionTemplate)
             .uniqueIndex(SMGEdgePointsToTemplate::getOffset);
 
-    for (Entry<Integer, SMGEdgePointsToTemplate> pteTmp : pointerToRegionTemplateMap.entrySet()) {
+    for (Entry<Long, SMGEdgePointsToTemplate> pteTmp : pointerToRegionTemplateMap.entrySet()) {
 
-      int offset = pteTmp.getKey();
+      long offset = pteTmp.getKey();
       SMGEdgePointsToTemplate ptTmp = pteTmp.getValue();
 
       if (!pointerToRegionMap.containsKey(offset)) {
@@ -680,22 +680,22 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       return false;
     }
 
-    Map<Integer, SMGEdgeHasValue> fieldsOfRegionMap =
+    Map<Long, SMGEdgeHasValue> fieldsOfRegionMap =
         FluentIterable.from(fieldsOfRegion).uniqueIndex(SMGEdgeHasValue::getOffset);
 
     Set<SMGEdgeHasValueTemplate> fieldsOfTemplateSet = new HashSet<>(fieldsOfTemplate.getFieldTemplateContainingPointer());
     fieldsOfTemplateSet.addAll(fieldsOfTemplate.getFieldTemplateContainingPointerTemplate());
 
-    Map<Integer, SMGEdgeHasValueTemplate> fieldsOfRegionTemplateMap =
+    Map<Long, SMGEdgeHasValueTemplate> fieldsOfRegionTemplateMap =
         FluentIterable.from(fieldsOfTemplateSet).uniqueIndex(SMGEdgeHasValueTemplate::getOffset);
 
-    Map<Integer, SMGEdgeHasValueTemplateWithConcreteValue> fieldsOfRegionTemplateCVMap =
+    Map<Long, SMGEdgeHasValueTemplateWithConcreteValue> fieldsOfRegionTemplateCVMap =
         FluentIterable.from(fieldsOfTemplate.getFieldTemplateContainingValue())
             .uniqueIndex(SMGEdgeHasValueTemplateWithConcreteValue::getOffset);
 
-    for (Entry<Integer, SMGEdgeHasValue> hveEntry : fieldsOfRegionMap.entrySet()) {
+    for (Entry<Long, SMGEdgeHasValue> hveEntry : fieldsOfRegionMap.entrySet()) {
 
-      int offset = hveEntry.getKey();
+      long offset = hveEntry.getKey();
       SMGEdgeHasValue hve = hveEntry.getValue();
 
       if (fieldsOfRegionTemplateMap.containsKey(offset)) {

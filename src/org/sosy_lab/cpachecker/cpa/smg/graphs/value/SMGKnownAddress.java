@@ -32,7 +32,7 @@ class SMGKnownAddress extends SMGAddress {
     super(pObject, pOffset);
   }
 
-  public static SMGKnownAddress valueOf(SMGObject pObject, int pOffset) {
+  public static SMGKnownAddress valueOf(SMGObject pObject, long pOffset) {
     return new SMGKnownAddress(pObject, SMGKnownExpValue.valueOf(pOffset));
   }
 
