@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class RedundantRequirementsRemoverIntervalStateImplementation extends
@@ -84,7 +85,7 @@ public class RedundantRequirementsRemoverIntervalStateImplementation extends
       return new CreatorIntegerInterval().factoryMethod(constant);
     } catch (NumberFormatException e) {
       if (pAbstractState.contains(pVarOrConst)) {
-        return pAbstractState.getInterval(pVarOrConst);
+        return pAbstractState.getElement(MemoryLocation.valueOf(pVarOrConst));
       }
     }
 //TODO should be a NumberInerface

@@ -338,7 +338,7 @@ public class ValueAnalysisTransferRelation
         unknownValueHandler.handle(formalParamName, paramType, newElement, visitor);
 
       } else {
-        newElement.assignConstant(formalParamName, value, paramType);
+        newElement.assignElement(formalParamName, value, paramType);
       }
 
       visitor.reset();
@@ -357,7 +357,7 @@ public class ValueAnalysisTransferRelation
 
       // clone state, because will be changed through removing all variables of current function's scope
       state = UnifyAnalysisState.copyOf(state);
-      state.dropFrameValue(functionName);
+      state.dropFrame(functionName);
     }
 
     return state;
@@ -374,7 +374,7 @@ public class ValueAnalysisTransferRelation
     // The assignment of the global 'state' is safe, because the 'old state'
     // is available in the visitor and is not used for further computation.
     state = UnifyAnalysisState.copyOf(state);
-    state.dropFrameValue(functionName);
+    state.dropFrame(functionName);
 
     AExpression expression = returnEdge.getExpression().orNull();
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
@@ -435,7 +435,7 @@ public class ValueAnalysisTransferRelation
       NumberInterface newValue = null;
       boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
       if (valueExists) {
-        newValue = state.getValueFor(functionReturnVar);
+        newValue = state.getElement(functionReturnVar);
       }
 
       // We have to handle Java arrays in a special way, because they are stored as ArrayValue
@@ -492,7 +492,7 @@ public class ValueAnalysisTransferRelation
             unknownValueHandler.handle(memLoc.get(), op1.getExpressionType(), newElement, v);
 
           } else {
-            newElement.assignConstant(memLoc.get(),
+            newElement.assignElement(memLoc.get(),
                                       newValue,
                                       state.getTypeForMemoryLocation(functionReturnVar));
           }
@@ -742,7 +742,7 @@ public class ValueAnalysisTransferRelation
     if (initialValue.isUnknown()) {
       unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
     } else {
-      newElement.assignConstant(memoryLocation, initialValue, declarationType);
+      newElement.assignElement(memoryLocation, initialValue, declarationType);
     }
 
     return newElement;
@@ -853,7 +853,7 @@ public class ValueAnalysisTransferRelation
 
     if (memLoc.isPresent()) {
       if (!newValue.isUnknown()) {
-        newElement.assignConstant(memLoc.get(), newValue, leftSideType);
+        newElement.assignElement(memLoc.get(), newValue, leftSideType);
 
       } else {
         unknownValueHandler.handle(memLoc.get(), leftSideType, newElement, evv);
@@ -1055,7 +1055,7 @@ public class ValueAnalysisTransferRelation
         unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
 
       } else {
-        newElement.assignConstant(assignedVar, value, lType);
+        newElement.assignElement(assignedVar, value, lType);
       }
     }
   }
@@ -1130,7 +1130,7 @@ public class ValueAnalysisTransferRelation
         MemoryLocation idName = MemoryLocation.valueOf(arrayDeclaration.getQualifiedName());
 
         if (state.contains(idName)) {
-          NumberInterface idValue = state.getValueFor(idName);
+          NumberInterface idValue = state.getElement(idName);
           if (idValue.isExplicitlyKnown()) {
             return (ArrayValue) idValue;
           }
@@ -1177,7 +1177,7 @@ public class ValueAnalysisTransferRelation
       MemoryLocation memLoc = getMemoryLocation(idExpression);
       NumberInterface unknownValue = NumberInterface.UnknownValue.getInstance();
 
-      state.assignConstant(memLoc, unknownValue, JSimpleType.getUnspecified());
+      state.assignElement(memLoc, unknownValue, JSimpleType.getUnspecified());
 
     } else {
       JArraySubscriptExpression enclosingSubscriptExpression = (JArraySubscriptExpression) enclosingExpression;
@@ -1234,7 +1234,7 @@ public class ValueAnalysisTransferRelation
       MemoryLocation varName = MemoryLocation.valueOf(handleIdExpression(idExp));
 
       if (readableState.contains(varName)) {
-        return readableState.getValueFor(varName);
+        return readableState.getElement(varName);
       } else {
         return NumberInterface.UnknownValue.getInstance();
       }
@@ -1515,7 +1515,7 @@ public class ValueAnalysisTransferRelation
 
               Type otherVariableType = pValueState.getTypeForMemoryLocation(otherVariableLocation);
               if (otherVariableType != null) {
-                NumberInterface otherVariableValue = pValueState.getValueFor(otherVariableLocation);
+                NumberInterface otherVariableValue = pValueState.getElement(otherVariableLocation);
                 if (otherVariableValue != null) {
                   if (variableType.equals(otherVariableType)
                       || (variableType.equals(CNumericTypes.FLOAT)
@@ -1536,7 +1536,7 @@ public class ValueAnalysisTransferRelation
 
     if (target != null && type != null && shouldAssign) {
       newState = UnifyAnalysisState.copyOf(pValueState);
-      newState.assignConstant(target, value, type);
+      newState.assignElement(target, value, type);
     }
 
     return newState;
@@ -1645,10 +1645,10 @@ public class ValueAnalysisTransferRelation
     UnifyAnalysisState newElement = UnifyAnalysisState.copyOf(oldState);
 
     if (missingFieldVariableObject) {
-      newElement.assignElement(getRTTScopedVariableName(
+      newElement.assignElement(MemoryLocation.valueOf(getRTTScopedVariableName(
           fieldNameAndInitialValue.getFirst(),
-          rttState.getKeywordThisUniqueObject()),
-          fieldNameAndInitialValue.getSecond());
+          rttState.getKeywordThisUniqueObject())),
+          fieldNameAndInitialValue.getSecond(), null);
 
       missingFieldVariableObject = false;
       fieldNameAndInitialValue = null;
@@ -1687,7 +1687,7 @@ public class ValueAnalysisTransferRelation
       NumberInterface value = handleMissingInformationRightJExpression(rttState);
 
       if (!value.isUnknown()) {
-        newElement.assignElement(missingInformationLeftJVariable, value);
+        newElement.assignElement(MemoryLocation.valueOf(missingInformationLeftJVariable), value, null);
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
         return Collections.singleton(newElement);
@@ -1727,7 +1727,7 @@ public class ValueAnalysisTransferRelation
      }
 
      if (!value.isUnknown()) {
-       newElement.assignElement(scopedFieldName, value);
+       newElement.assignElement(MemoryLocation.valueOf(scopedFieldName), value, null);
        return newElement;
      } else {
        newElement.forget(MemoryLocation.valueOf(scopedFieldName));

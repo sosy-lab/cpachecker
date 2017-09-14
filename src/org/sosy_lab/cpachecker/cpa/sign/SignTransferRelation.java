@@ -127,17 +127,17 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
           pCfaEdge); }
       String returnVarName = getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName);
       String assignedVarName = getScopedVariableName(leftSide, pCallerFunctionName);
-      logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignForVariable(returnVarName));
+      logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getElement(MemoryLocation.valueOf(returnVarName)));
       UnifyAnalysisState result = state
-              .leaveFunction(functionName)
-              .assignElement(assignedVarName, state.getSignForVariable(returnVarName));
+              .dropFrame(functionName)
+              .assignElement(MemoryLocation.valueOf(assignedVarName), state.getElement(MemoryLocation.valueOf(returnVarName)), null);
       return result;
     }
 
     // fun()
     if (pSummaryExpr instanceof AFunctionCallStatement) {
       logger.log(Level.FINE, "Leave function " + functionName);
-      return state.removeSignAssumptionOfVariable(getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName)).leaveFunction(functionName);
+      return state.forgetElement(MemoryLocation.valueOf(getScopedVariableNameForNonGlobalVariable(FUNC_RET_VAR, functionName))).dropFrame(functionName);
     }
 
     throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
@@ -276,12 +276,12 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
     if (result.isPresent()) {
       logger.log(Level.FINE, "Assumption: " + (pTruthAssumption ? pExpression : "!(" + pExpression + ")") + " --> " + result.get().identifier + " = " + result.get().value);
       // assure that does not become more abstract after assumption
-      if (state.getSignForVariable(getScopedVariableName(result.get().identifier))
+      if (state.getElement(MemoryLocation.valueOf(getScopedVariableName(result.get().identifier)))
           .covers(result.get().value)) { return state.assignElement(
-          getScopedVariableName(result.get().identifier), result.get().value); }
+                  MemoryLocation.valueOf(getScopedVariableName(result.get().identifier)), result.get().value, null); }
       // check if results distinct, then no successor exists
-      if (!result.get().value.intersects(state.getSignForVariable(
-          getScopedVariableName(result.get().identifier)))) { return null; }
+      if (!result.get().value.intersects(state.getElement(
+              MemoryLocation.valueOf(getScopedVariableName(result.get().identifier))))) { return null; }
     }
     return state;
   }
@@ -306,7 +306,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
     }
     // type x;
     // since it is C, we assume it may have any value here
-    return state.assignElement(scopedId, SIGN.ALL);
+    return state.assignElement(MemoryLocation.valueOf(scopedId), SIGN.ALL, null);
   }
 
   @Override
@@ -349,7 +349,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
     // x[index] = ..,
     if(left instanceof CArraySubscriptExpression) {
       // currently only overapproximate soundly and assume any value
-      return state.assignElement(getScopedVariableName(((CArraySubscriptExpression) left).getArrayExpression(), functionName), SIGN.ALL);
+      return state.assignElement(MemoryLocation.valueOf(getScopedVariableName(((CArraySubscriptExpression) left).getArrayExpression()), functionName), SIGN.ALL, null);
     }
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
   }
@@ -360,7 +360,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
       CRightHandSide right = (CRightHandSide)pRightExpr;
       NumberInterface result = right.accept(new SignCExpressionVisitor(edge, pState, this));
       logger.log(Level.FINE,  "Assignment: " + pVarIdent + " = " + result);
-      return pState.assignElement(pVarIdent, result);
+      return pState.assignElement(MemoryLocation.valueOf(pVarIdent), result, null);
     }
     throw new UnrecognizedCodeException("unhandled righthandside expression", edge);
   }

@@ -191,7 +191,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
     SymbolicIdentifier newIdentifier = factory.newIdentifier();
     SymbolicValue newIdentifierWithType = factory.asConstant(newIdentifier, pVarType);
 
-    pState.assignConstant(pVarLocation, newIdentifierWithType, pVarType);
+    pState.assignElement(pVarLocation, newIdentifierWithType, pVarType);
   }
 
   private void fillStructWithSymbolicIdentifiers(

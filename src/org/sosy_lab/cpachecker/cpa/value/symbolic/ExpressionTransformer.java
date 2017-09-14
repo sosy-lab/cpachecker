@@ -76,7 +76,7 @@ public class ExpressionTransformer {
     final Type idType = pIastIdExpression.getExpressionType();
 
     if (valueState.contains(memLoc)) {
-      final NumberInterface idValue = valueState.getValueFor(memLoc);
+      final NumberInterface idValue = valueState.getElement(memLoc);
 
       return SymbolicValueFactory.getInstance().asConstant(idValue, idType).copyForLocation(memLoc);
 

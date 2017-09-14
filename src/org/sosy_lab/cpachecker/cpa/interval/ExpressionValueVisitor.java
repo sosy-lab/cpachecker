@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Visitor that get's the interval from an expression, */
 class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, UnrecognizedCCodeException>
@@ -189,7 +190,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
         }
         final String variableName = identifier.getDeclaration().getQualifiedName();
         if (readableState.contains(variableName)) {
-            return readableState.getInterval(variableName);
+            return readableState.getElement(MemoryLocation.valueOf(variableName));
         } else {
             return new CreatorIntegerInterval().factoryMethod(null).UNBOUND();
         }

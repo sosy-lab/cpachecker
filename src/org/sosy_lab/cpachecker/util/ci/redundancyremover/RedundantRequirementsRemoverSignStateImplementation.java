@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class RedundantRequirementsRemoverSignStateImplementation extends
@@ -95,7 +96,7 @@ RedundantRequirementsRemoverImplementation<UnifyAnalysisState, NumberInterface>{
       // pVarOrConst is var and handled in next return
     }
 
-    return pAbstractState.getSignForVariable(pVarOrConst);
+    return pAbstractState.getElement(MemoryLocation.valueOf(pVarOrConst));
   }
 
   @Override

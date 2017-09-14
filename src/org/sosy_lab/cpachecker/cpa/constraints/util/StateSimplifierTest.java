@@ -162,10 +162,10 @@ public class StateSimplifierTest {
   private UnifyAnalysisState getCompleteValueState() {
     UnifyAnalysisState state = new UnifyAnalysisState(machineModel);
 
-    state.assignConstant(group1MemLoc1, group1Id1, defaultNumericType);
-    state.assignConstant(group1MemLoc2, group1Id2, defaultNumericType);
-    state.assignConstant(group2MemLoc1, group2Id1, defaultNumericType);
-    state.assignConstant(group2MemLoc2, group2Id2, defaultNumericType);
+    state.assignElement(group1MemLoc1, group1Id1, defaultNumericType);
+    state.assignElement(group1MemLoc2, group1Id2, defaultNumericType);
+    state.assignElement(group2MemLoc1, group2Id1, defaultNumericType);
+    state.assignElement(group2MemLoc2, group2Id2, defaultNumericType);
 
     return state;
   }

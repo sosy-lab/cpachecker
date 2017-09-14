@@ -235,16 +235,16 @@ public class ValueAnalysisInterpolant implements Interpolant<UnifyAnalysisState>
 
     for (Map.Entry<MemoryLocation, NumberInterface> itp : assignment.entrySet()) {
       if (!valueState.contains(itp.getKey())) {
-        valueState.assignConstant(itp.getKey(), itp.getValue(), assignmentTypes.get(itp.getKey()));
+        valueState.assignElement(itp.getKey(), itp.getValue(), assignmentTypes.get(itp.getKey()));
         strengthened = true;
 
       } else {
         verify(
-            valueState.getValueFor(itp.getKey()).asNumericValue().longValue()
+            valueState.getElement(itp.getKey()).asNumericValue().longValue()
                 == itp.getValue().asNumericValue().longValue(),
             "state and interpolant do not match in value for variable %s [state = %s != %s = itp] for state %s",
             itp.getKey(),
-            valueState.getValueFor(itp.getKey()),
+            valueState.getElement(itp.getKey()),
             itp.getValue(),
             argState.getStateId());
       }

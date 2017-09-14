@@ -112,9 +112,9 @@ public class RedundancyRemoverTest {
     // varOrConst x -> Interval [-1,4]
     // varOrConst y -> unbound interval
 
-      UnifyAnalysisState intervalState1 = new UnifyAnalysisState(NumericalType.INTERVAL).assignElement("1", new IntegerInterval(1L, 1L));
+      UnifyAnalysisState intervalState1 = new UnifyAnalysisState(NumericalType.INTERVAL).assignElement(MemoryLocation.valueOf("1"), new IntegerInterval(1L, 1L), null);
     //IntervalAnalysisState intervalState2 = new IntervalAnalysisState().addInterval("x", new Interval(-1L, 4L), 0);
-      UnifyAnalysisState intervalState3 = new UnifyAnalysisState(NumericalType.INTERVAL).assignElement("y", IntegerInterval.UNBOUND);
+      UnifyAnalysisState intervalState3 = new UnifyAnalysisState(NumericalType.INTERVAL).assignElement(MemoryLocation.valueOf("y"), IntegerInterval.UNBOUND, null);
 
     RedundantRequirementsRemoverIntervalStateImplementation intervalStateImpl = new RedundantRequirementsRemoverIntervalStateImplementation();
     Truth.assertThat(intervalStateImpl.getAbstractValue(intervalState1, "1")).isEqualTo(new IntegerInterval(1L, 1L));
@@ -253,11 +253,11 @@ public class RedundancyRemoverTest {
     // varOrConst x -> PLUSMINUS
     // varOrConst y -> ALL
     RedundantRequirementsRemoverSignStateImplementation signImpl = new RedundantRequirementsRemoverSignStateImplementation();
-    UnifyAnalysisState signState1 = UnifyAnalysisState.TOP.assignElement("-1", SIGN.MINUS);
-    UnifyAnalysisState signState2 = UnifyAnalysisState.TOP.assignElement("0", SIGN.ZERO);
-    UnifyAnalysisState signState3 = UnifyAnalysisState.TOP.assignElement("1", SIGN.PLUS);
-    UnifyAnalysisState signState4 = UnifyAnalysisState.TOP.assignElement("x", SIGN.PLUSMINUS);
-    UnifyAnalysisState signState5 = UnifyAnalysisState.TOP.assignElement("y", SIGN.ALL);
+    UnifyAnalysisState signState1 = UnifyAnalysisState.TOP.assignElement(MemoryLocation.valueOf("-1"), SIGN.MINUS, null);
+    UnifyAnalysisState signState2 = UnifyAnalysisState.TOP.assignElement(MemoryLocation.valueOf("0"), SIGN.ZERO, null);
+    UnifyAnalysisState signState3 = UnifyAnalysisState.TOP.assignElement(MemoryLocation.valueOf("1"), SIGN.PLUS, null);
+    UnifyAnalysisState signState4 = UnifyAnalysisState.TOP.assignElement(MemoryLocation.valueOf("x"), SIGN.PLUSMINUS, null);
+    UnifyAnalysisState signState5 = UnifyAnalysisState.TOP.assignElement(MemoryLocation.valueOf("y"), SIGN.ALL, null);
 
     Truth.assertThat(signImpl.getAbstractValue(signState1, "-1")).isEqualTo(SIGN.MINUS);
     Truth.assertThat(signImpl.getAbstractValue(signState2, "0")).isEqualTo(SIGN.ZERO);
@@ -265,6 +265,13 @@ public class RedundancyRemoverTest {
     Truth.assertThat(signImpl.getAbstractValue(signState4, "x")).isEqualTo(SIGN.PLUSMINUS);
     Truth.assertThat(signImpl.getAbstractValue(signState5, "y")).isEqualTo(SIGN.ALL);
   }
+ // in case new method getElement send NullPointerException if the element not found
+//  @Test(expected = NullPointerException.class)
+//  public void testGetAbstractValueSignStateNew() {
+//      RedundantRequirementsRemoverSignStateImplementation signImpl = new RedundantRequirementsRemoverSignStateImplementation();
+//      UnifyAnalysisState signState5 = UnifyAnalysisState.TOP.assignElement(MemoryLocation.valueOf("y"), SIGN.ALL, null);
+//      Truth.assertThat(signImpl.getAbstractValue(signState5, "y")).isEqualTo(SIGN.ALL);
+//  }
 
   @Test
   public void testCompareValueAnalysisState() {
@@ -330,19 +337,19 @@ public class RedundancyRemoverTest {
 
     UnifyAnalysisState valState1 = new UnifyAnalysisState(machineModel);
     NumericValue val1 = new NumericValue(1L);
-    valState1.assignConstant(MemoryLocation.valueOf("1"), val1, new CSimpleType(
+    valState1.assignElement(MemoryLocation.valueOf("1"), val1, new CSimpleType(
         false, false, CBasicType.INT, false, false, false, false, false, false, false));
     //    Truth.assertThat(valueImpl.getAbstractValue(valState1, "1")).isEqualTo(val1); // TODO
 
     UnifyAnalysisState valState2 = new UnifyAnalysisState(machineModel);
     NumericValue val2 = new NumericValue(7L);
-    valState2.assignConstant(MemoryLocation.valueOf("x"), val2, new CSimpleType(
+    valState2.assignElement(MemoryLocation.valueOf("x"), val2, new CSimpleType(
         false, false, CBasicType.INT, false, false, false, false, false, false, false));
     Truth.assertThat(valueImpl.getAbstractValue(valState2, "x")).isEqualTo(val2);
 
     UnifyAnalysisState valState3 = new UnifyAnalysisState(machineModel);
     NumberInterface val3 = NumberInterface.UnknownValue.getInstance();
-    valState3.assignConstant(MemoryLocation.valueOf("y"), val3, new CSimpleType(
+    valState3.assignElement(MemoryLocation.valueOf("y"), val3, new CSimpleType(
         false, false, CBasicType.INT, false, false, false, false, false, false, false));
     Truth.assertThat(valueImpl.getAbstractValue(valState3, "y")).isEqualTo(val3);
   }

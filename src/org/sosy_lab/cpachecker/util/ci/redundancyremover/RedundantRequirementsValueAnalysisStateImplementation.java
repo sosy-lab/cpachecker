@@ -91,7 +91,7 @@ public class RedundantRequirementsValueAnalysisStateImplementation extends
     } catch (NumberFormatException e) {
       MemoryLocation memLoc = MemoryLocation.valueOf(pVarOrConst);
       if (pAbstractState.contains(memLoc)) {
-        return pAbstractState.getValueFor(memLoc);
+        return pAbstractState.getElement(memLoc);
       }
     }
 

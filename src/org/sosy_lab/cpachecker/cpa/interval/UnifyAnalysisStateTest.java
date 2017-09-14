@@ -26,16 +26,17 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class UnifyAnalysisStateTest {
   @Test
   public void pseudoPartiotionKey() {
       UnifyAnalysisState s = new UnifyAnalysisState(NumericalType.INTERVAL);
-      UnifyAnalysisState sa1 = s.assignElement("a", new IntegerInterval(1L, 1L));
-      UnifyAnalysisState sb2 = s.assignElement("b", new IntegerInterval(2L, 2L));
-      UnifyAnalysisState sa1b2 = sa1.assignElement("b", new IntegerInterval(2L, 2L));
-      UnifyAnalysisState sa1b3 = sa1.assignElement("b", new IntegerInterval(3L, 3L));
-      UnifyAnalysisState sa1b23 = sa1.assignElement("b", new IntegerInterval(2L, 3L));
+      UnifyAnalysisState sa1 = s.assignElement(MemoryLocation.valueOf("a"), new IntegerInterval(1L, 1L), null);
+      UnifyAnalysisState sb2 = s.assignElement(MemoryLocation.valueOf("b"), new IntegerInterval(2L, 2L), null);
+      UnifyAnalysisState sa1b2 = sa1.assignElement(MemoryLocation.valueOf("b"), new IntegerInterval(2L, 2L), null);
+      UnifyAnalysisState sa1b3 = sa1.assignElement(MemoryLocation.valueOf("b"), new IntegerInterval(3L, 3L), null);
+      UnifyAnalysisState sa1b23 = sa1.assignElement(MemoryLocation.valueOf("b"), new IntegerInterval(2L, 3L), null);
 
       Comparable cs = s.getPseudoPartitionKey();
       Comparable csa1 = sa1.getPseudoPartitionKey();

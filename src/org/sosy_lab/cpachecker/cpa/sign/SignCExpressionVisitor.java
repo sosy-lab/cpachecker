@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class SignCExpressionVisitor
@@ -94,7 +95,7 @@ public class SignCExpressionVisitor
 
   @Override
   public NumberInterface visit(CFieldReference e) throws UnrecognizedCodeException {
-    return state.getSignForVariable(transferRel.getScopedVariableName(e));
+    return state.getElement(MemoryLocation.valueOf(transferRel.getScopedVariableName(e)));
   }
 
   @Override
@@ -111,7 +112,7 @@ public class SignCExpressionVisitor
 
   @Override
   public NumberInterface visit(CIdExpression pIastIdExpression) throws UnrecognizedCodeException {
-    return state.getSignForVariable(transferRel.getScopedVariableName(pIastIdExpression));
+    return state.getElement(MemoryLocation.valueOf(transferRel.getScopedVariableName(pIastIdExpression)));
   }
 
   @Override

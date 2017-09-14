@@ -54,6 +54,11 @@ public enum SIGN implements NumberInterface, Serializable {
     public boolean isAll() {
         return this == ALL;
     }
+    @Override
+    public boolean isUnbound() {
+        return isAll();
+    }
+
 
     @Override
     public boolean isEmpty() {

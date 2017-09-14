@@ -321,7 +321,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
 
     // forget the value for all variables that exceed their threshold
     for (MemoryLocation memoryLocation: state.getTrackedMemoryLocations()) {
-      assignments.updateAssignmentInformation(memoryLocation, state.getValueFor(memoryLocation));
+      assignments.updateAssignmentInformation(memoryLocation, state.getElement(memoryLocation));
 
       if (assignments.exceedsThreshold(memoryLocation)) {
         state.forget(memoryLocation);

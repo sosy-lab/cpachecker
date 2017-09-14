@@ -60,7 +60,7 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
     }
     Collections.sort(varList);
     for (String var : varList) {
-        list.add(getRequirement(getVarWithIndex(var, pIndices), pRequirement.getInterval(var)));
+        list.add(getRequirement(getVarWithIndex(var, pIndices), pRequirement.getElement(MemoryLocation.valueOf(var))));
       }
     return list;
   }

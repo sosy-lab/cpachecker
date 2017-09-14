@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class SingleSignChecker extends PerElementPropertyChecker {
@@ -49,7 +50,7 @@ public class SingleSignChecker extends PerElementPropertyChecker {
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(label)) {
         UnifyAnalysisState state = AbstractStates.extractStateByType(pElemToCheck, UnifyAnalysisState.class);
       if (state != null) {
-        if (state.getSignForVariable(varName) == value) { return true; }
+        if (state.getElement(MemoryLocation.valueOf(varName)) == value) { return true; }
       }
       return false;
     }

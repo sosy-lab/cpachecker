@@ -132,12 +132,12 @@ public class TranslatorTest {
   @Test
   public void testSignTranslator() {
       UnifyAnalysisState sStateTest = UnifyAnalysisState.TOP;
-    sStateTest = sStateTest.assignElement("var1", SIGN.PLUS);
-    sStateTest = sStateTest.assignElement("var2", SIGN.MINUS);
-    sStateTest = sStateTest.assignElement("var3", SIGN.ZERO);
-    sStateTest = sStateTest.assignElement("fun::var1", SIGN.PLUSMINUS);
-    sStateTest = sStateTest.assignElement("fun::varB", SIGN.PLUS0);
-    sStateTest = sStateTest.assignElement("fun::varC", SIGN.MINUS0);
+    sStateTest = sStateTest.assignElement(MemoryLocation.valueOf("var1"), SIGN.PLUS, null);
+    sStateTest = sStateTest.assignElement(MemoryLocation.valueOf("var2"), SIGN.MINUS, null);
+    sStateTest = sStateTest.assignElement(MemoryLocation.valueOf("var3"), SIGN.ZERO, null);
+    sStateTest = sStateTest.assignElement(MemoryLocation.valueOf("fun::var1"), SIGN.PLUSMINUS, null);
+    sStateTest = sStateTest.assignElement(MemoryLocation.valueOf("fun::varB"), SIGN.PLUS0, null);
+    sStateTest = sStateTest.assignElement(MemoryLocation.valueOf("fun::varC"), SIGN.MINUS0, null);
     SignRequirementsTranslator sReqTransTest =
         new SignRequirementsTranslator(LogManager.createTestLogManager());
 

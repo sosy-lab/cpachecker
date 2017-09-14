@@ -269,7 +269,7 @@ public class CExpressionTransformer extends ExpressionTransformer
       return null;
 
     } else if (valueState.contains(memLoc)) {
-      NumberInterface value = valueState.getValueFor(memLoc);
+      NumberInterface value = valueState.getElement(memLoc);
 
       return factory.asConstant(value, pExpression.getExpressionType());
     } else {

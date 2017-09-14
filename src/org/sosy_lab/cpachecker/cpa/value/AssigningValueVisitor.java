@@ -127,7 +127,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
         if (options.isOptimizeBooleanVariables()
             && (booleans.contains(leftMemLoc.getAsSimpleString())
                 || options.isInitAssumptionVars())) {
-          assignableState.assignConstant(
+          assignableState.assignElement(
               leftMemLoc, new NumericValue(1L), pE.getOperand1().getExpressionType());
         }
 
@@ -136,7 +136,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
         MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
         if (booleans.contains(rightMemLoc.getAsSimpleString()) || options.isInitAssumptionVars()) {
-          assignableState.assignConstant(
+          assignableState.assignElement(
               rightMemLoc, new NumericValue(1L), pE.getOperand2().getExpressionType());
         }
       }
@@ -175,7 +175,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       }
     }
 
-    assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
+    assignableState.assignElement(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
   }
 
   private static boolean assumingUnknownToBeZero(NumberInterface value1, NumberInterface value2) {
@@ -260,10 +260,10 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     ASimpleDeclaration declaration = pIdExpression.getDeclaration();
 
     if (declaration != null) {
-      assignableState.assignElement(declaration.getQualifiedName(), pValue);
+      assignableState.assignElement(MemoryLocation.valueOf(declaration.getQualifiedName()), pValue, null);
     } else {
       MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName());
-      assignableState.assignConstant(memLoc, pValue, pIdExpression.getExpressionType());
+      assignableState.assignElement(memLoc, pValue, pIdExpression.getExpressionType());
     }
   }
 

@@ -111,7 +111,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     }
 
     if (readableState.contains(memLoc)) {
-      return readableState.getValueFor(memLoc);
+      return readableState.getElement(memLoc);
     } else {
       return NumberInterface.UnknownValue.getInstance();
     }
@@ -132,7 +132,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       MachineModel machineModel = getMachineModel();
       if (!(actualType instanceof CType)
           || machineModel.getSizeof(readType) == machineModel.getSizeof((CType) actualType)) {
-        return readableState.getValueFor(varLoc);
+        return readableState.getElement(varLoc);
       }
     }
     return UnknownValue.getInstance();

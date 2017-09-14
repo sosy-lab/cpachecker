@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class IntervalAnalysisTransferRelation
         extends ForwardingTransferRelation<Collection<UnifyAnalysisState>, UnifyAnalysisState, Precision> {
@@ -111,7 +112,7 @@ public class IntervalAnalysisTransferRelation
         UnifyAnalysisState newState = state;
         Optional<CVariableDeclaration> retVar = fnkCall.getFunctionEntry().getReturnVariable();
         if (retVar.isPresent()) {
-            newState = newState.removeInterval(retVar.get().getQualifiedName());
+            newState = newState.forgetElement(MemoryLocation.valueOf(retVar.get().getQualifiedName()));
         }
 
         // expression is an assignment operation, e.g. a = g(b);
@@ -121,7 +122,7 @@ public class IntervalAnalysisTransferRelation
             // left hand side of the expression has to be a variable
             if (state.contains(retVar.get().getQualifiedName())) {
                 newState = addInterval(newState, funcExp.getLeftHandSide(),
-                        state.getInterval(retVar.get().getQualifiedName()));
+                        state.getElement(MemoryLocation.valueOf(retVar.get().getQualifiedName())));
             }
 
         } else if (summaryExpr instanceof CFunctionCallStatement) {
@@ -161,7 +162,7 @@ public class IntervalAnalysisTransferRelation
             // get value of actual parameter in caller function context
             NumberInterface interval = evaluateInterval(state, arguments.get(i), callEdge);
             String formalParameterName = parameters.get(i).getQualifiedName();
-            newState = newState.assignElement(formalParameterName, interval);
+            newState = newState.assignElement(MemoryLocation.valueOf(formalParameterName), interval, null);
         }
 
         return soleSuccessor(newState);
@@ -183,8 +184,8 @@ public class IntervalAnalysisTransferRelation
         // assign the value of the function return to a new variable
         if (returnEdge.asAssignment().isPresent()) {
             CAssignment ass = returnEdge.asAssignment().get();
-            newState = newState.assignElement(((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
-                    evaluateInterval(state, ass.getRightHandSide(), returnEdge));
+            newState = newState.assignElement(MemoryLocation.valueOf(((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName()),
+                    evaluateInterval(state, ass.getRightHandSide(), returnEdge), null);
         }
 
         return soleSuccessor(newState);
@@ -351,7 +352,7 @@ public class IntervalAnalysisTransferRelation
         // we currently only handle IdExpressions and ignore more complex
         // Expressions
         if (lhs instanceof CIdExpression) {
-            newState = newState.assignElement(((CIdExpression) lhs).getDeclaration().getQualifiedName(), interval);
+            newState = newState.assignElement(MemoryLocation.valueOf(((CIdExpression) lhs).getDeclaration().getQualifiedName()), interval, null);
         }
         return newState;
     }
@@ -390,7 +391,7 @@ public class IntervalAnalysisTransferRelation
                 interval = new CreatorIntegerInterval().factoryMethod(null).UNBOUND();
             }
 
-            newState = newState.assignElement(decl.getQualifiedName(), interval);
+            newState = newState.assignElement(MemoryLocation.valueOf(decl.getQualifiedName()), interval, null);
         }
 
         return soleSuccessor(newState);

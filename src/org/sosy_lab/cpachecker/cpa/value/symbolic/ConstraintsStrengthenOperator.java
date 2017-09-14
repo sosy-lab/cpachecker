@@ -178,7 +178,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
         Type valueType = pValueState.getTypeForMemoryLocation(currLoc);
         SymbolicValue newIdentifier = factory.asConstant(factory.newIdentifier(), valueType);
 
-        pValueState.assignConstant(currLoc, newIdentifier, valueType);
+        pValueState.assignElement(currLoc, newIdentifier, valueType);
         replacedSymbolicExpressions++;
       }
     }

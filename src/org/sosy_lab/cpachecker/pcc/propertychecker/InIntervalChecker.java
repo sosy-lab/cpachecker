@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.interval.IntegerInterval;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class InIntervalChecker extends PerElementPropertyChecker {
@@ -62,7 +63,7 @@ public class InIntervalChecker extends PerElementPropertyChecker {
     if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(label)) {
         UnifyAnalysisState state = AbstractStates.extractStateByType(pElemToCheck, UnifyAnalysisState.class);
       if (state != null) {
-        NumberInterface interval = state.getInterval(varName);
+        NumberInterface interval = state.getElement(MemoryLocation.valueOf(varName));
         //TODO Number instead Long
         if (interval != null && interval.getHigh().longValue() <= allowedValues.getHigh().longValue()
             && interval.getLow().longValue() >= allowedValues.getLow().longValue()) {

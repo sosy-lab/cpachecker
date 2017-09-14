@@ -62,9 +62,9 @@ class ValueAnalysisReducer extends GenericReducer<UnifyAnalysisState, VariableTr
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final String simpleName = trackedVar.getAsSimpleString();
       if (!pReducedContext.getVariables().contains(simpleName)) {
-        diffElement.assignConstant(
+        diffElement.assignElement(
             trackedVar,
-            pRootState.getValueFor(trackedVar),
+            pRootState.getElement(trackedVar),
             pRootState.getTypeForMemoryLocation(trackedVar));
 
       //} else {
