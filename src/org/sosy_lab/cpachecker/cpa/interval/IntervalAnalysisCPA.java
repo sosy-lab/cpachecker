@@ -115,12 +115,12 @@ public class IntervalAnalysisCPA extends AbstractCPA
      */
     @Override
     public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-        return new UnifyAnalysisState();
+        return new UnifyAnalysisState(NumericalType.INTERVAL);
     }
 
     @Override
     public TransferRelation getTransferRelation() {
-        return new IntervalAnalysisTransferRelation(splitIntervals, threshold, logger);
+        return new IntervalAnalysisTransferRelation(splitIntervals, logger);
     }
 
     @Override

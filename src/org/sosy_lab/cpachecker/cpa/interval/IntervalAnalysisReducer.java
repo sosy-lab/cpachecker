@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class IntervalAnalysisReducer extends GenericReducer<UnifyAnalysisState, Precision> {
 
@@ -36,11 +37,11 @@ class IntervalAnalysisReducer extends GenericReducer<UnifyAnalysisState, Precisi
     protected UnifyAnalysisState getVariableReducedState0(UnifyAnalysisState pExpandedState, Block pContext,
             CFANode pCallNode) {
         UnifyAnalysisState clonedElement = pExpandedState;
-        for (String trackedVar : pExpandedState.getIntervalMap().keySet()) {
+        for (MemoryLocation trackedVar : pExpandedState.getIntervalMap().keySet()) {
             // ignore offset (like "3" from "array[3]") to match assignments in
             // loops ("array[i]=12;")
-            if (!pContext.getVariables().contains(trackedVar)) {
-                clonedElement = clonedElement.removeInterval(trackedVar);
+            if (!pContext.getVariables().contains(trackedVar.getIdentifier())) {
+                clonedElement = clonedElement.removeInterval(trackedVar.getIdentifier());
             }
         }
         return clonedElement;
@@ -56,11 +57,11 @@ class IntervalAnalysisReducer extends GenericReducer<UnifyAnalysisState, Precisi
         // those values
         UnifyAnalysisState diffElement = pReducedState;
 
-        for (String trackedVar : pRootState.getIntervalMap().keySet()) {
+        for (MemoryLocation trackedVar : pRootState.getIntervalMap().keySet()) {
             // ignore offset ("3" from "array[3]") to match assignments in loops
             // ("array[i]=12;")
-            if (!pReducedContext.getVariables().contains(trackedVar)) {
-                diffElement = diffElement.addInterval(trackedVar, pRootState.getInterval(trackedVar), -1);
+            if (!pReducedContext.getVariables().contains(trackedVar.getIdentifier())) {
+                diffElement = diffElement.assignElement(trackedVar.getIdentifier(), pRootState.getInterval(trackedVar.getIdentifier()));
 
                 // } else {
                 // ignore this case, the variables are part of the reduced state

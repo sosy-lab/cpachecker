@@ -30,12 +30,12 @@ import org.junit.Test;
 public class UnifyAnalysisStateTest {
   @Test
   public void pseudoPartiotionKey() {
-      UnifyAnalysisState s = new UnifyAnalysisState();
-      UnifyAnalysisState sa1 = s.addInterval("a", new IntegerInterval(1L, 1L), 10);
-      UnifyAnalysisState sb2 = s.addInterval("b", new IntegerInterval(2L, 2L), 10);
-      UnifyAnalysisState sa1b2 = sa1.addInterval("b", new IntegerInterval(2L, 2L), 10);
-      UnifyAnalysisState sa1b3 = sa1.addInterval("b", new IntegerInterval(3L, 3L), 10);
-      UnifyAnalysisState sa1b23 = sa1.addInterval("b", new IntegerInterval(2L, 3L), 10);
+      UnifyAnalysisState s = new UnifyAnalysisState(NumericalType.INTERVAL);
+      UnifyAnalysisState sa1 = s.assignElement("a", new IntegerInterval(1L, 1L));
+      UnifyAnalysisState sb2 = s.assignElement("b", new IntegerInterval(2L, 2L));
+      UnifyAnalysisState sa1b2 = sa1.assignElement("b", new IntegerInterval(2L, 2L));
+      UnifyAnalysisState sa1b3 = sa1.assignElement("b", new IntegerInterval(3L, 3L));
+      UnifyAnalysisState sa1b23 = sa1.assignElement("b", new IntegerInterval(2L, 3L));
 
       Comparable cs = s.getPseudoPartitionKey();
       Comparable csa1 = sa1.getPseudoPartitionKey();

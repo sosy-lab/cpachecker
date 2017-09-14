@@ -66,12 +66,10 @@ public class IntervalAnalysisTransferRelation
         extends ForwardingTransferRelation<Collection<UnifyAnalysisState>, UnifyAnalysisState, Precision> {
 
     private final boolean splitIntervals;
-    private final int threshold;
     private final LogManager logger;
 
-    public IntervalAnalysisTransferRelation(boolean pSplitIntervals, int pThreshold, LogManager pLogger) {
+    public IntervalAnalysisTransferRelation(boolean pSplitIntervals, LogManager pLogger) {
         splitIntervals = pSplitIntervals;
-        threshold = pThreshold;
         logger = pLogger;
 
     }
@@ -163,7 +161,7 @@ public class IntervalAnalysisTransferRelation
             // get value of actual parameter in caller function context
             NumberInterface interval = evaluateInterval(state, arguments.get(i), callEdge);
             String formalParameterName = parameters.get(i).getQualifiedName();
-            newState = newState.addInterval(formalParameterName, interval, this.threshold);
+            newState = newState.assignElement(formalParameterName, interval);
         }
 
         return soleSuccessor(newState);
@@ -185,8 +183,8 @@ public class IntervalAnalysisTransferRelation
         // assign the value of the function return to a new variable
         if (returnEdge.asAssignment().isPresent()) {
             CAssignment ass = returnEdge.asAssignment().get();
-            newState = newState.addInterval(((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
-                    evaluateInterval(state, ass.getRightHandSide(), returnEdge), threshold);
+            newState = newState.assignElement(((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
+                    evaluateInterval(state, ass.getRightHandSide(), returnEdge));
         }
 
         return soleSuccessor(newState);
@@ -353,8 +351,7 @@ public class IntervalAnalysisTransferRelation
         // we currently only handle IdExpressions and ignore more complex
         // Expressions
         if (lhs instanceof CIdExpression) {
-            newState = newState.addInterval(((CIdExpression) lhs).getDeclaration().getQualifiedName(), interval,
-                    threshold);
+            newState = newState.assignElement(((CIdExpression) lhs).getDeclaration().getQualifiedName(), interval);
         }
         return newState;
     }
@@ -393,7 +390,7 @@ public class IntervalAnalysisTransferRelation
                 interval = new CreatorIntegerInterval().factoryMethod(null).UNBOUND();
             }
 
-            newState = newState.addInterval(decl.getQualifiedName(), interval, this.threshold);
+            newState = newState.assignElement(decl.getQualifiedName(), interval);
         }
 
         return soleSuccessor(newState);
