@@ -260,7 +260,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     ASimpleDeclaration declaration = pIdExpression.getDeclaration();
 
     if (declaration != null) {
-      assignableState.assignConstant(declaration.getQualifiedName(), pValue);
+      assignableState.assignElement(declaration.getQualifiedName(), pValue);
     } else {
       MemoryLocation memLoc = MemoryLocation.valueOf(getFunctionName(), pIdExpression.getName());
       assignableState.assignConstant(memLoc, pValue, pIdExpression.getExpressionType());

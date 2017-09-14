@@ -32,6 +32,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class SignRequirementsTranslator extends CartesianRequirementsTranslator<UnifyAnalysisState> {
@@ -42,16 +43,20 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
 
   @Override
   protected List<String> getVarsInRequirements(final UnifyAnalysisState pRequirement) {
-    return new ArrayList<>(pRequirement.getSignMapView().keySet());
+      ArrayList<String> temp = new ArrayList<>();
+      for(MemoryLocation ml: pRequirement.getSignMapView().keySet()) {
+          temp.add(ml.getAsSimpleString());
+      }
+    return temp;
   }
 
   @Override
   protected List<String> getListOfIndependentRequirements(final UnifyAnalysisState pRequirement, final SSAMap pIndices,
       final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
-    for (String var : pRequirement.getSignMapView().keySet()) {
-      if (pRequiredVars == null || pRequiredVars.contains(var)) {
-        list.add(getRequirement(getVarWithIndex(var, pIndices), (SIGN)pRequirement.getSignMapView().get(var)));
+    for (MemoryLocation var : pRequirement.getSignMapView().keySet()) {
+      if (pRequiredVars == null || pRequiredVars.contains(var.getAsSimpleString())) {
+        list.add(getRequirement(getVarWithIndex(var.getAsSimpleString(), pIndices), (SIGN)pRequirement.getSignMapView().get(var)));
       }
     }
     return list;

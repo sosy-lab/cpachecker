@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 
 public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalysisState, UnifyAnalysisState, SingletonPrecision> {
@@ -99,16 +100,17 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
       assert (pParameters.size() == pArguments.size());
     }
     // Collect arguments
-    ImmutableMap.Builder<String, NumberInterface> mapBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<MemoryLocation, NumberInterface> mapBuilder = ImmutableMap.builder();
     for (int i = 0; i < pParameters.size(); i++) {
       AExpression exp = pArguments.get(i);
       if (!(exp instanceof CRightHandSide)) {
         throw new UnrecognizedCodeException("Unsupported code found", pCfaEdge);
       }
-      String scopedVarId = getScopedVariableNameForNonGlobalVariable(pParameters.get(i).getName(), pCalledFunctionName);
+//      String scopedVarId = getScopedVariableNameForNonGlobalVariable(pParameters.get(i).getName(), pCalledFunctionName);
+      MemoryLocation scopedVarId = MemoryLocation.valueOf(pCalledFunctionName, pParameters.get(i).getName());
       mapBuilder.put(scopedVarId, ((CRightHandSide)exp).accept(new SignCExpressionVisitor(pCfaEdge, state, this)));
     }
-    ImmutableMap<String, NumberInterface> argumentMap = mapBuilder.build();
+    ImmutableMap<MemoryLocation, NumberInterface> argumentMap = mapBuilder.build();
     logger.log(Level.FINE, "Entering function " + pCalledFunctionName + " with arguments " + argumentMap);
     return state.enterFunction(argumentMap);
   }
@@ -128,7 +130,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
       logger.log(Level.FINE, "Leave function " + functionName + " with return assignment: " + assignedVarName + " = " + state.getSignForVariable(returnVarName));
       UnifyAnalysisState result = state
               .leaveFunction(functionName)
-              .assignSignToVariable(assignedVarName, state.getSignForVariable(returnVarName));
+              .assignElement(assignedVarName, state.getSignForVariable(returnVarName));
       return result;
     }
 
@@ -275,7 +277,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
       logger.log(Level.FINE, "Assumption: " + (pTruthAssumption ? pExpression : "!(" + pExpression + ")") + " --> " + result.get().identifier + " = " + result.get().value);
       // assure that does not become more abstract after assumption
       if (state.getSignForVariable(getScopedVariableName(result.get().identifier))
-          .covers(result.get().value)) { return state.assignSignToVariable(
+          .covers(result.get().value)) { return state.assignElement(
           getScopedVariableName(result.get().identifier), result.get().value); }
       // check if results distinct, then no successor exists
       if (!result.get().value.intersects(state.getSignForVariable(
@@ -304,7 +306,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
     }
     // type x;
     // since it is C, we assume it may have any value here
-    return state.assignSignToVariable(scopedId, SIGN.ALL);
+    return state.assignElement(scopedId, SIGN.ALL);
   }
 
   @Override
@@ -347,7 +349,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
     // x[index] = ..,
     if(left instanceof CArraySubscriptExpression) {
       // currently only overapproximate soundly and assume any value
-      return state.assignSignToVariable(getScopedVariableName(((CArraySubscriptExpression) left).getArrayExpression(), functionName), SIGN.ALL);
+      return state.assignElement(getScopedVariableName(((CArraySubscriptExpression) left).getArrayExpression(), functionName), SIGN.ALL);
     }
     throw new UnrecognizedCodeException("left operand has to be an id expression", edge);
   }
@@ -358,7 +360,7 @@ public class SignTransferRelation extends ForwardingTransferRelation<UnifyAnalys
       CRightHandSide right = (CRightHandSide)pRightExpr;
       NumberInterface result = right.accept(new SignCExpressionVisitor(edge, pState, this));
       logger.log(Level.FINE,  "Assignment: " + pVarIdent + " = " + result);
-      return pState.assignSignToVariable(pVarIdent, result);
+      return pState.assignElement(pVarIdent, result);
     }
     throw new UnrecognizedCodeException("unhandled righthandside expression", edge);
   }

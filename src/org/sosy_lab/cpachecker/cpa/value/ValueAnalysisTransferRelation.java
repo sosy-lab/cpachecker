@@ -1645,7 +1645,7 @@ public class ValueAnalysisTransferRelation
     UnifyAnalysisState newElement = UnifyAnalysisState.copyOf(oldState);
 
     if (missingFieldVariableObject) {
-      newElement.assignConstant(getRTTScopedVariableName(
+      newElement.assignElement(getRTTScopedVariableName(
           fieldNameAndInitialValue.getFirst(),
           rttState.getKeywordThisUniqueObject()),
           fieldNameAndInitialValue.getSecond());
@@ -1687,7 +1687,7 @@ public class ValueAnalysisTransferRelation
       NumberInterface value = handleMissingInformationRightJExpression(rttState);
 
       if (!value.isUnknown()) {
-        newElement.assignConstant(missingInformationLeftJVariable, value);
+        newElement.assignElement(missingInformationLeftJVariable, value);
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
         return Collections.singleton(newElement);
@@ -1727,7 +1727,7 @@ public class ValueAnalysisTransferRelation
      }
 
      if (!value.isUnknown()) {
-       newElement.assignConstant(scopedFieldName, value);
+       newElement.assignElement(scopedFieldName, value);
        return newElement;
      } else {
        newElement.forget(MemoryLocation.valueOf(scopedFieldName));

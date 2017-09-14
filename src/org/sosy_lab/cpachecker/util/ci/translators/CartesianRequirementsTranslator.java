@@ -24,18 +24,15 @@
 package org.sosy_lab.cpachecker.util.ci.translators;
 
 import com.google.common.annotations.VisibleForTesting;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ci.CIUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 
 public abstract class CartesianRequirementsTranslator<T extends AbstractState> extends AbstractRequirementsTranslator<T> {
