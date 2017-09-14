@@ -523,7 +523,7 @@ public enum MachineModel {
   public static class BaseSizeofVisitor implements CTypeVisitor<Integer, IllegalArgumentException> {
     private final MachineModel model;
 
-    public BaseSizeofVisitor(MachineModel model) {
+    protected BaseSizeofVisitor(MachineModel model) {
       this.model = model;
     }
 
@@ -558,7 +558,7 @@ public enum MachineModel {
       }
     }
 
-    public int calculateByteSize(int pBitFieldsSize) {
+    private int calculateByteSize(int pBitFieldsSize) {
       if (pBitFieldsSize == 0) {
         return 0;
       }
@@ -688,11 +688,11 @@ public enum MachineModel {
   private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor =
       new BaseAlignofVisitor(this);
 
-  public static class BaseAlignofVisitor
+  private static class BaseAlignofVisitor
       implements CTypeVisitor<Integer, IllegalArgumentException> {
     private final MachineModel model;
 
-    public BaseAlignofVisitor(MachineModel model) {
+    private BaseAlignofVisitor(MachineModel model) {
       this.model = model;
     }
 
