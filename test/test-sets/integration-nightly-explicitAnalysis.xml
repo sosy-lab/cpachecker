@@ -28,6 +28,10 @@
     <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem18_*true*</exclude>
     <exclude reason="timeout">../programs/benchmarks/eca-rers2012/Problem19_*</exclude>
   </tasks>
+  <tasks name="ReachSafety-Floats">
+    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  </tasks>
   <tasks name="ReachSafety-HeapReach">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>

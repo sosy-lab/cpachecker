@@ -6,12 +6,20 @@
   <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
+  <tasks name="ReachSafety-BitVectorsReach">
+    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  </tasks>
   <tasks name="ReachSafety-ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-ECA">
     <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
+  </tasks>
+  <tasks name="ReachSafety-Floats">
+    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
   </tasks>
   <tasks name="ReachSafety-HeapReach">
