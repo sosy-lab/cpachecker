@@ -1637,13 +1637,13 @@ public class AssumptionToEdgeAllocator {
           return;
         }
 
-        Map<CCompositeTypeMemberDeclaration, BigInteger> offsets =
+        Map<CCompositeTypeMemberDeclaration, Long> offsets =
             machineModel.getAllFieldOffsetsInBits(pCompType);
 
-        for (Map.Entry<CCompositeTypeMemberDeclaration, BigInteger> memberOffset :
-            offsets.entrySet()) {
+        for (Map.Entry<CCompositeTypeMemberDeclaration, Long> memberOffset : offsets.entrySet()) {
           CCompositeTypeMemberDeclaration memberType = memberOffset.getKey();
-          handleMemberField(memberType, address.addOffset(memberOffset.getValue()));
+          handleMemberField(
+              memberType, address.addOffset(BigInteger.valueOf(memberOffset.getValue())));
         }
       }
 

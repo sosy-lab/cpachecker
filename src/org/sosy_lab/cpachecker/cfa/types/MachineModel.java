@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cfa.types;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.ImmutableMap;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
@@ -794,15 +794,15 @@ public enum MachineModel {
    * @param pOwnerType a {@link CCompositeType} to calculate its fields offsets
    * @return a mapping of typeMemberDeclarations to there corresponding offsets in pOwnerType
    */
-  public Map<CCompositeTypeMemberDeclaration, BigInteger> getAllFieldOffsetsInBits(
+  public Map<CCompositeTypeMemberDeclaration, Long> getAllFieldOffsetsInBits(
       CCompositeType pOwnerType) {
-    Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap =
-        Maps.newLinkedHashMapWithExpectedSize(pOwnerType.getMembers().size());
+    ImmutableMap.Builder<CCompositeTypeMemberDeclaration, Long> outParameterMap =
+        ImmutableMap.builder();
 
     getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
         pOwnerType, null, sizeofVisitor, outParameterMap);
 
-    return outParameterMap;
+    return outParameterMap.build();
   }
 
   /**
@@ -853,7 +853,7 @@ public enum MachineModel {
       CCompositeType pOwnerType,
       @Nullable String pFieldName,
       BaseSizeofVisitor pSizeofVisitor,
-      @Nullable Map<CCompositeTypeMemberDeclaration, BigInteger> outParameterMap) {
+      @Nullable ImmutableMap.Builder<CCompositeTypeMemberDeclaration, Long> outParameterMap) {
     checkNotNull(pSizeofVisitor);
     checkArgument(
         (pFieldName == null) || (outParameterMap == null),
@@ -879,7 +879,7 @@ public enum MachineModel {
         }
       } else {
         for (CCompositeTypeMemberDeclaration typeMember : typeMembers) {
-          outParameterMap.put(typeMember, BigInteger.ZERO);
+          outParameterMap.put(typeMember, 0L);
         }
       }
     } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
@@ -923,8 +923,7 @@ public enum MachineModel {
           }
 
           if (outParameterMap != null) {
-            outParameterMap.put(
-                typeMember, BigInteger.valueOf(bitOffset + sizeOfConsecutiveBitFields));
+            outParameterMap.put(typeMember, bitOffset + sizeOfConsecutiveBitFields);
           }
 
           CType innerType = ((CBitFieldType) type).getType();
@@ -976,7 +975,7 @@ public enum MachineModel {
           }
 
           if (outParameterMap != null) {
-            outParameterMap.put(typeMember, BigInteger.valueOf(bitOffset));
+            outParameterMap.put(typeMember, bitOffset);
           }
           bitOffset += fieldSizeInBits;
         }
