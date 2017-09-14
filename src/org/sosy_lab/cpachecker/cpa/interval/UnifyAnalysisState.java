@@ -58,6 +58,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
+import org.sosy_lab.cpachecker.cpa.sign.CreatorSIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
@@ -161,6 +162,66 @@ public class UnifyAnalysisState
     }
 
     /**
+     * This method assigns a element to the variable and puts it in the map.
+     *
+     * @param variableName
+     *            the location in the memory.
+     * @param value
+     *            value to be assigned.
+     * @param type
+     *            the type of <code>value</code>. (can be null)
+     *
+     */
+    public UnifyAnalysisState assignElement(MemoryLocation variableName, NumberInterface value, Type type) {
+        switch (numericalType) {
+        case SIGN:
+        case INTERVAL:
+            // check if sigh is ALL
+            if (value.isUnbound()) {
+                return forgetElement(variableName);
+            }
+            // only add the element if it is not already present
+            return !unifyElements.containsKey(variableName) || !unifyElements.get(variableName).equals(value)
+                    ? new UnifyAnalysisState(unifyElements.putAndCopy(variableName, value), numericalType)
+                    : this;
+        case VALUE:
+            memLocToType = memLocToType.putAndCopy(variableName, type);
+            NumberInterface valueToAdd = value;
+            if (valueToAdd instanceof SymbolicValue) {
+                valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(variableName);
+            }
+            unifyElements = unifyElements.putAndCopy(variableName, checkNotNull(valueToAdd));
+            return this;
+        default:
+            return this;
+        }
+    }
+
+    /**
+     * This method assigns a concrete value to the given {@link SymbolicIdentifier}.
+     *
+     * @param pSymbolicIdentifier
+     *            the <code>SymbolicIdentifier</code> to assign the concrete value
+     *            to.
+     * @param pValue
+     *            value to be assigned.
+     */
+    public void assignConstant(SymbolicIdentifier pSymbolicIdentifier, NumberInterface pValue) {
+        for (Map.Entry<MemoryLocation, NumberInterface> entry : unifyElements.entrySet()) {
+            MemoryLocation currMemloc = entry.getKey();
+            NumberInterface currVal = entry.getValue();
+
+            if (currVal instanceof ConstantSymbolicExpression) {
+                currVal = ((ConstantSymbolicExpression) currVal).getValue();
+            }
+            if (currVal instanceof SymbolicIdentifier
+                    && ((SymbolicIdentifier) currVal).getId() == pSymbolicIdentifier.getId()) {
+                assignElement(currMemloc, pValue, getTypeForMemoryLocation(currMemloc));
+            }
+        }
+    }
+
+    /**
      * This method removes a memory location from the underlying map and returns the
      * removed value.
      *
@@ -190,12 +251,95 @@ public class UnifyAnalysisState
         return new ValueAnalysisInformation(valueAssignment, typeAssignment);
     }
 
+    /**
+     * This method removes the interval or sign for a given variable.
+     *
+     * @param variableName
+     *            the name of the variable whose interval should be removed
+     * @return this
+     */
+    // see ExplicitState::forget
+    public UnifyAnalysisState forgetElement(MemoryLocation variableName) {
+        return unifyElements.containsKey(variableName)
+                ? new UnifyAnalysisState(unifyElements.removeAndCopy(variableName), numericalType)
+                : this;
+    }
+
+
+//
+//    public UnifyAnalysisState dropFrame(String pCalledFunctionName) {
+//        UnifyAnalysisState tmp = this;
+//        for (MemoryLocation key : unifyElements.keySet()) {
+//            if (key.getAsSimpleString().startsWith(pCalledFunctionName + "::")) {
+//                tmp = tmp.forgetElement(key);
+//            }
+//        }
+//        return tmp;
+//    }
+
+    /**
+     * This method drops all entries belonging to the stack frame of a function.
+     * This method should be called right before leaving a function.
+     *
+     * @param functionName
+     *            the name of the function that is about to be left
+     */
+    public UnifyAnalysisState dropFrame(String functionName) {
+        for (MemoryLocation variableName : unifyElements.keySet()) {
+            if (variableName.isOnFunctionStack(functionName)) {
+                switch (numericalType) {
+                case INTERVAL:
+                case SIGN:
+                    //TODO not correct!!!
+                    forgetElement(variableName);
+                    break;
+                default:
+                    forget(variableName);
+                    break;
+                }
+            }
+        }
+        return this;
+    }
+
+//    public UnifyAnalysisState dropFrame(String pFunctionName) {
+//        PersistentMap<MemoryLocation, NumberInterface> newMap = unifyElements;
+//
+//        for (MemoryLocation var : unifyElements.keySet()) {
+//            if (var.getAsSimpleString().startsWith(pFunctionName + "::")) {
+//                newMap = newMap.removeAndCopy(var);
+//            }
+//        }
+//        return newMap == unifyElements ? this : new UnifyAnalysisState(newMap, numericalType);
+//    }
+
+    /**
+     * This method returns the element for the given variable.
+     *
+     * @param variableName
+     *            the name of the variable for which to get the value
+     * @throws NullPointerException
+     *             - if no value is present in this state for the given variable
+     * @return the value associated with the given variable
+     */
+    public NumberInterface getElement(MemoryLocation variableName) {
+        NumberInterface value = unifyElements.get(variableName);
+        switch (numericalType) {
+        case SIGN:
+            return value == null ? new CreatorSIGN().factoryMethod(7) : value;
+        case INTERVAL:
+            return value == null ? new CreatorIntegerInterval().factoryMethod(null) : value;
+        default:
+            return checkNotNull(value);
+        }
+    }
+
     @Override
     public void remember(final MemoryLocation pLocation, final ValueAnalysisInformation pValueAndType) {
         final NumberInterface value = pValueAndType.getAssignments().get(pLocation);
         final Type valueType = pValueAndType.getLocationTypes().get(pLocation);
 
-        assignConstant(pLocation, value, valueType);
+        assignElement(pLocation, value, valueType);
     }
 
     @Override
@@ -219,29 +363,29 @@ public class UnifyAnalysisState
     public Comparable<?> getPseudoPartitionKey() {
         switch (numericalType) {
         case INTERVAL:
-                // The size alone is not sufficient for pseudo-partitioning, if we want
-                // to use object-identity
-                // as hashcode. Thus we need a second measurement: the absolute distance
-                // of all intervals.
-                // -> if the distance is "smaller" than the other state, we know nothing
-                // and have to compare the states.
-                // -> if the distance is "equal", we can compare by "identity".
-                // -> if the distance is "greater", we are "greater" than the other
-                // state.
-                // We negate the absolute distance to match the
-                // "lessEquals"-specifiction.
-                // Be aware of overflows! -> we use BigInteger, and zero should be a
-                // sound value.
-                BigInteger absDistance = BigInteger.ZERO;
-                for (NumberInterface i : unifyElements.values()) {
-                    long high = i.getHigh() == null ? 0 : i.getHigh().longValue();
-                    long low = i.getLow() == null ? 0 : i.getLow().longValue();
-                    Preconditions.checkArgument(low <= high, "LOW greater than HIGH:" + i);
-                    absDistance = absDistance.add(BigInteger.valueOf(high).subtract(BigInteger.valueOf(low)));
-                }
-                return new IntervalPseudoPartitionKey(unifyElements.size(), absDistance.negate());
+            // The size alone is not sufficient for pseudo-partitioning, if we want
+            // to use object-identity
+            // as hashcode. Thus we need a second measurement: the absolute distance
+            // of all intervals.
+            // -> if the distance is "smaller" than the other state, we know nothing
+            // and have to compare the states.
+            // -> if the distance is "equal", we can compare by "identity".
+            // -> if the distance is "greater", we are "greater" than the other
+            // state.
+            // We negate the absolute distance to match the
+            // "lessEquals"-specifiction.
+            // Be aware of overflows! -> we use BigInteger, and zero should be a
+            // sound value.
+            BigInteger absDistance = BigInteger.ZERO;
+            for (NumberInterface i : unifyElements.values()) {
+                long high = i.getHigh() == null ? 0 : i.getHigh().longValue();
+                long low = i.getLow() == null ? 0 : i.getLow().longValue();
+                Preconditions.checkArgument(low <= high, "LOW greater than HIGH:" + i);
+                absDistance = absDistance.add(BigInteger.valueOf(high).subtract(BigInteger.valueOf(low)));
+            }
+            return new IntervalPseudoPartitionKey(unifyElements.size(), absDistance.negate());
         case VALUE:
-                return getSize();
+            return getSize();
         default:
             return null;
         }
@@ -259,103 +403,104 @@ public class UnifyAnalysisState
         switch (numericalType) {
         case INTERVAL:
             IntegerFormulaManager nfmgr = pManager.getIntegerFormulaManager();
-                for (Entry<MemoryLocation, NumberInterface> entry : unifyElements.entrySet()) {
-                    NumberInterface interval = entry.getValue();
-                    if (interval.isEmpty()) {
-                        // one invalid interval disqualifies the whole state
-                        return pManager.getBooleanFormulaManager().makeFalse();
-                    }
-                    // we assume that everything is an SIGNED INTEGER
-                    // and build "LOW <= X" and "X <= HIGH"
-                    // TODO instanceof ...
-                    NumeralFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
-                    if (interval.getLow() instanceof Long) {
-                        Long low = interval.getLow().longValue();
-                        Long high = interval.getHigh().longValue();
-                        // if (low != null && low != Long.MIN_VALUE) { // check for
-                        // unbound
-                        if (low != Long.MIN_VALUE) {
-                            // interval
-                            result.add(pManager.makeLessOrEqual(nfmgr.makeNumber(low), var, true));
-                        }
-                        // if (high != null && high != Long.MIN_VALUE) { // check for
-                        // unbound
-                        if (high != Long.MIN_VALUE) {
-                            // interval
-                            result.add(pManager.makeGreaterOrEqual(nfmgr.makeNumber(high), var, true));
-                        }
-                    } else {
-                        Double low = interval.getLow().doubleValue();
-                        Double high = interval.getHigh().doubleValue();
-                        // if (low != null && low != Double.MIN_VALUE) { // check for
-                        // unbound
+            for (Entry<MemoryLocation, NumberInterface> entry : unifyElements.entrySet()) {
+                NumberInterface interval = entry.getValue();
+                if (interval.isEmpty()) {
+                    // one invalid interval disqualifies the whole state
+                    return pManager.getBooleanFormulaManager().makeFalse();
+                }
+                // we assume that everything is an SIGNED INTEGER
+                // and build "LOW <= X" and "X <= HIGH"
+                // TODO instanceof ...
+                NumeralFormula var = nfmgr.makeVariable(entry.getKey().getAsSimpleString());
+                if (interval.getLow() instanceof Long) {
+                    Long low = interval.getLow().longValue();
+                    Long high = interval.getHigh().longValue();
+                    // if (low != null && low != Long.MIN_VALUE) { // check for
+                    // unbound
+                    if (low != Long.MIN_VALUE) {
                         // interval
-                        if (low != Double.MIN_VALUE) {
-                            result.add(pManager.makeLessOrEqual(nfmgr.makeNumber(low), var, true));
-                        }
-                        // if (high != null && high != Double.MIN_VALUE) { // check for
-                        // unbound interval
-                        if (high != Double.MIN_VALUE) {
-                            result.add(pManager.makeGreaterOrEqual(nfmgr.makeNumber(high), var, true));
-                        }
+                        result.add(pManager.makeLessOrEqual(nfmgr.makeNumber(low), var, true));
                     }
-
+                    // if (high != null && high != Long.MIN_VALUE) { // check for
+                    // unbound
+                    if (high != Long.MIN_VALUE) {
+                        // interval
+                        result.add(pManager.makeGreaterOrEqual(nfmgr.makeNumber(high), var, true));
+                    }
+                } else {
+                    Double low = interval.getLow().doubleValue();
+                    Double high = interval.getHigh().doubleValue();
+                    // if (low != null && low != Double.MIN_VALUE) { // check for
+                    // unbound
+                    // interval
+                    if (low != Double.MIN_VALUE) {
+                        result.add(pManager.makeLessOrEqual(nfmgr.makeNumber(low), var, true));
+                    }
+                    // if (high != null && high != Double.MIN_VALUE) { // check for
+                    // unbound interval
+                    if (high != Double.MIN_VALUE) {
+                        result.add(pManager.makeGreaterOrEqual(nfmgr.makeNumber(high), var, true));
+                    }
                 }
-                return pManager.getBooleanFormulaManager().and(result);
+            }
+            return pManager.getBooleanFormulaManager().and(result);
         case VALUE:
-                BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
-                if (machineModel == null) {
-                    return bfmgr.makeTrue();
-                }
-                BitvectorFormulaManagerView bitvectorFMGR = pManager.getBitvectorFormulaManager();
-                FloatingPointFormulaManagerView floatFMGR = pManager.getFloatingPointFormulaManager();
+            BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
+            if (machineModel == null) {
+                return bfmgr.makeTrue();
+            }
+            BitvectorFormulaManagerView bitvectorFMGR = pManager.getBitvectorFormulaManager();
+            FloatingPointFormulaManagerView floatFMGR = pManager.getFloatingPointFormulaManager();
 
-                for (Map.Entry<MemoryLocation, NumberInterface> entry : unifyElements.entrySet()) {
-                    NumericValue num = entry.getValue().asNumericValue();
+            for (Map.Entry<MemoryLocation, NumberInterface> entry : unifyElements.entrySet()) {
+                NumericValue num = entry.getValue().asNumericValue();
 
-                    if (num != null) {
-                        MemoryLocation memoryLocation = entry.getKey();
-                        Type type = getTypeForMemoryLocation(memoryLocation);
-                        if (!memoryLocation.isReference() && type instanceof CSimpleType) {
-                            CSimpleType simpleType = (CSimpleType) type;
-                            if (simpleType.getType().isIntegerType()) {
-                                int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
-                                BitvectorFormula var = bitvectorFMGR.makeVariable(bitSize, entry.getKey().getAsSimpleString());
+                if (num != null) {
+                    MemoryLocation memoryLocation = entry.getKey();
+                    Type type = getTypeForMemoryLocation(memoryLocation);
+                    if (!memoryLocation.isReference() && type instanceof CSimpleType) {
+                        CSimpleType simpleType = (CSimpleType) type;
+                        if (simpleType.getType().isIntegerType()) {
+                            int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
+                            BitvectorFormula var = bitvectorFMGR.makeVariable(bitSize,
+                                    entry.getKey().getAsSimpleString());
 
-                                Number value = num.getNumber();
-                                final BitvectorFormula val;
-                                if (value instanceof BigInteger) {
-                                    val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
-                                } else {
-                                    val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
-                                }
-                                result.add(bitvectorFMGR.equal(var, val));
-                            } else if (simpleType.getType().isFloatingPointType()) {
-                                final FloatingPointType fpType;
-                                switch (simpleType.getType()) {
-                                case FLOAT:
-                                    fpType = FormulaType.getSinglePrecisionFloatingPointType();
-                                    break;
-                                case DOUBLE:
-                                    fpType = FormulaType.getDoublePrecisionFloatingPointType();
-                                    break;
-                                default:
-                                    throw new AssertionError("Unsupported floating point type: " + simpleType);
-                                }
-                                FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getAsSimpleString(), fpType);
-                                FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
-                                result.add(floatFMGR.equalWithFPSemantics(var, val));
+                            Number value = num.getNumber();
+                            final BitvectorFormula val;
+                            if (value instanceof BigInteger) {
+                                val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
                             } else {
-                                // ignore in formula-approximation
+                                val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
                             }
+                            result.add(bitvectorFMGR.equal(var, val));
+                        } else if (simpleType.getType().isFloatingPointType()) {
+                            final FloatingPointType fpType;
+                            switch (simpleType.getType()) {
+                            case FLOAT:
+                                fpType = FormulaType.getSinglePrecisionFloatingPointType();
+                                break;
+                            case DOUBLE:
+                                fpType = FormulaType.getDoublePrecisionFloatingPointType();
+                                break;
+                            default:
+                                throw new AssertionError("Unsupported floating point type: " + simpleType);
+                            }
+                            FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getAsSimpleString(),
+                                    fpType);
+                            FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
+                            result.add(floatFMGR.equalWithFPSemantics(var, val));
                         } else {
                             // ignore in formula-approximation
                         }
                     } else {
                         // ignore in formula-approximation
                     }
+                } else {
+                    // ignore in formula-approximation
                 }
-                return bfmgr.and(result);
+            }
+            return bfmgr.and(result);
         default:
             return null;
         }
@@ -464,6 +609,17 @@ public class UnifyAnalysisState
         }
     }
 
+    /**
+     * This method determines if this element contains an interval for a variable.
+     *
+     * @param variableName
+     *            the name of the variable
+     * @return true, if this element contains an interval for the given variable
+     */
+    public boolean contains(String variableName) {
+        return unifyElements.containsKey(MemoryLocation.valueOf(variableName));
+    }
+
     private boolean IsLessOrEqualSign(UnifyAnalysisState pSuperset) {
         if (pSuperset.equals(this) || pSuperset.equals(TOP)) {
             return true;
@@ -476,8 +632,7 @@ public class UnifyAnalysisState
         // check that all variables in superset with SIGN != ALL have no bigger
         // assumptions in subset
         for (MemoryLocation varIdent : pSuperset.unifyElements.keySet()) {
-            if (!getSignForVariable(varIdent.getAsSimpleString())
-                    .isSubsetOf(pSuperset.getSignForVariable(varIdent.getAsSimpleString()))) {
+            if (!getElement(varIdent).isSubsetOf(pSuperset.getElement(varIdent))) {
                 return false;
             }
         }
@@ -505,9 +660,8 @@ public class UnifyAnalysisState
             // only add those variables that are contained in both states (otherwise one has
             // value ALL (not saved))
             if (unifyElements.containsKey(varIdent)) {
-                combined = getSignForVariable(varIdent.getAsSimpleString())
-                        .combineWith(pToJoin.getSignForVariable(varIdent.getAsSimpleString()));
-                if (!((SIGN) combined).isAll()) {
+                combined = getElement(varIdent).combineWith(pToJoin.getElement(varIdent));
+                if (!combined.isUnbound()) {
                     newMap = newMap.putAndCopy(varIdent, combined);
                 }
             }
@@ -546,7 +700,7 @@ public class UnifyAnalysisState
                     continue;
                 }
                 sb.append(loopDelim);
-                sb.append(key.getAsSimpleString() + "->" + getSignForVariable(key.getAsSimpleString()));
+                sb.append(key.getAsSimpleString() + "->" + getElement(key));
                 loopDelim = delim;
             }
             sb.append(" <");
@@ -585,132 +739,6 @@ public class UnifyAnalysisState
         return unifyElements == newMap ? this : new UnifyAnalysisState(newMap, NumericalType.SIGN);
     }
 
-    /**
-     *
-     * The Method is for sign
-     *
-     */
-    public UnifyAnalysisState leaveFunction(String pFunctionName) {
-        PersistentMap<MemoryLocation, NumberInterface> newMap = unifyElements;
-
-        for (MemoryLocation var : unifyElements.keySet()) {
-            if (var.getFunctionName().equals(pFunctionName)) {
-                newMap = newMap.removeAndCopy(var);
-            }
-        }
-        return newMap == unifyElements ? this : new UnifyAnalysisState(newMap, NumericalType.SIGN);
-    }
-
-    /**
-     * This method assigns a value to the variable and puts it in the map.
-     *
-     * @param variableName
-     *            name of the variable.
-     * @param value
-     *            value to be assigned.
-     *
-     */
-    public UnifyAnalysisState assignElement(String variableName, NumberInterface value) {
-        MemoryLocation ml = MemoryLocation.valueOf(variableName);
-        switch (numericalType) {
-        case SIGN:
-            if (((SIGN) value).isAll()) {
-                return unifyElements.containsKey(ml)
-                        ? new UnifyAnalysisState(unifyElements.removeAndCopy(ml), NumericalType.SIGN)
-                        : this;
-            }
-            return unifyElements.containsKey(ml) && getSignForVariable(variableName).equals(value) ? this
-                    : new UnifyAnalysisState(unifyElements.putAndCopy(ml, value), NumericalType.SIGN);
-        case INTERVAL:
-            if (value.isUnbound()) {
-                return removeInterval(variableName);
-            }
-            // only add the interval if it is not already present
-            if (!unifyElements.containsKey(ml) || !unifyElements.get(ml).equals(value)) {
-                return new UnifyAnalysisState(unifyElements.putAndCopy(ml, value), NumericalType.INTERVAL);
-            }
-            return this;
-        case VALUE:
-            if (blacklist.contains(MemoryLocation.valueOf(variableName))) {
-                return this;
-            }
-            addToConstantsMap(MemoryLocation.valueOf(variableName), value);
-            return this;
-        default:
-            return this;
-        }
-    }
-
-    private void addToConstantsMap(final MemoryLocation pMemLoc, final NumberInterface pValue) {
-        NumberInterface valueToAdd = pValue;
-        if (valueToAdd instanceof SymbolicValue) {
-            valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(pMemLoc);
-        }
-        unifyElements = unifyElements.putAndCopy(pMemLoc, checkNotNull(valueToAdd));
-    }
-
-    /**
-     * This method assigns a value to the variable and puts it in the map.
-     *
-     * @param pMemoryLocation
-     *            the location in the memory.
-     * @param value
-     *            value to be assigned.
-     * @param pType
-     *            the type of <code>value</code>.
-     */
-    public void assignConstant(MemoryLocation pMemoryLocation, NumberInterface value, Type pType) {
-        if (blacklist.contains(pMemoryLocation)) {
-            return;
-        }
-        addToConstantsMap(pMemoryLocation, value);
-        memLocToType = memLocToType.putAndCopy(pMemoryLocation, pType);
-    }
-
-    /**
-     * This method assigns a concrete value to the given {@link SymbolicIdentifier}.
-     *
-     * @param pSymbolicIdentifier
-     *            the <code>SymbolicIdentifier</code> to assign the concrete value
-     *            to.
-     * @param pValue
-     *            value to be assigned.
-     */
-    public void assignConstant(SymbolicIdentifier pSymbolicIdentifier, NumberInterface pValue) {
-        for (Map.Entry<MemoryLocation, NumberInterface> entry : unifyElements.entrySet()) {
-            MemoryLocation currMemloc = entry.getKey();
-            NumberInterface currVal = entry.getValue();
-
-            if (currVal instanceof ConstantSymbolicExpression) {
-                currVal = ((ConstantSymbolicExpression) currVal).getValue();
-            }
-            if (currVal instanceof SymbolicIdentifier
-                    && ((SymbolicIdentifier) currVal).getId() == pSymbolicIdentifier.getId()) {
-                assignConstant(currMemloc, pValue, getTypeForMemoryLocation(currMemloc));
-            }
-        }
-    }
-
-    /**
-     *
-     * The Method is for sign
-     *
-     */
-    public UnifyAnalysisState removeSignAssumptionOfVariable(String pVarIdent) {
-        return assignElement(pVarIdent, SIGN.ALL);
-    }
-
-    /**
-     *
-     * The Method is for sign
-     *
-     */
-    public NumberInterface getSignForVariable(String pVarIdent) {
-        MemoryLocation tempKey = MemoryLocation.valueOf(pVarIdent);
-        // TODO the method should work for all types
-        return unifyElements.containsKey(tempKey) ? unifyElements.get(tempKey) : SIGN.ALL;
-    }
-
     private boolean checkPropertySign(String pProperty) {
         List<String> parts = propertySplitter.splitToList(pProperty);
 
@@ -719,21 +747,21 @@ public class UnifyAnalysisState
             // pProperty = value <= varName
             if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
                 NumberInterface value = SIGN.valueOf(parts.get(0));
-                NumberInterface varName = getSignForVariable(parts.get(1));
+                NumberInterface varName = getElement(MemoryLocation.valueOf(parts.get(1)));
                 return (varName.covers(value));
             }
 
             // pProperty = varName <= value
             else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))) {
-                NumberInterface varName = getSignForVariable(parts.get(0));
+                NumberInterface varName = getElement(MemoryLocation.valueOf(parts.get(0)));
                 NumberInterface value = SIGN.valueOf(parts.get(1));
                 return (value.covers(varName));
             }
 
             // pProperty = varName1 <= varName2
             else {
-                NumberInterface varName1 = getSignForVariable(parts.get(0));
-                NumberInterface varName2 = getSignForVariable(parts.get(1));
+                NumberInterface varName1 = getElement(MemoryLocation.valueOf(parts.get(0)));
+                NumberInterface varName2 = getElement(MemoryLocation.valueOf(parts.get(1)));
                 return (varName2.covers(varName1));
             }
         }
@@ -787,70 +815,6 @@ public class UnifyAnalysisState
     }
 
     /**
-     *
-     * The Method is for sign Do we need this?
-     *
-     */
-    // private void readObject(java.io.ObjectInputStream in) throws IOException,
-    // ClassNotFoundException {
-    // in.defaultReadObject();
-    // }
-
-    /**
-     * This method returns the intervals of a given variable.
-     *
-     * @param variableName
-     *            the name of the variable
-     * @return the intervals of the variable
-     */
-    // see ExplicitState::getValueFor
-    public NumberInterface getInterval(String variableName) {
-        return getInterval(MemoryLocation.valueOf(variableName));
-    }
-
-    private NumberInterface getInterval(MemoryLocation variableName) {
-        return unifyElements.getOrDefault(variableName, new CreatorIntegerInterval().factoryMethod(null).UNBOUND());
-    }
-
-    /**
-     * This method determines if this element contains an interval for a variable.
-     *
-     * @param variableName
-     *            the name of the variable
-     * @return true, if this element contains an interval for the given variable
-     */
-    public boolean contains(String variableName) {
-        return unifyElements.containsKey(MemoryLocation.valueOf(variableName));
-    }
-
-    /**
-     * This method removes the interval for a given variable.
-     *
-     * @param variableName
-     *            the name of the variable whose interval should be removed
-     * @return this
-     */
-    // see ExplicitState::forget
-    public UnifyAnalysisState removeInterval(String variableName) {
-        MemoryLocation ml = MemoryLocation.valueOf(variableName);
-        if (unifyElements.containsKey(ml)) {
-            return new UnifyAnalysisState(unifyElements.removeAndCopy(ml), NumericalType.INTERVAL);
-        }
-
-        return this;
-    }
-
-    public UnifyAnalysisState dropFrame(String pCalledFunctionName) {
-        UnifyAnalysisState tmp = this;
-        for (MemoryLocation key : unifyElements.keySet()) {
-            if (key.getFunctionName().startsWith(pCalledFunctionName)) {
-                tmp = tmp.removeInterval(key.getAsSimpleString());
-            }
-        }
-        return tmp;
-    }
-
-    /**
      * This element joins this element with a reached state.
      *
      * @param reachedState
@@ -864,10 +828,10 @@ public class UnifyAnalysisState
 
         for (MemoryLocation variableName : reachedState.unifyElements.keySet()) {
             // Integer otherRefCount = reachedState.getReferenceCount(variableName);
-            NumberInterface otherInterval = reachedState.getInterval(variableName.getAsSimpleString());
+            NumberInterface otherInterval = reachedState.getElement(variableName);
             if (unifyElements.containsKey(variableName)) {
                 // update the interval
-                NumberInterface mergedInterval = getInterval(variableName).union(otherInterval);
+                NumberInterface mergedInterval = getElement(variableName).union(otherInterval);
                 if (mergedInterval != otherInterval) {
                     changed = true;
                 }
@@ -909,7 +873,7 @@ public class UnifyAnalysisState
         // or if the interval of the reached state is not wider than the
         // respective interval of this element
         for (MemoryLocation key : reachedState.unifyElements.keySet()) {
-            if (!unifyElements.containsKey(key) || !reachedState.getInterval(key).contains(getInterval(key))) {
+            if (!unifyElements.containsKey(key) || !reachedState.getElement(key).contains(getElement(key))) {
                 return false;
             }
         }
@@ -953,7 +917,8 @@ public class UnifyAnalysisState
         }
     }
 
-    public UnifyAnalysisState rebuildStateAfterFunctionCallInterval(final UnifyAnalysisState callState,final FunctionExitNode functionExit) {
+    public UnifyAnalysisState rebuildStateAfterFunctionCallInterval(final UnifyAnalysisState callState,
+            final FunctionExitNode functionExit) {
 
         // we build a new state from:
         // - local variables from callState,
@@ -967,7 +932,7 @@ public class UnifyAnalysisState
         // first forget all global information
         for (final MemoryLocation key : callState.unifyElements.keySet()) {
             if (!key.getAsSimpleString().contains("::")) { // global -> delete
-                rebuildState = rebuildState.removeInterval(key.getAsSimpleString());
+                rebuildState = rebuildState.forgetElement(key);
             }
         }
         // second: learn new information
@@ -975,15 +940,15 @@ public class UnifyAnalysisState
 
             if (!trackedVar.getAsSimpleString().contains("::")) { // global -> override deleted
                 // value
-                rebuildState = rebuildState.assignElement(trackedVar.getAsSimpleString(), this.getInterval(trackedVar));
-                rebuildState = rebuildState.assignElement(trackedVar.getAsSimpleString(), this.getInterval(trackedVar));
-            } else if (functionExit.getEntryNode().getReturnVariable().isPresent()
-                    && functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
+                rebuildState = rebuildState.assignElement(trackedVar, this.getElement(trackedVar), null);
+                rebuildState = rebuildState.assignElement(trackedVar, this.getElement(trackedVar), null);
+            } else if (functionExit.getEntryNode().getReturnVariable().isPresent() && functionExit.getEntryNode()
+                    .getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
                 assert (!rebuildState.contains(
                         trackedVar)) : "calling function should not contain return-variable of called function: "
                                 + trackedVar;
                 if (this.contains(trackedVar)) {
-                    rebuildState = rebuildState.assignElement(trackedVar.getAsSimpleString(), this.getInterval(trackedVar));
+                    rebuildState = rebuildState.assignElement(trackedVar, this.getElement(trackedVar), null);
                 }
             }
         }
@@ -1020,7 +985,7 @@ public class UnifyAnalysisState
             // pProperty = value <= varName
             if (CheckTypesOfStringsUtil.isLong(parts.get(0))) {
                 long value = Long.parseLong(parts.get(0));
-                NumberInterface iv = getInterval(parts.get(1));
+                NumberInterface iv = getElement(MemoryLocation.valueOf(parts.get(1)));
                 // return (value <= iv.getLow());
                 return (value <= iv.getLow().longValue());
             }
@@ -1028,15 +993,15 @@ public class UnifyAnalysisState
             // pProperty = varName <= value
             else if (CheckTypesOfStringsUtil.isLong(parts.get(1))) {
                 long value = Long.parseLong(parts.get(1));
-                NumberInterface iv = getInterval(parts.get(0));
+                NumberInterface iv = getElement(MemoryLocation.valueOf(parts.get(0)));
                 // return (iv.getHigh() <= value);
                 return (iv.getHigh().longValue() <= value);
             }
 
             // pProperty = varName1 <= varName2
             else {
-                NumberInterface iv1 = getInterval(parts.get(0));
-                NumberInterface iv2 = getInterval(parts.get(1));
+                NumberInterface iv1 = getElement(MemoryLocation.valueOf(parts.get(0)));
+                NumberInterface iv2 = getElement(MemoryLocation.valueOf(parts.get(1)));
                 return (iv1.contains(iv2));
             }
 
@@ -1045,7 +1010,7 @@ public class UnifyAnalysisState
             if (CheckTypesOfStringsUtil.isLong(parts.get(0)) && CheckTypesOfStringsUtil.isLong(parts.get(2))) {
                 long value1 = Long.parseLong(parts.get(0));
                 long value2 = Long.parseLong(parts.get(2));
-                NumberInterface iv = getInterval(parts.get(1));
+                NumberInterface iv = getElement(MemoryLocation.valueOf(parts.get(1)));
                 // return (value1 <= iv.getLow() && iv.getHigh() <= value2);
                 return (value1 <= iv.getLow().longValue() && iv.getHigh().longValue() <= value2);
             }
@@ -1131,36 +1096,6 @@ public class UnifyAnalysisState
         for (MemoryLocation memoryLocation : toRemove) {
             forget(memoryLocation);
         }
-    }
-
-    /**
-     * This method drops all entries belonging to the stack frame of a function.
-     * This method should be called right before leaving a function.
-     *
-     * @param functionName
-     *            the name of the function that is about to be left
-     */
-    public void dropFrameValue(String functionName) {
-        for (MemoryLocation variableName : unifyElements.keySet()) {
-            if (variableName.isOnFunctionStack(functionName)) {
-                forget(variableName);
-            }
-        }
-    }
-
-    /**
-     * This method returns the value for the given variable.
-     *
-     * @param variableName
-     *            the name of the variable for which to get the value
-     * @throws NullPointerException
-     *             - if no value is present in this state for the given variable
-     * @return the value associated with the given variable
-     */
-    public NumberInterface getValueFor(MemoryLocation variableName) {
-        NumberInterface value = unifyElements.get(variableName);
-
-        return checkNotNull(value);
     }
 
     /**
@@ -1398,7 +1333,7 @@ public class UnifyAnalysisState
                     String varName = assignmentParts[0].trim();
                     try {
                         NumberInterface newValue = new NumericValue(Long.parseLong(assignmentParts[1].trim()));
-                        this.assignElement(varName, newValue);
+                        this.assignElement(MemoryLocation.valueOf(varName), newValue, null);
                     } catch (NumberFormatException e) {
                         throw new InvalidQueryException("The Query \"" + pModification
                                 + "\" is invalid. Could not parse the long \"" + assignmentParts[1].trim() + "\"");
@@ -1423,7 +1358,7 @@ public class UnifyAnalysisState
             if (!contains(variableName)) {
                 difference.add(variableName);
 
-            } else if (!getValueFor(variableName).equals(other.getValueFor(variableName))) {
+            } else if (!getElement(variableName).equals(other.getElement(variableName))) {
                 difference.add(variableName);
             }
         }
@@ -1544,7 +1479,7 @@ public class UnifyAnalysisState
         for (final MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
 
             if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
-                rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar),
+                rebuildState.assignElement(trackedVar, this.getElement(trackedVar),
                         this.getTypeForMemoryLocation(trackedVar));
 
             } else if (functionExit.getEntryNode().getReturnVariable().isPresent() && functionExit.getEntryNode()
@@ -1555,7 +1490,7 @@ public class UnifyAnalysisState
                  * trackedVar;
                  */
                 if (this.contains(trackedVar)) {
-                    rebuildState.assignConstant(trackedVar, this.getValueFor(trackedVar),
+                    rebuildState.assignElement(trackedVar, this.getElement(trackedVar),
                             this.getTypeForMemoryLocation(trackedVar));
                 }
             }
