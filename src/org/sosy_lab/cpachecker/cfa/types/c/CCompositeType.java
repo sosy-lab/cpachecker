@@ -30,6 +30,7 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import javax.annotation.Nullable;
@@ -68,7 +69,22 @@ public final class CCompositeType implements CComplexType {
       final String pName,
       final String pOrigName) {
     this(pConst, pVolatile, pKind, pName, pOrigName);
+    checkMembers(pMembers);
     members = ImmutableList.copyOf(pMembers);
+  }
+
+  private void checkMembers(List<CCompositeTypeMemberDeclaration> pMembers) {
+    for (Iterator<CCompositeTypeMemberDeclaration> it = pMembers.iterator(); it.hasNext();) {
+      CCompositeTypeMemberDeclaration member = it.next();
+      if (member.getType().isIncomplete()) {
+        checkArgument(kind == ComplexTypeKind.STRUCT,
+            "incomplete member %s in %s", member, this);
+        checkArgument(!it.hasNext(),
+            "incomplete member %s in non-last position of %s", member, this);
+        checkArgument(member.getType().getCanonicalType() instanceof CArrayType,
+            "incomplete non-array member %s in last position of %s", member, this);
+      }
+    }
   }
 
   @Override
@@ -83,6 +99,7 @@ public final class CCompositeType implements CComplexType {
 
   public void setMembers(List<CCompositeTypeMemberDeclaration> list) {
     checkState(members == null, "list of CCompositeType members already initialized");
+    checkMembers(list);
     members = ImmutableList.copyOf(list);
   }
 

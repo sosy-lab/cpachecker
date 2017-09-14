@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -2063,6 +2064,27 @@ class ASTConverter {
       }
     }
 
+    for (Iterator<CCompositeTypeMemberDeclaration> it = list.iterator(); it.hasNext(); ) {
+      CCompositeTypeMemberDeclaration member = it.next();
+      if (member.getType().isIncomplete()) {
+        if (kind != ComplexTypeKind.STRUCT) {
+          parseContext.parseError("Member " + member + " has incomplete type in union " + name, d);
+        }
+        if (it.hasNext()) {
+          parseContext.parseError(
+              "Member "
+                  + member
+                  + " in non-last position of struct "
+                  + name
+                  + " has incomplete type",
+              d);
+        }
+        if (!(member.getType().getCanonicalType() instanceof CArrayType)) {
+          parseContext.parseError(
+              "Member " + member + " of struct " + name + " has incomplete non-array type", d);
+        }
+      }
+    }
     CCompositeType compositeType = new CCompositeType(d.isConst(), d.isVolatile(), kind, list, name, origName);
 
     // in cases like struct s { (struct s)* f }
