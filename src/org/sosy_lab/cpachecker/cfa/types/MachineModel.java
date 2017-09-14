@@ -1019,12 +1019,12 @@ public enum MachineModel {
     return pBitFieldOffset;
   }
 
-  public Long calculatePaddedBitsize(
-      Long pBitOffset, long pSizeOfConsecutiveBitFields, CType pType, int pSizeOfByte) {
+  public long calculatePaddedBitsize(
+      long pBitOffset, long pSizeOfConsecutiveBitFields, CType pType, int pSizeOfByte) {
     pBitOffset += pSizeOfConsecutiveBitFields;
     // once pad the bits to full bytes, then pad bytes to the
     // alignment of the current type
-    pBitOffset = Long.valueOf(sizeofVisitor.calculateByteSize(Math.toIntExact(pBitOffset)));
+    pBitOffset = sizeofVisitor.calculateByteSize(Math.toIntExact(pBitOffset));
 
     return (pBitOffset + getPadding(pBitOffset, pType)) * pSizeOfByte;
   }

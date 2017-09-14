@@ -1153,7 +1153,7 @@ public class SMGTransferRelation
             CType innerType = ((CBitFieldType) memberDcl.getType()).getType();
 
             if (memberSize == 0) {
-              offset = machineModel.calculatePaddedBitsize((long) 0, offset, innerType, sizeOfByte);
+              offset = machineModel.calculatePaddedBitsize(0, offset, innerType, sizeOfByte);
             } else {
               offset =
                   machineModel.calculateNecessaryBitfieldOffset(
