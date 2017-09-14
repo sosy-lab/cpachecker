@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
-import static com.google.common.truth.Truth8.assertThat;
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
-import java.util.OptionalLong;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -126,7 +125,6 @@ public class MachineModelGetOffsetTest {
 
   @Test
   public void testGetFieldOffsetInStruct() {
-    assertThat(model.getFieldOffsetInBits(STRUCT, testField)).hasValue(expectedOffset);
-  }
+    assertThat(model.getFieldOffsetInBits(STRUCT, testField)).isEqualTo(expectedOffset);
   }
 }

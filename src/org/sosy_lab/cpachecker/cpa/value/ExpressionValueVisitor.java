@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 /**
  * This Visitor returns the value from an expression.
  * The result may be null, i.e., the value is unknown.
@@ -296,7 +295,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (ownerType instanceof CElaboratedType) {
         return getFieldOffsetInBits(((CElaboratedType) ownerType).getRealType(), fieldName);
       } else if (ownerType instanceof CCompositeType) {
-        return evv.getMachineModel().getFieldOffsetInBits((CCompositeType) ownerType, fieldName);
+        return OptionalLong.of(
+            evv.getMachineModel().getFieldOffsetInBits((CCompositeType) ownerType, fieldName));
       } else if (ownerType instanceof CPointerType) {
         evv.missingPointer = true;
         return OptionalLong.empty();

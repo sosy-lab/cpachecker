@@ -32,7 +32,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
-import java.util.OptionalLong;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -580,13 +579,10 @@ public enum MachineModel {
     }
 
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
-      OptionalLong size =
+      long size =
           model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, this, null);
 
-      if (!size.isPresent()) {
-        throw new IllegalArgumentException("Could not compute size of type " + pCompositeType);
-      }
-      return Math.toIntExact(size.getAsLong());
+      return Math.toIntExact(size);
     }
 
     private Integer handleSizeOfUnion(CCompositeType pCompositeType) {
@@ -817,7 +813,7 @@ public enum MachineModel {
    * @return an {@link OptionalInt} containing either the result value or nothing if some size could
    *     not be calculated properly
    */
-  public OptionalLong getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
+  public long getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
     return getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
   }
 
@@ -832,7 +828,7 @@ public enum MachineModel {
    * @return an {@link OptionalInt} containing either the result value or nothing if some size could
    *     not be calculated properly
    */
-  public OptionalLong getFieldOffsetInBits(
+  public long getFieldOffsetInBits(
       CCompositeType pOwnerType, String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
     checkNotNull(pFieldName);
     return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
@@ -851,10 +847,9 @@ public enum MachineModel {
    *     relevant applications model
    * @param outParameterMap a {@link Map} given as both, input and output, to store the mapping of
    *     fields to offsets in; may be <code>null</code> if not required
-   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
-   *     not be calculated properly
+   * @return a long that is either the offset of the given field or the size of the whole type
    */
-  private OptionalLong getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
+  private long getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
       CCompositeType pOwnerType,
       @Nullable String pFieldName,
       BaseSizeofVisitor pSizeofVisitor,
@@ -868,8 +863,7 @@ public enum MachineModel {
     final ComplexTypeKind ownerTypeKind = pOwnerType.getKind();
     List<CCompositeTypeMemberDeclaration> typeMembers = pOwnerType.getMembers();
 
-    Long bitOffset = null;
-    boolean found = false;
+    long bitOffset = 0L;
     long sizeOfConsecutiveBitFields = 0;
 
     int sizeOfByte = getSizeofCharInBits();
@@ -881,8 +875,7 @@ public enum MachineModel {
         // Otherwise, to indicate a problem, the return
         // will be null.
         if (typeMembers.stream().anyMatch(m -> m.getName().equals(pFieldName))) {
-          found = true;
-          bitOffset = 0L;
+          return bitOffset;
         }
       } else {
         for (CCompositeTypeMemberDeclaration typeMember : typeMembers) {
@@ -890,7 +883,6 @@ public enum MachineModel {
         }
       }
     } else if (ownerTypeKind == ComplexTypeKind.STRUCT) {
-      bitOffset = 0L;
 
       for (Iterator<CCompositeTypeMemberDeclaration> iterator = typeMembers.iterator(); iterator.hasNext();) {
         CCompositeTypeMemberDeclaration typeMember = iterator.next();
@@ -904,8 +896,13 @@ public enum MachineModel {
         // and we return an empty Optional.
         if (type.isIncomplete()) {
           if (iterator.hasNext()) {
-            bitOffset = null;
-            break;
+            throw new AssertionError(
+                "unexpected incomplete type "
+                    + type
+                    + " for field "
+                    + pFieldName
+                    + " in "
+                    + pOwnerType);
           } else {
             // XXX: Should there be a check for CArrayType here
             // as there was in handleSizeOfStruct or is it
@@ -921,9 +918,8 @@ public enum MachineModel {
         if (type instanceof CBitFieldType) {
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
-            found = true;
             bitOffset += sizeOfConsecutiveBitFields;
-            break;
+            return bitOffset;
           }
 
           if (outParameterMap != null) {
@@ -976,8 +972,7 @@ public enum MachineModel {
 
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
-            found = true;
-            break;
+            return bitOffset;
           }
 
           if (outParameterMap != null) {
@@ -988,15 +983,13 @@ public enum MachineModel {
       }
     }
 
-    if (bitOffset != null && found) {
-      return OptionalLong.of(bitOffset);
-    } else if (bitOffset != null && pFieldName == null) {
-      // call with byte size of 1 to return size in bytes instead of bits
-      bitOffset = calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1);
-      return OptionalLong.of(bitOffset);
-    } else {
-      return OptionalLong.empty();
+    if (pFieldName != null) {
+      throw new IllegalArgumentException(
+          "could not find field " + pFieldName + " in " + pOwnerType);
     }
+
+    // call with byte size of 1 to return size in bytes instead of bits
+    return calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1);
   }
 
   public long calculateNecessaryBitfieldOffset(

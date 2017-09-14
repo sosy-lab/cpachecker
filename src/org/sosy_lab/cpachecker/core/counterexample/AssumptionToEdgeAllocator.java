@@ -793,15 +793,10 @@ public class AssumptionToEdgeAllocator {
       return null;
     }
 
-    private @Nullable BigInteger getFieldOffsetInBits(CFieldReference fieldReference) {
+    private @Nullable OptionalLong getFieldOffsetInBits(CFieldReference fieldReference) {
       CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
-      OptionalLong result =
-          AssumptionToEdgeAllocator.getFieldOffsetInBits(
-              fieldOwnerType, fieldReference.getFieldName(), machineModel);
-      if (result.isPresent()) {
-        return BigInteger.valueOf(result.getAsLong());
-      }
-      return null;
+      return AssumptionToEdgeAllocator.getFieldOffsetInBits(
+          fieldOwnerType, fieldReference.getFieldName(), machineModel);
     }
 
     @Override
@@ -977,13 +972,13 @@ public class AssumptionToEdgeAllocator {
           return lookupReferenceAddress(pIastFieldReference);
         }
 
-        BigInteger fieldOffset = getFieldOffsetInBits(pIastFieldReference);
+        OptionalLong fieldOffset = getFieldOffsetInBits(pIastFieldReference);
 
-        if (fieldOffset == null) {
+        if (!fieldOffset.isPresent()) {
           return lookupReferenceAddress(pIastFieldReference);
         }
 
-        Address address = fieldOwnerAddress.addOffset(new BigDecimal(fieldOffset));
+        Address address = fieldOwnerAddress.addOffset(new BigDecimal(fieldOffset.getAsLong()));
 
         if (address.isUnknown()) {
           return lookupReferenceAddress(pIastFieldReference);
@@ -2184,12 +2179,13 @@ public class AssumptionToEdgeAllocator {
       CType realType = ((CElaboratedType) ownerType).getRealType();
 
       if (realType == null) {
-        return null;
+        return OptionalLong.empty();
       }
 
       return getFieldOffsetInBits(realType.getCanonicalType(), fieldName, pMachineModel);
     } else if (ownerType instanceof CCompositeType) {
-      return pMachineModel.getFieldOffsetInBits((CCompositeType) ownerType, fieldName);
+      return OptionalLong.of(
+          pMachineModel.getFieldOffsetInBits((CCompositeType) ownerType, fieldName));
     } else if (ownerType instanceof CPointerType) {
 
       /* We do not explicitly transform x->b,

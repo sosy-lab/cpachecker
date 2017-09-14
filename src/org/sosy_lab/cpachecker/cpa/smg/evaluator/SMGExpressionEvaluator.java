@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalLong;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -254,21 +253,13 @@ public class SMGExpressionEvaluator {
       CCompositeType pOwnerType,
       String pFieldName,
       SMGState pState,
-      CExpression pExpression)
-      throws UnrecognizedCCodeException {
+      CExpression pExpression) {
 
     List<CCompositeTypeMemberDeclaration> membersOfType = pOwnerType.getMembers();
-    OptionalLong offset = OptionalLong.empty();
     CType resultType = pOwnerType;
 
     CSizeOfVisitor sizeofVisitor = getSizeOfVisitor(pEdge, pState, Optional.of(pExpression));
-
-    try {
-      offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
-    } catch (IllegalArgumentException e) {
-      logger.logDebugException(e);
-      throw new UnrecognizedCCodeException("Could not resolve type.", pEdge);
-    }
+    long offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       if (typeMember.getName().equals(pFieldName)) {
@@ -277,8 +268,8 @@ public class SMGExpressionEvaluator {
     }
 
     SMGExplicitValue smgValue = null;
-    if (offset.isPresent() && !resultType.equals(pOwnerType)) {
-      smgValue = SMGKnownExpValue.valueOf(offset.getAsLong());
+    if (!resultType.equals(pOwnerType)) {
+      smgValue = SMGKnownExpValue.valueOf(offset);
       resultType = getRealExpressionType(resultType);
     } else {
       smgValue = SMGUnknownValue.getInstance();
