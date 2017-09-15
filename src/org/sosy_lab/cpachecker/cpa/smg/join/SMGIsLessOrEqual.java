@@ -35,12 +35,23 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /**
  * This class implements a faster way to test, if one smg is less or equal to another.
  * Simply joining two smg and requesting its status takes too long.
  */
 public class SMGIsLessOrEqual {
+
+  public static final ThreadSafeTimerContainer isLEQTimer =
+      new ThreadSafeTimerContainer("Time for joining SMGs");
+  public static final ThreadSafeTimerContainer globalsTimer =
+      new ThreadSafeTimerContainer("Time for joining globals");
+  public static final ThreadSafeTimerContainer stackTimer =
+      new ThreadSafeTimerContainer("Time for joining stacks");
+  public static final ThreadSafeTimerContainer heapTimer =
+      new ThreadSafeTimerContainer("Time for joining heaps");
 
   private SMGIsLessOrEqual() {} // Utility class.
 
@@ -51,33 +62,59 @@ public class SMGIsLessOrEqual {
    */
   public static boolean isLessOrEqual(CLangSMG pSMG1, CLangSMG pSMG2) {
 
-    // if smg1 is smg2, smg1 is equal to smg2
-    if (pSMG1 == pSMG2) {
+    TimerWrapper timer = isLEQTimer.getNewTimer();
+    timer.start();
+    try {
+
+      // if smg1 is smg2, smg1 is equal to smg2
+      if (pSMG1 == pSMG2) {
+        return true;
+      }
+
+      // if smg1 has not allocated the same number of SMGObjects in the heap, it is not equal to smg2
+      if (pSMG1.getHeapObjects().size() != pSMG2.getHeapObjects().size()) {
+        return false;
+      }
+
+      if (pSMG1.getStackFrames().size() != pSMG2.getStackFrames().size()) {
+        return false;
+      }
+
+      TimerWrapper gt = globalsTimer.getNewTimer();
+      gt.start();
+      try {
+        if (!maybeGlobalsLessOrEqual(pSMG1, pSMG2)) {
+          return false;
+        }
+      } finally {
+        gt.stop();
+      }
+
+      TimerWrapper st = stackTimer.getNewTimer();
+      st.start();
+      try {
+        if (!maybeStackLessOrEqual(pSMG1, pSMG2)) {
+          return false;
+        }
+      } finally {
+        st.stop();
+      }
+
+      TimerWrapper ht = heapTimer.getNewTimer();
+      ht.start();
+      try {
+        if (!maybeHeapLessOrEqual(pSMG1, pSMG2)) {
+          return false;
+        }
+      } finally {
+        ht.stop();
+      }
+
       return true;
-    }
 
-    // if smg1 has not allocated the same number of SMGObjects in the heap, it is not equal to smg2
-    if (pSMG1.getHeapObjects().size() != pSMG2.getHeapObjects().size()) {
-      return false;
+    } finally {
+      timer.stop();
     }
-
-    if (pSMG1.getStackFrames().size() != pSMG2.getStackFrames().size()) {
-      return false;
-    }
-
-    if (!maybeGlobalsLessOrEqual(pSMG1, pSMG2)) {
-      return false;
-    }
-
-    if (!maybeStackLessOrEqual(pSMG1, pSMG2)) {
-      return false;
-    }
-
-    if (!maybeHeapLessOrEqual(pSMG1, pSMG2)) {
-      return false;
-    }
-
-    return true;
   }
 
   /** returns whether globals variables are "maybe LEQ" or "definitely not LEQ". */

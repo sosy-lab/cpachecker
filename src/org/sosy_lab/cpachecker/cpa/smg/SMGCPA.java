@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,14 +52,19 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGPrecision;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
-@Options(prefix="cpa.smg")
-public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithConcreteCex {
+@Options(prefix = "cpa.smg")
+public class SMGCPA
+    implements ConfigurableProgramAnalysis,
+        ConfigurableProgramAnalysisWithConcreteCex,
+        StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SMGCPA.class);
@@ -86,6 +92,7 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final SMGOptions options;
   private final SMGExportDotOption exportOptions;
+  private final SMGStatistics stats = new SMGStatistics();
 
   private SMGPrecision precision;
 
@@ -239,5 +246,10 @@ public class SMGCPA implements ConfigurableProgramAnalysis, ConfigurableProgramA
 
   public void nextRefinment() {
     exportOptions.nextRefinment();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }
