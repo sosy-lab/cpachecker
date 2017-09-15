@@ -86,14 +86,10 @@ public class SMG {
     pt_edges = new SMGPointsToMap();
     object_validity = PathCopyingPersistentTreeMap.of();
     objectAllocationIdentity = PathCopyingPersistentTreeMap.of();
-
-    addObject(SMGNullObject.INSTANCE);
-    object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
-
-    addValue(NULL_ADDRESS);
-    addPointsToEdge(NULL_POINTER);
-
     machine_model = pMachineModel;
+
+    initializeNullObject();
+    initializeNullAddress();
   }
 
   /**
@@ -617,6 +613,10 @@ public class SMG {
     pt_edges = new SMGPointsToMap();
     neq = new NeqRelation();
     pathPredicate.clear();
+    initializeNullAddress();
+  }
+
+  private void initializeNullAddress() {
     addValue(NULL_ADDRESS);
     addPointsToEdge(NULL_POINTER);
   }
@@ -624,8 +624,10 @@ public class SMG {
   public void clearObjects() {
     objects = PersistentSet.of();
     object_validity = PathCopyingPersistentTreeMap.of();
+    initializeNullObject();
+  }
 
-    /*May not clear null objects*/
+  private void initializeNullObject() {
     addObject(SMGNullObject.INSTANCE);
     object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
   }
