@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -216,5 +217,24 @@ public final class CLangStackFrame {
    */
   public boolean hasVariable(String var) {
     return stack_variables.containsKey(var);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof CLangStackFrame)) {
+      return false;
+    }
+    CLangStackFrame other = (CLangStackFrame)o;
+    return Objects.equals(stack_variables, other.stack_variables)
+        && Objects.equals(stack_function, other.stack_function)
+        && Objects.equals(returnValueObject, other.returnValueObject);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(stack_variables, stack_function, returnValueObject);
   }
 }
