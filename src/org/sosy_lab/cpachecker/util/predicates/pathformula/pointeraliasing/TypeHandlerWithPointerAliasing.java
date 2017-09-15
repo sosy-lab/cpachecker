@@ -181,8 +181,6 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     Iterator<CCompositeTypeMemberDeclaration> memberIt = compositeType.getMembers().iterator();
     while (memberIt.hasNext()) {
       final CCompositeTypeMemberDeclaration memberDeclaration = memberIt.next();
-      long bitPreciseOffset = offset * sizeOfByte + bitFieldsSize;
-      members.put(memberDeclaration.getName(), bitPreciseOffset);
       final CType memberType = getSimplifiedType(memberDeclaration);
       final CCompositeType memberCompositeType;
       if (memberType instanceof CCompositeType) {
@@ -200,17 +198,19 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       }
       if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
         if (memberCompositeType != null) {
-          offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
           bitFieldsSize = 0;
           offset += machineModel.getPadding(offset, memberCompositeType);
+          setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
           offset += sizes.count(memberCompositeType);
+          offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
         } else if (memberType.isIncomplete() && memberType instanceof CArrayType && !memberIt.hasNext()) {
           // Last member of a struct can be an incomplete array.
           // In this case we need only padding according to the element type of the array and no size.
           CType elementType = ((CArrayType) memberType).getType();
-          offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
           bitFieldsSize = 0;
           offset += machineModel.getPadding(offset, elementType);
+          setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
+          offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
         } else {
           if (memberDeclaration.getType() instanceof CBitFieldType) {
             // Cf. implementation of {@link MachineModel#getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(...)}
@@ -221,16 +221,19 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
             if (memberSize == 0) {
               bitFieldsSize =
                   machineModel.calculatePaddedBitsize(0L, bitFieldsSize, innerType, sizeOfByte);
+              setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
             } else {
               bitFieldsSize =
                   machineModel.calculateNecessaryBitfieldOffset(
                       bitFieldsSize, innerType, sizeOfByte, memberSize);
+              setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
               bitFieldsSize += memberSize;
             }
           } else {
-            offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
             bitFieldsSize = 0;
             offset += machineModel.getPadding(offset, memberDeclaration.getType());
+            setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
+            offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
             offset += memberDeclaration.getType().accept(sizeofVisitor);
           }
         }
@@ -251,5 +254,14 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
         : "Mismatching sizes " + size + " and " + machineModelSize + " for " + compositeType;
     assert members.equals(machineModelOffsets)
         : "Mismatching offsets for " + compositeType + ": " + Maps.difference(members, machineModelOffsets);
+  }
+
+  private void setMemberBitOffset(
+      HashMap<String, Long> pMembers,
+      long pBitFieldsSize,
+      long pOffset,
+      CCompositeTypeMemberDeclaration pMemberDeclaration, int pSizeOfByte) {
+    long bitPreciseOffset = pOffset * pSizeOfByte + pBitFieldsSize;
+    pMembers.put(pMemberDeclaration.getName(), bitPreciseOffset);
   }
 }
