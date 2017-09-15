@@ -252,8 +252,12 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     Map<String, Long> machineModelOffsets = ImmutableMap.copyOf(from(model.getAllFieldOffsetsInBits(compositeType).entrySet()).transform(entry -> Maps.immutableEntry(entry.getKey().getName(), entry.getValue())));
     assert size == machineModelSize
         : "Mismatching sizes " + size + " and " + machineModelSize + " for " + compositeType;
-    assert members.equals(machineModelOffsets)
-        : "Mismatching offsets for " + compositeType + ": " + Maps.difference(members, machineModelOffsets);
+    if (compositeType.getKind() == ComplexTypeKind.UNION) {
+      assert members.isEmpty() : members;
+    } else {
+      assert members.equals(machineModelOffsets)
+          : "Mismatching offsets for " + compositeType + ": " + Maps.difference(members, machineModelOffsets);
+    }
   }
 
   private void setMemberBitOffset(
