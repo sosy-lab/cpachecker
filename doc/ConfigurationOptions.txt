@@ -1688,7 +1688,7 @@ cpa.predicate.maxPreFilledAllocationSize = 0
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctions = {
-      "malloc", "__kmalloc", "kmalloc"
+      "malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca"
       }
 
 # Memory allocation functions of which all parameters but the first should be

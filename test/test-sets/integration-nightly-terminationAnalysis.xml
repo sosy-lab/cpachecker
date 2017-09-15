@@ -23,8 +23,6 @@
 
   <rundefinition>
     <option name="-terminationAnalysis"/>
-    <!-- __builtin_alloca is usedby some of the tasks-->
-    <option name="-setprop">cpa.predicate.memoryAllocationFunctions=malloc,__kmalloc,kmalloc,alloca,__builtin_alloca</option>
   </rundefinition>
 
 </benchmark>
