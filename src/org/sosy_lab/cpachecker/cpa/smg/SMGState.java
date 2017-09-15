@@ -1448,27 +1448,24 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
       return reachedState;
     }
 
-    if (join.isDefined()) {
-
-      CLangSMG destHeap = join.getJointSMG();
-
-      Map<SMGKnownSymValue, SMGKnownExpValue> mergedExplicitValues = new HashMap<>();
-
-      for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : explicitValues.entrySet()) {
-        if (destHeap.getValues().contains(entry.getKey().getAsInt())) {
-          mergedExplicitValues.put(entry.getKey(), entry.getValue());
-        }
-      }
-
-      for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : reachedState.explicitValues
-          .entrySet()) {
-        mergedExplicitValues.put(entry.getKey(), entry.getValue());
-      }
-
-      return new SMGState(logger, options, destHeap, predecessorId, mergedExplicitValues);
-    } else {
+    if (!join.isDefined()) {
       return reachedState;
     }
+
+    CLangSMG destHeap = join.getJointSMG();
+
+    // join explicit values
+    Map<SMGKnownSymValue, SMGKnownExpValue> mergedExplicitValues = new HashMap<>();
+    for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : explicitValues.entrySet()) {
+      if (destHeap.getValues().contains(entry.getKey().getAsInt())) {
+        mergedExplicitValues.put(entry.getKey(), entry.getValue());
+      }
+    }
+    for (Entry<SMGKnownSymValue, SMGKnownExpValue> entry : reachedState.explicitValues.entrySet()) {
+      mergedExplicitValues.put(entry.getKey(), entry.getValue());
+    }
+
+    return new SMGState(logger, options, destHeap, predecessorId, mergedExplicitValues);
   }
 
   /**
@@ -1489,32 +1486,26 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
     }
 
     if (options.isHeapAbstractionEnabled()) {
-
       SMGJoin join = new SMGJoin(heap, reachedState.heap, this, reachedState);
 
-      if (join.isDefined()) {
-        SMGJoinStatus jss = join.getStatus();
-
-        /* Only stop if either reached has memleak or this state has no memleak to avoid
-         * losing memleak information.
-         */
-        if (jss == SMGJoinStatus.EQUAL || jss == SMGJoinStatus.RIGHT_ENTAIL) {
-
-          SMGState s1 = new SMGState(reachedState);
-          SMGState s2 = new SMGState(this);
-
-          s1.pruneUnreachable();
-          s2.pruneUnreachable();
-
-          logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
-
-          return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
-        } else {
-          return false;
-        }
-      } else {
+      if (!join.isDefined()) {
         return false;
       }
+
+      SMGJoinStatus jss = join.getStatus();
+      if (jss != SMGJoinStatus.EQUAL && jss != SMGJoinStatus.RIGHT_ENTAIL) {
+        return false;
+      }
+
+      // Only stop if either reached has memleak or this state has no memleak
+      // to avoid losing memleak information.
+      SMGState s1 = new SMGState(reachedState);
+      SMGState s2 = new SMGState(this);
+      s1.pruneUnreachable();
+      s2.pruneUnreachable();
+      logger.log(Level.ALL, this.getId(), " is Less or Equal ", reachedState.getId());
+      return s1.heap.hasMemoryLeaks() == s2.heap.hasMemoryLeaks();
+
     } else {
       return SMGIsLessOrEqual.isLessOrEqual(reachedState.heap, heap);
     }
