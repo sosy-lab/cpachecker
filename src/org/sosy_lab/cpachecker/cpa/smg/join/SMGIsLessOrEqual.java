@@ -138,7 +138,6 @@ public class SMGIsLessOrEqual {
       }
 
       SMGObject globalInSMG2 = globals_in_smg2.get(entry.getKey());
-
       if (!isLessOrEqualFields(pSMG1, pSMG2, globalInSMG1, globalInSMG2)) {
         return false;
       }
@@ -233,8 +232,8 @@ public class SMGIsLessOrEqual {
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pSMGObject1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pSMGObject2);
 
-    Iterable<SMGEdgeHasValue> HVE1 = filterForSMG1.filter(pSMG1.getHVEdges());
-    Iterable<SMGEdgeHasValue> HVE2 = filterForSMG2.filter(pSMG2.getHVEdges());
+    Iterable<SMGEdgeHasValue> HVE1 = pSMG1.getHVEdges(filterForSMG1);
+    Iterable<SMGEdgeHasValue> HVE2 = pSMG2.getHVEdges(filterForSMG2);
 
     //TODO Merge Zero.
     for (SMGEdgeHasValue edge1 : HVE1) {

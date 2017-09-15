@@ -164,6 +164,7 @@ public class SMGEdgeHasValueFilter {
     return filter(filtered);
   }
 
+  /** Info: Please use SMG.getHVEdges(filter) for better performance when filtering for objects. */
   public Iterable<SMGEdgeHasValue> filter(Iterable<SMGEdgeHasValue> pEdges) {
     return Iterables.filter(pEdges, this::holdsFor);
   }
