@@ -23,9 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cpa.sign.SIGN;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class UnifyAnalysisStateTest {
@@ -78,5 +83,60 @@ public class UnifyAnalysisStateTest {
       assertTrue(c1.compareTo(c2) == 0);
       assertTrue(c2.compareTo(c1) == 0);
   }
+
+@Test
+public void testDropFrameIntervals() throws Exception {
+
+    PersistentMap<MemoryLocation, NumberInterface> intervals = PathCopyingPersistentTreeMap.of();
+    intervals = intervals.putAndCopy(MemoryLocation.valueOf("fu::a"), new IntegerInterval(1L, 1L));
+    intervals = intervals.putAndCopy(MemoryLocation.valueOf("fu::b"), new IntegerInterval(2L, 2L));
+    intervals = intervals.putAndCopy(MemoryLocation.valueOf("fu::c"), new IntegerInterval(2L, 2L));
+    intervals = intervals.putAndCopy(MemoryLocation.valueOf("be::x"), new IntegerInterval(3L, 3L));
+    intervals = intervals.putAndCopy(MemoryLocation.valueOf("be::y"), new IntegerInterval(2L, 3L));
+
+    assertEquals(5, intervals.size());
+
+    UnifyAnalysisState intervalUnifyAnalysis = new UnifyAnalysisState(intervals, NumericalType.INTERVAL);
+    assertEquals(5, intervalUnifyAnalysis.getSize());
+    assertEquals(2, intervalUnifyAnalysis.dropFrame("fu").getSize());
+    assertEquals(5, intervalUnifyAnalysis.getSize());
+
+}
+@Test
+public void testDropFrameSign() throws Exception {
+//    UnifyAnalysisState valueUnifyAnalysis = new UnifyAnalysisState(NumericalType.VALUE);
+
+    PersistentMap<MemoryLocation, NumberInterface> signMap = PathCopyingPersistentTreeMap.of();
+    signMap = signMap.putAndCopy(MemoryLocation.valueOf("fu::a"), SIGN.EMPTY);
+    signMap = signMap.putAndCopy(MemoryLocation.valueOf("fu::b"), SIGN.MINUS);
+    signMap = signMap.putAndCopy(MemoryLocation.valueOf("fu::c"), SIGN.ALL);
+    signMap = signMap.putAndCopy(MemoryLocation.valueOf("be::x"), SIGN.ALL);
+    signMap = signMap.putAndCopy(MemoryLocation.valueOf("be::y"), SIGN.PLUS);
+
+    assertEquals(5, signMap.size());
+
+    UnifyAnalysisState signUnifyAnalysis = new UnifyAnalysisState(signMap, NumericalType.SIGN);
+    assertEquals(5, signUnifyAnalysis.getSize());
+    assertEquals(2, signUnifyAnalysis.dropFrame("fu").getSize());
+    assertEquals(5, signUnifyAnalysis.getSize());
+
+
+}
+@Test
+public void testDropFrameValue() throws Exception {
+    UnifyAnalysisState valueUnifyAnalysis = new UnifyAnalysisState(NumericalType.VALUE);
+
+    valueUnifyAnalysis.assignElement(MemoryLocation.valueOf("fu::a"), new NumericValue(1), null);
+    valueUnifyAnalysis.assignElement(MemoryLocation.valueOf("fu::b"), new NumericValue(2), null);
+    valueUnifyAnalysis.assignElement(MemoryLocation.valueOf("fu::c"), new NumericValue(3), null);
+    valueUnifyAnalysis.assignElement(MemoryLocation.valueOf("be::x"), new NumericValue(4), null);
+    valueUnifyAnalysis.assignElement(MemoryLocation.valueOf("be::y"), new NumericValue(5), null);
+
+    assertEquals(5, valueUnifyAnalysis.getSize());
+    assertEquals(2, valueUnifyAnalysis.dropFrame("fu").getSize());
+    assertEquals(2, valueUnifyAnalysis.getSize());
+
+
+}
 
 }
