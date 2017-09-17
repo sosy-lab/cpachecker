@@ -251,11 +251,6 @@ public interface NumberInterface {
         return null;
     }
 
-    default NumberInterface combineWith(NumberInterface sign) {
-
-        return sign;
-    }
-
     public boolean covers(NumberInterface sign);
     public boolean isSubsetOf(NumberInterface sign);
     default ImmutableSet<NumberInterface> split() {
