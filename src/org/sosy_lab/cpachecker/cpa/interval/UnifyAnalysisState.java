@@ -101,8 +101,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * the map that keeps the name of variables and their constant values (concrete
-     * and symbolic ones)
+     * the map that keeps the name of variables and their constant values
+     * (concrete and symbolic ones)
      */
     private PersistentMap<MemoryLocation, NumberInterface> unifyElements;
 
@@ -182,8 +182,7 @@ public class UnifyAnalysisState
             }
             // only add the element if it is not already present
             return !unifyElements.containsKey(variableName) || !unifyElements.get(variableName).equals(value)
-                    ? new UnifyAnalysisState(unifyElements.putAndCopy(variableName, value), numericalType)
-                    : this;
+                    ? new UnifyAnalysisState(unifyElements.putAndCopy(variableName, value), numericalType) : this;
         case VALUE:
             memLocToType = memLocToType.putAndCopy(variableName, type);
             NumberInterface valueToAdd = value;
@@ -198,11 +197,12 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method assigns a concrete value to the given {@link SymbolicIdentifier}.
+     * This method assigns a concrete value to the given
+     * {@link SymbolicIdentifier}.
      *
      * @param pSymbolicIdentifier
-     *            the <code>SymbolicIdentifier</code> to assign the concrete value
-     *            to.
+     *            the <code>SymbolicIdentifier</code> to assign the concrete
+     *            value to.
      * @param pValue
      *            value to be assigned.
      */
@@ -222,8 +222,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method removes a memory location from the underlying map and returns the
-     * removed value.
+     * This method removes a memory location from the underlying map and returns
+     * the removed value.
      *
      * @param pMemoryLocation
      *            the name of the memory location to remove
@@ -252,7 +252,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method removes the interval or sign (later value) for a given variable.
+     * This method removes the interval or sign (later value) for a given
+     * variable.
      *
      * @param variableName
      *            the name of the variable whose interval should be removed
@@ -261,8 +262,7 @@ public class UnifyAnalysisState
     // see ExplicitState::forget
     public UnifyAnalysisState forgetElement(MemoryLocation variableName) {
         return unifyElements.containsKey(variableName)
-                ? new UnifyAnalysisState(unifyElements.removeAndCopy(variableName), numericalType)
-                : this;
+                ? new UnifyAnalysisState(unifyElements.removeAndCopy(variableName), numericalType) : this;
     }
 
     /**
@@ -279,7 +279,7 @@ public class UnifyAnalysisState
                 switch (numericalType) {
                 case INTERVAL:
                 case SIGN:
-                    temp  = temp.forgetElement(variableName);
+                    temp = temp.forgetElement(variableName);
                     break;
                 default:
                     temp.forget(variableName);
@@ -318,6 +318,7 @@ public class UnifyAnalysisState
 
         assignElement(pLocation, value, valueType);
     }
+
     @Override
     public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
         List<BooleanFormula> result = new ArrayList<>();
@@ -343,7 +344,8 @@ public class UnifyAnalysisState
                         // interval
                         result.add(pManager.makeLessOrEqual(nfmgr.makeNumber(low), var, true));
                     }
-                    // if (high != null && high != Long.MIN_VALUE) { // check for
+                    // if (high != null && high != Long.MIN_VALUE) { // check
+                    // for
                     // unbound
                     if (high != Long.MIN_VALUE) {
                         // interval
@@ -352,13 +354,15 @@ public class UnifyAnalysisState
                 } else {
                     Double low = interval.getLow().doubleValue();
                     Double high = interval.getHigh().doubleValue();
-                    // if (low != null && low != Double.MIN_VALUE) { // check for
+                    // if (low != null && low != Double.MIN_VALUE) { // check
+                    // for
                     // unbound
                     // interval
                     if (low != Double.MIN_VALUE) {
                         result.add(pManager.makeLessOrEqual(nfmgr.makeNumber(low), var, true));
                     }
-                    // if (high != null && high != Double.MIN_VALUE) { // check for
+                    // if (high != null && high != Double.MIN_VALUE) { // check
+                    // for
                     // unbound interval
                     if (high != Double.MIN_VALUE) {
                         result.add(pManager.makeGreaterOrEqual(nfmgr.makeNumber(high), var, true));
@@ -426,16 +430,20 @@ public class UnifyAnalysisState
             return null;
         }
     }
+
     @Override
     @Nullable
     public Comparable<?> getPseudoPartitionKey() {
         switch (numericalType) {
         case INTERVAL:
-            // The size alone is not sufficient for pseudo-partitioning, if we want
+            // The size alone is not sufficient for pseudo-partitioning, if we
+            // want
             // to use object-identity
-            // as hashcode. Thus we need a second measurement: the absolute distance
+            // as hashcode. Thus we need a second measurement: the absolute
+            // distance
             // of all intervals.
-            // -> if the distance is "smaller" than the other state, we know nothing
+            // -> if the distance is "smaller" than the other state, we know
+            // nothing
             // and have to compare the states.
             // -> if the distance is "equal", we can compare by "identity".
             // -> if the distance is "greater", we are "greater" than the other
@@ -494,9 +502,10 @@ public class UnifyAnalysisState
         return sb.append("] size -> ").append(unifyElements.size()).toString();
 
     }
+
     /**
-     * This method checks whether or not the given Memory Location is contained in
-     * this state.
+     * This method checks whether or not the given Memory Location is contained
+     * in this state.
      *
      * @param pMemoryLocation
      *            the location in the Memory to check for
@@ -505,13 +514,16 @@ public class UnifyAnalysisState
     public boolean contains(MemoryLocation pMemoryLocation) {
         return unifyElements.containsKey(pMemoryLocation);
     }
+
     @Override
     public Set<MemoryLocation> getTrackedMemoryLocations() {
         // no copy necessary, set is immutable
         return unifyElements.keySet();
     }
+
     /**
-     * This method determines the total number of variables contained in this state.
+     * This method determines the total number of variables contained in this
+     * state.
      *
      * @return the total number of variables contained in this state
      */
@@ -519,6 +531,7 @@ public class UnifyAnalysisState
     public int getSize() {
         return unifyElements.size();
     }
+
     @Override
     public String toDOTLabel() {
         StringBuilder sb = new StringBuilder();
@@ -528,6 +541,7 @@ public class UnifyAnalysisState
         sb.append("}");
         return sb.toString();
     }
+
     @Override
     public String getCPAName() {
         switch (numericalType) {
@@ -541,6 +555,7 @@ public class UnifyAnalysisState
             return null;
         }
     }
+
     @Override
     public boolean shouldBeHighlighted() {
         return false;
@@ -549,112 +564,65 @@ public class UnifyAnalysisState
     /**
      * This element joins this element with another element.
      *
-     * @param reachedState
+     * @param pOther
      *            the other element to join with this element
      * @return a new state representing the join of this element and the other
      *         element
      */
     @Override
     public UnifyAnalysisState join(UnifyAnalysisState pOther) throws CPAException, InterruptedException {
-        switch (numericalType) {
-        case SIGN:
-            return stateJoinSign(pOther);
-        case INTERVAL:
-            return stateJoinInterval(pOther);
-        case VALUE:
-            return stateJoinValue(pOther);
-        default:
-            return null;
-        }
-    }
-    private UnifyAnalysisState stateJoinSign(UnifyAnalysisState pToJoin) {
-        if (pToJoin.equals(this)) {
-            return pToJoin;
-        }
-        if (this.equals(TOP) || pToJoin.equals(TOP)) {
-            return TOP;
-        }
+            boolean changed = false;
+            if (pOther.equals(this)) {
+                return pOther;
 
-        // assure termination of loops do not merge if pToJoin covers this but return
-        // pToJoin
-        if (isLessOrEqual(pToJoin)) {
-            return pToJoin;
-        }
-
-        UnifyAnalysisState result = UnifyAnalysisState.TOP;
-        PersistentMap<MemoryLocation, NumberInterface> newMap = PathCopyingPersistentTreeMap.of();
-        NumberInterface combined;
-        for (MemoryLocation varIdent : pToJoin.unifyElements.keySet()) {
-            // only add those variables that are contained in both states (otherwise one has
-            // value ALL (not saved))
-            if (unifyElements.containsKey(varIdent)) {
-                combined = getElement(varIdent).combineWith(pToJoin.getElement(varIdent));
-                if (!combined.isUnbound()) {
-                    newMap = newMap.putAndCopy(varIdent, combined);
+            }
+            if (this.equals(TOP) || pOther.equals(TOP)) {
+                return TOP;
+            }
+            // assure termination of loops do not merge if pToJoin covers this
+            // but return
+            // pToJoin
+            // only in case sign
+            if (numericalType == NumericalType.SIGN && isLessOrEqual(pOther)) {
+                return pOther;
+            }
+            PersistentMap<MemoryLocation, NumberInterface> newMap = PathCopyingPersistentTreeMap.of();
+            PersistentMap<MemoryLocation, Type> newlocToTypeMap = PathCopyingPersistentTreeMap.of();
+            for (MemoryLocation varIdent : pOther.unifyElements.keySet()) {
+                // only add those variables that are contained in both states
+                // (otherwise one has
+                // value ALL (not saved))
+                if (unifyElements.containsKey(varIdent)) {
+                    if (numericalType == NumericalType.INTERVAL || numericalType == NumericalType.SIGN) {
+                        NumberInterface otherElement = pOther.getElement(varIdent);
+                        NumberInterface combined = getElement(varIdent).union(otherElement);
+                        if (!combined.isUnbound()) {
+                            newMap = newMap.putAndCopy(varIdent, combined);
+                        }
+                        if (combined != otherElement) {
+                            changed = true;
+                        }
+                    }
+                    if(numericalType == NumericalType.VALUE){
+                        if (Objects.equals(pOther.unifyElements.get(varIdent), unifyElements.get(varIdent))) {
+                            newMap = newMap.putAndCopy(varIdent, pOther.unifyElements.get(varIdent));
+                            newlocToTypeMap = newlocToTypeMap.putAndCopy(varIdent, memLocToType.get(varIdent));
+                        }
+                    }
                 }
             }
-        }
-        return newMap.size() > 0 ? new UnifyAnalysisState(newMap, NumericalType.SIGN) : result;
-    }
-
-    private UnifyAnalysisState stateJoinInterval(UnifyAnalysisState reachedState) {
-        boolean changed = false;
-        PersistentMap<MemoryLocation, NumberInterface> newIntervals = PathCopyingPersistentTreeMap.of();
-
-        for (MemoryLocation variableName : reachedState.unifyElements.keySet()) {
-            // Integer otherRefCount = reachedState.getReferenceCount(variableName);
-            NumberInterface otherInterval = reachedState.getElement(variableName);
-            if (unifyElements.containsKey(variableName)) {
-                // update the interval
-                NumberInterface mergedInterval = getElement(variableName).union(otherInterval);
-                if (mergedInterval != otherInterval) {
-                    changed = true;
-                }
-                if (!mergedInterval.isUnbound()) {
-                    newIntervals = newIntervals.putAndCopy(variableName, mergedInterval);
-                }
+            switch (numericalType) {
+            case SIGN:
+                return newMap.size() > 0 ? new UnifyAnalysisState(newMap, numericalType) : TOP;
+            case INTERVAL:
+                return changed ? new UnifyAnalysisState(newMap, numericalType) : pOther;
+            case VALUE:
+             // return the reached state if both maps are equal
+                return (unifyElements.size() == pOther.unifyElements.size()) ? pOther : new UnifyAnalysisState(machineModel, newMap, newlocToTypeMap);
+            default:
+                return null;
             }
-        }
-
-        if (changed) {
-            return new UnifyAnalysisState(newIntervals, NumericalType.INTERVAL);
-        } else {
-            return reachedState;
-        }
     }
-
-    public UnifyAnalysisState stateJoinValue(UnifyAnalysisState reachedState) {
-        PersistentMap<MemoryLocation, NumberInterface> newConstantsMap = PathCopyingPersistentTreeMap.of();
-        PersistentMap<MemoryLocation, Type> newlocToTypeMap = PathCopyingPersistentTreeMap.of();
-
-        for (Map.Entry<MemoryLocation, NumberInterface> otherEntry : reachedState.unifyElements.entrySet()) {
-            MemoryLocation key = otherEntry.getKey();
-
-            if (Objects.equals(otherEntry.getValue(), unifyElements.get(key))) {
-                newConstantsMap = newConstantsMap.putAndCopy(key, otherEntry.getValue());
-                newlocToTypeMap = newlocToTypeMap.putAndCopy(key, memLocToType.get(key));
-            }
-        }
-
-        // return the reached state if both maps are equal
-        if (newConstantsMap.size() == reachedState.unifyElements.size()) {
-            return reachedState;
-        } else {
-            return new UnifyAnalysisState(machineModel, newConstantsMap, newlocToTypeMap);
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
 
     @Override
     @Nullable
@@ -662,24 +630,16 @@ public class UnifyAnalysisState
         return this;
     }
 
-
-
     @Override
     public int hashCode() {
-        switch (numericalType) {
-        case SIGN:
-        case INTERVAL:
             return unifyElements.hashCode();
-        case VALUE:
-            return unifyElements.hashCode();
-        default:
-            return -1;
-        }
-
     }
 
     @Override
-    public boolean isLessOrEqual(UnifyAnalysisState pOther) {// throws CPAException, InterruptedException {
+    public boolean isLessOrEqual(UnifyAnalysisState pOther) {// throws
+                                                             // CPAException,
+                                                             // InterruptedException
+                                                             // {
         switch (numericalType) {
         case SIGN:
             return IsLessOrEqualSign(pOther);
@@ -720,8 +680,6 @@ public class UnifyAnalysisState
         }
     }
 
-
-
     private boolean IsLessOrEqualSign(UnifyAnalysisState pSuperset) {
         if (pSuperset.equals(this) || pSuperset.equals(TOP)) {
             return true;
@@ -729,7 +687,8 @@ public class UnifyAnalysisState
         if (unifyElements.size() < pSuperset.unifyElements.size()) {
             return false;
         }
-        // is subset if for every variable all sign assumptions are considered in
+        // is subset if for every variable all sign assumptions are considered
+        // in
         // pSuperset
         // check that all variables in superset with SIGN != ALL have no bigger
         // assumptions in subset
@@ -740,8 +699,6 @@ public class UnifyAnalysisState
         }
         return true;
     }
-
-
 
     private static class SerialProxySign implements Serializable {
 
@@ -806,8 +763,6 @@ public class UnifyAnalysisState
         return false;
     }
 
-
-
     /**
      *
      * The Method is for sign
@@ -839,16 +794,14 @@ public class UnifyAnalysisState
         out.defaultWriteObject();
     }
 
-
-
     /**
-     * This method decides if this element is less or equal than the reached state,
-     * based on the order imposed by the lattice.
+     * This method decides if this element is less or equal than the reached
+     * state, based on the order imposed by the lattice.
      *
      * @param reachedState
      *            the reached state
-     * @return true, if this element is less or equal than the reached state, based
-     *         on the order imposed by the lattice
+     * @return true, if this element is less or equal than the reached state,
+     *         based on the order imposed by the lattice
      */
     private boolean intervalIsLessOrEqual(UnifyAnalysisState reachedState) {
         if (unifyElements.equals(reachedState.unifyElements)) {
@@ -893,10 +846,10 @@ public class UnifyAnalysisState
     }
 
     /**
-     * If there was a recursive function, we have wrong intervals/values for scoped
-     * variables in the returnState. This function rebuilds a new state with the
-     * correct intervals from the previous callState. We delete the wrong intervals
-     * and insert new intervals, if necessary.
+     * If there was a recursive function, we have wrong intervals/values for
+     * scoped variables in the returnState. This function rebuilds a new state
+     * with the correct intervals from the previous callState. We delete the
+     * wrong intervals and insert new intervals, if necessary.
      */
     public UnifyAnalysisState rebuildStateAfterFunctionCall(final UnifyAnalysisState callState,
             final FunctionExitNode functionExit) {
@@ -931,7 +884,9 @@ public class UnifyAnalysisState
         // second: learn new information
         for (final MemoryLocation trackedVar : this.unifyElements.keySet()) {
 
-            if (!trackedVar.getAsSimpleString().contains("::")) { // global -> override deleted
+            if (!trackedVar.getAsSimpleString().contains("::")) { // global ->
+                                                                  // override
+                                                                  // deleted
                 // value
                 rebuildState = rebuildState.assignElement(trackedVar, this.getElement(trackedVar), null);
                 rebuildState = rebuildState.assignElement(trackedVar, this.getElement(trackedVar), null);
@@ -970,7 +925,9 @@ public class UnifyAnalysisState
         return sb.append("] size -> ").append(unifyElements.size()).toString();
     }
 
-    private boolean checkPropertyInterval(String pProperty) {// throws InvalidQueryException {
+    private boolean checkPropertyInterval(String pProperty) {// throws
+                                                             // InvalidQueryException
+                                                             // {
         List<String> parts = propertySplitter.splitToList(pProperty);
 
         if (parts.size() == 2) {
@@ -1011,7 +968,6 @@ public class UnifyAnalysisState
 
         return false;
     }
-
 
     /** Just a pair of values, can be compared alphabetically. */
     private static final class IntervalPseudoPartitionKey implements Comparable<IntervalPseudoPartitionKey> {
@@ -1093,8 +1049,6 @@ public class UnifyAnalysisState
         return memLocToType.get(loc);
     }
 
-
-
     /**
      * This method determines the number of global variables contained in this
      * state.
@@ -1113,16 +1067,14 @@ public class UnifyAnalysisState
         return numberOfGlobalVariables;
     }
 
-
-
     /**
-     * This method decides if this element is less or equal than the other element,
-     * based on the order imposed by the lattice.
+     * This method decides if this element is less or equal than the other
+     * element, based on the order imposed by the lattice.
      *
      * @param other
      *            the other element
-     * @return true, if this element is less or equal than the other element, based
-     *         on the order imposed by the lattice
+     * @return true, if this element is less or equal than the other element,
+     *         based on the order imposed by the lattice
      */
     public boolean valueIsLessOrEqual(UnifyAnalysisState other) {
 
@@ -1133,7 +1085,8 @@ public class UnifyAnalysisState
         }
 
         // also, this element is not less or equal than the other element,
-        // if any one constant's value of the other element differs from the constant's
+        // if any one constant's value of the other element differs from the
+        // constant's
         // value in this
         // element
         for (Map.Entry<MemoryLocation, NumberInterface> otherEntry : other.unifyElements.entrySet()) {
@@ -1163,8 +1116,6 @@ public class UnifyAnalysisState
                 && Objects.equals(memLocToType, otherElement.memLocToType);
     }
 
-
-
     @Override
     public Object evaluateProperty(String pProperty) throws InvalidQueryException {
         pProperty = pProperty.trim();
@@ -1189,7 +1140,8 @@ public class UnifyAnalysisState
     }
 
     public boolean checkPropertyValue(String pProperty) throws InvalidQueryException {
-        // e.g. "x==5" where x is a variable. Returns if 5 is the associated constant
+        // e.g. "x==5" where x is a variable. Returns if 5 is the associated
+        // constant
         String[] parts = pProperty.split("==");
 
         if (parts.length != 2) {
@@ -1209,9 +1161,12 @@ public class UnifyAnalysisState
                 try {
                     return value == Long.parseLong(parts[1]);
                 } catch (NumberFormatException e) {
-                    // The command might contains something like "main::p==cmd" where the user wants
-                    // to compare the variable p to the variable cmd (nearest in scope)
-                    // perhaps we should omit the "main::" and find the variable via static scoping
+                    // The command might contains something like "main::p==cmd"
+                    // where the user wants
+                    // to compare the variable p to the variable cmd (nearest in
+                    // scope)
+                    // perhaps we should omit the "main::" and find the variable
+                    // via static scoping
                     // ("main::p" is also not intuitive for a user)
                     // TODO: implement Variable finding via static scoping
                     throw new InvalidQueryException("The Query \"" + pProperty
@@ -1247,7 +1202,8 @@ public class UnifyAnalysisState
                     forget(varName);
                 } else {
                     // varname was not present in one of the maps
-                    // i would like to log an error here, but no logger is available
+                    // i would like to log an error here, but no logger is
+                    // available
                 }
 
             } else if (startsWithIgnoreCase(statement, "setvalue(")) {
@@ -1276,8 +1232,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method determines the set of variable names that are in the other state
-     * but not in this, or that are in both, but differ in their value.
+     * This method determines the set of variable names that are in the other
+     * state but not in this, or that are in both, but differ in their value.
      *
      * @param other
      *            the other state for which to get the difference
@@ -1299,8 +1255,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method adds the key-value-pairs of this state to the given value mapping
-     * and returns the new mapping.
+     * This method adds the key-value-pairs of this state to the given value
+     * mapping and returns the new mapping.
      *
      * @param valueMapping
      *            the mapping from variable name to the set of values of this
@@ -1336,8 +1292,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method acts as factory to create a value-analysis interpolant from this
-     * value-analysis state.
+     * This method acts as factory to create a value-analysis interpolant from
+     * this value-analysis state.
      *
      * @return the value-analysis interpolant reflecting the value assignment of
      *         this state
@@ -1396,7 +1352,8 @@ public class UnifyAnalysisState
         // - local variables from callState,
         // - global variables from THIS,
         // - the local return variable from THIS.
-        // we copy callState and override all global values and the return variable.
+        // we copy callState and override all global values and the return
+        // variable.
 
         final UnifyAnalysisState rebuildState = UnifyAnalysisState.copyOf(callState);
 
@@ -1410,7 +1367,8 @@ public class UnifyAnalysisState
         // second: learn new information
         for (final MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
 
-            if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
+            if (!trackedVar.isOnFunctionStack()) { // global -> override deleted
+                                                   // value
                 rebuildState.assignElement(trackedVar, this.getElement(trackedVar),
                         this.getTypeForMemoryLocation(trackedVar));
 
@@ -1418,8 +1376,8 @@ public class UnifyAnalysisState
                     .getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
                 /*
                  * assert (!rebuildState.contains(trackedVar)) :
-                 * "calling function should not contain return-variable of called function: " +
-                 * trackedVar;
+                 * "calling function should not contain return-variable of called function: "
+                 * + trackedVar;
                  */
                 if (this.contains(trackedVar)) {
                     rebuildState.assignElement(trackedVar, this.getElement(trackedVar),
