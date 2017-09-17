@@ -76,7 +76,7 @@ public class SignState implements Serializable, LatticeAbstractState<SignState>,
     for (String varIdent : pToJoin.signMap.keySet()) {
       // only add those variables that are contained in both states (otherwise one has value ALL (not saved))
       if (signMap.containsKey(varIdent)) {
-        combined = getSignForVariable(varIdent).combineWith(pToJoin.getSignForVariable(varIdent));
+        combined = getSignForVariable(varIdent).union(pToJoin.getSignForVariable(varIdent));
         if (!((SIGN)combined).isAll()) {
           newMap = newMap.putAndCopy(varIdent, combined);
         }

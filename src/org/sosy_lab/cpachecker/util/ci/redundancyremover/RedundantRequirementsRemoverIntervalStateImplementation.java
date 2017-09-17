@@ -84,7 +84,7 @@ public class RedundantRequirementsRemoverIntervalStateImplementation extends
       long constant = Long.parseLong(pVarOrConst);
       return new CreatorIntegerInterval().factoryMethod(constant);
     } catch (NumberFormatException e) {
-      if (pAbstractState.contains(pVarOrConst)) {
+      if (pAbstractState.contains(MemoryLocation.valueOf(pVarOrConst))) {
         return pAbstractState.getElement(MemoryLocation.valueOf(pVarOrConst));
       }
     }

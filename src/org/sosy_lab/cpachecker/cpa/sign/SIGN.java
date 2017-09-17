@@ -66,7 +66,8 @@ public enum SIGN implements NumberInterface, Serializable {
     }
 
     @Override
-    public NumberInterface combineWith(NumberInterface sign) {
+    //Earlier combineWith
+    public NumberInterface union(NumberInterface sign) {
         SIGN tempSign = (SIGN) sign;
         // combine bit values
         return VALUE_MAP.get(Integer.valueOf(tempSign.numVal | numVal));
@@ -142,7 +143,7 @@ public enum SIGN implements NumberInterface, Serializable {
         SIGN pLeft = this;
         NumberInterface leftToRightResult = evaluateNonCommutativeMulOperator(pRight);
         NumberInterface rightToLeftResult = evaluateNonCommutativeMulOperator(pLeft);
-        return leftToRightResult.combineWith(rightToLeftResult);
+        return leftToRightResult.union(rightToLeftResult);
     }
 
     @Override

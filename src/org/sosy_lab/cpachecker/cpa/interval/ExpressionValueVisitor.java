@@ -189,7 +189,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
             return new CreatorIntegerInterval().factoryMethod(((CEnumerator) identifier.getDeclaration()).getValue());
         }
         final String variableName = identifier.getDeclaration().getQualifiedName();
-        if (readableState.contains(variableName)) {
+        if (readableState.contains(MemoryLocation.valueOf(variableName))) {
             return readableState.getElement(MemoryLocation.valueOf(variableName));
         } else {
             return new CreatorIntegerInterval().factoryMethod(null).UNBOUND();

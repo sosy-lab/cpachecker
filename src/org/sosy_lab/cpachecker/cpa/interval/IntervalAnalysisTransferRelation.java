@@ -120,7 +120,7 @@ public class IntervalAnalysisTransferRelation
             CFunctionCallAssignmentStatement funcExp = (CFunctionCallAssignmentStatement) summaryExpr;
 
             // left hand side of the expression has to be a variable
-            if (state.contains(retVar.get().getQualifiedName())) {
+            if (state.contains(MemoryLocation.valueOf(retVar.get().getQualifiedName()))) {
                 newState = addInterval(newState, funcExp.getLeftHandSide(),
                         state.getElement(MemoryLocation.valueOf(retVar.get().getQualifiedName())));
             }

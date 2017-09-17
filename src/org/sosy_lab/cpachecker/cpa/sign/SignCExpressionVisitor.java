@@ -123,7 +123,7 @@ public class SignCExpressionVisitor
     Set<NumberInterface> rightAtomSigns = right.split();
     NumberInterface result = new CreatorSIGN().factoryMethod(0);
     for (List<NumberInterface> signCombi : Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
-      result = result.combineWith(evaluateExpression(signCombi.get(0), pIastBinaryExpression, signCombi.get(1)));
+      result = result.union(evaluateExpression(signCombi.get(0), pIastBinaryExpression, signCombi.get(1)));
     }
     return result;
   }
@@ -217,7 +217,7 @@ public class SignCExpressionVisitor
       NumberInterface result = new CreatorSIGN().factoryMethod(0);//SIGN.EMPTY;
       NumberInterface operandSign = pIastUnaryExpression.getOperand().accept(this);
       for (NumberInterface atomSign : operandSign.split()) {
-        result = result.combineWith(evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
+        result = result.union(evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
       }
       return result;
     default:
@@ -258,7 +258,7 @@ public class SignCExpressionVisitor
     }
     NumberInterface leftToRightResult = pLeft.evaluateNonCommutativePlusOperator(pRight);
     NumberInterface rightToLeftResult = pRight.evaluateNonCommutativePlusOperator(pLeft);
-    return leftToRightResult.combineWith(rightToLeftResult);
+    return leftToRightResult.union(rightToLeftResult);
   }
 
 //  private SIGN evaluateNonCommutativePlusOperator(SIGN pLeft, SIGN pRight) {

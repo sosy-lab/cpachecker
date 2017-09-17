@@ -32,13 +32,13 @@ import org.junit.Test;
 public class SIGNTest {
 
     @Test
-    public void testCombineWith() throws Exception {
-        SIGN zero = SIGN.ZERO;
-        SIGN plusMinus = SIGN.PLUSMINUS;
-        SIGN all = SIGN.ALL;
-
-        assertEquals(all, zero.combineWith(plusMinus));
-    }
+        public void testUnion() throws Exception {
+            SIGN zero = SIGN.ZERO;
+            SIGN plusMinus = SIGN.PLUSMINUS;
+            SIGN all = SIGN.ALL;
+    
+            assertEquals(all, zero.union(plusMinus));
+        }
 
     @Test
     public void testCoversSIGN() throws Exception {
