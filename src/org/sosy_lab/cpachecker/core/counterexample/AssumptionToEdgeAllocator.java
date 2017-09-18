@@ -1145,7 +1145,7 @@ public class AssumptionToEdgeAllocator {
 
           BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
 
-              BigDecimal typeSize = BigDecimal.valueOf(getBitSizeof(elementType));
+          BigDecimal typeSize = BigDecimal.valueOf(machineModel.getSizeofInBits(elementType));
 
           BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
 

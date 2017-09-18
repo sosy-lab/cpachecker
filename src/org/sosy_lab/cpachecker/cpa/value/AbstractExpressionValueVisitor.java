@@ -2142,10 +2142,6 @@ public abstract class AbstractExpressionValueVisitor
     return functionName;
   }
 
-  public long getBitSizeof(CType pType) {
-    return machineModel.getSizeofInBits(pType);
-  }
-
   protected MachineModel getMachineModel() {
     return machineModel;
   }
