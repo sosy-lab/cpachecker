@@ -570,14 +570,6 @@ public enum MachineModel {
       return result;
     }
 
-    public int calculateByteSize(long pBitFieldsSize) {
-      int result = Math.toIntExact(pBitFieldsSize / model.getSizeofCharInBits());
-      if (pBitFieldsSize % model.getSizeofCharInBits() > 0) {
-        result++;
-      }
-      return result;
-    }
-
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
       long size =
           model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, this, null);
