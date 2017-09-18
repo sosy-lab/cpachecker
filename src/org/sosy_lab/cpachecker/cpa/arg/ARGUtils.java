@@ -588,9 +588,7 @@ public class ARGUtils {
 
       for (ARGState parent : e.getParents()) {
         assert parent.getChildren().contains(e) : "Reference from parent to child is missing in ARG";
-        // This assertion does not hold anymore for slicing abstractions.
-        // TODO: Find a way to still check this for when we do not use slicing!
-        //assert pReached.contains(parent) : "Referenced parent is missing in reached";
+        assert pReached.contains(parent) : "Referenced parent is missing in reached";
       }
 
       for (ARGState child : e.getChildren()) {
