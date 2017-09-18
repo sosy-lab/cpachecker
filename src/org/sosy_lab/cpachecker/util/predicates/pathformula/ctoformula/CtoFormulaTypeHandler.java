@@ -92,7 +92,7 @@ public class CtoFormulaTypeHandler {
     return getSizeof(pType) * machineModel.getSizeofCharInBits();
   }
 
-  public FormulaType<?> getFormulaTypeFromCType(CType type) {
+  public final FormulaType<?> getFormulaTypeFromCType(CType type) {
     if (type instanceof CSimpleType) {
       CSimpleType simpleType = (CSimpleType)type;
       switch (simpleType.getType()) {

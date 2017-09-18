@@ -1578,9 +1578,6 @@ cpa.predicate.externModelFunctionName = "__VERIFIER_externModelSatisfied"
 # where to dump interpolation and abstraction problems (format string)
 cpa.predicate.formulaDumpFilePattern = "%s%04d-%s%03d.smt2"
 
-# Handle arrays using the theory of arrays.
-cpa.predicate.handleArrays = false
-
 # Handle field access via extract and concat instead of new variables.
 cpa.predicate.handleFieldAccess = false
 
