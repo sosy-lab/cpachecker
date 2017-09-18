@@ -235,7 +235,7 @@ public class CtoFormulaConverter {
    * @param pType the type to calculate the size of.
    * @return the size in bits of the given type.
    */
-  public int getBitSizeof(CType pType) {
+  protected int getBitSizeof(CType pType) {
     return typeHandler.getBitSizeof(pType);
   }
 
@@ -337,11 +337,8 @@ public class CtoFormulaConverter {
     return (function + "::" + exprToVarNameUnscoped(e)).intern().intern();
   }
 
-  /**
-   * Produces a fresh new SSA index for an assignment
-   * and updates the SSA map.
-   */
-  public int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
+  /** Produces a fresh new SSA index for an assignment and updates the SSA map. */
+  protected int makeFreshIndex(String name, CType type, SSAMapBuilder ssa) {
     int idx = getFreshIndex(name, type, ssa);
     ssa.setIndex(name, type, idx);
     return idx;
@@ -614,7 +611,7 @@ public class CtoFormulaConverter {
    *  This method should only be used for a previously declared variable,
    *  otherwise the SSA-index is invalid.
    *  Example:  MIN_INT <= X <= MAX_INT  */
-  protected void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
+  private void addRangeConstraint(final Formula variable, CType type, Constraints constraints) {
     type = type.getCanonicalType();
     if (type instanceof CSimpleType && ((CSimpleType)type).getType().isIntegerType()) {
       final CSimpleType sType = (CSimpleType)type;
@@ -798,7 +795,8 @@ public class CtoFormulaConverter {
    * convert the literal into a floating-point literal.
    * Otherwise return the expression unchanged.
    */
-  public CExpression convertLiteralToFloatIfNecessary(final CExpression pExp, final CType targetType) {
+  protected CExpression convertLiteralToFloatIfNecessary(
+      final CExpression pExp, final CType targetType) {
     if (!isFloatingPointType(targetType)) {
       return pExp;
     }
@@ -1387,9 +1385,8 @@ public class CtoFormulaConverter {
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
    */
-  public Formula buildTermFromPathFormula(PathFormula pFormula,
-      CIdExpression expr,
-      CFAEdge edge) throws UnrecognizedCCodeException {
+  public final Formula buildTermFromPathFormula(
+      PathFormula pFormula, CIdExpression expr, CFAEdge edge) throws UnrecognizedCCodeException {
 
     String functionName = edge.getPredecessor().getFunctionName();
     Constraints constraints = new Constraints(bfmgr);
@@ -1404,10 +1401,15 @@ public class CtoFormulaConverter {
     );
   }
 
-  protected Formula buildTerm(CRightHandSide exp, CFAEdge edge, String function,
-      SSAMapBuilder ssa, PointerTargetSetBuilder pts,
-      Constraints constraints, ErrorConditions errorConditions)
-          throws UnrecognizedCCodeException {
+  Formula buildTerm(
+      CRightHandSide exp,
+      CFAEdge edge,
+      String function,
+      SSAMapBuilder ssa,
+      PointerTargetSetBuilder pts,
+      Constraints constraints,
+      ErrorConditions errorConditions)
+      throws UnrecognizedCCodeException {
     return exp.accept(createCRightHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
@@ -1460,7 +1462,9 @@ public class CtoFormulaConverter {
     return result;
   }
 
-  public BooleanFormula makePredicate(CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa) throws UnrecognizedCCodeException, InterruptedException {
+  public final BooleanFormula makePredicate(
+      CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa)
+      throws UnrecognizedCCodeException, InterruptedException {
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
     Constraints constraints = new Constraints(bfmgr);
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);

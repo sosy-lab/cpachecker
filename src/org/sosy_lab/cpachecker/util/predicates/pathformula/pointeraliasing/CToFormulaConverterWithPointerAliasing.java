@@ -1267,7 +1267,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return formula;
   }
 
-  protected Expression makeFormulaForVariable(
+  private Expression makeFormulaForVariable(
       String pVarName, CType pType, PointerTargetSet pts, boolean forceDereference) {
     if (forceDereference) {
       final Formula address = makeConstant(pVarName, CTypeUtils.getBaseType(pType));
@@ -1305,12 +1305,22 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.getFreshIndex(pName, pType, pSsa);
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
+  @Override
+  protected int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.makeFreshIndex(pName, pType, pSsa);
+  }
+
+  /** {@inheritDoc} */
   @Override
   protected int getSizeof(CType pType) {
     return super.getSizeof(pType);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected int getBitSizeof(CType pType) {
+    return super.getBitSizeof(pType);
   }
 
   /**
@@ -1329,6 +1339,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   protected Formula makeNondet(
       String pVarName, CType pType, SSAMapBuilder pSsa, Constraints pConstraints) {
     return super.makeNondet(pVarName, pType, pSsa, pConstraints);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected CExpression convertLiteralToFloatIfNecessary(CExpression pExp, CType pTargetType) {
+    return super.convertLiteralToFloatIfNecessary(pExp, pTargetType);
   }
 
   @Override
