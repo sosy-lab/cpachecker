@@ -538,7 +538,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
         return conv.makeNondet(functionName, returnType, ssa, constraints);
 
       } else if (conv.options.isExternModelFunction(functionName)) {
-        ExternModelLoader loader = new ExternModelLoader(conv.typeHandler, conv.bfmgr, conv.fmgr);
+        ExternModelLoader loader = new ExternModelLoader(conv, conv.bfmgr, conv.fmgr);
         BooleanFormula result = loader.handleExternModelFunction(parameters, ssa);
         FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);

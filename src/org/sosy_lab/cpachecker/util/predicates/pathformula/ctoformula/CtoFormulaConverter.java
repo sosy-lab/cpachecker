@@ -294,8 +294,22 @@ public class CtoFormulaConverter {
     return true;
   }
 
-  public FormulaType<?> getFormulaTypeFromCType(CType type) {
-    return typeHandler.getFormulaTypeFromCType(type);
+  public final FormulaType<?> getFormulaTypeFromCType(CType type) {
+    if (type instanceof CSimpleType) {
+      CSimpleType simpleType = (CSimpleType) type;
+      switch (simpleType.getType()) {
+        case FLOAT:
+          return FormulaType.getSinglePrecisionFloatingPointType();
+        case DOUBLE:
+          return FormulaType.getDoublePrecisionFloatingPointType();
+        default:
+          break;
+      }
+    }
+
+    int bitSize = typeHandler.getBitSizeof(type);
+
+    return FormulaType.getBitvectorTypeWithSize(bitSize);
   }
 
   /**
@@ -722,8 +736,8 @@ public class CtoFormulaConverter {
       throw new AssertionError("Not a simple type: " + t);
     };
 
-    final FormulaType<?> fromType = typeHandler.getFormulaTypeFromCType(pFromCType);
-    final FormulaType<?> toType = typeHandler.getFormulaTypeFromCType(pToCType);
+    final FormulaType<?> fromType = getFormulaTypeFromCType(pFromCType);
+    final FormulaType<?> toType = getFormulaTypeFromCType(pToCType);
 
     final Formula ret;
     if (fromType.equals(toType)) {

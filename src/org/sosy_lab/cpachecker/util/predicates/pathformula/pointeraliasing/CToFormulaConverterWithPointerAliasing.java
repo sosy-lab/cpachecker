@@ -167,7 +167,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         new PointerTargetSetManager(this, options, fmgr, typeHandler, shutdownNotifier, regionMgr);
     afmgr = options.useArraysForHeap() ? fmgr.getArrayFormulaManager() : null;
 
-    voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
+    voidPointerFormulaType = typeHandler.getPointerType();
     nullPointer = fmgr.makeNumber(voidPointerFormulaType, 0);
   }
 
