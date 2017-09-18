@@ -806,7 +806,7 @@ public class UnifyAnalysisState
     public UnifyAnalysisState enterFunction(ImmutableMap<MemoryLocation, NumberInterface> pArguments) {
         PersistentMap<MemoryLocation, NumberInterface> newMap = unifyElements;
         for (MemoryLocation var : pArguments.keySet()) {
-            if (!pArguments.get(var).equals(SIGN.ALL)) {
+            if (!pArguments.get(var).equals(new CreatorSIGN().factoryMethod(7))) {
                 newMap = newMap.putAndCopy(var, pArguments.get(var));
             }
         }
