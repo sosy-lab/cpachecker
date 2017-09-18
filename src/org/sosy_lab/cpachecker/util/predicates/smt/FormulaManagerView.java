@@ -1251,7 +1251,8 @@ public class FormulaManagerView {
           Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
         if ((functionDeclaration.getKind() == FunctionDeclarationKind.EQ
             || functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO)
-            && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()) {
+            && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()
+            && !functionDeclaration.getArgumentTypes().get(0).isArrayType()) {
 
           Formula arg1 = args.get(0);
           Formula arg2;
