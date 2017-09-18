@@ -31,7 +31,6 @@ import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -571,8 +570,7 @@ public enum MachineModel {
     }
 
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
-      long size =
-          model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, this, null);
+      long size = model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
 
       return Math.toIntExact(size);
     }
@@ -791,8 +789,7 @@ public enum MachineModel {
     ImmutableMap.Builder<CCompositeTypeMemberDeclaration, Long> outParameterMap =
         ImmutableMap.builder();
 
-    getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
-        pOwnerType, null, sizeofVisitor, outParameterMap);
+    getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, null, outParameterMap);
 
     return outParameterMap.build();
   }
@@ -802,29 +799,11 @@ public enum MachineModel {
    *
    * @param pOwnerType a {@link CCompositeType} to calculate its field offset
    * @param pFieldName the name of the field to calculate its offset
-   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
-   *     not be calculated properly
+   * @return the offset of the given field
    */
   public long getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
-    return getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
-  }
-
-  /**
-   * Does the same as {@link MachineModel#getFieldOffsetInBits(CCompositeType, String)}, but accepts
-   * a {@link BaseSizeofVisitor}
-   *
-   * @param pOwnerType a {@link CCompositeType} to calculate its field offset
-   * @param pFieldName the name of the field to calculate its offset
-   * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
-   *     relevant applications model
-   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
-   *     not be calculated properly
-   */
-  public long getFieldOffsetInBits(
-      CCompositeType pOwnerType, String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
     checkNotNull(pFieldName);
-    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
-        pOwnerType, pFieldName, pSizeofVisitor, null);
+    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, pFieldName, null);
   }
 
   /**
@@ -835,8 +814,6 @@ public enum MachineModel {
    * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
    * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
    *     composites size
-   * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
-   *     relevant applications model
    * @param outParameterMap a {@link Map} given as both, input and output, to store the mapping of
    *     fields to offsets in; may be <code>null</code> if not required
    * @return a long that is either the offset of the given field or the size of the whole type
@@ -844,9 +821,7 @@ public enum MachineModel {
   private long getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
       CCompositeType pOwnerType,
       @Nullable String pFieldName,
-      BaseSizeofVisitor pSizeofVisitor,
       @Nullable ImmutableMap.Builder<CCompositeTypeMemberDeclaration, Long> outParameterMap) {
-    checkNotNull(pSizeofVisitor);
     checkArgument(
         (pFieldName == null) || (outParameterMap == null),
         "Call of this method does only make sense if either pFieldName or outParameterMap "
@@ -904,7 +879,7 @@ public enum MachineModel {
             fieldSizeInBits = 0;
           }
         } else {
-          fieldSizeInBits = getBitSizeof(type, pSizeofVisitor);
+          fieldSizeInBits = getBitSizeof(type);
         }
 
         if (type instanceof CBitFieldType) {
