@@ -168,6 +168,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * Adds the declared composite type to the cache saving its size as well as the offset of every
    * member of the composite.
    */
+  @SuppressWarnings("deprecation")
   void addCompositeTypeToCache(CCompositeType compositeType) {
     checkIsSimplified(compositeType);
     if (offsets.containsKey(compositeType)) {

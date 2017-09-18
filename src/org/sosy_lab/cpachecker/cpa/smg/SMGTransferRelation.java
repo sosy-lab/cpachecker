@@ -1118,11 +1118,13 @@ public class SMGTransferRelation
     return ImmutableList.of(pNewState);
   }
 
+  @SuppressWarnings("deprecation") // replace with machineModel.getAllFieldOffsetsInBits
   private Pair<Long, Integer> calculateOffsetAndPositionOfFieldFromDesignator(
       long offsetAtStartOfStruct,
       List<CCompositeTypeMemberDeclaration> pMemberTypes,
       CDesignatedInitializer pInitializer,
-      CCompositeType pLValueType) throws UnrecognizedCCodeException {
+      CCompositeType pLValueType)
+      throws UnrecognizedCCodeException {
 
     // TODO More Designators?
     assert pInitializer.getDesignators().size() == 1;
@@ -1233,7 +1235,10 @@ public class SMGTransferRelation
           if (overByte > 0) {
             offset += machineModel.getSizeofCharInBits() - overByte;
           }
-          offset += machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberType) * machineModel.getSizeofCharInBits();
+          @SuppressWarnings("deprecation") // replace with machineModel.getAllFieldOffsetsInBits
+          int padding =
+              machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberType);
+          offset += padding * machineModel.getSizeofCharInBits();
         }
         SMGState newState = offsetAndState.getFirst();
 

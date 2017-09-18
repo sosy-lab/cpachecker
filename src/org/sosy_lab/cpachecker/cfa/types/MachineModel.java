@@ -429,36 +429,6 @@ public enum MachineModel {
     return alignofPtr;
   }
 
-  public int getAlignof(CSimpleType type) {
-    switch (type.getType()) {
-      case BOOL:
-        return getAlignofBool();
-      case CHAR:
-        return getAlignofChar();
-      case FLOAT:
-        return getAlignofFloat();
-      case UNSPECIFIED: // unspecified is the same as int
-      case INT:
-        if (type.isLongLong()) {
-          return getAlignofLongLongInt();
-        } else if (type.isLong()) {
-          return getAlignofLongInt();
-        } else if (type.isShort()) {
-          return getAlignofShort();
-        } else {
-          return getAlignofInt();
-        }
-      case DOUBLE:
-        if (type.isLong()) {
-          return getAlignofLongDouble();
-        } else {
-          return getAlignofDouble();
-        }
-      default:
-        throw new AssertionError("Unrecognized CBasicType " + type.getType());
-    }
-  }
-
   /** returns INT, if the type is smaller than INT, else the type itself. */
   public CSimpleType getPromotedCType(CSimpleType pType) {
 
@@ -752,7 +722,33 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      return model.getAlignof(pSimpleType);
+      switch (pSimpleType.getType()) {
+        case BOOL:
+          return model.getAlignofBool();
+        case CHAR:
+          return model.getAlignofChar();
+        case FLOAT:
+          return model.getAlignofFloat();
+        case UNSPECIFIED: // unspecified is the same as int
+        case INT:
+          if (pSimpleType.isLongLong()) {
+            return model.getAlignofLongLongInt();
+          } else if (pSimpleType.isLong()) {
+            return model.getAlignofLongInt();
+          } else if (pSimpleType.isShort()) {
+            return model.getAlignofShort();
+          } else {
+            return model.getAlignofInt();
+          }
+        case DOUBLE:
+          if (pSimpleType.isLong()) {
+            return model.getAlignofLongDouble();
+          } else {
+            return model.getAlignofDouble();
+          }
+        default:
+          throw new AssertionError("Unrecognized CBasicType " + pSimpleType.getType());
+      }
     }
 
     @Override
@@ -958,6 +954,7 @@ public enum MachineModel {
     return calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1);
   }
 
+  @Deprecated
   public long calculateNecessaryBitfieldOffset(
       long pBitFieldOffset, CType pType, int pSizeOfByte, int pBitFieldLength) {
     // gcc -std=c11 implements bitfields such, that it only positions a bitfield 'B'
@@ -978,6 +975,7 @@ public enum MachineModel {
     return pBitFieldOffset;
   }
 
+  @Deprecated
   public long calculatePaddedBitsize(
       long pBitOffset, long pSizeOfConsecutiveBitFields, CType pType, int pSizeOfByte) {
     pBitOffset += pSizeOfConsecutiveBitFields;
@@ -988,6 +986,7 @@ public enum MachineModel {
     return (pBitOffset + getPadding(pBitOffset, pType)) * pSizeOfByte;
   }
 
+  @Deprecated
   public int getPadding(long pOffset, CType pType) {
     return getPaddingInBits(pOffset, pType, 1);
   }
