@@ -67,16 +67,22 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(
     secure = true,
     description =
-        "Use the theory of arrays for heap-memory encoding. "
-            + "This requires an SMT solver that is capable of the theory of arrays."
+        "Use SMT arrays for encoding heap memory instead of uninterpreted function."
+            + " This is more precise but may lead to interpolation failures."
   )
   private boolean useArraysForHeap = false;
 
-  @Option(secure=true, description = "The default length for arrays when the real length cannot be determined.")
+  @Option(secure = true, description = "The length for arrays we assume for variably-sized arrays.")
   private int defaultArrayLength = 20;
 
-  @Option(secure=true, description = "The maximum length for arrays (elements beyond this will be ignored). Use -1 to disable the limit.")
-  @IntegerOption(min=-1)
+  @Option(
+    secure = true,
+    description =
+        "The maximum length up to which bulk assignments (e.g., initialization) for arrays will be handled."
+            + " With option useArraysForHeap=false, elements beyond this bound will be ignored completely."
+            + " Use -1 to disable the limit."
+  )
+  @IntegerOption(min = -1)
   private int maxArrayLength = 20;
 
   @Option(secure=true, description = "Function that is used to free allocated memory.")

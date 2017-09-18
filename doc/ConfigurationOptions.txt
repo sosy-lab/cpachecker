@@ -1539,7 +1539,7 @@ cpa.predicate.checkBlockFeasibility = false
 # determined.
 cpa.predicate.defaultAllocationSize = 4
 
-# The default length for arrays when the real length cannot be determined.
+# The length for arrays we assume for variably-sized arrays.
 cpa.predicate.defaultArrayLength = 20
 
 # Use deferred allocation heuristic that tracks void * variables until the
@@ -1677,8 +1677,9 @@ cpa.predicate.invariants.useStrongInvariantsOnly = true
 # Max. number of edge of the abstraction tree to prescan for reuse
 cpa.predicate.maxAbstractionReusePrescan = 1
 
-# The maximum length for arrays (elements beyond this will be ignored). Use
-# -1 to disable the limit.
+# The maximum length up to which bulk assignments (e.g., initialization) for
+# arrays will be handled. With option useArraysForHeap=false, elements beyond
+# this bound will be ignored completely. Use -1 to disable the limit.
 cpa.predicate.maxArrayLength = 20
 
 # Maximum size of allocations for which all structure fields are regarded
@@ -1936,8 +1937,8 @@ cpa.predicate.targetStateSatCheck = false
 # Whether to track values stored in variables of function-pointer type.
 cpa.predicate.trackFunctionPointers = true
 
-# Use the theory of arrays for heap-memory encoding. This requires an SMT
-# solver that is capable of the theory of arrays.
+# Use SMT arrays for encoding heap memory instead of uninterpreted function.
+# This is more precise but may lead to interpolation failures.
 cpa.predicate.useArraysForHeap = false
 
 # try to add some useful static-learning-like axioms for bitwise operations
