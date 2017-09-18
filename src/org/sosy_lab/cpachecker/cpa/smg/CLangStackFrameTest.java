@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
-
 public class CLangStackFrameTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   static private final CFunctionDeclaration functionDeclaration = new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.<CParameterDeclaration>of());
@@ -123,7 +122,7 @@ public class CLangStackFrameTest {
   public void CLangFrameReturnValueTest() {
     SMGObject retval = sf.getReturnObject();
     assertThat(retval.getSize())
-        .isEqualTo(usedMachineModel.getBitSizeof(CNumericTypes.UNSIGNED_LONG_INT));
+        .isEqualTo(usedMachineModel.getSizeofInBits(CNumericTypes.UNSIGNED_LONG_INT));
   }
 
   @Test(expected=IllegalArgumentException.class)

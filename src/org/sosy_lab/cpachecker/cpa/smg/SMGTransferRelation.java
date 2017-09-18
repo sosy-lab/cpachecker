@@ -370,7 +370,7 @@ public class SMGTransferRelation
       SMGRegion paramObj;
       // If parameter is a array, convert to pointer
       if (cParamType instanceof CArrayType) {
-        int size = machineModel.getBitSizeofPtr();
+        int size = machineModel.getSizeofPtrInBits();
         paramObj = new SMGRegion(size, varName);
       } else {
         int size = expressionEvaluator.getBitSizeof(callEdge, cParamType, initialNewState);
@@ -898,9 +898,9 @@ public class SMGTransferRelation
             SMGExplicitValue offset = smgAddress.getOffset();
             SMGState smgState = addressOfFieldAndState.getSmgState();
             if (!object.equals(SMGNullObject.INSTANCE)
-                && object.getSize() - offset.getAsLong() >= machineModel.getBitSizeofPtr()
+                && object.getSize() - offset.getAsLong() >= machineModel.getSizeofPtrInBits()
                 && (smgState.isObjectValid(object)
-                || smgState.isObjectExternallyAllocated(object))) {
+                    || smgState.isObjectExternallyAllocated(object))) {
 
               SMGAddressValue newParamValue = pSmgState.addExternalAllocation(
                   functionName + "_Param_No_" + i + "_ID" + SMGValueFactory.getNewValue());
@@ -1141,7 +1141,7 @@ public class SMGTransferRelation
         return Pair.of(offset, listCounter);
       } else {
         if (pLValueType.getKind() == ComplexTypeKind.STRUCT) {
-          int memberSize = machineModel.getBitSizeof(memberDcl.getType());
+          int memberSize = machineModel.getSizeofInBits(memberDcl.getType());
           if (!(memberDcl.getType() instanceof CBitFieldType)) {
             offset += memberSize;
             long overByte = offset % machineModel.getSizeofCharInBits();
@@ -1245,7 +1245,7 @@ public class SMGTransferRelation
         List<SMGState> pNewStates =
             handleInitializer(newState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
 
-        offset = offset + machineModel.getBitSizeof(memberType);
+        offset = offset + machineModel.getSizeofInBits(memberType);
 
         final long currentOffset = offset;
         List<Pair<SMGState, Long>> newStatesAndOffset =

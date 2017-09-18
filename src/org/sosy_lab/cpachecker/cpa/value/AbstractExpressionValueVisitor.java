@@ -116,7 +116,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 
-
 /**
  * This Visitor implements an evaluation strategy
  * of simply typed expressions. An expression is
@@ -2144,7 +2143,7 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   public long getBitSizeof(CType pType) {
-    return machineModel.getBitSizeof(pType);
+    return machineModel.getSizeofInBits(pType);
   }
 
   protected MachineModel getMachineModel() {

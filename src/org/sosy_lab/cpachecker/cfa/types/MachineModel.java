@@ -627,15 +627,15 @@ public enum MachineModel {
     return pType.accept(pSizeofVisitor);
   }
 
-  public int getBitSizeofPtr() {
+  public int getSizeofPtrInBits() {
     return getSizeofPtr() * getSizeofCharInBits();
   }
 
-  public int getBitSizeof(CType pType) {
-    return getBitSizeof(pType, sizeofVisitor);
+  public int getSizeofInBits(CType pType) {
+    return getSizeofInBits(pType, sizeofVisitor);
   }
 
-  public int getBitSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+  public int getSizeofInBits(CType pType, BaseSizeofVisitor pSizeofVisitor) {
     checkNotNull(pSizeofVisitor);
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
@@ -875,7 +875,7 @@ public enum MachineModel {
             fieldSizeInBits = 0;
           }
         } else {
-          fieldSizeInBits = getBitSizeof(type);
+          fieldSizeInBits = getSizeofInBits(type);
         }
 
         if (type instanceof CBitFieldType) {

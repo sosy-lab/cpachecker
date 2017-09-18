@@ -87,7 +87,7 @@ public final class CLangStackFrame {
       // use a plain int as return type for void functions
       returnValueObject = null;
     } else {
-      int return_value_size = pMachineModel.getBitSizeof(returnType);
+      int return_value_size = pMachineModel.getSizeofInBits(returnType);
       returnValueObject = new SMGRegion(return_value_size, CLangStackFrame.RETVAL_LABEL);
     }
   }

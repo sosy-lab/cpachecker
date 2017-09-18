@@ -337,7 +337,7 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
 
     // arrays are converted to pointers
     assert smgObject.getSize() == pTypeSize
-        || smgObject.getSize() == heap.getMachineModel().getBitSizeofPtr();
+        || smgObject.getSize() == heap.getMachineModel().getSizeofPtrInBits();
 
     heap.addStackObject(smgObject);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -969,9 +969,9 @@ public class SMGState implements AbstractQueryableState, LatticeAbstractState<SM
         MachineModel model = heap.getMachineModel();
         int sizeOfHveInBits = hve.getSizeInBits(model);
         /*If a restricted field is 0, and bigger than a pointer, add 0*/
-        if (sizeOfHveInBits > model.getBitSizeofPtr() && hve.getValue() == 0) {
-          long offset = hve.getOffset() + model.getBitSizeofPtr();
-          int sizeInBits = sizeOfHveInBits - model.getBitSizeofPtr();
+        if (sizeOfHveInBits > model.getSizeofPtrInBits() && hve.getValue() == 0) {
+          long offset = hve.getOffset() + model.getSizeofPtrInBits();
+          int sizeInBits = sizeOfHveInBits - model.getSizeofPtrInBits();
           SMGEdgeHasValue expandedZeroEdge =
               new SMGEdgeHasValue(sizeInBits, offset, pNewRegion, 0);
           heap.addHasValueEdge(expandedZeroEdge);

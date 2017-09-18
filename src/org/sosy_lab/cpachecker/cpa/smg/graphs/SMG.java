@@ -538,7 +538,7 @@ public class SMG {
   }
 
   public boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, CType pType ) {
-    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getBitSizeof(pType));
+    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeofInBits(pType));
   }
 
   private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, int size) {

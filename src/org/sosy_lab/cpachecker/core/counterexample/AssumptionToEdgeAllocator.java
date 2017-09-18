@@ -952,7 +952,7 @@ public class AssumptionToEdgeAllocator {
 
         BigDecimal typeSize =
             BigDecimal.valueOf(
-                machineModel.getBitSizeof(
+                machineModel.getSizeofInBits(
                     pIastArraySubscriptExpression.getExpressionType().getCanonicalType()));
 
         BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
@@ -1739,13 +1739,13 @@ public class AssumptionToEdgeAllocator {
           return false;
         }
 
-        int typeSize = machineModel.getBitSizeof(pExpectedType);
+        int typeSize = machineModel.getSizeofInBits(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
 
         // Check if we are already out of array bound, if we have an array length.
         // FIXME Imprecise due to imprecise getSizeOf method
         if (!pArrayType.isIncomplete()
-            && machineModel.getBitSizeof(pArrayType) <= subscriptOffset) {
+            && machineModel.getSizeofInBits(pArrayType) <= subscriptOffset) {
           return false;
         }
         if (pArrayType.getLength() == null) {
