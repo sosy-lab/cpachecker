@@ -88,22 +88,6 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
   )
   private boolean keepCoveredStatesInReached = false;
 
-  @Option(
-      secure = true,
-      name = "cpa.arg.useARGStopLocationBased",
-      description =
-        "whether to use the stop operator for slicing abstractions"
-  )
-  private boolean useARGStopLocationBased = false;
-
-  @Option(
-      secure = true,
-      name = "cpa.arg.useARGMergeLocationBased",
-      description =
-          "whether to use the merge operator for slicing abstractions"
-    )
-  private boolean useARGMergeLocationBased = false;
-
   private final MergeOperator merge;
 
   private final LogManager logger;
@@ -121,18 +105,13 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     config.inject(this);
     this.logger = logger;
 
-    if (useARGMergeLocationBased) {
-      MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
-      merge =  new ARGMergeLocationBased(wrappedMergeOperator);
+    MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+    if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
+      merge =  MergeSepOperator.getInstance();
+    } else if (inCPAEnabledAnalysis) {
+      merge =  new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
     } else {
-      MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
-      if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
-        merge =  MergeSepOperator.getInstance();
-      } else if (inCPAEnabledAnalysis) {
-        merge = new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
-      } else {
-        merge = new ARGMergeJoin(wrappedMergeOperator, cpa.getAbstractDomain(), config);
-      }
+      merge = new ARGMergeJoin(wrappedMergeOperator, cpa.getAbstractDomain(), config);
     }
 
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
@@ -155,19 +134,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public ForcedCoveringStopOperator getStopOperator() {
-    if (useARGStopLocationBased) {
-      return new ARGStopLocationBased(
-          getWrappedCpa().getStopOperator(),
-          logger,
-          inCPAEnabledAnalysis,
-          keepCoveredStatesInReached);
-    } else {
     return new ARGStopSep(
         getWrappedCpa().getStopOperator(),
         logger,
         inCPAEnabledAnalysis,
         keepCoveredStatesInReached);
-    }
   }
 
   @Override
