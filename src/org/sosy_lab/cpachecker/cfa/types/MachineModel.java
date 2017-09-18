@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
@@ -485,6 +486,7 @@ public enum MachineModel {
     return result;
   }
 
+  @SuppressFBWarnings("SE_BAD_FIELD")
   @SuppressWarnings("ImmutableEnumChecker")
   private final BaseSizeofVisitor sizeofVisitor =
       new BaseSizeofVisitor(this);
@@ -644,6 +646,7 @@ public enum MachineModel {
     }
   }
 
+  @SuppressFBWarnings("SE_BAD_FIELD_STORE")
   @SuppressWarnings("ImmutableEnumChecker")
   private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor =
       new BaseAlignofVisitor(this);
