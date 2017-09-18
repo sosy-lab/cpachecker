@@ -70,7 +70,7 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
         "Use SMT arrays for encoding heap memory instead of uninterpreted function."
             + " This is more precise but may lead to interpolation failures."
   )
-  private boolean useArraysForHeap = false;
+  private boolean useArraysForHeap = true;
 
   @Option(secure = true, description = "The length for arrays we assume for variably-sized arrays.")
   private int defaultArrayLength = 20;
@@ -83,7 +83,7 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
             + " Use -1 to disable the limit."
   )
   @IntegerOption(min = -1)
-  private int maxArrayLength = 20;
+  private int maxArrayLength = -1;
 
   @Option(secure=true, description = "Function that is used to free allocated memory.")
   private String memoryFreeFunctionName = "free";

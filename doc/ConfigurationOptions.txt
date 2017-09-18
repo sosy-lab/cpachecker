@@ -1677,7 +1677,7 @@ cpa.predicate.maxAbstractionReusePrescan = 1
 # The maximum length up to which bulk assignments (e.g., initialization) for
 # arrays will be handled. With option useArraysForHeap=false, elements beyond
 # this bound will be ignored completely. Use -1 to disable the limit.
-cpa.predicate.maxArrayLength = 20
+cpa.predicate.maxArrayLength = -1
 
 # Maximum size of allocations for which all structure fields are regarded
 # always essential, regardless of whether they were ever really used in code.
@@ -1936,7 +1936,7 @@ cpa.predicate.trackFunctionPointers = true
 
 # Use SMT arrays for encoding heap memory instead of uninterpreted function.
 # This is more precise but may lead to interpolation failures.
-cpa.predicate.useArraysForHeap = false
+cpa.predicate.useArraysForHeap = true
 
 # try to add some useful static-learning-like axioms for bitwise operations
 # (which are encoded as UFs): essentially, we simply collect all the numbers
