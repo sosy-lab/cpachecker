@@ -74,7 +74,7 @@ RedundantRequirementsRemoverImplementation<UnifyAnalysisState, NumberInterface>{
   @Override
   protected boolean covers(NumberInterface pCovering, NumberInterface pCovered) {
     // return pCovering.covers(pCovered)
-    return ((SIGN)pCovering).covers((SIGN)pCovered);
+    return (pCovering).covers(pCovered);
   }
 
   @Override

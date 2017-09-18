@@ -39,433 +39,402 @@ import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
  */
 public class NumericValue implements NumberInterface, Serializable {
 
-  private static final long serialVersionUID = -3829943575180448170L;
+    private static final long serialVersionUID = -3829943575180448170L;
 
-  private Number number;
+    private Number number;
 
-  /**
-   * Creates a new <code>NumericValue</code>.
-   * @param pNumber the value of the number
-   */
-  public NumericValue(Number pNumber) {
-    number = pNumber;
-  }
-
-  /**
-   * Returns the number stored in the container.
-   *
-   * @return the number stored in the container
-   */
-  @Override
-  public Number getNumber() {
-    return number;
-  }
-
-  /**
-   * Returns the integer stored in the container as long. Before calling this function,
-   * it must be ensured using `getType()` that this container contains an integer.
-   */
-  public long longValue() {
-    return number.longValue();
-  }
-
-  /**
-   * Returns the floating point stored in the container as float.
-   */
-  public float floatValue() {
-    return number.floatValue();
-  }
-
-  /**
-   * Returns the floating point stored in the container as double.
-   */
-  public double doubleValue() {
-    return number.doubleValue();
-  }
-
-  /**
-   * Returns a BigDecimal value representing the stored number.
-   */
-  public BigDecimal bigDecimalValue() {
-    return new BigDecimal(number.toString());
-  }
-
-  /* (non-Javadoc)
-   * @see java.lang.Object#toString()
-   */
-  @Override
-  public String toString() {
-    return "NumericValue [number=" + number + "]";
-  }
-
-  /**
-   * Returns whether this object and a given object are equal.
-   * Two <code>NumericValue</code> objects are equal if and only if their
-   * stored values are equal.
-   *
-   * @param other the <code>Object</code> to compare to this object
-   * @return <code>true</code> if the given object equals this object,
-   *         <code>false</code> otherwise
-   */
-  @Override
-  public boolean equals(Object other) {
-    if (other instanceof NumericValue) {
-      return this.getNumber().equals(((NumericValue) other).getNumber());
-    } else {
-      return false;
-    }
-  }
-
-  /**
-   * Always returns <code>true</code>.
-   *
-   * @return always <code>true</code>negatenegate
-   */
-  @Override
-  public boolean isNumericValue() {
-    return true;
-  }
-
-  /**
-   * Returns a <code>NumericValue</code> object that holds the negation of
-   * this object's value.
-   *
-   * @return the negation of this objects value
-   */
-  @Override
-  public NumericValue negate() {
-    // TODO explicitfloat: handle the remaining different implementations of Number properly
-    final Number number = getNumber();
-
-    // check if number is infinite or NaN
-    if (number instanceof Float) {
-      if (number.equals(Float.POSITIVE_INFINITY)) {
-        return new NumericValue(Float.NEGATIVE_INFINITY);
-
-      } else if (number.equals(Float.NEGATIVE_INFINITY)) {
-        return new NumericValue(Float.POSITIVE_INFINITY);
-
-      } else if (number.equals(Float.NaN)) { return new NumericValue(NegativeNaN.VALUE); }
-    } else if (number instanceof Double) {
-      if (number.equals(Double.POSITIVE_INFINITY)) {
-        return new NumericValue(Double.NEGATIVE_INFINITY);
-
-      } else if (number.equals(Double.NEGATIVE_INFINITY)) {
-        return new NumericValue(Double.POSITIVE_INFINITY);
-
-      } else if (number.equals(Double.NaN)) { return new NumericValue(NegativeNaN.VALUE); }
-    } else if (number instanceof Rational) {
-      return new NumericValue(((Rational) number).negate());
-    } else if (NegativeNaN.VALUE.equals(number)) { return new NumericValue(Double.NaN); }
-
-    if (number instanceof BigDecimal) {
-      BigDecimal bd = (BigDecimal) number;
-      if (bd.signum() == 0) { return new NumericValue(-bd.doubleValue()); }
+    /**
+     * Creates a new <code>NumericValue</code>.
+     *
+     * @param pNumber
+     *            the value of the number
+     */
+    public NumericValue(Number pNumber) {
+        number = pNumber;
     }
 
-    // if the stored number is a 'casual' number, just negate it
-    return new NumericValue(this.bigDecimalValue().negate());
-  }
-
-  @Override
-  public NumericValue asNumericValue() {
-    return this;
-  }
-
-  @Override
-  public Long asLong(CType type) {
-    checkNotNull(type);
-    type = type.getCanonicalType();
-    if (!(type instanceof CSimpleType)) { return null; }
-
-    if (((CSimpleType) type).getType() == CBasicType.INT) {
-      return longValue();
-    } else {
-      return null;
-    }
-  }
-
-  /**
-   * Always returns <code>false</code> as each <code>NumericValue</code> holds
-   * one specific value.
-   *
-   * @return always <code>false</code>
-   */
-  @Override
-  public boolean isUnknown() {
-    return false;
-  }
-
-  /**
-   * Always returns <code>true</code> as each <code>NumericValue</code> holds
-   * one specific value.
-   *
-   * @return always <code>true</code>
-   */
-  @Override
-  public boolean isExplicitlyKnown() {
-    return true;
-  }
-
-  @Override
-  public int hashCode() {
-    // fulfills contract that if this.equals(other),
-    // then this.hashCode() == other.hashCode()
-    return number.hashCode();
-  }
-
-  @Override
-  public NumberInterface plus(NumberInterface otherNumberInterface) {
-    if (this.getNumber() instanceof Long) {
-      return new NumericValue(
-          this.getNumber().longValue() + otherNumberInterface.getNumber().longValue());
-    } else if (this.getNumber() instanceof Double) {
-      return new NumericValue(
-          this.getNumber().doubleValue() + otherNumberInterface.getNumber().doubleValue());
-    } else if (this.getNumber() instanceof Float) {
-      return new NumericValue(
-          this.getNumber().floatValue() + otherNumberInterface.getNumber().floatValue());
-    } else {
-      return UnknownValue.getInstance();
+    /**
+     * Returns the number stored in the container.
+     *
+     * @return the number stored in the container
+     */
+    @Override
+    public Number getNumber() {
+        return number;
     }
 
-  }
-
-  @Override
-  public NumberInterface minus(NumberInterface pOther) {
-    if (this.getNumber() instanceof Long) {
-      return new NumericValue(this.getNumber().longValue() - pOther.getNumber().longValue());
-    } else if (this.getNumber() instanceof Double) {
-      return new NumericValue(this.getNumber().doubleValue() - pOther.getNumber().doubleValue());
-    } else if (this.getNumber() instanceof Float) {
-      return new NumericValue(this.getNumber().floatValue() - pOther.getNumber().floatValue());
-    } else {
-      return UnknownValue.getInstance();
+    /**
+     * Returns the integer stored in the container as long. Before calling this
+     * function, it must be ensured using `getType()` that this container contains
+     * an integer.
+     */
+    public long longValue() {
+        return number.longValue();
     }
-  }
 
-  @Override
-  public NumberInterface unsignedDivide(NumberInterface pOther) {
-    if (this.getNumber() instanceof Long) {
-      return new NumericValue(
-          UnsignedLongs.divide(this.getNumber().longValue(), pOther.getNumber().longValue()));
-    } else {
-      return UnknownValue.getInstance();
+    /**
+     * Returns the floating point stored in the container as float.
+     */
+    public float floatValue() {
+        return number.floatValue();
     }
-  }
 
-  @Override
-  public NumberInterface divide(NumberInterface pOther) {
-    if (this.getNumber() instanceof Long) {
-      return new NumericValue(this.getNumber().longValue() / pOther.getNumber().longValue());
-    } else if (this.getNumber() instanceof Double) {
-      return new NumericValue(this.getNumber().doubleValue() / pOther.getNumber().doubleValue());
-    } else if (this.getNumber() instanceof Float) {
-      return new NumericValue(this.getNumber().floatValue() / pOther.getNumber().floatValue());
-    } else {
-      return UnknownValue.getInstance();
+    /**
+     * Returns the floating point stored in the container as double.
+     */
+    public double doubleValue() {
+        return number.doubleValue();
     }
-  }
 
-  @Override
-  public NumberInterface times(NumberInterface pOther) {
-    if (this.getNumber() instanceof Long) {
-      return new NumericValue(this.getNumber().longValue() * pOther.getNumber().longValue());
-    } else if (this.getNumber() instanceof Double) {
-      return new NumericValue(this.getNumber().doubleValue() * pOther.getNumber().doubleValue());
-    } else if (this.getNumber() instanceof Float) {
-      return new NumericValue(this.getNumber().floatValue() * pOther.getNumber().floatValue());
-    } else {
-      return UnknownValue.getInstance();
+    /**
+     * Returns a BigDecimal value representing the stored number.
+     */
+    public BigDecimal bigDecimalValue() {
+        return new BigDecimal(number.toString());
     }
-  }
 
-  @Override
-  public NumberInterface shiftLeft(NumberInterface pOffset) {
-    if (this.getNumber() instanceof Long) {
-      return new NumericValue(this.getNumber().longValue() << pOffset.getNumber().longValue());
-    } else {
-      throw new AssertionError("trying to perform ShiftLeft on floating point operands");
+    /*
+     * (non-Javadoc)
+     *
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "NumericValue [number=" + number + "]";
     }
-  }
 
-  @Override
-  public NumberInterface unsignedShiftRight(NumberInterface pOther) {
-    if (this.getNumber() instanceof Long) {
-      /*
-       * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
-       *
-       * The unsigned right shift operator ">>>" shifts a zero
-       * into the leftmost position, while the leftmost position
-       * after ">>" depends on sign extension.
-       */
-      return new NumericValue(
-          this.getNumber().longValue() >>> pOther.getNumber().longValue());
-    } else {
-      throw new AssertionError("trying to perform ShiftRight on floating point operands");
+    /**
+     * Returns whether this object and a given object are equal. Two
+     * <code>NumericValue</code> objects are equal if and only if their stored
+     * values are equal.
+     *
+     * @param other
+     *            the <code>Object</code> to compare to this object
+     * @return <code>true</code> if the given object equals this object,
+     *         <code>false</code> otherwise
+     */
+    @Override
+    public boolean equals(Object other) {
+        if (other instanceof NumericValue) {
+            return this.getNumber().equals(((NumericValue) other).getNumber());
+        } else {
+            return false;
+        }
     }
-  }
 
-  @Override
-  public NumberInterface shiftRight(NumberInterface pOffset) {
-    if (this.getNumber() instanceof Long) {
-      return new NumericValue(this.getNumber().longValue() >> pOffset.getNumber().longValue());
-    } else {
-      throw new AssertionError("trying to perform ShiftRight on floating point operands");
+    /**
+     * Always returns <code>true</code>.
+     *
+     * @return always <code>true</code>negatenegate
+     */
+    @Override
+    public boolean isNumericValue() {
+        return true;
     }
-  }
 
-  @Override
-  public NumberInterface unsignedModulo(NumberInterface pOther) {
-    if (this.getNumber() instanceof Long) {
-      return new NumericValue(
-          UnsignedLongs.remainder(this.getNumber().longValue(), pOther.getNumber().longValue()));
-    } else {
-      return UnknownValue.getInstance();
+    /**
+     * Returns a <code>NumericValue</code> object that holds the negation of this
+     * object's value.
+     *
+     * @return the negation of this objects value
+     */
+    @Override
+    public NumericValue negate() {
+        // TODO explicitfloat: handle the remaining different implementations of Number
+        // properly
+        final Number number = getNumber();
+
+        // check if number is infinite or NaN
+        if (number instanceof Float) {
+            if (number.equals(Float.POSITIVE_INFINITY)) {
+                return new NumericValue(Float.NEGATIVE_INFINITY);
+
+            } else if (number.equals(Float.NEGATIVE_INFINITY)) {
+                return new NumericValue(Float.POSITIVE_INFINITY);
+
+            } else if (number.equals(Float.NaN)) {
+                return new NumericValue(NegativeNaN.VALUE);
+            }
+        } else if (number instanceof Double) {
+            if (number.equals(Double.POSITIVE_INFINITY)) {
+                return new NumericValue(Double.NEGATIVE_INFINITY);
+
+            } else if (number.equals(Double.NEGATIVE_INFINITY)) {
+                return new NumericValue(Double.POSITIVE_INFINITY);
+
+            } else if (number.equals(Double.NaN)) {
+                return new NumericValue(NegativeNaN.VALUE);
+            }
+        } else if (number instanceof Rational) {
+            return new NumericValue(((Rational) number).negate());
+        } else if (NegativeNaN.VALUE.equals(number)) {
+            return new NumericValue(Double.NaN);
+        }
+
+        if (number instanceof BigDecimal) {
+            BigDecimal bd = (BigDecimal) number;
+            if (bd.signum() == 0) {
+                return new NumericValue(-bd.doubleValue());
+            }
+        }
+
+        // if the stored number is a 'casual' number, just negate it
+        return new NumericValue(this.bigDecimalValue().negate());
     }
-  }
 
-  @Override
-  public NumberInterface modulo(NumberInterface pOther) {
-    if (this.getNumber() instanceof Long) {
-      return new NumericValue(this.getNumber().longValue() % pOther.getNumber().longValue());
-    } else if (this.getNumber() instanceof Double) {
-      return new NumericValue(this.getNumber().doubleValue() % pOther.getNumber().doubleValue());
-    } else if (this.getNumber() instanceof Float) {
-      return new NumericValue(this.getNumber().floatValue() % pOther.getNumber().floatValue());
-    } else {
-      return UnknownValue.getInstance();
+    @Override
+    public NumericValue asNumericValue() {
+        return this;
     }
-  }
-  @Override
-  public NumberInterface binaryAnd(NumberInterface rNum) {
-      if (getNumber() instanceof Long && rNum.getNumber() instanceof Long) {
-          return new NumericValue(getNumber().longValue() & rNum.getNumber().longValue());
-      } else {
-          throw new AssertionError("trying to perform Binary And on floating point operands");
-      }
-  }
-  @Override
-  public NumberInterface binaryOr(NumberInterface rNum) {
-      if (getNumber() instanceof Long && rNum.getNumber() instanceof Long) {
-          return new NumericValue(getNumber().longValue() | rNum.getNumber().longValue());
-      } else {
-          throw new AssertionError("trying to perform Binary Or on floating point operands");
-      }
-  }
-  @Override
-  public NumberInterface binaryXor(NumberInterface rNum) {
-      if (getNumber() instanceof Long && rNum.getNumber() instanceof Long) {
-          return new NumericValue(getNumber().longValue() ^ rNum.getNumber().longValue());
-      } else {
-          throw new AssertionError("trying to perform Binary Xor on floating point operands");
-      }
-  }
 
-@Override
-public boolean covers(NumberInterface pSign) {
-    // TODO Auto-generated method stub
-    return false;
-}
+    @Override
+    public Long asLong(CType type) {
+        checkNotNull(type);
+        type = type.getCanonicalType();
+        if (!(type instanceof CSimpleType)) {
+            return null;
+        }
 
-@Override
-public NumberInterface evaluateNonCommutativePlusOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
+        if (((CSimpleType) type).getType() == CBasicType.INT) {
+            return longValue();
+        } else {
+            return null;
+        }
+    }
 
-@Override
-public NumberInterface evaluateMulOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
+    /**
+     * Always returns <code>false</code> as each <code>NumericValue</code> holds one
+     * specific value.
+     *
+     * @return always <code>false</code>
+     */
+    @Override
+    public boolean isUnknown() {
+        return false;
+    }
 
-@Override
-public NumberInterface evaluateNonCommutativeMulOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
+    /**
+     * Always returns <code>true</code> as each <code>NumericValue</code> holds one
+     * specific value.
+     *
+     * @return always <code>true</code>
+     */
+    @Override
+    public boolean isExplicitlyKnown() {
+        return true;
+    }
 
-@Override
-public NumberInterface evaluateDivideOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
+    @Override
+    public int hashCode() {
+        // fulfills contract that if this.equals(other),
+        // then this.hashCode() == other.hashCode()
+        return number.hashCode();
+    }
 
-@Override
-public NumberInterface evaluateModuloOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
+    @Override
+    public NumberInterface plus(NumberInterface otherNumberInterface) {
+        if (this.getNumber() instanceof Long) {
+            return new NumericValue(this.getNumber().longValue() + otherNumberInterface.getNumber().longValue());
+        } else if (this.getNumber() instanceof Double) {
+            return new NumericValue(this.getNumber().doubleValue() + otherNumberInterface.getNumber().doubleValue());
+        } else if (this.getNumber() instanceof Float) {
+            return new NumericValue(this.getNumber().floatValue() + otherNumberInterface.getNumber().floatValue());
+        } else {
+            return UnknownValue.getInstance();
+        }
 
-@Override
-public NumberInterface evaluateAndOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
+    }
 
-@Override
-public NumberInterface evaluateLessOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
+    @Override
+    public NumberInterface minus(NumberInterface pOther) {
+        if (this.getNumber() instanceof Long) {
+            return new NumericValue(this.getNumber().longValue() - pOther.getNumber().longValue());
+        } else if (this.getNumber() instanceof Double) {
+            return new NumericValue(this.getNumber().doubleValue() - pOther.getNumber().doubleValue());
+        } else if (this.getNumber() instanceof Float) {
+            return new NumericValue(this.getNumber().floatValue() - pOther.getNumber().floatValue());
+        } else {
+            return UnknownValue.getInstance();
+        }
+    }
 
-@Override
-public NumberInterface evaluateLessEqualOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
+    @Override
+    public NumberInterface unsignedDivide(NumberInterface pOther) {
+        if (this.getNumber() instanceof Long) {
+            return new NumericValue(UnsignedLongs.divide(this.getNumber().longValue(), pOther.getNumber().longValue()));
+        } else {
+            return UnknownValue.getInstance();
+        }
+    }
 
-@Override
-public NumberInterface evaluateEqualOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
+    @Override
+    public NumberInterface divide(NumberInterface pOther) {
+        if (this.getNumber() instanceof Long) {
+            return new NumericValue(this.getNumber().longValue() / pOther.getNumber().longValue());
+        } else if (this.getNumber() instanceof Double) {
+            return new NumericValue(this.getNumber().doubleValue() / pOther.getNumber().doubleValue());
+        } else if (this.getNumber() instanceof Float) {
+            return new NumericValue(this.getNumber().floatValue() / pOther.getNumber().floatValue());
+        } else {
+            return UnknownValue.getInstance();
+        }
+    }
 
-  //  public static class NegativeNaN extends Number {
-  //
-  //    private static final long serialVersionUID = 1L;
-  //
-  //    public static final Number VALUE = new NegativeNaN();
-  //
-  //    private NegativeNaN() {
-  //    }
-  //
-  //    @Override
-  //    public double doubleValue() {
-  //      return Double.NaN;
-  //    }
-  //
-  //    @Override
-  //    public float floatValue() {
-  //      return Float.NaN;
-  //    }
-  //
-  //    @Override
-  //    public int intValue() {
-  //      return (int) Double.NaN;
-  //    }
-  //
-  //    @Override
-  //    public long longValue() {
-  //      return (long) Double.NaN;
-  //    }
-  //
-  //    @Override
-  //    public String toString() {
-  //      return "-NaN";
-  //    }
-  //
-  //    @Override
-  //    public boolean equals(Object pObj) {
-  //      return pObj == this || pObj instanceof NegativeNaN;
-  //    }
-  //
-  //    @Override
-  //    public int hashCode() {
-  //      return -1;
-  //    }
-  //
-  //  }
+    @Override
+    public NumberInterface times(NumberInterface pOther) {
+        if (this.getNumber() instanceof Long) {
+            return new NumericValue(this.getNumber().longValue() * pOther.getNumber().longValue());
+        } else if (this.getNumber() instanceof Double) {
+            return new NumericValue(this.getNumber().doubleValue() * pOther.getNumber().doubleValue());
+        } else if (this.getNumber() instanceof Float) {
+            return new NumericValue(this.getNumber().floatValue() * pOther.getNumber().floatValue());
+        } else {
+            return UnknownValue.getInstance();
+        }
+    }
+
+    @Override
+    public NumberInterface shiftLeft(NumberInterface pOffset) {
+        if (this.getNumber() instanceof Long) {
+            return new NumericValue(this.getNumber().longValue() << pOffset.getNumber().longValue());
+        } else {
+            throw new AssertionError("trying to perform ShiftLeft on floating point operands");
+        }
+    }
+
+    @Override
+    public NumberInterface unsignedShiftRight(NumberInterface pOther) {
+        if (this.getNumber() instanceof Long) {
+            /*
+             * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
+             *
+             * The unsigned right shift operator ">>>" shifts a zero into the leftmost
+             * position, while the leftmost position after ">>" depends on sign extension.
+             */
+            return new NumericValue(this.getNumber().longValue() >>> pOther.getNumber().longValue());
+        } else {
+            throw new AssertionError("trying to perform ShiftRight on floating point operands");
+        }
+    }
+
+    @Override
+    public NumberInterface shiftRight(NumberInterface pOffset) {
+        if (this.getNumber() instanceof Long) {
+            return new NumericValue(this.getNumber().longValue() >> pOffset.getNumber().longValue());
+        } else {
+            throw new AssertionError("trying to perform ShiftRight on floating point operands");
+        }
+    }
+
+    @Override
+    public NumberInterface unsignedModulo(NumberInterface pOther) {
+        if (this.getNumber() instanceof Long) {
+            return new NumericValue(
+                    UnsignedLongs.remainder(this.getNumber().longValue(), pOther.getNumber().longValue()));
+        } else {
+            return UnknownValue.getInstance();
+        }
+    }
+
+    @Override
+    public NumberInterface modulo(NumberInterface pOther) {
+        if (this.getNumber() instanceof Long) {
+            return new NumericValue(this.getNumber().longValue() % pOther.getNumber().longValue());
+        } else if (this.getNumber() instanceof Double) {
+            return new NumericValue(this.getNumber().doubleValue() % pOther.getNumber().doubleValue());
+        } else if (this.getNumber() instanceof Float) {
+            return new NumericValue(this.getNumber().floatValue() % pOther.getNumber().floatValue());
+        } else {
+            return UnknownValue.getInstance();
+        }
+    }
+
+    @Override
+    public NumberInterface binaryAnd(NumberInterface rNum) {
+        if (getNumber() instanceof Long && rNum.getNumber() instanceof Long) {
+            return new NumericValue(getNumber().longValue() & rNum.getNumber().longValue());
+        } else {
+            throw new AssertionError("trying to perform Binary And on floating point operands");
+        }
+    }
+
+    @Override
+    public NumberInterface binaryOr(NumberInterface rNum) {
+        if (getNumber() instanceof Long && rNum.getNumber() instanceof Long) {
+            return new NumericValue(getNumber().longValue() | rNum.getNumber().longValue());
+        } else {
+            throw new AssertionError("trying to perform Binary Or on floating point operands");
+        }
+    }
+
+    @Override
+    public NumberInterface binaryXor(NumberInterface rNum) {
+        if (getNumber() instanceof Long && rNum.getNumber() instanceof Long) {
+            return new NumericValue(getNumber().longValue() ^ rNum.getNumber().longValue());
+        } else {
+            throw new AssertionError("trying to perform Binary Xor on floating point operands");
+        }
+    }
+
+    @Override
+    public NumberInterface evaluateLessOperator(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
+    }
+
+    @Override
+    public NumberInterface evaluateLessEqualOperator(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
+    }
+
+    @Override
+    public NumberInterface evaluateEqualOperator(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
+    }
+
+    // public static class NegativeNaN extends Number {
+    //
+    // private static final long serialVersionUID = 1L;
+    //
+    // public static final Number VALUE = new NegativeNaN();
+    //
+    // private NegativeNaN() {
+    // }
+    //
+    // @Override
+    // public double doubleValue() {
+    // return Double.NaN;
+    // }
+    //
+    // @Override
+    // public float floatValue() {
+    // return Float.NaN;
+    // }
+    //
+    // @Override
+    // public int intValue() {
+    // return (int) Double.NaN;
+    // }
+    //
+    // @Override
+    // public long longValue() {
+    // return (long) Double.NaN;
+    // }
+    //
+    // @Override
+    // public String toString() {
+    // return "-NaN";
+    // }
+    //
+    // @Override
+    // public boolean equals(Object pObj) {
+    // return pObj == this || pObj instanceof NegativeNaN;
+    // }
+    //
+    // @Override
+    // public int hashCode() {
+    // return -1;
+    // }
+    //
+    // }
 
 }

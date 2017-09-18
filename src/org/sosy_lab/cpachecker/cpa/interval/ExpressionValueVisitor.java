@@ -49,6 +49,9 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
 
     private final CFAEdge cfaEdge;
 
+    private static Creator creatorIntegerInterval = new CreatorIntegerInterval();
+    private static Creator creatorDoubleInterval = new CreatorDoubleInterval();
+
     public ExpressionValueVisitor(UnifyAnalysisState pState, CFAEdge edge) {
         readableState = pState;
         cfaEdge = edge;
@@ -56,7 +59,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
 
     @Override
     protected NumberInterface visitDefault(CExpression expression) {
-        return new CreatorIntegerInterval().factoryMethod(null).UNBOUND();
+        return creatorIntegerInterval.factoryMethod(null).UNBOUND();
     }
 
     @Override
@@ -65,7 +68,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
         NumberInterface interval2 = binaryExpression.getOperand2().accept(this);
 
         if (interval1 == null || interval2 == null) {
-            return new CreatorIntegerInterval().factoryMethod(null).UNBOUND();
+            return creatorIntegerInterval.factoryMethod(null).UNBOUND();
         }
 
         BinaryOperator operator = binaryExpression.getOperator();
@@ -81,43 +84,43 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
         switch (operator) {
         case EQUALS:
             if (!interval1.intersects(interval2)) {
-                return new CreatorIntegerInterval().factoryMethod(null).ZERO();
+                return creatorIntegerInterval.factoryMethod(null).ZERO();
             } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
                 // singular interval, [5;5]==[5;5]
-                return new CreatorIntegerInterval().factoryMethod(null).ONE();
+                return creatorIntegerInterval.factoryMethod(null).ONE();
             } else {
-                return new CreatorIntegerInterval().factoryMethod(null).BOOLEAN_INTERVAL();
+                return creatorIntegerInterval.factoryMethod(null).BOOLEAN_INTERVAL();
             }
 
         case NOT_EQUALS:
             if (!interval1.intersects(interval2)) {
-                return new CreatorIntegerInterval().factoryMethod(null).ONE();
+                return creatorIntegerInterval.factoryMethod(null).ONE();
             } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
                 // singular interval, [5;5]!=[5;5]
-                return new CreatorIntegerInterval().factoryMethod(null).ZERO();
+                return creatorIntegerInterval.factoryMethod(null).ZERO();
             } else {
-                return new CreatorIntegerInterval().factoryMethod(null).BOOLEAN_INTERVAL();
+                return creatorIntegerInterval.factoryMethod(null).BOOLEAN_INTERVAL();
             }
 
         case GREATER_THAN:
             if (interval1.isGreaterThan(interval2)) {
-                return new CreatorIntegerInterval().factoryMethod(null).ONE();
+                return creatorIntegerInterval.factoryMethod(null).ONE();
             } else if (interval2.isGreaterOrEqualThan(interval1)) {
-                return new CreatorIntegerInterval().factoryMethod(null).ZERO();
+                return creatorIntegerInterval.factoryMethod(null).ZERO();
             } else {
-                return new CreatorIntegerInterval().factoryMethod(null).BOOLEAN_INTERVAL();
+                return creatorIntegerInterval.factoryMethod(null).BOOLEAN_INTERVAL();
             }
 
         case GREATER_EQUAL: // a>=b == a+1>b, works only for integers
             return getLogicInterval(BinaryOperator.GREATER_THAN,
-                    interval1.plus(new CreatorIntegerInterval().factoryMethod(null).ONE()), interval2);
+                    interval1.plus(creatorIntegerInterval.factoryMethod(null).ONE()), interval2);
 
         case LESS_THAN: // a<b == b>a
             return getLogicInterval(BinaryOperator.GREATER_THAN, interval2, interval1);
 
         case LESS_EQUAL: // a<=b == b+1>a, works only for integers
             return getLogicInterval(BinaryOperator.GREATER_THAN,
-                    interval2.plus(new CreatorIntegerInterval().factoryMethod(null).ONE()), interval1);
+                    interval2.plus(creatorIntegerInterval.factoryMethod(null).ONE()), interval1);
 
         default:
             throw new AssertionError("unknown binary operator: " + operator);
@@ -145,7 +148,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
         case BINARY_AND:
         case BINARY_OR:
         case BINARY_XOR:
-            return new CreatorIntegerInterval().factoryMethod(null).UNBOUND();
+            return creatorIntegerInterval.factoryMethod(null).UNBOUND();
         default:
             throw new AssertionError("unknown binary operator: " + operator);
         }
@@ -158,12 +161,12 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
 
     @Override
     public NumberInterface visit(CFunctionCallExpression functionCall) {
-        return new CreatorIntegerInterval().factoryMethod(null).UNBOUND();
+        return creatorIntegerInterval.factoryMethod(null).UNBOUND();
     }
 
     @Override
     public NumberInterface visit(CCharLiteralExpression charLiteral) {
-        return new CreatorIntegerInterval().factoryMethod((long) charLiteral.getCharacter());
+        return creatorIntegerInterval.factoryMethod((long) charLiteral.getCharacter());
     }
 
     @Override
@@ -173,26 +176,24 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
 
     @Override
     public NumberInterface visit(CIntegerLiteralExpression integerLiteral) {
-        // TODO BigInteger
-        return new CreatorIntegerInterval().factoryMethod(integerLiteral.asLong());
+        return creatorIntegerInterval.factoryMethod(integerLiteral.asLong());
     }
 
     @Override
     public NumberInterface visit(CFloatLiteralExpression floatLiteral) {
-        // TODO BigDecimal
-        return new CreatorDoubleInterval().factoryMethod(floatLiteral.getValue().doubleValue());
+        return creatorDoubleInterval.factoryMethod(floatLiteral.getValue().doubleValue());
     }
 
     @Override
     public NumberInterface visit(CIdExpression identifier) {
         if (identifier.getDeclaration() instanceof CEnumerator) {
-            return new CreatorIntegerInterval().factoryMethod(((CEnumerator) identifier.getDeclaration()).getValue());
+            return creatorIntegerInterval.factoryMethod(((CEnumerator) identifier.getDeclaration()).getValue());
         }
         final String variableName = identifier.getDeclaration().getQualifiedName();
         if (readableState.contains(MemoryLocation.valueOf(variableName))) {
             return readableState.getElement(MemoryLocation.valueOf(variableName));
         } else {
-            return new CreatorIntegerInterval().factoryMethod(null).UNBOUND();
+            return creatorIntegerInterval.factoryMethod(null).UNBOUND();
         }
     }
 
@@ -204,7 +205,7 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
             return interval.negate();
         case AMPER:
         case TILDE:
-            return new CreatorIntegerInterval().factoryMethod(null).UNBOUND(); // valid
+            return creatorIntegerInterval.factoryMethod(null).UNBOUND(); // valid
                                                                                // expression,
                                                                                // but
                                                                                // it's

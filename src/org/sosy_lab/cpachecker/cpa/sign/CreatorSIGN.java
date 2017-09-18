@@ -43,7 +43,7 @@ public class CreatorSIGN implements Creator{
         case 5: return SIGN.PLUS0;
         case 6: return SIGN.MINUS0;
         case 7: return SIGN.ALL;
-        default: return SIGN.EMPTY; //TODO is it correct?
+        default: return SIGN.EMPTY;
         }
 
     }

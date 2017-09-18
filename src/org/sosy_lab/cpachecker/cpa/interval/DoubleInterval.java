@@ -637,105 +637,27 @@ public class DoubleInterval implements NumberInterface {
     }
 
     @Override
-    public NumberInterface unsignedDivide(NumberInterface pOther) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface unsignedModulo(NumberInterface pOther) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface unsignedShiftRight(NumberInterface pOther) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public Long asLong(CType pType) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     @Override
-    public NumberInterface binaryAnd(NumberInterface pRNum) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface binaryOr(NumberInterface pRNum) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface binaryXor(NumberInterface pRNum) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public boolean covers(NumberInterface pSign) {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-
-    @Override
-    public NumberInterface evaluateNonCommutativePlusOperator(NumberInterface pRight) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface evaluateMulOperator(NumberInterface pRight) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface evaluateNonCommutativeMulOperator(NumberInterface pRight) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface evaluateDivideOperator(NumberInterface pRight) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface evaluateModuloOperator(NumberInterface pRight) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface evaluateAndOperator(NumberInterface pRight) {
-        // TODO Auto-generated method stub
-        return null;
+    public NumberInterface binaryAnd(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
     }
 
     @Override
     public NumberInterface evaluateLessOperator(NumberInterface pRight) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     @Override
     public NumberInterface evaluateLessEqualOperator(NumberInterface pRight) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     @Override
     public NumberInterface evaluateEqualOperator(NumberInterface pRight) {
-        // TODO Auto-generated method stub
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 }

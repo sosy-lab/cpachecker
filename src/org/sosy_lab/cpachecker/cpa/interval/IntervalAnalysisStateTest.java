@@ -26,19 +26,20 @@ package org.sosy_lab.cpachecker.cpa.interval;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class IntervalAnalysisStateTest {
 
     @Test
     public void pseudoPartiotionKey() {
-        IntervalAnalysisState s = new IntervalAnalysisState();
-        // TODO change IntegerInterval to NumberInterface
-        IntervalAnalysisState sa1 = s.addInterval("a", new IntegerInterval(1L, 1L), 10);
-        IntervalAnalysisState sb2 = s.addInterval("b", new IntegerInterval(2L, 2L), 10);
-        IntervalAnalysisState sa1b2 = sa1.addInterval("b", new IntegerInterval(2L, 2L), 10);
-        IntervalAnalysisState sa1b3 = sa1.addInterval("b", new IntegerInterval(3L, 3L), 10);
-        IntervalAnalysisState sa1b23 = sa1.addInterval("b", new IntegerInterval(2L, 3L), 10);
+        UnifyAnalysisState s = new UnifyAnalysisState(NumericalType.INTERVAL);
+
+        UnifyAnalysisState sa1 = s.assignElement(MemoryLocation.valueOf("a"), new IntegerInterval(1L, 1L), null);
+        UnifyAnalysisState sb2 = s.assignElement(MemoryLocation.valueOf("b"), new IntegerInterval(2L, 2L), null);
+        UnifyAnalysisState sa1b2 = sa1.assignElement(MemoryLocation.valueOf("b"), new IntegerInterval(2L, 2L), null);
+        UnifyAnalysisState sa1b3 = sa1.assignElement(MemoryLocation.valueOf("b"), new IntegerInterval(3L, 3L), null);
+        UnifyAnalysisState sa1b23 = sa1.assignElement(MemoryLocation.valueOf("b"), new IntegerInterval(2L, 3L), null);
 
         Comparable cs = s.getPseudoPartitionKey();
         Comparable csa1 = sa1.getPseudoPartitionKey();

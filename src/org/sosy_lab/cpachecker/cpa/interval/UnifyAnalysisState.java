@@ -90,7 +90,6 @@ public class UnifyAnalysisState
     private static final long serialVersionUID = -3057330425781141121L;
 
     private final NumericalType numericalType;
-    private static final boolean DEBUG = false;
 
     private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
@@ -480,8 +479,8 @@ public class UnifyAnalysisState
             MemoryLocation key = entry.getKey();
             // this if statement for sigh only
             if (numericalType.equals(NumericalType.SIGN)) {
-                if (!DEBUG && (key.getAsSimpleString().matches("\\w*::__CPAchecker_TMP_\\w*")
-                        || key.getAsSimpleString().endsWith(SignTransferRelation.FUNC_RET_VAR))) {
+                if (key.getAsSimpleString().matches("\\w*::__CPAchecker_TMP_\\w*")
+                        || key.getAsSimpleString().endsWith(SignTransferRelation.FUNC_RET_VAR)) {
                     continue;
                 }
                 sb.append(loopDelim);

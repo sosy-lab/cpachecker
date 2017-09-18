@@ -61,79 +61,79 @@ public class SIGNTest {
     }
 
     @Test
-    public void testEvaluateNonCommutativePlusOperator() throws Exception {
-        SIGN empty = SIGN.EMPTY;
-        SIGN plus = SIGN.PLUS;
-        SIGN minus = SIGN.MINUS;
-        SIGN plusMinus = SIGN.PLUSMINUS;
-        SIGN zero = SIGN.ZERO;
-        SIGN all = SIGN.ALL;
-
-        assertEquals(empty, zero.evaluateNonCommutativePlusOperator(plusMinus));
-        assertEquals(plus, plus.evaluateNonCommutativePlusOperator(zero));
-        assertEquals(all, plus.evaluateNonCommutativePlusOperator(minus));
-        assertEquals(plus, plus.evaluateNonCommutativePlusOperator(plus));
-        assertEquals(minus, minus.evaluateNonCommutativePlusOperator(minus));
-    }
-
-    @Test
-    public void testEvaluateMulOperator() throws Exception {
-        SIGN plus = SIGN.PLUS;
-        SIGN minus = SIGN.MINUS;
-        SIGN plusMinus = SIGN.PLUSMINUS;
-        SIGN zero = SIGN.ZERO;
-        SIGN plus0 = SIGN.PLUS0;
-
-
-        assertEquals(zero, zero.evaluateMulOperator(plusMinus));
-        assertEquals(plus0, plus.evaluateMulOperator(zero));
-        assertEquals(plusMinus, plus.evaluateMulOperator(minus));
-        assertEquals(plus, minus.evaluateMulOperator(minus));
-    }
+        public void testPlus() throws Exception {
+            SIGN empty = SIGN.EMPTY;
+            SIGN plus = SIGN.PLUS;
+            SIGN minus = SIGN.MINUS;
+            SIGN plusMinus = SIGN.PLUSMINUS;
+            SIGN zero = SIGN.ZERO;
+            SIGN all = SIGN.ALL;
+    
+            assertEquals(empty, zero.plus(plusMinus));
+            assertEquals(plus, plus.plus(zero));
+            assertEquals(all, plus.plus(minus));
+            assertEquals(plus, plus.plus(plus));
+            assertEquals(minus, minus.plus(minus));
+        }
 
     @Test
-    public void testEvaluateNonCommutativeMulOperator() throws Exception {
-        SIGN empty = SIGN.EMPTY;
-        SIGN plus = SIGN.PLUS;
-        SIGN minus = SIGN.MINUS;
-        SIGN plusMinus = SIGN.PLUSMINUS;
-        SIGN zero = SIGN.ZERO;
-
-        assertEquals(empty, zero.evaluateNonCommutativeMulOperator(plusMinus));
-        assertEquals(zero, plus.evaluateNonCommutativeMulOperator(zero));
-        assertEquals(minus, plus.evaluateNonCommutativeMulOperator(minus));
-        assertEquals(plus, minus.evaluateNonCommutativeMulOperator(minus));
-    }
-
-    @Test
-    public void testEvaluateModuloOperator() throws Exception {
-        SIGN plus = SIGN.PLUS;
-        SIGN minus = SIGN.MINUS;
-        SIGN plusMinus = SIGN.PLUSMINUS;
-        SIGN zero = SIGN.ZERO;
-        SIGN all = SIGN.ALL;
-        SIGN plus0 = SIGN.PLUS0;
-        SIGN minus0 = SIGN.MINUS0;
-
-        assertEquals(zero, zero.evaluateModuloOperator(plusMinus));
-        assertEquals(all, plus.evaluateModuloOperator(zero));
-        assertEquals(plus0, plus.evaluateModuloOperator(minus));
-        assertEquals(minus0, minus.evaluateModuloOperator(minus));
-    }
+        public void testMinus() throws Exception {
+            SIGN plus = SIGN.PLUS;
+            SIGN minus = SIGN.MINUS;
+            SIGN plusMinus = SIGN.PLUSMINUS;
+            SIGN zero = SIGN.ZERO;
+            SIGN plus0 = SIGN.PLUS0;
+    
+    
+            assertEquals(zero, zero.minus(plusMinus));
+            assertEquals(plus0, plus.minus(zero));
+            assertEquals(plusMinus, plus.minus(minus));
+            assertEquals(plus, minus.minus(minus));
+        }
 
     @Test
-    public void testEvaluateAndOperator() throws Exception {
-        SIGN plus = SIGN.PLUS;
-        SIGN minus = SIGN.MINUS;
-        SIGN plusMinus = SIGN.PLUSMINUS;
-        SIGN zero = SIGN.ZERO;
-        SIGN plus0 = SIGN.PLUS0;
-        SIGN minus0 = SIGN.MINUS0;
+        public void testTimes() throws Exception {
+            SIGN empty = SIGN.EMPTY;
+            SIGN plus = SIGN.PLUS;
+            SIGN minus = SIGN.MINUS;
+            SIGN plusMinus = SIGN.PLUSMINUS;
+            SIGN zero = SIGN.ZERO;
+    
+            assertEquals(empty, zero.times(plusMinus));
+            assertEquals(zero, plus.times(zero));
+            assertEquals(minus, plus.times(minus));
+            assertEquals(plus, minus.times(minus));
+        }
 
-        assertEquals(zero, zero.evaluateAndOperator(plusMinus));
-        assertEquals(minus0, minus.evaluateAndOperator(minus));
-        assertEquals(plus0, plus.evaluateAndOperator(plus));
-    }
+    @Test
+        public void testModulo() throws Exception {
+            SIGN plus = SIGN.PLUS;
+            SIGN minus = SIGN.MINUS;
+            SIGN plusMinus = SIGN.PLUSMINUS;
+            SIGN zero = SIGN.ZERO;
+            SIGN all = SIGN.ALL;
+            SIGN plus0 = SIGN.PLUS0;
+            SIGN minus0 = SIGN.MINUS0;
+    
+            assertEquals(zero, zero.modulo(plusMinus));
+            assertEquals(all, plus.modulo(zero));
+            assertEquals(plus0, plus.modulo(minus));
+            assertEquals(minus0, minus.modulo(minus));
+        }
+
+    @Test
+        public void testBinaryAnd() throws Exception {
+            SIGN plus = SIGN.PLUS;
+            SIGN minus = SIGN.MINUS;
+            SIGN plusMinus = SIGN.PLUSMINUS;
+            SIGN zero = SIGN.ZERO;
+            SIGN plus0 = SIGN.PLUS0;
+            SIGN minus0 = SIGN.MINUS0;
+    
+            assertEquals(zero, zero.binaryAnd(plusMinus));
+            assertEquals(minus0, minus.binaryAnd(minus));
+            assertEquals(plus0, plus.binaryAnd(plus));
+        }
 
     @Test
     public void testEvaluateLessOperator() throws Exception {

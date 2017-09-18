@@ -10,34 +10,29 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 public interface NumberInterface {
 
     default NumberInterface EMPTY() {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
-
-    default NumberInterface UNBOUND() {
-        return null;
+    default NumberInterface UNBOUND(){
+        throw new AssertionError("trying to perform default function");
     }
-
     default NumberInterface BOOLEAN_INTERVAL() {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
-
     default NumberInterface ZERO() {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
-
     default NumberInterface ONE() {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
-
     /**
-     * This method determines if this interval intersects with another interval.
+     * This method determines if this element intersects with another element.
      *
      * @param other
-     *            the other interval
-     * @return true if the intervals intersect, else false
+     *            the other element
+     * @return true if the elements intersect, else false
      */
     default boolean intersects(NumberInterface other) {
-        return false;
+        throw new AssertionError("trying to perform default function");
     }
 
     /**
@@ -46,175 +41,235 @@ public interface NumberInterface {
      * @return the lower bound
      */
     default Number getLow() {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     /**
-     * This method returns the upper bound of the interval.
+     * This method returns the upper bound of the element.
      *
      * @return the upper bound
      */
     default Number getHigh() {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     /**
-     * This method determines if this interval is definitely greater than the
-     * other interval.
+     * This method determines if this element is definitely greater than the
+     * other element.
      *
      * @param other
-     *            interval to compare with
-     * @return true if the lower bound of this interval is always strictly
-     *         greater than the upper bound of the other interval, else false
+     *            element to compare with
+     * @return true if the lower bound of this element is always strictly
+     *         greater than the upper bound of the other element, else false
      */
     default boolean isGreaterThan(NumberInterface other) {
-        return false;
+        throw new AssertionError("trying to perform default function");
     }
 
     /**
-     * This method determines if this interval is definitely greater or equal
-     * than the other interval. The equality is only satisfied for one single
+     * This method determines if this element is definitely greater or equal
+     * than the other element. The equality is only satisfied for one single
      * value!
      *
      * @param other
-     *            interval to compare with
-     * @return true if the lower bound of this interval is always strictly
-     *         greater or equal than the upper bound of the other interval, else
+     *            element to compare with
+     * @return true if the lower bound of this element is always strictly
+     *         greater or equal than the upper bound of the other element, else
      *         false
      */
-    default boolean isGreaterOrEqualThan(NumberInterface other) {
-        return false;
+    default boolean isGreaterOrEqualThan(NumberInterface other){
+        throw new AssertionError("trying to perform default function");
     }
 
-    public NumberInterface plus(NumberInterface interval);
-
-    public NumberInterface minus(NumberInterface other);
-
-    public NumberInterface times(NumberInterface other);
-
-    public NumberInterface divide(NumberInterface other);
-
-    public NumberInterface shiftLeft(NumberInterface offset);
-
-    public NumberInterface shiftRight(NumberInterface offset);
-
-    public NumberInterface unsignedDivide(NumberInterface other);
-
-    public NumberInterface unsignedModulo(NumberInterface other);
-
-    public NumberInterface unsignedShiftRight(NumberInterface other);
+    /**
+     * This method adds an element to this element
+     * @param element to add with
+     * @return result of addition
+     */
+    default NumberInterface plus(NumberInterface element) {
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method extracts an element to this element
+     * @param element to extract with
+     * @return result of multiplication
+     */
+    default  NumberInterface minus(NumberInterface element){
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method multiplies an element by this element
+     * @param element to multiplying with
+     * @return result of multiplication
+     */
+    default NumberInterface times(NumberInterface element){
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method divides an element by this element
+     * @param element to divide by
+     * @return result of divide
+     */
+    default NumberInterface divide(NumberInterface element){
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method performs an arithmetical left shift of the integral types.
+     *
+     * @param offset element to perform an arithmetical left shift on the
+     *            interval bounds.
+     *
+     * @return of the arithmetical left shift
+     */
+    default NumberInterface shiftLeft(NumberInterface offset){
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method performs an arithmetical right shift of the integral types.
+     *
+     * @param offset element to perform an arithmetical right shift on the
+     *            interval bounds.
+     *
+     * @return of the arithmetical right shift
+     */
+    default NumberInterface shiftRight(NumberInterface offset){
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method divides an unsigned element by this (unsigned) element
+     * @param element to divide by
+     * @return result of divide
+     */
+    default NumberInterface unsignedDivide(NumberInterface element){
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method divides an unsigned element by this (unsigned) element
+     * @param element to divide by
+     * @return result of divide
+     */
+    default NumberInterface unsignedModulo(NumberInterface element){
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method performs an arithmetical right shift of the integral types.
+     *
+     * @param other element to perform an arithmetical right shift on the
+     *            interval bounds.
+     *
+     * @return of the arithmetical right shift
+     */
+    default NumberInterface unsignedShiftRight(NumberInterface other){
+        throw new AssertionError("trying to perform default function");
+    }
 
     /**
-     * New interval instance after the modulo computation.
+     * New element instance after the modulo computation.
      *
      * @param other
-     *            the other interval
-     * @return the new interval with the respective bounds.
+     *            the other element
+     * @return the new element with the respective bounds.
      */
     default NumberInterface modulo(NumberInterface other) {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     default boolean isUnbound() {
-        return false;
+        throw new AssertionError("trying to perform default function");
     }
 
     /**
-     * This method creates a new interval instance representing the union of
-     * this interval with another interval.
+     * This method creates a new element instance representing the union of
+     * this element with another element.
      *
-     * The lower bound and upper bound of the new interval is the minimum of
+     * The lower bound and upper bound of the new element is the minimum of
      * both lower bounds and the maximum of both upper bounds, respectively.
      *
      * @param other
-     *            the other interval
-     * @return the new interval with the respective bounds
+     *            the other element
+     * @return the new element with the respective bounds
      */
     default NumberInterface union(NumberInterface other) {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     /**
-     * This method determines if this interval contains another interval.
+     * This method determines if this element contains another element.
      *
-     * The method still returns true, if the borders match. An empty interval
-     * does not contain any interval and is not contained in any interval
-     * either. So if the callee or parameter is an empty interval, this method
+     * The method still returns true, if the borders match. An empty element
+     * does not contain any element and is not contained in any element
+     * either. So if the callee or parameter is an empty element, this method
      * will return false.
      *
      * @param other
-     *            the other interval
-     * @return true if this interval contains the other interval, else false
+     *            the other element
+     * @return true if this element contains the other element, else false
      */
     default boolean contains(NumberInterface other) {
-        return false;
+        throw new AssertionError("trying to perform default function");
     }
 
     default boolean isEmpty() {
-        return false;
+        throw new AssertionError("trying to perform default function");
     }
 
     default NumberInterface negate() {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
-
-    // public NumberInterface createUpperBoundedInterval(Long upperBound);
-    // public NumberInterface createLowerBoundedInterval(Long lowerBound);
     /**
-     * This method creates a new interval instance representing the intersection
-     * of this interval with another interval.
+     * This method creates a new element instance representing the intersection
+     * of this element with another element.
      *
-     * The lower bound and upper bound of the new interval is the maximum of
+     * The lower bound and upper bound of the new element is the maximum of
      * both lower bounds and the minimum of both upper bounds, respectively.
      *
      * @param other
-     *            the other interval
-     * @return the new interval with the respective bounds
+     *            the other element
+     * @return the new element with the respective bounds
      */
     default NumberInterface intersect(NumberInterface other) {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
-
     /**
-     * This method returns a new interval with a limited, i.e. lower, upper
+     * This method returns a new element with a limited, i.e. lower, upper
      * bound.
      *
      * @param other
-     *            the interval to limit this interval
-     * @return the new interval with the lower bound of this interval and the
-     *         upper bound set to the minimum of this interval's and the other
-     *         interval's upper bound or an empty interval if this interval is
-     *         greater than the other interval.
+     *            the element to limit this element
+     * @return the new element with the lower bound of this element and the
+     *         upper bound set to the minimum of this element's and the other
+     *         element's upper bound or an empty element if this element is
+     *         greater than the other element.
      */
     default NumberInterface limitUpperBoundBy(NumberInterface other) {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     /**
-     * This method returns a new interval with a limited, i.e. higher, lower
+     * This method returns a new element with a limited, i.e. higher, lower
      * bound.
      *
      * @param other
-     *            the interval to limit this interval
-     * @return the new interval with the upper bound of this interval and the
-     *         lower bound set to the maximum of this interval's and the other
-     *         interval's lower bound or an empty interval if this interval is
-     *         less than the other interval.
+     *            the element to limit this element
+     * @return the new element with the upper bound of this element and the
+     *         lower bound set to the maximum of this element's and the other
+     *         element's lower bound or an empty element if this element is
+     *         less than the other element.
      */
     default NumberInterface limitLowerBoundBy(NumberInterface other) {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     default NumberInterface asDecimal() {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     default NumberInterface asInteger() {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     default boolean isNumericValue() {
-        return false;
+        throw new AssertionError("trying to perform default function");
     }
 
     /**
@@ -222,19 +277,37 @@ public interface NumberInterface {
      * otherwise.
      */
     default boolean isUnknown() {
-        return false;
+        throw new AssertionError("trying to perform default function");
     }
 
     /** True if we deterministically know the actual value, false otherwise. */
     default boolean isExplicitlyKnown() {
-        return false;
+        throw new AssertionError("trying to perform default function");
     }
-
-    public NumberInterface binaryAnd(NumberInterface rNum);
-
-    public NumberInterface binaryOr(NumberInterface rNum);
-
-    public NumberInterface binaryXor(NumberInterface rNum);
+    /**
+     * This method performs bitwise inclusive AND
+     * @param element to calculate with
+     * @return result of operation
+     */
+    default NumberInterface binaryAnd(NumberInterface element){
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method performs bitwise inclusive OR
+     * @param element to calculate with
+     * @return result of operation
+     */
+    default NumberInterface binaryOr(NumberInterface element){
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method performs bitwise inclusive XOR
+     * @param element to calculate with
+     * @return result of operation
+     */
+    default NumberInterface binaryXor(NumberInterface element){
+        throw new AssertionError("trying to perform default function");
+    }
 
     /**
      * Returns the NumericValue if the stored value can be explicitly
@@ -242,26 +315,27 @@ public interface NumberInterface {
      **/
 
     default NumericValue asNumericValue() {
-        return null;
+        throw new AssertionError("trying to perform default function");
     }
 
     public Long asLong(CType type);
 
     default Number getNumber() {
-        return null;
+        throw new AssertionError("trying to perform default function");
+    }
+    /**
+     * This method proves if an element covers another element
+     * @param sign to prove it
+     * @return result
+     */
+    default boolean covers(NumberInterface sign)
+    {
+        throw new AssertionError("trying to perform default function");
+    }
+    default ImmutableSet<NumberInterface> split() {
+        throw new AssertionError("trying to perform default function");
     }
 
-    public boolean covers(NumberInterface sign);
-    default ImmutableSet<NumberInterface> split() {
-        return null;
-    }
-    public NumberInterface evaluateNonCommutativePlusOperator(NumberInterface pRight);
-    public NumberInterface evaluateMulOperator(NumberInterface pRight);
-    public NumberInterface evaluateNonCommutativeMulOperator(NumberInterface right);
-    public NumberInterface evaluateDivideOperator(NumberInterface right);
-    public NumberInterface evaluateModuloOperator(NumberInterface pRight);
-    // assumes that indicator bit for negative numbers is 1
-    public NumberInterface evaluateAndOperator(NumberInterface right);
     public NumberInterface evaluateLessOperator(NumberInterface pRight);
     public NumberInterface evaluateLessEqualOperator(NumberInterface pRight);
     public NumberInterface evaluateEqualOperator(NumberInterface pRight);
@@ -311,136 +385,18 @@ public interface NumberInterface {
         }
 
         @Override
-        public NumberInterface plus(NumberInterface pInterval) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface minus(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface times(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface divide(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface shiftLeft(NumberInterface pOffset) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface shiftRight(NumberInterface pOffset) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface unsignedDivide(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface unsignedModulo(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface unsignedShiftRight(NumberInterface pOther) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface binaryAnd(NumberInterface pRNum) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface binaryOr(NumberInterface pRNum) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface binaryXor(NumberInterface pRNum) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public boolean covers(NumberInterface pSign) {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public NumberInterface evaluateNonCommutativePlusOperator(NumberInterface pRight) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface evaluateMulOperator(NumberInterface pRight) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface evaluateNonCommutativeMulOperator(NumberInterface pRight) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface evaluateDivideOperator(NumberInterface pRight) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface evaluateModuloOperator(NumberInterface pRight) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public NumberInterface evaluateAndOperator(NumberInterface pRight) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
         public NumberInterface evaluateLessOperator(NumberInterface pRight) {
-            // TODO Auto-generated method stub
-            return null;
+            throw new AssertionError("trying to perform default function");
         }
 
         @Override
         public NumberInterface evaluateLessEqualOperator(NumberInterface pRight) {
-            // TODO Auto-generated method stub
-            return null;
+            throw new AssertionError("trying to perform default function");
         }
 
         @Override
         public NumberInterface evaluateEqualOperator(NumberInterface pRight) {
-            // TODO Auto-generated method stub
-            return null;
+            throw new AssertionError("trying to perform default function");
         }
-
     }
 }

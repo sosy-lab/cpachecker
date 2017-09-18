@@ -72,16 +72,18 @@ public enum SIGN implements NumberInterface, Serializable {
         // combine bit values
         return VALUE_MAP.get(Integer.valueOf(tempSign.numVal | numVal));
     }
-
-    public boolean covers(SIGN sign) {
-        if ((sign.numVal | this.numVal) == this.numVal) {
+    @Override
+    public boolean covers(NumberInterface sign) {
+        SIGN tempSign = (SIGN) sign;
+        if ((tempSign.numVal | this.numVal) == this.numVal) {
             return true;
         }
         return false;
     }
-
-    public boolean intersects(SIGN sign) {
-        if ((sign.numVal & this.numVal) != 0) {
+    @Override
+    public boolean intersects(NumberInterface sign) {
+        SIGN tempSign = (SIGN) sign;
+        if ((tempSign.numVal & this.numVal) != 0) {
             return true;
         }
         return false;
@@ -120,7 +122,7 @@ public enum SIGN implements NumberInterface, Serializable {
     }
 
     @Override
-    public NumberInterface evaluateNonCommutativePlusOperator(NumberInterface pRight) {
+    public NumberInterface plus(NumberInterface pRight) {
         SIGN pLeft = this;
         SIGN pRightTemp = (SIGN) pRight;
         if (pRightTemp == SIGN.ZERO) {
@@ -139,15 +141,15 @@ public enum SIGN implements NumberInterface, Serializable {
     }
 
     @Override
-    public NumberInterface evaluateMulOperator(NumberInterface pRight) {
+    public NumberInterface minus(NumberInterface pRight) {
         SIGN pLeft = this;
-        NumberInterface leftToRightResult = evaluateNonCommutativeMulOperator(pRight);
-        NumberInterface rightToLeftResult = evaluateNonCommutativeMulOperator(pLeft);
+        NumberInterface leftToRightResult = times(pRight);
+        NumberInterface rightToLeftResult = times(pLeft);
         return leftToRightResult.union(rightToLeftResult);
     }
 
     @Override
-    public NumberInterface evaluateNonCommutativeMulOperator(NumberInterface right) {
+    public NumberInterface times(NumberInterface right) {
         SIGN left = this;
         SIGN rightTemp = (SIGN) right;
         if (right == SIGN.ZERO) {
@@ -163,18 +165,18 @@ public enum SIGN implements NumberInterface, Serializable {
     }
 
     @Override
-    public NumberInterface evaluateDivideOperator(NumberInterface right) {
+    public NumberInterface divide(NumberInterface right) {
         SIGN rightTemp = (SIGN) right;
         // if (rightTemp == SIGN.ZERO) {
         // transferRel.logger.log(Level.WARNING, "Possibly dividing by zero",
         // edgeOfExpr);
         // return SIGN.ALL;
         // }
-        return evaluateMulOperator(rightTemp);
+        return minus(rightTemp);
     }
 
     @Override
-    public NumberInterface evaluateModuloOperator(NumberInterface pRight) {
+    public NumberInterface modulo(NumberInterface pRight) {
         SIGN pLeft = this;
         SIGN pRightTemp = (SIGN) pRight;
         if (pLeft == SIGN.ZERO) {
@@ -191,7 +193,7 @@ public enum SIGN implements NumberInterface, Serializable {
 
     // assumes that indicator bit for negative numbers is 1
     @Override
-    public NumberInterface evaluateAndOperator(NumberInterface right) {
+    public NumberInterface binaryAnd(NumberInterface right) {
         SIGN left = this;
         SIGN rightTemp = (SIGN) right;
         if (left == SIGN.ZERO || rightTemp == SIGN.ZERO) {
@@ -307,86 +309,7 @@ public enum SIGN implements NumberInterface, Serializable {
     }
 
     @Override
-    public NumberInterface plus(NumberInterface pInterval) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface minus(NumberInterface pOther) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface times(NumberInterface pOther) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface divide(NumberInterface pOther) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface shiftLeft(NumberInterface pOffset) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface shiftRight(NumberInterface pOffset) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface unsignedDivide(NumberInterface pOther) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface unsignedModulo(NumberInterface pOther) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface unsignedShiftRight(NumberInterface pOther) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public Long asLong(CType pType) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface binaryAnd(NumberInterface pRNum) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface binaryOr(NumberInterface pRNum) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public NumberInterface binaryXor(NumberInterface pRNum) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
-    public boolean covers(NumberInterface pSign) {
-        // TODO Auto-generated method stub
-        return false;
+        throw new AssertionError("trying to perform default function");
     }
 }

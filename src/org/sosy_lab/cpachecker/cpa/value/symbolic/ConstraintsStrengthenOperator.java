@@ -78,7 +78,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
   }
 
   /**
-   * Strengthen the given {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} with the given {@link org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState}.
+   * Strengthen the given {@link org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState} with the given {@link org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState}.
    *
    * <p>The returned <code>Collection</code> contains all reachable states after strengthening.
    * A returned empty <code>Collection</code> represents 'bottom', a returned <code>null</code>

@@ -32,350 +32,145 @@ import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
  */
 public class NullValue implements NumberInterface, Serializable {
 
-  private static final long serialVersionUID = 49593725475613735L;
+    private static final long serialVersionUID = 49593725475613735L;
 
-  private static final NullValue SINGLETON = new NullValue();
+    private static final NullValue SINGLETON = new NullValue();
 
-  private NullValue() {
-    // private constructor for singleton pattern
-  }
+    private NullValue() {
+        // private constructor for singleton pattern
+    }
 
-  /**
-   * Returns an instance of a <code>NullValue</code> object.
-   *
-   * @return an instance of this object
-   */
-  public static NumberInterface getInstance() {
-    return SINGLETON;
-  }
+    /**
+     * Returns an instance of a <code>NullValue</code> object.
+     *
+     * @return an instance of this object
+     */
+    public static NumberInterface getInstance() {
+        return SINGLETON;
+    }
 
-  /**
-   * Always returns <code>false</code> since <code>null</code> is no numeric value.
-   *
-   * @return always returns <code>false</code>
-   */
-  @Override
-  public boolean isNumericValue() {
-    return false;
-  }
+    /**
+     * Always returns <code>false</code> since <code>null</code> is no numeric
+     * value.
+     *
+     * @return always returns <code>false</code>
+     */
+    @Override
+    public boolean isNumericValue() {
+        return false;
+    }
 
-  /**
-   * Always returns <code>false</code> since <code>null</code> is a specific value.
-   *
-   * @return always returns <code>false</code>
-   */
-  @Override
-  public boolean isUnknown() {
-    return false;
-  }
+    /**
+     * Always returns <code>false</code> since <code>null</code> is a specific
+     * value.
+     *
+     * @return always returns <code>false</code>
+     */
+    @Override
+    public boolean isUnknown() {
+        return false;
+    }
 
-  /**
-   * Always returns <code>true</code> since <code>null</code> is a specific value.
-   */
-  @Override
-  public boolean isExplicitlyKnown() {
-    return true;
-  }
+    /**
+     * Always returns <code>true</code> since <code>null</code> is a specific value.
+     */
+    @Override
+    public boolean isExplicitlyKnown() {
+        return true;
+    }
 
-  /**
-   * This method always returns <code>null</code>.
-   *
-   * <p>This object always represents <code>null</code>, which can't be
-   * represented by a specific numeric value.</p>
-   *
-   */
-  @Override
-  public NumericValue asNumericValue() {
-    return null;
-  }
+    /**
+     * This method always returns <code>null</code>.
+     *
+     * <p>
+     * This object always represents <code>null</code>, which can't be represented
+     * by a specific numeric value.
+     * </p>
+     *
+     */
+    @Override
+    public NumericValue asNumericValue() {
+        return null;
+    }
 
-  /**
-   * This method is not implemented and will lead to an <code>AssertionError</code>.
-   * <code>Null</code> can't be represented by a specific number.
-   */
-  @Override
-  public Long asLong(CType pType) {
-    throw new AssertionError("Null cannot be represented as Long");
-  }
+    /**
+     * This method is not implemented and will lead to an
+     * <code>AssertionError</code>. <code>Null</code> can't be represented by a
+     * specific number.
+     */
+    @Override
+    public Long asLong(CType pType) {
+        throw new AssertionError("Null cannot be represented as Long");
+    }
 
-  @Override
-  public boolean equals(Object other) {
+    @Override
+    public boolean equals(Object other) {
 
-    // all NullValue objects are equal
-    return other instanceof NullValue;
-  }
+        // all NullValue objects are equal
+        return other instanceof NullValue;
+    }
 
-  @Override
-  public int hashCode() {
-    return 1; // singleton without any values
-  }
+    @Override
+    public int hashCode() {
+        return 1; // singleton without any values
+    }
 
-  @Override
-  public String toString() {
-    return "NULL";
-  }
+    @Override
+    public String toString() {
+        return "NULL";
+    }
 
-  @Override
-  public NumberInterface EMPTY() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    @Override
+    public NumberInterface plus(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
 
-  @Override
-  public NumberInterface UNBOUND() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    }
 
-  @Override
-  public NumberInterface BOOLEAN_INTERVAL() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    @Override
+    public NumberInterface minus(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
 
-  @Override
-  public NumberInterface ZERO() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    }
 
-  @Override
-  public NumberInterface ONE() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    @Override
+    public NumberInterface times(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
 
-  @Override
-  public boolean intersects(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return false;
-  }
+    }
 
-  @Override
-  public Number getLow() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    @Override
+    public NumberInterface divide(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
 
-  @Override
-  public Number getHigh() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    }
 
-  @Override
-  public boolean isGreaterThan(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return false;
-  }
+    @Override
+    public NumberInterface modulo(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
 
-  @Override
-  public boolean isGreaterOrEqualThan(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return false;
-  }
+    }
 
-  @Override
-  public NumberInterface plus(NumberInterface pInterval) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    @Override
+    public NumberInterface binaryAnd(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
 
-  @Override
-  public NumberInterface minus(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    }
 
-  @Override
-  public NumberInterface times(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    @Override
+    public NumberInterface evaluateLessOperator(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
 
-  @Override
-  public NumberInterface divide(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    }
 
-  @Override
-  public NumberInterface shiftLeft(NumberInterface pOffset) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    @Override
+    public NumberInterface evaluateLessEqualOperator(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
 
-  @Override
-  public NumberInterface shiftRight(NumberInterface pOffset) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    }
 
-  @Override
-  public NumberInterface unsignedDivide(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
+    @Override
+    public NumberInterface evaluateEqualOperator(NumberInterface pRight) {
+        throw new AssertionError("trying to perform default function");
 
-  @Override
-  public NumberInterface unsignedModulo(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public NumberInterface unsignedShiftRight(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public NumberInterface modulo(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public boolean isUnbound() {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public NumberInterface union(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public boolean contains(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public boolean isEmpty() {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
-  @Override
-  public NumberInterface negate() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public NumberInterface intersect(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public NumberInterface limitUpperBoundBy(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public NumberInterface limitLowerBoundBy(NumberInterface pOther) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public NumberInterface asDecimal() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public NumberInterface asInteger() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
-  public Number getNumber() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-@Override
-public NumberInterface binaryAnd(NumberInterface pRNum) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public NumberInterface binaryOr(NumberInterface pRNum) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public NumberInterface binaryXor(NumberInterface pRNum) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public boolean covers(NumberInterface pSign) {
-    // TODO Auto-generated method stub
-    return false;
-}
-
-@Override
-public NumberInterface evaluateNonCommutativePlusOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public NumberInterface evaluateMulOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public NumberInterface evaluateNonCommutativeMulOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public NumberInterface evaluateDivideOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public NumberInterface evaluateModuloOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public NumberInterface evaluateAndOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public NumberInterface evaluateLessOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public NumberInterface evaluateLessEqualOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
-
-@Override
-public NumberInterface evaluateEqualOperator(NumberInterface pRight) {
-    // TODO Auto-generated method stub
-    return null;
-}
+    }
 }
