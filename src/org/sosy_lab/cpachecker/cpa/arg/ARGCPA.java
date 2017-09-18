@@ -104,6 +104,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     )
   private boolean useARGMergeLocationBased = false;
 
+  private final MergeOperator merge;
+
   private final LogManager logger;
 
   private final ARGStatistics stats;
@@ -118,6 +120,20 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
     super(cpa);
     config.inject(this);
     this.logger = logger;
+
+    if (useARGMergeLocationBased) {
+      MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+      merge =  new ARGMergeLocationBased(wrappedMergeOperator);
+    } else {
+      MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
+      if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
+        merge =  MergeSepOperator.getInstance();
+      } else if (inCPAEnabledAnalysis) {
+        merge = new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
+      } else {
+        merge = new ARGMergeJoin(wrappedMergeOperator, cpa.getAbstractDomain(), config);
+      }
+    }
 
     stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
   }
@@ -134,19 +150,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA implements
 
   @Override
   public MergeOperator getMergeOperator() {
-    if (useARGMergeLocationBased) {
-      MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
-      return new ARGMergeLocationBased(wrappedMergeOperator);
-    } else {
-      MergeOperator wrappedMergeOperator = getWrappedCpa().getMergeOperator();
-      if (wrappedMergeOperator == MergeSepOperator.getInstance()) {
-        return MergeSepOperator.getInstance();
-      } else if (inCPAEnabledAnalysis) {
-        return new ARGMergeJoinCPAEnabledAnalysis(wrappedMergeOperator, deleteInCPAEnabledAnalysis);
-      } else {
-        return new ARGMergeJoin(wrappedMergeOperator);
-      }
-    }
+    return merge;
   }
 
   @Override
