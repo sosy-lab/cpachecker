@@ -101,8 +101,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * the map that keeps the name of variables and their constant values
-     * (concrete and symbolic ones)
+     * the map that keeps the name of variables and their constant values (concrete
+     * and symbolic ones)
      */
     private PersistentMap<MemoryLocation, NumberInterface> unifyElements;
 
@@ -111,7 +111,6 @@ public class UnifyAnalysisState
     private transient PersistentMap<MemoryLocation, Type> memLocToType = PathCopyingPersistentTreeMap.of();
 
     public final static UnifyAnalysisState TOP = new UnifyAnalysisState(NumericalType.SIGN);
-    private final static SerialProxySign proxy = new SerialProxySign();
 
     /**
      * Constructor for sign/interval
@@ -182,7 +181,8 @@ public class UnifyAnalysisState
             }
             // only add the element if it is not already present
             return !unifyElements.containsKey(variableName) || !unifyElements.get(variableName).equals(value)
-                    ? new UnifyAnalysisState(unifyElements.putAndCopy(variableName, value), numericalType) : this;
+                    ? new UnifyAnalysisState(unifyElements.putAndCopy(variableName, value), numericalType)
+                    : this;
         case VALUE:
             memLocToType = memLocToType.putAndCopy(variableName, type);
             NumberInterface valueToAdd = value;
@@ -197,12 +197,11 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method assigns a concrete value to the given
-     * {@link SymbolicIdentifier}.
+     * This method assigns a concrete value to the given {@link SymbolicIdentifier}.
      *
      * @param pSymbolicIdentifier
-     *            the <code>SymbolicIdentifier</code> to assign the concrete
-     *            value to.
+     *            the <code>SymbolicIdentifier</code> to assign the concrete value
+     *            to.
      * @param pValue
      *            value to be assigned.
      */
@@ -222,8 +221,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method removes a memory location from the underlying map and returns
-     * the removed value.
+     * This method removes a memory location from the underlying map and returns the
+     * removed value.
      *
      * @param pMemoryLocation
      *            the name of the memory location to remove
@@ -252,8 +251,7 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method removes the interval or sign (later value) for a given
-     * variable.
+     * This method removes the interval or sign (later value) for a given variable.
      *
      * @param variableName
      *            the name of the variable whose interval should be removed
@@ -262,7 +260,8 @@ public class UnifyAnalysisState
     // see ExplicitState::forget
     public UnifyAnalysisState forgetElement(MemoryLocation variableName) {
         return unifyElements.containsKey(variableName)
-                ? new UnifyAnalysisState(unifyElements.removeAndCopy(variableName), numericalType) : this;
+                ? new UnifyAnalysisState(unifyElements.removeAndCopy(variableName), numericalType)
+                : this;
     }
 
     /**
@@ -322,6 +321,7 @@ public class UnifyAnalysisState
     @Override
     public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
         List<BooleanFormula> result = new ArrayList<>();
+        BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
         switch (numericalType) {
         case INTERVAL:
             IntegerFormulaManager nfmgr = pManager.getIntegerFormulaManager();
@@ -369,15 +369,13 @@ public class UnifyAnalysisState
                     }
                 }
             }
-            return pManager.getBooleanFormulaManager().and(result);
+            break;
         case VALUE:
-            BooleanFormulaManager bfmgr = pManager.getBooleanFormulaManager();
             if (machineModel == null) {
                 return bfmgr.makeTrue();
             }
             BitvectorFormulaManagerView bitvectorFMGR = pManager.getBitvectorFormulaManager();
             FloatingPointFormulaManagerView floatFMGR = pManager.getFloatingPointFormulaManager();
-
             for (Map.Entry<MemoryLocation, NumberInterface> entry : unifyElements.entrySet()) {
                 NumericValue num = entry.getValue().asNumericValue();
 
@@ -425,10 +423,11 @@ public class UnifyAnalysisState
                     // ignore in formula-approximation
                 }
             }
-            return bfmgr.and(result);
+            break;
         default:
-            return null;
+            break;
         }
+        return bfmgr.and(result);
     }
 
     @Override
@@ -504,8 +503,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method checks whether or not the given Memory Location is contained
-     * in this state.
+     * This method checks whether or not the given Memory Location is contained in
+     * this state.
      *
      * @param pMemoryLocation
      *            the location in the Memory to check for
@@ -522,8 +521,7 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method determines the total number of variables contained in this
-     * state.
+     * This method determines the total number of variables contained in this state.
      *
      * @return the total number of variables contained in this state
      */
@@ -552,7 +550,7 @@ public class UnifyAnalysisState
         case VALUE:
             return "ValueAnalysis";
         default:
-            return null;
+            return "not defined";
         }
     }
 
@@ -571,58 +569,58 @@ public class UnifyAnalysisState
      */
     @Override
     public UnifyAnalysisState join(UnifyAnalysisState pOther) throws CPAException, InterruptedException {
-            boolean changed = false;
-            if (pOther.equals(this)) {
-                return pOther;
+        boolean changed = false;
+        if (pOther.equals(this)) {
+            return pOther;
 
-            }
-            if (this.equals(TOP) || pOther.equals(TOP)) {
-                return TOP;
-            }
-            // assure termination of loops do not merge if pToJoin covers this
-            // but return
-            // pToJoin
-            // only in case sign
-            if (numericalType == NumericalType.SIGN && isLessOrEqual(pOther)) {
-                return pOther;
-            }
-            PersistentMap<MemoryLocation, NumberInterface> newMap = PathCopyingPersistentTreeMap.of();
-            PersistentMap<MemoryLocation, Type> newlocToTypeMap = PathCopyingPersistentTreeMap.of();
-            for (MemoryLocation varIdent : pOther.unifyElements.keySet()) {
-                // only add those variables that are contained in both states
-                // (otherwise one has
-                // value ALL (not saved))
-                if (unifyElements.containsKey(varIdent)) {
-                    if (numericalType == NumericalType.INTERVAL || numericalType == NumericalType.SIGN) {
-                        NumberInterface otherElement = pOther.getElement(varIdent);
-                        NumberInterface combined = getElement(varIdent).union(otherElement);
-                        if (!combined.isUnbound()) {
-                            newMap = newMap.putAndCopy(varIdent, combined);
-                        }
-                        if (combined != otherElement) {
-                            changed = true;
-                        }
+        }
+        if (this.equals(TOP) || pOther.equals(TOP)) {
+            return TOP;
+        }
+        // assure termination of loops do not merge if pToJoin covers this
+        // but return
+        // pToJoin
+        // only in case sign
+        if (numericalType == NumericalType.SIGN && isLessOrEqual(pOther)) {
+            return pOther;
+        }
+        PersistentMap<MemoryLocation, NumberInterface> newMap = PathCopyingPersistentTreeMap.of();
+        PersistentMap<MemoryLocation, Type> newlocToTypeMap = PathCopyingPersistentTreeMap.of();
+        for (MemoryLocation varIdent : pOther.unifyElements.keySet()) {
+            // only add those variables that are contained in both states
+            // (otherwise one has
+            // value ALL (not saved))
+            if (unifyElements.containsKey(varIdent)) {
+                if (numericalType == NumericalType.INTERVAL || numericalType == NumericalType.SIGN) {
+                    NumberInterface otherElement = pOther.getElement(varIdent);
+                    NumberInterface combined = getElement(varIdent).union(otherElement);
+                    if (!combined.isUnbound()) {
+                        newMap = newMap.putAndCopy(varIdent, combined);
                     }
-                    //this part is only for value
-                    if(numericalType == NumericalType.VALUE){
-                        if (Objects.equals(pOther.unifyElements.get(varIdent), unifyElements.get(varIdent))) {
-                            newMap = newMap.putAndCopy(varIdent, pOther.unifyElements.get(varIdent));
-                            newlocToTypeMap = newlocToTypeMap.putAndCopy(varIdent, memLocToType.get(varIdent));
-                        }
+                    if (combined != otherElement) {
+                        changed = true;
+                    }
+                }
+                // this part is only for value
+                if (numericalType == NumericalType.VALUE) {
+                    if (Objects.equals(pOther.unifyElements.get(varIdent), unifyElements.get(varIdent))) {
+                        newMap = newMap.putAndCopy(varIdent, pOther.unifyElements.get(varIdent));
+                        newlocToTypeMap = newlocToTypeMap.putAndCopy(varIdent, memLocToType.get(varIdent));
                     }
                 }
             }
-            switch (numericalType) {
-            case SIGN:
-                return newMap.size() > 0 ? new UnifyAnalysisState(newMap, numericalType) : TOP;
-            case INTERVAL:
-                return changed ? new UnifyAnalysisState(newMap, numericalType) : pOther;
-            case VALUE:
-             // return the reached state if both maps are equal
-                return (unifyElements.size() == pOther.unifyElements.size()) ? pOther : new UnifyAnalysisState(machineModel, newMap, newlocToTypeMap);
-            default:
-                return null;
-            }
+        }
+        switch (numericalType) {
+        case SIGN:
+            return newMap.size() > 0 ? new UnifyAnalysisState(newMap, numericalType) : TOP;
+        case INTERVAL:
+            return changed ? new UnifyAnalysisState(newMap, numericalType) : pOther;
+        case VALUE:
+        default:
+         // return the reached state if both maps are equal
+            return (unifyElements.size() == pOther.unifyElements.size()) ? pOther
+                    : new UnifyAnalysisState(machineModel, newMap, newlocToTypeMap);
+        }
     }
 
     @Override
@@ -633,139 +631,70 @@ public class UnifyAnalysisState
 
     @Override
     public int hashCode() {
-            return unifyElements.hashCode();
+        return unifyElements.hashCode();
     }
+
     /**
-     * This method decides if this element is less or equal than the reached
-     * state, based on the order imposed by the lattice.
+     * This method decides if this element is less or equal than the reached state,
+     * based on the order imposed by the lattice.
      *
      * @param pOther
      *            the reached state
-     * @return true, if this element is less or equal than the reached state,
-     *         based on the order imposed by the lattice
+     * @return true, if this element is less or equal than the reached state, based
+     *         on the order imposed by the lattice
      */
     @Override
-    public boolean isLessOrEqual(UnifyAnalysisState pOther) {// throws
-                                                             // CPAException,
-                                                             // InterruptedException
-                                                             // {
-        switch (numericalType) {
-        case SIGN:
-            return IsLessOrEqualSign(pOther);
-        case INTERVAL:
-            return intervalIsLessOrEqual(pOther);
-        case VALUE:
-            return valueIsLessOrEqual(pOther);
-        default:
-            return false;
-        }
-    }
-
-    private boolean IsLessOrEqualSign(UnifyAnalysisState pSuperset) {
-        if (pSuperset.equals(this) || pSuperset.equals(TOP)) {
+    public boolean isLessOrEqual(UnifyAnalysisState pOther) {
+        if (numericalType != NumericalType.SIGN && (pOther.equals(this) || pOther.equals(TOP))) {
             return true;
         }
-        if (unifyElements.size() < pSuperset.unifyElements.size()) {
-            return false;
-        }
-        // is subset if for every variable all sign assumptions are considered
-        // in
-        // pSuperset
-        // check that all variables in superset with SIGN != ALL have no bigger
-        // assumptions in subset
-        for (MemoryLocation varIdent : pSuperset.unifyElements.keySet()) {
-            if (!getElement(varIdent).contains(pSuperset.getElement(varIdent))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean intervalIsLessOrEqual(UnifyAnalysisState reachedState) {
-        if (unifyElements.equals(reachedState.unifyElements)) {
+        if (numericalType != NumericalType.INTERVAL && unifyElements.equals(pOther.unifyElements)) {
             return true;
         }
-        // this element is not less or equal than the reached state, if it
-        // contains less intervals
-        if (unifyElements.size() < reachedState.unifyElements.size()) {
+        if (unifyElements.size() < pOther.unifyElements.size()) {
             return false;
         }
 
-        // also, this element is not less or equal than the reached state, if
-        // any one interval of the reached state is not contained in this
-        // element,
-        // or if the interval of the reached state is not wider than the
-        // respective interval of this element
-        for (MemoryLocation key : reachedState.unifyElements.keySet()) {
-            if (!unifyElements.containsKey(key) || !reachedState.getElement(key).contains(getElement(key))) {
-                return false;
-            }
-        }
-        // else, this element < reached state on the lattice
-        return true;
-    }
-    /**
-     * This method decides if this element is less or equal than the other
-     * element, based on the order imposed by the lattice.
-     *
-     * @param other
-     *            the other element
-     * @return true, if this element is less or equal than the other element,
-     *         based on the order imposed by the lattice
-     */
-    public boolean valueIsLessOrEqual(UnifyAnalysisState other) {
-
-        // also, this element is not less or equal than the other element, if it
-        // contains less elements
-        if (unifyElements.size() < other.unifyElements.size()) {
-            return false;
-        }
-
-        // also, this element is not less or equal than the other element,
-        // if any one constant's value of the other element differs from the
-        // constant's
-        // value in this
-        // element
-        for (Map.Entry<MemoryLocation, NumberInterface> otherEntry : other.unifyElements.entrySet()) {
-            MemoryLocation key = otherEntry.getKey();
-            NumberInterface otherValue = otherEntry.getValue();
-            NumberInterface thisValue = unifyElements.get(key);
-
-            if (!otherValue.equals(thisValue)) {
-                return false;
+        for (MemoryLocation varIdent : pOther.unifyElements.keySet()) {
+            switch (numericalType) {
+            case VALUE:
+                // also, this element is not less or equal than the other element,
+                // if any one constant's value of the other element differs from the constant's
+                // value in this
+                // element
+                if (!pOther.getElement(varIdent).equals(getElement(varIdent))) {
+                    return false;
+                }
+                break;
+            default:
+                if (!unifyElements.containsKey(varIdent)
+                        || !getElement(varIdent).contains(pOther.getElement(varIdent))) {
+                    return false;
+                }
             }
         }
         return true;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     @Override
-    public boolean equals(Object pObj) {
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other == null) {
+            return false;
+        }
+        if (!getClass().equals(other.getClass())) {
+            return false;
+        }
+        UnifyAnalysisState otherElement = (UnifyAnalysisState) other;
         switch (numericalType) {
         case SIGN:
-            return equalsSing(pObj);
         case INTERVAL:
-            return equalsInterval(pObj);
+            return unifyElements.equals(otherElement.unifyElements);
         case VALUE:
-            return equalsValue(pObj);
+            return otherElement.unifyElements.equals(unifyElements)
+                    && Objects.equals(memLocToType, otherElement.memLocToType);
         default:
             return false;
         }
@@ -773,37 +702,100 @@ public class UnifyAnalysisState
 
     @Override
     public boolean checkProperty(String pProperty) throws InvalidQueryException {
-        switch (numericalType) {
-        case SIGN:
-            return checkPropertySign(pProperty);
-        case INTERVAL:
-            return checkPropertyInterval(pProperty);
-        case VALUE:
-            return checkPropertyValue(pProperty);
-        default:
-            return false;
+        List<String> parts = propertySplitter.splitToList(pProperty);
+        String[] partsForValue = pProperty.split("==");
+
+        if (parts.size() == 2|| partsForValue.length == 2) {
+            switch (numericalType) {
+            case SIGN:
+                // pProperty = value <= varName
+                if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
+                    NumberInterface value = SIGN.valueOf(parts.get(0));
+                    NumberInterface varName = getElement(MemoryLocation.valueOf(parts.get(1)));
+                    return (varName.covers(value));
+                }
+                // pProperty = varName <= value
+                else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))) {
+                    NumberInterface varName = getElement(MemoryLocation.valueOf(parts.get(0)));
+                    NumberInterface value = SIGN.valueOf(parts.get(1));
+                    return (value.covers(varName));
+                }
+                // pProperty = varName1 <= varName2
+                else {
+                    NumberInterface varName1 = getElement(MemoryLocation.valueOf(parts.get(0)));
+                    NumberInterface varName2 = getElement(MemoryLocation.valueOf(parts.get(1)));
+                    return (varName2.covers(varName1));
+                }
+            case INTERVAL:
+                if (CheckTypesOfStringsUtil.isLong(parts.get(0))) {
+                    long value = Long.parseLong(parts.get(0));
+                    NumberInterface iv = getElement(MemoryLocation.valueOf(parts.get(1)));
+                    // return (value <= iv.getLow());
+                    return (value <= iv.getLow().longValue());
+                }
+                // pProperty = varName <= value
+                else if (CheckTypesOfStringsUtil.isLong(parts.get(1))) {
+                    long value = Long.parseLong(parts.get(1));
+                    NumberInterface iv = getElement(MemoryLocation.valueOf(parts.get(0)));
+                    // return (iv.getHigh() <= value);
+                    return (iv.getHigh().longValue() <= value);
+                }
+                // pProperty = varName1 <= varName2
+                else {
+                    NumberInterface varName1 = getElement(MemoryLocation.valueOf(parts.get(0)));
+                    NumberInterface varName2 = getElement(MemoryLocation.valueOf(parts.get(1)));
+                    return (varName1.contains(varName2));
+                }
+            case VALUE:
+                // The following is a hack
+                NumberInterface val = this.unifyElements.get(MemoryLocation.valueOf(partsForValue[0]));
+                if (val == null) {
+                    return false;
+                }
+                Long value = val.asLong(CNumericTypes.INT);
+
+                if (value == null) {
+                    return false;
+                } else {
+                    try {
+                        return value == Long.parseLong(partsForValue[1]);
+                    } catch (NumberFormatException e) {
+                        // The command might contains something like "main::p==cmd"
+                        // where the user wants
+                        // to compare the variable p to the variable cmd (nearest in
+                        // scope)
+                        // perhaps we should omit the "main::" and find the variable
+                        // via static scoping
+                        // ("main::p" is also not intuitive for a user)
+                        // TODO: implement Variable finding via static scoping
+                        throw new InvalidQueryException("The Query \"" + pProperty
+                                + "\" is invalid. Could not parse the long \"" + partsForValue[1] + "\"");
+                    }
+                }
+            default:
+                return false;
+            }
+        } else {
+            switch (numericalType) {
+            case INTERVAL:
+                if (parts.size() == 3) {
+                    if (CheckTypesOfStringsUtil.isLong(parts.get(0)) && CheckTypesOfStringsUtil.isLong(parts.get(2))) {
+                        long value1 = Long.parseLong(parts.get(0));
+                        long value2 = Long.parseLong(parts.get(2));
+                        NumberInterface iv = getElement(MemoryLocation.valueOf(parts.get(1)));
+                        // return (value1 <= iv.getLow() && iv.getHigh() <= value2);
+                        return (value1 <= iv.getLow().longValue() && iv.getHigh().longValue() <= value2);
+
+                    }
+                }
+                break;
+            case VALUE:
+            default:
+                throw new InvalidQueryException(
+                        "The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
+            }
         }
-    }
-
-
-
-    private static class SerialProxySign implements Serializable {
-
-        private static final long serialVersionUID = 2843708585446089623L;
-
-        public SerialProxySign() {
-        }
-
-        private Object readResolve() {
-            return TOP;
-        }
-    }
-
-    private boolean equalsSing(Object pObj) {
-        if (!(pObj instanceof UnifyAnalysisState)) {
-            return false;
-        }
-        return ((UnifyAnalysisState) pObj).unifyElements.equals(this.unifyElements);
+        return false;
     }
 
     /**
@@ -821,71 +813,57 @@ public class UnifyAnalysisState
         return unifyElements == newMap ? this : new UnifyAnalysisState(newMap, NumericalType.SIGN);
     }
 
-    private boolean checkPropertySign(String pProperty) {
-        List<String> parts = propertySplitter.splitToList(pProperty);
-
-        if (parts.size() == 2) {
-
-            // pProperty = value <= varName
-            if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
-                NumberInterface value = SIGN.valueOf(parts.get(0));
-                NumberInterface varName = getElement(MemoryLocation.valueOf(parts.get(1)));
-                return (varName.covers(value));
-            }
-
-            // pProperty = varName <= value
-            else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))) {
-                NumberInterface varName = getElement(MemoryLocation.valueOf(parts.get(0)));
-                NumberInterface value = SIGN.valueOf(parts.get(1));
-                return (value.covers(varName));
-            }
-
-            // pProperty = varName1 <= varName2
-            else {
-                NumberInterface varName1 = getElement(MemoryLocation.valueOf(parts.get(0)));
-                NumberInterface varName2 = getElement(MemoryLocation.valueOf(parts.get(1)));
-                return (varName2.covers(varName1));
-            }
-        }
-        return false;
-    }
-
-    /**
-     *
-     * The Method is for sign
-     *
-     */
-    public Map<MemoryLocation, NumberInterface> getSignMapView() {
-        return Collections.unmodifiableMap(unifyElements);
-    }
-
-    /**
-     *
-     * The Method is for sign Do we need this?
-     *
-     */
-    private Object writeReplace() {
-        if (this == TOP) {
-            return proxy;
-        } else {
-            return this;
-        }
-    }
-
-    /**
-     *
-     * The Method is for sign Do we need this?
-     *
-     */
-    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-        out.defaultWriteObject();
-    }
-
     /**
      * @return the set of tracked variables by this state
      */
-    public Map<MemoryLocation, NumberInterface> getIntervalMap() {
+    public Map<MemoryLocation, NumberInterface> getUnifyElements() {
         return unifyElements;
+    }
+
+    public Map<MemoryLocation, NumberInterface> getConstantsMapView() {
+        return Collections.unmodifiableMap(unifyElements);
+    }
+    /**
+     * This method returns the set of tracked variables by this state.
+     *
+     * @return the set of tracked variables by this state
+     */
+    public Set<String> getTrackedVariableNames() {
+        Set<String> result = new HashSet<>();
+
+        for (MemoryLocation loc : unifyElements.keySet()) {
+            result.add(loc.getAsSimpleString());
+        }
+        // no copy necessary, fresh instance of set
+        return Collections.unmodifiableSet(result);
+    }
+    /**
+     * This method returns the type for the given memory location.
+     *
+     * @param loc
+     *            the memory location for which to get the type
+     * @throws NullPointerException
+     *             - if no type is present in this state for the given memory
+     *             location
+     * @return the type associated with the given memory location
+     */
+    public Type getTypeForMemoryLocation(MemoryLocation loc) {
+        return memLocToType.get(loc);
+    }
+    /**
+     * This method determines the number of global variables contained in this
+     * state.
+     *
+     * @return the number of global variables contained in this state
+     */
+    public int getNumberOfGlobalVariables() {
+        int numberOfGlobalVariables = 0;
+        for (MemoryLocation variableName : unifyElements.keySet()) {
+            if (!variableName.isOnFunctionStack()) {
+                numberOfGlobalVariables++;
+            }
+        }
+        return numberOfGlobalVariables;
     }
 
     /**
@@ -893,31 +871,42 @@ public class UnifyAnalysisState
      */
     public List<String> getVariables() {
         List<String> temp = new ArrayList<>();
-        for (MemoryLocation ml : getIntervalMap().keySet()) {
+        for (MemoryLocation ml : getUnifyElements().keySet()) {
             temp.add(ml.getAsSimpleString());
         }
         return temp;
     }
 
+//    /**
+//     *
+//     * The Method is for sign Do we need this?
+//     *
+//     */
+//    private Object writeReplace() {
+//        if (this == TOP) {
+//            return proxy;
+//        } else {
+//            return this;
+//        }
+//    }
+//
+//    /**
+//     *
+//     * The Method is for sign Do we need this?
+//     *
+//     */
+//    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+//        out.defaultWriteObject();
+//    }
+
+
     /**
-     * If there was a recursive function, we have wrong intervals/values for
-     * scoped variables in the returnState. This function rebuilds a new state
-     * with the correct intervals from the previous callState. We delete the
-     * wrong intervals and insert new intervals, if necessary.
+     * If there was a recursive function, we have wrong intervals/values for scoped
+     * variables in the returnState. This function rebuilds a new state with the
+     * correct intervals from the previous callState. We delete the wrong intervals
+     * and insert new intervals, if necessary.
      */
     public UnifyAnalysisState rebuildStateAfterFunctionCall(final UnifyAnalysisState callState,
-            final FunctionExitNode functionExit) {
-        switch (numericalType) {
-        case INTERVAL:
-            return rebuildStateAfterFunctionCallInterval(callState, functionExit);
-        case VALUE:
-            return rebuildStateAfterFunctionCallValue(callState, functionExit);
-        default:
-            return null;
-        }
-    }
-
-    public UnifyAnalysisState rebuildStateAfterFunctionCallInterval(final UnifyAnalysisState callState,
             final FunctionExitNode functionExit) {
 
         // we build a new state from:
@@ -927,142 +916,42 @@ public class UnifyAnalysisState
         // we copy callState and override all global values and the return
         // variable.
 
-        UnifyAnalysisState rebuildState = callState;
+        UnifyAnalysisState rebuildState = UnifyAnalysisState.copyOf(callState);
 
         // first forget all global information
-        for (final MemoryLocation key : callState.unifyElements.keySet()) {
-            if (!key.getAsSimpleString().contains("::")) { // global -> delete
-                rebuildState = rebuildState.forgetElement(key);
-            }
-        }
-        // second: learn new information
-        for (final MemoryLocation trackedVar : this.unifyElements.keySet()) {
-
-            if (!trackedVar.getAsSimpleString().contains("::")) { // global ->
-                                                                  // override
-                                                                  // deleted
-                // value
-                rebuildState = rebuildState.assignElement(trackedVar, this.getElement(trackedVar), null);
-                rebuildState = rebuildState.assignElement(trackedVar, this.getElement(trackedVar), null);
-            } else if (functionExit.getEntryNode().getReturnVariable().isPresent() && functionExit.getEntryNode()
-                    .getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
-                assert (!rebuildState.contains(
-                        trackedVar)) : "calling function should not contain return-variable of called function: "
-                                + trackedVar;
-                if (this.contains(trackedVar)) {
-                    rebuildState = rebuildState.assignElement(trackedVar, this.getElement(trackedVar), null);
+        for (final MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
+            if (!trackedVar.isOnFunctionStack()) { // global -> delete
+                if(numericalType == NumericalType.VALUE) {
+                    rebuildState.forget(trackedVar);
+                } else {
+                    rebuildState = rebuildState.forgetElement(trackedVar);
                 }
             }
         }
+
+        // second: learn new information
+        for (final MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
+
+            if (!trackedVar.isOnFunctionStack()) { // global -> override deleted
+                                                   // value
+                rebuildState.assignElement(trackedVar, this.getElement(trackedVar),
+                        this.getTypeForMemoryLocation(trackedVar));
+
+            } else if (functionExit.getEntryNode().getReturnVariable().isPresent() && functionExit.getEntryNode()
+                    .getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
+                /*
+                 * assert (!rebuildState.contains(trackedVar)) :
+                 * "calling function should not contain return-variable of called function: " +
+                 * trackedVar;
+                 */
+                if (this.contains(trackedVar)) {
+                    rebuildState.assignElement(trackedVar, this.getElement(trackedVar),
+                            this.getTypeForMemoryLocation(trackedVar));
+                }
+            }
+        }
+
         return rebuildState;
-    }
-
-    private boolean equalsInterval(Object other) {
-        if (this == other) {
-            return true;
-        }
-
-        if (other instanceof UnifyAnalysisState) {
-            UnifyAnalysisState otherElement = (UnifyAnalysisState) other;
-            return unifyElements.equals(otherElement.unifyElements);
-        }
-        return false;
-    }
-
-    public String toStringInterval() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[\n");
-        for (Map.Entry<MemoryLocation, NumberInterface> entry : unifyElements.entrySet()) {
-            sb.append(String.format("  < %s = %s >%n", entry.getKey().getAsSimpleString(), entry.getValue()));
-        }
-
-        return sb.append("] size -> ").append(unifyElements.size()).toString();
-    }
-
-    private boolean checkPropertyInterval(String pProperty) {// throws
-                                                             // InvalidQueryException
-                                                             // {
-        List<String> parts = propertySplitter.splitToList(pProperty);
-
-        if (parts.size() == 2) {
-
-            // pProperty = value <= varName
-            if (CheckTypesOfStringsUtil.isLong(parts.get(0))) {
-                long value = Long.parseLong(parts.get(0));
-                NumberInterface iv = getElement(MemoryLocation.valueOf(parts.get(1)));
-                // return (value <= iv.getLow());
-                return (value <= iv.getLow().longValue());
-            }
-
-            // pProperty = varName <= value
-            else if (CheckTypesOfStringsUtil.isLong(parts.get(1))) {
-                long value = Long.parseLong(parts.get(1));
-                NumberInterface iv = getElement(MemoryLocation.valueOf(parts.get(0)));
-                // return (iv.getHigh() <= value);
-                return (iv.getHigh().longValue() <= value);
-            }
-
-            // pProperty = varName1 <= varName2
-            else {
-                NumberInterface iv1 = getElement(MemoryLocation.valueOf(parts.get(0)));
-                NumberInterface iv2 = getElement(MemoryLocation.valueOf(parts.get(1)));
-                return (iv1.contains(iv2));
-            }
-
-            // pProperty = value1 <= varName <= value2
-        } else if (parts.size() == 3) {
-            if (CheckTypesOfStringsUtil.isLong(parts.get(0)) && CheckTypesOfStringsUtil.isLong(parts.get(2))) {
-                long value1 = Long.parseLong(parts.get(0));
-                long value2 = Long.parseLong(parts.get(2));
-                NumberInterface iv = getElement(MemoryLocation.valueOf(parts.get(1)));
-                // return (value1 <= iv.getLow() && iv.getHigh() <= value2);
-                return (value1 <= iv.getLow().longValue() && iv.getHigh().longValue() <= value2);
-            }
-        }
-
-        return false;
-    }
-
-    /** Just a pair of values, can be compared alphabetically. */
-    private static final class IntervalPseudoPartitionKey implements Comparable<IntervalPseudoPartitionKey> {
-
-        private final int size;
-        private final BigInteger absoluteDistance;
-
-        public IntervalPseudoPartitionKey(int pSize, BigInteger pAbsoluteDistance) {
-            size = pSize;
-            absoluteDistance = pAbsoluteDistance;
-        }
-
-        @Override
-        public boolean equals(Object pObj) {
-            if (this == pObj) {
-                return true;
-            }
-
-            if (!(pObj instanceof IntervalPseudoPartitionKey)) {
-                return false;
-            }
-
-            IntervalPseudoPartitionKey other = (IntervalPseudoPartitionKey) pObj;
-            return size == other.size && absoluteDistance.equals(other.absoluteDistance);
-        }
-
-        @Override
-        public int hashCode() {
-            return 137 * size + absoluteDistance.hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return "[" + size + ", " + absoluteDistance + "]";
-        }
-
-        @Override
-        public int compareTo(IntervalPseudoPartitionKey other) {
-            return ComparisonChain.start().compare(size, other.size).compare(absoluteDistance, other.absoluteDistance)
-                    .result();
-        }
     }
 
     public static UnifyAnalysisState copyOf(UnifyAnalysisState state) {
@@ -1083,57 +972,9 @@ public class UnifyAnalysisState
                 toRemove.add(memoryLocation);
             }
         }
-
         for (MemoryLocation memoryLocation : toRemove) {
             forget(memoryLocation);
         }
-    }
-
-    /**
-     * This method returns the type for the given memory location.
-     *
-     * @param loc
-     *            the memory location for which to get the type
-     * @throws NullPointerException
-     *             - if no type is present in this state for the given memory
-     *             location
-     * @return the type associated with the given memory location
-     */
-    public Type getTypeForMemoryLocation(MemoryLocation loc) {
-        return memLocToType.get(loc);
-    }
-
-    /**
-     * This method determines the number of global variables contained in this
-     * state.
-     *
-     * @return the number of global variables contained in this state
-     */
-    public int getNumberOfGlobalVariables() {
-        int numberOfGlobalVariables = 0;
-
-        for (MemoryLocation variableName : unifyElements.keySet()) {
-            if (!variableName.isOnFunctionStack()) {
-                numberOfGlobalVariables++;
-            }
-        }
-
-        return numberOfGlobalVariables;
-    }
-
-    public boolean equalsValue(Object other) {
-        if (this == other) {
-            return true;
-        }
-        if (other == null) {
-            return false;
-        }
-        if (!getClass().equals(other.getClass())) {
-            return false;
-        }
-        UnifyAnalysisState otherElement = (UnifyAnalysisState) other;
-        return otherElement.unifyElements.equals(unifyElements)
-                && Objects.equals(memLocToType, otherElement.memLocToType);
     }
 
     @Override
@@ -1155,43 +996,6 @@ public class UnifyAnalysisState
                 }
             } else {
                 return checkProperty(pProperty);
-            }
-        }
-    }
-
-    public boolean checkPropertyValue(String pProperty) throws InvalidQueryException {
-        // e.g. "x==5" where x is a variable. Returns if 5 is the associated
-        // constant
-        String[] parts = pProperty.split("==");
-
-        if (parts.length != 2) {
-            throw new InvalidQueryException(
-                    "The Query \"" + pProperty + "\" is invalid. Could not split the property string correctly.");
-        } else {
-            // The following is a hack
-            NumberInterface val = this.unifyElements.get(MemoryLocation.valueOf(parts[0]));
-            if (val == null) {
-                return false;
-            }
-            Long value = val.asLong(CNumericTypes.INT);
-
-            if (value == null) {
-                return false;
-            } else {
-                try {
-                    return value == Long.parseLong(parts[1]);
-                } catch (NumberFormatException e) {
-                    // The command might contains something like "main::p==cmd"
-                    // where the user wants
-                    // to compare the variable p to the variable cmd (nearest in
-                    // scope)
-                    // perhaps we should omit the "main::" and find the variable
-                    // via static scoping
-                    // ("main::p" is also not intuitive for a user)
-                    // TODO: implement Variable finding via static scoping
-                    throw new InvalidQueryException("The Query \"" + pProperty
-                            + "\" is invalid. Could not parse the long \"" + parts[1] + "\"");
-                }
             }
         }
     }
@@ -1252,8 +1056,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method determines the set of variable names that are in the other
-     * state but not in this, or that are in both, but differ in their value.
+     * This method determines the set of variable names that are in the other state
+     * but not in this, or that are in both, but differ in their value.
      *
      * @param other
      *            the other state for which to get the difference
@@ -1261,7 +1065,6 @@ public class UnifyAnalysisState
      */
     public Set<MemoryLocation> getDifference(UnifyAnalysisState other) {
         Set<MemoryLocation> difference = new HashSet<>();
-
         for (MemoryLocation variableName : other.unifyElements.keySet()) {
             if (!contains(variableName)) {
                 difference.add(variableName);
@@ -1270,13 +1073,12 @@ public class UnifyAnalysisState
                 difference.add(variableName);
             }
         }
-
         return difference;
     }
 
     /**
-     * This method adds the key-value-pairs of this state to the given value
-     * mapping and returns the new mapping.
+     * This method adds the key-value-pairs of this state to the given value mapping
+     * and returns the new mapping.
      *
      * @param valueMapping
      *            the mapping from variable name to the set of values of this
@@ -1292,28 +1094,8 @@ public class UnifyAnalysisState
     }
 
     /**
-     * This method returns the set of tracked variables by this state.
-     *
-     * @return the set of tracked variables by this state
-     */
-    public Set<String> getTrackedVariableNames() {
-        Set<String> result = new HashSet<>();
-
-        for (MemoryLocation loc : unifyElements.keySet()) {
-            result.add(loc.getAsSimpleString());
-        }
-
-        // no copy necessary, fresh instance of set
-        return Collections.unmodifiableSet(result);
-    }
-
-    public Map<MemoryLocation, NumberInterface> getConstantsMapView() {
-        return Collections.unmodifiableMap(unifyElements);
-    }
-
-    /**
-     * This method acts as factory to create a value-analysis interpolant from
-     * this value-analysis state.
+     * This method acts as factory to create a value-analysis interpolant from this
+     * value-analysis state.
      *
      * @return the value-analysis interpolant reflecting the value assignment of
      *         this state
@@ -1343,7 +1125,6 @@ public class UnifyAnalysisState
 
     public Set<MemoryLocation> getGlobalMemoryLocations() {
         Set<MemoryLocation> result = new HashSet<>();
-
         Set<MemoryLocation> memoryLocations = unifyElements.keySet();
 
         for (MemoryLocation memoryLocation : memoryLocations) {
@@ -1365,50 +1146,6 @@ public class UnifyAnalysisState
         }
     }
 
-    public UnifyAnalysisState rebuildStateAfterFunctionCallValue(final UnifyAnalysisState callState,
-            final FunctionExitNode functionExit) {
-
-        // we build a new state from:
-        // - local variables from callState,
-        // - global variables from THIS,
-        // - the local return variable from THIS.
-        // we copy callState and override all global values and the return
-        // variable.
-
-        final UnifyAnalysisState rebuildState = UnifyAnalysisState.copyOf(callState);
-
-        // first forget all global information
-        for (final MemoryLocation trackedVar : callState.getTrackedMemoryLocations()) {
-            if (!trackedVar.isOnFunctionStack()) { // global -> delete
-                rebuildState.forget(trackedVar);
-            }
-        }
-
-        // second: learn new information
-        for (final MemoryLocation trackedVar : this.getTrackedMemoryLocations()) {
-
-            if (!trackedVar.isOnFunctionStack()) { // global -> override deleted
-                                                   // value
-                rebuildState.assignElement(trackedVar, this.getElement(trackedVar),
-                        this.getTypeForMemoryLocation(trackedVar));
-
-            } else if (functionExit.getEntryNode().getReturnVariable().isPresent() && functionExit.getEntryNode()
-                    .getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
-                /*
-                 * assert (!rebuildState.contains(trackedVar)) :
-                 * "calling function should not contain return-variable of called function: "
-                 * + trackedVar;
-                 */
-                if (this.contains(trackedVar)) {
-                    rebuildState.assignElement(trackedVar, this.getElement(trackedVar),
-                            this.getTypeForMemoryLocation(trackedVar));
-                }
-            }
-        }
-
-        return rebuildState;
-    }
-
     private void readObject(ObjectInputStream in) throws IOException {
         try {
             in.defaultReadObject();
@@ -1417,4 +1154,46 @@ public class UnifyAnalysisState
         }
         memLocToType = PathCopyingPersistentTreeMap.of();
     }
+    /** Just a pair of values, can be compared alphabetically. */
+    private static final class IntervalPseudoPartitionKey implements Comparable<IntervalPseudoPartitionKey> {
+
+        private final int size;
+        private final BigInteger absoluteDistance;
+
+        public IntervalPseudoPartitionKey(int pSize, BigInteger pAbsoluteDistance) {
+            size = pSize;
+            absoluteDistance = pAbsoluteDistance;
+        }
+
+        @Override
+        public boolean equals(Object pObj) {
+            if (this == pObj) {
+                return true;
+            }
+
+            if (!(pObj instanceof IntervalPseudoPartitionKey)) {
+                return false;
+            }
+
+            IntervalPseudoPartitionKey other = (IntervalPseudoPartitionKey) pObj;
+            return size == other.size && absoluteDistance.equals(other.absoluteDistance);
+        }
+
+        @Override
+        public int hashCode() {
+            return 137 * size + absoluteDistance.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return "[" + size + ", " + absoluteDistance + "]";
+        }
+
+        @Override
+        public int compareTo(IntervalPseudoPartitionKey other) {
+            return ComparisonChain.start().compare(size, other.size).compare(absoluteDistance, other.absoluteDistance)
+                    .result();
+        }
+    }
+
 }

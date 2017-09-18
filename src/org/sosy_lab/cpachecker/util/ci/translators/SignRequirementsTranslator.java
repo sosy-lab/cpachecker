@@ -44,7 +44,7 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
   @Override
   protected List<String> getVarsInRequirements(final UnifyAnalysisState pRequirement) {
       ArrayList<String> temp = new ArrayList<>();
-      for(MemoryLocation ml: pRequirement.getSignMapView().keySet()) {
+      for(MemoryLocation ml: pRequirement.getConstantsMapView().keySet()) {
           temp.add(ml.getAsSimpleString());
       }
     return temp;
@@ -54,9 +54,9 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
   protected List<String> getListOfIndependentRequirements(final UnifyAnalysisState pRequirement, final SSAMap pIndices,
       final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
-    for (MemoryLocation var : pRequirement.getSignMapView().keySet()) {
+    for (MemoryLocation var : pRequirement.getConstantsMapView().keySet()) {
       if (pRequiredVars == null || pRequiredVars.contains(var.getAsSimpleString())) {
-        list.add(getRequirement(getVarWithIndex(var.getAsSimpleString(), pIndices), (SIGN)pRequirement.getSignMapView().get(var)));
+        list.add(getRequirement(getVarWithIndex(var.getAsSimpleString(), pIndices), (SIGN)pRequirement.getConstantsMapView().get(var)));
       }
     }
     return list;

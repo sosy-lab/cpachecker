@@ -37,7 +37,7 @@ class IntervalAnalysisReducer extends GenericReducer<UnifyAnalysisState, Precisi
     protected UnifyAnalysisState getVariableReducedState0(UnifyAnalysisState pExpandedState, Block pContext,
             CFANode pCallNode) {
         UnifyAnalysisState clonedElement = pExpandedState;
-        for (MemoryLocation trackedVar : pExpandedState.getIntervalMap().keySet()) {
+        for (MemoryLocation trackedVar : pExpandedState.getUnifyElements().keySet()) {
             // ignore offset (like "3" from "array[3]") to match assignments in
             // loops ("array[i]=12;")
             if (!pContext.getVariables().contains(trackedVar.getAsSimpleString())) {
@@ -57,7 +57,7 @@ class IntervalAnalysisReducer extends GenericReducer<UnifyAnalysisState, Precisi
         // those values
         UnifyAnalysisState diffElement = pReducedState;
 
-        for (MemoryLocation trackedVar : pRootState.getIntervalMap().keySet()) {
+        for (MemoryLocation trackedVar : pRootState.getUnifyElements().keySet()) {
             // ignore offset ("3" from "array[3]") to match assignments in loops
             // ("array[i]=12;")
             if (!pReducedContext.getVariables().contains(trackedVar.getAsSimpleString())) {
@@ -91,7 +91,7 @@ class IntervalAnalysisReducer extends GenericReducer<UnifyAnalysisState, Precisi
 
     @Override
     protected Object getHashCodeForState0(UnifyAnalysisState pElementKey, Precision pPrecisionKey) {
-        return Pair.of(pElementKey.getIntervalMap(), pPrecisionKey);
+        return Pair.of(pElementKey.getUnifyElements(), pPrecisionKey);
     }
 
     @Override

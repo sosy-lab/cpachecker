@@ -53,7 +53,7 @@ public class IntervalRequirementsTranslator extends CartesianRequirementsTransla
     List<String> varList = new ArrayList<>();
 
     //TODO maybe it is possible to use this method without sort
-    for (MemoryLocation var : pRequirement.getIntervalMap().keySet()) {
+    for (MemoryLocation var : pRequirement.getUnifyElements().keySet()) {
       if (pRequiredVars == null || pRequiredVars.contains(var.getAsSimpleString())) {
           varList.add(var.getAsSimpleString());
       }
