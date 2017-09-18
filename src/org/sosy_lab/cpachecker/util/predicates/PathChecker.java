@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -54,15 +53,14 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTrace
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
-import org.sosy_lab.java_smt.api.SolverException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -271,43 +269,6 @@ public class PathChecker {
             CounterexampleTraceInfo.feasible(
                 ImmutableList.of(f), model, ImmutableMap.<Integer, Boolean>of()),
             pathWithAssignments);
-      }
-    }
-  }
-
-  /**
-   * @param parent the state at which the edge begins
-   * @param child the state at which the edge ends
-   * @return a boolean that is true if the transition is infeasible
-   * @throws SolverException theorem prover was unable to decide
-   * @throws InterruptedException theorem prover was interrupted
-   * @throws CPATransferException PathFormulaManager failed to add edge to formula
-   */
-  public boolean isInfeasibleEdge(ARGState parent, ARGState child) throws SolverException, InterruptedException, CPATransferException {
-
-    SSAMap initSSA = SSAMap.emptySSAMap().withDefault(1);
-    BooleanFormula initFormula = getPredicateState(parent).getAbstractionFormula().asFormula();
-    BooleanFormula instatiatedInitFormula = solver.getFormulaManager().instantiate(initFormula,initSSA);
-    PointerTargetSet initTargetSet = PointerTargetSet.emptyPointerTargetSet();
-    PathFormula pathFormula = new PathFormula(instatiatedInitFormula, initSSA, initTargetSet, 0);
-
-    //This assertion can fail if cpa.composite.aggregateBasicBlocks = true:
-    assert parent.getEdgeToChild(child) != null;
-    pathFormula = pmgr.makeAnd(pathFormula, parent.getEdgeToChild(child));
-
-    SSAMap endSSA = pathFormula.getSsa();
-    BooleanFormula endFormula = getPredicateState(child).getAbstractionFormula().asFormula();
-    BooleanFormula instantiatedEndFormula = solver.getFormulaManager().instantiate(endFormula,endSSA);
-
-    pathFormula = pmgr.makeAnd(pathFormula,instantiatedEndFormula);
-
-    BooleanFormula formula = pathFormula.getFormula();
-    try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      thmProver.push(formula);
-      if (thmProver.isUnsat()) {
-        return true;
-      } else {
-        return false;
       }
     }
   }
