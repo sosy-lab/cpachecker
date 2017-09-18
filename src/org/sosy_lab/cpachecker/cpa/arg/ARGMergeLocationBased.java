@@ -23,55 +23,84 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
-
+import java.util.HashSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 
 /**
- * MergeOperator for slicing abstractions.
- * It merges AbtractionStates for the same location
- * in the ARG, though it does NOT return a different state
- * when merge() is called (to prevent readding to waitlist)!
+ * MergeOperator for cyclic program analyses that use ABE (e.g. Kojak)
+ * It merges states for the same location in the ARG if the
+ * first state has parents that the second state not yet has.
  * Apart from that it behaves like {@link ARGMergeJoin}
- * To be used together with {@link ARGStopJoin}
  */
 public class ARGMergeLocationBased implements MergeOperator {
-
-  private ARGMergeJoin argMergeJoin;
+  /*
+   * TODO: This MergeOperator is mostly a copy of ARGMergeJoin =>
+   * refactor both classes to remove code duplication
+   */
+  private final MergeOperator wrappedMerge;
 
   public ARGMergeLocationBased(MergeOperator pWrappedMerge) {
-    argMergeJoin = new ARGMergeJoin(pWrappedMerge);
+    wrappedMerge = pWrappedMerge;
   }
 
   @Override
-  public AbstractState merge(AbstractState pState1, AbstractState pState2, Precision pPrecision)
-      throws CPAException, InterruptedException {
+  public AbstractState merge(AbstractState pElement1,
+      AbstractState pElement2, Precision pPrecision) throws CPAException, InterruptedException {
 
-    AbstractState retElement = argMergeJoin.merge(pState1, pState2, pPrecision);
+    ARGState argElement1 = (ARGState)pElement1;
+    ARGState argElement2 = (ARGState)pElement2;
 
-    if (retElement == pState2 && getPredicateState(retElement).isAbstractionState()) {
-      CFANode cfaNode1 = extractLocation(pState1);
-      CFANode cfaNode2 = extractLocation(pState2);
-      if (cfaNode1.equals(cfaNode2)) {
-        ARGState mergedElement = (ARGState) pState2;
-        ARGState argElement1 = (ARGState) pState1;
+    assert !argElement1.isCovered() : "Trying to merge covered element " + argElement1;
 
-        // redirect parents of argElement1 to mergedElement in ARG:
-        for (ARGState parentOfElement1 : argElement1.getParents()) {
-          mergedElement.addParent(parentOfElement1);
-        }
-        // this will lead to argElement1 being removed by the stop operator:
-        argElement1.setMergedWith(mergedElement);
-      }
+    if (!argElement2.mayCover()) {
+      // elements that may not cover should also not be used for merge
+      return pElement2;
     }
 
-    return retElement;
+    if (argElement1.getMergedWith() != null) {
+      // element was already merged into another element, don't try to widen argElement2
+      // TODO In the optimal case (if all merge & stop operators as well as the reached set partitioning fit well together)
+      // this case shouldn't happen, but it does sometimes (at least with ExplicitCPA+FeatureVarsCPA).
+      return pElement2;
+    }
+
+    AbstractState wrappedState1 = argElement1.getWrappedState();
+    AbstractState wrappedState2 = argElement2.getWrappedState();
+    AbstractState retElement = wrappedMerge.merge(wrappedState1, wrappedState2, pPrecision);
+
+    // Here this class differs from ARGMergeJoin:
+    CFANode location1 = AbstractStates.extractLocation(pElement1);
+    CFANode location2 = AbstractStates.extractLocation(pElement2);
+    HashSet<ARGState> parents1 = new HashSet<>(argElement1.getParents());
+    HashSet<ARGState> parents2 = new HashSet<>(argElement2.getParents());
+    if (parents2.containsAll(parents1) && (location1 == location2 /*|| retElement.equals(wrappedState2)*/)) {
+        return pElement2;
+    }
+
+    ARGState mergedElement = new ARGState(retElement, null);
+
+    // now replace argElement2 by mergedElement in ARG
+    argElement2.replaceInARGWith(mergedElement);
+
+    // and also replace argElement1 with it
+    for (ARGState parentOfElement1 : argElement1.getParents()) {
+      mergedElement.addParent(parentOfElement1);
+    }
+
+    // argElement1 is the current successor, it does not have any children yet and covered nodes yet
+    assert argElement1.getChildren().isEmpty();
+    assert argElement1.getCoveredByThis().isEmpty();
+
+    // ARGElement1 will only be removed from ARG if stop(e1, reached) returns true.
+    // So we can't actually remove it now, but we need to remember this later.
+    argElement1.setMergedWith(mergedElement);
+    return mergedElement;
   }
 
 }
