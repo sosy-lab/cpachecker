@@ -27,9 +27,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
 import java.util.Collection;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -56,15 +54,10 @@ import org.sosy_lab.cpachecker.util.CPAs;
 
 public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
 
-  @SuppressWarnings("unused")
-  private final Configuration config;
-  private final LogManager logger;
   private final ARGBasedRefiner refiner;
   private final ARGCPA argCpa;
 
-  public SlicingAbstractionsRefiner(Configuration pConfig, LogManager pLogger, ARGBasedRefiner pRefiner, ARGCPA pCpa) {
-    this.config = pConfig;
-    this.logger = pLogger;
+  public SlicingAbstractionsRefiner(ARGBasedRefiner pRefiner, ARGCPA pCpa) {
     this.refiner = pRefiner;
     this.argCpa = pCpa;
   }
@@ -84,7 +77,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa);
     ARGBasedRefiner refiner =  factory.create(strategy);
-    return new SlicingAbstractionsRefiner(predicateCpa.getConfiguration(), predicateCpa.getLogger(), refiner, argCpa);
+    return new SlicingAbstractionsRefiner(refiner, argCpa);
   }
 
   /*
