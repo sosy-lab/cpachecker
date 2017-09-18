@@ -99,7 +99,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
       optionalTargetState =  from(pReached).firstMatch(AbstractStates.IS_TARGET_STATE);
       if (optionalTargetState.isPresent()) {
         AbstractState targetState = optionalTargetState.get();
-        ARGPath errorPath = ARGUtils.getOnePathTo((ARGState) targetState);
+        ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
         ARGReachedSet reached = new ARGReachedSet(pReached, argCpa);
         counterexample = refiner.performRefinementForPath(reached, errorPath);
         if (!counterexample.isSpurious()) {
