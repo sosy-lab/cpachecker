@@ -326,12 +326,6 @@ public boolean covers(NumberInterface pSign) {
 }
 
 @Override
-public boolean isSubsetOf(NumberInterface pSign) {
-    // TODO Auto-generated method stub
-    return false;
-}
-
-@Override
 public NumberInterface evaluateNonCommutativePlusOperator(NumberInterface pRight) {
     // TODO Auto-generated method stub
     return null;

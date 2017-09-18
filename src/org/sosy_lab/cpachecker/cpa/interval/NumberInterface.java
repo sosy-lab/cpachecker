@@ -252,7 +252,6 @@ public interface NumberInterface {
     }
 
     public boolean covers(NumberInterface sign);
-    public boolean isSubsetOf(NumberInterface sign);
     default ImmutableSet<NumberInterface> split() {
         return null;
     }
@@ -385,12 +384,6 @@ public interface NumberInterface {
 
         @Override
         public boolean covers(NumberInterface pSign) {
-            // TODO Auto-generated method stub
-            return false;
-        }
-
-        @Override
-        public boolean isSubsetOf(NumberInterface pSign) {
             // TODO Auto-generated method stub
             return false;
         }

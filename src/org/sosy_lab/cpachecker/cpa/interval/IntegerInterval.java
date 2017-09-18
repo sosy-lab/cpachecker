@@ -719,11 +719,6 @@ public class IntegerInterval implements NumberInterface {
         return false;
     }
 
-    @Override
-    public boolean isSubsetOf(NumberInterface pSign) {
-        // TODO Auto-generated method stub
-        return false;
-    }
 
     @Override
     public NumberInterface evaluateNonCommutativePlusOperator(NumberInterface pRight) {

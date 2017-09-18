@@ -88,13 +88,13 @@ public enum SIGN implements NumberInterface, Serializable {
     }
 
     public static SIGN min(SIGN sign0, SIGN sign1) {
-        if (sign0.isSubsetOf(sign1)) {
+        if (sign0.contains(sign1)) {
             return sign0;
         }
         return sign1;
     }
     @Override
-    public boolean isSubsetOf(NumberInterface sign) {
+    public boolean contains(NumberInterface sign) {
         SIGN signTemp = (SIGN) sign;
         if (signTemp.isAll()) {
             return true;

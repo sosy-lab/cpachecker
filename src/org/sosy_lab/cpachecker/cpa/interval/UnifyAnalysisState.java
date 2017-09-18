@@ -603,6 +603,7 @@ public class UnifyAnalysisState
                             changed = true;
                         }
                     }
+                    //this part is only for value
                     if(numericalType == NumericalType.VALUE){
                         if (Objects.equals(pOther.unifyElements.get(varIdent), unifyElements.get(varIdent))) {
                             newMap = newMap.putAndCopy(varIdent, pOther.unifyElements.get(varIdent));
@@ -634,7 +635,15 @@ public class UnifyAnalysisState
     public int hashCode() {
             return unifyElements.hashCode();
     }
-
+    /**
+     * This method decides if this element is less or equal than the reached
+     * state, based on the order imposed by the lattice.
+     *
+     * @param pOther
+     *            the reached state
+     * @return true, if this element is less or equal than the reached state,
+     *         based on the order imposed by the lattice
+     */
     @Override
     public boolean isLessOrEqual(UnifyAnalysisState pOther) {// throws
                                                              // CPAException,
@@ -651,6 +660,102 @@ public class UnifyAnalysisState
             return false;
         }
     }
+
+    private boolean IsLessOrEqualSign(UnifyAnalysisState pSuperset) {
+        if (pSuperset.equals(this) || pSuperset.equals(TOP)) {
+            return true;
+        }
+        if (unifyElements.size() < pSuperset.unifyElements.size()) {
+            return false;
+        }
+        // is subset if for every variable all sign assumptions are considered
+        // in
+        // pSuperset
+        // check that all variables in superset with SIGN != ALL have no bigger
+        // assumptions in subset
+        for (MemoryLocation varIdent : pSuperset.unifyElements.keySet()) {
+            if (!getElement(varIdent).contains(pSuperset.getElement(varIdent))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean intervalIsLessOrEqual(UnifyAnalysisState reachedState) {
+        if (unifyElements.equals(reachedState.unifyElements)) {
+            return true;
+        }
+        // this element is not less or equal than the reached state, if it
+        // contains less intervals
+        if (unifyElements.size() < reachedState.unifyElements.size()) {
+            return false;
+        }
+
+        // also, this element is not less or equal than the reached state, if
+        // any one interval of the reached state is not contained in this
+        // element,
+        // or if the interval of the reached state is not wider than the
+        // respective interval of this element
+        for (MemoryLocation key : reachedState.unifyElements.keySet()) {
+            if (!unifyElements.containsKey(key) || !reachedState.getElement(key).contains(getElement(key))) {
+                return false;
+            }
+        }
+        // else, this element < reached state on the lattice
+        return true;
+    }
+    /**
+     * This method decides if this element is less or equal than the other
+     * element, based on the order imposed by the lattice.
+     *
+     * @param other
+     *            the other element
+     * @return true, if this element is less or equal than the other element,
+     *         based on the order imposed by the lattice
+     */
+    public boolean valueIsLessOrEqual(UnifyAnalysisState other) {
+
+        // also, this element is not less or equal than the other element, if it
+        // contains less elements
+        if (unifyElements.size() < other.unifyElements.size()) {
+            return false;
+        }
+
+        // also, this element is not less or equal than the other element,
+        // if any one constant's value of the other element differs from the
+        // constant's
+        // value in this
+        // element
+        for (Map.Entry<MemoryLocation, NumberInterface> otherEntry : other.unifyElements.entrySet()) {
+            MemoryLocation key = otherEntry.getKey();
+            NumberInterface otherValue = otherEntry.getValue();
+            NumberInterface thisValue = unifyElements.get(key);
+
+            if (!otherValue.equals(thisValue)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     @Override
     public boolean equals(Object pObj) {
@@ -680,25 +785,7 @@ public class UnifyAnalysisState
         }
     }
 
-    private boolean IsLessOrEqualSign(UnifyAnalysisState pSuperset) {
-        if (pSuperset.equals(this) || pSuperset.equals(TOP)) {
-            return true;
-        }
-        if (unifyElements.size() < pSuperset.unifyElements.size()) {
-            return false;
-        }
-        // is subset if for every variable all sign assumptions are considered
-        // in
-        // pSuperset
-        // check that all variables in superset with SIGN != ALL have no bigger
-        // assumptions in subset
-        for (MemoryLocation varIdent : pSuperset.unifyElements.keySet()) {
-            if (!getElement(varIdent).isSubsetOf(pSuperset.getElement(varIdent))) {
-                return false;
-            }
-        }
-        return true;
-    }
+
 
     private static class SerialProxySign implements Serializable {
 
@@ -792,39 +879,6 @@ public class UnifyAnalysisState
      */
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
-    }
-
-    /**
-     * This method decides if this element is less or equal than the reached
-     * state, based on the order imposed by the lattice.
-     *
-     * @param reachedState
-     *            the reached state
-     * @return true, if this element is less or equal than the reached state,
-     *         based on the order imposed by the lattice
-     */
-    private boolean intervalIsLessOrEqual(UnifyAnalysisState reachedState) {
-        if (unifyElements.equals(reachedState.unifyElements)) {
-            return true;
-        }
-        // this element is not less or equal than the reached state, if it
-        // contains less intervals
-        if (unifyElements.size() < reachedState.unifyElements.size()) {
-            return false;
-        }
-
-        // also, this element is not less or equal than the reached state, if
-        // any one interval of the reached state is not contained in this
-        // element,
-        // or if the interval of the reached state is not wider than the
-        // respective interval of this element
-        for (MemoryLocation key : reachedState.unifyElements.keySet()) {
-            if (!unifyElements.containsKey(key) || !reachedState.getElement(key).contains(getElement(key))) {
-                return false;
-            }
-        }
-        // else, this element < reached state on the lattice
-        return true;
     }
 
     /**
@@ -1065,40 +1119,6 @@ public class UnifyAnalysisState
         }
 
         return numberOfGlobalVariables;
-    }
-
-    /**
-     * This method decides if this element is less or equal than the other
-     * element, based on the order imposed by the lattice.
-     *
-     * @param other
-     *            the other element
-     * @return true, if this element is less or equal than the other element,
-     *         based on the order imposed by the lattice
-     */
-    public boolean valueIsLessOrEqual(UnifyAnalysisState other) {
-
-        // also, this element is not less or equal than the other element, if it
-        // contains less elements
-        if (unifyElements.size() < other.unifyElements.size()) {
-            return false;
-        }
-
-        // also, this element is not less or equal than the other element,
-        // if any one constant's value of the other element differs from the
-        // constant's
-        // value in this
-        // element
-        for (Map.Entry<MemoryLocation, NumberInterface> otherEntry : other.unifyElements.entrySet()) {
-            MemoryLocation key = otherEntry.getKey();
-            NumberInterface otherValue = otherEntry.getValue();
-            NumberInterface thisValue = unifyElements.get(key);
-
-            if (!otherValue.equals(thisValue)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     public boolean equalsValue(Object other) {
