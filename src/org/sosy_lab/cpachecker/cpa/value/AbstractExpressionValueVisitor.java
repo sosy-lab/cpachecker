@@ -237,10 +237,10 @@ public abstract class AbstractExpressionValueVisitor
     {
       switch (binaryOperator) {
       case EQUALS:
-        return new NumericValue(((FunctionValue) lVal).equals(((FunctionValue) rVal)) ? 1 : 0);
+        return new NumericValue(((FunctionValue) lVal).equals((rVal)) ? 1 : 0);
 
       case NOT_EQUALS:
-        return new NumericValue(((FunctionValue) lVal).equals(((FunctionValue) rVal)) ? 0 : 1);
+        return new NumericValue(((FunctionValue) lVal).equals((rVal)) ? 0 : 1);
 
       default:
         throw new AssertionError("unhandled binary operator");
