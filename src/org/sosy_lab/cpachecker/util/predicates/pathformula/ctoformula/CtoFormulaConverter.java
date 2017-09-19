@@ -118,6 +118,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
+import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
@@ -754,8 +755,10 @@ public class CtoFormulaConverter {
       }
 
     } else if (fromType.isFloatingPointType()) {
-      ret = fmgr.getFloatingPointFormulaManager().castTo(
-          (FloatingPointFormula)pFormula, toType);
+      ret =
+          fmgr.getFloatingPointFormulaManager()
+              .castTo(
+                  (FloatingPointFormula) pFormula, toType, FloatingPointRoundingMode.TOWARD_ZERO);
 
     } else if (toType.isFloatingPointType()) {
       ret = fmgr.getFloatingPointFormulaManager().castFrom(pFormula,
