@@ -2346,13 +2346,24 @@ class ASTConverter {
       }
 
       if (!areInitializerAssignable(declaration.getType(), result.getExpression())) {
-        throw parseContext.parseError(
-            "Type "
-                + declaration.getType()
-                + " of declaration and type "
-                + ((CExpression) initializer).getExpressionType()
-                + " of initializer are not assignment compatible",
-            e);
+        if (declaration.getType().getCanonicalType() instanceof CPointerType
+            && CTypes.isIntegerType(result.getExpression().getExpressionType())) {
+          logger.logf(
+              Level.WARNING,
+              "%s: Initialization of pointer variable %s with integer expression %s.",
+              result.getFileLocation(),
+              declaration.getType().toASTString(declaration.getName()),
+              result);
+
+        } else {
+          throw parseContext.parseError(
+              "Type "
+                  + declaration.getType()
+                  + " of declaration and type "
+                  + ((CExpression) initializer).getExpressionType()
+                  + " of initializer are not assignment compatible",
+              e);
+        }
       }
 
       return result;
