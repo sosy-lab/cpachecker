@@ -857,7 +857,7 @@ class ASTConverter {
     // does not match our type because we added a name.
     // So make sure to not use the Eclipse type.
 
-    CExpression fullFieldReference;
+    final CFieldReference fullFieldReference;
     List<Pair<String, CType>> wayToInnerField = ImmutableList.of();
     if (ownerType instanceof CElaboratedType) {
       assert ((CElaboratedType) ownerType).getRealType() == null; // otherwise getCanonicalType is broken
@@ -876,12 +876,15 @@ class ASTConverter {
       wayToInnerField =
           getWayToInnerField((CCompositeType) ownerType, fieldName, loc, new ArrayList<>());
       if (!wayToInnerField.isEmpty()) {
-        fullFieldReference = owner;
+        CExpression current = owner;
         boolean isPointerDereference = e.isPointerDereference();
         for (Pair<String, CType> field : wayToInnerField) {
-          fullFieldReference = new CFieldReference(loc, field.getSecond(), field.getFirst(), fullFieldReference, isPointerDereference);
+          current =
+              new CFieldReference(
+                  loc, field.getSecond(), field.getFirst(), current, isPointerDereference);
           isPointerDereference = false;
         }
+        fullFieldReference = (CFieldReference) current;
       } else {
         throw parseContext.parseError(
             "Accessing unknown field " + fieldName + " in type " + ownerType, e);
@@ -951,10 +954,10 @@ class ASTConverter {
       // FOLLOWING IF CLAUSE WILL ONLY BE EVALUATED WHEN THE OPTION cfa.simplifyPointerExpressions IS SET TO TRUE
       // if there is a "var->field" convert it to (*var).field
     } else if (options.simplifyPointerExpressions()) {
-      return ((CFieldReference) fullFieldReference).withExplicitPointerDereference();
+      return fullFieldReference.withExplicitPointerDereference();
     }
 
-    return (CFieldReference) fullFieldReference;
+    return fullFieldReference;
   }
 
   /**
