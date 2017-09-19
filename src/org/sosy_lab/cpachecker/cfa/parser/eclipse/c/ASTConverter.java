@@ -2354,7 +2354,8 @@ class ASTConverter {
             e);
       }
 
-      if (!areInitializerAssignable(declaration.getType(), result.getExpression())) {
+      if (declaration != null
+          && !areInitializerAssignable(declaration.getType(), result.getExpression())) {
         if (declaration.getType().getCanonicalType() instanceof CPointerType
             && CTypes.isIntegerType(result.getExpression().getExpressionType())) {
           logger.logf(
