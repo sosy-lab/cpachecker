@@ -2307,22 +2307,12 @@ class ASTConverter {
         return null;
       }
 
-      // According to C-Standard 11 § 6.7.9 (11), (13)
-      // XXX: Are there more cases to be checked, other than initializer being a CExpression
-      if ((initializer instanceof CExpression)
-          && !areInitializerAssignable(declaration.getType(), ((CExpression) initializer))) {
-        throw parseContext.parseError(
-            "Type "
-                + declaration.getType()
-                + " of declaration and type "
-                + ((CExpression) initializer).getExpressionType()
-                + " of initializer are not assignment compatible",
-            e);
-      }
-
+      final CInitializerExpression result;
       if (initializer instanceof CAssignment) {
         sideAssignmentStack.addPreSideAssignment(initializer);
-        return new CInitializerExpression(getLocation(e), ((CAssignment)initializer).getLeftHandSide());
+        result =
+            new CInitializerExpression(
+                getLocation(e), ((CAssignment) initializer).getLeftHandSide());
 
       } else if (initializer instanceof CFunctionCallExpression) {
         FileLocation loc = getLocation(i);
@@ -2342,18 +2332,30 @@ class ASTConverter {
           CIdExpression var = createTemporaryVariable(e);
           sideAssignmentStack.addPreSideAssignment(new CFunctionCallAssignmentStatement(loc, var,
                                  (CFunctionCallExpression) initializer));
-          return new CInitializerExpression(loc, var);
+          result = new CInitializerExpression(loc, var);
         }
-      }
 
-      if (!(initializer instanceof CExpression)) {
+      } else if (initializer instanceof CExpression) {
+        result = new CInitializerExpression(getLocation(ic), (CExpression) initializer);
+
+      } else {
         throw parseContext.parseError(
             "Initializer is not free of side-effects, it is a "
                 + initializer.getClass().getSimpleName(),
             e);
       }
 
-      return new CInitializerExpression(getLocation(ic), (CExpression)initializer);
+      if (!areInitializerAssignable(declaration.getType(), result.getExpression())) {
+        throw parseContext.parseError(
+            "Type "
+                + declaration.getType()
+                + " of declaration and type "
+                + ((CExpression) initializer).getExpressionType()
+                + " of initializer are not assignment compatible",
+            e);
+      }
+
+      return result;
 
     } else if (ic instanceof IASTInitializerList) {
       return convert((IASTInitializerList)ic, declaration);
@@ -2362,6 +2364,7 @@ class ASTConverter {
     }
   }
 
+  /** Check for legal initializer according to C11 § 6.7.9 (11), (13) */
   private boolean areInitializerAssignable(
       CType pDeclarationType, CExpression pInitializerExpression) {
     return pDeclarationType.canBeAssignedFrom(pInitializerExpression.getExpressionType())
