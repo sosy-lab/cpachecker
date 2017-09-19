@@ -25,16 +25,21 @@ package org.sosy_lab.cpachecker.util.ci.translators;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -46,12 +51,34 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
+@RunWith(Parameterized.class)
 public class PredicateTranslatorTest extends SolverBasedTest0 {
+
+  @Parameters(name = "{0}")
+  public static Object[] getAllSolvers() {
+    return Solvers.values();
+  }
+
+  @Parameter(0)
+  public Solvers solverUnderTest;
+
+  @Override
+  protected Solvers solverToUse() {
+    return solverUnderTest;
+  }
+
+  @Override
+  protected ConfigurationBuilder createTestConfigBuilder() {
+    // for supporting Princess
+    return super.createTestConfigBuilder().setOption("cpa.predicate.encodeFloatAs", "Integer");
+  }
 
   private Solver solver;
   private PredicateRequirementsTranslator pReqTrans;
@@ -122,15 +149,15 @@ public class PredicateTranslatorTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void testConvertToFormula1() throws CPAException {
+  public void testConvertToFormula1() throws Exception {
     Pair<List<String>, String> convertedFormula =
         pReqTrans.convertToFormula(ptrueState, ssaTest, null);
     assertThat(convertedFormula.getFirst()).isEmpty();
-    assertThat(convertedFormula.getSecond()).isEqualTo("(define-fun .defci0 () Bool  true)");
+    assertFormulaIsExpected(convertedFormula, ".defci0", "true");
   }
 
   @Test
-  public void testConvertToFormula2() throws CPAException {
+  public void testConvertToFormula2() throws Exception {
     Pair<List<String>, String> convertedFormula =
         pReqTrans.convertToFormula(pf1State, ssaTest, null);
     assertThat(convertedFormula.getFirst())
@@ -138,13 +165,12 @@ public class PredicateTranslatorTest extends SolverBasedTest0 {
             "(declare-fun |fun::var1| () Int)",
             "(declare-fun var3@1 () Int)",
             "(declare-fun var1@1 () Int)");
-    assertThat(convertedFormula.getSecond())
-        .isEqualTo(
-            "(define-fun .defci0 () Bool  (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0)))");
+    assertFormulaIsExpected(
+        convertedFormula, ".defci0", "(and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))");
   }
 
   @Test
-  public void testConvertRequirements1() throws CPAException {
+  public void testConvertRequirements1() throws Exception {
     Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements =
         pReqTrans.convertRequirements(pf1State, ImmutableList.of(), ssaTest, null, null);
     assertThat(convertedRequirements.getFirst().getFirst())
@@ -152,15 +178,16 @@ public class PredicateTranslatorTest extends SolverBasedTest0 {
             "(declare-fun var1 () Int)",
             "(declare-fun var3 () Int)",
             "(declare-fun |fun::var1| () Int)");
-    assertThat(convertedRequirements.getFirst().getSecond())
-        .isEqualTo("(define-fun pre () Bool  (and (or (> var1 0) (= var3 0)) (< |fun::var1| 0)))");
+    assertFormulaIsExpected(
+        convertedRequirements.getFirst(),
+        "pre",
+        "(and (or (> var1 0) (= var3 0)) (< |fun::var1| 0))");
     assertThat(convertedRequirements.getSecond().getFirst()).isEmpty();
-    assertThat(convertedRequirements.getSecond().getSecond())
-        .isEqualTo("(define-fun post () Bool false)");
+    assertFormulaIsExpected(convertedRequirements.getSecond(), "post", "false");
   }
 
   @Test
-  public void testConvertRequirements2() throws CPAException {
+  public void testConvertRequirements2() throws Exception {
     List<PredicateAbstractState> pAbstrStates = ImmutableList.of(ptrueState);
     Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements =
         pReqTrans.convertRequirements(pf2State, pAbstrStates, ssaTest, null, null);
@@ -169,21 +196,19 @@ public class PredicateTranslatorTest extends SolverBasedTest0 {
             "(declare-fun var2 () Int)",
             "(declare-fun |fun::varB| () Int)",
             "(declare-fun |fun::varC| () Int)");
-    assertThat(convertedRequirements.getFirst().getSecond())
-        .isEqualTo("(define-fun pre () Bool  (and (> var2 |fun::varB|) (< |fun::varC| 0)))");
+    assertFormulaIsExpected(
+        convertedRequirements.getFirst(), "pre", "(and (> var2 |fun::varB|) (< |fun::varC| 0))");
     assertThat(convertedRequirements.getSecond().getFirst()).isEmpty();
-    assertThat(convertedRequirements.getSecond().getSecond())
-        .isEqualTo("(define-fun post () Bool  true)");
+    assertFormulaIsExpected(convertedRequirements.getSecond(), "post", "true");
   }
 
   @Test
-  public void testConvertRequirements3() throws CPAException {
+  public void testConvertRequirements3() throws Exception {
     List<PredicateAbstractState> pAbstrStates = ImmutableList.of(pf1State, pf2State);
     Pair<Pair<List<String>, String>, Pair<List<String>, String>> convertedRequirements =
         pReqTrans.convertRequirements(ptrueState, pAbstrStates, ssaTest, null, null);
     assertThat(convertedRequirements.getFirst().getFirst()).isEmpty();
-    assertThat(convertedRequirements.getFirst().getSecond())
-        .isEqualTo("(define-fun pre () Bool  true)");
+    assertFormulaIsExpected(convertedRequirements.getFirst(), "pre", "true");
 
     assertThat(convertedRequirements.getSecond().getFirst())
         .containsExactly(
@@ -193,8 +218,19 @@ public class PredicateTranslatorTest extends SolverBasedTest0 {
             "(declare-fun var2 () Int)",
             "(declare-fun |fun::varB@1| () Int)",
             "(declare-fun |fun::varC| () Int)");
-    assertThat(convertedRequirements.getSecond().getSecond())
-        .isEqualTo(
-            "(define-fun post () Bool (or (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))(and (> var2 |fun::varB@1|) (< |fun::varC| 0))))");
+    assertFormulaIsExpected(
+        convertedRequirements.getSecond(),
+        "post",
+        "(or (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))(and (> var2 |fun::varB@1|) (< |fun::varC| 0)))");
+  }
+
+  private void assertFormulaIsExpected(
+      Pair<List<String>, String> convertedFormula, String termName, String expectedFormula)
+      throws SolverException, InterruptedException {
+    String defs = Joiner.on("\n").join(convertedFormula.getFirst());
+    BooleanFormula f =
+        mgr.parse(defs + "\n" + convertedFormula.getSecond() + "\n(assert " + termName + ")");
+    BooleanFormula expected = mgr.parse(defs + "\n(assert " + expectedFormula + ")");
+    assertThatFormula(f).isEquivalentTo(expected);
   }
 }
