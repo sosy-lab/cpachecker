@@ -46,38 +46,32 @@ public class FunctionValue  implements Value, Serializable  {
     return "FunctionValue [name=" + str + "]";
   }
 
-  public String getName()
-  {
+  public String getName() {
     return str;
   }
 
   @Override
   public boolean isNumericValue() {
-    // TODO Auto-generated method stub
     return false;
   }
 
   @Override
   public boolean isUnknown() {
-    // TODO Auto-generated method stub
     return false;
   }
 
   @Override
   public boolean isExplicitlyKnown() {
-    // TODO Auto-generated method stub
     return false;
   }
 
   @Override
   public NumericValue asNumericValue() {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public Long asLong(CType pType) {
-    // TODO Auto-generated method stub
     return null;
   }
 

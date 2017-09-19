@@ -249,39 +249,28 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     public MemoryLocation visit(CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
 
       if (pIastFieldReference.isPointerDereference()) {
-        if (pIastFieldReference.getExpressionType() instanceof CPointerType)
-        {
-          if (pIastFieldReference.getFieldOwner() instanceof CBinaryExpression)
-          {
+        if (pIastFieldReference.getExpressionType() instanceof CPointerType) {
+          if (pIastFieldReference.getFieldOwner() instanceof CBinaryExpression) {
             evv.missingPointer = true;
             return null;
-          }
-          else
-          {
-            if (((CPointerType) pIastFieldReference.getExpressionType()).getType() instanceof CFunctionType)
-            {
+          } else {
+            if (((CPointerType) pIastFieldReference.getExpressionType()).getType() instanceof CFunctionType) {
               return PointerToMemoryLocation.valueOf(null, pIastFieldReference.getFieldName());
-            }
-            else
-            {
+            } else {
               evv.missingPointer = true;
               return null;
             }
           }
-        }
-        else
-        {
+        } else {
           evv.missingPointer = true;
           return null;
         }
       }
 
-      if (pIastFieldReference.getExpressionType() instanceof CPointerType)
+      if (pIastFieldReference.getExpressionType() instanceof CPointerType
+          && ((CPointerType) pIastFieldReference.getExpressionType()).getType() instanceof CFunctionType)
       {
-        if (((CPointerType) pIastFieldReference.getExpressionType()).getType() instanceof CFunctionType)
-        {
-          return PointerToMemoryLocation.valueOf(null, pIastFieldReference.getFieldName());
-        }
+        return PointerToMemoryLocation.valueOf(null, pIastFieldReference.getFieldName());
       }
 
       CLeftHandSide fieldOwner = (CLeftHandSide) pIastFieldReference.getFieldOwner();
@@ -311,13 +300,11 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       if (pStartLocation.isOnFunctionStack()) {
 
-        if(pOwnerType instanceof CPointerType)
-        {
+        if(pOwnerType instanceof CPointerType) {
           return PointerToMemoryLocation.valueOf(
               pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset);
         }
-        else
-        {
+        else {
           return MemoryLocation.valueOf(
               pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset);
         }
@@ -360,7 +347,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
           offset = (int) (offset + evv.getSizeof(fieldType));
         }
       }
-
       return null;
     }
 
@@ -414,10 +400,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       if (idExp.getDeclaration() != null) {
         CType expType = idExp.getExpressionType();
-        if (expType instanceof CPointerType) {
-          if (((CPointerType)expType).getType() instanceof CFunctionType) {
+        if (expType instanceof CPointerType && ((CPointerType)expType).getType() instanceof CFunctionType) {
             return PointerToMemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName());
-          }
         }
         return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName());
       }

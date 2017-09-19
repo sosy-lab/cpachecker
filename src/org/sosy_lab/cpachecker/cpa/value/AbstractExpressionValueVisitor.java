@@ -233,8 +233,7 @@ public abstract class AbstractExpressionValueVisitor
           castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
     }
 
-    if (lVal instanceof FunctionValue && rVal instanceof FunctionValue)
-    {
+    if (lVal instanceof FunctionValue && (rVal instanceof FunctionValue || rVal instanceof NumericValue)) {
       switch (binaryOperator) {
       case EQUALS:
         return new NumericValue(((FunctionValue) lVal).equals((rVal)) ? 1 : 0);
@@ -247,22 +246,7 @@ public abstract class AbstractExpressionValueVisitor
       }
     }
 
-    if (lVal instanceof FunctionValue && rVal instanceof NumericValue)
-    {
-      switch (binaryOperator) {
-      case EQUALS:
-        return new NumericValue(((FunctionValue) lVal).equals((rVal)) ? 1 : 0);
-
-      case NOT_EQUALS:
-        return new NumericValue(((FunctionValue) lVal).equals((rVal)) ? 0 : 1);
-
-      default:
-        throw new AssertionError("unhandled binary operator");
-      }
-    }
-
-    if (lVal instanceof NumericValue && rVal instanceof FunctionValue)
-    {
+    if (lVal instanceof NumericValue && rVal instanceof FunctionValue) {
       switch (binaryOperator) {
       case EQUALS:
         return new NumericValue(((FunctionValue) rVal).equals((lVal)) ? 1 : 0);
@@ -945,8 +929,7 @@ public abstract class AbstractExpressionValueVisitor
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
     }
     if (unaryOperator == UnaryOperator.AMPER) {
-      if (unaryOperand.getExpressionType() instanceof CFunctionType)
-      {
+      if (unaryOperand.getExpressionType() instanceof CFunctionType) {
         return new FunctionValue(unaryOperand.toString());
       }
       return Value.UnknownValue.getInstance();
