@@ -2241,7 +2241,7 @@ class ASTConverter {
     if (declaration != null && iList.getSize() == 1) {
       CType type = declaration.getType();
 
-      if (type instanceof CSimpleType) {
+      if (type instanceof CSimpleType || type instanceof CPointerType) {
         IASTInitializerClause result = unpackBracedInitializer(iList);
         if (result != null) {
           return convert(result, declaration);
