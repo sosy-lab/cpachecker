@@ -122,6 +122,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -194,6 +195,9 @@ public class ValueAnalysisTransferRelation
     )
     private boolean trackJavaArrayValues = true;
 
+    @Option(secure=true, description="When an unknown function value is disabled")
+    private boolean ignoreFunctionValue = true;
+
     ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -208,6 +212,10 @@ public class ValueAnalysisTransferRelation
 
     boolean isOptimizeBooleanVariables() {
       return optimizeBooleanVariables;
+    }
+
+    boolean isIgnoreFunctionValue() {
+      return ignoreFunctionValue;
     }
   }
 
@@ -354,6 +362,10 @@ public class ValueAnalysisTransferRelation
         throw new AssertionError("Unknown expression: " + exp);
       }
 
+      if (value instanceof FunctionValue && options.isIgnoreFunctionValue()) {
+        value = Value.UnknownValue.getInstance();
+      }
+
       AParameterDeclaration param = parameters.get(i);
       String paramName = param.getName();
       Type paramType = param.getType();
@@ -398,7 +410,13 @@ public class ValueAnalysisTransferRelation
       throws UnrecognizedCCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
-    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    ExpressionValueVisitor evv;
+    if (options.isIgnoreFunctionValue()) {
+      evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    }
+    else {
+      evv = new FunctionPointerExpressionValueVisitor(state, functionName, machineModel, logger);
+    }
 
     // clone state, because will be changed through removing all variables of current function's scope.
     // The assignment of the global 'state' is safe, because the 'old state'
@@ -458,8 +476,13 @@ public class ValueAnalysisTransferRelation
 
       // we expect left hand side of the expression to be a variable
 
-      ExpressionValueVisitor v =
-          new ExpressionValueVisitor(newElement, callerFunctionName, machineModel, logger);
+      ExpressionValueVisitor v;
+      if (options.isIgnoreFunctionValue()) {
+        v = new ExpressionValueVisitor(newElement, callerFunctionName, machineModel, logger);
+      }
+      else {
+        v = new FunctionPointerExpressionValueVisitor(newElement, callerFunctionName, machineModel, logger);
+      }
 
       Value newValue = null;
       boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
@@ -1042,6 +1065,10 @@ public class ValueAnalysisTransferRelation
        value = visitor.evaluate((CRightHandSide) exp, (CType) lType);
     } else {
       throw new AssertionError("unknown righthandside-expression: " + exp);
+    }
+
+    if (value instanceof FunctionValue && options.isIgnoreFunctionValue()) {
+      value = Value.UnknownValue.getInstance();
     }
 
     if (visitor.hasMissingPointer()) {
@@ -1682,6 +1709,11 @@ public class ValueAnalysisTransferRelation
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor() {
-    return new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    if (options.isIgnoreFunctionValue()) {
+      return new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    }
+    else {
+      return new FunctionPointerExpressionValueVisitor(state, functionName, machineModel, logger);
+    }
   }
 }

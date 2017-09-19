@@ -40,14 +40,12 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.states.PointerToMemoryLocation;
 
 import java.util.List;
 
@@ -58,7 +56,7 @@ import java.util.List;
  */
 public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
-  private boolean missingPointer = false;
+  protected boolean missingPointer = false;
 
   // This state is read-only! No writing or modification allowed!
   protected final ValueAnalysisState readableState;
@@ -247,13 +245,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     @Override
     public MemoryLocation visit(CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
 
-      CType expType = pIastFieldReference.getExpressionType();
-      if (expType instanceof CPointerType) {
-        if (((CPointerType) expType).getType() instanceof CFunctionType) {
-          return PointerToMemoryLocation.valueOf(pIastFieldReference.getFieldName());
-        }
-      }
-
       if (pIastFieldReference.isPointerDereference()) {
         evv.missingPointer = true;
         return null;
@@ -301,7 +292,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       } else if (ownerType instanceof CCompositeType) {
         return getFieldOffset((CCompositeType) ownerType, fieldName);
       } else if (ownerType instanceof CPointerType) {
-        return getFieldOffset((CCompositeType) ((CPointerType ) ownerType).getType(), fieldName);
+        evv.missingPointer = true;
+        return null;
       }
 
       throw new AssertionError();

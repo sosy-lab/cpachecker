@@ -127,7 +127,7 @@ public class ValueAnalysisRefiner
     final CFA cfa = valueAnalysisCpa.getCFA();
 
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
-        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+        new ValueAnalysisStrongestPostOperator(logger, config, cfa);
 
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);
