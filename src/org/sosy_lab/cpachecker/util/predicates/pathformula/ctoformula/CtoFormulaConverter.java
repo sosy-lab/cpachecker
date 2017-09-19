@@ -755,6 +755,7 @@ public class CtoFormulaConverter {
       }
 
     } else if (fromType.isFloatingPointType()) {
+      // Cf. C-Standard 6.3.1.4 (1).
       ret =
           fmgr.getFloatingPointFormulaManager()
               .castTo(
