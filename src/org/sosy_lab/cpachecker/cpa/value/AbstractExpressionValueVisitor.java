@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -929,9 +928,6 @@ public abstract class AbstractExpressionValueVisitor
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
     }
     if (unaryOperator == UnaryOperator.AMPER) {
-      if (unaryOperand.getExpressionType() instanceof CFunctionType) {
-        return new FunctionValue(unaryOperand.toString());
-      }
       return Value.UnknownValue.getInstance();
     }
 

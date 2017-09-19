@@ -45,11 +45,11 @@ import javax.annotation.Nullable;
 public class MemoryLocation implements Comparable<MemoryLocation>, Serializable {
 
   private static final long serialVersionUID = -8910967707373729034L;
-  protected final String functionName;
-  protected final String identifier;
-  protected final @Nullable Long offset;
+  private final String functionName;
+  private final String identifier;
+  private final @Nullable Long offset;
 
-  protected MemoryLocation(String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
+  private MemoryLocation(String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
     checkNotNull(pFunctionName);
     checkNotNull(pIdentifier);
 

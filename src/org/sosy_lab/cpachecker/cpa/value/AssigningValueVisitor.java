@@ -308,8 +308,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   ExpressionValueVisitor getVisitor() {
     if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(getState(), getFunctionName(), getMachineModel(), getLogger());
-    }
-    else {
+    } else {
       return new FunctionPointerExpressionValueVisitor(getState(), getFunctionName(), getMachineModel(), getLogger());
     }
   }

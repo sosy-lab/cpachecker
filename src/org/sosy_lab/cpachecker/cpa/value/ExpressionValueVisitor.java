@@ -56,7 +56,7 @@ import java.util.List;
  */
 public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
-  protected boolean missingPointer = false;
+  private boolean missingPointer = false;
 
   // This state is read-only! No writing or modification allowed!
   protected final ValueAnalysisState readableState;
@@ -182,7 +182,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     return locationEvaluator.getArraySlotLocationFromArrayStart(pArrayStartLocation, pSlotNumber, pArrayType);
   }
 
-  private static class MemoryLocationEvaluator extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCCodeException> {
+  protected static class MemoryLocationEvaluator extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCCodeException> {
 
     private final ExpressionValueVisitor evv;
 
