@@ -1057,9 +1057,15 @@ class ASTConverter {
       }
     }
 
-    CType functionNameType = functionName.getExpressionType().getCanonicalType();
+    // just unwrap typedefs, we do not want to put a canonical type into the CPointerExpression,
+    // but the original type
+    CType functionNameType = functionName.getExpressionType();
+    while (functionNameType instanceof CTypedefType) {
+      functionNameType = ((CTypedefType) functionNameType).getRealType();
+    }
     if (functionNameType instanceof CPointerType
-        && ((CPointerType)functionNameType).getType() instanceof CFunctionType) {
+        && ((CPointerType) functionNameType).getType().getCanonicalType()
+            instanceof CFunctionType) {
       // Function pointers can be called either via "*fp" or simply "fp".
       // We add the dereference operator, if it is missing.
 
