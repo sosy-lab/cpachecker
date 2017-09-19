@@ -2449,7 +2449,7 @@ class ASTConverter {
     return n.toString(); // TODO verify toString() is the correct method
   }
 
-  private CType convert(IASTTypeId t) {
+  CType convert(IASTTypeId t) {
     Pair<CStorageClass, ? extends CType> specifier = convert(t.getDeclSpecifier());
     if (specifier.getFirst() != CStorageClass.AUTO) {
       throw parseContext.parseError("Unsupported storage class for type ids", t);
