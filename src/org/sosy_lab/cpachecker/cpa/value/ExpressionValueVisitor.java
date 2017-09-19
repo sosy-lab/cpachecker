@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -248,29 +247,16 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     @Override
     public MemoryLocation visit(CFieldReference pIastFieldReference) throws UnrecognizedCCodeException {
 
-      if (pIastFieldReference.isPointerDereference()) {
-        if (pIastFieldReference.getExpressionType() instanceof CPointerType) {
-          if (pIastFieldReference.getFieldOwner() instanceof CBinaryExpression) {
-            evv.missingPointer = true;
-            return null;
-          } else {
-            if (((CPointerType) pIastFieldReference.getExpressionType()).getType() instanceof CFunctionType) {
-              return PointerToMemoryLocation.valueOf(pIastFieldReference.getFieldName());
-            } else {
-              evv.missingPointer = true;
-              return null;
-            }
-          }
-        } else {
-          evv.missingPointer = true;
-          return null;
+      CType expType = pIastFieldReference.getExpressionType();
+      if (expType instanceof CPointerType) {
+        if (((CPointerType) expType).getType() instanceof CFunctionType) {
+          return PointerToMemoryLocation.valueOf(pIastFieldReference.getFieldName());
         }
       }
 
-      if (pIastFieldReference.getExpressionType() instanceof CPointerType
-          && ((CPointerType) pIastFieldReference.getExpressionType()).getType() instanceof CFunctionType)
-      {
-        return PointerToMemoryLocation.valueOf(pIastFieldReference.getFieldName());
+      if (pIastFieldReference.isPointerDereference()) {
+        evv.missingPointer = true;
+        return null;
       }
 
       CLeftHandSide fieldOwner = (CLeftHandSide) pIastFieldReference.getFieldOwner();
