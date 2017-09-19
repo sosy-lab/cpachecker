@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
+import com.google.common.base.Function;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
-
-import com.google.common.base.Function;
 
 abstract class AbstractExpressionTree<LeafType> implements ExpressionTree<LeafType> {
 
@@ -40,7 +39,7 @@ abstract class AbstractExpressionTree<LeafType> implements ExpressionTree<LeafTy
               public String apply(LeafType pLeafExpression) {
                 if (pLeafExpression instanceof CExpression) {
                   return ((CExpression) pLeafExpression)
-                      .accept(CExpressionToOrinalCodeVisitor.INSTANCE);
+                      .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER);
                 }
                 if (pLeafExpression == null) {
                   return "null";

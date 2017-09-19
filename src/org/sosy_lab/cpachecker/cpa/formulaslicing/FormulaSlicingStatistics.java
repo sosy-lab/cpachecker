@@ -25,17 +25,15 @@ package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
-
+import java.io.PrintStream;
+import java.util.concurrent.TimeUnit;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-
-import java.io.PrintStream;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Statistics for formula slicing.
@@ -71,9 +69,7 @@ class FormulaSlicingStatistics implements Statistics {
   final Timer reachabilityAbstractionTimer = new Timer();
 
   @Override
-  public void printStatistics(PrintStream out,
-                              Result result,
-                              ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     printTimer(out, propagation, "propagating formulas",
         cachingPathFormulaManager.pathFormulaCacheHits);
 

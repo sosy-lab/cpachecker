@@ -39,7 +39,20 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Ordering;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
+import javax.management.JMException;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -48,7 +61,7 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -64,28 +77,15 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.coverage.CoverageReport;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-import javax.management.JMException;
 
 @Options
 class MainCPAStatistics implements Statistics {
@@ -127,11 +127,20 @@ class MainCPAStatistics implements Statistics {
   @FileOption(Type.OUTPUT_FILE)
   private @Nullable PathTemplate cInvariantsPrefix = PathTemplate.ofFormatString("inv-%s");
 
+  @Option(
+    secure = true,
+    name = "coverage.enabled",
+    description = "Compute and export information about the verification coverage?"
+  )
+  private boolean exportCoverage = true;
+
+  @Option(secure = true, name = "coverage.file", description = "print coverage info to file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path outputCoverageFile = Paths.get("coverage.info");
+
   private final LogManager logger;
   private final Collection<Statistics> subStats;
   private final @Nullable MemoryStatistics memStats;
-  private final CoverageReport coverageReport;
-  private final String analyzedFiles;
   private final @Nullable CExpressionInvariantExporter cExpressionInvariantExporter;
   private Thread memStatsThread;
 
@@ -148,12 +157,9 @@ class MainCPAStatistics implements Statistics {
   private @Nullable CFA cfa;
 
   public MainCPAStatistics(
-      Configuration pConfig,
-      LogManager pLogger,
-      String pAnalyzedFiles, ShutdownNotifier pShutdownNotifier)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     logger = pLogger;
-    analyzedFiles = pAnalyzedFiles;
     pConfig.inject(this);
 
     subStats = new ArrayList<>();
@@ -186,7 +192,6 @@ class MainCPAStatistics implements Statistics {
       programCpuTime = -1;
     }
 
-    coverageReport = new CoverageReport(pConfig, pLogger);
     if (cInvariantsExport && cInvariantsPrefix != null) {
       cExpressionInvariantExporter =
           new CExpressionInvariantExporter(pConfig, pLogger, pShutdownNotifier, cInvariantsPrefix);
@@ -255,7 +260,7 @@ class MainCPAStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     checkNotNull(out);
     checkNotNull(result);
     checkArgument(result == Result.NOT_YET_STARTED || reached != null);
@@ -279,8 +284,21 @@ class MainCPAStatistics implements Statistics {
 
       printSubStatistics(out, result, reached);
 
-      if (coverageReport != null && cfa != null) {
-        coverageReport.writeCoverageReport(out, reached, cfa);
+      if (exportCoverage && cfa != null) {
+        CoverageData infosPerFile = CoverageCollector.fromReachedSet(reached, cfa);
+
+        out.println("Code Coverage");
+        out.println("-----------------------------");
+        CoverageReportStdoutSummary.write(infosPerFile, out);
+
+        if (outputCoverageFile != null) {
+          try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
+            CoverageReportGcov.write(infosPerFile, gcovOut);
+          } catch (IOException e) {
+            logger.logUserException(
+                Level.WARNING, e, "Could not write coverage information to file");
+          }
+        }
       }
     }
 
@@ -297,9 +315,9 @@ class MainCPAStatistics implements Statistics {
             "Out of memory while generating statistics about final reached set");
       }
 
-      if (cExpressionInvariantExporter != null) {
+      if (cExpressionInvariantExporter != null && cfa != null) {
         try {
-          cExpressionInvariantExporter.exportInvariant(analyzedFiles, reached);
+          cExpressionInvariantExporter.exportInvariant(cfa, reached);
         } catch (IOException e) {
           logger.logUserException(
               Level.WARNING,
@@ -324,16 +342,16 @@ class MainCPAStatistics implements Statistics {
   }
 
 
-  private void dumpReachedSet(ReachedSet reached) {
+  private void dumpReachedSet(UnmodifiableReachedSet reached) {
     dumpReachedSet(reached, reachedSetFile, false);
     dumpReachedSet(reached, reachedSetGraphDumpPath, true);
   }
 
-  private void dumpReachedSet(ReachedSet reached, Path pOutputFile, boolean writeDotFormat){
+  private void dumpReachedSet(UnmodifiableReachedSet reached, Path pOutputFile, boolean writeDotFormat){
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (exportReachedSet && pOutputFile != null) {
-      try (Writer w = MoreFiles.openOutputFile(pOutputFile, Charset.defaultCharset())) {
+      try (Writer w = IO.openOutputFile(pOutputFile, Charset.defaultCharset())) {
 
         if (writeDotFormat) {
 
@@ -354,7 +372,7 @@ class MainCPAStatistics implements Statistics {
   }
 
   private void dumpLocationMappedReachedSet(
-      final ReachedSet pReachedSet,
+      final UnmodifiableReachedSet pReachedSet,
       CFA cfa,
       Appendable sb) throws IOException {
     final ListMultimap<CFANode, AbstractState> locationIndex
@@ -376,7 +394,7 @@ class MainCPAStatistics implements Statistics {
     DOTBuilder.generateDOT(sb, cfa, nodeLabelFormatter);
   }
 
-  private void printSubStatistics(PrintStream out, Result result, ReachedSet reached) {
+  private void printSubStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     for (Statistics s : subStats) {
@@ -400,7 +418,7 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
-  private void printReachedSetStatistics(ReachedSet reached, PrintStream out) {
+  private void printReachedSetStatistics(UnmodifiableReachedSet reached, PrintStream out) {
     assert reached != null : "ReachedSet may be null only if analysis not yet started";
 
     if (reached instanceof ForwardingReachedSet) {
@@ -421,7 +439,7 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
-  private void printReachedSetStatisticsDetails(ReachedSet reached, PrintStream out) {
+  private void printReachedSetStatisticsDetails(UnmodifiableReachedSet reached, PrintStream out) {
     int reachedSize = reached.size();
     Set<CFANode> locations;
     CFANode mostFrequentLocation = null;
@@ -502,7 +520,7 @@ class MainCPAStatistics implements Statistics {
     }
   }
 
-  private void printTimeStatistics(PrintStream out, Result result, ReachedSet reached,
+  private void printTimeStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached,
       Timer statisticsTime) {
     out.println("Time for analysis setup:      " + creationTime);
     out.println("  Time for loading CPAs:      " + cpaCreationTime);

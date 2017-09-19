@@ -23,8 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -34,13 +40,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PCCStrategy;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.pcc.strategy.PCCStrategyBuilder;
-
-import java.io.PrintStream;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 @Options
 public class ProofGenerator {
@@ -50,6 +51,12 @@ public class ProofGenerator {
       description = "Make proof more abstract, remove some of the information not needed to prove the property.")
   private boolean slicingEnabled = false;
 
+  @Option(secure=true,
+      name = "pcc.proofFile",
+      description = "file in which proof representation will be stored")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  protected Path file = Paths.get("arg.obj");
+
   private PCCStrategy checkingStrategy;
 
   private final LogManager logger;
@@ -58,7 +65,7 @@ public class ProofGenerator {
   private final Statistics proofGeneratorStats = new Statistics() {
 
     @Override
-    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       pOut.println();
       pOut.println(getName() + " statistics");
       pOut.println("------------------------------------");
@@ -83,7 +90,7 @@ public class ProofGenerator {
     logger = pLogger;
 
     checkingStrategy =
-        PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, null, null, null);
+        PCCStrategyBuilder.buildStrategy(pConfig, pLogger, pShutdownNotifier, file, null, null, null);
   }
 
   public void generateProof(CPAcheckerResult pResult) {

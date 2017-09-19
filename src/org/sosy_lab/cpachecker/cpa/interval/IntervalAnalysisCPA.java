@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -42,10 +43,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
-
-import java.util.Collection;
 
 @Options(prefix = "cpa.interval")
 public class IntervalAnalysisCPA extends AbstractCPA
@@ -67,23 +67,37 @@ public class IntervalAnalysisCPA extends AbstractCPA
    */
   private String mergeType = "SEP";
 
+
+  @Option(
+    secure = true,
+    description =
+        "decides whether one (false) or two (true) successors should be created "
+            + "when an inequality-check is encountered"
+  )
+  private boolean splitIntervals = false;
+
+  @Option(
+    secure = true,
+    description =
+        "at most that many intervals will be tracked per variable, -1 if number not restricted"
+  )
+  private int threshold = -1;
+
   private final StateToFormulaWriter writer;
+  private final LogManager logger;
 
   /**
    * This method acts as the constructor of the interval analysis CPA.
    *
    * @param config the configuration of the CPAinterval analysis CPA.
    */
-  private IntervalAnalysisCPA(Configuration config, LogManager logger,
-      ShutdownNotifier shutdownNotifier, CFA cfa)
-          throws InvalidConfigurationException {
-    super(
-        "irrelevant",
-        "sep",
-        DelegateAbstractDomain.<IntervalAnalysisState>getInstance(),
-        new IntervalAnalysisTransferRelation(config, logger));
+  private IntervalAnalysisCPA(
+      Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA cfa)
+      throws InvalidConfigurationException {
+    super("irrelevant", "sep", DelegateAbstractDomain.<IntervalAnalysisState>getInstance(), null);
     config.inject(this);
-    writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
+    writer = new StateToFormulaWriter(config, pLogger, shutdownNotifier, cfa);
+    logger = pLogger;
   }
 
   /* (non-Javadoc)
@@ -105,6 +119,11 @@ public class IntervalAnalysisCPA extends AbstractCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new IntervalAnalysisState();
+  }
+
+  @Override
+  public TransferRelation getTransferRelation() {
+    return new IntervalAnalysisTransferRelation(splitIntervals, threshold, logger);
   }
 
   @Override

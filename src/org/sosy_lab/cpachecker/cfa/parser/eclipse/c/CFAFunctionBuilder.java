@@ -26,15 +26,28 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 
-import com.google.common.base.Function;
+import com.google.common.base.Verify;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
-
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTBinaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTBreakStatement;
 import org.eclipse.cdt.core.dom.ast.IASTCaseStatement;
+import org.eclipse.cdt.core.dom.ast.IASTCompositeTypeSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
 import org.eclipse.cdt.core.dom.ast.IASTConditionalExpression;
 import org.eclipse.cdt.core.dom.ast.IASTContinueStatement;
@@ -62,15 +75,9 @@ import org.eclipse.cdt.core.dom.ast.IASTSwitchStatement;
 import org.eclipse.cdt.core.dom.ast.IASTUnaryExpression;
 import org.eclipse.cdt.core.dom.ast.IASTWhileStatement;
 import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
-import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarationStatement;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
-import org.sosy_lab.cpachecker.cfa.CSourceOriginMapping;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -106,6 +113,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTConverter.CONDITION;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -117,28 +125,12 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 /**
  * Builder to traverse AST.
  * Known Limitations:
  * -- K&R style function definitions not implemented
  * -- Inlined assembler code is ignored
  */
-@Options(prefix="cfa")
 class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function
@@ -153,6 +145,7 @@ class CFAFunctionBuilder extends ASTVisitor {
   private final Deque<CExpression> switchExprStack = new ArrayDeque<>();
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
   private final Deque<CFANode> switchDefaultStack = new LinkedList<>(); // ArrayDeque not possible because it does not allow null
+  private final Deque<FileLocation> switchDefaultFileLocationStack = new LinkedList<>(); // ArrayDeque not possible because it does not allow null
 
   private final CBinaryExpressionBuilder binExprBuilder;
 
@@ -170,36 +163,36 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   private final FunctionScope scope;
   private final ASTConverter astCreator;
-  private final Function<String, String> niceFileNameFunction;
-
+  private final ParseContext parseContext;
+  private final EclipseCParserOptions options;
   private final LogManager logger;
   private final CheckBindingVisitor checkBinding;
   private final Sideassignments sideAssignmentStack;
 
   private boolean encounteredAsm = false;
 
-  @Option(secure=true, description="Also initialize local variables with default values, "
-      + "or leave them uninitialized.")
-  private boolean initializeAllVariables = false;
-
-  @Option(secure=true, description="Show messages when dead code is encountered during parsing.")
-  private boolean showDeadCode = true;
-
-  @Option(secure=true, description="Allow then/else branches to be swapped in order to obtain simpler conditions.")
-  private boolean allowBranchSwapping = true;
-
-  public CFAFunctionBuilder(Configuration config, LogManagerWithoutDuplicates pLogger, FunctionScope pScope,
-      Function<String, String> pNiceFileNameFunction,
-      CSourceOriginMapping pSourceOriginMapping,
-      MachineModel pMachine, String staticVariablePrefix,
+  public CFAFunctionBuilder(
+      EclipseCParserOptions pOptions,
+      LogManagerWithoutDuplicates pLogger,
+      FunctionScope pScope,
+      ParseContext pParseContext,
+      MachineModel pMachine,
+      String staticVariablePrefix,
       Sideassignments pSideAssignmentStack,
-      CheckBindingVisitor pCheckBinding) throws InvalidConfigurationException {
-    config.inject(this);
-
+      CheckBindingVisitor pCheckBinding) {
+    options = pOptions;
     logger = pLogger;
     scope = pScope;
-    astCreator = new ASTConverter(config, pScope, pLogger, pNiceFileNameFunction, pSourceOriginMapping, pMachine, staticVariablePrefix, pSideAssignmentStack);
-    niceFileNameFunction = pNiceFileNameFunction;
+    astCreator =
+        new ASTConverter(
+            pOptions,
+            pScope,
+            pLogger,
+            pParseContext,
+            pMachine,
+            staticVariablePrefix,
+            pSideAssignmentStack);
+    parseContext = pParseContext;
     checkBinding = pCheckBinding;
     binExprBuilder = new CBinaryExpressionBuilder(pMachine, pLogger);
 
@@ -272,7 +265,17 @@ class CFAFunctionBuilder extends ASTVisitor {
     // entering Sideassignment block
     sideAssignmentStack.enterBlock();
 
-    if (declaration instanceof IASTSimpleDeclaration) {
+    if (declaration.getPropertyInParent() == IASTCompositeTypeSpecifier.MEMBER_DECLARATION) {
+      // This is a nested declaration, e.g. something like the "int j;" in
+      // i = sizeof(struct s { int j; });
+      // We do not want to parse this at this point, but unfortunately the ASTVisitor from which we
+      // inherit calls us for such nested declarations.
+      // I am not sure whether we should whitelist only declarations in places we expect or whether
+      // we should blacklist declarations in places we don't want, so for now I choose the latter
+      // because the change has less impact.
+      return PROCESS_SKIP;
+
+    } else  if (declaration instanceof IASTSimpleDeclaration) {
       return handleSimpleDeclaration((IASTSimpleDeclaration)declaration);
 
     } else if (declaration instanceof IASTFunctionDefinition) {
@@ -291,7 +294,8 @@ class CFAFunctionBuilder extends ASTVisitor {
       return ignoreASMDeclaration(declaration);
 
     } else {
-      throw new CFAGenerationRuntimeException("Unknown declaration type " + declaration.getClass().getSimpleName(), declaration, niceFileNameFunction);
+      throw parseContext.parseError(
+          "Unknown declaration type " + declaration.getClass().getSimpleName(), declaration);
     }
   }
 
@@ -358,7 +362,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
           return prevNode;
 
-        } else if (initializeAllVariables) {
+        } else if (options.initializeAllVariables()) {
           CInitializer initializer = CDefaults.forType(newD.getType(), newD.getFileLocation());
           newD = new CVariableDeclaration(newD.getFileLocation(),
                                           newD.isGlobal(),
@@ -407,7 +411,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private int handleFunctionDefinition(final IASTFunctionDefinition declaration) {
     if (locStack.size() != 0) {
-      throw new CFAGenerationRuntimeException("Nested function declarations?");
+      throw parseContext.parseError("nested function declarations unsupported", declaration);
     }
 
     assert labelMap.isEmpty();
@@ -595,8 +599,8 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else if (statement instanceof IASTDoStatement) {
       handleDoWhileStatement((IASTDoStatement)statement, fileloc);
     } else {
-      throw new CFAGenerationRuntimeException("Unknown AST node "
-          + statement.getClass().getSimpleName(), statement, niceFileNameFunction);
+      throw parseContext.parseError(
+          "Unknown AST node " + statement.getClass().getSimpleName(), statement);
     }
 
     return PROCESS_CONTINUE;
@@ -635,17 +639,29 @@ class CFAFunctionBuilder extends ASTVisitor {
     CFANode lastNode;
     boolean resultIsUsed = true;
 
-    if (sideAssignmentStack.hasConditionalExpression()
-        && (statement instanceof CExpressionStatement)) {
-      // this may be code where the resulting value of a ternary operator is not used, e.g. (x ? f() : g())
-
-      List<Pair<IASTExpression, CIdExpression>> tempVars = sideAssignmentStack.getConditionalExpressions();
-      if ((tempVars.size() == 1) && (tempVars.get(0).getSecond() == ((CExpressionStatement)statement).getExpression())) {
+    if (sideAssignmentStack.hasConditionalExpression()) {
+      if (statement == null) {
+        // if return-type of expression-list (side-effect-statement) is Void, statement is Null.
+        // Example: void f(){}; int main(){(0, f());}
         resultIsUsed = false;
+
+      } else if (statement instanceof CExpressionStatement) {
+        // this may be code where the resulting value of a ternary operator is not used, e.g. (x ? f() : g())
+        List<Pair<IASTExpression, CIdExpression>> tempVars =
+            sideAssignmentStack.getConditionalExpressions();
+        if ((tempVars.size() == 1)
+            && (tempVars.get(0).getSecond()
+                == ((CExpressionStatement) statement).getExpression())) {
+          resultIsUsed = false;
+        }
       }
     }
 
     prevNode = handleAllSideEffects(prevNode, fileloc, rawSignature, resultIsUsed);
+
+    if (statement == null) {
+      return prevNode;
+    }
 
     statement.accept(checkBinding);
     if (resultIsUsed) {
@@ -668,8 +684,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     String labelName = labelStatement.getName().toString();
     if (labelMap.containsKey(labelName) && scope.lookupLocalLabel(labelName) == null) {
-      throw new CFAGenerationRuntimeException("Duplicate label " + labelName
-          + " in function " + cfa.getFunctionName(), labelStatement, niceFileNameFunction);
+      throw parseContext.parseError(
+          "Duplicate label " + labelName + " in function " + cfa.getFunctionName(), labelStatement);
     }
 
     CFANode prevNode = locStack.pop();
@@ -686,8 +702,9 @@ class CFAFunctionBuilder extends ASTVisitor {
       labelMap.put(labelName, labelNode);
     } else {
       if (scope.containsLabelCFANode(labelNode)){
-        throw new CFAGenerationRuntimeException("Duplicate label " + labelName
-            + " in function " + cfa.getFunctionName(), labelStatement, niceFileNameFunction);
+        throw parseContext.parseError(
+            "Duplicate label " + labelName + " in function " + cfa.getFunctionName(),
+            labelStatement);
       }
       scope.addLabelCFANode(labelNode);
     }
@@ -849,7 +866,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTProblem problem) {
-    throw new CFAGenerationRuntimeException(problem, niceFileNameFunction);
+    throw parseContext.parseError(problem);
   }
 
 
@@ -864,7 +881,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category helper
    */
   private void addToCFA(CFAEdge edge) {
-    CFACreationUtils.addEdgeToCFA(edge, logger, showDeadCode);
+    CFACreationUtils.addEdgeToCFA(edge, logger, options.showDeadCode());
   }
 
   /**
@@ -970,7 +987,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       // this is just a placeholder signalising that the sideeffects do not
       // need to have a return value
-      if (stmt instanceof CExpressionStatement && ((CExpressionStatement)stmt).getExpression() == CIntegerLiteralExpression.ZERO) {
+      if (stmt == null
+          || (stmt instanceof CExpressionStatement
+              && ((CExpressionStatement) stmt).getExpression() == CIntegerLiteralExpression.ZERO)) {
         return handleAllSideEffects(prevNode, fileLocation, rawSignature, false);
       } else {
         prevNode = handleAllSideEffects(prevNode, fileLocation, rawSignature, true);
@@ -1139,7 +1158,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         loc =
             new FileLocation(
                 loc.getFileName(),
-                niceFileNameFunction.apply(loc.getFileName()),
+                parseContext.mapFileNameToNameForHumans(loc.getFileName()),
                 fileLocation.getNodeOffset(),
                 loc.getNodeLength() + loc.getNodeOffset() - fileLocation.getNodeOffset(),
                 fileLocation.getStartingLineNumber(),
@@ -1149,33 +1168,17 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
 
      CExpression expression = exp;
-      if (flippedThenElse && !allowBranchSwapping) {
-        expression = buildBinaryExpression(expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
-        CFANode tmp = thenNodeForLastThen;
-        thenNodeForLastThen = elseNodeForLastElse;
-        elseNodeForLastElse = tmp;
-      }
 
       if (ASTOperatorConverter.isBooleanExpression(expression)) {
         addConditionEdges(expression, rootNode, thenNodeForLastThen, elseNodeForLastElse,
-            loc);
+            loc, flippedThenElse);
         return Optional.of(exp);
 
-      } else if (allowBranchSwapping) {
+      } else {
         // build new boolean expression: a==0 and swap branches
         CExpression conv = buildBinaryExpression(exp, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS);
 
-        addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen, loc);
-
-        return Optional.<CExpression>of(exp);
-      } else {
-        // build new double-negation boolean expression: (a==0)==0
-        CExpression conv = buildBinaryExpression(
-            buildBinaryExpression(expression, CIntegerLiteralExpression.ZERO, BinaryOperator.EQUALS),
-            CIntegerLiteralExpression.ZERO,
-            BinaryOperator.EQUALS);
-
-        addConditionEdges(conv, rootNode, thenNodeForLastThen, elseNodeForLastElse, loc);
+        addConditionEdges(conv, rootNode, elseNodeForLastElse, thenNodeForLastThen, loc, !flippedThenElse);
 
         return Optional.<CExpression>of(exp);
       }
@@ -1188,15 +1191,16 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category conditions
    */
   private void addConditionEdges(CExpression condition, CFANode rootNode,
-      CFANode thenNode, CFANode elseNode, FileLocation fileLocation) {
+      CFANode thenNode, CFANode elseNode, FileLocation fileLocation,
+      boolean pIsSwapped) {
     // edge connecting condition with thenNode
     final CAssumeEdge trueEdge = new CAssumeEdge(condition.toASTString(),
-        fileLocation, rootNode, thenNode, condition, true);
+        fileLocation, rootNode, thenNode, condition, true, pIsSwapped);
     addToCFA(trueEdge);
 
     // edge connecting condition with elseNode
     final CAssumeEdge falseEdge = new CAssumeEdge("!(" + condition.toASTString() + ")",
-        fileLocation, rootNode, elseNode, condition, false);
+        fileLocation, rootNode, elseNode, condition, false, pIsSwapped);
     addToCFA(falseEdge);
   }
 
@@ -1387,7 +1391,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       // "int counter = 0;"
       final IASTDeclaration decl = ((IASTDeclarationStatement)statement).getDeclaration();
       if (!(decl instanceof IASTSimpleDeclaration)) {
-        throw new CFAGenerationRuntimeException("Unexpected declaration in header of for loop", decl, niceFileNameFunction);
+        throw parseContext.parseError("Unexpected declaration in header of for loop", decl);
       }
       return createEdgeForDeclaration((IASTSimpleDeclaration)decl, fileLocation, prevNode);
 
@@ -1401,7 +1405,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       return prevNode;
 
     } else {
-      throw new CFAGenerationRuntimeException("Unexpected statement type in header of for loop", statement, niceFileNameFunction);
+      throw parseContext.parseError("Unexpected statement type in header of for loop", statement);
     }
   }
 
@@ -1470,6 +1474,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     locStack.push(new CFANode(cfa.getFunctionName()));
 
     switchDefaultStack.push(null);
+    switchDefaultFileLocationStack.push(null);
 
     // visit only body, getBody() != getChildren()
     statement.getBody().accept(this);
@@ -1478,6 +1483,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode lastNodeInSwitch = locStack.pop();
     final CFANode lastNotCaseNode = switchCaseStack.pop();
     final CFANode defaultCaseNode = switchDefaultStack.pop();
+    final FileLocation defaultCaseFileLocation = switchDefaultFileLocationStack.pop();
 
     switchExprStack.pop();
 
@@ -1496,7 +1502,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       // blank edge connecting rootNode with defaultCaseNode
       final BlankEdge defaultEdge = new BlankEdge(statement.getRawSignature(),
-          FileLocation.DUMMY, lastNotCaseNode, defaultCaseNode, "default");
+          defaultCaseFileLocation, lastNotCaseNode, defaultCaseNode, "default");
       addToCFA(defaultEdge);
     }
 
@@ -1579,7 +1585,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
       case NORMAL:
         assert ASTOperatorConverter.isBooleanExpression(exp);
-        addConditionEdges(exp, rootNode, caseNode, notCaseNode, fileLocation);
+        addConditionEdges(exp, rootNode, caseNode, notCaseNode, fileLocation, false);
         nextCaseStartsAtNode = notCaseNode;
         break;
 
@@ -1630,8 +1636,8 @@ class CFAFunctionBuilder extends ASTVisitor {
               "either both conditions can be evaluated or not, but mixed is not allowed";
 
       final CFANode intermediateNode = newCFANode();
-      addConditionEdges(firstExp, rootNode, intermediateNode, notCaseNode, fileLocation);
-      addConditionEdges(secondExp, intermediateNode, caseNode, notCaseNode, fileLocation);
+      addConditionEdges(firstExp, rootNode, intermediateNode, notCaseNode, fileLocation, false);
+      addConditionEdges(secondExp, intermediateNode, caseNode, notCaseNode, fileLocation, false);
       nextCaseStartsAtNode = notCaseNode;
     }
 
@@ -1651,10 +1657,12 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // Update switchDefaultStack with the new node
     final CFANode oldDefaultNode = switchDefaultStack.pop();
-    if (oldDefaultNode != null) {
-      throw new CFAGenerationRuntimeException("Duplicate default statement in switch", statement, niceFileNameFunction);
+    final FileLocation oldDefaultFileLocation = switchDefaultFileLocationStack.pop();
+    if (oldDefaultNode != null || oldDefaultFileLocation != null) {
+      throw parseContext.parseError("Duplicate default statement in switch", statement);
     }
     switchDefaultStack.push(caseNode);
+    switchDefaultFileLocationStack.push(fileLocation);
 
     // fall-through (case before has no "break")
     final CFANode oldNode = locStack.pop();
@@ -1751,7 +1759,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else if (exp instanceof CStatement) {
       stmt = (CStatement)exp;
     } else if (!(exp instanceof CRightHandSide)) {
-      throw new CFAGenerationRuntimeException("invalid expression type");
+      throw parseContext.parseError("invalid expression type", lastExp);
     } else {
       stmt = createStatement(lastExpLocation, null, (CRightHandSide)exp);
     }
@@ -1767,24 +1775,23 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private CFANode handleCompoundStatementExpression(IGNUASTCompoundStatementExpression compoundExp,
       final CFANode rootNode, final CIdExpression tempVar) {
-
-    scope.enterBlock();
-
     IASTStatement[] statements = compoundExp.getCompoundStatement().getStatements();
     if (statements.length == 0) {
-      throw new CFAGenerationRuntimeException("Empty compound-statement expression", compoundExp, niceFileNameFunction);
+      throw parseContext.parseError("Empty compound-statement expression", compoundExp);
     }
+
+    scope.enterBlock();
+    locStack.push(rootNode);
 
     int locDepth = locStack.size();
     int conditionDepth = elseStack.size();
     int loopDepth = loopStartStack.size();
 
-    locStack.push(rootNode);
+    // Handling all but the last statement is easy.
     for (int i = 0; i < statements.length-1; i++) {
       IASTStatement statement = statements[i];
       statement.accept(this);
     }
-    CFANode middleNode = locStack.pop();
 
     assert locDepth == locStack.size();
     assert conditionDepth == elseStack.size();
@@ -1792,43 +1799,60 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     IASTStatement lastStatement = statements[statements.length-1];
     if (lastStatement instanceof IASTProblemStatement) {
-      throw new CFAGenerationRuntimeException((IASTProblemStatement) lastStatement, niceFileNameFunction);
+      throw parseContext.parseError((IASTProblemStatement) lastStatement);
     }
 
-    if (lastStatement instanceof CASTDeclarationStatement && tempVar == null) {
-      locStack.push(middleNode);
-      visit(lastStatement);
+    // If we do not need a return value, last statement is also easy.
+    if (tempVar == null) {
+      lastStatement.accept(this);
+      scope.leaveBlock();
       return locStack.pop();
     }
 
-    FileLocation fileLocation = astCreator.getLocation(compoundExp);
-
     if (!(lastStatement instanceof IASTExpressionStatement)) {
-       if (tempVar == null) {
-         CFANode lastNode = handleAllSideEffects(middleNode, fileLocation, lastStatement.getRawSignature(), true);
-         scope.leaveBlock();
-         return lastNode;
-       }
-
-      throw new CFAGenerationRuntimeException("Unsupported statement type " + lastStatement.getClass().getSimpleName() + " at end of compound-statement expression", lastStatement, niceFileNameFunction);
+      throw parseContext.parseError(
+          "Unsupported statement type "
+              + lastStatement.getClass().getSimpleName()
+              + " at end of compound-statement expression",
+          lastStatement);
     }
 
-    CAstNode exp = astCreator.convertExpressionWithSideEffects(((IASTExpressionStatement)lastStatement).getExpression());
+    // Now we need to convert the last statement and get a value that we can assign to tempVar.
+    CAstNode exp =
+        astCreator.convertExpressionWithSideEffects(
+            ((IASTExpressionStatement) lastStatement).getExpression());
 
-    middleNode = handleAllSideEffects(middleNode, fileLocation, lastStatement.getRawSignature(), true);
-    CStatement stmt;
-    if (exp instanceof CStatement) {
-      stmt = (CStatement)exp;
+    CFANode middleNode = locStack.pop();
+    CRightHandSide rhs;
+    if (exp instanceof CRightHandSide) {
+      middleNode =
+          handleAllSideEffects(
+              middleNode,
+              astCreator.getLocation(lastStatement),
+              lastStatement.getRawSignature(),
+              true);
+      rhs = (CRightHandSide) exp;
     } else {
-      stmt = createStatement(astCreator.getLocation(compoundExp),
-          tempVar, (CRightHandSide)exp);
+      Verify.verify(
+          exp instanceof CAssignment,
+          "Unexpected expression that is not an assignment nor a RHS, but %s: %s",
+          exp.getClass(),
+          exp);
+      middleNode =
+          createIASTExpressionStatementEdges(
+              lastStatement.getRawSignature(),
+              astCreator.getLocation(lastStatement),
+              middleNode,
+              ((CAssignment) exp));
+      rhs = ((CAssignment) exp).getLeftHandSide();
     }
-    CFANode lastNode = newCFANode();
-    CFAEdge edge = new CStatementEdge(stmt.toASTString(), stmt, fileLocation, middleNode, lastNode);
-    addToCFA(edge);
+
+    CStatement stmt = createStatement(astCreator.getLocation(compoundExp), tempVar, rhs);
+    CFANode lastNode =
+        createIASTExpressionStatementEdges(
+            stmt.toASTString(), stmt.getFileLocation(), middleNode, stmt);
 
     scope.leaveBlock();
-
     return lastNode;
   }
 

@@ -23,21 +23,21 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
-import org.sosy_lab.cpachecker.cpa.invariants.Typed;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundInterval;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManager;
+import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
+import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
+import org.sosy_lab.cpachecker.cpa.invariants.Typed;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * The singleton instance of this class is a compound state invariants formula
@@ -76,6 +76,26 @@ public class PartialEvaluator implements
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
     this.environment = pEnvironment;
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (this == pObj) {
+      return true;
+    }
+    if (pObj instanceof PartialEvaluator) {
+      PartialEvaluator other = (PartialEvaluator) pObj;
+      return compoundIntervalManagerFactory.equals(other.compoundIntervalManagerFactory)
+          && compoundIntervalFormulaManager.equals(other.compoundIntervalFormulaManager)
+          && environment.equals(other.environment);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        compoundIntervalManagerFactory, compoundIntervalFormulaManager, environment);
   }
 
   private CompoundIntervalManager getCompoundIntervalManager(TypeInfo pTypeInfo) {
@@ -268,6 +288,18 @@ public class PartialEvaluator implements
         return result;
       }
     }
+    // If either operand is false, return it
+    if (operand1 instanceof BooleanConstant<?> && !((BooleanConstant<?>) operand1).getValue()) {
+      return operand1;
+    }
+    if (operand2 instanceof BooleanConstant<?> && !((BooleanConstant<?>) operand2).getValue()) {
+      return operand2;
+    }
+    // If both operands are true, return the first one
+    if (operand1 instanceof BooleanConstant<?> && ((BooleanConstant<?>) operand1).getValue()
+        && operand2 instanceof BooleanConstant<?> && ((BooleanConstant<?>) operand2).getValue()) {
+      return operand1;
+    }
     if (operand1 == pAnd.getOperand1() && operand2 == pAnd.getOperand2()) {
       return pAnd;
     }
@@ -286,6 +318,9 @@ public class PartialEvaluator implements
     // The negation of a negation yields the inner operand
     if (operand instanceof LogicalNot<?>) {
       return ((LogicalNot<CompoundInterval>) operand).getNegated();
+    }
+    if (operand instanceof BooleanConstant<?>) {
+      return ((BooleanConstant<CompoundInterval>) operand).negate();
     }
     if (operand == pNot.getNegated()) {
       return pNot;

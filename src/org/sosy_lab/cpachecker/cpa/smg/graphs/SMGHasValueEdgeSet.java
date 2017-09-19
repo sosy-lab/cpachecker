@@ -24,58 +24,70 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.collect.ImmutableSet;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
-import java.util.HashSet;
-import java.util.Set;
+  private final PersistentMultimap<SMGObject, SMGEdgeHasValue> map;
 
+  public SMGHasValueEdgeSet() {
+    map = PersistentMultimap.of();
+  }
 
-public class SMGHasValueEdgeSet extends HashSet<SMGEdgeHasValue> implements SMGHasValueEdges {
-
-  private static final long serialVersionUID = 2898673244970871322L;
-
-  @Override
-  public SMGHasValueEdges copy() {
-    SMGHasValueEdgeSet copy = new SMGHasValueEdgeSet();
-    copy.addAll(this);
-    return copy;
+  private SMGHasValueEdgeSet(PersistentMultimap<SMGObject, SMGEdgeHasValue> pMap) {
+    map = pMap;
   }
 
   @Override
-  public void removeAllEdgesOfObject(SMGObject pObj) {
-    Set<SMGEdgeHasValue> toRemove = SMGEdgeHasValueFilter.objectFilter(pObj).filterSet(this);
+  public SMGHasValueEdgeSet removeAllEdgesOfObjectAndCopy(SMGObject obj) {
+    return new SMGHasValueEdgeSet(map.removeAndCopy(obj));
+  }
 
-    for (SMGEdgeHasValue edge : toRemove) {
-      remove(edge);
+  @Override
+  public SMGHasValueEdgeSet addEdgeAndCopy(SMGEdgeHasValue pEdge) {
+    return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), pEdge));
+  }
+
+  @Override
+  public SMGHasValueEdgeSet removeEdgeAndCopy(SMGEdgeHasValue pEdge) {
+    PersistentMultimap<SMGObject, SMGEdgeHasValue> updated =
+        map.removeAndCopy(pEdge.getObject(), pEdge);
+    if (map == updated) {
+      return this;
+    } else {
+      return new SMGHasValueEdgeSet(updated);
     }
   }
 
   @Override
-  public void addEdge(SMGEdgeHasValue pEdge) {
-    add(pEdge);
+  public ImmutableSet<SMGEdgeHasValue> getHvEdges() {
+    return map.values();
   }
 
   @Override
-  public void removeEdge(SMGEdgeHasValue pEdge) {
-    remove(pEdge);
+  public @Nullable ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
+    return map.get(pObject);
   }
 
   @Override
-  public void replaceHvEdges(Set<SMGEdgeHasValue> pNewHV) {
-    clear();
-    addAll(pNewHV);
+  public int hashCode() {
+    return map.hashCode();
   }
 
   @Override
-  public Set<SMGEdgeHasValue> getHvEdges() {
-    return ImmutableSet.copyOf(this);
+  public boolean equals(Object pObj) {
+    if (pObj instanceof SMGHasValueEdgeSet) {
+      SMGHasValueEdgeSet other = (SMGHasValueEdgeSet) pObj;
+      return map.equals(other.map);
+    }
+    return false;
   }
 
   @Override
-  public Set<SMGEdgeHasValue> filter(SMGEdgeHasValueFilter pFilter) {
-    return pFilter.filterSet(this);
+  public String toString() {
+    return map.toString();
   }
 }

@@ -25,7 +25,16 @@ package org.sosy_lab.cpachecker.util.refinement;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-
+import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,13 +42,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -52,17 +62,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-
-import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * Generic path interpolator. Always performs edge interpolation.
@@ -77,7 +76,8 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   @Option(secure=true, description="whether or not to perform path slicing before interpolation")
   private boolean pathSlicing = true;
 
-  @Option(secure=true, description="which prefix of an actual counterexample trace should be used for interpolation")
+  @Option(secure=true, description="which prefix of an actual counterexample trace should be used"
+      + " for interpolation", toUppercase = true)
   private List<PrefixPreference> prefixPreference = ImmutableList.of(PrefixPreference.DOMAIN_MIN, PrefixPreference.LENGTH_MIN);
 
   /**
@@ -185,6 +185,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
       final ARGPath pErrorPath,
       final I pInterpolant
   ) throws CPAException, InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
 
     prefixExtractionTime.start();
     List<InfeasiblePrefix> prefixes =
@@ -291,7 +292,14 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
           startNode = originalEdge.getPredecessor();
           endNode = originalEdge.getSuccessor();
         }
-        abstractEdges.set(iterator.getIndex(), BlankEdge.buildNoopEdge(startNode, endNode));
+        abstractEdges.set(
+            iterator.getIndex(),
+            new BlankEdge(
+                originalEdge == null ? "" : originalEdge.getRawStatement(),
+                originalEdge == null ? FileLocation.DUMMY : originalEdge.getFileLocation(),
+                startNode,
+                endNode,
+                "sliced edge"));
       }
 
       if (originalEdge != null) {
@@ -377,7 +385,7 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out).beginLevel();
     writer.put(timerInterpolation)
         .put(totalInterpolations)

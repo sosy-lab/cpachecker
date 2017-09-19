@@ -36,6 +36,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
  */
 public final class CTypeDefDeclaration extends CTypeDeclaration {
 
+  private static final long serialVersionUID = -8939387997205706731L;
+
   public CTypeDefDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
       CType pType, String pName, String pQualifiedName) {
     super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), checkNotNull(pQualifiedName));

@@ -26,14 +26,14 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
-
-import java.util.Optional;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public abstract class AbstractCFAEdge implements CFAEdge {
 
+  private static final long serialVersionUID = -8493135984889665408L;
   private final CFANode predecessor;
   private final CFANode successor;
   private final String rawStatement;
@@ -69,7 +69,7 @@ public abstract class AbstractCFAEdge implements CFAEdge {
 
   @Override
   public Optional<? extends AAstNode> getRawAST() {
-    return Optional.empty();
+    return Optional.absent();
   }
 
   @Override

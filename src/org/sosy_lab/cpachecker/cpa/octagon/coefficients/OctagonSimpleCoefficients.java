@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.octagon.coefficients;
 
+import com.google.common.base.Preconditions;
 import java.util.Arrays;
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonDoubleValue;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonIntValue;
@@ -33,8 +33,6 @@ import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonNumericValue;
 import org.sosy_lab.cpachecker.util.octagon.NumArray;
 import org.sosy_lab.cpachecker.util.octagon.OctagonManager;
-
-import com.google.common.base.Preconditions;
 
 @SuppressWarnings("rawtypes")
 public class OctagonSimpleCoefficients extends AOctagonCoefficients {
@@ -364,8 +362,8 @@ public class OctagonSimpleCoefficients extends AOctagonCoefficients {
   @Override
   public boolean hasOnlyOneValue() {
     boolean foundValue = false;
-    for (int i = 0; i < coefficients.length; i++) {
-      if (!coefficients[i].isEqual(OctagonIntValue.ZERO)) {
+    for (OctagonNumericValue coefficient : coefficients) {
+      if (!coefficient.isEqual(OctagonIntValue.ZERO)) {
         if (foundValue) {
           return false;
         }

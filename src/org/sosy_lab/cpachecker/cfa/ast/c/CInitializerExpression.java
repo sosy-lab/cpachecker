@@ -31,6 +31,8 @@ public final class CInitializerExpression extends AInitializerExpression impleme
 
 
 
+  private static final long serialVersionUID = 2706992437396660354L;
+
   public CInitializerExpression(final FileLocation pFileLocation,
                                    final CExpression pExpression) {
     super(pFileLocation, pExpression);

@@ -2,7 +2,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java_cup.runtime.*;
 import java_cup.runtime.ComplexSymbolFactory.Location;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 @javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all", "cast", "MissingOverride" })
+@SuppressWarnings(value = { "all", "cast", "FallThrough" })
 @edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
 %%
 
@@ -53,7 +53,7 @@ import java.util.logging.Level;
       return null;
     }
 
-    MoreFiles.checkReadableFile(file);
+    IO.checkReadableFile(file);
     scannedFiles.add(file);
     filesStack.push(file);
     return file;
@@ -162,6 +162,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "TARGET"            { return symbol("TARGET", AutomatonSym.TARGET); }
 <YYINITIAL> "IS_TARGET_STATE"   { return symbol("IS_TARGET_STATE", AutomatonSym.IS_TARGET_STATE); }
 <YYINITIAL> ","                 { return symbol("COMMA", AutomatonSym.COMMA); }
+<YYINITIAL> "COVERS_LINES"       { return symbol("COVERS_LINES", AutomatonSym.COVERS_LINES); }
 
 <YYINITIAL> {
   /* identifiers */ 

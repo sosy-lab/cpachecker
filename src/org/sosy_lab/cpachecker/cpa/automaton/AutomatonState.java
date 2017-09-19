@@ -29,7 +29,12 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -40,13 +45,6 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
-
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * This class combines a AutomatonInternal State with a variable Configuration.
@@ -64,12 +62,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     public TOP(ControlAutomatonCPA pAutomatonCPA) {
       super(
-          Collections.<String, AutomatonVariable>emptyMap(),
-          new AutomatonInternalState(
-              "_predefinedState_TOP", Collections.<AutomatonTransition>emptyList()),
+          Collections.emptyMap(),
+          new AutomatonInternalState("_predefinedState_TOP", Collections.emptyList()),
           pAutomatonCPA,
           ImmutableList.of(),
-          ExpressionTrees.<AExpression>getTrue(),
+          ExpressionTrees.getTrue(),
           0,
           0,
           null);
@@ -91,11 +88,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
     public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
       super(
-          Collections.<String, AutomatonVariable>emptyMap(),
+          Collections.emptyMap(),
           AutomatonInternalState.BOTTOM,
           pAutomatonCPA,
           ImmutableList.of(),
-          ExpressionTrees.<AExpression>getTrue(),
+          ExpressionTrees.getTrue(),
           0,
           0,
           null);
@@ -119,7 +116,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private transient final ExpressionTree<AExpression> candidateInvariants;
   private int matches = 0;
   private int failedMatches = 0;
-  private final AutomatonSafetyProperty violatedPropertyDescription;
+  private transient final AutomatonSafetyProperty violatedPropertyDescription;
 
   static AutomatonState automatonStateFactory(
       Map<String, AutomatonVariable> pVars,
@@ -154,7 +151,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
         pInternalState,
         pAutomatonCPA,
         ImmutableList.of(),
-        ExpressionTrees.<AExpression>getTrue(),
+        ExpressionTrees.getTrue(),
         successfulMatches,
         failedMatches,
         violatedPropertyDescription);
@@ -395,7 +392,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     return internalState.getName();
   }
 
-  Map<String, AutomatonVariable> getVars() {
+  public Map<String, AutomatonVariable> getVars() {
    return vars;
   }
 
@@ -413,6 +410,16 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     in.defaultReadObject();
     int stateId = in.readInt();
     internalState = GlobalInfo.getInstance().getAutomatonInfo().getStateById(stateId);
+    if(internalState == null) {
+      if(stateId == AutomatonInternalState.ERROR.getStateId()) {
+        internalState = AutomatonInternalState.ERROR;
+      } else if(stateId == AutomatonInternalState.BREAK.getStateId()) {
+        internalState = AutomatonInternalState.BREAK;
+      } else if(stateId == AutomatonInternalState.BOTTOM.getStateId()) {
+        internalState = AutomatonInternalState.BOTTOM;
+      }
+    }
+
     automatonCPA = GlobalInfo.getInstance().getAutomatonInfo().getCPAForAutomaton((String)in.readObject());
   }
 

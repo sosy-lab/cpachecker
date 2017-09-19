@@ -27,14 +27,21 @@ import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static java.util.stream.Collectors.toCollection;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-import static org.sosy_lab.common.collect.MoreCollectors.toPersistentLinkedList;
+import static org.sosy_lab.common.collect.PersistentLinkedList.toPersistentLinkedList;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-
+import com.google.common.math.IntMath;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -51,15 +58,6 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedSet;
-
 
 public interface PointerTargetSetBuilder {
 
@@ -104,11 +102,13 @@ public interface PointerTargetSetBuilder {
 
   SortedSet<String> getAllBases();
 
-  PersistentList<PointerTarget> getAllTargets(CType type);
+  PersistentList<PointerTarget> getAllTargets(MemoryRegion region);
 
-  Iterable<PointerTarget> getMatchingTargets(CType type, Predicate<PointerTarget> pattern);
+  Iterable<PointerTarget> getMatchingTargets(MemoryRegion region, Predicate<PointerTarget> pattern);
 
-  Iterable<PointerTarget> getNonMatchingTargets(CType type, Predicate<PointerTarget> pattern);
+  Iterable<PointerTarget> getNonMatchingTargets(MemoryRegion region, Predicate<PointerTarget> pattern);
+
+  int getFreshAllocationId();
 
   /**
    * Returns an immutable PointerTargetSet with all the changes made to the builder.
@@ -131,6 +131,7 @@ public interface PointerTargetSetBuilder {
     private final TypeHandlerWithPointerAliasing typeHandler;
     private final PointerTargetSetManager ptsMgr;
     private final FormulaEncodingWithPointerAliasingOptions options;
+    private final MemoryRegionManager regionMgr;
 
     // These fields all exist in PointerTargetSet and are documented there.
     private PersistentSortedMap<String, CType> bases;
@@ -138,6 +139,7 @@ public interface PointerTargetSetBuilder {
     private PersistentSortedMap<CompositeField, Boolean> fields;
     private PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+    private int allocationCount;
 
     // Used in addEssentialFields()
     private final Predicate<Pair<CCompositeType, String>> isNewFieldPredicate =
@@ -187,16 +189,19 @@ public interface PointerTargetSetBuilder {
         final FormulaManagerView pFormulaManager,
         final TypeHandlerWithPointerAliasing pTypeHandler,
         final PointerTargetSetManager pPtsMgr,
-        final FormulaEncodingWithPointerAliasingOptions pOptions) {
+        final FormulaEncodingWithPointerAliasingOptions pOptions,
+        final MemoryRegionManager pRegionMgr) {
       bases = pointerTargetSet.getBases();
       lastBase = pointerTargetSet.getLastBase();
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
       targets = pointerTargetSet.getTargets();
+      allocationCount = pointerTargetSet.getAllocationCount();
       formulaManager = pFormulaManager;
       typeHandler = pTypeHandler;
       ptsMgr = pPtsMgr;
       options = pOptions;
+      regionMgr = pRegionMgr;
     }
 
 
@@ -209,7 +214,7 @@ public interface PointerTargetSetBuilder {
      * @param type The type of the allocated base or the next added pointer target
      */
     private void addTargets(final String name, CType type) {
-      targets = ptsMgr.addToTargets(name, type, null, 0, 0, targets, fields);
+      targets = ptsMgr.addToTargets(name, null, type, null, 0, 0, targets, fields);
     }
 
     /**
@@ -314,8 +319,8 @@ public interface PointerTargetSetBuilder {
      */
     private void addTargets(final String base,
                             final CType cType,
-                            final int properOffset,
-                            final int containerOffset,
+                            final long properOffset,
+                            final long containerOffset,
                             final String composite,
                             final String memberName) {
       checkIsSimplified(cType);
@@ -329,7 +334,7 @@ public interface PointerTargetSetBuilder {
         for (int i = 0; i < length; ++i) {
           addTargets(base, arrayType.getType(), offset, containerOffset + properOffset,
                      composite, memberName);
-          offset += typeHandler.getSizeof(arrayType.getType());
+          offset += typeHandler.getBitSizeof(arrayType.getType());
         }
       } else if (cType instanceof CCompositeType) {
         final CCompositeType compositeType = (CCompositeType) cType;
@@ -337,13 +342,14 @@ public interface PointerTargetSetBuilder {
         final String type = CTypeUtils.typeToString(compositeType);
         final boolean isTargetComposite = type.equals(composite);
         for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-          final int offset = typeHandler.getOffset(compositeType, memberDeclaration.getName());
+          final long offset = typeHandler.getBitOffset(compositeType, memberDeclaration.getName());
           if (fields.containsKey(CompositeField.of(type, memberDeclaration.getName()))) {
             addTargets(base, memberDeclaration.getType(), offset, containerOffset + properOffset,
                        composite, memberName);
           }
           if (isTargetComposite && memberDeclaration.getName().equals(memberName)) {
-            targets = ptsMgr.addToTargets(base, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
+            MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
+            targets = ptsMgr.addToTargets(base, newRegion, memberDeclaration.getType(), compositeType, offset, containerOffset + properOffset, targets, fields);
           }
         }
       }
@@ -667,38 +673,38 @@ public interface PointerTargetSetBuilder {
     /**
      * Gets a list of all targets of a pointer type.
      *
-     * @param type The type of the pointer variable.
+     * @param region The region of the pointer variable.
      * @return A list of all targets of a pointer type.
      */
     @Override
-    public PersistentList<PointerTarget> getAllTargets(final CType type) {
-      return targets.getOrDefault(CTypeUtils.typeToString(type), PersistentLinkedList.of());
+    public PersistentList<PointerTarget> getAllTargets(final MemoryRegion region) {
+      return targets.getOrDefault(regionMgr.getPointerAccessName(region), PersistentLinkedList.of());
     }
 
     /**
      * Gets all matching targets of a pointer target pattern.
      *
-     * @param type The type of the pointer variable.
+     * @param region The region of the pointer variable.
      * @param pattern The pointer target pattern.
      * @return A list of matching pointer targets.
      */
     @Override
     public Iterable<PointerTarget> getMatchingTargets(
-        final CType type, final Predicate<PointerTarget> pattern) {
-      return from(getAllTargets(type)).filter(pattern);
+        final MemoryRegion region, final Predicate<PointerTarget> pattern) {
+      return from(getAllTargets(region)).filter(pattern);
     }
 
     /**
      * Gets all spurious targets of a pointer target pattern.
      *
-     * @param type The type of the pointer variable.
+     * @param region The region of the pointer variable.
      * @param pattern The pointer target pattern.
      * @return A list of spurious pointer targets.
      */
     @Override
     public Iterable<PointerTarget> getNonMatchingTargets(
-        final CType type, final Predicate<PointerTarget> pattern) {
-      return from(getAllTargets(type)).filter(not(pattern));
+        final MemoryRegion region, final Predicate<PointerTarget> pattern) {
+      return from(getAllTargets(region)).filter(not(pattern));
     }
 
     /**
@@ -708,13 +714,20 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public PointerTargetSet build() {
-      PointerTargetSet result = new PointerTargetSet(bases, lastBase, fields,
-          deferredAllocations, targets);
+      PointerTargetSet result =
+          new PointerTargetSet(
+              bases, lastBase, fields, deferredAllocations, targets, allocationCount);
       if (result.isEmpty()) {
         return PointerTargetSet.emptyPointerTargetSet();
       } else {
         return result;
       }
+    }
+
+    /** Returns a fresh ID that can be used as identifier for a heap allocation. */
+    @Override
+    public int getFreshAllocationId() {
+      return allocationCount = IntMath.checkedAdd(allocationCount, 1);
     }
   }
 
@@ -814,19 +827,24 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public PersistentList<PointerTarget> getAllTargets(CType pType) {
+    public PersistentList<PointerTarget> getAllTargets(MemoryRegion region) {
       throw new UnsupportedOperationException();
     }
 
     @Override
     public Iterable<PointerTarget> getMatchingTargets(
-        CType pType, Predicate<PointerTarget> pPattern) {
+        MemoryRegion region, Predicate<PointerTarget> pPattern) {
       throw new UnsupportedOperationException();
     }
 
     @Override
     public Iterable<PointerTarget> getNonMatchingTargets(
-        CType pType, Predicate<PointerTarget> pPattern) {
+        MemoryRegion region, Predicate<PointerTarget> pPattern) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int getFreshAllocationId() {
       throw new UnsupportedOperationException();
     }
 

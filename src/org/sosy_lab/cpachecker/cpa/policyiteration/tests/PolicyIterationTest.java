@@ -145,7 +145,7 @@ public class PolicyIterationTest {
 
   @Test public void unrolling_true_assert() throws Exception {
     check("unrolling_true_assert.c",
-        ImmutableMap.of("cpa.loopstack.loopIterationsBeforeAbstraction", "2"));
+        ImmutableMap.of("cpa.loopbound.loopIterationsBeforeAbstraction", "2"));
   }
 
   @Test public void timeout_true_assert() throws Exception {
@@ -156,7 +156,8 @@ public class PolicyIterationTest {
     // Use explicit value analysis to track boolean variables.
     check("boolean_true_assert.c",
         ImmutableMap.of("cpa.lpi.maxExpressionSize", "2",
-            "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.loopstack.LoopstackCPA, cpa.value.ValueAnalysisCPA, cpa.policyiteration.PolicyCPA",
+            "CompositeCPA.cpas", "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.functionpointer.FunctionPointerCPA, cpa.loopbound.LoopBoundCPA, cpa.value.ValueAnalysisCPA, cpa.policyiteration.PolicyCPA",
+            "cpa.loopbound.trackStack", "true",
             "precision.trackIntAddVariables", "false",
             "precision.trackVariablesBesidesEqAddBool", "false"));
   }

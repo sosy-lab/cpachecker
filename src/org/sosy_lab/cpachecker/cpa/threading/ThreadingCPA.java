@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.threading;
 
 import com.google.common.base.Preconditions;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -49,6 +48,8 @@ public class ThreadingCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     Preconditions.checkNotNull(pNode);
+    // We create an empty ThreadingState and enter the main function with the first thread.
+    // We use the main function's name as thread identifier.
     String mainThread = pNode.getFunctionName();
     return ((ThreadingTransferRelation) getTransferRelation())
         .addNewThread(new ThreadingState(), mainThread, ThreadingState.MIN_THREAD_NUM, mainThread);

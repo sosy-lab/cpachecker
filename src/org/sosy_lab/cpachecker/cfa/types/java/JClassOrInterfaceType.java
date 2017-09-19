@@ -23,17 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.java;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Description of a Java class or interface.
@@ -56,7 +56,7 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
   private final String name;
   private final String simpleName;
 
-  private final JClassOrInterfaceType enclosingType;
+  private final @Nullable JClassOrInterfaceType enclosingType;
   private final Set<JClassOrInterfaceType> nestedTypes = new HashSet<>();
 
   /**

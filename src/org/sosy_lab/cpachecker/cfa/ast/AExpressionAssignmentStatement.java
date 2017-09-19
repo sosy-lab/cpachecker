@@ -30,6 +30,7 @@ import java.util.Objects;
 
 public abstract class AExpressionAssignmentStatement extends AbstractStatement implements AAssignment {
 
+  private static final long serialVersionUID = -6099960243945488221L;
   private final ALeftHandSide leftHandSide;
   private final AExpression rightHandSide;
 

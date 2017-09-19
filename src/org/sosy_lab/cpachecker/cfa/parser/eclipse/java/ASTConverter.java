@@ -27,10 +27,20 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-
+import com.google.common.collect.Sets;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ArrayAccess;
@@ -137,18 +147,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 
 class ASTConverter {
@@ -581,7 +579,7 @@ class ASTConverter {
 
     JExpression expr = convertExpressionWithoutSideEffects(s.getExpression());
 
-    return new JReturnStatement(getFileLocation(s), Optional.ofNullable(expr));
+    return new JReturnStatement(getFileLocation(s), Optional.fromNullable(expr));
   }
 
 /**
@@ -2436,17 +2434,18 @@ class ASTConverter {
     return exp;
   }
 
-  private static final Set<BinaryOperator> BOOLEAN_BINARY_OPERATORS = ImmutableSet.of(
-      BinaryOperator.EQUALS,
-      BinaryOperator.NOT_EQUALS,
-      BinaryOperator.GREATER_EQUAL,
-      BinaryOperator.GREATER_THAN,
-      BinaryOperator.LESS_EQUAL,
-      BinaryOperator.LESS_THAN,
-      BinaryOperator.LOGICAL_AND,
-      BinaryOperator.LOGICAL_OR,
-      BinaryOperator.CONDITIONAL_AND,
-      BinaryOperator.CONDITIONAL_OR);
+  private static final ImmutableSet<BinaryOperator> BOOLEAN_BINARY_OPERATORS =
+      Sets.immutableEnumSet(
+          BinaryOperator.EQUALS,
+          BinaryOperator.NOT_EQUALS,
+          BinaryOperator.GREATER_EQUAL,
+          BinaryOperator.GREATER_THAN,
+          BinaryOperator.LESS_EQUAL,
+          BinaryOperator.LESS_THAN,
+          BinaryOperator.LOGICAL_AND,
+          BinaryOperator.LOGICAL_OR,
+          BinaryOperator.CONDITIONAL_AND,
+          BinaryOperator.CONDITIONAL_OR);
 
   /**
    * Checks if the given Expression returns a Value of

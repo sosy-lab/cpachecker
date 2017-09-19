@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,66 +23,71 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
+import java.util.concurrent.atomic.LongAccumulator;
+import java.util.concurrent.atomic.LongAdder;
 
+/** Thread-safe implementation of numerical statistics. */
 public class StatInt extends AbstractStatValue {
 
-  private int maxValue = Integer.MIN_VALUE;
-  private int minValue = Integer.MAX_VALUE;
-  private int valueCount = 0;
-  private int valueSum = 0;
+  private LongAccumulator maxValue = new LongAccumulator(Math::max, Integer.MIN_VALUE);
+  private LongAccumulator minValue = new LongAccumulator(Math::min, Integer.MAX_VALUE);
+  private LongAdder valueCount = new LongAdder();
+  private LongAdder valueSum = new LongAdder();
 
   public StatInt(StatKind pMainStatisticKind, String pTitle) {
     super(pMainStatisticKind, pTitle);
   }
 
   public void setNextValue(int newValue) {
-    valueSum += newValue;
-    valueCount += 1;
-    maxValue = Math.max(newValue, maxValue);
-    minValue = Math.min(newValue, minValue);
+    valueSum.add(newValue);
+    valueCount.increment();
+    maxValue.accumulate(newValue);
+    minValue.accumulate(newValue);
   }
 
-  public int getMaxValue() {
-    return valueCount == 0 ? 0 : maxValue;
+  public long getMaxValue() {
+    return valueCount.sum() == 0 ? 0 : maxValue.intValue();
   }
 
-  public int getMinValue() {
-    return valueCount == 0 ? 0 : minValue;
+  public long getMinValue() {
+    return valueCount.sum() == 0 ? 0 : minValue.intValue();
   }
 
-  public int getValueCount() {
-    return valueCount;
+  public long getValueCount() {
+    return valueCount.sum();
   }
 
-  public int getValueSum() {
-    return valueSum;
+  public long getValueSum() {
+    return valueSum.sum();
   }
 
   public float getAverage() {
-    if (valueCount > 0) {
-      return (float) valueSum / (float) valueCount;
+    long count = valueCount.sum();
+    if (count > 0) {
+      return (float) valueSum.sum() / count;
     } else {
       return 0;
     }
   }
 
-  public int getMax() {
-    return maxValue;
+  public long getMax() {
+    return maxValue.get();
   }
 
-  public int getMin() {
-    return minValue;
+  public long getMin() {
+    return minValue.get();
   }
 
   @Override
   public int getUpdateCount() {
-    return valueCount;
+    return valueCount.intValue();
   }
 
   @Override
   public String toString() {
-    return String.format("%8d (count: %d, min: %d, max: %d, avg: %.2f)",
-        valueSum, valueCount, getMinValue(), getMaxValue(), getAverage());
+    return String.format(
+        "%8d (count: %d, min: %d, max: %d, avg: %.2f)",
+        getValueSum(), getValueCount(), getMinValue(), getMaxValue(), getAverage());
   }
 
 }

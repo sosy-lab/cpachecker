@@ -26,18 +26,22 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.java_smt.api.Formula;
-
-import javax.annotation.Nullable;
 
 abstract class Expression {
   static abstract class Location extends Expression {
     static final class AliasedLocation extends Location {
 
       private AliasedLocation(final Formula address) {
+        this(address, null);
+      }
+
+      private AliasedLocation(final Formula address, @Nullable final MemoryRegion region) {
         this.address = address;
+        this.region = region;
       }
 
       Formula getAddress() {
@@ -81,6 +85,13 @@ abstract class Expression {
       }
 
       private final Formula address;
+
+      private final @Nullable MemoryRegion region;
+
+      @Nullable
+      MemoryRegion getMemoryRegion() {
+        return region;
+      }
     }
 
     static final class UnaliasedLocation extends Location {
@@ -134,6 +145,10 @@ abstract class Expression {
 
     static AliasedLocation ofAddress(final Formula address) {
       return new AliasedLocation(checkNotNull(address));
+    }
+
+    static AliasedLocation ofAddressWithRegion(final Formula address, final MemoryRegion region) {
+      return new AliasedLocation(checkNotNull(address), checkNotNull(region));
     }
 
     static UnaliasedLocation ofVariableName(final String variableName) {

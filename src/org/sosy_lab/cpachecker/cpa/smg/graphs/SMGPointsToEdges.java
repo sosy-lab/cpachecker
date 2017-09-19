@@ -23,35 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 
-import java.util.Map;
-import java.util.Set;
+/** An immutable collection of points-to-edges. */
+public interface SMGPointsToEdges extends Iterable<SMGEdgePointsTo> {
 
-public interface SMGPointsToEdges {
+  // Modifying methods
 
-  public SMGPointsToEdges copy();
+  public SMGPointsToEdges addAndCopy(SMGEdgePointsTo pEdge);
 
-  public void add(SMGEdgePointsTo pEdge);
+  public SMGPointsToEdges removeAndCopy(SMGEdgePointsTo pEdge);
 
-  public void remove(SMGEdgePointsTo pEdge);
+  public SMGPointsToEdges removeAllEdgesOfObjectAndCopy(SMGObject pObj);
 
-  public void removeAllEdgesOfObject(SMGObject pObj);
+  public SMGPointsToEdges removeEdgeWithValueAndCopy(int pValue);
 
-  public void removeEdgeWithValue(int pValue);
-
-  public Map<Integer, SMGEdgePointsTo> asMap();
+  // Querying methods
 
   public boolean containsEdgeWithValue(Integer pValue);
 
-  public SMGEdgePointsTo getEdgeWithValue(Integer pValue);
+  public @Nullable SMGEdgePointsTo getEdgeWithValue(Integer pValue);
 
-  public void clear();
-
-  public Set<SMGEdgePointsTo> filter(SMGEdgePointsToFilter pFilter);
-
-  public Set<SMGEdgePointsTo> asSet();
+  public int size();
 
 }

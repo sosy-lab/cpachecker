@@ -24,7 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.base.Verify;
-
+import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -46,9 +47,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Objects;
-import java.util.Optional;
 
 public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
@@ -115,13 +113,13 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
             @Override
             public BooleanFormula getInvariantFor(
                 CFANode location,
-                Optional<CallstackWrapper> callstackInformation,
+                Optional<CallstackStateEqualsWrapper> callstackInformation,
                 FormulaManagerView fmgr,
                 PathFormulaManager pfmgr,
                 PathFormula pContext) {
               try {
                 return prover.getCurrentLocationInvariants(
-                    location, callstackInformation, fmgr, pfmgr, pContext);
+                    location, fmgr, pfmgr, pContext);
               } catch (InterruptedException | CPAException e) {
                 return fmgr.getBooleanFormulaManager().makeTrue();
               }

@@ -24,28 +24,23 @@
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.Iterators;
-
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGAbstractObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 
 final class SMGJoinMatchObjects {
   private boolean defined = false;
   private SMGJoinStatus status;
 
   private static boolean checkNull(SMGObject pObj1, SMGObject pObj2) {
-    if (pObj1.notNull() && pObj2.notNull()) {
-      return false;
-    }
-
-    return true;
+    return pObj1 == SMGNullObject.INSTANCE || pObj2 == SMGNullObject.INSTANCE;
   }
 
   private static boolean checkMatchingMapping(SMGObject pObj1, SMGObject pObj2,

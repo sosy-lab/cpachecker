@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -51,18 +53,18 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, RuntimeExceptio
   }
 
   @Override
-  public Void visitDefault(CType pT) {
+  public @Nullable Void visitDefault(CType pT) {
     return null;
   }
 
   @Override
-  public Void visit(CArrayType pArrayType) {
+  public @Nullable Void visit(CArrayType pArrayType) {
     pArrayType.getType().accept(this);
     return null;
   }
 
   @Override
-  public Void visit(CCompositeType pCompositeType) {
+  public @Nullable Void visit(CCompositeType pCompositeType) {
     for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
       member.getType().accept(this);
     }
@@ -70,7 +72,7 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, RuntimeExceptio
   }
 
   @Override
-  public Void visit(CElaboratedType pElaboratedType) {
+  public @Nullable Void visit(CElaboratedType pElaboratedType) {
     if (pElaboratedType.getRealType() == null) {
 
       CComplexType realType = scope.lookupType(pElaboratedType.getQualifiedName());
@@ -88,7 +90,7 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, RuntimeExceptio
   }
 
   @Override
-  public Void visit(CFunctionType pFunctionType) {
+  public @Nullable Void visit(CFunctionType pFunctionType) {
     pFunctionType.getReturnType().accept(this);
     for (CType parameter : pFunctionType.getParameters()) {
       parameter.accept(this);
@@ -97,14 +99,20 @@ class FillInAllBindingsVisitor extends DefaultCTypeVisitor<Void, RuntimeExceptio
   }
 
   @Override
-  public Void visit(CPointerType pPointerType) {
+  public @Nullable Void visit(CPointerType pPointerType) {
     pPointerType.getType().accept(this);
     return null;
   }
 
   @Override
-  public Void visit(CTypedefType pTypedefType) {
+  public @Nullable Void visit(CTypedefType pTypedefType) {
     pTypedefType.getRealType().accept(this);
+    return null;
+  }
+
+  @Override
+  public @Nullable Void visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+    pCBitFieldType.getType().accept(this);
     return null;
   }
 }

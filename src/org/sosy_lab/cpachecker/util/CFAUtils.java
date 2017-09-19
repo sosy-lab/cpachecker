@@ -38,8 +38,15 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Queues;
 import com.google.common.collect.TreeTraverser;
 import com.google.common.collect.UnmodifiableIterator;
-
-import org.sosy_lab.common.Optionals;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.SortedSet;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
@@ -108,16 +115,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.SortedSet;
 
 public class CFAUtils {
 
@@ -484,7 +481,7 @@ public class CFAUtils {
     return Collections.unmodifiableSet(result);
   }
 
-  private static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
+  public static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(final CFAEdge edge) {
     switch (edge.getEdgeType()) {
       case CallToReturnEdge:
         FunctionSummaryEdge fnSumEdge = (FunctionSummaryEdge) edge;
@@ -493,11 +490,11 @@ public class CFAUtils {
       case FunctionCallEdge:
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
         return Iterables.concat(
-            Optionals.asSet(edge.getRawAST()),
+            edge.getRawAST().asSet(),
             getAstNodesFromCfaEdge(functionCallEdge.getSummaryEdge()));
 
       default:
-        return Optionals.asSet(edge.getRawAST());
+        return edge.getRawAST().asSet();
     }
   }
 
@@ -706,7 +703,7 @@ public class CFAUtils {
 
     @Override
     public Iterable<? extends AAstNode> visit(AReturnStatement pNode) {
-      return Optionals.asSet(pNode.getReturnValue());
+      return pNode.getReturnValue().asSet();
     }
 
     @Override

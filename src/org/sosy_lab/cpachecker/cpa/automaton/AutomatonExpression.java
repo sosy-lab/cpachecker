@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.logging.Level;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -154,6 +153,15 @@ interface AutomatonExpression {
      */
     resultType getValue() {
       return value;
+    }
+
+    @Override
+    public String toString() {
+      if (canNotEvaluate()) {
+        return String.format("not evaluated (%s)", failureMessage);
+      } else {
+        return getValue().toString();
+      }
     }
   }
 }

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.collect.SortedSetMultimap;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -64,8 +64,6 @@ import org.sosy_lab.cpachecker.cfa.types.java.JInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.Pair;
-
-import com.google.common.collect.SortedSetMultimap;
 
 /**
  * This class models the dynamic bindings of Java in a CFA.
@@ -647,8 +645,8 @@ class DynamicBindingCreator {
       return false;
     }
 
-    final JType firstReturnType = (JType) firstType.getReturnType();
-    final JType sndReturnType = (JType) sndType.getReturnType();
+    final JType firstReturnType = firstType.getReturnType();
+    final JType sndReturnType = sndType.getReturnType();
 
     if (!firstReturnType.equals(sndReturnType)) {
 

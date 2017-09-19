@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-
+import java.math.BigDecimal;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -40,8 +40,6 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.NumeralFormula;
 import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 import org.sosy_lab.java_smt.api.UFManager;
-
-import java.math.BigDecimal;
 
 class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
         extends BaseManagerView
@@ -313,5 +311,14 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public FloatingPointFormula makeNaN(FloatingPointType pType) {
     return wrap(pType, nanVariable);
+  }
+
+  @Override
+  public FloatingPointFormula round(
+      FloatingPointFormula pNumber, FloatingPointRoundingMode pRoundingMode) {
+    FormulaType<T> type = numericFormulaManager.getFormulaType();
+    FunctionDeclaration<T> roundFunction =
+        functionManager.declareUF("__round_" + pRoundingMode, type, type);
+    return wrap(getFormulaType(pNumber), functionManager.callUF(roundFunction, unwrap(pNumber)));
   }
 }

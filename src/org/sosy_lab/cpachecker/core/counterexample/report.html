@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html ng-app='report'>
+<head>
+<meta charset="UTF-8">
+<!-- METATAGS -->
+<title>CPAchecker Report</title>
+<!-- REPORT_CSS -->
+
+<link rel="stylesheet" type="text/css" href="https://www.sosy-lab.org/lib/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha256-916EbMg70RQy9LHiGkXzG8hSg9EdNy97GazNG/aiY1w=" crossorigin="anonymous">
+<script src="https://www.sosy-lab.org/lib/jquery/3.2.1/jquery.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+<script src="https://www.sosy-lab.org/lib/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>
+<script src="https://www.sosy-lab.org/lib/angularjs/1.6.5/angular.min.js" integrity="sha256-zBy1l2WBAh2vPF8rnjFMUXujsfkKjya0Jy5j6yKj0+Q=" crossorigin="anonymous"></script>
+<script src="https://www.sosy-lab.org/lib/d3js/3.5.17/d3.min.js" integrity="sha256-dsOXGNHAo/syFnazt+KTBsCQeRmlcW1XKL0bCK4Baec=" crossorigin="anonymous"></script>
+<script src="https://www.sosy-lab.org/lib/dagre-d3/0.4.17/dagre-d3.min.js" integrity="sha256-X4zma2GcAwVB3HkYqRbLl5ihF4ZnVc95EzZLsQ6ZAKE=" crossorigin="anonymous"></script>
+<script src="https://www.sosy-lab.org/lib/google-code-prettify/2017-01-13-c8a660b/run_prettify.js" integrity="sha256-BiZ7IhC9RtaPNJUrs+oO0+I2ea+vE9NVvCXQluQrnYQ=" crossorigin="anonymous"></script>
+<script>
+<!-- REPORT_JS -->
+	
+</script>
+</head>
+<body ng-controller="ReportController" id="report-controller" onload="init()">
+	<header class="header">
+		<a href="https://cpachecker.sosy-lab.org/"><img class="logo"
+			ng-src="{{logo}}" /></a>
+		<h1>
+			Report for
+			<!-- REPORT_NAME -->
+		</h1>
+		<span class="generated"> 
+		<!-- GENERATED -->
+		</span>
+	</header>
+	
+	<div class="modal fade" id="renderStateModal" role="dialog">
+		<div class="modal-dialog">
+      		<div class="modal-content">
+        		<div class="modal-header">
+          			<h4 class="modal-title">Graphs Rendering Progress</h4>
+        		</div>
+        		<div class="modal-body">
+          			<p class="loader">Rendered CFA graphs &nbsp; <span id="cfa-modal"></span></p>
+          			<p class="loader">Rendered ARG graphs &nbsp; <span id="arg-modal"></span></p>
+          			<p id="arg-modal-error" class="loader" style="display: none;"> Render ARG Error Graph </p>
+        		</div>
+      		</div>
+    	</div>
+	</div>
+
+<div class="sections">
+
+  <section id="errorpath_section" ng-controller="ErrorpathController">
+	<header ng-controller="SearchController">
+      <div class="btn-group">
+        <button class="btn btn-success" ng-click="errPathPrevClicked($event)">Prev</button>
+        <button class="btn btn-warning" ng-click="errPathStartClicked()">Start</button>
+        <button class="btn btn-success" ng-click="errPathNextClicked($event)">Next</button>
+      </div>
+      <a tabindex="0" role="button" data-toggle="popover" data-placement="right"
+         data-trigger="focus" data-content="{{help_errorpath}}"
+         class="btn btn-default btn-lg help_button">
+        <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+      </a>
+	  <div class="input-group input-group-sm">
+        <input type="text" ng-keydown="checkIfEnter($event)" class="form-control search-input"
+               placeholder="Search for...">
+          <span class="input-group-btn">
+              <button ng-click="searchFor()" class="btn btn-default" type="button">
+                <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+              </button>
+          </span>
+      </div>
+	  <div id="searchOptions">
+        <label for="optionExactMatch">
+          <input id="optionExactMatch" type="checkbox" name="searchOption">
+          Find only exact matches
+        </label>
+      </div>
+      <div id="matches">
+        <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
+        <p class="markedDescriptions">Matches in edge-description: {{numOfDescriptionMatches}}</p>
+      </div>
+    </header>
+	<div class="fileContent" ng-controller="ValueAssignmentsController" id="value-assignment">
+      <table id="err-table">
+        <tr id="errpath-{{$index}}" ng-repeat="line in errorPath">
+          <td ng-click="showValues($event)" data-toggle="popover" data-placement="right"
+              data-trigger="click" data-content="{{line.valString}}">
+            <pre>-V-</pre>
+          </td>
+          <td class="disabled" ng-click="clickedErrpathElement($event)">
+            <pre class="make-pretty">{{line.desc}}</pre>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </section>
+  
+  <section id="externalFiles_section">
+    <nav>
+      <ul class="nav nav-pills">
+        <li ng-class="{active: tabIsSet(1)}">
+          <a href ng-click="setTab(1)" id="set-tab-1">CFA</a>
+        </li>
+        <li ng-class="{active: tabIsSet(2)}">
+          <a href ng-click="setTab(2)" id="set-tab-2">ARG</a>
+        </li>
+        <li ng-class="{active: tabIsSet(3)}">
+          <a href ng-click="setTab(3)" id="set-tab-3">Source</a>
+        </li>
+        <li ng-class="{active: tabIsSet(4)}">
+          <a href ng-click="setTab(4)">Log</a>
+        </li>
+        <li ng-class="{active: tabIsSet(5)}">
+          <a href ng-click="setTab(5)">Statistics</a>
+        </li>
+        <li ng-class="{active: tabIsSet(6)}">
+          <a href ng-click="setTab(6)">Configurations</a>
+        </li>
+        <a tabindex="0" role="button" data-toggle="popover" data-placement="bottom"
+           data-trigger="focus" data-content="{{help_content}}"
+           class="btn btn-default btn-lg help_button">
+          <span class="glyphicon glyphicon-question-sign" aria-hidden="true"></span>
+        </a>
+      </ul>
+    </nav>
+    
+    <div id="cfa-toolbar" ng-controller="CFAToolbarController">
+		<label>Displayed CFA</label>
+		<select class="btn btn-default selectpicker"
+			ng-options="f as f for f in functions" ng-model="selectedCFAFunction" ng-change="setCFAFunction()">
+		</select>
+		<label>Mouse Wheel Zoom</label>
+		<span class="button-checkbox">
+			<button class="btn btn-default" id="cfa-zoom-button" type="button" data-color="primary"
+				ng-click="zoomControl()">
+				<i class="glyphicon glyphicon-unchecked"></i></button>
+		</span>
+		<label>Split Threshold</label>
+      	<input type="text" id="cfa-split-threshold">
+        <button class="btn btn-default" type="button" ng-click="redraw()">
+        	<i class="glyphicon glyphicon-refresh"></i>
+        </button>
+    </div>	
+	 
+    <div id="cfa-container" ng-class="{active: tabIsSet(1)}">      
+    </div>
+    
+    <div id="arg-toolbar" ng-controller="ARGToolbarController">
+    	<label>Displayed ARG</label>
+    	<select class="btn btn-default selectpicker"
+    		ng-options="s as s for s in argSelections" ng-model="$root.displayedARG" ng-change="displayARG()"></select>
+    	<label>Mouse Wheel Zoom</label>
+		<span class="button-checkbox">
+			<button class="btn btn-default" id="arg-zoom-button" type="button" data-color="primary"
+				ng-click="argZoomControl()">
+				<i class="glyphicon glyphicon-unchecked"></i></button>
+		</span>
+		<label>Split Threshold</label>
+      	<input type="text" id="arg-split-threshold">
+        <button class="btn btn-default" type="button" ng-click="argRedraw()">
+        	<i class="glyphicon glyphicon-refresh"></i>
+        </button>    	
+    </div>
+    
+    <div id="arg-container" ng-class="{active: tabIsSet(2)}">
+    </div>
+    <div class="fileContent content" ng-show="tabIsSet(3)" ng-class="{active: tabIsSet(3)}"
+         ng-controller="SourceController">
+      <div class="edit-line">
+        <div class="dropdown" id="dropdownMenu2">
+          <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown"
+                  aria-haspopup="true" aria-expanded="true">
+            Displayed Sourcefile
+            <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu pre-scrollable">
+            <li ng-repeat="file in sourceFiles"><a ng-click="setSourceFile($index)">{{file}}</a>
+            </li>
+          </ul>
+        </div>
+        <label>{{sourceFiles[selectedSourceFile]}}</label>
+      </div>
+      <!--SOURCE_CONTENT-->
+    </div>
+    <div class="fileContent content" ng-show="tabIsSet(4)" ng-class="{active: tabIsSet(4)}">
+      <!--LOG-->
+    </div>
+    <div class="fileContent content" ng-show="tabIsSet(5)" ng-class="{active: tabIsSet(5)}">
+      <!--STATISTICS-->
+    </div>
+    <div class="fileContent content" ng-show="tabIsSet(6)" ng-class="{active: tabIsSet(6)}">
+      <!--CONFIGURATION-->
+    </div>
+  </section>
+</div>
+	<div id="infoBox" style="z-index: 1; visibility: hidden;">
+		<div id="insideBox">
+			<span id="boxContent">&nbsp;</span>
+		</div>
+	</div>
+</body>
+</html>

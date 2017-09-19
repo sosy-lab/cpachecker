@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-
-import java.util.List;
-import java.util.Objects;
 
 /**
  *  This class represents a Array initializer AST node type.
@@ -43,6 +42,7 @@ import java.util.Objects;
 public final class JArrayInitializer extends AbstractExpression
     implements JAstNode, JInitializer, JExpression {
 
+  private static final long serialVersionUID = -9034136529891743726L;
   private final List<JExpression> initializerExpressions;
 
   public JArrayInitializer(FileLocation pFileLocation, List<JExpression> pInitializerExpression, JArrayType pType) {

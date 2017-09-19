@@ -140,6 +140,8 @@ public class ConstraintsCPA implements ConfigurableProgramAnalysis, StatisticsPr
     return abstractDomain;
   }
 
+  public Solver getSolver() { return solver; }
+
   @Override
   public AbstractDomain getAbstractDomain() {
     return abstractDomain;

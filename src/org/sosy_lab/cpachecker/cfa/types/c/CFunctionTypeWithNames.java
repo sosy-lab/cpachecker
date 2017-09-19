@@ -23,18 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-
 import java.util.List;
 import java.util.Objects;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 
 /**
  * This is a subclass of {@link CFunctionType} that is necessary during AST
@@ -50,15 +46,11 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
   private final List<CParameterDeclaration> parameters;
 
   public CFunctionTypeWithNames(
-      boolean pConst,
-      boolean pVolatile,
       CType pReturnType,
       List<CParameterDeclaration> pParameters,
       boolean pTakesVarArgs) {
 
     super(
-        pConst,
-        pVolatile,
         pReturnType,
         FluentIterable.from(pParameters).transform(CParameterDeclaration::getType).toList(),
         pTakesVarArgs);
@@ -71,39 +63,13 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
   }
 
   @Override
+  public String toString() {
+    return toASTString(Strings.nullToEmpty(getName()), getParameterDeclarations());
+  }
+
+  @Override
   public String toASTString(String pDeclarator) {
-    StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
-    lASTString.append(getReturnType().toASTString(""));
-    lASTString.append(" ");
-
-    if (pDeclarator.startsWith("*")) {
-      // this is a function pointer, insert parentheses
-      lASTString.append("(");
-      lASTString.append(pDeclarator);
-      lASTString.append(")");
-    } else {
-      lASTString.append(pDeclarator);
-    }
-
-    lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, getParameterDeclarations());
-    if (takesVarArgs()) {
-      if (!getParameters().isEmpty()) {
-        lASTString.append(", ");
-      }
-      lASTString.append("...");
-    }
-    lASTString.append(")");
-
-    return lASTString.toString();
+    return toASTString(pDeclarator, getParameterDeclarations());
   }
 
   @Override
@@ -142,7 +108,6 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
 
   private Object writeReplace() {
     // Cannot serialize parameter names, but typically this is not necessary anyway.
-    return new CFunctionType(
-        isConst(), isVolatile(), getReturnType(), getParameters(), takesVarArgs());
+    return new CFunctionType(getReturnType(), getParameters(), takesVarArgs());
   }
 }

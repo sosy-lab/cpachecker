@@ -25,9 +25,9 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -37,8 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
-
-import com.google.common.collect.ImmutableList;
 
 public final class CDefaults {
 
@@ -92,6 +90,9 @@ public final class CDefaults {
 
     } else if (type instanceof CArrayType) {
       return emptyAggregate(fileLoc);
+
+    } else if (type instanceof CBitFieldType) {
+      return forType(((CBitFieldType) type).getType(), fileLoc);
 
     } else {
       throw new IllegalArgumentException("Type " + type + " has no default value");

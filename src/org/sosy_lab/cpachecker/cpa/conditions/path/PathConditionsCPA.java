@@ -23,8 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.conditions.path;
 
+import java.util.Collection;
+import java.util.Collections;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -34,8 +37,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
-import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.defaults.StaticPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.defaults.StopAlwaysOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,7 +44,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -51,9 +51,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
-
-import java.util.Collection;
-import java.util.Collections;
 
 /**
  * CPA for path conditions ({@link PathCondition}).
@@ -65,6 +62,13 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
   @Option(secure = true, description = "The condition", name = "condition", required = true)
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cpa.conditions.path")
   private PathCondition.Factory conditionClass;
+
+  @Option(secure = true,
+      description = "Number of times the path condition may be adjusted, i.e., the path condition threshold may be increased (-1 to always adjust)",
+      name = "adjustment.threshold")
+  @IntegerOption(min=-1)
+  private int adjustmentThreshold = -1;
+  private int performedAdjustments = 0;
 
   private final PathCondition condition;
 
@@ -103,13 +107,12 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
-  }
-
-  @Override
   public boolean adjustPrecision() {
-    return condition.adjustPrecision();
+    if (adjustmentThreshold == -1 || performedAdjustments < adjustmentThreshold) {
+      performedAdjustments++;
+      return condition.adjustPrecision();
+    }
+    return false;
   }
 
   @Override
@@ -120,11 +123,6 @@ public class PathConditionsCPA implements ConfigurableProgramAnalysisWithBAM, Ad
   @Override
   public MergeOperator getMergeOperator() {
     return MergeSepOperator.getInstance();
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return StaticPrecisionAdjustment.getInstance();
   }
 
   @Override

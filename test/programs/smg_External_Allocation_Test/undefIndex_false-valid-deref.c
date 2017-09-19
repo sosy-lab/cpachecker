@@ -9,7 +9,7 @@ int foo() {
   struct Recursive *a;
   struct Recursive ar[10];
   a = malloc(sizeof(struct Recursive));
-  if (a->s > 10) {
+  if (a->s >= 10) {
     a->p = ar[a->s];
   }
   free(a);

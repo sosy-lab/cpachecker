@@ -26,17 +26,34 @@ package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-
+import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,7 +61,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
@@ -78,27 +95,6 @@ import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
-
-import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * This class is the central entry point for all formula creation
@@ -337,7 +333,7 @@ public class FormulaManagerView {
   public void dumpFormulaToFile(BooleanFormula f, Path outputFile) {
     if (outputFile != null) {
       try {
-        MoreFiles.writeFile(outputFile, Charset.defaultCharset(), this.dumpFormula(f));
+        IO.writeFile(outputFile, Charset.defaultCharset(), this.dumpFormula(f));
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e, "Failed to save formula to file");
       }
@@ -849,8 +845,18 @@ public class FormulaManagerView {
         makeLessOrEqual(start, term, signed), makeLessOrEqual(term, end, signed));
   }
 
+  /** Create a variable with an SSA index. */
   public <T extends Formula> T makeVariable(FormulaType<T> formulaType, String name, int idx) {
     return makeVariable(formulaType, makeName(name, idx));
+  }
+
+  /**
+   * Create a variable that should never get an SSA index, even when calling {@link
+   * #instantiate(Formula, SSAMap)}.
+   */
+  public <T extends Formula> T makeVariableWithoutSSAIndex(
+      FormulaType<T> formulaType, String name) {
+    return makeVariable(formulaType, makeNameNoIndex(name));
   }
 
   public IntegerFormulaManagerView getIntegerFormulaManager() {
@@ -921,54 +927,56 @@ public class FormulaManagerView {
     return manager.parse(pS);
   }
 
-  /**
-   * Instantiate a list (!! guarantees to keep the ordering) of formulas.
-   *  @see #instantiate(Formula, SSAMap)
-   */
-  public <F extends Formula> List<F> instantiate(Collection<F> pFormulas, final SSAMap pSsa) {
-    return transformedImmutableListCopy(pFormulas, f -> instantiate(f, pSsa));
-  }
-
-  public Set<String> instantiate(Iterable<String> pVariableNames, final SSAMap pSsa) {
-    return from(pVariableNames).transform(pArg0 -> {
-      Pair<String, OptionalInt> parsedVar = parseName(pArg0);
-      return makeName(parsedVar.getFirst(), pSsa.getIndex(parsedVar.getFirst()));
-    }).toSet();
-  }
-
   // the character for separating name and index of a value
-  private static final String INDEX_SEPARATOR = "@";
+  private static final char INDEX_SEPARATOR = '@';
+  private static final Splitter INDEX_SPLITTER = Splitter.on(INDEX_SEPARATOR);
 
   static String makeName(String name, int idx) {
-    if (idx < 0) {
-      return name;
-    }
+    checkArgument(
+        name.indexOf(INDEX_SEPARATOR) == -1,
+        "Instantiating already instantiated variable %s with index %s",
+        name,
+        idx);
+    checkArgument(idx >= 0, "Invalid index %s for variable %s", idx, name);
     return name + INDEX_SEPARATOR + idx;
   }
 
+  static String makeNameNoIndex(String name) {
+    checkArgument(
+        name.indexOf(INDEX_SEPARATOR) == -1, "Variable with forbidden symbol '@': %s", name);
+    return name + INDEX_SEPARATOR;
+  }
+
 
   /**
-   * (Re-)instantiate the variables in pF with the SSA indices in pSsa.
-   *
-   * Existing instantiations are REPLACED by the
-   * indices that are provided in the SSA map!
+   * Instantiate the variables in pF with the SSA indices in pSsa. Already instantiated variables
+   * are not allowed in the formula.
    */
   public <F extends Formula> F instantiate(F pF, final SSAMap pSsa) {
-    return wrap(getFormulaType(pF),
-        myFreeVariableNodeTransformer(unwrap(pF), new HashMap<>(),
+    return wrap(
+        getFormulaType(pF),
+        myFreeVariableNodeTransformer(
+            unwrap(pF),
+            new HashMap<>(),
             pFullSymbolName -> {
-              final Pair<String, OptionalInt> indexedSymbol = parseName(pFullSymbolName);
-              final int reInstantiateWithIndex = pSsa.getIndex(indexedSymbol.getFirst());
+              int sepPos = pFullSymbolName.indexOf(INDEX_SEPARATOR);
+              if (sepPos == pFullSymbolName.length() - 1) {
+                // variable should never be instantiated
+                // TODO check no index in SSAMap
+                return pFullSymbolName;
+              } else if (sepPos != -1) {
+                throw new IllegalArgumentException(
+                    "already instantiated variable " + pFullSymbolName + " in formula");
+              }
+              final int reInstantiateWithIndex = pSsa.getIndex(pFullSymbolName);
 
               if (reInstantiateWithIndex > 0) {
-                // OK, the variable has ALREADY an instance in the SSA, REPLACE it
-                return makeName(indexedSymbol.getFirst(), reInstantiateWithIndex);
+                return makeName(pFullSymbolName, reInstantiateWithIndex);
               } else {
-                // the variable is not used in the SSA, keep it as is
+                // TODO throw exception
                 return pFullSymbolName;
               }
-            })
-        );
+            }));
   }
 
   // various caches for speeding up expensive tasks
@@ -984,14 +992,28 @@ public class FormulaManagerView {
    * @throws IllegalArgumentException thrown if the given name is invalid
    */
   public static Pair<String, OptionalInt> parseName(final String name) {
-    String[] s = name.split(INDEX_SEPARATOR);
-    if (s.length == 2) {
-      return Pair.of(s[0], OptionalInt.of(Integer.parseInt(s[1])));
-    } else if (s.length == 1) {
-      return Pair.of(s[0], OptionalInt.empty());
+    checkArgument(name.length() > 0, "Invalid empty name");
+    List<String> parts = INDEX_SPLITTER.splitToList(name);
+    if (parts.size() == 2) {
+      if (parts.get(1).isEmpty()) {
+        // Variable name ending in @ marks variables that should not be instantiated
+        return Pair.of(parts.get(0), OptionalInt.empty());
+      }
+      return Pair.of(parts.get(0), OptionalInt.of(Integer.parseInt(parts.get(1))));
+    } else if (parts.size() == 1) {
+      // TODO throw exception after forbidding such variable names
+      return Pair.of(parts.get(0), OptionalInt.empty());
     } else {
       throw new IllegalArgumentException("Not an instantiated variable nor constant: " + name);
     }
+  }
+
+  /**
+   * Add SSA indices to a single variable name. Typically it is not necessary and not recommended to
+   * use this method, prefer more high-level methods like {@link #instantiate(Formula, SSAMap)}.
+   */
+  public static String instantiateVariableName(String pVar, SSAMap pSsa) {
+    return makeName(pVar, pSsa.getIndex(pVar));
   }
 
   /**
@@ -1002,10 +1024,15 @@ public class FormulaManagerView {
    * @return    Uninstantiated formula
    */
   public <F extends Formula> F uninstantiate(F f) {
-    return wrap(getFormulaType(f),
-        myFreeVariableNodeTransformer(unwrap(f), uninstantiateCache,
-            pArg0 -> parseName(pArg0).getFirst())
-        );
+    return wrap(
+        getFormulaType(f),
+        myFreeVariableNodeTransformer(
+            unwrap(f),
+            uninstantiateCache,
+            pArg0 ->
+                pArg0.charAt(pArg0.length() - 1) == INDEX_SEPARATOR
+                    ? pArg0
+                    : parseName(pArg0).getFirst()));
   }
 
   /**
@@ -1224,7 +1251,8 @@ public class FormulaManagerView {
           Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
         if ((functionDeclaration.getKind() == FunctionDeclarationKind.EQ
             || functionDeclaration.getKind() == FunctionDeclarationKind.EQ_ZERO)
-            && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()) {
+            && !functionDeclaration.getArgumentTypes().get(0).isBooleanType()
+            && !functionDeclaration.getArgumentTypes().get(0).isArrayType()) {
 
           Formula arg1 = args.get(0);
           Formula arg2;
@@ -1482,22 +1510,20 @@ public class FormulaManagerView {
   }
 
   public Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa) {
-    return getDeadFunctionNames(pFormula, pSsa, true);
+    return getFunctionNames(pFormula, varName -> isIntermediate(varName, pSsa), true);
   }
 
-  private Set<String> getDeadFunctionNames(BooleanFormula pFormula, SSAMap pSsa,
-      boolean extractUFs) {
-    return myGetDeadVariables(pFormula, pSsa, extractUFs).keySet();
+  private Set<String> getFunctionNames(
+      BooleanFormula pFormula, Predicate<String> pIsDesired, boolean extractUFs) {
+    return myGetDesiredVariables(pFormula, pIsDesired, extractUFs).keySet();
   }
 
   /**
-   * Do not make this method public, because the returned formulas have incorrect
-   * types (they are not appropriately wrapped).
+   * Do not make this method public, because the returned formulas have incorrect types (they are
+   * not appropriately wrapped).
    */
-  private Map<String, Formula> myGetDeadVariables(
-      BooleanFormula pFormula,
-      SSAMap pSsa,
-      boolean extractUF) {
+  private Map<String, Formula> myGetDesiredVariables(
+      BooleanFormula pFormula, Predicate<String> pIsDesired, boolean extractUF) {
     Map<String, Formula> result = new HashMap<>();
 
     Map<String, Formula> vars;
@@ -1511,7 +1537,7 @@ public class FormulaManagerView {
 
       String name = entry.getKey();
       Formula varFormula = entry.getValue();
-      if (isIntermediate(name, pSsa)) {
+      if (pIsDesired.apply(name)) {
         result.put(name, varFormula);
       }
     }
@@ -1534,10 +1560,24 @@ public class FormulaManagerView {
       final SSAMap pSsa)
     throws SolverException, InterruptedException {
 
-    Preconditions.checkNotNull(pF);
     Preconditions.checkNotNull(pSsa);
+    return eliminateVariables(pF, varName -> isIntermediate(varName, pSsa));
+  }
 
-    Map<String, Formula> irrelevantVariables = myGetDeadVariables(pF, pSsa, false);
+  /**
+   * Eliminate all propositions about variables described by a given predicate in a given formula.
+   *
+   * <p>Quantifier elimination is used! This has to be supported by the solver! (solver-independent
+   * approaches would be possible)
+   */
+  public BooleanFormula eliminateVariables(
+      final BooleanFormula pF, final Predicate<String> pToEliminate)
+      throws SolverException, InterruptedException {
+
+    Preconditions.checkNotNull(pF);
+    Preconditions.checkNotNull(pToEliminate);
+
+    Map<String, Formula> irrelevantVariables = myGetDesiredVariables(pF, pToEliminate, false);
 
     BooleanFormula eliminationResult = pF;
 
@@ -1558,7 +1598,8 @@ public class FormulaManagerView {
    */
   public BooleanFormula quantifyDeadVariables(BooleanFormula pF,
       SSAMap pSSAMap) {
-    Map<String, Formula> irrelevantVariables = myGetDeadVariables(pF, pSSAMap, false);
+    Map<String, Formula> irrelevantVariables =
+        myGetDesiredVariables(pF, varName -> isIntermediate(varName, pSSAMap), false);
     if (irrelevantVariables.isEmpty()) {
       return pF;
     }
@@ -1650,7 +1691,10 @@ public class FormulaManagerView {
       T f,
       FormulaTransformationVisitor pFormulaVisitor) {
     @SuppressWarnings("unchecked")
-    T out = (T) manager.transformRecursively(unwrap(f), pFormulaVisitor);
+    T out =
+        (T)
+            manager.transformRecursively(
+                unwrap(f), new UnwrappingFormulaTransformationVisitor(pFormulaVisitor));
     return out;
   }
 
@@ -1704,5 +1748,47 @@ public class FormulaManagerView {
     protected FormulaTransformationVisitor(FormulaManagerView fmgr) {
       super(fmgr.manager);
     }
+  }
+
+  private class UnwrappingFormulaTransformationVisitor
+      extends org.sosy_lab.java_smt.api.visitors.FormulaTransformationVisitor {
+
+    private final FormulaTransformationVisitor delegate;
+
+    protected UnwrappingFormulaTransformationVisitor(FormulaTransformationVisitor pDelegate) {
+      super(manager);
+      delegate = Objects.requireNonNull(pDelegate);
+    }
+
+    @Override
+    public Formula visitBoundVariable(Formula pF, int pDeBruijnIdx) {
+      return unwrap(delegate.visitBoundVariable(pF, pDeBruijnIdx));
+    }
+
+    @Override
+    public Formula visitFreeVariable(Formula pF, String pName) {
+      return unwrap(delegate.visitFreeVariable(pF, pName));
+    }
+
+    @Override
+    public Formula visitFunction(
+        Formula pF, List<Formula> pNewArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+      return unwrap(delegate.visitFunction(pF, pNewArgs, pFunctionDeclaration));
+    }
+
+    @Override
+    public Formula visitConstant(Formula pF, Object pValue) {
+      return unwrap(delegate.visitConstant(pF, pValue));
+    }
+
+    @Override
+    public BooleanFormula visitQuantifier(
+        BooleanFormula pF,
+        Quantifier pQuantifier,
+        List<Formula> pBoundVariables,
+        BooleanFormula pTransformedBody) {
+      return delegate.visitQuantifier(pF, pQuantifier, pBoundVariables, pTransformedBody);
+    }
+
   }
 }

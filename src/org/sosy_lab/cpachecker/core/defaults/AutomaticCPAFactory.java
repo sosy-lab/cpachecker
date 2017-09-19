@@ -30,7 +30,15 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.MutableClassToInstanceMap;
-
+import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -41,17 +49,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.lang.annotation.Annotation;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
-
-import javax.annotation.Nullable;
 
 /**
  * CPAFactory implementation that can be used to automatically instantiate
@@ -109,7 +106,7 @@ public class AutomaticCPAFactory implements CPAFactory {
     return new AutomaticCPAFactory(cls.asSubclass(ConfigurableProgramAnalysis.class));
   }
 
-  public AutomaticCPAFactory(Class<? extends ConfigurableProgramAnalysis> type) {
+  private AutomaticCPAFactory(Class<? extends ConfigurableProgramAnalysis> type) {
     this.type = type;
   }
 
@@ -127,8 +124,10 @@ public class AutomaticCPAFactory implements CPAFactory {
     if (allConstructors.length != 1) {
       // TODO if necessary, provide method which constructor should be chosen
       // or choose automatically
-      throw new UnsupportedOperationException("Cannot automatically create CPAs " +
-          "with more than one constructor!");
+      throw new UnsupportedOperationException(
+          String.format(
+              "Cannot automatically create %s because it has %d constructors!",
+              type.getSimpleName(), allConstructors.length));
     }
     Constructor<?> cons = allConstructors[0];
     cons.setAccessible(true);

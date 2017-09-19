@@ -26,82 +26,93 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 
 
-public class ARGReducer implements Reducer {
+class ARGReducer extends GenericReducer<ARGState, Precision> {
 
   private final Reducer wrappedReducer;
 
-  public ARGReducer(Reducer pWrappedReducer) {
+  protected ARGReducer(Reducer pWrappedReducer) {
     wrappedReducer = pWrappedReducer;
   }
 
   @Override
-  public AbstractState getVariableReducedState(
-      AbstractState pExpandedState, Block pContext,
-      CFANode pLocation) throws InterruptedException {
+  protected ARGState getVariableReducedState0(
+      ARGState pExpandedState, Block pContext, CFANode pLocation) throws InterruptedException {
 
-    return new ARGState(wrappedReducer.getVariableReducedState(((ARGState) pExpandedState).getWrappedState(), pContext,
-        pLocation), null);
+    return new ARGState(
+        wrappedReducer.getVariableReducedState(
+            pExpandedState.getWrappedState(), pContext, pLocation),
+        null);
   }
 
   @Override
-  public AbstractState getVariableExpandedState(
-      AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
+  protected ARGState getVariableExpandedState0(
+      ARGState pRootState, Block pReducedContext, ARGState pReducedState)
+      throws InterruptedException {
 
-    return new ARGState(wrappedReducer.getVariableExpandedState(((ARGState) pRootState).getWrappedState(),
-        pReducedContext, ((ARGState) pReducedState).getWrappedState()), null);
+    return new ARGState(
+        wrappedReducer.getVariableExpandedState(
+            pRootState.getWrappedState(), pReducedContext, pReducedState.getWrappedState()),
+        null);
   }
 
   @Override
-  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
+  protected Object getHashCodeForState0(ARGState pElementKey, Precision pPrecisionKey) {
 
-    return wrappedReducer.getHashCodeForState(((ARGState) pElementKey).getWrappedState(), pPrecisionKey);
+    return wrappedReducer.getHashCodeForState(pElementKey.getWrappedState(), pPrecisionKey);
   }
 
   @Override
-  public Precision getVariableReducedPrecision(Precision pPrecision,
-      Block pContext) {
+  protected Precision getVariableReducedPrecision0(Precision pPrecision, Block pContext) {
     return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+  protected Precision getVariableExpandedPrecision0(
+      Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
     return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
   }
 
   @Override
-  public int measurePrecisionDifference(Precision pPrecision, Precision pOtherPrecision) {
+  protected int measurePrecisionDifference0(Precision pPrecision, Precision pOtherPrecision) {
     return wrappedReducer.measurePrecisionDifference(pPrecision, pOtherPrecision);
   }
 
   @Override
-  public AbstractState getVariableReducedStateForProofChecking(
-      AbstractState pExpandedState, Block pContext, CFANode pCallNode) throws InterruptedException {
-    return new ARGState(wrappedReducer.getVariableReducedStateForProofChecking(
-        ((ARGState) pExpandedState).getWrappedState(), pContext, pCallNode), null);
-  }
-
-  @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
-    return new ARGState(wrappedReducer.getVariableExpandedStateForProofChecking(
-        ((ARGState) pRootState).getWrappedState(), pReducedContext, ((ARGState) pReducedState).getWrappedState()), null);
-  }
-
-  @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
-      AbstractState expandedState, FunctionExitNode exitLocation) {
+  protected ARGState getVariableReducedStateForProofChecking0(
+      ARGState pExpandedState, Block pContext, CFANode pCallNode) throws InterruptedException {
     return new ARGState(
-            wrappedReducer.rebuildStateAfterFunctionCall(
-                    ((ARGState) rootState).getWrappedState(),
-                    ((ARGState) entryState).getWrappedState(),
-                    ((ARGState) expandedState).getWrappedState(),
-                    exitLocation),
-            null);
+        wrappedReducer.getVariableReducedStateForProofChecking(
+            pExpandedState.getWrappedState(), pContext, pCallNode),
+        null);
+  }
+
+  @Override
+  protected ARGState getVariableExpandedStateForProofChecking0(
+      ARGState pRootState, Block pReducedContext, ARGState pReducedState)
+      throws InterruptedException {
+    return new ARGState(
+        wrappedReducer.getVariableExpandedStateForProofChecking(
+            pRootState.getWrappedState(), pReducedContext, pReducedState.getWrappedState()),
+        null);
+  }
+
+  @Override
+  protected ARGState rebuildStateAfterFunctionCall0(
+      ARGState rootState,
+      ARGState entryState,
+      ARGState expandedState,
+      FunctionExitNode exitLocation) {
+    return new ARGState(
+        wrappedReducer.rebuildStateAfterFunctionCall(
+            rootState.getWrappedState(),
+            entryState.getWrappedState(),
+            expandedState.getWrappedState(),
+            exitLocation),
+        null);
   }
 }

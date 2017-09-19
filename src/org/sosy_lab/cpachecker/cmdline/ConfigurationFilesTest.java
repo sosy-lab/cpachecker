@@ -28,11 +28,34 @@ import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Streams;
 import com.google.common.io.CharStreams;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ResourceInfo;
 import com.google.common.testing.TestLogHandler;
-
+import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,33 +71,15 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.configuration.converters.FileTypeConverter;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.ConsoleLogFormatter;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.CPAchecker;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
 
 /**
  * Test that the bundled configuration files are all valid.
@@ -88,7 +93,13 @@ public class ConfigurationFilesTest {
               + "|The following configuration options were specified but are not used:.*"
               + "|MathSAT5 is available for research and evaluation purposes only.*"
               + "|Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist."
-              + "|Finding target locations was interrupted.*",
+              + "|Finding target locations was interrupted.*"
+              + "|.*One of the parallel analyses has finished successfully, cancelling all other runs.*",
+          Pattern.DOTALL);
+
+  private static final Pattern PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS =
+      Pattern.compile(
+          ".*Skipping one analysis because the configuration file .* could not be read.*",
           Pattern.DOTALL);
 
   private static final ImmutableList<String> UNUSED_OPTIONS =
@@ -98,17 +109,21 @@ public class ConfigurationFilesTest {
           // handled by code outside of CPAchecker class
           "output.disable",
           "limits.time.cpu",
+          "limits.time.cpu::required",
           "limits.time.cpu.thread",
           "memorysafety.config",
           "overflow.config",
           "termination.config",
+          "witness.validation.violation.config",
+          "witness.validation.correctness.config",
           "pcc.proofgen.doPCC",
+          "pcc.strategy",
+          "pcc.cmc.configFiles",
+          "pcc.cmc.file",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
           // handled by component that is loaded lazily on demand
-          "invariantGeneration.adjustConditions",
-          "invariantGeneration.async",
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
           "invariantGeneration.kInduction.guessCandidatesFromCFA",
@@ -117,14 +132,12 @@ public class ConfigurationFilesTest {
           "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
-          "counterexample.checker.config",
-          // LoopstackCPA can be removed from inhering configuration.
-          "cpa.loopstack.loopIterationsBeforeAbstraction");
+          "counterexample.checker.config");
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
 
-    @Option(secure = true, description = "C or Java?")
+    @Option(secure = true, description = "C, Java, or LLVM IR?")
     private Language language = Language.C;
 
     @Option(
@@ -142,6 +155,13 @@ public class ConfigurationFilesTest {
               + " analysis finishing in time. All other analyses are terminated."
     )
     private boolean useParallelAlgorithm = false;
+
+    @Option(secure=true, name="limits.time.cpu::required",
+        description="Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
+    @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
+        defaultUserUnit=TimeUnit.SECONDS,
+        min=-1)
+    private TimeSpan cpuTimeRequired = TimeSpan.ofNanos(-1);
   }
 
   private static final Path CONFIG_DIR = Paths.get("config");
@@ -198,8 +218,28 @@ public class ConfigurationFilesTest {
     try (Reader r =
             Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
         Writer w =
-            MoreFiles.openOutputFile(
+            IO.openOutputFile(
                 Paths.get("output/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
+  }
+
+  @Before
+  public void createDummyInputAutomatonFiles() throws IOException {
+    // Create files that some analyses expect as input files.
+
+    try (Reader r =
+            Files.newBufferedReader(Paths.get("config/specification/AssumptionGuidingAutomaton.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(tempFolder.newFolder("config").getAbsolutePath()+"/specification/AssumptionGuidingAutomaton.spc"), StandardCharsets.UTF_8)) {
+      CharStreams.copy(r, w);
+    }
+    try (Reader r =
+        Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
+        Writer w =
+            IO.openOutputFile(
+                Paths.get(tempFolder.newFolder("output").getAbsolutePath()+"/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
   }
@@ -211,9 +251,15 @@ public class ConfigurationFilesTest {
       assume().that((Iterable<?>) configFile).doesNotContain(Paths.get("includes"));
     }
 
-    final Configuration config = createConfigurationForTestInstantiation();
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
+    Configuration config = createConfigurationForTestInstantiation();
     config.inject(options);
+    if (options.cpuTimeRequired.compareTo(TimeSpan.empty()) >= 0) {
+      ConfigurationBuilder configBuilder = Configuration.builder().copyFrom(config);
+      configBuilder.setOption("limits.time.cpu", options.cpuTimeRequired.toString());
+      configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
+      config = configBuilder.build();
+    }
     final boolean isJava = options.language == Language.JAVA;
 
     final TestLogHandler logHandler = new TestLogHandler();
@@ -230,7 +276,7 @@ public class ConfigurationFilesTest {
     }
 
     try {
-      cpachecker.run(createEmptyProgram(isJava));
+      cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
       if (isJava) {
         assume().fail("Java frontend has a bug and cannot be run twice");
@@ -241,13 +287,7 @@ public class ConfigurationFilesTest {
       return;
     }
 
-    Stream<String> severeMessages =
-        logHandler
-            .getStoredLogRecords()
-            .stream()
-            .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
-            .map(LogRecord::getMessage)
-            .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
+    Stream<String> severeMessages = getSevereMessages(options, logHandler);
 
     if (severeMessages.count() > 0) {
       assert_()
@@ -292,16 +332,58 @@ public class ConfigurationFilesTest {
   private String createEmptyProgram(boolean isJava) throws IOException {
     String program;
     if (isJava) {
-      MoreFiles.writeFile(
+      IO.writeFile(
           tempFolder.newFile("Main.java").toPath(),
           StandardCharsets.US_ASCII,
           "public class Main { public static void main(String... args) {} }");
       program = "Main";
     } else {
       File cFile = tempFolder.newFile("program.i");
-      MoreFiles.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
+      IO.writeFile(cFile.toPath(), StandardCharsets.US_ASCII, "void main() {}");
       program = cFile.toString();
     }
     return program;
+  }
+
+  private static Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
+    // After one component of a parallel algorithm finishes successfully,
+    // other components are interrupted, potentially causing warnings that can be ignored.
+    // One such example is if another component uses a RestartAlgorithm that is interrupted
+    // during the parsing of configuration files
+    Stream<LogRecord> logRecords = pLogHandler.getStoredLogRecords().stream();
+    if (pOptions.useParallelAlgorithm) {
+      Iterator<LogRecord> logRecordIterator = new Iterator<LogRecord>() {
+
+        private Iterator<LogRecord> underlyingIterator = pLogHandler.getStoredLogRecords().iterator();
+
+        private boolean oneComponentSuccessful = false;
+
+        @Override
+        public boolean hasNext() {
+          return underlyingIterator.hasNext();
+        }
+
+        @Override
+        public LogRecord next() {
+          LogRecord result = underlyingIterator.next();
+          if (!oneComponentSuccessful && result.getLevel() == Level.INFO ) {
+            if (result.getMessage().endsWith("finished successfully.")) {
+              oneComponentSuccessful = true;
+              underlyingIterator = Iterators.filter(
+                  underlyingIterator,
+                  r -> r.getLevel() != Level.WARNING
+                    || !PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS.matcher(r.getMessage()).matches());
+            }
+          }
+          return result;
+        }
+
+      };
+      logRecords = Streams.stream(logRecordIterator);
+    }
+    return logRecords
+            .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
+            .map(LogRecord::getMessage)
+            .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
   }
 }

@@ -195,6 +195,17 @@
       </library>
     </orderEntry>
     <orderEntry type="module-library">
+      <library name="truth-java8-extension.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/test/truth-java8-extension.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/java-contrib/truth-java8-extension-sources.jar!/" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
       <library name="smt-parser.jar">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/java/runtime/smt-parser.jar!/" />
@@ -296,6 +307,15 @@
       <library name="objenesis.jar">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/java/test/objenesis.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
+    <orderEntry type="module-library">
+      <library name="byte-buddy.jar">
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/lib/java/test/byte-buddy.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
@@ -410,15 +430,6 @@
       <library name="scala-library.jar">
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/java/runtime/scala-library.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
-    <orderEntry type="module-library">
-      <library name="scala-actors.jar">
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/java/runtime/scala-actors.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

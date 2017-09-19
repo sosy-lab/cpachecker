@@ -30,7 +30,10 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -58,11 +61,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
 
 
 public final class BMCHelper {
@@ -105,7 +103,7 @@ public final class BMCHelper {
     return result;
   }
 
-  public static BooleanFormula assertAt(
+  private static BooleanFormula assertAt(
       AbstractState pState,
       FormulaInContext pInvariant,
       FormulaManagerView pFMGR,
@@ -113,14 +111,17 @@ public final class BMCHelper {
       throws CPATransferException, InterruptedException {
     PredicateAbstractState pas = AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
     PathFormula pathFormula = pas.getPathFormula();
-    BooleanFormula uninstantiatedFormula = pInvariant.getFormulaInContext(pathFormula);
+    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
+    BooleanFormula stateFormula = pathFormula.getFormula();
+    if (bfmgr.isFalse(stateFormula)) {
+      return bfmgr.makeTrue();
+    }
     SSAMap ssaMap = pathFormula.getSsa();
     if (pDefaultIndex > 0) {
       ssaMap = pathFormula.getSsa().withDefault(pDefaultIndex);
     }
+    BooleanFormula uninstantiatedFormula = pInvariant.getFormulaInContext(pathFormula);
     BooleanFormula instantiatedFormula = pFMGR.instantiate(uninstantiatedFormula, ssaMap);
-    BooleanFormula stateFormula = pathFormula.getFormula();
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
     return bfmgr.or(bfmgr.not(stateFormula), instantiatedFormula);
   }
 

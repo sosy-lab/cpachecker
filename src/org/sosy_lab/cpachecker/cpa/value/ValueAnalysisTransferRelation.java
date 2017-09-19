@@ -23,11 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
-
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -42,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
@@ -56,6 +66,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -92,24 +103,24 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
@@ -119,7 +130,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
@@ -130,36 +140,20 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 public class ValueAnalysisTransferRelation
     extends ForwardingTransferRelation<ValueAnalysisState, ValueAnalysisState, VariableTrackingPrecision>
     implements StatisticsProvider {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  private static final Map<String, String> UNSUPPORTED_FUNCTIONS
-      = ImmutableMap.of();
+  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
   @Options(prefix = "cpa.value")
-  static class ValueTransferOptions {
+  public static class ValueTransferOptions {
 
     @Option(
       secure = true,
@@ -197,7 +191,7 @@ public class ValueAnalysisTransferRelation
     @Option(secure=true, description="When an unknown function value is disabled")
     private boolean ignoreFunctionValue = true;
 
-    ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
+    public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
 
@@ -219,6 +213,7 @@ public class ValueAnalysisTransferRelation
   }
 
   private final ValueTransferOptions options;
+  private final @Nullable ValueAnalysisCPAStatistics stats;
 
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
@@ -260,32 +255,17 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
 
-  private int currentNumberOfIterations = 0;
-
-  private StatCounter totalAssumptions = new StatCounter("Number of Assumptions");
-  private StatCounter deterministicAssumptions = new StatCounter("Number of deterministic Assumptions");
-
-  private Statistics transferStatistics = new Statistics() {
-
-    @Override
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
-      StatisticsWriter writer = writingStatisticsTo(out);
-
-      writer.put(totalAssumptions)
-            .put(deterministicAssumptions)
-            .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
-    }
-
-    @Override
-    public String getName() {
-      return ValueAnalysisTransferRelation.class.getSimpleName();
-    }
-  };
-
-  public ValueAnalysisTransferRelation(Configuration config, LogManager pLogger, CFA pCfa) throws InvalidConfigurationException {
-    options = new ValueTransferOptions(config);
+  public ValueAnalysisTransferRelation(
+      LogManager pLogger,
+      CFA pCfa,
+      ValueTransferOptions pOptions,
+      MemoryLocationValueHandler pUnknownValueHandler,
+      ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
+      @Nullable ValueAnalysisCPAStatistics pStats) {
+    options = pOptions;
     machineModel = pCfa.getMachineModel();
     logger = new LogManagerWithoutDuplicates(pLogger);
+    stats = pStats;
 
     if (pCfa.getVarClassification().isPresent()) {
       addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
@@ -295,20 +275,8 @@ public class ValueAnalysisTransferRelation
       booleanVariables   = ImmutableSet.of();
     }
 
-    unknownValueHandler = new SymbolicValueAssigner(config);
-    constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config);
-  }
-
-  int getCurrentNumberOfIterations() {
-    return currentNumberOfIterations;
-  }
-
-  int getCurrentLevelOfDeterminism() {
-    if (totalAssumptions.getValue() == 0) {
-      return 100;
-    } else {
-      return (int) Math.round((deterministicAssumptions.getValue() * 100) / (double)totalAssumptions.getValue());
-    }
+    unknownValueHandler = pUnknownValueHandler;
+    constraintsStrengthenOperator = pConstraintsStrengthenOperator;
   }
 
   @Override
@@ -333,7 +301,9 @@ public class ValueAnalysisTransferRelation
     // it is more secure.
     missingInformationList = new ArrayList<>(5);
     oldState = (ValueAnalysisState)pAbstractState;
-    currentNumberOfIterations++;
+    if (stats != null) {
+      stats.incrementIterations();
+    }
   }
 
   @Override
@@ -388,10 +358,6 @@ public class ValueAnalysisTransferRelation
   @Override
   protected ValueAnalysisState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
-      assert "default return".equals(cfaEdge.getDescription())
-              || "skipped unnecessary edges".equals(cfaEdge.getDescription())
-              || BlankEdge.REPLACEMENT_LABEL.equals(cfaEdge.getDescription());
-
       // clone state, because will be changed through removing all variables of current function's scope
       state = ValueAnalysisState.copyOf(state);
       state.dropFrame(functionName);
@@ -413,15 +379,15 @@ public class ValueAnalysisTransferRelation
     state = ValueAnalysisState.copyOf(state);
     state.dropFrame(functionName);
 
-    AExpression expression = returnEdge.getExpression().orElse(null);
+    AExpression expression = returnEdge.getExpression().orNull();
     if (expression == null && returnEdge instanceof CReturnStatementEdge) {
       expression = CIntegerLiteralExpression.ZERO; // this is the default in C
     }
 
     final FunctionEntryNode functionEntryNode = returnEdge.getSuccessor().getEntryNode();
 
-    final Optional<? extends AVariableDeclaration> optionalReturnVarDeclaration
-        = functionEntryNode.getReturnVariable();
+    final com.google.common.base.Optional<? extends AVariableDeclaration>
+        optionalReturnVarDeclaration = functionEntryNode.getReturnVariable();
     MemoryLocation functionReturnVar = null;
 
     if (optionalReturnVarDeclaration.isPresent()) {
@@ -452,7 +418,8 @@ public class ValueAnalysisTransferRelation
 
     ValueAnalysisState newElement  = ValueAnalysisState.copyOf(state);
 
-    Optional<? extends AVariableDeclaration> returnVarName = functionReturnEdge.getFunctionEntry().getReturnVariable();
+    com.google.common.base.Optional<? extends AVariableDeclaration> returnVarName =
+        functionReturnEdge.getFunctionEntry().getReturnVariable();
     MemoryLocation functionReturnVar = null;
     if (returnVarName.isPresent()) {
       functionReturnVar = MemoryLocation.valueOf(returnVarName.get().getQualifiedName());
@@ -609,7 +576,9 @@ public class ValueAnalysisTransferRelation
   private ValueAnalysisState handleAssumption(AExpression expression, boolean truthValue)
       throws UnrecognizedCCodeException {
 
-    totalAssumptions.inc();
+    if (stats != null) {
+      stats.incrementAssumptions();
+    }
 
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
     expression = simplifiedExpression.getFirst();
@@ -621,8 +590,8 @@ public class ValueAnalysisTransferRelation
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, booleanType, evv);
 
-    if (value.isExplicitlyKnown()) {
-      deterministicAssumptions.inc();
+    if (value.isExplicitlyKnown() && stats != null) {
+      stats.incrementDeterministicAssumptions();
     }
 
     if (!value.isExplicitlyKnown()) {
@@ -1160,7 +1129,7 @@ public class ValueAnalysisTransferRelation
       JSimpleDeclaration arrayDeclaration = ((JIdExpression) arrayExpression).getDeclaration();
 
       if (arrayDeclaration != null) {
-        String idName = arrayDeclaration.getQualifiedName();
+        MemoryLocation idName = MemoryLocation.valueOf(arrayDeclaration.getQualifiedName());
 
         if (state.contains(idName)) {
           Value idValue = state.getValueFor(idName);
@@ -1231,7 +1200,6 @@ public class ValueAnalysisTransferRelation
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(transferStatistics);
     statsCollection.add(constraintsStrengthenOperator);
   }
 
@@ -1265,7 +1233,7 @@ public class ValueAnalysisTransferRelation
     @Override
     public Value visit(JIdExpression idExp) {
 
-      String varName = handleIdExpression(idExp);
+      MemoryLocation varName = MemoryLocation.valueOf(handleIdExpression(idExp));
 
       if (readableState.contains(varName)) {
         return readableState.getValueFor(varName);
@@ -1367,7 +1335,10 @@ public class ValueAnalysisTransferRelation
         for (ValueAnalysisState state : toStrengthen) {
           super.setInfo(element, precision, cfaEdge);
           ValueAnalysisState newState =
-              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable);
+              strengthenWithPointerInformation(state, pointerState, rightHandSide, leftHandType, leftHandSide, leftHandVariable, UnknownValue.getInstance());
+
+          newState = handleModf(rightHandSide, pointerState, newState);
+
           result.add(newState);
         }
         toStrengthen.clear();
@@ -1393,50 +1364,135 @@ public class ValueAnalysisTransferRelation
     return postProcessedResult;
   }
 
+  /**
+   * Handle a special built-in library function that required pointer-alias handling while computing
+   * a floating-point operation.
+   *
+   * @param pRightHandSide the right-hand side of an assignment edge.
+   * @param pPointerState the current pointer-alias information.
+   * @param pState the state to strengthen.
+   * @return the strengthened state.
+   * @throws UnrecognizedCCodeException if the C code involved is not recognized.
+   */
+  private ValueAnalysisState handleModf(
+      ARightHandSide pRightHandSide, PointerState pPointerState, ValueAnalysisState pState)
+      throws UnrecognizedCCodeException, AssertionError {
+    ValueAnalysisState state = pState;
+    if (pRightHandSide instanceof AFunctionCallExpression) {
+      AFunctionCallExpression functionCallExpression = (AFunctionCallExpression) pRightHandSide;
+      AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
+      if (functionNameExpression instanceof AIdExpression) {
+        String functionName = ((AIdExpression) functionNameExpression).getName();
+        if (BuiltinFloatFunctions.matchesModf(functionName)) {
+          List<? extends AExpression> parameters = functionCallExpression.getParameterExpressions();
+          if (parameters.size() == 2 && parameters.get(1) instanceof CExpression) {
+            AExpression exp = parameters.get(0);
+            CExpression targetPointer = (CExpression) parameters.get(1);
+            CLeftHandSide target =
+                new CPointerExpression(
+                    targetPointer.getFileLocation(),
+                    targetPointer.getExpressionType(),
+                    targetPointer);
+            ExpressionValueVisitor evv = getVisitor();
+            Value value;
+            if (exp instanceof JRightHandSide) {
+              value = evv.evaluate((JRightHandSide) exp, (JType) exp.getExpressionType());
+            } else if (exp instanceof CRightHandSide) {
+              value = evv.evaluate((CRightHandSide) exp, (CType) exp.getExpressionType());
+            } else {
+              throw new AssertionError("unknown righthandside-expression: " + exp);
+            }
+            if (value.isExplicitlyKnown()) {
+              NumericValue numericValue = value.asNumericValue();
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
+              if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
+                  .contains(paramType.getType())) {
+                final BigDecimal integralPartValue;
+                switch (paramType.getType()) {
+                  case FLOAT:
+                    integralPartValue = BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
+                    break;
+                  case DOUBLE:
+                    integralPartValue = BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
+                    break;
+                  default:
+                    throw new AssertionError("Unsupported float type: " + paramType);
+                }
+                CFloatLiteralExpression integralPart =
+                    new CFloatLiteralExpression(
+                        functionCallExpression.getFileLocation(),
+                        paramType,
+                        integralPartValue);
+                state =
+                    strengthenWithPointerInformation(
+                        state,
+                        pPointerState,
+                        integralPart,
+                        target.getExpressionType(),
+                        target,
+                        null,
+                        new NumericValue(integralPartValue));
+              }
+            }
+          }
+        }
+      }
+    }
+    return state;
+  }
+
   private ValueAnalysisState strengthenWithPointerInformation(
       ValueAnalysisState pValueState,
       PointerState pPointerInfo,
       ARightHandSide pRightHandSide,
-      Type pLeftHandType,
+      Type pTargetType,
       ALeftHandSide pLeftHandSide,
-      String pLeftHandVariable) throws UnrecognizedCCodeException {
+      String pLeftHandVariable,
+      Value pValue)
+      throws UnrecognizedCCodeException {
 
     ValueAnalysisState newState = pValueState;
 
-    Value value = UnknownValue.getInstance();
+    Value value = pValue;
     MemoryLocation target = null;
     if (pLeftHandVariable != null) {
       target = MemoryLocation.valueOf(pLeftHandVariable);
     }
-    Type type = pLeftHandType;
+    Type type = pTargetType;
     boolean shouldAssign = false;
 
     if (target == null && pLeftHandSide instanceof CPointerExpression) {
       CPointerExpression pointerExpression = (CPointerExpression) pLeftHandSide;
-      CExpression addressExpression = pointerExpression.getOperand();
 
-      LocationSet fullSet = PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
+      LocationSet directLocation =
+          PointerTransferRelation.asLocations(pointerExpression, pPointerInfo);
 
-      if (fullSet instanceof ExplicitLocationSet) {
-        ExplicitLocationSet explicitSet = (ExplicitLocationSet) fullSet;
-        if (explicitSet.getSize() == 1) {
-          MemoryLocation variable = explicitSet.iterator().next();
-          LocationSet pointsToSet = pPointerInfo.getPointsToSet(variable);
-          if (pointsToSet instanceof ExplicitLocationSet) {
-            ExplicitLocationSet explicitPointsToSet = (ExplicitLocationSet) pointsToSet;
-            Iterator<MemoryLocation> pointsToIterator = explicitPointsToSet.iterator();
-            MemoryLocation otherVariable = pointsToIterator.next();
-            if (!pointsToIterator.hasNext()) {
-              target = otherVariable;
-              shouldAssign = true;
-            }
+      if (!(directLocation instanceof ExplicitLocationSet)) {
+        CExpression addressExpression = pointerExpression.getOperand();
+        LocationSet indirectLocation =
+            PointerTransferRelation.asLocations(addressExpression, pPointerInfo);
+        if (indirectLocation instanceof ExplicitLocationSet) {
+          ExplicitLocationSet explicitSet = (ExplicitLocationSet) indirectLocation;
+          if (explicitSet.getSize() == 1) {
+            MemoryLocation variable = explicitSet.iterator().next();
+            directLocation = pPointerInfo.getPointsToSet(variable);
           }
+        }
+      }
+      if (directLocation instanceof ExplicitLocationSet) {
+        ExplicitLocationSet explicitDirectLocation = (ExplicitLocationSet) directLocation;
+        Iterator<MemoryLocation> locationIterator = explicitDirectLocation.iterator();
+        MemoryLocation otherVariable = locationIterator.next();
+        if (!locationIterator.hasNext()) {
+          target = otherVariable;
+          shouldAssign = true;
         }
       }
 
     }
 
-    if (pRightHandSide instanceof CPointerExpression) {
+    if (!value.isExplicitlyKnown() && pRightHandSide instanceof CPointerExpression) {
       if (target == null) {
         return pValueState;
       }
@@ -1639,7 +1695,7 @@ public class ValueAnalysisTransferRelation
         return Collections.singleton(newElement);
       } else {
         if (missingInformationLeftJVariable != null) {
-          newElement.forget(missingInformationLeftJVariable);
+          newElement.forget(MemoryLocation.valueOf(missingInformationLeftJVariable));
         }
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
@@ -1676,7 +1732,7 @@ public class ValueAnalysisTransferRelation
        newElement.assignConstant(scopedFieldName, value);
        return newElement;
      } else {
-       newElement.forget(scopedFieldName);
+       newElement.forget(MemoryLocation.valueOf(scopedFieldName));
        return newElement;
      }
    } else {

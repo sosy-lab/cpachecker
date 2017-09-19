@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
-
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CComplexCastExpression extends AbstractExpression implements CLeftHandSide {
 
+  private static final long serialVersionUID = -3131719369492162894L;
   private final CExpression operand;
   private final CType     type;
   /**

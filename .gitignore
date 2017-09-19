@@ -10,8 +10,10 @@
 /FindBugs.diff.html
 /FindBugs.diff.xml
 /JUnit.html
+/.apt-generated
 /.factorypath
 *.pyc
+*~
 
 # /META-INF/
 /META-INF/.hg*

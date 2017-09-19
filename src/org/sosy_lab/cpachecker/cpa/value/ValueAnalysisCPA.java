@@ -26,7 +26,16 @@ package org.sosy_lab.cpachecker.cpa.value;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -60,20 +69,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 @Options(prefix = "cpa.value")
 public class ValueAnalysisCPA
@@ -96,10 +98,8 @@ public class ValueAnalysisCPA
     return AutomaticCPAFactory.forType(ValueAnalysisCPA.class);
   }
 
-  private AbstractDomain abstractDomain;
-  private MergeOperator mergeOperator;
-  private StopOperator stopOperator;
-  private ValueAnalysisTransferRelation transferRelation;
+  private final AbstractDomain abstractDomain =
+      DelegateAbstractDomain.<ValueAnalysisState>getInstance();
   private VariableTrackingPrecision precision;
   private ValueAnalysisPrecisionAdjustment precisionAdjustment;
   private final ValueAnalysisCPAStatistics statistics;
@@ -113,6 +113,10 @@ public class ValueAnalysisCPA
   private boolean refineablePrecisionSet = false;
   private ValueAnalysisConcreteErrorPathAllocator errorPathAllocator;
 
+  private MemoryLocationValueHandler unknownValueHandler;
+  private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
+  private final ValueTransferOptions transferOptions;
+
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     this.config           = config;
@@ -122,45 +126,14 @@ public class ValueAnalysisCPA
 
     config.inject(this);
 
-    abstractDomain      = DelegateAbstractDomain.<ValueAnalysisState>getInstance();
-    transferRelation    = new ValueAnalysisTransferRelation(config, logger, cfa);
     precision           = initializePrecision(config, cfa);
-    mergeOperator       = initializeMergeOperator();
-    stopOperator        = initializeStopOperator();
-
-    precisionAdjustment = new ValueAnalysisPrecisionAdjustment(config, transferRelation, cfa);
-
     statistics          = new ValueAnalysisCPAStatistics(this, config);
+    precisionAdjustment = new ValueAnalysisPrecisionAdjustment(config, statistics, cfa);
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
-
     errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
-  }
-
-  private MergeOperator initializeMergeOperator() {
-    if (mergeType.equals("SEP")) {
-      return MergeSepOperator.getInstance();
-
-    } else if (mergeType.equals("JOIN")) {
-      return new MergeJoinOperator(abstractDomain);
-    }
-
-    return null;
-  }
-
-  private StopOperator initializeStopOperator() {
-    switch (stopType) {
-      case "SEP":
-        return new StopSepOperator(abstractDomain);
-
-      case "JOIN":
-        return new StopJoinOperator(abstractDomain);
-
-      case "NEVER":
-        return new StopNeverOperator();
-
-      default:
-        throw new AssertionError("unknown stop operator");
-    }
+    unknownValueHandler = new SymbolicValueAssigner(config);
+    constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config);
+    transferOptions = new ValueTransferOptions(config);
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration config, CFA cfa) throws InvalidConfigurationException {
@@ -239,17 +212,44 @@ public class ValueAnalysisCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    return mergeOperator;
+    switch (mergeType) {
+      case "SEP":
+        return MergeSepOperator.getInstance();
+
+      case "JOIN":
+        return new MergeJoinOperator(getAbstractDomain());
+
+      default:
+        throw new AssertionError("unknown merge operator");
+    }
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stopOperator;
+    switch (stopType) {
+      case "SEP":
+        return new StopSepOperator(getAbstractDomain());
+
+      case "JOIN":
+        return new StopJoinOperator(getAbstractDomain());
+
+      case "NEVER":
+        return new StopNeverOperator();
+
+      default:
+        throw new AssertionError("unknown stop operator");
+    }
   }
 
   @Override
   public ValueAnalysisTransferRelation getTransferRelation() {
-    return transferRelation;
+    return new ValueAnalysisTransferRelation(
+        logger,
+        cfa,
+        transferOptions,
+        unknownValueHandler,
+        constraintsStrengthenOperator,
+        statistics);
   }
 
   @Override
@@ -297,11 +297,6 @@ public class ValueAnalysisCPA
     pStatsCollection.add(statistics);
     writer.collectStatistics(pStatsCollection);
     precisionAdjustment.collectStatistics(pStatsCollection);
-    transferRelation.collectStatistics(pStatsCollection);
-  }
-
-  public ValueAnalysisCPAStatistics getStats() {
-    return statistics;
   }
 
   @Override

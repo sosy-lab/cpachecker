@@ -26,14 +26,17 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
+import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 
 public class SMGJoinValuesTest {
@@ -41,8 +44,7 @@ public class SMGJoinValuesTest {
   private SMG smg2;
   private SMG smgDest;
 
-  SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false,
-      null, 4, false, false);
+  private SMGState dummyState;
 
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
@@ -52,7 +54,9 @@ public class SMGJoinValuesTest {
   final private Integer value3 = SMGValueFactory.getNewValue();
 
   @Before
-  public void setUp() {
+  public void setUp() throws InvalidConfigurationException {
+    dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32,
+        new SMGOptions(Configuration.defaultConfiguration()));
     smg1 = new SMG(MachineModel.LINUX64);
     smg2 = new SMG(MachineModel.LINUX64);
     smgDest = new SMG(MachineModel.LINUX64);
@@ -136,7 +140,7 @@ public class SMGJoinValuesTest {
     smg2.addValue(value2);
     smgDest.addValue(value3);
 
-    SMGRegion obj1 = new SMGRegion(8, "Object");
+    SMGRegion obj1 = new SMGRegion(64, "Object");
     SMGEdgePointsTo pt = new SMGEdgePointsTo(value1, obj1, 0);
     smg1.addPointsToEdge(pt);
     SMGJoinValues jv = new SMGJoinValues(SMGJoinStatus.EQUAL, smg1, smg2, smgDest, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, false, 0, 0, 0, dummyState, dummyState);

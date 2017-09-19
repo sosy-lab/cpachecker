@@ -26,7 +26,16 @@ package org.sosy_lab.cpachecker.util.predicates;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.math.LongMath;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -35,7 +44,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
@@ -51,17 +60,6 @@ import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.DefaultBooleanFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Convert the formula to a quantifier-free form *resembling* CNF (relaxed
@@ -240,16 +238,16 @@ public class RCNFManager implements StatisticsProvider {
 
         assert intersection != null
             : "Should not be null for a non-zero number of operands.";
+        Set<BooleanFormula> commonTerms = intersection;
 
-        BooleanFormula common = bfmgr.and(intersection);
-        List<BooleanFormula> branches = new ArrayList<>();
+        BooleanFormula common = bfmgr.and(commonTerms);
+        BooleanFormula branches =
+            argsAsConjunctions
+                .stream()
+                .map(args -> bfmgr.and(Sets.difference(args, commonTerms)))
+                .collect(bfmgr.toDisjunction());
 
-        for (Set<BooleanFormula> args : argsAsConjunctions) {
-          Set<BooleanFormula> newEl = Sets.difference(args, intersection);
-          branches.add(bfmgr.and(newEl));
-        }
-
-        return bfmgr.and(common, bfmgr.or(branches));
+        return bfmgr.and(common, branches);
       }
     });
   }
@@ -273,7 +271,7 @@ public class RCNFManager implements StatisticsProvider {
                 sizeAfterExpansion, out.size()
             );
           } catch (ArithmeticException ex) {
-            sizeAfterExpansion = expansionResultSizeLimit + 1;
+            sizeAfterExpansion = expansionResultSizeLimit + 1L;
             break;
           }
           asConjunctions.add(out);
@@ -282,11 +280,7 @@ public class RCNFManager implements StatisticsProvider {
         if (sizeAfterExpansion <= expansionResultSizeLimit) {
           // Perform recursive expansion.
           Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
-          Set<BooleanFormula> newArgs = new HashSet<>(product.size());
-          for (List<BooleanFormula> l : product) {
-            newArgs.add(bfmgr.or(l));
-          }
-          return bfmgr.and(newArgs);
+          return product.stream().map(bfmgr::or).collect(bfmgr.toConjunction());
         } else {
           return bfmgr.or(operands);
         }
@@ -393,8 +387,7 @@ public class RCNFManager implements StatisticsProvider {
     int conversionCacheHits = 0;
 
     @Override
-    public void printStatistics(
-        PrintStream out, Result result, ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       printTimer(out, conversion, "RCNF conversion");
       printTimer(out, lightQuantifierElimination, "light quantifier "
           + "elimination");

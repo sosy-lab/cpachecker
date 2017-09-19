@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -68,5 +70,25 @@ public interface CounterexampleFilter {
     CounterexampleFilter create(
         Configuration config, LogManager logger, ConfigurableProgramAnalysis cpa)
         throws InvalidConfigurationException;
+  }
+
+  static CounterexampleFilter createCounterexampleFilter(
+      Configuration config,
+      LogManager logger,
+      ConfigurableProgramAnalysis cpa,
+      List<CounterexampleFilter.Factory> cexFilterClasses)
+      throws InvalidConfigurationException {
+    switch (cexFilterClasses.size()) {
+      case 0:
+        return new NullCounterexampleFilter();
+      case 1:
+        return cexFilterClasses.get(0).create(config, logger, cpa);
+      default:
+        List<CounterexampleFilter> filters = new ArrayList<>(cexFilterClasses.size());
+        for (CounterexampleFilter.Factory factory : cexFilterClasses) {
+          filters.add(factory.create(config, logger, cpa));
+        }
+        return new ConjunctiveCounterexampleFilter(filters);
+    }
   }
 }

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ImmutableSet;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -68,17 +67,23 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(
     secure = true,
     description =
-        "Use the theory of arrays for heap-memory encoding. "
-            + "This requires an SMT solver that is capable of the theory of arrays."
+        "Use SMT arrays for encoding heap memory instead of uninterpreted function."
+            + " This is more precise but may lead to interpolation failures."
   )
-  private boolean useArraysForHeap = false;
+  private boolean useArraysForHeap = true;
 
-  @Option(secure=true, description = "The default length for arrays when the real length cannot be determined.")
+  @Option(secure = true, description = "The length for arrays we assume for variably-sized arrays.")
   private int defaultArrayLength = 20;
 
-  @Option(secure=true, description = "The maximum length for arrays (elements beyond this will be ignored). Use -1 to disable the limit.")
-  @IntegerOption(min=-1)
-  private int maxArrayLength = 20;
+  @Option(
+    secure = true,
+    description =
+        "The maximum length up to which bulk assignments (e.g., initialization) for arrays will be handled."
+            + " With option useArraysForHeap=false, elements beyond this bound will be ignored completely."
+            + " Use -1 to disable the limit."
+  )
+  @IntegerOption(min = -1)
+  private int maxArrayLength = -1;
 
   @Option(secure=true, description = "Function that is used to free allocated memory.")
   private String memoryFreeFunctionName = "free";
@@ -95,6 +100,12 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure=true, description = "If disabled, all implicitly initialized fields and elements are treated as non-dets")
   private boolean handleImplicitInitialization = true;
 
+  @Option(secure=true, description = "Use regions for pointer analysis. "
+      + "So called Burstall&Bornat (BnB) memory regions will be used for pointer analysis. "
+      + "BnB regions are based not only on type, but also on structure field names. "
+      + "If the field is not accessed by an address then it is placed into a separate region.")
+  private boolean useMemoryRegions = false;
+
   public FormulaEncodingWithPointerAliasingOptions(Configuration config) throws InvalidConfigurationException {
     super(config);
     config.inject(this, FormulaEncodingWithPointerAliasingOptions.class);
@@ -102,6 +113,15 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
     if (maxArrayLength == -1) {
       maxArrayLength = Integer.MAX_VALUE;
     }
+  }
+
+  @Override
+  public boolean shouldAbortOnLargeArrays() {
+    if (useArraysForHeap() || useQuantifiersOnArrays()) {
+      // In this case large arrays are maybe possible to handle
+      return false;
+    }
+    return super.shouldAbortOnLargeArrays();
   }
 
   boolean hasSuperfluousParameters(final String name) {
@@ -182,5 +202,9 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   boolean handleImplicitInitialization() {
     return handleImplicitInitialization;
+  }
+
+  public boolean useMemoryRegions() {
+    return useMemoryRegions;
   }
 }

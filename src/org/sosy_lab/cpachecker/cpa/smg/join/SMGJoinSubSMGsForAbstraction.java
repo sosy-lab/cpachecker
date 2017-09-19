@@ -25,27 +25,25 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValueFilter;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
+import java.util.HashSet;
+import java.util.Map.Entry;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
-import org.sosy_lab.cpachecker.cpa.smg.SMGListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGListCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedListCandidate;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedListCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGLevelMapping.SMGJoinLevel;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedListCandidate;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedListCandidate;
-
-import java.util.HashSet;
-import java.util.Map.Entry;
-import java.util.Set;
 
 
 final public class SMGJoinSubSMGsForAbstraction {
@@ -59,15 +57,15 @@ final public class SMGJoinSubSMGsForAbstraction {
   private final Set<SMGObject> nonSharedObjectsFromSMG2;
   private final boolean defined;
 
-  public SMGJoinSubSMGsForAbstraction(CLangSMG pInputSMG, SMGObject obj1, SMGObject obj2, SMGListCandidate pListCandidate, SMGState pStateOfSmg) throws SMGInconsistentException {
+  public SMGJoinSubSMGsForAbstraction(CLangSMG pInputSMG, SMGObject obj1, SMGObject obj2, SMGListCandidate<?> pListCandidate, SMGState pStateOfSmg) throws SMGInconsistentException {
 
     CLangSMG smg = pInputSMG;
     Set<SMGObject> origObjects = ImmutableSet.copyOf(smg.getObjects());
     Set<Integer> origValues = ImmutableSet.copyOf(smg.getValues());
 
-    int nfo;
-    int pfo;
-    int hfo;
+    long nfo;
+    long pfo;
+    long hfo;
 
     SMGEdgeHasValue prevObj1hve = null;
     SMGEdgeHasValue nextObj1hve = null;
@@ -76,9 +74,9 @@ final public class SMGJoinSubSMGsForAbstraction {
 
     if (pListCandidate instanceof SMGDoublyLinkedListCandidate) {
       SMGDoublyLinkedListCandidate dllc = (SMGDoublyLinkedListCandidate) pListCandidate;
-      nfo = dllc.getNfo();
-      pfo = dllc.getPfo();
-      hfo = dllc.getHfo();
+      nfo = dllc.getShape().getNfo();
+      pfo = dllc.getShape().getPfo();
+      hfo = dllc.getShape().getHfo();
 
       int lengthObj1 = getMinLength(obj1);
       int lengthObj2 = getMinLength(obj2);
@@ -100,8 +98,8 @@ final public class SMGJoinSubSMGsForAbstraction {
 
     } else {
       SMGSingleLinkedListCandidate sllc = (SMGSingleLinkedListCandidate) pListCandidate;
-      hfo = sllc.getHfo();
-      nfo = sllc.getNfo();
+      hfo = sllc.getShape().getHfo();
+      nfo = sllc.getShape().getNfo();
 
       int lengthObj1 = getMinLength(obj1);
       int lengthObj2 = getMinLength(obj2);

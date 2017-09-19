@@ -29,8 +29,8 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 
 public class SMGJoinSubSMGsTest {
@@ -43,8 +43,8 @@ public class SMGJoinSubSMGsTest {
     SMG smg2 = new SMG(MachineModel.LINUX64);
     SMG destSmg = new SMG(MachineModel.LINUX64);
 
-    SMGObject obj1 = new SMGRegion(8, "Test object 1");
-    SMGObject obj2 = new SMGRegion(8, "Test object 2");
+    SMGObject obj1 = new SMGRegion(64, "Test object 1");
+    SMGObject obj2 = new SMGRegion(64, "Test object 2");
 
     smg1.addObject(obj1);
     smg2.addObject(obj2);

@@ -30,7 +30,13 @@ import static com.google.common.truth.TruthJUnit.assume;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
-
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -63,23 +69,17 @@ import org.sosy_lab.cpachecker.cpa.abe.ABECPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.argReplay.ARGReplayCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithoutReachedSetCreation;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.monitor.MonitorCPA;
+import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA;
 import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
-
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RunWith(Parameterized.class)
 public class CPAsTest {
@@ -96,16 +96,18 @@ public class CPAsTest {
             .filter(ConfigurableProgramAnalysis.class::isAssignableFrom)
             .filter(candidate -> !candidate.isAnnotationPresent(Unmaintained.class))
             .filter(candidate -> !candidate.getPackage().isAnnotationPresent(Unmaintained.class))
-            .collect(Collectors.toCollection(() -> new HashSet<>()));
+            .collect(Collectors.toCollection(HashSet::new));
 
     // Filter CPAs that need child CPAs.
     cpas.remove(ARGCPA.class);
     cpas.remove(BAMCPA.class);
+    cpas.remove(BAMCPAWithoutReachedSetCreation.class);
     cpas.remove(CacheCPA.class);
     cpas.remove(CompositeCPA.class);
     cpas.remove(MonitorCPA.class);
     cpas.remove(PropertyCheckerCPA.class);
     cpas.remove(SingleSuccessorCompactorCPA.class);
+    cpas.remove(PowerSetCPA.class);
 
     cpas.remove(ARGReplayCPA.class); // needs ARG to be replayed
     cpas.remove(ABECPA.class); // Shouldn't be used by itself.
@@ -149,7 +151,7 @@ public class CPAsTest {
     tempFolder.newFile("immediatechecks.conf");
 
     cfa =
-        TestDataTools.toCFA(
+        TestDataTools.toSingleFunctionCFA(
             new CFACreator(config, logManager, shutdownNotifier),
             "  int a;",
             "  a = 1;",
@@ -210,7 +212,7 @@ public class CPAsTest {
     }
     assertThat(joined).named("result of join").isNotNull();
     assert_()
-        .withFailureMessage("Join of same elements is unsound")
+        .withMessage("Join of same elements is unsound")
         .that(isLessOrEqual(initial, joined))
         .isTrue();
   }
@@ -222,7 +224,7 @@ public class CPAsTest {
     AbstractState merged = cpa.getMergeOperator().merge(initial, initial, initialPrec);
     assertThat(merged).named("result of merge").isNotNull();
     assert_()
-        .withFailureMessage("Merging same elements was unsound")
+        .withMessage("Merging same elements was unsound")
         .that(isLessOrEqual(initial, merged))
         .isTrue();
   }
@@ -244,7 +246,7 @@ public class CPAsTest {
     Precision initialPrec = cpa.getInitialPrecision(main, partition);
     Set<AbstractState> reached = ImmutableSet.of(initial);
     assert_()
-        .withFailureMessage("Did not stop on same element")
+        .withMessage("Did not stop on same element")
         .that(cpa.getStopOperator().stop(initial, reached, initialPrec))
         .isTrue();
   }

@@ -29,7 +29,15 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -48,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMBasedRefiner;
+import org.sosy_lab.cpachecker.cpa.predicate.BAMPredicateReducer.ReducedPredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableRelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -62,16 +71,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
 
 
 /**
@@ -235,7 +234,8 @@ public abstract class BAMPredicateRefiner implements Refiner {
 
           // start new block with empty formula
           currentFormula = getOnlyElement(currentFormulas);
-          abstractionFormulas.add(currentFormula.getFormula());
+          BooleanFormula bFormula = pfmgr.addBitwiseAxiomsIfNeeded(currentFormula.getFormula(), currentFormula.getFormula());
+          abstractionFormulas.add(bFormula);
           currentFormula = pfmgr.makeEmptyPathFormula(currentFormula);
 
         } else {
@@ -284,11 +284,13 @@ public abstract class BAMPredicateRefiner implements Refiner {
     }
 
     @Override
-    public void performRefinement(
+    public boolean performRefinement(
         ARGReachedSet pReached,
         List<ARGState> abstractionStatesTrace,
         List<BooleanFormula> pInterpolants,
         boolean pRepeatedCounterexample) throws CPAException, InterruptedException {
+
+      boolean furtherCEXTrackingNeeded = true;
 
       // overriding this method is needed, as, in principle, it is possible
       // -- to get two successive spurious counterexamples, which only differ in its abstractions (with 'aggressive caching').
@@ -328,6 +330,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
             // reset flags and continue
             pRepeatedCounterexample = false;
             secondRepeatedCEX = false;
+            furtherCEXTrackingNeeded = false;
           }
 
         } else {
@@ -335,7 +338,10 @@ public abstract class BAMPredicateRefiner implements Refiner {
         }
       }
 
-      super.performRefinement(pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
+      super.performRefinement(
+          pReached, abstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
+
+      return furtherCEXTrackingNeeded;
     }
 
     /**
@@ -350,6 +356,13 @@ public abstract class BAMPredicateRefiner implements Refiner {
       UnmodifiableReachedSet reached = pReached.asReachedSet();
       Precision oldPrecision = reached.getPrecision(reached.getLastState());
       PredicatePrecision oldPredicatePrecision = Precisions.extractPrecisionByType(oldPrecision, PredicatePrecision.class);
+
+      // we have to use the old root-precision, because the direct precision might have been reduced.
+      // the root-precision should contain "all" predicates generated in the last refinement.
+      if (oldPredicatePrecision instanceof ReducedPredicatePrecision) {
+        oldPredicatePrecision =
+            ((ReducedPredicatePrecision) oldPredicatePrecision).getRootPredicatePrecision();
+      }
 
       BlockPartitioning partitioning = predicateCpa.getPartitioning();
       Deque<Block> openBlocks = new ArrayDeque<>();

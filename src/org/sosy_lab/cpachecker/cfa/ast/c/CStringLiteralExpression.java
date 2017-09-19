@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public final class CStringLiteralExpression extends AStringLiteralExpression implements CLiteralExpression {
 
+  private static final long serialVersionUID = 2656216584704518185L;
+
   public CStringLiteralExpression(FileLocation pFileLocation,
                                      CType pType,
                                      String pValue) {

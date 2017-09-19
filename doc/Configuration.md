@@ -26,24 +26,24 @@ The following command-line arguments are allowed:
  - `-cmc <FILE>`		enables conditional model checking and adds one configuration
  - `-cpas <CPAS>`		sets `cpa = cpa.composite.CompositeCPA` and `CompositeCPA.cpas = <CPAS>`
  - `-spec <FILE>`		sets `specification = <FILE>`
- - `-outputpath <DIR>`	sets `output.path = <DIR>`
- - `-logfile <FILE>`	sets `log.file = <FILE>`
- - `-nolog`			    sets `log.level = OFF` and `log.consoleLevel = OFF`
- - `-noout`			    sets `output.disable=true`
- - `-stats`			    sets `statistics.print = true`
+ - `-outputpath <DIR>`		sets `output.path = <DIR>`
+ - `-logfile <FILE>`		sets `log.file = <FILE>`
+ - `-benchmark`			sets `coverage.enabled = true` and `output.disable = true`, and `statistics.memory = false`
+ - `-nolog`			sets `log.level = OFF` and `log.consoleLevel = OFF`
+ - `-noout`			sets `output.disable=true`
+ - `-stats`			sets `statistics.print = true`
  - `-entryfunction <FUNC>`	sets `analysis.entryFunction = <FUNC>`
  - `-cbmc`  			sets `analysis.checkCounterexamples = true` and `counterexample.checker=CBMC`
- - `-timelimit <TIME>`	sets `limits.time.cpu = <TIME>`
- - `-32`			    sets `analysis.machineModel = Linux32` (this is the default)
- - `-64`			    sets `analysis.machineModel = Linux64`
+ - `-timelimit <TIME>`		sets `limits.time.cpu = <TIME>`
+ - `-32`			sets `analysis.machineModel = Linux32` (this is the default)
+ - `-64`			sets `analysis.machineModel = Linux64`
  - `-skipRecursion`		sets `cpa.callstack.skipRecursion = true` and `analysis.summaryEdges = true`
  - `-preprocess`		sets `parser.usePreprocessor = true`
  - `-java`  			sets `language = JAVA`
  - `-secureMode`		enables a secure mode which forbids some configuration options that would allow arbitrary code execution
  - `-debug` 			enables the JVM debug interface on TCP port 5005 for remote debugging
- - `-disable-java-assertions` disables assertions in CPAchecker for improved performance (recommended for benchmarking)
- - `-generateReport`		executes `scripts/report-generator.py` after CPAchecker finishes
- - `-heap HEAP_SIZE`	sets the heap size of the JVM
+ - `-disable-java-assertions`	disables assertions in CPAchecker for improved performance (recommended for benchmarking)
+ - `-heap HEAP_SIZE`		sets the heap size of the JVM
  - `-setprop <KEY>=<VALUE>`	sets any option: `KEY = VALUE`
 
 The file [doc/ConfigurationOptions.txt](ConfigurationOptions.txt) contains an explanation

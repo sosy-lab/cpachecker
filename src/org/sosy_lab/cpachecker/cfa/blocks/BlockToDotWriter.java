@@ -28,7 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -62,7 +62,7 @@ public class BlockToDotWriter {
 
   /** dump the cfa with blocks and colourful nodes. */
   public void dump(final Path filename, final LogManager logger) {
-    try (Writer w = MoreFiles.openOutputFile(filename, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(filename, Charset.defaultCharset())) {
       dump(w);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write blocks to dot file");

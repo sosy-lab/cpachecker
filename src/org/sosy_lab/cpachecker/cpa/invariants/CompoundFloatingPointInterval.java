@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -68,7 +69,7 @@ public class CompoundFloatingPointInterval implements CompoundInterval, Floating
   @Override
   public BigInteger getValue() {
     // TODO Auto-generated method stub
-    return null;
+    return BigInteger.ZERO;
   }
 
   @Override
@@ -98,25 +99,25 @@ public class CompoundFloatingPointInterval implements CompoundInterval, Floating
   @Override
   public CompoundInterval extendToMinValue() {
     // TODO Auto-generated method stub
-    return null;
+    return this;
   }
 
   @Override
   public CompoundInterval extendToMaxValue() {
     // TODO Auto-generated method stub
-    return null;
+    return this;
   }
 
   @Override
   public CompoundInterval invert() {
     // TODO Auto-generated method stub
-    return null;
+    return this;
   }
 
   @Override
   public CompoundInterval span() {
     // TODO Auto-generated method stub
-    return null;
+    return this;
   }
 
   @Override
@@ -137,19 +138,19 @@ public class CompoundFloatingPointInterval implements CompoundInterval, Floating
   @Override
   public CompoundInterval signum() {
     // TODO Auto-generated method stub
-    return null;
+    return this;
   }
 
   @Override
   public List<? extends CompoundInterval> splitIntoIntervals() {
     // TODO Auto-generated method stub
-    return null;
+    return Collections.singletonList(this);
   }
 
   @Override
   public List<SimpleInterval> getIntervals() {
     // TODO Auto-generated method stub
-    return null;
+    return Collections.singletonList(SimpleInterval.infinite());
   }
 
   @Override

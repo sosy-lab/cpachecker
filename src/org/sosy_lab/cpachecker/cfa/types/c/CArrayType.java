@@ -25,29 +25,20 @@ package org.sosy_lab.cpachecker.cfa.types.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.util.Objects;
+import java.util.OptionalInt;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.types.AArrayType;
 
-import java.io.IOException;
-import java.io.InvalidObjectException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.util.Objects;
-
-import javax.annotation.Nullable;
-
-@SuppressFBWarnings(value="SE_NO_SUITABLE_CONSTRUCTOR",
-    justification="handled by serialization proxy")
 public final class CArrayType extends AArrayType implements CType {
 
   private static final long serialVersionUID = -6314468260643330323L;
 
-  private final transient CExpression    length;
-  private boolean   isConst;
-  private boolean   isVolatile;
+  private final @Nullable CExpression length;
+  private final boolean isConst;
+  private final boolean isVolatile;
 
   public CArrayType(boolean pConst, boolean pVolatile,
       CType pType, @Nullable CExpression pLength) {
@@ -64,6 +55,13 @@ public final class CArrayType extends AArrayType implements CType {
 
   public @Nullable CExpression getLength() {
     return length;
+  }
+
+  /** Return the length of this array if statically known and small enough for an int. */
+  public OptionalInt getLengthAsInt() {
+    return length instanceof CIntegerLiteralExpression
+        ? OptionalInt.of(((CIntegerLiteralExpression) length).getValue().intValueExact())
+        : OptionalInt.empty();
   }
 
   @Override
@@ -158,35 +156,5 @@ public final class CArrayType extends AArrayType implements CType {
         getType().getCanonicalType(isConst || pForceConst,
                                    isVolatile || pForceVolatile),
         length);
-  }
-
-  private Object writeReplace() {
-    return new SerializationProxy(this);
-  }
-
-  /**
-   * javadoc to remove unused parameter warning
-   * @param in the input stream
-   */
-  private void readObject(ObjectInputStream in) throws IOException {
-    throw new InvalidObjectException("Proxy required");
-  }
-
-  private static class SerializationProxy implements Serializable {
-
-    private static final long serialVersionUID = -2013901217157144921L;
-    private final boolean isConst;
-    private final boolean isVolatile;
-    private final CType type;
-
-    public SerializationProxy(CArrayType arrayType) {
-      isConst = arrayType.isConst;
-      isVolatile = arrayType.isVolatile;
-      type = arrayType.getType();
-    }
-
-    private Object readResolve() {
-      return new CArrayType(isConst, isVolatile, type, null);
-    }
   }
 }

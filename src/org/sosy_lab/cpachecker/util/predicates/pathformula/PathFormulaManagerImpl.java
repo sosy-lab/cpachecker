@@ -25,12 +25,18 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
+import java.io.PrintStream;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -59,8 +65,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CToFormulaConverterWithArrays;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CtoFormulaTypeHandlerWithArrays;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
@@ -75,14 +79,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
-
 /**
  * Class implementing the FormulaManager interface,
  * providing some commonly used stuff which is independent from specific libraries.
@@ -95,9 +91,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description = "Handle aliasing of pointers. "
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
-
-  @Option(secure=true, description = "Handle arrays using the theory of arrays.")
-  private boolean handleArrays = false;
 
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
@@ -132,8 +125,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pCfa.getVarClassification(), pDirection);
   }
 
-  @VisibleForTesting
-  PathFormulaManagerImpl(FormulaManagerView pFmgr,
+  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification, AnalysisDirection pDirection)
@@ -146,17 +138,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    if (handleArrays) {
-      final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      CtoFormulaTypeHandler typeHandler =
-          new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
-      converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
-
-      logger.log(Level.WARNING,
-          "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
-
-    } else if (handlePointerAliasing) {
+    if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       if (options.useQuantifiersOnArrays()) {
         try {
@@ -175,6 +157,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
 
       TypeHandlerWithPointerAliasing aliasingTypeHandler = new TypeHandlerWithPointerAliasing(pLogger, pMachineModel, options);
+
       converter = new CToFormulaConverterWithPointerAliasing(options, fmgr,
           pMachineModel, pVariableClassification, logger, shutdownNotifier,
           aliasingTypeHandler, pDirection);
@@ -300,9 +283,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             shutdownNotifier,
             NONDET_FORMULA_TYPE);
     final MergeResult<SSAMap> mergeSSAResult = merger.mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMapBuilder newSSA = mergeSSAResult.getResult().builder();
+    final SSAMap newSSA = mergeSSAResult.getResult();
 
-    final MergeResult<PointerTargetSet> mergePtsResult = converter.mergePointerTargetSets(pts1, pts2, newSSA);
+    final MergeResult<PointerTargetSet> mergePtsResult =
+        converter.mergePointerTargetSets(pts1, pts2, mergeSSAResult.getResult());
 
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 = bfmgr.and(formula1,
@@ -314,7 +298,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    PathFormula out = new PathFormula(newFormula, newSSA, newPTS, newLength);
     if (simplifyGeneratedPathFormulas) {
       out = out.updateFormula(fmgr.simplify(out.getFormula()));
     }
@@ -498,6 +482,25 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         merger.addMergeAssumptions(
             pF1.getFormula(), pF1.getSsa(), pF1.getPointerTargetSet(), pF2.getSsa()),
         bfmgr.not(bF));
+  }
+
+  @Override
+  public BooleanFormula addBitwiseAxiomsIfNeeded(final BooleanFormula pMainFormula
+      , final BooleanFormula pExtractionFormula) {
+    if (fmgr.useBitwiseAxioms()) {
+      BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(pExtractionFormula);
+      if (!fmgr.getBooleanFormulaManager().isTrue(bitwiseAxioms)) {
+        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
+        return fmgr.getBooleanFormulaManager().and(pMainFormula, bitwiseAxioms);
+      }
+    }
+
+    return pMainFormula;
+  }
+
+  @Override
+  public void printStatistics(PrintStream out) {
+    converter.printStatistics(out);
   }
 
 }

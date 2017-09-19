@@ -24,31 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.ProcessExecutor;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.io.MoreFiles.DeleteOnCloseFile;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
-import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
-import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
@@ -59,8 +34,31 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.ProcessExecutor;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.configuration.TimeSpanOption;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.TempFile;
+import org.sosy_lab.common.io.TempFile.DeleteOnCloseFile;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
+import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 
 /**
  * Counterexample checker that creates a C program out of a given path program.
@@ -110,7 +108,8 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
     } else {
 
       // This temp file will be automatically deleted when the try block terminates.
-      try (DeleteOnCloseFile tempFile = MoreFiles.createTempFile("concretePath", ".c")) {
+      try (DeleteOnCloseFile tempFile =
+          TempFile.builder().prefix("concretePath").suffix(".c").createDeleteOnClose()) {
         return checkCounterexample(pRootState, pErrorState, pErrorPathStates, tempFile.toPath());
 
       } catch (IOException e) {
@@ -172,7 +171,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
     Appender pathProgram = PathToConcreteProgramTranslator.translatePaths(pRootState, pErrorPathStates, ceInfo.getCFAPathWithAssignments());
 
     // write program to disk
-    try (Writer w = MoreFiles.openOutputFile(cFile, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(cFile, Charset.defaultCharset())) {
       pathProgram.appendTo(w);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed("Could not write path program to file " + e.getMessage(), e);
@@ -199,7 +198,7 @@ public class ConcretePathExecutionChecker implements CounterexampleChecker, Stat
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+  public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     out.println("Time for running concrete path check: " + timer);
   }
 

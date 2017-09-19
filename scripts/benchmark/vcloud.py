@@ -57,6 +57,10 @@ def init(config, benchmark):
     _justReprocessResults = config.reprocessResults
     benchmark.executable = benchmark.tool.executable()
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
+    environment = benchmark.environment()
+    if (environment.get("keepEnv", None) or environment.get("additionalEnv", None)):
+        sys.exit('Unsupported environment configuration in tool-info module, '
+                 'only "newEnv" is supported by VerifierCloud')
 
 def get_system_info():
     return None
@@ -135,7 +139,7 @@ def stop():
     # kill cloud-client, should be done automatically, when the subprocess is aborted
 
 def formatEnvironment(environment):
-    return ",".join(k + "=" + v for k,v in environment.get("additionalEnv", {}).items())
+    return ",".join(k + "=" + v for k,v in environment.get("newEnv", {}).items())
 
 def toTabList(l):
     return "\t".join(map(str, l))
@@ -299,8 +303,8 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
     try:
         with open(filePath, 'rt') as file:
             # Parse first part of information about hosts until first blank line
+            line = file.readline().strip()
             while True:
-                line = file.readline().strip()
                 if not line:
                     break
                 name = line.split("=")[-1].strip()
@@ -309,7 +313,16 @@ def parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark):
                 cpuName = file.readline().split("=")[-1].strip()
                 frequency = file.readline().split("=")[-1].strip()
                 cores = file.readline().split("=")[-1].strip()
-                output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name)
+                turboBoostSupported = False
+                turboBoostEnabled = False
+                line = file.readline().strip()
+                if line.startswith('turboboost-supported='):
+                    turboBoostSupported = line.split("=")[1].lower() == 'true'
+                    line = file.readline().strip()
+                if line.startswith('turboboost-enabled='):
+                    turboBoostEnabled = line.split("=")[1].lower() == 'true'
+                    line = file.readline().strip()
+                output_handler.store_system_info(osName, cpuName, cores, frequency, memory, name, None, {}, turboBoostEnabled if turboBoostSupported else None)
 
             # Ignore second part of information about runs
             # (we read the run-to-host mapping from the .data file for each run).
@@ -346,6 +359,8 @@ def parseCloudRunResultFile(filePath):
             elif key == 'exitcode':
                 values['exitcode'] = int(value)
             elif (key == "host" or key == "terminationreason" or
+                  key.startswith("blkio-") or
+                  key.startswith("cpuenergy") or
                   key.startswith("energy-") or key.startswith("cputime-cpu")):
                 values[key] = value
             elif key not in IGNORED_VALUES:

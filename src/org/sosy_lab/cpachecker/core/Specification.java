@@ -26,26 +26,26 @@ package org.sosy_lab.cpachecker.core;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
-import org.sosy_lab.cpachecker.cfa.DummyScope;
-import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
+import org.sosy_lab.cpachecker.cfa.DummyScope;
+import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
  * Class that encapsulates the specification that should be used for an analysis.
@@ -54,6 +54,10 @@ import java.util.logging.Level;
  * though it can be necessary to pass around Specification objects for sub-analyses.
  */
 public final class Specification {
+
+  private final Set<SpecificationProperty> properties;
+
+  private final Set<Path> specFiles;
 
   private final ImmutableList<Automaton> specificationAutomata;
 
@@ -66,14 +70,26 @@ public final class Specification {
   }
 
   public static Specification fromFiles(
-      Collection<Path> specFiles, CFA cfa, Configuration config, LogManager logger)
+      Set<SpecificationProperty> pProperties,
+      Collection<Path> specFiles,
+      CFA cfa,
+      Configuration config,
+      LogManager logger)
       throws InvalidConfigurationException {
     if (specFiles.isEmpty()) {
       return Specification.alwaysSatisfied();
     }
 
-    Scope scope =
-        cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
+    Scope scope;
+    switch (cfa.getLanguage()) {
+      case C:
+        scope = new CProgramScope(cfa, logger);
+        break;
+      default:
+        scope = DummyScope.getInstance();
+        break;
+    }
+
     List<Automaton> allAutomata = new ArrayList<>();
 
     for (Path specFile : specFiles) {
@@ -88,9 +104,9 @@ public final class Specification {
             "Could not load automaton from file " + e.getMessage(), e);
       }
 
-      if (AutomatonGraphmlParser.isGraphmlAutomaton(specFile, logger)) {
+      if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
         AutomatonGraphmlParser graphmlParser =
-            new AutomatonGraphmlParser(config, logger, cfa, cfa.getMachineModel(), scope);
+            new AutomatonGraphmlParser(config, logger, cfa, scope);
         automata = graphmlParser.parseAutomatonFile(specFile);
 
       } else {
@@ -113,10 +129,19 @@ public final class Specification {
       }
       allAutomata.addAll(automata);
     }
-    return new Specification(allAutomata);
+    return new Specification(pProperties, specFiles, allAutomata);
   }
 
   private Specification(Iterable<Automaton> pSpecificationAutomata) {
+    this(ImmutableSet.of(), ImmutableSet.of(), pSpecificationAutomata);
+  }
+
+  private Specification(
+      Set<SpecificationProperty> pProperties,
+      Collection<Path> pSpecFiles,
+      Iterable<Automaton> pSpecificationAutomata) {
+    properties = ImmutableSet.copyOf(pProperties);
+    specFiles = ImmutableSet.copyOf(pSpecFiles);
     specificationAutomata = ImmutableList.copyOf(pSpecificationAutomata);
   }
 
@@ -148,5 +173,26 @@ public final class Specification {
   public String toString() {
     return "Specification"
         + specificationAutomata.stream().map(Automaton::getName).collect(joining(", ", "[", "]"));
+  }
+
+  /**
+   * Gets the set of specification properties, which represents a subset of the specification
+   * automata.
+   *
+   * @return the set of specification properties, which represents a subset of the specification
+   *     automata.
+   */
+  public Set<SpecificationProperty> getProperties() {
+    return properties;
+  }
+
+  /**
+   * Gets the set of specification files, which represents a subset of the specification automata.
+   *
+   * @return the set of specification files, which represents a subset of the specification
+   *     automata.
+   */
+  public Set<Path> getSpecFiles() {
+    return specFiles;
   }
 }

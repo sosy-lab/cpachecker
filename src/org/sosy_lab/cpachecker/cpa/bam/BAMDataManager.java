@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,73 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import com.google.common.collect.Lists;
-
-import org.sosy_lab.common.log.LogManager;
+import java.util.List;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-/**
- * Data structures required for BAM.
- *
- * <p>TODO: clear cache to avoid memory-leaks.
- * */
-public class BAMDataManager {
-
-  final LogManager logger;
-
-  /**
-   * Main data structure.
-   * Contains every {@link ReachedSet} of every recursive
-   * {@link org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm}
-   * invocation.
-   * */
-  final BAMCache bamCache;
-
-  private final ReachedSetFactory reachedSetFactory;
-
-  /**
-   * Mapping of non-reduced initial states
-   * to {@link ReachedSet}.
-   **/
-  final Map<AbstractState, ReachedSet> initialStateToReachedSet = new HashMap<>();
-
-  /**
-   * Mapping from expanded states at the end of the block to corresponding
-   * reduced states, from which the key state was originally expanded.
-   * */
-  final Map<AbstractState, AbstractState> expandedStateToReducedState = new HashMap<>();
-
-  /**
-   * Mapping from expanded states at a block-end to
-   * inner blocks of the corresponding reduced state,
-   * from which the key was originally expanded.
-   **/
-  private final Map<AbstractState, Block> expandedStateToBlock = new HashMap<>();
-
-  /**
-   * Mapping from expanded states at a block-end to
-   * corresponding expanded precisions.
-   **/
-  final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new HashMap<>();
-
-  public BAMDataManager(
-      BAMCache pArgCache,
-      ReachedSetFactory pReachedSetFactory,
-      LogManager pLogger) {
-    bamCache = pArgCache;
-    reachedSetFactory = pReachedSetFactory;
-    logger = pLogger;
-  }
+public interface BAMDataManager {
 
   /**
    * Associate the value previously associated with {@code oldState} with
@@ -99,53 +41,20 @@ public class BAMDataManager {
    *                          cache, otherwise, fails silently if it isn't.
    */
   void replaceStateInCaches(
-      AbstractState oldState,
-      AbstractState newState,
-      boolean oldStateMustExist) {
-
-    if (oldStateMustExist || expandedStateToReducedState.containsKey(oldState)) {
-      final AbstractState reducedState = expandedStateToReducedState.remove(oldState);
-      expandedStateToReducedState.put(newState, reducedState);
-    }
-
-    if (oldStateMustExist || expandedStateToBlock.containsKey(oldState)) {
-      final Block innerBlock = expandedStateToBlock.remove(oldState);
-      expandedStateToBlock.put(newState, innerBlock);
-    }
-
-    if (oldStateMustExist || expandedStateToExpandedPrecision.containsKey(oldState)) {
-      final Precision expandedPrecision = expandedStateToExpandedPrecision.remove(oldState);
-      expandedStateToExpandedPrecision.put(newState, expandedPrecision);
-    }
-  }
-
-  /** unused? */
-  void clearCaches() {
-    bamCache.clear();
-    initialStateToReachedSet.clear();
-  }
+      AbstractState oldState, AbstractState newState, boolean oldStateMustExist);
 
   /**
    * Create a new reached-set with the given state as root and register it in the cache.
    **/
   ReachedSet createAndRegisterNewReachedSet(
-      AbstractState initialState, Precision initialPrecision, Block context) {
-    final ReachedSet reached = reachedSetFactory.create();
-    reached.add(initialState, initialPrecision);
-    bamCache.put(initialState, initialPrecision, context, reached);
-    return reached;
-  }
+      AbstractState initialState, Precision initialPrecision, Block context);
 
   /**
    * Register an expanded state in our data-manager,
    * such that we know later, which state in which block was expanded to the state.
    * */
   void registerExpandedState(AbstractState expandedState, Precision expandedPrecision,
-      AbstractState reducedState, Block innerBlock) {
-    expandedStateToReducedState.put(expandedState, reducedState);
-    expandedStateToBlock.put(expandedState, innerBlock);
-    expandedStateToExpandedPrecision.put(expandedState, expandedPrecision);
-  }
+      AbstractState reducedState, Block innerBlock);
 
   /**
    * @param state Has to be a block-end state.
@@ -157,35 +66,55 @@ public class BAMDataManager {
    * @return Whether the current state is at a node,
    * where several block-exits are available and one of them was already left.
    **/
-  boolean alreadyReturnedFromSameBlock(AbstractState state, Block block) {
-    while (expandedStateToReducedState.containsKey(state)) {
-      if (expandedStateToBlock.containsKey(state) && block == expandedStateToBlock.get(state)) {
-        return true;
-      }
-      state = expandedStateToReducedState.get(state);
-    }
-    return false;
-  }
-
-  ARGState getInnermostState(ARGState state) {
-    while (expandedStateToReducedState.containsKey(state)) {
-      state = (ARGState) expandedStateToReducedState.get(state);
-    }
-    return state;
-  }
+  boolean alreadyReturnedFromSameBlock(AbstractState state, Block block);
 
   /**
-   * Get a list of states {@code [s1,s2,s3...]},
-   * such that {@code expand(s1)=s2}, {@code expand(s2)=s3},...
-   * The state {@code s1} is the most inner state.
+   * Returns the non-expanded abstract state for a expanded abstract state, recursively if needed,
+   * or the given state itself, if the state was never an expanded result.
    */
-  List<AbstractState> getExpandedStatesList(AbstractState state) {
-    List<AbstractState> lst = new ArrayList<>();
-    AbstractState tmp = state;
-    while (expandedStateToReducedState.containsKey(tmp)) {
-      tmp = expandedStateToReducedState.get(tmp);
-      lst.add(tmp);
-    }
-    return Lists.reverse(lst);
-  }
+  AbstractState getInnermostState(AbstractState state);
+
+  /**
+   * Get a list of states {@code [s2,s3...]},
+   * such that {@code expand(s1)=s2}, {@code expand(s2)=s3},...
+   * The state {@code s1} is the state given as argument and is not contained in the list.
+   */
+  List<AbstractState> getExpandedStatesList(AbstractState state);
+
+  /**
+   * Add a mapping of a non-reduced abstract state to a reached-set whose first state is the
+   * matching reduced abstract state.
+   */
+  void registerInitialState(AbstractState state, ReachedSet reachedSet);
+
+  /**
+   * Receive the reached-set for a non-reduced initial state. We expect that the given abstract
+   * state has a matching reached-set.
+   */
+  ReachedSet getReachedSetForInitialState(AbstractState state);
+
+  /** CHech whether the given abstract state is the non-reduced initial state of a reached-set. */
+  boolean hasInitialState(AbstractState state);
+
+  /**
+   * Returns the non-expanded abstract state for an expanded abstract state. We expect that the
+   * given abstract state was registered as expanded state.
+   */
+  AbstractState getReducedStateForExpandedState(AbstractState state);
+
+  /** Check whether any abstract state was expanded to the given abstract state. */
+  boolean hasExpandedState(AbstractState state);
+
+  BAMCache getCache();
+
+  void clearExpandedStateToExpandedPrecision();
+
+  /** Some benchmarks are complicated and
+   *  all intermediate cache entries can not be stored due to large memory consumption,
+   *  then there is a way to clear all caches and to restore ARG completely. */
+  void clear();
+
+  /** return a matching precision for the given state, or Null if state is not found. */
+  @Nullable
+  Precision getExpandedPrecisionForState(AbstractState pState);
 }

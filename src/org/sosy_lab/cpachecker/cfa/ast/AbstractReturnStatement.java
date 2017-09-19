@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Optional;
 import java.util.Objects;
-
-import java.util.Optional;
 
 public abstract class AbstractReturnStatement extends AbstractAstNode implements AReturnStatement {
 
+  private static final long serialVersionUID = 2672685167471010046L;
   private final Optional<? extends AExpression> expression;
   private final Optional<? extends AAssignment> assignment;
 

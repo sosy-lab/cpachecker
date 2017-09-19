@@ -27,6 +27,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 public abstract class AbstractStatement extends AbstractAstNode implements AStatement {
 
+  private static final long serialVersionUID = -596325723181327583L;
+
   public AbstractStatement(FileLocation pFileLocation) {
     super(pFileLocation);
   }

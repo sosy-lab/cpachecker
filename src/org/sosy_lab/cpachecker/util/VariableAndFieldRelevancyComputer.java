@@ -23,11 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import org.sosy_lab.common.annotations.FieldsAreNonnullByDefault;
 import org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault;
 import org.sosy_lab.common.collect.PersistentLinkedList;
@@ -67,17 +75,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.util.ArrayDeque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Queue;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-import javax.annotation.ParametersAreNonnullByDefault;
 
 /**
  *<p>
@@ -325,6 +322,7 @@ public final class VariableAndFieldRelevancyComputer {
     private VarFieldDependencies(
         Set<String> relevantVariables,
         Multimap<CCompositeType, String> relevantFields,
+        Multimap<CCompositeType, String> addressedFields,
         Set<String> addressedVariables,
         Multimap<VariableOrField, VariableOrField> dependencies,
         PersistentList<VarFieldDependencies> pendingMerges,
@@ -336,6 +334,7 @@ public final class VariableAndFieldRelevancyComputer {
           || forceSquash) {
         relevantVariables = copy(relevantVariables);
         relevantFields = copy(relevantFields);
+        addressedFields = copy(addressedFields);
         addressedVariables = copy(addressedVariables);
         dependencies = copy(dependencies);
         Queue<PersistentList<VarFieldDependencies>> queue = new ArrayDeque<>();
@@ -347,6 +346,9 @@ public final class VariableAndFieldRelevancyComputer {
             }
             for (final Map.Entry<CCompositeType, String> e : deps.relevantFields.entries()) {
               relevantFields.put(e.getKey(), e.getValue());
+            }
+            for (final Map.Entry<CCompositeType, String> e : deps.addressedFields.entries()) {
+              addressedFields.put(e.getKey(), e.getValue());
             }
             for (final String e : deps.addressedVariables) {
               addressedVariables.add(e);
@@ -366,6 +368,7 @@ public final class VariableAndFieldRelevancyComputer {
       }
       this.relevantVariables = relevantVariables;
       this.relevantFields = relevantFields;
+      this.addressedFields = addressedFields;
       this.addressedVariables = addressedVariables;
       this.dependencies = dependencies;
       this.pendingMerges = pendingMerges;
@@ -376,6 +379,7 @@ public final class VariableAndFieldRelevancyComputer {
     private VarFieldDependencies(
         final Set<String> relevantVariables,
         final Multimap<CCompositeType, String> relevantFields,
+        final Multimap<CCompositeType, String> addressedFields,
         final Set<String> addressedVariables,
         final Multimap<VariableOrField, VariableOrField> dependencies,
         final PersistentList<VarFieldDependencies> pendingMerges,
@@ -384,6 +388,7 @@ public final class VariableAndFieldRelevancyComputer {
       this(
           relevantVariables,
           relevantFields,
+          addressedFields,
           addressedVariables,
           dependencies,
           pendingMerges,
@@ -403,6 +408,7 @@ public final class VariableAndFieldRelevancyComputer {
             new VarFieldDependencies(
                 ImmutableSet.of(),
                 ImmutableMultimap.of(),
+                ImmutableMultimap.of(),
                 ImmutableSet.of(),
                 ImmutableMultimap.of(lhs, rhs),
                 PersistentLinkedList.of(),
@@ -411,6 +417,7 @@ public final class VariableAndFieldRelevancyComputer {
         return new VarFieldDependencies(
             relevantVariables,
             relevantFields,
+            addressedFields,
             addressedVariables,
             dependencies,
             pendingMerges.with(singleDependency),
@@ -422,6 +429,7 @@ public final class VariableAndFieldRelevancyComputer {
               new VarFieldDependencies(
                   ImmutableSet.of(rhs.asVariable().getScopedName()),
                   ImmutableMultimap.of(),
+                  ImmutableMultimap.of(),
                   ImmutableSet.of(),
                   ImmutableMultimap.of(),
                   PersistentLinkedList.of(),
@@ -430,6 +438,7 @@ public final class VariableAndFieldRelevancyComputer {
           return new VarFieldDependencies(
               relevantVariables,
               relevantFields,
+              addressedFields,
               addressedVariables,
               dependencies,
               pendingMerges.with(singleVariable),
@@ -441,6 +450,7 @@ public final class VariableAndFieldRelevancyComputer {
               new VarFieldDependencies(
                   ImmutableSet.of(),
                   ImmutableMultimap.of(field.getCompositeType(), field.getName()),
+                  ImmutableMultimap.of(),
                   ImmutableSet.of(),
                   ImmutableMultimap.of(),
                   PersistentLinkedList.of(),
@@ -449,6 +459,7 @@ public final class VariableAndFieldRelevancyComputer {
           return new VarFieldDependencies(
               relevantVariables,
               relevantFields,
+              addressedFields,
               addressedVariables,
               dependencies,
               pendingMerges.with(singleField),
@@ -467,6 +478,7 @@ public final class VariableAndFieldRelevancyComputer {
           new VarFieldDependencies(
               ImmutableSet.of(),
               ImmutableMultimap.of(),
+              ImmutableMultimap.of(),
               ImmutableSet.of(variable.getScopedName()),
               ImmutableMultimap.of(),
               PersistentLinkedList.of(),
@@ -475,9 +487,32 @@ public final class VariableAndFieldRelevancyComputer {
       return new VarFieldDependencies(
           relevantVariables,
           relevantFields,
+          addressedFields,
           addressedVariables,
           dependencies,
           pendingMerges.with(singleVariable),
+          currentSize,
+          pendingSize + 1);
+    }
+
+    public VarFieldDependencies withAddressedField(final VariableOrField.Field field) {
+      final VarFieldDependencies singleField =
+          new VarFieldDependencies(
+              ImmutableSet.of(),
+              ImmutableMultimap.of(),
+              ImmutableMultimap.of(field.getCompositeType(), field.getName()),
+              ImmutableSet.of(),
+              ImmutableMultimap.of(),
+              PersistentLinkedList.of(),
+              1,
+              0);
+      return new VarFieldDependencies(
+          relevantVariables,
+          relevantFields,
+          addressedFields,
+          addressedVariables,
+          dependencies,
+          pendingMerges.with(singleField),
           currentSize,
           pendingSize + 1);
     }
@@ -496,6 +531,7 @@ public final class VariableAndFieldRelevancyComputer {
         return new VarFieldDependencies(
             relevantVariables,
             relevantFields,
+            addressedFields,
             addressedVariables,
             dependencies,
             pendingMerges.with(other),
@@ -505,6 +541,7 @@ public final class VariableAndFieldRelevancyComputer {
         return new VarFieldDependencies(
             other.relevantVariables,
             other.relevantFields,
+            other.addressedFields,
             other.addressedVariables,
             other.dependencies,
             other.pendingMerges.with(this),
@@ -519,6 +556,7 @@ public final class VariableAndFieldRelevancyComputer {
             new VarFieldDependencies(
                 relevantVariables,
                 relevantFields,
+                addressedFields,
                 addressedVariables,
                 dependencies,
                 pendingMerges,
@@ -531,6 +569,11 @@ public final class VariableAndFieldRelevancyComputer {
     public ImmutableSet<String> computeAddressedVariables() {
       ensureSquashed();
       return ImmutableSet.copyOf(squashed.addressedVariables);
+    }
+
+    public ImmutableMultimap<CCompositeType, String> computeAddressedFields() {
+      ensureSquashed();
+      return ImmutableMultimap.copyOf(squashed.addressedFields);
     }
 
     public Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>>
@@ -572,6 +615,7 @@ public final class VariableAndFieldRelevancyComputer {
 
     private final Set<String> relevantVariables;
     private final Multimap<CCompositeType, String> relevantFields;
+    private final Multimap<CCompositeType, String> addressedFields;
     private final Set<String> addressedVariables;
     private final Multimap<VariableOrField, VariableOrField> dependencies;
     private final PersistentList<VarFieldDependencies> pendingMerges;
@@ -582,6 +626,7 @@ public final class VariableAndFieldRelevancyComputer {
     private static final VarFieldDependencies EMPTY_DEPENDENCIES =
         new VarFieldDependencies(
             ImmutableSet.of(),
+            ImmutableMultimap.of(),
             ImmutableMultimap.of(),
             ImmutableSet.of(),
             ImmutableMultimap.of(),
@@ -650,7 +695,15 @@ public final class VariableAndFieldRelevancyComputer {
 
     @Override
     protected Pair<VariableOrField, VarFieldDependencies> visitDefault(final CExpression e) {
-      throw new AssertionError("The expression should not occur in the left hand side");
+      if (e instanceof CUnaryExpression && UnaryOperator.AMPER == ((CUnaryExpression)e).getOperator()) {
+        // TODO dependency between address and variable?
+        return ((CUnaryExpression)e).getOperand().accept(this);
+      }
+
+      throw new AssertionError(
+          String.format(
+              "The expression %s from %s should not occur in the left hand side",
+              e, e.getFileLocation()));
     }
 
     private static final CollectingLHSVisitor INSTANCE = new CollectingLHSVisitor();
@@ -682,10 +735,16 @@ public final class VariableAndFieldRelevancyComputer {
 
     @Override
     public VarFieldDependencies visit(final CFieldReference e) {
-      return e.getFieldOwner()
+      VariableOrField.Field field = VariableOrField.newField(getCanonicalFieldOwnerType(e), e.getFieldName());
+      VarFieldDependencies result = e.getFieldOwner()
           .accept(this)
           .withDependency(
-              lhs, VariableOrField.newField(getCanonicalFieldOwnerType(e), e.getFieldName()));
+              lhs, field);
+      if (addressed) {
+        return result.withAddressedField(field);
+      } else {
+        return result;
+      }
     }
 
     @Override

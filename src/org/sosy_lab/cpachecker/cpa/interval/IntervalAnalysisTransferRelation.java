@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,34 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
+import com.google.common.base.Optional;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -61,37 +56,24 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.logging.Level;
-
-
-@Options(prefix="cpa.interval")
 public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation<Collection<IntervalAnalysisState>, IntervalAnalysisState, Precision> {
 
-  @Option(secure=true, description="decides whether one (false) or two (true) successors should be created "
-    + "when an inequality-check is encountered")
-  private boolean splitIntervals = false;
-
-  @Option(secure=true, description="at most that many intervals will be tracked per variable, -1 if number not restricted")
-  private int threshold = -1;
-
+  private final boolean splitIntervals;
+  private final int threshold;
   private final LogManager logger;
 
-  public IntervalAnalysisTransferRelation(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
-    config.inject(this);
+  public IntervalAnalysisTransferRelation(
+      boolean pSplitIntervals, int pThreshold, LogManager pLogger) {
+    splitIntervals = pSplitIntervals;
+    threshold = pThreshold;
     logger = pLogger;
+
   }
 
   @Override
@@ -108,8 +90,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
       // delete variables from returning function,
       // we do not need them after this location, because the next edge is the functionReturnEdge.
-      newState = IntervalAnalysisState.copyOf(state);
-      newState.dropFrame(functionName);
+      newState = newState.dropFrame(functionName);
     }
 
     return soleSuccessor(newState);
@@ -126,10 +107,10 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String callerFunctionName)
     throws UnrecognizedCodeException {
 
-    IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
+    IntervalAnalysisState newState = state;
     Optional<CVariableDeclaration> retVar = fnkCall.getFunctionEntry().getReturnVariable();
     if (retVar.isPresent()) {
-      newState.removeInterval(retVar.get().getQualifiedName());
+      newState = newState.removeInterval(retVar.get().getQualifiedName());
     }
 
     // expression is an assignment operation, e.g. a = g(b);
@@ -138,7 +119,11 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
       // left hand side of the expression has to be a variable
       if (state.contains(retVar.get().getQualifiedName())) {
-        addInterval(newState, funcExp.getLeftHandSide(), state.getInterval(retVar.get().getQualifiedName()));
+        newState =
+            addInterval(
+                newState,
+                funcExp.getLeftHandSide(),
+                state.getInterval(retVar.get().getQualifiedName()));
       }
 
     } else if (summaryExpr instanceof CFunctionCallStatement) {
@@ -169,14 +154,14 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       assert parameters.size() == arguments.size();
     }
 
-    IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
+    IntervalAnalysisState newState = state;
 
     // set the interval of each formal parameter to the interval of its respective actual parameter
     for (int i = 0; i < parameters.size(); i++) {
       // get value of actual parameter in caller function context
       Interval interval = evaluateInterval(state, arguments.get(i), callEdge);
       String formalParameterName = parameters.get(i).getQualifiedName();
-      newState.addInterval(formalParameterName, interval, this.threshold);
+      newState = newState.addInterval(formalParameterName, interval, this.threshold);
     }
 
     return soleSuccessor(newState);
@@ -191,15 +176,16 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
       throws UnrecognizedCCodeException {
-    IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
-    newState.dropFrame(functionName);
+    IntervalAnalysisState newState = state.dropFrame(functionName);
 
     // assign the value of the function return to a new variable
     if (returnEdge.asAssignment().isPresent()) {
       CAssignment ass = returnEdge.asAssignment().get();
-      newState.addInterval(
-          ((CIdExpression)ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
-          evaluateInterval(state, ass.getRightHandSide(), returnEdge), threshold);
+      newState =
+          newState.addInterval(
+              ((CIdExpression) ass.getLeftHandSide()).getDeclaration().getQualifiedName(),
+              evaluateInterval(state, ass.getRightHandSide(), returnEdge),
+              threshold);
     }
 
     return soleSuccessor(newState);
@@ -231,14 +217,14 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     CExpression operand2 = ((CBinaryExpression)expression).getOperand2();
 
     if (!truthValue) {
-      operator = negateOperator(operator);
+      operator = operator.getOppositLogicalOperator();
     }
 
     // the following lines assume that one of the operands is an identifier
     // and the other one represented with an interval (example "x<[3;5]").
     // If none of the operands is an identifier, nothing is done.
 
-    IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
+    IntervalAnalysisState newState = state;
     ExpressionValueVisitor visitor = new ExpressionValueVisitor(state, cfaEdge);
     Interval interval1 = operand1.accept(visitor);
     Interval interval2 = operand2.accept(visitor);
@@ -249,36 +235,40 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     switch(operator) {
     // a < b, a < 1
     case LESS_THAN: {
-      addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2.minus(1L)));
-      addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1.plus(1L)));
+          newState =
+              addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2.minus(1L)));
+          newState =
+              addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1.plus(1L)));
       return soleSuccessor(newState);
     }
 
     // a <= b, a <= 1
     case LESS_EQUAL: {
-      addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
-      addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1));
+          newState = addInterval(newState, operand1, interval1.limitUpperBoundBy(interval2));
+          newState = addInterval(newState, operand2, interval2.limitLowerBoundBy(interval1));
       return soleSuccessor(newState);
     }
 
     // a > b, a > 1
     case GREATER_THAN: {
-      addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2.plus(1L)));
-      addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1.minus(1L)));
+          newState =
+              addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2.plus(1L)));
+          newState =
+              addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1.minus(1L)));
       return soleSuccessor(newState);
     }
 
     // a >= b, a >= 1
     case GREATER_EQUAL: {
-      addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
-      addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1));
+          newState = addInterval(newState, operand1, interval1.limitLowerBoundBy(interval2));
+          newState = addInterval(newState, operand2, interval2.limitUpperBoundBy(interval1));
       return soleSuccessor(newState);
     }
 
     // a == b, a == 1
     case EQUALS: {
-      addInterval(newState, operand1, interval1.intersect(interval2));
-      addInterval(newState, operand2, interval2.intersect(interval1));
+          newState = addInterval(newState, operand1, interval1.intersect(interval2));
+          newState = addInterval(newState, operand2, interval2.intersect(interval1));
       return soleSuccessor(newState);
     }
 
@@ -332,15 +322,11 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       Interval part2 = interval.intersect(Interval.createLowerBoundedInterval(splitPoint.getLow() + 1L));
 
       if (!part1.isEmpty()) {
-        IntervalAnalysisState newState2 = IntervalAnalysisState.copyOf(newState);
-        addInterval(newState2, lhs, part1);
-        successors.add(newState2);
+        successors.add(addInterval(newState, lhs, part1));
       }
 
       if (!part2.isEmpty()) {
-        IntervalAnalysisState newState3 = IntervalAnalysisState.copyOf(newState);
-        addInterval(newState3, lhs, part2);
-        successors.add(newState3);
+        successors.add(addInterval(newState, lhs, part2));
       }
 
       return successors;
@@ -349,46 +335,15 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
     }
   }
 
-  private void addInterval(IntervalAnalysisState newState,
-      CExpression lhs, Interval interval) {
+  private IntervalAnalysisState addInterval(
+      IntervalAnalysisState newState, CExpression lhs, Interval interval) {
     // we currently only handle IdExpressions and ignore more complex Expressions
     if (lhs instanceof CIdExpression) {
-      newState.addInterval(
-          ((CIdExpression) lhs).getDeclaration().getQualifiedName(),
-          interval,
-          threshold);
+      newState =
+          newState.addInterval(
+              ((CIdExpression) lhs).getDeclaration().getQualifiedName(), interval, threshold);
     }
-  }
-
-  /**
-   * This method return the negated counter part for a given operator
-   *
-   * @param operator the operator to negate
-   * @return the negated counter part of the given operator
-   */
-  private static BinaryOperator negateOperator(BinaryOperator operator) {
-    switch (operator) {
-      case EQUALS:
-        return BinaryOperator.NOT_EQUALS;
-
-      case NOT_EQUALS:
-        return BinaryOperator.EQUALS;
-
-      case LESS_THAN:
-        return BinaryOperator.GREATER_EQUAL;
-
-      case LESS_EQUAL:
-        return BinaryOperator.GREATER_THAN;
-
-      case GREATER_EQUAL:
-        return BinaryOperator.LESS_THAN;
-
-      case GREATER_THAN:
-        return BinaryOperator.LESS_EQUAL;
-
-      default:
-        return operator;
-    }
+    return newState;
   }
 
   /**
@@ -403,7 +358,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   protected Collection<IntervalAnalysisState> handleDeclarationEdge(CDeclarationEdge declarationEdge, CDeclaration declaration)
       throws UnrecognizedCCodeException {
 
-    IntervalAnalysisState newState = IntervalAnalysisState.copyOf(state);
+    IntervalAnalysisState newState = state;
     if (declarationEdge.getDeclaration() instanceof CVariableDeclaration) {
       CVariableDeclaration decl = (CVariableDeclaration)declarationEdge.getDeclaration();
 
@@ -420,10 +375,10 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
         CExpression exp = ((CInitializerExpression) init).getExpression();
         interval = evaluateInterval(state, exp, declarationEdge);
       } else {
-        interval = Interval.createUnboundInterval();
+        interval = Interval.UNBOUND;
       }
 
-      newState.addInterval(decl.getQualifiedName(), interval, this.threshold);
+      newState = newState.addInterval(decl.getQualifiedName(), interval, this.threshold);
     }
 
     return soleSuccessor(newState);
@@ -439,6 +394,7 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
   @Override
   protected Collection<IntervalAnalysisState> handleStatementEdge(CStatementEdge cfaEdge, CStatement expression)
     throws UnrecognizedCodeException {
+    IntervalAnalysisState successor = state;
     // expression is an assignment operation, e.g. a = b;
     if (expression instanceof CAssignment) {
       CAssignment assignExpression = (CAssignment)expression;
@@ -446,11 +402,9 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
       CRightHandSide op2 = assignExpression.getRightHandSide();
 
       // a = ?
-      IntervalAnalysisState successor = IntervalAnalysisState.copyOf(state);
-      addInterval(successor, op1, evaluateInterval(state, op2, cfaEdge));
-      return soleSuccessor(successor);
+      successor = addInterval(successor, op1, evaluateInterval(state, op2, cfaEdge));
     }
-    return soleSuccessor(state);
+    return soleSuccessor(successor);
   }
 
   private Interval evaluateInterval(IntervalAnalysisState readableState, CRightHandSide expression, CFAEdge cfaEdge) throws UnrecognizedCCodeException {
@@ -463,175 +417,6 @@ public class IntervalAnalysisTransferRelation extends ForwardingTransferRelation
 
   private Collection<IntervalAnalysisState> noSuccessors() {
     return Collections.emptySet();
-  }
-
-  /**
-   * Visitor that get's the interval from an expression,
-   */
-  private static class ExpressionValueVisitor
-      extends DefaultCExpressionVisitor<Interval, UnrecognizedCCodeException>
-      implements CRightHandSideVisitor<Interval, UnrecognizedCCodeException> {
-
-    private final IntervalAnalysisState readableState;
-
-    private final CFAEdge cfaEdge;
-
-    public ExpressionValueVisitor(IntervalAnalysisState pState, CFAEdge edge) {
-      readableState = pState;
-      cfaEdge = edge;
-    }
-
-    @Override
-    protected Interval visitDefault(CExpression expression) {
-      return Interval.createUnboundInterval();
-    }
-
-    @Override
-    public Interval visit(CBinaryExpression binaryExpression) throws UnrecognizedCCodeException {
-      Interval interval1 = binaryExpression.getOperand1().accept(this);
-      Interval interval2 = binaryExpression.getOperand2().accept(this);
-
-      if (interval1 == null || interval2 == null) {
-        return Interval.createUnboundInterval();
-      }
-
-      BinaryOperator operator = binaryExpression.getOperator();
-      if (operator.isLogicalOperator()) {
-        return getLogicInterval(operator, interval1, interval2);
-      } else {
-        return getArithmeticInterval(operator, interval1, interval2);
-      }
-    }
-
-    private static Interval getLogicInterval(BinaryOperator operator,
-        Interval interval1, Interval interval2) {
-      switch (operator) {
-      case EQUALS:
-        if (!interval1.intersects(interval2)) {
-          return Interval.ZERO;
-        } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
-          // singular interval, [5;5]==[5;5]
-          return Interval.ONE;
-        } else {
-          return Interval.createBooleanInterval();
-        }
-
-      case NOT_EQUALS:
-        if (!interval1.intersects(interval2)) {
-          return Interval.ONE;
-        } else if (interval1.getLow().equals(interval1.getHigh()) && interval1.equals(interval2)) {
-          // singular interval, [5;5]!=[5;5]
-          return Interval.ZERO;
-        } else {
-          return Interval.createBooleanInterval();
-        }
-
-      case GREATER_THAN:
-        if (interval1.isGreaterThan(interval2)) {
-          return Interval.ONE;
-        } else if (interval2.isGreaterOrEqualThan(interval1)) {
-          return Interval.ZERO;
-        } else {
-          return Interval.createBooleanInterval();
-        }
-
-      case GREATER_EQUAL: // a>=b == a+1>b, works only for integers
-        return getLogicInterval(BinaryOperator.GREATER_THAN,
-            interval1.plus(new Interval(1L)), interval2);
-
-      case LESS_THAN: // a<b == b>a
-        return getLogicInterval(BinaryOperator.GREATER_THAN,
-            interval2, interval1);
-
-      case LESS_EQUAL: // a<=b == b+1>a, works only for integers
-        return getLogicInterval(BinaryOperator.GREATER_THAN,
-            interval2.plus(new Interval(1L)), interval1);
-
-      default:
-        throw new AssertionError("unknown binary operator: " + operator);
-      }
-    }
-
-    private static Interval getArithmeticInterval(BinaryOperator operator,
-        Interval interval1, Interval interval2) {
-      switch (operator) {
-      case PLUS:
-        return interval1.plus(interval2);
-      case MINUS:
-        return interval1.minus(interval2);
-      case MULTIPLY:
-        return interval1.times(interval2);
-      case DIVIDE:
-        return interval1.divide(interval2);
-      case SHIFT_LEFT:
-        return interval1.shiftLeft(interval2);
-      case SHIFT_RIGHT:
-        return interval1.shiftRight(interval2);
-      case MODULO:
-        return interval1.modulo(interval2);
-      case BINARY_AND:
-      case BINARY_OR:
-      case BINARY_XOR:
-        return Interval.createUnboundInterval();
-      default:
-        throw new AssertionError("unknown binary operator: " + operator);
-      }
-    }
-
-    @Override
-    public Interval visit(CCastExpression cast) throws UnrecognizedCCodeException {
-      return cast.getOperand().accept(this);
-    }
-
-    @Override
-    public Interval visit(CFunctionCallExpression functionCall) throws UnrecognizedCCodeException {
-      return Interval.createUnboundInterval();
-    }
-    @Override
-    public Interval visit(CCharLiteralExpression charLiteral) throws UnrecognizedCCodeException {
-      return new Interval((long)charLiteral.getCharacter());
-    }
-
-    @Override
-    public Interval visit(CImaginaryLiteralExpression exp) throws UnrecognizedCCodeException {
-      return exp.getValue().accept(this);
-    }
-
-    @Override
-    public Interval visit(CIntegerLiteralExpression integerLiteral) throws UnrecognizedCCodeException {
-      return new Interval(integerLiteral.asLong());
-    }
-
-    @Override
-    public Interval visit(CIdExpression identifier) throws UnrecognizedCCodeException {
-      if (identifier.getDeclaration() instanceof CEnumerator) {
-        return new Interval(((CEnumerator)identifier.getDeclaration()).getValue());
-      }
-
-      final String variableName = identifier.getDeclaration().getQualifiedName();
-      if (readableState.contains(variableName)) {
-        return readableState.getInterval(variableName);
-      } else {
-        return Interval.createUnboundInterval();
-      }
-    }
-
-    @Override
-    public Interval visit(CUnaryExpression unaryExpression) throws UnrecognizedCCodeException {
-      Interval interval = unaryExpression.getOperand().accept(this);
-      switch (unaryExpression.getOperator()) {
-
-      case MINUS:
-        return interval.negate();
-
-      case AMPER:
-      case TILDE:
-        return Interval.createUnboundInterval(); // valid expression, but it's a pointer value
-
-      default:
-        throw new UnrecognizedCCodeException("unknown unary operator", cfaEdge, unaryExpression);
-      }
-    }
   }
 }
 

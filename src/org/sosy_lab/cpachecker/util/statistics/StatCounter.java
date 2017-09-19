@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,31 +23,33 @@
  */
 package org.sosy_lab.cpachecker.util.statistics;
 
+import java.util.concurrent.atomic.LongAdder;
 
+/** Thread-safe implementation of numerical statistics. */
 public class StatCounter extends AbstractStatValue {
 
-  private int counter = 0;
+  private LongAdder counter = new LongAdder();
 
   public StatCounter(String pTitle) {
     super(StatKind.SUM, pTitle);
   }
 
   public void inc() {
-    counter++;
+    counter.increment();
   }
 
-  public int getValue() {
-    return counter;
+  public long getValue() {
+    return counter.sum();
   }
 
   @Override
   public int getUpdateCount() {
-    return counter;
+    return counter.intValue();
   }
 
   @Override
   public String toString() {
-    return String.format("%8d", counter);
+    return String.format("%8d", getValue());
   }
 
 }

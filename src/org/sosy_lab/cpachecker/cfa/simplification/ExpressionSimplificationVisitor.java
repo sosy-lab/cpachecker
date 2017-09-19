@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.simplification;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -51,10 +55,6 @@ import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.logging.Level;
-
 /** This visitor visits an expression and evaluates it.
  * The returnvalue of the visit consists of the simplified expression and
  * - if possible - a numeral value for the expression. */
@@ -74,7 +74,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
     return expr.accept(this);
   }
 
-  private NumericValue getValue(CExpression expr) {
+  private @Nullable NumericValue getValue(CExpression expr) {
     if (expr instanceof CIntegerLiteralExpression) {
       return new NumericValue(((CIntegerLiteralExpression)expr).getValue());
     } else if (expr instanceof CCharLiteralExpression) {
@@ -234,7 +234,13 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
           return new CIntegerLiteralExpression(loc, exprType, BigInteger.valueOf(negatedValue.longValue()));
         case FLOAT:
         case DOUBLE:
-          return new CFloatLiteralExpression(loc, exprType, BigDecimal.valueOf(negatedValue.doubleValue()));
+          double v = negatedValue.doubleValue();
+          // Check if v is -0.0; if so, we cannot simplify it,
+          // because we cannot represent it with BigDecimal
+          if (v == 0 && 1 / v < 0) {
+            return new CUnaryExpression(loc, exprType, op, unaryOperator);
+          }
+          return new CFloatLiteralExpression(loc, exprType, BigDecimal.valueOf(v));
         default:
           // fall-through and return the original expression
         }

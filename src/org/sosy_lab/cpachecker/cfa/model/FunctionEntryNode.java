@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -34,11 +35,11 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 import java.util.List;
-import java.util.Optional;
 
 
 public abstract class FunctionEntryNode extends CFANode {
 
+  private static final long serialVersionUID = 1837494813423960670L;
   private final FileLocation location;
   private final AFunctionDeclaration functionDefinition;
   private final Optional<? extends AVariableDeclaration> returnVariable;

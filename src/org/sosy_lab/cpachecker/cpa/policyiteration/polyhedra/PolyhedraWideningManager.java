@@ -1,29 +1,5 @@
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.rationals.LinearExpression;
-import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyAbstractedState;
-import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
-import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
-import org.sosy_lab.cpachecker.util.templates.Template;
-import org.sosy_lab.cpachecker.util.ApronManager;
-import org.sosy_lab.cpachecker.util.ApronManager.AbstractDomain;
-
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.logging.Level;
-
 import apron.Abstract1;
 import apron.Coeff;
 import apron.Environment;
@@ -32,6 +8,27 @@ import apron.Linexpr1;
 import apron.Linterm1;
 import apron.Manager;
 import apron.MpqScalar;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.rationals.LinearExpression;
+import org.sosy_lab.common.rationals.Rational;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyAbstractedState;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyBound;
+import org.sosy_lab.cpachecker.cpa.policyiteration.PolicyIterationStatistics;
+import org.sosy_lab.cpachecker.util.ApronManager;
+import org.sosy_lab.cpachecker.util.ApronManager.AbstractDomain;
+import org.sosy_lab.cpachecker.util.templates.Template;
 
 public class PolyhedraWideningManager {
 
@@ -54,6 +51,10 @@ public class PolyhedraWideningManager {
     return manager;
   }
 
+  /**
+   * Generate new directions which result from the widening operation applied on two polyhedra
+   * described by {@code oldState} and {@code newState}.
+   */
   public Set<Template> generateWideningTemplates(
       PolicyAbstractedState oldState,
       PolicyAbstractedState newState) {

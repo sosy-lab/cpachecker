@@ -24,7 +24,14 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ImmutableSortedSet;
-
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -52,21 +59,11 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 /**
  * This class is responsible for handling everything related to dynamic memory,
@@ -87,6 +84,7 @@ class DynamicMemoryHandler {
   private final PointerTargetSetBuilder pts;
   private final Constraints constraints;
   private final ErrorConditions errorConditions;
+  private final MemoryRegionManager regionMgr;
 
   /**
    * Creates a new DynamicMemoryHandler
@@ -101,7 +99,7 @@ class DynamicMemoryHandler {
   DynamicMemoryHandler(CToFormulaConverterWithPointerAliasing pConv,
       CFAEdge pEdge, SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints,
-      ErrorConditions pErrorConditions) {
+      ErrorConditions pErrorConditions, MemoryRegionManager pRegionMgr) {
     conv = pConv;
     typeHandler = pConv.typeHandler;
     edge = pEdge;
@@ -109,6 +107,7 @@ class DynamicMemoryHandler {
     pts = pPts;
     constraints = pConstraints;
     errorConditions = pErrorConditions;
+    regionMgr = pRegionMgr;
   }
 
   /**
@@ -267,12 +266,14 @@ class DynamicMemoryHandler {
     }
     Formula address;
     if (newType != null) {
-      final String newBase = makeAllocVariableName(functionName, newType, ssa, conv);
+      final String newBase =
+          makeAllocVariableName(functionName, newType, pts.getFreshAllocationId());
       address =  makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
                                  newType,
                                  newBase);
     } else {
-      final String newBase = makeAllocVariableName(functionName, CVoidType.VOID, ssa, conv);
+      final String newBase =
+          makeAllocVariableName(functionName, CVoidType.VOID, pts.getFreshAllocationId());
       pts.addTemporaryDeferredAllocation(
           conv.options.isSuccessfulZallocFunctionName(functionName),
           Optional.ofNullable(size)
@@ -320,7 +321,8 @@ class DynamicMemoryHandler {
       BooleanFormula validFree = conv.fmgr.makeEqual(operand, conv.nullPointer);
 
       for (String base : pts.getAllBases()) {
-        Formula baseF = conv.makeConstant(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID);
+        Formula baseF =
+            conv.makeBaseAddress(PointerTargetSet.getBaseName(base), CPointerType.POINTER_TO_VOID);
         validFree = conv.bfmgr.or(validFree, conv.fmgr.makeEqual(operand, baseF));
       }
       errorConditions.addInvalidFreeCondition(conv.bfmgr.not(validFree));
@@ -341,18 +343,19 @@ class DynamicMemoryHandler {
    */
   private Formula makeAllocation(final boolean isZeroing, final CType type, final String base)
       throws UnrecognizedCCodeException, InterruptedException {
-    final CType baseType = CTypeUtils.getBaseType(type);
-    final Formula result = conv.makeConstant(PointerTargetSet.getBaseName(base), baseType);
+    final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
-      AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, base, ssa, pts, constraints, errorConditions);
-      final BooleanFormula initialization = assignmentHandler.makeAssignment(
-        type,
-        CNumericTypes.SIGNED_CHAR,
-        AliasedLocation.ofAddress(result),
-        Value.ofValue(conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
-        PointerTargetPattern.forBase(base),
-        true,
-        null);
+      AssignmentHandler assignmentHandler = new AssignmentHandler(conv, edge, base, ssa, pts, constraints, errorConditions, regionMgr);
+      final BooleanFormula initialization =
+          assignmentHandler.makeDestructiveAssignment(
+              type,
+              CNumericTypes.SIGNED_CHAR,
+              AliasedLocation.ofAddress(result),
+              Value.ofValue(
+                  conv.fmgr.makeNumber(conv.getFormulaTypeFromCType(CNumericTypes.SIGNED_CHAR), 0)),
+              true,
+              null);
+
       constraints.addConstraint(initialization);
     }
     conv.addPreFilledBase(base, type, false, isZeroing, constraints, pts);
@@ -364,21 +367,16 @@ class DynamicMemoryHandler {
    *
    * @param functionName The name of the function.
    * @param type The type of the function.
-   * @param ssa The SSA map.
-   * @param conv The C to SMT formula converter.
+   * @param allocationId A unique ID for this allocation
    * @return A name for allocations.
    */
-  static String makeAllocVariableName(final String functionName, final CType type,
-      final SSAMapBuilder ssa, final CtoFormulaConverter conv) {
+  static String makeAllocVariableName(
+      final String functionName, final CType type, final int allocationId) {
     return functionName
         + "_"
-        + CToFormulaConverterWithPointerAliasing.getPointerAccessName(type)
+        + CToFormulaConverterWithPointerAliasing.getPointerAccessNameForType(type)
         + MALLOC_INDEX_SEPARATOR
-        + conv.makeFreshIndex(
-            CToFormulaConverterWithPointerAliasing.SSAMAP_SYMBOL_WITHOUT_UPDATE_PREFIX
-                + functionName,
-            type,
-            ssa);
+        + allocationId;
   }
 
   /**
@@ -547,7 +545,6 @@ class DynamicMemoryHandler {
       final CRightHandSide rhs,
       final Expression rhsExpression,
       final CType lhsType,
-      final CExpressionVisitorWithPointerAliasing visitor,
       final Map<String, CType> lhsLearnedPointerTypes,
       final Map<String, CType> rhsLearnedPointerTypes)
       throws UnrecognizedCCodeException, InterruptedException {
@@ -556,45 +553,49 @@ class DynamicMemoryHandler {
     if ((conv.options.revealAllocationTypeFromLHS() || conv.options.deferUntypedAllocations()) &&
         rhs instanceof CFunctionCallExpression &&
         !rhsExpression.isNondetValue() && rhsExpression.isValue()) {
-      final Set<String> rhsVariables = conv.fmgr.extractVariableNames(rhsExpression.asValue().getValue());
+      // TODO: can we store this information in a different way than as a Formula and avoid the need for extractVariableNames?
+      final Set<String> rhsVariables =
+          conv.fmgr.extractVariableNames(rhsExpression.asValue().getValue());
       // Actually there is always either 1 variable (just address) or 2 variables (nondet + allocation address)
       for (final String mangledVariable : rhsVariables) {
-        final String variable =
-            PointerTargetSet.isBaseName(mangledVariable)
-                ? PointerTargetSet.getBase(mangledVariable)
-                : mangledVariable;
-        if (pts.isTemporaryDeferredAllocationPointer(variable)) {
-          if (!isAllocation) {
-            // We can reveal the type from the LHS
-            if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
-              handleDeferredAllocationTypeRevelation(variable, lhsType);
-            // We can defer the allocation and start tracking the variable in the LHS
-            } else {
-              final Optional<String> lhsPointer =
-                  lhs.accept(visitor.getPointerApproximatingVisitor());
-              lhsPointer.ifPresent(
-                  (s) -> {
-                    pts.removeDeferredAllocationPointer(s)
-                        .forEach((_d) -> handleDeferredAllocationPointerRemoval(s));
-                    pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS
-                    // And not the RHS, it was a dummy, not a code pointer approximation
-                    pts.removeDeferredAllocationPointer(variable)
-                        .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
-                  });
-              if (!lhsPointer.isPresent()) {
-                conv.logger.logfOnce(
-                    Level.WARNING,
-                    "Can't start tracking deferred allocation -- can't approximate this LHS: %s (here: %s)",
-                    lhs,
-                    edge);
-                pts.removeDeferredAllocationPointer(variable)
-                    .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
+        if (PointerTargetSet.isBaseName(mangledVariable)) {
+          final String variable =
+              PointerTargetSet.getBase(FormulaManagerView.parseName(mangledVariable).getFirst());
+          if (pts.isTemporaryDeferredAllocationPointer(variable)) {
+            if (!isAllocation) {
+              if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {
+                // We can reveal the type from the LHS
+                handleDeferredAllocationTypeRevelation(variable, lhsType);
+              } else {
+                // We can defer the allocation and start tracking the variable in the LHS
+                final Optional<String> lhsPointer =
+                    lhs.accept(new PointerApproximatingVisitor(typeHandler, edge));
+                lhsPointer.ifPresent(
+                    (s) -> {
+                      pts.removeDeferredAllocationPointer(s)
+                          .forEach((_d) -> handleDeferredAllocationPointerRemoval(s));
+                      pts.addDeferredAllocationPointer(s, variable); // Now we track the LHS
+                      // And not the RHS, it was a dummy, not a code pointer approximation
+                      pts.removeDeferredAllocationPointer(variable)
+                          .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
+                    });
+                if (!lhsPointer.isPresent()) {
+                  conv.logger.logfOnce(
+                      Level.WARNING,
+                      "Can't start tracking deferred allocation -- can't approximate this LHS: %s (here: %s)",
+                      lhs,
+                      edge);
+                  pts.removeDeferredAllocationPointer(variable)
+                      .forEach((_d) -> handleDeferredAllocationPointerRemoval(variable));
+                }
               }
+              isAllocation = true;
+            } else {
+              throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, rhs);
             }
-            isAllocation = true;
-          } else {
-            throw new UnrecognizedCCodeException("Can't handle ambiguous allocation", edge, rhs);
           }
+        } else {
+          assert !pts.isTemporaryDeferredAllocationPointer(mangledVariable);
         }
       }
     }
@@ -602,7 +603,7 @@ class DynamicMemoryHandler {
     // Track currently deferred allocations
     if (conv.options.deferUntypedAllocations() && !isAllocation) {
       handleDeferredAllocationsInAssignment(
-          lhs, rhs, lhsType, visitor, lhsLearnedPointerTypes, rhsLearnedPointerTypes);
+          lhs, rhs, lhsType, lhsLearnedPointerTypes, rhsLearnedPointerTypes);
     }
   }
 
@@ -620,7 +621,6 @@ class DynamicMemoryHandler {
       final CLeftHandSide lhs,
       final CRightHandSide rhs,
       final CType lhsType,
-      final CExpressionVisitorWithPointerAliasing visitor,
       final Map<String, CType> lhsLearnedPointerTypes,
       final Map<String, CType> rhsLearnedPointerTypes)
       throws UnrecognizedCCodeException, InterruptedException {
@@ -648,6 +648,8 @@ class DynamicMemoryHandler {
     } else {
       toHandle = Optional.empty();
     }
+    final PointerApproximatingVisitor pointerApproximatingVisitor =
+        new PointerApproximatingVisitor(typeHandler, edge);
 
     // Reveal the type from usages (type casts, comparisons) in both sides
     for (Map.Entry<String, CType> entry : lhsLearnedPointerTypes.entrySet()) {
@@ -659,8 +661,7 @@ class DynamicMemoryHandler {
 
     // Reveal the type from the assignment itself (i.e. lhs from rhs and vice versa)
     if (toHandle.isPresent()) {
-      Optional<String> s =
-          toHandle.get().getFirst().accept(visitor.getPointerApproximatingVisitor());
+      Optional<String> s = toHandle.get().getFirst().accept(pointerApproximatingVisitor);
       if (s.isPresent()
           && !lhsLearnedPointerTypes.containsKey(s.get())
           && !rhsLearnedPointerTypes.containsKey(s.get())) {
@@ -674,16 +675,16 @@ class DynamicMemoryHandler {
           .forEach(_d -> handleDeferredAllocationPointerRemoval(lhs));
     } else {
       // Else try to remove bindings and only actually remove if no dangling objects arises
-      Optional<String> lhsPointer = lhs.accept(visitor.getPointerApproximatingVisitor());
+      Optional<String> lhsPointer = lhs.accept(pointerApproximatingVisitor);
       if (lhsPointer.isPresent() && pts.canRemoveDeferredAllocationPointer(lhsPointer.get())) {
         pts.removeDeferredAllocationPointer(lhsPointer.get());
       }
     }
 
     // And now propagate points-to bindings from the RHS to the LHS
-    Optional<String> l = lhs.accept(visitor.getPointerApproximatingVisitor());
+    Optional<String> l = lhs.accept(pointerApproximatingVisitor);
     if (l.isPresent() && rhs != null) {
-      rhs.accept(visitor.getPointerApproximatingVisitor())
+      rhs.accept(pointerApproximatingVisitor)
           .ifPresent(r -> pts.addDeferredAllocationPointer(l.get(), r));
     }
   }

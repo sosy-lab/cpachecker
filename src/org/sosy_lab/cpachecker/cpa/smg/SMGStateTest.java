@@ -23,12 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-
+import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -40,23 +44,21 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg.SMGExpressionEvaluator.SMGAddressValueAndStateList;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownExpValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGKnownSymValue;
-import org.sosy_lab.cpachecker.cpa.smg.SMGTransferRelation.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndStateList;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.objects.dls.SMGDoublyLinkedList;
-
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll.SMGDoublyLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 
 public class SMGStateTest {
   static private final  LogManager logger = LogManager.createTestLogManager();
+
   private SMGState consistent_state;
   private SMGState inconsistent_state;
 
@@ -69,34 +71,22 @@ public class SMGStateTest {
   private CType pointerType = new CPointerType(false, false, unspecifiedType);
 
   @Test
-  public void abstractionTest() throws SMGInconsistentException {
+  public void abstractionTest() throws SMGInconsistentException, InvalidConfigurationException {
 
     CLangSMG smg1 = new CLangSMG(MachineModel.LINUX32);
 
     smg1.addStackFrame(functionDeclaration3);
 
     SMGValueFactory.prepareForTest();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
+    for (int i = 0; i < 15; i++) {
+      SMGValueFactory.getNewValue();
+    }
 
-    SMGRegion l1 = new SMGRegion(12, "l1");
-    SMGRegion l2 = new SMGRegion(12, "l2");
-    SMGRegion l3 = new SMGRegion(12, "l3");
-    SMGRegion l4 = new SMGRegion(12, "l4");
-    SMGRegion l5 = new SMGRegion(12, "l5");
+    SMGRegion l1 = new SMGRegion(96, "l1");
+    SMGRegion l2 = new SMGRegion(96, "l2");
+    SMGRegion l3 = new SMGRegion(96, "l3");
+    SMGRegion l4 = new SMGRegion(96, "l4");
+    SMGRegion l5 = new SMGRegion(96, "l5");
 
     SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, 7);
     SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, 0, l2, 8);
@@ -153,12 +143,10 @@ public class SMGStateTest {
     smg1.setValidity(l4, true);
     smg1.setValidity(l5, true);
 
-    Map<SMGKnownSymValue, SMGKnownExpValue> empty = new java.util.HashMap<>();
-    SMGState smg1State = new SMGState(logger, true,
-        true, SMGRuntimeCheck.NONE, smg1,
-        new AtomicInteger(1), 0, empty, 4, false, false);
+    SMGState smg1State = new SMGState(
+        logger, new SMGOptions(Configuration.defaultConfiguration()), smg1, 0, HashBiMap.create());
 
-    SMGObject head = smg1State.addGlobalVariable(8, "head");
+    SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, 5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
@@ -172,52 +160,40 @@ public class SMGStateTest {
   }
 
   @Test
-  public void materialiseTest() throws SMGInconsistentException {
+  public void materialiseTest() throws SMGInconsistentException, InvalidConfigurationException {
 
     SMGValueFactory.prepareForTest();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
-    SMGValueFactory.getNewValue();
+    for (int i = 0; i < 15; i++) {
+      SMGValueFactory.getNewValue();
+    }
 
     CLangSMG heap = new CLangSMG(MachineModel.LINUX32);
 
-   SMGObject dls = new SMGDoublyLinkedList(12, 0, 0, 4, 0, 0);
-   SMGEdgeHasValue dlsN = new SMGEdgeHasValue(pointerType, 0, dls, 5);
-   SMGEdgeHasValue dlsP = new SMGEdgeHasValue(pointerType, 4, dls, 5);
-   heap.addHeapObject(dls);
-   heap.setValidity(dls, true);
+   SMGObject dll = new SMGDoublyLinkedList(96, 0, 0, 4, 0, 0);
+   SMGEdgeHasValue dllN = new SMGEdgeHasValue(pointerType, 0, dll, 5);
+   SMGEdgeHasValue dllP = new SMGEdgeHasValue(pointerType, 4, dll, 5);
+   heap.addHeapObject(dll);
+   heap.setValidity(dll, true);
    heap.addValue(5);
    heap.addValue(6);
    heap.addValue(7);
-   heap.addHasValueEdge(dlsP);
-   heap.addHasValueEdge(dlsN);
-   heap.addPointsToEdge(new SMGEdgePointsTo(6, dls, 0, SMGTargetSpecifier.FIRST));
-   heap.addPointsToEdge(new SMGEdgePointsTo(7, dls, 0, SMGTargetSpecifier.LAST));
+   heap.addHasValueEdge(dllP);
+   heap.addHasValueEdge(dllN);
+   heap.addPointsToEdge(new SMGEdgePointsTo(6, dll, 0, SMGTargetSpecifier.FIRST));
+   heap.addPointsToEdge(new SMGEdgePointsTo(7, dll, 0, SMGTargetSpecifier.LAST));
 
-   SMGRegion l1 = new SMGRegion(12, "l1", 1);
-   SMGRegion l2 = new SMGRegion(12, "l2", 1);
-   SMGRegion l3 = new SMGRegion(12, "l3", 1);
-   SMGRegion l4 = new SMGRegion(12, "l4", 1);
-   SMGRegion l5 = new SMGRegion(12, "l5", 1);
+   SMGRegion l1 = new SMGRegion(96, "l1", 1);
+   SMGRegion l2 = new SMGRegion(96, "l2", 1);
+   SMGRegion l3 = new SMGRegion(96, "l3", 1);
+   SMGRegion l4 = new SMGRegion(96, "l4", 1);
+   SMGRegion l5 = new SMGRegion(96, "l5", 1);
 
    SMGEdgeHasValue l1fn = new SMGEdgeHasValue(pointerType, 0, l1, 13);
    SMGEdgeHasValue l2fn = new SMGEdgeHasValue(pointerType, 0, l2, 8);
    SMGEdgeHasValue l3fn = new SMGEdgeHasValue(pointerType, 0, l3, 9);
    SMGEdgeHasValue l4fn = new SMGEdgeHasValue(pointerType, 0, l4, 10);
    SMGEdgeHasValue l5fn = new SMGEdgeHasValue(pointerType, 0, l5, 11);
-   SMGEdgeHasValue dlsSub = new SMGEdgeHasValue(pointerType, 8, dls, 12);
+   SMGEdgeHasValue dllSub = new SMGEdgeHasValue(pointerType, 8, dll, 12);
 
    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(pointerType, 4, l1, 11);
    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(pointerType, 4, l2, 12);
@@ -249,7 +225,7 @@ public class SMGStateTest {
    heap.addHasValueEdge(l3fn);
    heap.addHasValueEdge(l4fn);
    heap.addHasValueEdge(l5fn);
-   heap.addHasValueEdge(dlsSub);
+   heap.addHasValueEdge(dllSub);
 
    heap.addHasValueEdge(l1fp);
    heap.addHasValueEdge(l2fp);
@@ -269,13 +245,11 @@ public class SMGStateTest {
    heap.setValidity(l4, true);
    heap.setValidity(l5, true);
 
-    Map<SMGKnownSymValue, SMGKnownExpValue> empty = new java.util.HashMap<>();
-    SMGState smg1State = new SMGState(logger, true,
-        true, SMGRuntimeCheck.NONE, heap,
-        new AtomicInteger(1), 0, empty, 4, false, false);
+    SMGState smg1State = new SMGState(logger, new SMGOptions(
+        Configuration.defaultConfiguration()), heap, 0, HashBiMap.create());
 
     smg1State.addStackFrame(functionDeclaration3);
-    SMGObject head = smg1State.addGlobalVariable(8, "head");
+    SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, 5);
 
     smg1State.writeValue(head, 0, pointerType, SMGKnownSymValue.valueOf(6));
@@ -301,9 +275,14 @@ public class SMGStateTest {
 
   @SuppressWarnings("unchecked")
   @Before
-  public void setUp() throws SMGInconsistentException {
-    consistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false, false);
-    inconsistent_state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false, false);
+  public void setUp() throws SMGInconsistentException, InvalidConfigurationException {
+
+    ConfigurationBuilder builder = Configuration.builder();
+    builder.setOption("cpa.smg.runtimeCheck", "HALF");
+    Configuration config = builder.build();
+
+    consistent_state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(config));
+    inconsistent_state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(config));
     SMGAddressValue pt = inconsistent_state.addNewHeapAllocation(8, "label");
 
     consistent_state.addGlobalObject((SMGRegion)pt.getObject());
@@ -317,8 +296,8 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported1Test() throws SMGInconsistentException {
-    SMGState inconsistent_state = new SMGState(this.inconsistent_state, SMGRuntimeCheck.FULL);
-    inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
+    SMGState inconsistent_state = new SMGState(this.inconsistent_state);
+    inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
   /*
@@ -328,8 +307,8 @@ public class SMGStateTest {
    */
   @Test(expected=SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported2Test() throws SMGInconsistentException {
-    SMGState inconsistent_state = new SMGState(this.inconsistent_state, SMGRuntimeCheck.FULL);
-    inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
+    SMGState inconsistent_state = new SMGState(this.inconsistent_state);
+    inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
   /*
@@ -339,7 +318,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyInconsistentNotReportedTest() throws SMGInconsistentException {
-    SMGState inconsistent_state = new SMGState(this.inconsistent_state, SMGRuntimeCheck.NONE);
+    SMGState inconsistent_state = new SMGState(this.inconsistent_state);
     inconsistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -350,7 +329,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent1Test() throws SMGInconsistentException {
-    SMGState consistent_state = new SMGState(this.consistent_state, SMGRuntimeCheck.FULL);
+    SMGState consistent_state = new SMGState(this.consistent_state);
     consistent_state.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
   /*
@@ -360,13 +339,13 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent2Test() throws SMGInconsistentException {
-    SMGState consistent_state = new SMGState(this.consistent_state, SMGRuntimeCheck.NONE);
+    SMGState consistent_state = new SMGState(this.consistent_state);
     consistent_state.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
   @Test
-  public void PredecessorsTest() {
-    SMGState original = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE, 0, false, false);
+  public void PredecessorsTest() throws InvalidConfigurationException {
+    SMGState original = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     SMGState second = new SMGState(original);
     Assert.assertNotEquals(original.getId(), second.getId());
 
@@ -379,10 +358,9 @@ public class SMGStateTest {
   }
 
   @Test
-  public void WriteReinterpretationTest() throws SMGInconsistentException {
+  public void WriteReinterpretationTest() throws SMGInconsistentException, InvalidConfigurationException {
     // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64,true, true, SMGRuntimeCheck.NONE,
-        0, false, false);
+    SMGState state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b value into it
@@ -440,9 +418,9 @@ public class SMGStateTest {
   }
 
   @Test
-  public void WriteReinterpretationNullifiedTest() throws SMGInconsistentException {
+  public void WriteReinterpretationNullifiedTest() throws SMGInconsistentException, InvalidConfigurationException {
     // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.FORCED, 0, false, false);
+    SMGState state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b zero value into it
@@ -476,10 +454,9 @@ public class SMGStateTest {
   }
 
   @Test
-  public void getPointerFromValueTest() throws SMGInconsistentException {
- // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE,
-        0, false, false);
+  public void getPointerFromValueTest() throws SMGInconsistentException, InvalidConfigurationException {
+   // Empty state
+    SMGState state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");
@@ -491,9 +468,8 @@ public class SMGStateTest {
   }
 
   @Test(expected=SMGInconsistentException.class)
-  public void getPointerFromValueNonPointerTest() throws SMGInconsistentException {
-    SMGState state = new SMGState(logger, MachineModel.LINUX64, true, true, SMGRuntimeCheck.NONE,
-        0, false, false);
+  public void getPointerFromValueNonPointerTest() throws SMGInconsistentException, InvalidConfigurationException {
+    SMGState state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGAddressValue pt = state.addNewHeapAllocation(16, "OBJECT");

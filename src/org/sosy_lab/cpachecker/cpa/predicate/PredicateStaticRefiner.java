@@ -33,14 +33,25 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -59,7 +70,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -83,22 +93,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "staticRefiner")
 public class PredicateStaticRefiner extends StaticRefiner
@@ -107,13 +104,13 @@ public class PredicateStaticRefiner extends StaticRefiner
   @Option(secure=true, description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
   private boolean applyScoped = true;
 
-  @Option(secure=true, description="Add all assumtions along a error trace to the precision.")
+  @Option(secure=true, description="Add all assumptions along a error trace to the precision.")
   private boolean addAllErrorTraceAssumes = false;
 
-  @Option(secure=true, description="Add all assumtions from the control flow automaton to the precision.")
+  @Option(secure=true, description="Add all assumptions from the control flow automaton to the precision.")
   private boolean addAllControlFlowAssumes = false;
 
-  @Option(secure=true, description="Add all assumtions along a error trace to the precision.")
+  @Option(secure=true, description="Add all assumptions along the error trace to the precision.")
   private boolean addAssumesByBoundedBackscan = true;
 
   @Option(secure=true, description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
@@ -220,11 +217,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     satCheckTime.start();
     try {
       counterexample =
-          itpManager.buildCounterexampleTrace(
-              formulas,
-              Lists.<AbstractState>newArrayList(abstractionStatesTrace),
-              elementsOnPath,
-              false);
+          itpManager.buildCounterexampleTraceWithoutInterpolation(formulas, elementsOnPath);
     } finally {
       satCheckTime.stop();
     }
@@ -511,7 +504,7 @@ public class PredicateStaticRefiner extends StaticRefiner
   }
 
   private void dumpAssumePredicate(Path target) {
-    try (Writer w = MoreFiles.openOutputFile(target, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(target, Charset.defaultCharset())) {
       for (CFANode u : cfa.getAllNodes()) {
         for (CFAEdge e: CFAUtils.leavingEdges(u)) {
           if (e instanceof AssumeEdge) {
@@ -543,7 +536,7 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   private class Stats implements Statistics {
     @Override
-    public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter.writingStatisticsTo(pOut)
           .ifUpdatedAtLeastOnce(totalTime)
           .put(foundPredicates)

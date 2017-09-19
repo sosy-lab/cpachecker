@@ -7,10 +7,9 @@
     <option name="-64" /> <!-- 64-bit -->
     <option name="-disable-java-assertions"/> <!-- Speed-up -->
 
-    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
     <tasks name="DeviceDriversHard">
         <includesfile>../programs/benchmarks/DeviceDriversHardNoRecursionLinux64.set</includesfile>
+        <propertyfile>../programs/benchmarks/DeviceDriversLinux64.prp</propertyfile>
     </tasks>
 
     <rundefinition name="intervals">

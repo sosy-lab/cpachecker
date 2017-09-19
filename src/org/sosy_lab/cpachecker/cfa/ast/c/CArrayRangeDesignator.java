@@ -24,13 +24,13 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
-
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
 public class CArrayRangeDesignator extends CDesignator {
 
+  private static final long serialVersionUID = -2956484289176841585L;
   private final AExpression rangeFloor;
   private final AExpression rangeCeiling;
 

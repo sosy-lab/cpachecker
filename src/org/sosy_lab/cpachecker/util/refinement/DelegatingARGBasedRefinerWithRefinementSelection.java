@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.refinement;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -35,7 +34,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -209,7 +208,7 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
       }
 
       @Override
-      public void printStatistics(final PrintStream pOut, final Result pResult, final ReachedSet pReached) {
+      public void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
         StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut).beginLevel();
 
         pOut.println("Primary Analysis:");

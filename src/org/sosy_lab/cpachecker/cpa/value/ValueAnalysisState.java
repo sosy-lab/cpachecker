@@ -27,9 +27,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
-
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -60,22 +72,6 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.annotation.Nullable;
 
 public class ValueAnalysisState
     implements AbstractQueryableState, FormulaReportingState,
@@ -190,16 +186,6 @@ public class ValueAnalysisState
   }
 
   /**
-   * This method removes a variable from the underlying map and returns the removed value.
-   *
-   * @param variableName the name of the variable to remove
-   * @return the value of the removed variable
-   */
-  public ValueAnalysisInformation forget(String variableName) {
-    return forget(MemoryLocation.valueOf(variableName));
-  }
-
-  /**
    * This method removes a memory location from the underlying map and returns the removed value.
    *
    * @param pMemoryLocation the name of the memory location to remove
@@ -217,16 +203,14 @@ public class ValueAnalysisState
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
     memLocToType = memLocToType.removeAndCopy(pMemoryLocation);
 
-    Map<MemoryLocation, Type> typeAssignment;
-
-    if (type == null) {
-      typeAssignment = Collections.emptyMap();
-    } else {
-      typeAssignment = ImmutableMap.of(pMemoryLocation, type);
+    PersistentMap<MemoryLocation, Type> typeAssignment = PathCopyingPersistentTreeMap.of();
+    if (type != null) {
+      typeAssignment = typeAssignment.putAndCopy(pMemoryLocation, type);
     }
+    PersistentMap<MemoryLocation, Value> valueAssignment = PathCopyingPersistentTreeMap.of();
+    valueAssignment = valueAssignment.putAndCopy(pMemoryLocation, value);
 
-    return new ValueAnalysisInformation(ImmutableMap.of(pMemoryLocation, value),
-                                        typeAssignment);
+    return new ValueAnalysisInformation(valueAssignment, typeAssignment);
   }
 
   @Override
@@ -275,17 +259,6 @@ public class ValueAnalysisState
    * @throws NullPointerException - if no value is present in this state for the given variable
    * @return the value associated with the given variable
    */
-  public Value getValueFor(String variableName) {
-    return getValueFor(MemoryLocation.valueOf(variableName));
-  }
-
-  /**
-   * This method returns the value for the given variable.
-   *
-   * @param variableName the name of the variable for which to get the value
-   * @throws NullPointerException - if no value is present in this state for the given variable
-   * @return the value associated with the given variable
-   */
   public Value getValueFor(MemoryLocation variableName) {
     Value value = constantsMap.get(variableName);
 
@@ -301,16 +274,6 @@ public class ValueAnalysisState
    */
   public Type getTypeForMemoryLocation(MemoryLocation loc) {
     return memLocToType.get(loc);
-  }
-
-  /**
-   * This method checks whether or not the given variable is contained in this state.
-   *
-   * @param variableName the name of variable to check for
-   * @return true, if the variable is contained, else false
-   */
-  public boolean contains(String variableName) {
-    return contains(MemoryLocation.valueOf(variableName));
   }
 
   /**
@@ -543,7 +506,8 @@ public class ValueAnalysisState
           throw new InvalidQueryException(statement + " should end with \")\"");
         }
 
-        String varName = statement.substring("deletevalues(".length(), statement.length() - 1);
+        MemoryLocation varName = MemoryLocation.valueOf(
+            statement.substring("deletevalues(".length(), statement.length() - 1));
 
         if (contains(varName)) {
           forget(varName);

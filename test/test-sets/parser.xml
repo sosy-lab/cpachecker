@@ -16,7 +16,6 @@
       <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
       <includesfile>../programs/benchmarks/Recursive.set</includesfile>
       <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
-      <includesfile>../programs/benchmarks/Simple.set</includesfile>
     </tasks>
     <tasks>
       <include>../programs/simple/*.i</include>

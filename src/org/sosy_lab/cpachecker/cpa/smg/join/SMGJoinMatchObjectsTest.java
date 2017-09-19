@@ -29,13 +29,14 @@ import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.AnonymousTypes;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.DummyAbstraction;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.objects.sll.SMGSingleLinkedList;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.DummyAbstraction;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll.SMGSingleLinkedList;
 
 
 public class SMGJoinMatchObjectsTest {
@@ -45,10 +46,10 @@ public class SMGJoinMatchObjectsTest {
   private SMG smg1;
   private SMG smg2;
 
-  final private SMGObject srcObj1 = new SMGRegion(8, "Source object 1");
-  final private SMGObject destObj1 = new SMGRegion(8, "Destination object 1");
-  final private SMGObject srcObj2 = new SMGRegion(8, "Source object 2");
-  final private SMGObject destObj2 = new SMGRegion(8, "Destination object 2");
+  final private SMGObject srcObj1 = new SMGRegion(64, "Source object 1");
+  final private SMGObject destObj1 = new SMGRegion(64, "Destination object 1");
+  final private SMGObject srcObj2 = new SMGRegion(64, "Source object 2");
+  final private SMGObject destObj2 = new SMGRegion(64, "Destination object 2");
 
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
@@ -64,11 +65,11 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void nullObjectTest() {
-    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null, smg1.getNullObject(), smg2.getNullObject());
+    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null, SMGNullObject.INSTANCE, SMGNullObject.INSTANCE);
     Assert.assertFalse(mo.isDefined());
 
     smg1.addObject(srcObj1);
-    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null, srcObj1, smg2.getNullObject());
+    mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null, srcObj1, SMGNullObject.INSTANCE);
     Assert.assertFalse(mo.isDefined());
   }
 
@@ -112,7 +113,7 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void inconsistentObjectsTest() {
-    SMGObject diffSizeObject = new SMGRegion(16, "Object with different size");
+    SMGObject diffSizeObject = new SMGRegion(128, "Object with different size");
     smg1.addObject(srcObj1);
     smg2.addObject(diffSizeObject);
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL,  smg1, smg2, mapping1, mapping2, srcObj1, diffSizeObject);
@@ -177,8 +178,8 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void sameAbstractionMatchTest() {
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(16, 0, 8, 7, 0);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(16, 0, 0, 7, 0);
+    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(128, 0, 8, 7, 0);
+    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(128, 0, 0, 7, 0);
 
     smg1.addObject(sll1);
     smg2.addObject(sll2);
@@ -189,8 +190,8 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void differentAbstractionMatch() {
-    SMGRegion prototype = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll = new SMGSingleLinkedList(16, 0, 8, 3, 0);
+    SMGRegion prototype = new SMGRegion(128, "prototype");
+    SMGSingleLinkedList sll = new SMGSingleLinkedList(128, 0, 8, 3, 0);
     DummyAbstraction dummy = new DummyAbstraction(prototype);
 
     smg1.addObject(sll);
@@ -202,8 +203,8 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void twoAbstractionsTest() {
-    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(16, 0, 8, 2, 0);
-    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(16, 0, 8, 4, 0);
+    SMGSingleLinkedList sll1 = new SMGSingleLinkedList(128, 0, 8, 2, 0);
+    SMGSingleLinkedList sll2 = new SMGSingleLinkedList(128, 0, 8, 4, 0);
     smg1.addObject(sll1);
     smg2.addObject(sll2);
 
@@ -211,13 +212,13 @@ public class SMGJoinMatchObjectsTest {
     Assert.assertTrue(mo.isDefined());
     Assert.assertEquals(SMGJoinStatus.LEFT_ENTAIL, mo.getStatus());
 
-    sll1 = new SMGSingleLinkedList(16, 0, 8, 4, 0);
+    sll1 = new SMGSingleLinkedList(128, 0, 8, 4, 0);
     smg1.addObject(sll1);
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
     Assert.assertTrue(mo.isDefined());
     Assert.assertEquals(SMGJoinStatus.EQUAL, mo.getStatus());
 
-    sll1 = new SMGSingleLinkedList(16, 0, 8, 8, 0);
+    sll1 = new SMGSingleLinkedList(128, 0, 8, 8, 0);
     smg1.addObject(sll1);
     mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, sll1, sll2);
     Assert.assertTrue(mo.isDefined());
@@ -226,8 +227,8 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void oneAbstractionTest() {
-    SMGRegion prototype = new SMGRegion(16, "prototype");
-    SMGSingleLinkedList sll = new SMGSingleLinkedList(16, 0, 8, 8, 0);
+    SMGRegion prototype = new SMGRegion(128, "prototype");
+    SMGSingleLinkedList sll = new SMGSingleLinkedList(128, 0, 8, 8, 0);
 
     smg1.addObject(sll);
     smg2.addObject(sll);
@@ -242,7 +243,7 @@ public class SMGJoinMatchObjectsTest {
     Assert.assertTrue(mo.isDefined());
     Assert.assertEquals(SMGJoinStatus.INCOMPARABLE, mo.getStatus());
 
-    sll = new SMGSingleLinkedList(16, 0, 8, 0, 0);
+    sll = new SMGSingleLinkedList(128, 0, 8, 0, 0);
 
     smg1.addObject(sll);
     smg2.addObject(sll);
@@ -258,7 +259,7 @@ public class SMGJoinMatchObjectsTest {
 
   @Test
   public void noAbstractionTest() {
-    SMGRegion object = new SMGRegion(16, "prototype");
+    SMGRegion object = new SMGRegion(128, "prototype");
     smg1.addObject(object);
     smg2.addObject(object);
     SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, object, object);

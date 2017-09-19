@@ -23,18 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-import java.util.Objects;
-
 
 public final class JVariableRunTimeType extends AbstractExpression
     implements JRunTimeTypeExpression {
 
+  private static final long serialVersionUID = 1949325105551973491L;
   private final JIdExpression referencedVariable;
 
   public JVariableRunTimeType(FileLocation pFileLocation, JIdExpression pReferencedVariable) {

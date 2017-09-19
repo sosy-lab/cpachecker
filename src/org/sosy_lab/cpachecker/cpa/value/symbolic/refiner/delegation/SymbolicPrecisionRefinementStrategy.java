@@ -25,7 +25,10 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.delegation;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -45,11 +48,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 
 /**
  * {@link org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy RefinementStrategy} that
@@ -72,18 +70,18 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
   }
 
   @Override
-  public void performRefinement(
+  public boolean performRefinement(
       final ARGReachedSet pReached,
       final List<ARGState> pAbstractionStatesTrace,
       final List<BooleanFormula> pInterpolants,
-      final boolean pRepeatedCounterexample
-  ) throws CPAException, InterruptedException {
+      final boolean pRepeatedCounterexample)
+      throws CPAException, InterruptedException {
     if (pRepeatedCounterexample) {
       throw new CPAException("Refinement using predicate refinement failed."
           + "Try using cpa.value.symbolic.refiner.SymbolicValueAnalysisRefiner");
     }
 
-    super.performRefinement(pReached, pAbstractionStatesTrace, pInterpolants,
+    return super.performRefinement(pReached, pAbstractionStatesTrace, pInterpolants,
         pRepeatedCounterexample);
   }
 

@@ -23,47 +23,34 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.transform;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
-
+import com.google.common.collect.Lists;
 import java.util.List;
-import java.util.Objects;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.types.AFunctionType;
 
 public class CFunctionType extends AFunctionType implements CType {
 
   private static final long serialVersionUID = 4154771254170820716L;
 
   public static CFunctionType functionTypeWithReturnType(CType pReturnType) {
-    return new CFunctionType(false, false, checkNotNull(pReturnType), ImmutableList.<CType>of(), false);
+    return new CFunctionType(checkNotNull(pReturnType), ImmutableList.<CType>of(), false);
   }
 
   public final static CFunctionType NO_ARGS_VOID_FUNCTION = functionTypeWithReturnType(CVoidType.VOID);
 
-  private boolean   isConst;
-  private boolean   isVolatile;
-  private String name = null;
+  private @Nullable String name = null;
 
   public CFunctionType(
-      boolean pConst,
-      boolean pVolatile,
       CType pReturnType,
       List<CType> pParameters,
       boolean pTakesVarArgs) {
     super(pReturnType, pParameters, pTakesVarArgs);
-
-    isConst = pConst;
-    isVolatile = pVolatile;
   }
 
   @Override
@@ -87,28 +74,17 @@ public class CFunctionType extends AFunctionType implements CType {
   }
 
   @Override
-  public String toString() {
-    return toASTString(Strings.nullToEmpty(getName()), Functions.toStringFunction());
-  }
-
-  @Override
   public String toASTString(final String pDeclarator) {
-    return toASTString(pDeclarator, pInput -> pInput.toASTString(""));
+    return toASTString(
+        pDeclarator,
+        Lists.transform(getParameters(), pInput -> pInput.toASTString("")));
   }
 
-  public String toASTString(final String pDeclarator, final Function<? super CType, String> pTypeToString) {
+  String toASTString(
+      final String pDeclarator,
+      final Iterable<?> pParameters) {
     checkNotNull(pDeclarator);
     final StringBuilder lASTString = new StringBuilder();
-
-    if (isConst()) {
-      lASTString.append("const ");
-    }
-    if (isVolatile()) {
-      lASTString.append("volatile ");
-    }
-
-    lASTString.append(pTypeToString.apply(getReturnType()));
-    lASTString.append(" ");
 
     if (pDeclarator.startsWith("*")) {
       // this is a function pointer, insert parentheses
@@ -120,7 +96,7 @@ public class CFunctionType extends AFunctionType implements CType {
     }
 
     lASTString.append("(");
-    Joiner.on(", ").appendTo(lASTString, transform(getParameters(), pTypeToString));
+    Joiner.on(", ").appendTo(lASTString, pParameters);
     if (takesVarArgs()) {
       if (!getParameters().isEmpty()) {
         lASTString.append(", ");
@@ -129,17 +105,19 @@ public class CFunctionType extends AFunctionType implements CType {
     }
     lASTString.append(")");
 
-    return lASTString.toString();
+    // The return type can span the rest of the type, so we cannot prefix but need this trick.
+    String nameAndParams = lASTString.toString();
+    return getReturnType().toASTString(nameAndParams);
   }
 
   @Override
   public boolean isConst() {
-    return isConst;
+    return false;
   }
 
   @Override
   public boolean isVolatile() {
-    return isVolatile;
+    return false;
   }
 
   @Override
@@ -154,12 +132,7 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 7;
-    result = prime * result + Objects.hashCode(isConst);
-    result = prime * result + Objects.hashCode(isVolatile);
-    result = prime * result + super.hashCode();
-    return result;
+    return super.hashCode();
   }
 
   /**
@@ -173,13 +146,7 @@ public class CFunctionType extends AFunctionType implements CType {
       return true;
     }
 
-    if (!(obj instanceof CFunctionType) || !super.equals(obj)) {
-      return false;
-    }
-
-    CFunctionType other = (CFunctionType) obj;
-
-    return isConst == other.isConst && isVolatile == other.isVolatile;
+    return obj instanceof CFunctionType && super.equals(obj);
   }
 
   @Override
@@ -189,13 +156,14 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public CFunctionType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
+    checkArgument(
+        !pForceConst && !pForceVolatile,
+        "const or volatile function types are undefined according to the C standard");
     ImmutableList.Builder<CType> newParameterTypes = ImmutableList.builder();
     for (CType parameter : getParameters()) {
       newParameterTypes.add(parameter.getCanonicalType());
     }
     return new CFunctionType(
-        isConst || pForceConst,
-        isVolatile || pForceVolatile,
         getReturnType().getCanonicalType(),
         newParameterTypes.build(),
         takesVarArgs());

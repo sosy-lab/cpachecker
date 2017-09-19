@@ -24,94 +24,52 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Preconditions;
-
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockToDotWriter;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.BlockPartitioningBuilder;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.ExtendedBlockPartitioningBuilder;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.FunctionAndLoopPartitioning;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.PartitioningHeuristic;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
 
 
 @Options(prefix = "cpa.bam")
-public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvider, ProofChecker {
+public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(BAMCPA.class);
   }
 
-  private final BlockPartitioning blockPartitioning;
-
-  private final LogManager logger;
-  private final TimedReducer reducer;
   private final BAMTransferRelation transfer;
-  private final BAMPrecisionAdjustment prec;
-  private final BAMMergeOperator merge;
-  private final BAMStopOperator stop;
-  private final BAMCPAStatistics stats;
-  private final PartitioningHeuristic heuristic;
   private final ProofChecker wrappedProofChecker;
   private final BAMDataManager data;
   private final BAMPCCManager bamPccManager;
-
-  @Option(
-    secure = true,
-    description =
-        "Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
-            + "or any class that implements a PartitioningHeuristic"
-  )
-  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
-  private PartitioningHeuristic.Factory blockHeuristic =
-      (logger, cfa, config) -> new FunctionAndLoopPartitioning(logger, cfa, config);
-
-  @Option(secure=true, description = "export blocks")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportBlocksPath = Paths.get("block_cfa.dot");
 
   @Option(name = "handleRecursiveProcedures", secure = true,
       description = "BAM allows to analyse recursive procedures. This strongly depends on the underlying CPA. "
           + "The current support includes only ValueAnalysis and PredicateAnalysis (with tree interpolation enabled).")
   private boolean handleRecursiveProcedures = false;
 
-  @Option(secure = true,
-      description = "This flag determines which precisions should be updated during refinement. "
-      + "We can choose between the minimum number of states and all states that are necessary "
-      + "to re-explore the program along the error-path.")
-  private boolean doPrecisionRefinementForAllStates = false;
-
-  @Option(secure = true,
-      description = "Use more fast partitioning builder, which can not handle loops")
-  private boolean useExtendedPartitioningBuilder = false;
+  @Option(
+    secure = true,
+    description =
+        "If enabled, cache queries also consider blocks with " + "non-matching precision for reuse."
+  )
+  private boolean aggressiveCaching = true;
 
   public BAMCPA(
       ConfigurableProgramAnalysis pCpa,
@@ -119,15 +77,11 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       LogManager pLogger,
       ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
-      CFA pCfa) throws InvalidConfigurationException, CPAException {
-    super(pCpa);
+      Specification pSpecification,
+      CFA pCfa)
+      throws InvalidConfigurationException, CPAException {
+    super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa);
     config.inject(this);
-
-    logger = pLogger;
-
-    if (!(pCpa instanceof ConfigurableProgramAnalysisWithBAM)) {
-      throw new InvalidConfigurationException("BAM needs CPAs that are capable for BAM");
-    }
 
     if (pCpa instanceof ProofChecker) {
       this.wrappedProofChecker = (ProofChecker) pCpa;
@@ -135,94 +89,57 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
       this.wrappedProofChecker = null;
     }
 
-    Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
-    reducer = new TimedReducer(wrappedReducer);
+    final BAMCache cache;
+    if (aggressiveCaching) {
+      cache = new BAMCacheAggressiveImpl(config, getReducer(), logger);
+    } else {
+      cache = new BAMCacheImpl(config, getReducer(), logger);
+    }
+    data = new BAMDataManagerImpl(cache, pReachedSetFactory, pLogger);
 
-    final BAMCache cache = new BAMCache(config, reducer, logger);
-    data = new BAMDataManager(cache, pReachedSetFactory, pLogger);
-
-    heuristic = blockHeuristic.create(pLogger, pCfa, config);
-    blockPartitioning = buildBlockPartitioning(pCfa);
     bamPccManager = new BAMPCCManager(
         wrappedProofChecker,
         config,
         blockPartitioning,
-        wrappedReducer,
+        getReducer(),
         this,
         data);
 
     if (handleRecursiveProcedures) {
 
-      if (pCfa.getVarClassification().isPresent() && !pCfa.getVarClassification().get().getRelevantFields().isEmpty()) {
-        // TODO remove this ugly hack as soon as possible :-)
-        throw new UnsupportedCCodeException("BAM does not support pointer-analysis for recursive programs.",
-            pCfa.getMainFunction().getLeavingEdge(0));
-      }
-
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
               config,
-              logger,
               this,
               wrappedProofChecker,
-              data,
-              pShutdownNotifier,
-              blockPartitioning);
-      stop = new BAMStopOperatorForRecursion(pCpa.getStopOperator(), transfer);
+              pShutdownNotifier);
     } else {
       transfer =
           new BAMTransferRelation(
               config,
-              logger,
               this,
               wrappedProofChecker,
-              data,
-              pShutdownNotifier,
-              blockPartitioning);
-      stop = new BAMStopOperator(pCpa.getStopOperator(), transfer);
+              pShutdownNotifier);
     }
-
-    prec =
-        new BAMPrecisionAdjustment(
-            pCpa.getPrecisionAdjustment(), data, transfer, bamPccManager,
-            logger, blockPartitioning);
-    merge = new BAMMergeOperator(
-        pCpa.getMergeOperator(), bamPccManager, transfer);
-
-    stats = new BAMCPAStatistics(this, data, config, logger);
-  }
-
-  private BlockPartitioning buildBlockPartitioning(CFA pCfa) {
-    BlockPartitioningBuilder blockBuilder;
-    if (useExtendedPartitioningBuilder) {
-      blockBuilder = new ExtendedBlockPartitioningBuilder();
-    } else {
-      blockBuilder = new BlockPartitioningBuilder();
-    }
-    BlockPartitioning partitioning =
-        heuristic.buildPartitioning(pCfa.getMainFunction(), blockBuilder);
-
-    if (exportBlocksPath != null) {
-      BlockToDotWriter writer = new BlockToDotWriter(partitioning);
-      writer.dump(exportBlocksPath, logger);
-    }
-    getWrappedCpa().setPartitioning(partitioning);
-    return partitioning;
   }
 
   @Override
   public MergeOperator getMergeOperator() {
-    return merge;
+    return new BAMMergeOperator(getWrappedCpa().getMergeOperator(), bamPccManager);
   }
 
   @Override
   public StopOperator getStopOperator() {
-    return stop;
+    return handleRecursiveProcedures
+        ? new BAMStopOperatorForRecursion(getWrappedCpa().getStopOperator())
+        : new BAMStopOperator(getWrappedCpa().getStopOperator());
   }
 
   @Override
   public BAMPrecisionAdjustment getPrecisionAdjustment() {
-    return prec;
+    return new BAMPrecisionAdjustment(
+        getWrappedCpa().getPrecisionAdjustment(), data, bamPccManager,
+        logger, blockPartitioning);
   }
 
   @Override
@@ -230,21 +147,7 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
     return transfer;
   }
 
-  TimedReducer getReducer() {
-    return reducer;
-  }
-
   @Override
-  protected ConfigurableProgramAnalysisWithBAM getWrappedCpa() {
-    // override for visibility
-    return (ConfigurableProgramAnalysisWithBAM) super.getWrappedCpa();
-  }
-
-  public BlockPartitioning getBlockPartitioning() {
-    Preconditions.checkNotNull(blockPartitioning);
-    return blockPartitioning;
-  }
-
   BAMDataManager getData() {
     Preconditions.checkNotNull(data);
     return data;
@@ -252,20 +155,6 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
 
   public BAMPCCManager getBamPccManager() {
     return bamPccManager;
-  }
-
-  LogManager getLogger() {
-    return logger;
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(stats);
-    super.collectStatistics(pStatsCollection);
-  }
-
-  BAMCPAStatistics getStatistics() {
-    return stats;
   }
 
   @Override
@@ -279,9 +168,5 @@ public class BAMCPA extends AbstractSingleWrapperCPA implements StatisticsProvid
   public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
     Preconditions.checkNotNull(wrappedProofChecker, "Wrapped CPA has to implement ProofChecker interface");
     return wrappedProofChecker.isCoveredBy(pState, pOtherState);
-  }
-
-  boolean doPrecisionRefinementForAllStates() {
-    return doPrecisionRefinementForAllStates;
   }
 }

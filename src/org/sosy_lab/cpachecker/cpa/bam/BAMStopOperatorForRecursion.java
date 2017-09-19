@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import java.util.Collection;
-
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -38,9 +37,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * of the predecessor of the function-call in the 'rebuild'-step. */
 public class BAMStopOperatorForRecursion extends BAMStopOperator {
 
-  public BAMStopOperatorForRecursion(StopOperator pWrappedStopOperator,
-      BAMTransferRelation pTransfer) {
-    super(pWrappedStopOperator, pTransfer);
+  public BAMStopOperatorForRecursion(StopOperator pWrappedStopOperator) {
+    super(pWrappedStopOperator);
   }
 
   @Override

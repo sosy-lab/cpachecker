@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -34,12 +33,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** This class guarantees a fixed order of variables in the BDD,
  * that should be good for the operations in the BitvectorManager. */
@@ -187,6 +187,11 @@ public class PredicateManager {
    * If the variable is not tracked by the the precision, Null is returned. */
   protected Region[] createPredicate(final String varName, final CType varType, final CFANode location, final int size, final VariableTrackingPrecision precision) {
     if (precision != null && !precision.isTracking(MemoryLocation.valueOf(varName), varType, location)) {
+      return null;
+    }
+    if (!(varType.getCanonicalType() instanceof CSimpleType)) {
+      // we cannot handle pointers, arrays, and structs with BDDCPA, thus we ignore them.
+      // This is imprecise and unsound in cases of pointer aliasing (int x=0; int* y=&x; *y=1;).
       return null;
     }
     return createPredicateWithoutPrecisionCheck(varName, size);

@@ -29,6 +29,7 @@ import java.util.Objects;
 
 public abstract class AExpressionStatement extends AbstractStatement {
 
+  private static final long serialVersionUID = 315680811122305698L;
   private final AExpression expression;
 
   public AExpressionStatement(FileLocation pFileLocation, final AExpression pExpression) {

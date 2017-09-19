@@ -52,8 +52,6 @@ public class SignCPA extends AbstractCPA implements ProofCheckerCPA {
 
   public SignCPA(LogManager pLogger, Configuration config) throws InvalidConfigurationException {
     super(
-        "irrelvant",
-        "irrelevant",
         DelegateAbstractDomain.<SignState>getInstance(),
         new SignTransferRelation(pLogger));
     config.inject(this);

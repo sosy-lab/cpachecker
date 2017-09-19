@@ -37,6 +37,7 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
 
   // TODO refactor to be either abstract or final
 
+  private static final long serialVersionUID = -3840765628515703031L;
   private static final boolean IS_LOCAL = false;
   private final boolean isFinal;
 

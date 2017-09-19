@@ -40,6 +40,8 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 public final class JArraySubscriptExpression extends AArraySubscriptExpression
     implements JLeftHandSide {
 
+  private static final long serialVersionUID = 5326760755937022733L;
+
   public JArraySubscriptExpression(FileLocation pFileLocation, JType pType, JExpression pArrayExpression,
       JExpression pSubscriptExpression) {
     super(pFileLocation, pType, pArrayExpression, pSubscriptExpression);

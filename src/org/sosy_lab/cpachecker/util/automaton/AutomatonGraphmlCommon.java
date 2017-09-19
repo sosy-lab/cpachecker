@@ -23,42 +23,29 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.BaseEncoding;
-import com.google.common.io.ByteSource;
 import com.google.common.io.CharStreams;
-
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.w3c.dom.DOMException;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
+import java.util.Set;
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -69,6 +56,41 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.CPAchecker;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
+import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.SpecificationProperty;
+import org.w3c.dom.DOMException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 public class AutomatonGraphmlCommon {
 
@@ -107,26 +129,32 @@ public class AutomatonGraphmlCommon {
     ENTERLOOPHEAD("enterLoopHead", ElementType.EDGE, "enterLoopHead", "boolean", false),
     VIOLATEDPROPERTY("violatedProperty", ElementType.NODE, "violatedProperty", "string"),
     THREADID("threadId", ElementType.EDGE, "threadId", "string"),
+    THREAD("thread", ElementType.EDGE, "thread", "int"),
+    CREATETHREAD("createThread", ElementType.EDGE, "thread", "int"),
     SOURCECODELANGUAGE("sourcecodelang", ElementType.GRAPH, "sourcecodeLanguage", "string"),
     PROGRAMFILE("programfile", ElementType.GRAPH, "programFile", "string"),
     PROGRAMHASH("programhash", ElementType.GRAPH, "programHash", "string"),
     SPECIFICATION("specification", ElementType.GRAPH, "specification", "string"),
-    MEMORYMODEL("memorymodel", ElementType.GRAPH, "memoryModel", "string"),
     ARCHITECTURE("architecture", ElementType.GRAPH, "architecture", "string"),
     PRODUCER("producer", ElementType.GRAPH, "producer", "string"),
+    CREATIONTIME("creationtime", ElementType.GRAPH, "creationTime", "string"),
     SOURCECODE("sourcecode", ElementType.EDGE, "sourcecode", "string"),
-    ORIGINLINE("startline", ElementType.EDGE, "startline", "int"),
+    STARTLINE("startline", ElementType.EDGE, "startline", "int"),
+    ENDLINE("endline", ElementType.EDGE, "endline", "int"),
     OFFSET("startoffset", ElementType.EDGE, "startoffset", "int"),
+    ENDOFFSET("endoffset", ElementType.EDGE, "endoffset", "int"),
     ORIGINFILE("originfile", ElementType.EDGE, "originFileName", "string"),
     LINECOLS("lineCols", ElementType.EDGE, "lineColSet", "string"),
     CONTROLCASE("control", ElementType.EDGE, "control", "string"),
     ASSUMPTION("assumption", ElementType.EDGE, "assumption", "string"),
+    ASSUMPTIONRESULTFUNCTION("assumption.resultfunction", ElementType.EDGE, "assumption.resultfunction", "string"),
     ASSUMPTIONSCOPE("assumption.scope", ElementType.EDGE, "assumption.scope", "string"),
     FUNCTIONENTRY("enterFunction", ElementType.EDGE, "enterFunction", "string"),
     FUNCTIONEXIT("returnFrom", ElementType.EDGE, "returnFromFunction", "string"),
     CFAPREDECESSORNODE("predecessor", ElementType.EDGE, "predecessor", "string"),
     CFASUCCESSORNODE("successor", ElementType.EDGE, "successor", "string"),
-    GRAPH_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string");
+    WITNESS_TYPE("witness-type", ElementType.GRAPH, "witness-type", "string"),
+    INPUTWITNESSHASH("inputwitnesshash", ElementType.GRAPH, "inputWitnessHash", "string");
 
     public final String id;
     public final ElementType keyFor;
@@ -199,13 +227,13 @@ public class AutomatonGraphmlCommon {
     }
   }
 
-  public enum GraphType {
-    ERROR_WITNESS("violation_witness"),
-    PROOF_WITNESS("correctness_witness");
+  public enum WitnessType {
+    VIOLATION_WITNESS("violation_witness"),
+    CORRECTNESS_WITNESS("correctness_witness");
 
     public final String text;
 
-    private GraphType(String text) {
+    private WitnessType(String text) {
       this.text = text;
     }
 
@@ -214,23 +242,23 @@ public class AutomatonGraphmlCommon {
       return text;
     }
 
-    public static Optional<GraphType> tryParse(String pTextualRepresentation) {
-      for (GraphType element : values()) {
+    public static Optional<WitnessType> tryParse(String pTextualRepresentation) {
+      for (WitnessType element : values()) {
         if (element.text.equals(pTextualRepresentation)) {
           return Optional.of(element);
         }
       }
       if (pTextualRepresentation.equals("FALSE")) {
-        return Optional.of(ERROR_WITNESS);
+        return Optional.of(VIOLATION_WITNESS);
       }
       if (pTextualRepresentation.equals("TRUE")) {
-        return Optional.of(PROOF_WITNESS);
+        return Optional.of(CORRECTNESS_WITNESS);
       }
       if (pTextualRepresentation.equals("false_witness")) {
-        return Optional.of(ERROR_WITNESS);
+        return Optional.of(VIOLATION_WITNESS);
       }
       if (pTextualRepresentation.equals("true_witness")) {
-        return Optional.of(PROOF_WITNESS);
+        return Optional.of(CORRECTNESS_WITNESS);
       }
       return Optional.empty();
     }
@@ -258,7 +286,7 @@ public class AutomatonGraphmlCommon {
 
   public static final NodeType defaultNodeType = NodeType.ONPATH;
 
-  public enum GraphMlTag {
+  public enum GraphMLTag {
     NODE("node"),
     DATA("data"),
     KEY("key"),
@@ -268,7 +296,7 @@ public class AutomatonGraphmlCommon {
 
     public final String text;
 
-    private GraphMlTag(String text) {
+    private GraphMLTag(String text) {
       this.text = text;
     }
 
@@ -278,19 +306,22 @@ public class AutomatonGraphmlCommon {
     }
   }
 
+  public static String computeHash(Path pPath) throws IOException {
+    @SuppressWarnings("deprecation") // SHA1 is required by witness format
+    HashCode hash = MoreFiles.asByteSource(pPath).hash(Hashing.sha1());
+    return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
+  }
+
   public static class GraphMlBuilder {
 
     private final Document doc;
     private final Element graph;
 
     public GraphMlBuilder(
-        GraphType pGraphType,
-        String pDefaultSourceFileName,
-        Language pLanguage,
-        MachineModel pMachineModel,
-        String pMemoryModel,
-        Iterable<String> pSpecifications,
-        String pProgramNames)
+        WitnessType pGraphType,
+        @Nullable String pDefaultSourceFileName,
+        CFA pCfa,
+        VerificationTaskMetaData pVerificationTaskMetaData)
         throws ParserConfigurationException, DOMException, IOException {
       DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
       DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -311,48 +342,54 @@ public class AutomatonGraphmlCommon {
       graph = doc.createElement("graph");
       root.appendChild(graph);
       graph.setAttribute("edgedefault", "directed");
-      graph.appendChild(createDataElement(KeyDef.GRAPH_TYPE, pGraphType.toString()));
-      graph.appendChild(createDataElement(KeyDef.SOURCECODELANGUAGE, pLanguage.toString()));
+      graph.appendChild(createDataElement(KeyDef.WITNESS_TYPE, pGraphType.toString()));
+      graph.appendChild(
+          createDataElement(KeyDef.SOURCECODELANGUAGE, pCfa.getLanguage().toString()));
       graph.appendChild(
           createDataElement(KeyDef.PRODUCER, "CPAchecker " + CPAchecker.getCPAcheckerVersion()));
-      for (String specification : pSpecifications) {
-        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, specification));
+
+      for (SpecificationProperty property : pVerificationTaskMetaData.getProperties()) {
+        graph.appendChild(createDataElement(KeyDef.SPECIFICATION, property.toString()));
       }
 
-      /*
-       * TODO: We should allow multiple program files here.
-       * As soon as we do, we should also hash each file separately.
-       */
-      graph.appendChild(createDataElement(KeyDef.PROGRAMFILE, pProgramNames));
-      graph.appendChild(createDataElement(KeyDef.PROGRAMHASH, computeProgramHash(pProgramNames)));
-
-      graph.appendChild(createDataElement(KeyDef.MEMORYMODEL, pMemoryModel));
-      switch (pMachineModel) {
-        case LINUX32:
-          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, "32bit"));
-          break;
-        case LINUX64:
-          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, "64bit"));
-          break;
-        default:
-          graph.appendChild(createDataElement(KeyDef.ARCHITECTURE, pMachineModel.toString()));
-          break;
+      for (Path specFile : pVerificationTaskMetaData.getNonPropertySpecificationFiles()) {
+        graph.appendChild(
+            createDataElement(
+                KeyDef.SPECIFICATION,
+                MoreFiles.asCharSource(specFile, Charsets.UTF_8).read().trim()));
       }
+      for (Path inputWitness : pVerificationTaskMetaData.getInputWitnessFiles()) {
+        graph.appendChild(createDataElement(KeyDef.INPUTWITNESSHASH, computeHash(inputWitness)));
+      }
+
+      for (Path programFile : pCfa.getFileNames()) {
+        graph.appendChild(createDataElement(KeyDef.PROGRAMFILE, programFile.toString()));
+      }
+      for (Path programFile : pCfa.getFileNames()) {
+        graph.appendChild(createDataElement(KeyDef.PROGRAMHASH, computeHash(programFile)));
+      }
+
+      graph.appendChild(
+          createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pCfa.getMachineModel())));
+      ZonedDateTime now = ZonedDateTime.now().withNano(0);
+      graph.appendChild(
+          createDataElement(
+              KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
     }
 
-    private Element createElement(GraphMlTag tag) {
+    private Element createElement(GraphMLTag tag) {
       return doc.createElement(tag.toString());
     }
 
     private Element createDataElement(final KeyDef key, final String value) {
-      Element result = createElement(GraphMlTag.DATA);
+      Element result = createElement(GraphMLTag.DATA);
       result.setAttribute("key", key.id);
       result.setTextContent(value);
       return result;
     }
 
     public Element createEdgeElement(final String from, final String to) {
-      Element result = createElement(GraphMlTag.EDGE);
+      Element result = createElement(GraphMLTag.EDGE);
       result.setAttribute("source", from);
       result.setAttribute("target", to);
       graph.appendChild(result);
@@ -360,7 +397,7 @@ public class AutomatonGraphmlCommon {
     }
 
     public Element createNodeElement(String nodeId, NodeType nodeType) {
-      Element result = createElement(GraphMlTag.NODE);
+      Element result = createElement(GraphMLTag.NODE);
       result.setAttribute("id", nodeId);
 
       if (nodeType != defaultNodeType) {
@@ -390,7 +427,7 @@ public class AutomatonGraphmlCommon {
       Preconditions.checkNotNull(attrName);
       Preconditions.checkNotNull(attrType);
 
-      Element result = createElement(GraphMlTag.KEY);
+      Element result = createElement(GraphMLTag.KEY);
 
       result.setAttribute("id", id);
       result.setAttribute("for", keyFor.toString());
@@ -398,7 +435,7 @@ public class AutomatonGraphmlCommon {
       result.setAttribute("attr.type", attrType);
 
       if (defaultValue != null) {
-        Element defaultValueElement = createElement(GraphMlTag.DEFAULT);
+        Element defaultValueElement = createElement(GraphMLTag.DEFAULT);
         defaultValueElement.setTextContent(defaultValue);
         result.appendChild(defaultValueElement);
       }
@@ -409,17 +446,6 @@ public class AutomatonGraphmlCommon {
     public void addDataElementChild(Element childOf, final KeyDef key, final String value) {
       Element result = createDataElement(key, value);
       childOf.appendChild(result);
-    }
-
-    private String computeProgramHash(String pProgramDenotations) throws IOException {
-      List<ByteSource> sources = new ArrayList<>(1);
-      Splitter commaSplitter = Splitter.on(',').omitEmptyStrings().trimResults();
-      for (String programDenotation : commaSplitter.split(pProgramDenotations)) {
-        Path programPath = Paths.get(programDenotation);
-        sources.add(MoreFiles.asByteSource(programPath));
-      }
-      HashCode hash = ByteSource.concat(sources).hash(Hashing.sha1());
-      return BaseEncoding.base16().lowerCase().encode(hash.asBytes());
     }
 
     public void appendTo(Appendable pTarget) throws IOException {
@@ -457,7 +483,8 @@ public class AutomatonGraphmlCommon {
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
     if (edge instanceof BlankEdge) {
-      return !(edge.getSuccessor() instanceof FunctionExitNode);
+      return !(edge.getSuccessor() instanceof FunctionExitNode)
+          && !isMainFunctionEntry(edge);
     } else if (edge instanceof CFunctionReturnEdge) {
       return false;
     } else if (edge instanceof CDeclarationEdge) {
@@ -472,6 +499,29 @@ public class AutomatonGraphmlCommon {
         if (varDecl.getName().toUpperCase().startsWith("__CPACHECKER_TMP")) {
           return true; // Dirty hack; would be better if these edges had no file location
         }
+        CFANode successor = edge.getSuccessor();
+        Iterator<CFAEdge> leavingEdges = CFAUtils.allLeavingEdges(successor).iterator();
+        if (!leavingEdges.hasNext()) {
+          return false;
+        }
+        CFAEdge successorEdge = leavingEdges.next();
+        if (leavingEdges.hasNext()) {
+          return false;
+        }
+        if (successorEdge instanceof AStatementEdge) {
+          AStatementEdge statementEdge = (AStatementEdge) successorEdge;
+          if (statementEdge.getFileLocation().equals(edge.getFileLocation())
+              && statementEdge.getStatement() instanceof AAssignment) {
+            AAssignment assignment = (AAssignment) statementEdge.getStatement();
+            ALeftHandSide leftHandSide = assignment.getLeftHandSide();
+            if (leftHandSide instanceof AIdExpression) {
+              AIdExpression lhs = (AIdExpression) leftHandSide;
+              if (lhs.getDeclaration() != null && lhs.getDeclaration().equals(varDecl)) {
+                return true;
+              }
+            }
+          }
+        }
         return false;
       }
     } else if (edge instanceof CFunctionSummaryStatementEdge) {
@@ -481,5 +531,216 @@ public class AutomatonGraphmlCommon {
     return false;
   }
 
+  public static boolean isMainFunctionEntry(CFAEdge pEdge) {
+    return isFunctionStartDummyEdge(pEdge)
+        && !(pEdge.getPredecessor() instanceof FunctionEntryNode);
+  }
+
+  public static boolean isFunctionStartDummyEdge(CFAEdge pEdge) {
+    if (!(pEdge instanceof BlankEdge)) {
+      return false;
+    }
+    BlankEdge edge = (BlankEdge) pEdge;
+    return edge.getDescription().equals("Function start dummy edge");
+  }
+
+  public static String getArchitecture(MachineModel pMachineModel) {
+    final String architecture;
+    switch (pMachineModel) {
+      case LINUX32:
+        architecture = "32bit";
+        break;
+      case LINUX64:
+        architecture = "64bit";
+        break;
+      default:
+        architecture = pMachineModel.toString();
+        break;
+    }
+    return architecture;
+  }
+
+  public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
+    if (handleAsEpsilonEdge(pEdge)) {
+      return Collections.emptySet();
+    }
+    if (isMainFunctionEntry(pEdge)) {
+      FileLocation location = pMainEntry.getFileLocation();
+      if (!FileLocation.DUMMY.equals(location)) {
+        location = new FileLocation(
+            location.getFileName(),
+            location.getNiceFileName(),
+            location.getNodeOffset(),
+            pMainEntry.getFunctionDefinition().toString().length(),
+            location.getStartingLineNumber(),
+            location.getStartingLineNumber(),
+            location.getStartingLineInOrigin(),
+            location.getStartingLineInOrigin());
+      }
+      return Collections.singleton(location);
+    }
+    if (pEdge instanceof AStatementEdge) {
+      AStatementEdge statementEdge = (AStatementEdge) pEdge;
+      FileLocation statementLocation = statementEdge.getStatement().getFileLocation();
+      if (!FileLocation.DUMMY.equals(statementLocation)) {
+        return Collections.singleton(statementLocation);
+      }
+    }
+    if (pEdge instanceof FunctionCallEdge) {
+      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pEdge;
+      FunctionSummaryEdge summaryEdge = functionCallEdge.getSummaryEdge();
+      if (summaryEdge != null && summaryEdge.getExpression() != null) {
+        AFunctionCall call = summaryEdge.getExpression();
+        if (call instanceof AFunctionCallAssignmentStatement) {
+          AFunctionCallAssignmentStatement statement = (AFunctionCallAssignmentStatement) call;
+          FileLocation callLocation = statement.getRightHandSide().getFileLocation();
+          if (!FileLocation.DUMMY.equals(callLocation)) {
+            return Collections.singleton(callLocation);
+          }
+        }
+      }
+    }
+    if (pEdge instanceof AssumeEdge) {
+      AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+      FileLocation location = assumeEdge.getFileLocation();
+      if (isDefaultCase(assumeEdge)) {
+        CFANode successorNode = assumeEdge.getSuccessor();
+        FileLocation switchLocation = Iterables.getOnlyElement(CFAUtils.leavingEdges(successorNode)).getFileLocation();
+        if (!FileLocation.DUMMY.equals(switchLocation)) {
+          location = switchLocation;
+        } else {
+          SwitchDetector switchDetector = new SwitchDetector(assumeEdge);
+          CFATraversal.dfs().backwards().traverseOnce(assumeEdge.getSuccessor(), switchDetector);
+          List<FileLocation> caseLocations = FluentIterable
+              .from(switchDetector.getEdgesBackwardToSwitchNode())
+              .transform(e -> e.getFileLocation())
+              .toList();
+          location = FileLocation.merge(caseLocations);
+        }
+
+      }
+      if (!FileLocation.DUMMY.equals(location)) {
+        return Collections.singleton(location);
+      }
+    }
+    return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
+  }
+
+  public static Optional<FileLocation> getMinFileLocation(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
+    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry);
+    return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l1.getNodeOffset(), l2.getNodeOffset()));
+  }
+
+  public static Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge, FunctionEntryNode pMainEntry) {
+    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry);
+    return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l2.getNodeOffset(), l1.getNodeOffset()));
+  }
+
+  private static Optional<FileLocation> getMinFileLocation(Iterable<FileLocation> pLocations, Comparator<FileLocation> pComparator) {
+    Iterator<FileLocation> locationIterator = pLocations.iterator();
+    if (!locationIterator.hasNext()) {
+      return Optional.empty();
+    }
+    FileLocation min = locationIterator.next();
+    while (locationIterator.hasNext()) {
+      FileLocation l = locationIterator.next();
+      if (pComparator.compare(l, min) < 0) {
+        min = l;
+      }
+    }
+    return Optional.of(min);
+  }
+
+  public static boolean isPartOfSwitchStatement(AssumeEdge pAssumeEdge) {
+    SwitchDetector switchDetector = new SwitchDetector(pAssumeEdge);
+    CFATraversal.dfs().backwards().traverseOnce(pAssumeEdge.getSuccessor(), switchDetector);
+    return switchDetector.switchDetected();
+  }
+
+  public static boolean isDefaultCase(CFAEdge pEdge) {
+    if (!(pEdge instanceof AssumeEdge)) {
+      return false;
+    }
+    AssumeEdge assumeEdge = (AssumeEdge) pEdge;
+    if (assumeEdge.getTruthAssumption()) {
+      return false;
+    }
+    FluentIterable<CFAEdge> successorEdges = CFAUtils.leavingEdges(assumeEdge.getSuccessor());
+    if (successorEdges.size() != 1) {
+      return false;
+    }
+    CFAEdge successorEdge = successorEdges.iterator().next();
+    if (!(successorEdge instanceof BlankEdge)) {
+      return false;
+    }
+    BlankEdge blankSuccessorEdge = (BlankEdge) successorEdge;
+    return blankSuccessorEdge.getDescription().equals("default");
+  }
+
+  public static class SwitchDetector implements CFAVisitor {
+
+    private final AExpression assumeExpression;
+
+    private final AExpression switchOperand;
+
+    private final List<AssumeEdge> edgesBackwardToSwitchNode = new ArrayList<>();
+
+    private CFANode switchNode = null;
+
+    public SwitchDetector(AssumeEdge pAssumeEdge) {
+      assumeExpression = pAssumeEdge.getExpression();
+      if (assumeExpression instanceof ABinaryExpression) {
+        switchOperand = ((ABinaryExpression) assumeExpression).getOperand1();
+      } else {
+        switchOperand = assumeExpression;
+      }
+    }
+
+    public boolean switchDetected() {
+      return switchNode != null;
+    }
+
+    public List<AssumeEdge> getEdgesBackwardToSwitchNode() {
+      Preconditions.checkState(switchDetected());
+      return Collections.unmodifiableList(edgesBackwardToSwitchNode);
+    }
+
+    @Override
+    public TraversalProcess visitEdge(CFAEdge pEdge) {
+      if (switchOperand == assumeExpression) {
+        return TraversalProcess.ABORT;
+      }
+      if (pEdge instanceof AssumeEdge) {
+        AssumeEdge edge = (AssumeEdge) pEdge;
+        AExpression expression = edge.getExpression();
+        if (!(expression instanceof ABinaryExpression)) {
+          return TraversalProcess.ABORT;
+        }
+        AExpression operand = ((ABinaryExpression) expression).getOperand1();
+        if (!operand.equals(switchOperand)) {
+          return TraversalProcess.ABORT;
+        }
+        edgesBackwardToSwitchNode.add(edge);
+        return TraversalProcess.CONTINUE;
+      } else if (pEdge instanceof BlankEdge) {
+        BlankEdge edge = (BlankEdge) pEdge;
+        String switchPrefix = "switch (";
+        if (edge.getDescription().equals(switchPrefix + switchOperand + ")")
+            && !FileLocation.DUMMY.equals(edge.getFileLocation())
+            && assumeExpression.getFileLocation().getNodeOffset() == edge.getFileLocation().getNodeOffset() + switchPrefix.length()) {
+          switchNode = edge.getSuccessor();
+          return TraversalProcess.ABORT;
+        }
+        return TraversalProcess.CONTINUE;
+      }
+      return TraversalProcess.SKIP;
+    }
+
+    @Override
+    public TraversalProcess visitNode(CFANode pNode) {
+      return TraversalProcess.CONTINUE;
+    }
+
+  }
 
 }

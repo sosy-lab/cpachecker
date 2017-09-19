@@ -24,7 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import com.google.common.collect.Multimap;
-
+import java.io.PrintStream;
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Deque;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -56,12 +60,6 @@ import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.io.PrintStream;
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-
 /**
  * Refiner for value analysis using symbolic values.
  */
@@ -71,6 +69,9 @@ public class SymbolicValueAnalysisRefiner
 
   @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
+
+  @Option(secure = true, description = "if this option is set to false, constraints are never kept")
+  private boolean trackConstraints = true;
 
   public static SymbolicValueAnalysisRefiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -88,7 +89,7 @@ public class SymbolicValueAnalysisRefiner
     final CFA cfa = valueAnalysisCpa.getCFA();
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
-    final Solver solver = Solver.create(config, logger, shutdownNotifier);
+    final Solver solver = constraintsCpa.getSolver();
 
     final SymbolicStrongestPostOperator strongestPostOperator =
         new ValueTransferBasedStrongestPostOperator(solver, logger, config, cfa, shutdownNotifier);
@@ -107,7 +108,8 @@ public class SymbolicValueAnalysisRefiner
             logger,
             cfa,
             config,
-            ValueAnalysisCPA.class);
+            ValueAnalysisCPA.class,
+            shutdownNotifier);
 
     final ElementTestingSymbolicEdgeInterpolator edgeInterpolator =
         new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
@@ -176,32 +178,34 @@ public class SymbolicValueAnalysisRefiner
     ConstraintsPrecision.Increment.Builder increment =
         ConstraintsPrecision.Increment.builder();
 
-    Deque<ARGState> todo =
-        new ArrayDeque<>(Collections.singleton(pTree.getPredecessor(pRefinementRoot)));
+    if (trackConstraints) {
+      Deque<ARGState> todo =
+          new ArrayDeque<>(Collections.singleton(pTree.getPredecessor(pRefinementRoot)));
 
-    while (!todo.isEmpty()) {
-      final ARGState currentState = todo.removeFirst();
+      while (!todo.isEmpty()) {
+        final ARGState currentState = todo.removeFirst();
 
-      if (!currentState.isTarget()) {
-        SymbolicInterpolant itp = pTree.getInterpolantForState(currentState);
+        if (!currentState.isTarget()) {
+          SymbolicInterpolant itp = pTree.getInterpolantForState(currentState);
 
-        if (itp != null && !itp.isTrivial()) {
-          for (Constraint c : itp.getConstraints()) {
-            increment.locallyTracked(AbstractStates.extractLocation(currentState), c);
+          if (itp != null && !itp.isTrivial()) {
+            for (Constraint c : itp.getConstraints()) {
+              increment.locallyTracked(AbstractStates.extractLocation(currentState), c);
+            }
           }
         }
-      }
 
-      Collection<ARGState> successors = pTree.getSuccessors(currentState);
-      todo.addAll(successors);
+        Collection<ARGState> successors = pTree.getSuccessors(currentState);
+        todo.addAll(successors);
+      }
     }
 
     return increment.build();
   }
 
   @Override
-  protected void printAdditionalStatistics(PrintStream out, Result pResult,
-      ReachedSet pReached) {
+  protected void printAdditionalStatistics(
+      PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
     // DO NOTHING for now
   }
 }

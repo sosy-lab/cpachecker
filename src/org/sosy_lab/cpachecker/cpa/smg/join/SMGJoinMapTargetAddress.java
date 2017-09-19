@@ -25,13 +25,14 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.collect.Iterables;
 
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsTo;
-import org.sosy_lab.cpachecker.cpa.smg.SMGEdgePointsToFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGValueFactory;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObjectKind;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 
 import java.util.Set;
 
@@ -47,12 +48,12 @@ final class SMGJoinMapTargetAddress {
     smg = destSMG;
     mapping1 = pMapping1;
     mapping2 = pMapping2;
-    SMGObject target = destSMG.getNullObject();
+    SMGObject target = SMGNullObject.INSTANCE;
 
     // TODO: Ugly, refactor
     SMGEdgePointsTo pt = pSMG1.getPointer(pAddress1);
     SMGEdgePointsTo pt2 = pSMG2.getPointer(pAddress2);
-    if (pt.getObject().notNull()) {
+    if (pt.getObject() != SMGNullObject.INSTANCE) {
       target = pMapping1.get(pt.getObject());
     }
 

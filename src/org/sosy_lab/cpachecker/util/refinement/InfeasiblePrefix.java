@@ -111,7 +111,18 @@ public class InfeasiblePrefix {
 
       depth++;
     }
-    throw new AssertionError("There must be at least one trivial interpolant along the prefix");
+
+    // For the predicate analysis (with block size > 1), it can happen
+    // that there are only trivial interpolants available, i.e., an
+    // immediate change from [true] to [false] in the interpolant sequence.
+    // So, only for the predicate analysis (<=> pathFormulas != null),
+    // return the current depth in such a scenario
+    if (pathFormulas != null) {
+      return depth;
+    }
+
+    // for the value analysis, this must never be reached
+    throw new AssertionError("There must be at least one non-trivial interpolant along the prefix.");
   }
 
   public ARGPath getPath() {

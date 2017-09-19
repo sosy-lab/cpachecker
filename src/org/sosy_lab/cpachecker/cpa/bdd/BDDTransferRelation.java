@@ -23,13 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.bdd;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
+import java.math.BigInteger;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -72,64 +71,41 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.VariableClassification.Partition;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.math.BigInteger;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
-@Options(prefix = "cpa.bdd")
 public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDState, VariableTrackingPrecision> {
 
-  @Option(secure=true, name = "logfile", description = "Dump tracked variables to a file.")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path dumpfile = Paths.get("BDDCPA_tracked_variables.log");
-
-  @Option(secure=true, description = "max bitsize for values and vars, initial value")
-  private int bitsize = 64;
-
-  @Option(secure=true, description = "use a smaller bitsize for all vars, that have only intEqual values")
-  private boolean compressIntEqual = true;
-
-  private final LogManager logger;
+  private final int bitsize;
+  private final boolean compressIntEqual;
   private final VariableClassification varClass;
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
   private final PredicateManager predmgr;
   private final MachineModel machineModel;
 
-  /** The Constructor of BDDVectorTransferRelation sets the NamedRegionManager
-   * and the BitVectorManager. Both are used to build and manipulate BDDs,
-   * that represent the regions. */
-  public BDDTransferRelation(NamedRegionManager manager, BitvectorManager bvmgr,
-                             PredicateManager pPredmgr, LogManager pLogger,
-                             Configuration config, CFA cfa)
-          throws InvalidConfigurationException {
-    config.inject(this);
-
-    this.logger = pLogger;
+  /**
+   * The Constructor of BDDVectorTransferRelation sets the NamedRegionManager and the
+   * BitVectorManager. Both are used to build and manipulate BDDs, that represent the regions.
+   */
+  public BDDTransferRelation(
+      NamedRegionManager manager,
+      BitvectorManager bvmgr,
+      PredicateManager pPredmgr,
+      CFA cfa,
+      int pBitsize,
+      boolean pCompressIntEqual) {
     this.machineModel = cfa.getMachineModel();
     this.rmgr = manager;
     this.bvmgr = bvmgr;
     this.predmgr = pPredmgr;
-
+    bitsize = pBitsize;
+    compressIntEqual = pCompressIntEqual;
     assert cfa.getVarClassification().isPresent();
     this.varClass = cfa.getVarClassification().get();
   }
@@ -150,7 +126,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function handles statements like "a = 0;" and "b = !a;" and
    * calls of external functions. */
   @Override
-  protected BDDState handleStatementEdge(final CStatementEdge cfaEdge, final CStatement statement) {
+  protected BDDState handleStatementEdge(final CStatementEdge cfaEdge, final CStatement statement)
+      throws UnsupportedCCodeException {
 
     BDDState result = state;
 
@@ -173,7 +150,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * A region is build for the right side of the statement.
    * Then this region is assigned to the variable at the left side.
    * This equality is added to the BDDstate to get the next state. */
-  private BDDState handleAssignment(CAssignment assignment, CFANode successor, CFAEdge edge) {
+  private BDDState handleAssignment(CAssignment assignment, CFANode successor, CFAEdge edge)
+      throws UnsupportedCCodeException {
     CExpression lhs = assignment.getLeftHandSide();
 
     if (!(lhs instanceof CIdExpression)) {
@@ -271,7 +249,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * variable (bitvector) at the left side.
    * These equalities are added to the BDDstate to get the next state. */
   @Override
-  protected BDDState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl) {
+  protected BDDState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
+      throws UnsupportedCCodeException {
 
     if (decl instanceof CVariableDeclaration) {
       CVariableDeclaration vdecl = (CVariableDeclaration) decl;
@@ -297,8 +276,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       if (init != null) {
         final Region[] rhs = evaluateVectorExpression(partition, init, vdecl.getType(), cfaEdge.getSuccessor());
         newState = newState.addAssignment(var, rhs);
-        return newState;
       }
+
+      return newState;
     }
 
     return state; // if we know nothing, we return the old state
@@ -309,8 +289,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * to a param ("int a") of the function. The equalities of
    * all arg-param-pairs are added to the BDDstate to get the next state. */
   @Override
-  protected BDDState handleFunctionCallEdge(CFunctionCallEdge cfaEdge,
-                                            List<CExpression> args, List<CParameterDeclaration> params, String calledFunction) {
+  protected BDDState handleFunctionCallEdge(
+      CFunctionCallEdge cfaEdge,
+      List<CExpression> args,
+      List<CParameterDeclaration> params,
+      String calledFunction)
+      throws UnsupportedCCodeException {
     BDDState newState = state;
 
     // var_args cannot be handled: func(int x, ...) --> we only handle the first n parameters
@@ -377,7 +361,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
    * evaluated right side ("x") is added to the new state. */
   @Override
-  protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge) {
+  protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
+      throws UnsupportedCCodeException {
     BDDState newState = state;
     String returnVar = "";
 
@@ -437,8 +422,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
    * If the next state is False, the assumption is not fulfilled.
    * In this case NULL is returned. */
   @Override
-  protected BDDState handleAssumption(CAssumeEdge cfaEdge,
-                                      CExpression expression, boolean truthAssumption) {
+  protected BDDState handleAssumption(
+      CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
+      throws UnsupportedCCodeException {
 
     Partition partition = varClass.getPartitionForEdge(cfaEdge);
     final Region[] operand = evaluateVectorExpression(partition, expression, CNumericTypes.INT, cfaEdge.getSuccessor());
@@ -463,7 +449,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   /** This function returns a bitvector, that represents the expression.
    * The partition chooses the compression of the bitvector. */
   private @Nullable Region[] evaluateVectorExpression(
-          final Partition partition, final CExpression exp, final CType targetType, final CFANode location) {
+      final Partition partition, final CExpression exp, CType targetType, final CFANode location)
+      throws UnsupportedCCodeException {
     final boolean compress = (partition != null) && compressIntEqual
             && varClass.getIntEqualPartitions().contains(partition);
     if (varClass.getIntBoolPartitions().contains(partition)) {
@@ -473,12 +460,15 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       return exp.accept(new BDDCompressExpressionVisitor(predmgr, precision, getBitsize(partition, null), location, bvmgr, partition));
     } else {
       Region[] value = exp.accept(new BDDVectorCExpressionVisitor(predmgr, precision, bvmgr, machineModel, location));
-      if (value != null) {
+      targetType = targetType.getCanonicalType();
+      if (value != null && targetType instanceof CSimpleType) {
         // cast to correct length
         final CType sourceType = exp.getExpressionType().getCanonicalType();
-        value = bvmgr.toBitsize(
-                machineModel.getSizeof(targetType) * machineModel.getSizeofCharInBits(),
-                sourceType instanceof CSimpleType && machineModel.isSigned((CSimpleType) sourceType),
+        value =
+            bvmgr.toBitsize(
+                machineModel.getSizeofInBits((CSimpleType) targetType),
+                sourceType instanceof CSimpleType
+                    && machineModel.isSigned((CSimpleType) sourceType),
                 value);
       }
       return value;
@@ -597,62 +587,5 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     protected Boolean visitDefault(CExpression pExp) {
       return false;
     }
-  }
-
-  /** THis function writes some information about tracked variables, number of partitions,... */
-  void printStatistics(final PrintStream out) {
-    final Set<Partition> intBool = varClass.getIntBoolPartitions();
-    int numOfBooleans = varClass.getIntBoolVars().size();
-
-    int numOfIntEquals = 0;
-    final Set<Partition> intEq = varClass.getIntEqualPartitions();
-    for (Partition p : intEq) {
-      numOfIntEquals += p.getVars().size();
-    }
-
-    int numOfIntAdds = 0;
-    final Set<Partition> intAdd = varClass.getIntAddPartitions();
-    for (Partition p : intAdd) {
-      numOfIntAdds += p.getVars().size();
-    }
-
-    Collection<String> trackedIntBool = new TreeSet<>(); // TreeSet for nicer output through ordering
-    Collection<String> trackedIntEq = new TreeSet<>();
-    Collection<String> trackedIntAdd = new TreeSet<>();
-    for (String var : predmgr.getTrackedVars().keySet()) {
-      if (varClass.getIntBoolVars().contains(var)) {
-        trackedIntBool.add(var);
-      } else if (varClass.getIntEqualVars().contains(var)) {
-        trackedIntEq.add(var);
-      } else if (varClass.getIntAddVars().contains(var)) {
-        trackedIntAdd.add(var);
-      } else {
-        // ignore other vars, they are either function_return_vars or tmp_vars
-      }
-    }
-
-    if (dumpfile != null) { // option -noout
-      try (Writer w = MoreFiles.openOutputFile(dumpfile, Charset.defaultCharset())) {
-        w.append("Boolean\n\n");
-        w.append(trackedIntBool.toString());
-        w.append("\n\nIntEq\n\n");
-        w.append(trackedIntEq.toString());
-        w.append("\n\nIntAdd\n\n");
-        w.append(trackedIntAdd.toString());
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write tracked variables for BDDCPA to file");
-      }
-    }
-
-    out.println(String.format("Number of boolean vars:           %d (of %d)", trackedIntBool.size(), numOfBooleans));
-    out.println(String.format("Number of intEqual vars:          %d (of %d)", trackedIntEq.size(), numOfIntEquals));
-    out.println(String.format("Number of intAdd vars:            %d (of %d)", trackedIntAdd.size(), numOfIntAdds));
-    out.println(String.format("Number of all vars:               %d",
-            trackedIntBool.size() + trackedIntEq.size() + trackedIntAdd.size()));
-    out.println("Number of intBool partitions:     " + intBool.size());
-    out.println("Number of intEq partitions:       " + intEq.size());
-    out.println("Number of intAdd partitions:      " + intAdd.size());
-    out.println("Number of all partitions:         " + varClass.getPartitions().size());
-    rmgr.printStatistics(out);
   }
 }

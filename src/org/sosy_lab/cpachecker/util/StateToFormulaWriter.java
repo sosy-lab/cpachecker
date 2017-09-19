@@ -32,18 +32,26 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Stream;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -54,23 +62,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * This class allows to export the information of abstract states as SMT-formula.
@@ -132,9 +128,10 @@ public class StateToFormulaWriter implements StatisticsProvider {
         new Statistics() {
 
           @Override
-          public void printStatistics(PrintStream pOut, Result pResult, ReachedSet pReached) {
+          public void printStatistics(
+              PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
             if (exportFile != null) {
-              try (Writer w = MoreFiles.openOutputFile(exportFile, Charset.defaultCharset())) {
+              try (Writer w = IO.openOutputFile(exportFile, Charset.defaultCharset())) {
                 write(pReached, w);
               } catch (IOException e) {
                 logger.logUserException(Level.WARNING, e, "Could not write formulas to file");
@@ -201,83 +198,67 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
     // fill the above set and map
     for (CFANode cfaNode : pStates.keySet()) {
-      List<BooleanFormula> formulas = getFormulasForNode(pStates.get(cfaNode));
-      extractPredicatesAndDefinitions(cfaNode, definitions, cfaNodeToPredicate, formulas);
+      getFormulasForNode(pStates.get(cfaNode))
+          .forEach(
+              f -> extractPredicatesAndDefinitions(cfaNode, definitions, cfaNodeToPredicate, f));
     }
 
     writeFormulas(pAppendable, definitions, cfaNodeToPredicate);
   }
 
-  private List<BooleanFormula> getFormulasForNode(Set<FormulaReportingState> states) {
-    final List<BooleanFormula> formulas = new ArrayList<>();
+  private Stream<BooleanFormula> getFormulasForNode(Set<FormulaReportingState> states) {
     final BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
 
-    List<BooleanFormula> stateFormulas = new ArrayList<>();
-    for (FormulaReportingState state : states) {
-      stateFormulas.add(state.getFormulaApproximation(fmgr));
-    }
+    Stream<BooleanFormula> formulas =
+        states.stream().map(state -> state.getFormulaApproximation(fmgr));
 
     switch (splitFormulas) {
-    case LOCATION:
-      // create the disjunction of the found states for the current location
-      formulas.add(bfmgr.or(stateFormulas));
-      break;
-    case STATE:
-      // do not merge different location-formulas
-      formulas.addAll(stateFormulas);
-      break;
-    case ATOM:
-      // atomize formulas
-      for (BooleanFormula f : stateFormulas) {
-        formulas.addAll(fmgr.extractAtoms(f, false));
-      }
-      break;
+      case LOCATION:
+        // create the disjunction of the found states for the current location
+        formulas = Stream.of(formulas.collect(bfmgr.toDisjunction()));
+        break;
+      case STATE:
+        // do not merge different location-formulas, nothing to do
+        break;
+      case ATOM:
+        // atomize formulas
+        formulas = formulas.flatMap(f -> fmgr.extractAtoms(f, false).stream());
+        break;
     default:
       throw new AssertionError("unknown option");
     }
 
     // filter out formulas with no information
-    final List<BooleanFormula> filtered = new ArrayList<>();
-    for (BooleanFormula f : formulas) {
-      if (!bfmgr.isTrue(f) && !bfmgr.isFalse(f)) {
-        filtered.add(f);
-      }
-    }
-
-    return filtered;
+    return formulas.filter(f -> !bfmgr.isTrue(f) && !bfmgr.isFalse(f));
   }
 
-  /** dump each formula and split it into the predicate and some utility-stuff (named definition)
-   *  that consists of symbol-declarations and solver-specific queries. */
+  /**
+   * dump a formula and split it into the predicate and some utility-stuff (named definition) that
+   * consists of symbol-declarations and solver-specific queries.
+   */
   private void extractPredicatesAndDefinitions(
       CFANode cfaNode,
       Set<String> definitions,
       Multimap<CFANode, String> cfaNodeToPredicate,
-      List<BooleanFormula> predicates) {
+      BooleanFormula predicate) {
 
-    for (BooleanFormula formula : predicates) {
-      String s = fmgr.dumpFormula(formula).toString();
-      List<String> lines = Lists.newArrayList(LINE_SPLITTER.split(s));
-      assert !lines.isEmpty();
+    List<String> lines = LINE_SPLITTER.splitToList(fmgr.dumpFormula(predicate).toString());
 
-      // Get the predicate from the last line
-      String predString = lines.get(lines.size() - 1);
+    // Get the predicate from the last line
+    String predString = lines.get(lines.size() - 1);
 
-      // Remove the predicate from the dump
-      lines.remove(lines.size() - 1);
-
-      // Check that the dump format is correct
-      if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {
-        throw new AssertionError("Writing formulas is only supported for solvers "
-            + "that support the Smtlib2 format, please try using Mathsat5.");
-      }
-
-      // Add the definition part of the dump to the set of definitions
-      definitions.addAll(lines);
-
-      // Record the predicate to write it later at t
-      cfaNodeToPredicate.put(cfaNode, predString);
+    // Check that the dump format is correct
+    if (!(predString.startsWith("(assert ") && predString.endsWith(")"))) {
+      throw new AssertionError(
+          "Writing formulas is only supported for solvers "
+              + "that support the Smtlib2 format, please try using Mathsat5.");
     }
+
+    // Add the definition part of the dump to the set of definitions
+    definitions.addAll(lines.subList(0, lines.size() - 1));
+
+    // Record the predicate to write it later at t
+    cfaNodeToPredicate.put(cfaNode, predString);
   }
 
   /** write the definitions and predicates in the commonly used precision-format

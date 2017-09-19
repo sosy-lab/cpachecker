@@ -23,17 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cfa.model;
 
+import com.google.common.base.Optional;
 import java.util.List;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 
-import java.util.Optional;
 
 
 public class FunctionCallEdge extends AbstractCFAEdge {
 
+  private static final long serialVersionUID = -7848426105619928428L;
   protected final AFunctionCall functionCall;
   protected final FunctionSummaryEdge summaryEdge;
 

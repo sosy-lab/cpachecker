@@ -17,13 +17,13 @@
     <includesfile>../programs/cpalien/cpalien-label.set</includesfile>
     <option name="-CPAlien-label"/>
     <option name="-preprocess" />
-    <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/PropertyUnreachCall.prp</propertyfile>
   </tasks>
 
   <tasks name="MemorySafety">
     <includesfile>../programs/benchmarks/HeapMemSafety.set</includesfile>
     <option name="-sv-comp14"/>
-    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+    <propertyfile>../programs/benchmarks/HeapMemSafety.prp</propertyfile>
   </tasks>
   <rundefinition/>
 </benchmark>

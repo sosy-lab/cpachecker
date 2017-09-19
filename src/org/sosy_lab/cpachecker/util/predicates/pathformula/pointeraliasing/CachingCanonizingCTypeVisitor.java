@@ -23,7 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -38,11 +43,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.c.DefaultCTypeVisitor;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeException> {
 
@@ -126,17 +126,14 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
 
 
       final CFunctionType result;
-      if (returnType == oldReturnType &&
-          parameterTypes == null &&
-          (!ignoreConst || !t.isConst()) &&
-          (!ignoreVolatile || !t.isVolatile())) {
+      if (returnType == oldReturnType && parameterTypes == null) {
         result = t;
       } else {
-        result = new CFunctionType(!ignoreConst && t.isConst(),
-                                   !ignoreVolatile && t.isVolatile(),
-                                   returnType,
-                                   parameterTypes != null ? parameterTypes : t.getParameters(),
-                                   t.takesVarArgs());
+        result =
+            new CFunctionType(
+                returnType,
+                parameterTypes != null ? parameterTypes : t.getParameters(),
+                t.takesVarArgs());
         if (t.getName() != null) {
           result.setName(t.getName());
         }
@@ -147,12 +144,14 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
 
     @Override
     public CEnumType visit(final CEnumType t) {
-      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
-             new CEnumType(!ignoreConst && t.isConst(),
-                           !ignoreVolatile && t.isVolatile(),
-                           t.getEnumerators(),
-                           t.getName(),
-                           t.getOrigName());
+      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile())
+          ? t
+          : new CEnumType(
+              !ignoreConst && t.isConst(),
+              !ignoreVolatile && t.isVolatile(),
+              t.getEnumerators(),
+              t.getName(),
+              t.getOrigName());
     }
 
     @Override
@@ -162,17 +161,28 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, RuntimeEx
 
     @Override
     public CSimpleType visit(final CSimpleType t) {
-      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile()) ? t :
-              new CSimpleType(!ignoreConst && t.isConst(),
-                              !ignoreVolatile && t.isVolatile(),
-                              t.getType(),
-                              t.isLong(),
-                              t.isShort(),
-                              t.isSigned(),
-                              t.isUnsigned(),
-                              t.isComplex(),
-                              t.isImaginary(),
-                              t.isLongLong());
+      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile())
+          ? t
+          : new CSimpleType(
+              !ignoreConst && t.isConst(),
+              !ignoreVolatile && t.isVolatile(),
+              t.getType(),
+              t.isLong(),
+              t.isShort(),
+              t.isSigned(),
+              t.isUnsigned(),
+              t.isComplex(),
+              t.isImaginary(),
+              t.isLongLong());
+    }
+
+    @Override
+    public CType visit(CBitFieldType pCBitFieldType) throws RuntimeException {
+      CType type = pCBitFieldType.getType().accept(this);
+      if (type != pCBitFieldType.getType()) {
+        return new CBitFieldType(type, pCBitFieldType.getBitFieldSize());
+      }
+      return pCBitFieldType;
     }
 
     @Override

@@ -4,7 +4,7 @@
 <pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 3.0</pydev_property>
 <pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
 <path>/${PROJECT_DIR_NAME}/scripts</path>
-<path>/${PROJECT_DIR_NAME}/lib/python-benchmark/BenchExec-1.10_dev-py3-none-any.whl</path>
+<path>/${PROJECT_DIR_NAME}/lib/python-benchmark/BenchExec-1.10-py3-none-any.whl</path>
 </pydev_pathproperty>
 
 </pydev_project>

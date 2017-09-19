@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.functionpointer;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -87,7 +88,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Level;
 
 @Options(prefix="cpa.functionpointer")

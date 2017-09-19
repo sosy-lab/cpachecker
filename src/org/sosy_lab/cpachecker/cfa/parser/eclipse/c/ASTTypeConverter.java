@@ -25,9 +25,14 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import org.eclipse.cdt.core.dom.ast.DOMException;
 import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTElaboratedTypeSpecifier;
@@ -55,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -71,14 +77,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 /** This Class contains functions,
  * that convert types from C-source into CPAchecker-format. */
 class ASTTypeConverter {
@@ -86,14 +84,14 @@ class ASTTypeConverter {
   private final Scope scope;
   private final ASTConverter converter;
   private final String filePrefix;
-  private final Function<String, String> niceFileNameFunction;
+  private final ParseContext parseContext;
 
-  ASTTypeConverter(Scope pScope, ASTConverter pConverter, String pFilePrefix,
-      Function<String, String> pNiceFileNameFunction) {
+  ASTTypeConverter(
+      Scope pScope, ASTConverter pConverter, String pFilePrefix, ParseContext pParseContext) {
     scope = pScope;
     converter = pConverter;
     filePrefix = pFilePrefix;
-    niceFileNameFunction = pNiceFileNameFunction;
+    parseContext = pParseContext;
     if (!typeConversions.containsKey(filePrefix)) {
       typeConversions.put(filePrefix, new IdentityHashMap<>());
     }
@@ -204,7 +202,7 @@ class ASTTypeConverter {
       }
 
       // TODO varargs
-      return new CFunctionType(false, false, convert(ft.getReturnType()), newParameters, false);
+      return new CFunctionType(convert(ft.getReturnType()), newParameters, false);
 
     } else if (t instanceof ICArrayType) {
       return conv((ICArrayType)t);
@@ -228,7 +226,7 @@ class ASTTypeConverter {
         // C.f. http://gcc.gnu.org/onlinedocs/gcc/Local-Labels.html#Local-Labels
         return new CProblemType(problem.getASTNode().getRawSignature());
       }
-      throw new CFAGenerationRuntimeException(problem.getMessage(), problem.getASTNode(), niceFileNameFunction);
+      throw parseContext.parseError(problem.getMessage(), problem.getASTNode());
 
     } else {
       throw new CFAGenerationRuntimeException("unknown type " + t.getClass().getSimpleName());
@@ -394,7 +392,7 @@ class ASTTypeConverter {
       if (dd.isComplex() || dd.isImaginary()
           || dd.isLong() || dd.isLongLong() || dd.isShort()
           || dd.isSigned() || dd.isUnsigned()) {
-        throw new CFAGenerationRuntimeException("Void type with illegal modifier", dd, niceFileNameFunction);
+        throw parseContext.parseError("Void type with illegal modifier", dd);
       }
       return CVoidType.create(dd.isConst(), dd.isVolatile());
     case IASTSimpleDeclSpecifier.t_typeof:
@@ -411,16 +409,17 @@ class ASTTypeConverter {
         ctype = CTypes.withVolatile(ctype);
       }
       return ctype;
-    default:
-      throw new CFAGenerationRuntimeException("Unknown basic type " + dd.getType() + " "
-          + dd.getClass().getSimpleName(), dd, niceFileNameFunction);
+      default:
+      throw parseContext.parseError(
+          "Unknown basic type " + dd.getType() + " " + dd.getClass().getSimpleName(), dd);
     }
 
     if ((dd.isShort() && dd.isLong())
         || (dd.isShort() && dd.isLongLong())
         || (dd.isLong() && dd.isLongLong())
-        || (dd.isSigned() && dd.isUnsigned())) { throw new CFAGenerationRuntimeException(
-        "Illegal combination of type identifiers", dd, niceFileNameFunction); }
+        || (dd.isSigned() && dd.isUnsigned())) {
+      throw parseContext.parseError("Illegal combination of type identifiers", dd);
+    }
 
     return new CSimpleType(dd.isConst(), dd.isVolatile(), type,
         dd.isLong(), dd.isShort(), dd.isSigned(), dd.isUnsigned(),
@@ -432,7 +431,7 @@ class ASTTypeConverter {
     String name = ASTConverter.convert(astName);
     org.eclipse.cdt.core.dom.ast.IBinding binding = astName.resolveBinding();
     if (!(binding instanceof IType)) {
-      throw new CFAGenerationRuntimeException("Unknown binding of typedef", d, niceFileNameFunction);
+      throw parseContext.parseError("Unknown binding of typedef", d);
     }
     CType type = null;
     if (binding instanceof IProblemBinding) {
@@ -440,7 +439,14 @@ class ASTTypeConverter {
     }
 
     if (type == null) {
-      return convert((IType) binding);
+      type = convert((IType) binding);
+    }
+
+    if (d.isConst()) {
+      type = CTypes.withConst(type);
+    }
+    if (d.isVolatile()) {
+      type = CTypes.withVolatile(type);
     }
 
     return type;
@@ -463,7 +469,7 @@ class ASTTypeConverter {
       return CStorageClass.TYPEDEF;
 
     default:
-      throw new CFAGenerationRuntimeException("Unsupported storage class", d, niceFileNameFunction);
+      throw parseContext.parseError("Unsupported storage class", d);
     }
   }
 
@@ -480,7 +486,7 @@ class ASTTypeConverter {
       type = ComplexTypeKind.UNION;
       break;
     default:
-      throw new CFAGenerationRuntimeException("Unknown elaborated type", d, niceFileNameFunction);
+      throw parseContext.parseError("Unknown elaborated type", d);
     }
 
     String name = ASTConverter.convert(d.getName());
@@ -503,7 +509,7 @@ class ASTTypeConverter {
       return new CPointerType(p.isConst(), p.isVolatile(), type);
 
     } else {
-      throw new CFAGenerationRuntimeException("Unknown pointer operator", po, niceFileNameFunction);
+      throw parseContext.parseError("Unknown pointer operator", po);
     }
   }
 
@@ -513,5 +519,10 @@ class ASTTypeConverter {
       type = convert(p, type);
     }
     return type;
+  }
+
+  /** returns a bitfield type */
+  CType convertBitFieldType(final int bitFieldSize, final CType pType) {
+    return new CBitFieldType(pType, bitFieldSize);
   }
 }

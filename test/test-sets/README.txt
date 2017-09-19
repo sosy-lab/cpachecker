@@ -1,6 +1,6 @@
 This directory contains test and benchmark suites
 for various configurations of CPAchecker.
-BenchExec (https://github.com/dbeyer/benchexec)
+BenchExec (https://github.com/sosy-lab/benchexec)
 can be used to execute them.
 The definition files assume that the directory "c"
 of the SV-Benchmarks repository
@@ -9,4 +9,4 @@ is checked out in the directory "test/programs/benchmarks".
 
 All files starting with "integration-" are used
 by the continuous integration system of CPAchecker
-(http://buildbot.sosy-lab.org/buildbot/waterfall).
+(https://buildbot.sosy-lab.org/buildbot/waterfall).

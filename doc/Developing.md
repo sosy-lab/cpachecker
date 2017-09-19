@@ -3,8 +3,9 @@ CPAchecker Developing Instructions
 
 More details can be found in the other files in this directory.
 
-Please read and follow [`StyleGuide.md`](StyleGuide.md),
-as well as [`Logging.md`](Logging.md), [`Test.md`](Test.md), and [`VersionControl.md`](VersionControl.md).
+Please read and follow at least [`StyleGuide.md`](StyleGuide.md),
+[`Logging.md`](Logging.md), [`Test.md`](Test.md), and [`VersionControl.md`](VersionControl.md).
+
 
 Getting the code
 ----------------
@@ -15,7 +16,7 @@ There are four possibilities to retrieve the source code:
 
 - Our [Git mirror](https://svn.sosy-lab.org/software/cpachecker.git)
 
-- A Git mirror at [GitHub](https://github.com/dbeyer/cpachecker)
+- A Git mirror at [GitHub](https://github.com/sosy-lab/cpachecker)
 
 Only our `SVN` repository allows committing,
 all mirrors are read-only.
@@ -28,7 +29,7 @@ there are these possibilities:
 
 - https://svn.sosy-lab.org/trac/cpachecker/browser/CPAchecker
   (with an SVN account)
-- https://github.com/dbeyer/cpachecker/tree/trunk/
+- https://github.com/sosy-lab/cpachecker/tree/trunk/
 
 For bug tracking, we use our [Trac](https://svn.sosy-lab.org/trac/cpachecker/).
 
@@ -77,7 +78,6 @@ Develop CPAchecker from within Eclipse
    or create your own.
    To select the configuration, specification, and program files use the
    text box "program arguments" in the launch configuration editor.
-   Step 8 of the section "Running CPAchecker" above describes what can be entered here.
    The text box "VM arguments" should contain "-ea" to enable assertion checking.
 
 7. Recommended:
@@ -85,17 +85,31 @@ Develop CPAchecker from within Eclipse
    run `ant install-contrib` once in the CPAchecker directory.
 
 
-Inspecting CPAchecker Processes Started on the Command Line
------------------------------------------------------------
-There exist many tools that allow to monitor Java processes, e.g. VisualVM.
-Most of these connect to the JVM via a special file in /tmp/hsperfdata_*.
-CPAchecker disables this file by default for performance reasons
-(cf. [http://www.evanjones.ca/jvm-mmap-pause.html](http://www.evanjones.ca/jvm-mmap-pause.html)),
-so these tools won't see the CPAchecker process.
-Just run CPAchecker with the environment variable
-`JAVA_VM_ARGUMENTS=-XX:-PerfDisableSharedMem` set to enable this again.
+Code-Quality Checks and Continuous Integration
+----------------------------------------------
 
-For attaching a debugger to CPAchecker (even remotely),
+We use javac, Google Error-Prone, the Eclipse Java Compiler, and FindBugs
+for findings bugs in the source, and we keep CPAchecker
+free of warnings from all these tools.
+You can run them all at once (plus the unit tests) with `ant all-checks`.
+
+Our [BuildBot](https://buildbot.sosy-lab.org/buildbot/waterfall)
+will also execute these checks and send mails to the developer list
+(cf. [`Mailing.md`](Mailing.md), please apply for membership if you commit to CPAchecker).
+
+If any of these tools or the unit tests find a problem,
+please fix them as soon as possible (ideally before committing).
+
+The BuildBot also executes integration tests with thousands of CPAchecker runs
+in various configurations on every commit and checks for regression.
+All major projects and configurations within CPAchecker should be part of this test suite.
+Please refer to [`Test.md`](Test.md) for more information.
+
+
+Debugging
+---------
+
+For attaching a debugger to a CPAchecker process started on the command line (even remotely),
 just run `scripts/cpa.sh -debug ...` and point your debugger to TCP port 5005
 of the respective machine.
 

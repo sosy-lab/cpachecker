@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-
 import java.io.PrintStream;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
  * A class to output statistics and results of an analysis.
@@ -58,12 +56,12 @@ public interface Statistics {
      * @param result the result of the analysis
      * @param reached the final reached set
      */
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached);
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached);
 
     /**
      * Define a name for this group of statistics.
      * May be null, in this case no headings is printed and
-     * {@link #printStatistics(PrintStream, Result, ReachedSet)}
+     * {@link #printStatistics(PrintStream, Result, UnmodifiableReachedSet)}
      * should not actually write to the PrintStream
      * (but may still write output files for example).
      * @return A String with a human-readable name or null.

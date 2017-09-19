@@ -27,12 +27,18 @@ package org.sosy_lab.cpachecker.util.predicates.weakening;
 import static org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY.CEX;
 
 import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
-
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,7 +47,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
@@ -51,14 +57,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
-
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Finds inductive weakening of formulas (originally: formula slicing).
@@ -146,21 +144,21 @@ public class InductiveWeakeningManager implements StatisticsProvider {
      )
       throws SolverException, InterruptedException {
 
+    BooleanFormula fromStateLemmasInstantiated =
+        fromStateLemmas
+            .stream()
+            .map(f -> fmgr.instantiate(f, startingSSA))
+            .collect(bfmgr.toConjunction());
+
     // Mapping from selectors to the items they annotate.
-    final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
-
-    List<BooleanFormula> fromStateLemmasInstantiated =
-        fmgr.instantiate(fromStateLemmas, startingSSA);
-
-    List<BooleanFormula> toStateLemmasInstantiated =
-        fmgr.instantiate(toStateLemmas, transition.getSsa());
-    BooleanFormula toStateLemmasAnnotated = annotateConjunctions(
-        toStateLemmasInstantiated, selectionInfo
-    );
+    final BiMap<BooleanFormula, BooleanFormula> selectionInfo = annotateConjunctions(toStateLemmas);
+    BooleanFormula toStateLemmasAnnotated =
+        Collections3.zipMapEntries(selectionInfo, (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, transition.getSsa())))
+            .collect(bfmgr.toConjunction());
 
     final Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
         selectionInfo,
-        bfmgr.and(fromStateLemmasInstantiated),
+        fromStateLemmasInstantiated,
         transition,
         toStateLemmasAnnotated,
         startingSSA,
@@ -168,9 +166,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
     Set<BooleanFormula> out =
         Sets.filter(toStateLemmas,
-            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(
-                fmgr.instantiate(lemma, transition.getSsa())
-            ))));
+            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(lemma))));
     assert checkAllMapsTo(fromStateLemmas, startingSSA, out, transition
         .getSsa(), transition.getFormula());
     return out;
@@ -192,14 +188,19 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       throws SolverException, InterruptedException {
 
     // Mapping from selectors to the items they annotate.
-    final BiMap<BooleanFormula, BooleanFormula> selectionInfo = HashBiMap.create();
+    final BiMap<BooleanFormula, BooleanFormula> selectionInfo = annotateConjunctions(lemmas);
 
-    List<BooleanFormula> fromStateLemmasInstantiated = fmgr.instantiate(lemmas, startingSSA);
-    BooleanFormula fromStateLemmasAnnotated = annotateConjunctions(
-        fromStateLemmasInstantiated, selectionInfo
-    );
-    BooleanFormula toStateLemmasAnnotated = fmgr.instantiate(
-        fromStateLemmasAnnotated, transition.getSsa());
+    BooleanFormula fromStateLemmasAnnotated =
+        Collections3.zipMapEntries(
+                selectionInfo,
+                (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, startingSSA)))
+            .collect(bfmgr.toConjunction());
+
+    BooleanFormula toStateLemmasAnnotated =
+        Collections3.zipMapEntries(
+                selectionInfo,
+                (selector, f) -> bfmgr.or(selector, fmgr.instantiate(f, transition.getSsa())))
+            .collect(bfmgr.toConjunction());
 
     final Set<BooleanFormula> toAbstract = findSelectorsToAbstract(
         selectionInfo,
@@ -210,9 +211,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
     Set<BooleanFormula> out =
         Sets.filter(lemmas,
-            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(
-                fmgr.instantiate(lemma, startingSSA)
-            ))));
+            lemma -> (!toAbstract.contains(selectionInfo.inverse().get(lemma))));
     assert checkAllMapsTo(out, startingSSA, out, transition.getSsa(),
         transition.getFormula());
 
@@ -238,8 +237,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
   /**
    *
-   * @param selectionVarsInfo Mapping from the selectors to the already
-   *                          instantiated formulas they annotate.
+   * @param selectionVarsInfo Mapping from the selectors to the (uninstantiated) formulas they annotate.
    * @param fromState Instantiated formula representing the state before the
    *                  transition.
    * @param transition Transition under which inductiveness should hold.
@@ -273,7 +271,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
 
       case CEX:
         return cexWeakeningManager.performWeakening(
-            selectionVarsInfo,
+            selectionVarsInfo.keySet(),
             fromState,
             transition,
             toState);
@@ -336,18 +334,16 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     return others;
   }
 
-  BooleanFormula annotateConjunctions(
-      Collection<BooleanFormula> pInput,
-      final Map<BooleanFormula, BooleanFormula> pSelectionVarsInfoToFill) {
+  BiMap<BooleanFormula, BooleanFormula> annotateConjunctions(Collection<BooleanFormula> pInput) {
 
-    Set<BooleanFormula> annotated = new HashSet<>(pInput.size());
+    ImmutableBiMap.Builder<BooleanFormula, BooleanFormula> result = ImmutableBiMap.builder();
     int i = -1;
     for (BooleanFormula f : pInput) {
       BooleanFormula selector = bfmgr.makeVariable(SELECTOR_VAR_TEMPLATE + ++i);
-      pSelectionVarsInfoToFill.put(selector, f);
-      annotated.add(bfmgr.or(selector, f));
+      result.put(selector, f);
     }
-    return bfmgr.and(annotated);
+
+    return result.build();
   }
 
   @Override
@@ -363,8 +359,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
     final Multiset<Integer> iterationsNo = HashMultiset.create();
 
     @Override
-    public void printStatistics(
-        PrintStream out, Result result, ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       out.printf("Histogram of number of iterations required for convergence: "
           + "%s %n", iterationsNo);
     }

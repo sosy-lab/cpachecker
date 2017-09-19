@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -54,9 +56,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
-import java.util.HashSet;
-import java.util.Set;
-
 
 /**
  * Helper class that collects all functions referenced by some CFAEdges,
@@ -65,8 +64,12 @@ import java.util.Set;
  */
 class CReferencedFunctionsCollector {
 
-  private final Set<String> collectedFunctions = new HashSet<>();
-  private final CollectFunctionsVisitor collector = new CollectFunctionsVisitor(collectedFunctions);
+  final Set<String> collectedFunctions = new HashSet<>();
+  protected CollectFunctionsVisitor collector;
+
+  public CReferencedFunctionsCollector() {
+    collector = new CollectFunctionsVisitor(collectedFunctions);
+  }
 
   public Set<String> getCollectedFunctions() {
     return collectedFunctions;
@@ -84,10 +87,7 @@ class CReferencedFunctionsCollector {
     case DeclarationEdge:
       CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
       if (declaration instanceof CVariableDeclaration) {
-        CInitializer init = ((CVariableDeclaration)declaration).getInitializer();
-        if (init != null) {
-          init.accept(collector);
-        }
+        visitDeclaration((CVariableDeclaration) declaration);
       }
       break;
     case ReturnStatementEdge:
@@ -112,12 +112,11 @@ class CReferencedFunctionsCollector {
     }
   }
 
-  private static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
-                                               implements CRightHandSideVisitor<Void, RuntimeException>,
-                                                          CStatementVisitor<Void, RuntimeException>,
-                                                          CInitializerVisitor<Void, RuntimeException> {
+  static class CollectFunctionsVisitor extends DefaultCExpressionVisitor<Void, RuntimeException>
+      implements CRightHandSideVisitor<Void, RuntimeException>,
+          CStatementVisitor<Void, RuntimeException>, CInitializerVisitor<Void, RuntimeException> {
 
-    private final Set<String> collectedFunctions;
+    final Set<String> collectedFunctions;
 
     public CollectFunctionsVisitor(Set<String> pCollectedVars) {
       collectedFunctions = pCollectedVars;

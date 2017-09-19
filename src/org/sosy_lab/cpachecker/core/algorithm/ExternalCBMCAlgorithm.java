@@ -24,7 +24,15 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.collect.ImmutableSet;
-
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -39,22 +47,14 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CBMCExecutor;
-
-import java.io.IOException;
-import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
 
 @Options()
 public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
 
-  private final String fileName;
+  private final Path fileName;
   private final LogManager logger;
   private final Stats stats = new Stats();
 
@@ -82,7 +82,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       description="disable unwinding assertions violation error")
       private boolean noUnwindingAssertions = false;
 
-  public ExternalCBMCAlgorithm(String fileName, Configuration config, LogManager logger) throws InvalidConfigurationException {
+  public ExternalCBMCAlgorithm(Path fileName, Configuration config, LogManager logger)
+      throws InvalidConfigurationException {
     this.fileName = fileName;
     this.logger = logger;
     config.inject(this);
@@ -98,7 +99,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     CBMCExecutor cbmc;
     int exitCode;
     try {
-      cbmc = new CBMCExecutor(logger, buildCBMCArguments(fileName));
+      cbmc = new CBMCExecutor(logger, buildCBMCArguments());
       exitCode = cbmc.join(timelimit);
 
     } catch (IOException e) {
@@ -139,7 +140,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  private List<String> buildCBMCArguments(String fileName) {
+  private List<String> buildCBMCArguments() {
     List<String> paramsList = new ArrayList<>();
 
     paramsList.add("--function");
@@ -155,7 +156,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
       paramsList.add("--no-unwinding-assertions");
     }
 
-    paramsList.add(fileName);
+    paramsList.add(fileName.toString());
     return paramsList;
   }
 
@@ -174,7 +175,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public void printStatistics(PrintStream out, Result pResult, ReachedSet pReached) {
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("Time for running CBMC: " + cbmcTime);
     }
   }

@@ -24,18 +24,21 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.Iterables;
-
+import java.util.Set;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.objects.SMGRegion;
-
-import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 
 public class SMGAbstractionManagerTest {
@@ -44,28 +47,28 @@ public class SMGAbstractionManagerTest {
   public void setUp() {
     smg = new CLangSMG(MachineModel.LINUX64);
 
-    SMGRegion globalVar = new SMGRegion(8, "pointer");
+    SMGRegion globalVar = new SMGRegion(64, "pointer");
 
     SMGRegion next = null;
     for (int i = 0; i < 20; i++) {
-      SMGRegion node = new SMGRegion(16, "node " + i);
+      SMGRegion node = new SMGRegion(128, "node " + i);
       SMGEdgeHasValue hv;
       smg.addHeapObject(node);
       if (next != null) {
         int address = SMGValueFactory.getNewValue();
         SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
-        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 8, node, address);
+        hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, node, address);
         smg.addValue(address);
         smg.addPointsToEdge(pt);
       } else {
-        hv = new SMGEdgeHasValue(16, 0, node, 0);
+        hv = new SMGEdgeHasValue(128, 0, node, 0);
       }
       smg.addHasValueEdge(hv);
       next = node;
     }
 
     int address = SMGValueFactory.getNewValue();
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 8, globalVar, address);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(CPointerType.POINTER_TO_VOID, 64, globalVar, address);
     SMGEdgePointsTo pt = new SMGEdgePointsTo(address, next, 0);
     smg.addGlobalObject(globalVar);
     smg.addValue(address);
@@ -74,8 +77,8 @@ public class SMGAbstractionManagerTest {
   }
 
   @Test
-  public void testExecute() throws SMGInconsistentException {
-    SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, false, false, null, 4, false, false);
+  public void testExecute() throws SMGInconsistentException, InvalidConfigurationException {
+    SMGState dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32, new SMGOptions(Configuration.defaultConfiguration()));
     SMGAbstractionManager manager = new SMGAbstractionManager(LogManager.createTestLogManager(), smg, dummyState);
     manager.execute();
 

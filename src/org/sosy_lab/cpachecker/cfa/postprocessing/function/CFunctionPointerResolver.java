@@ -29,8 +29,17 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
-
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -45,6 +54,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -71,14 +81,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.BiPredicate;
-import java.util.logging.Level;
-
 /**
  * This class is responsible for replacing calls via function pointers like (*fp)()
  * with code similar to the following:
@@ -101,21 +103,37 @@ public class CFunctionPointerResolver {
       description="Create edge for skipping a function pointer call if its value is unknown.")
   private boolean createUndefinedFunctionCall = true;
 
+  @Option(secure=true, name="analysis.matchAssignedFunctionPointers",
+      description="Use as targets for call edges only those shich are assigned to the particular expression (structure field).")
+  private boolean matchAssignedFunctionPointers = false;
+
   private enum FunctionSet {
     // The items here need to be declared in the order they should be used when checking function.
     ALL, //all defined functions considered (Warning: some CPAs require at least EQ_PARAM_SIZES)
     USED_IN_CODE, //includes only functions which address is taken in the code
     EQ_PARAM_COUNT, //all functions with matching number of parameters considered
     EQ_PARAM_SIZES, //all functions with parameters with matching sizes
-    EQ_PARAM_TYPES, //all functions with matching number and types of parameters considered (implies EQ_PARAM_SIZES)
+    EQ_PARAM_TYPES, //all functions with matching number and types of parameters considered
     RETURN_VALUE,   //void functions are not considered for assignments
   }
 
-  @Option(secure=true, name="analysis.functionPointerTargets",
-      description="potential targets for call edges created for function pointer calls")
-  private Set<FunctionSet> functionSets = ImmutableSet.of(FunctionSet.USED_IN_CODE, FunctionSet.EQ_PARAM_SIZES, FunctionSet.RETURN_VALUE);
+  @Option(
+    secure = true,
+    name = "analysis.functionPointerTargets",
+    description = "potential targets for call edges created for function pointer calls"
+  )
+  private Set<FunctionSet> functionSets =
+      ImmutableSet.of(
+          FunctionSet.USED_IN_CODE,
+          FunctionSet.RETURN_VALUE,
+          FunctionSet.EQ_PARAM_TYPES,
+          FunctionSet.EQ_PARAM_SIZES,
+          FunctionSet.EQ_PARAM_COUNT);
 
   private final Collection<FunctionEntryNode> candidateFunctions;
+
+  private @Nullable final ImmutableSetMultimap<String, String> candidateFunctionsForField;
+  private @Nullable final ImmutableSetMultimap<String, String> candidateFunctionsForGlobals;
 
   private final BiPredicate<CFunctionCall, CFunctionType> matchingFunctionCall;
 
@@ -132,7 +150,12 @@ public class CFunctionPointerResolver {
     matchingFunctionCall = getFunctionSetPredicate(functionSets);
 
     if (functionSets.contains(FunctionSet.USED_IN_CODE)) {
-      CReferencedFunctionsCollector varCollector = new CReferencedFunctionsCollector();
+      CReferencedFunctionsCollector varCollector;
+      if (matchAssignedFunctionPointers) {
+        varCollector = new CReferencedFunctionsCollectorWithFieldsMatching();
+      } else {
+        varCollector = new CReferencedFunctionsCollector();
+      }
       for (CFANode node : cfa.getAllNodes()) {
         for (CFAEdge edge : leavingEdges(node)) {
           varCollector.visitEdge(edge);
@@ -150,14 +173,30 @@ public class CFunctionPointerResolver {
               .transform(Functions.forMap(cfa.getAllFunctions()))
               .toList();
 
+      if (matchAssignedFunctionPointers) {
+        candidateFunctionsForField =
+            ImmutableSetMultimap.copyOf(
+                ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector)
+                    .getFieldMatching());
+        candidateFunctionsForGlobals =
+            ImmutableSetMultimap.copyOf(
+                ((CReferencedFunctionsCollectorWithFieldsMatching) varCollector)
+                    .getGlobalsMatching());
+      } else {
+        candidateFunctionsForField = null;
+        candidateFunctionsForGlobals = null;
+      }
+
       if (logger.wouldBeLogged(Level.ALL)) {
         logger.log(Level.ALL, "Possible target functions of function pointers:\n",
             Joiner.on('\n').join(candidateFunctions));
       }
+
     } else {
       candidateFunctions = cfa.getAllFunctionHeads();
+      candidateFunctionsForField = null;
+      candidateFunctionsForGlobals = null;
     }
-
   }
 
   private BiPredicate<CFunctionCall, CFunctionType> getFunctionSetPredicate(
@@ -266,6 +305,32 @@ public class CFunctionPointerResolver {
 
     CExpression nameExp = fExp.getFunctionNameExpression();
     Collection<CFunctionEntryNode> funcs = getFunctionSet(functionCall);
+    if (matchAssignedFunctionPointers) {
+      CExpression expression = nameExp;
+      if (expression instanceof CPointerExpression) {
+        expression = ((CPointerExpression) expression).getOperand();
+      }
+      Set<String> matchedFuncs;
+      if( expression instanceof CFieldReference) {
+        String fieldName = ((CFieldReference)expression).getFieldName();
+        matchedFuncs = candidateFunctionsForField.get(fieldName);
+
+      } else if (expression instanceof CIdExpression) {
+        String variableName = ((CIdExpression)expression).getName();
+        matchedFuncs = candidateFunctionsForGlobals.get(variableName);
+
+      } else {
+        matchedFuncs = Collections.emptySet();
+      }
+
+      if (matchedFuncs.isEmpty()) {
+        funcs = Collections.emptySet();
+      } else {
+        funcs = from(funcs).
+            filter(f -> matchedFuncs.contains(f.getFunctionName())).
+            toSet();
+      }
+    }
 
     if (funcs.isEmpty()) {
       // no possible targets, we leave the CFA unchanged and print a warning
@@ -433,21 +498,10 @@ public class CFunctionPointerResolver {
       return false;
     }
 
-    List<CType> declParams = functionType.getParameters();
-    List<CExpression> exprParams = functionCallExpression.getParameterExpressions();
-    for (int i=0; i<declParams.size(); i++) {
-      CType dt = declParams.get(i);
-      CType et = exprParams.get(i).getExpressionType();
-      if (machine.getSizeof(dt) != machine.getSizeof(et)) {
-        logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
-            "does not match function", functionType,
-            "because actual parameter", i, "has type", et, "instead of", dt,
-            "(differing sizes).");
-        return false;
-      }
-    }
-
-    return true;
+    return checkParams(
+        functionType,
+        functionCallExpression,
+        (e1, e2) -> machine.getSizeof(e1) == machine.getSizeof(e2));
   }
 
   private boolean checkReturnAndParamTypes(CFunctionCall functionCall, CFunctionType functionType) {
@@ -455,18 +509,37 @@ public class CFunctionPointerResolver {
 
     CType declRet = functionType.getReturnType();
     CType actRet = functionCallExpression.getExpressionType();
-    if (!isCompatibleType(declRet, actRet)) {
+    if (!CTypes.areTypesCompatible(declRet, actRet)) {
       logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(), "with type", actRet,
           "does not match function", functionType, "with return type", declRet);
       return false;
     }
 
+    return checkParams(functionType, functionCallExpression, CTypes::areTypesCompatible);
+  }
+
+  private boolean checkParams(
+      CFunctionType functionType,
+      final CFunctionCallExpression functionCallExpression,
+      BiPredicate<CType, CType> equality) {
     List<CType> declParams = functionType.getParameters();
-    List<CExpression> exprParams = functionCallExpression.getParameterExpressions();
+    CFunctionType pointerType = null;
+
+    {
+      CType resolvedType =
+          functionCallExpression.getFunctionNameExpression().getExpressionType().getCanonicalType();
+      if (resolvedType instanceof CFunctionType) {
+        pointerType = (CFunctionType) resolvedType;
+      } else {
+        throw new IllegalArgumentException(resolvedType + " is not a function pointer type.");
+      }
+    }
+
+    List<CType> exprParams = pointerType.getParameters();
     for (int i=0; i<declParams.size(); i++) {
       CType dt = declParams.get(i);
-      CType et = exprParams.get(i).getExpressionType();
-      if (!isCompatibleType(dt, et)) {
+      CType et = exprParams.get(i);
+      if (!equality.test(dt, et)) {
         logger.log(Level.FINEST, "Function call", functionCallExpression.toASTString(),
             "does not match function", functionType,
             "because actual parameter", i, "has type", et, "instead of", dt);
@@ -490,32 +563,31 @@ public class CFunctionPointerResolver {
     return true;
   }
 
-  /**
-   * Check whether two types are assignment compatible.
-   *
-   * @param declaredType The type that is declared (e.g., as variable type).
-   * @param actualType The type that is actually used (e.g., as type of an expression).
-   * @return True if a value of actualType may be assigned to a variable of declaredType.
-   */
-  private boolean isCompatibleType(CType declaredType, CType actualType) {
-    // TODO this needs to be implemented
-    // Type equality is too strong.
-    // After this is implemented, change the default of functionSets
-    // to USED_IN_CODE, EQ_PARAM_TYPES
-    return declaredType.getCanonicalType().equals(actualType.getCanonicalType());
-  }
-
   private boolean checkParamCount(CFunctionCall functionCall, CFunctionType functionType) {
     final CFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
 
     //get the parameter expression
     List<CExpression> parameters = functionCallExpression.getParameterExpressions();
 
+    // check also for the used function pointer
+    CFunctionType pointerType = null;
+
+    {
+      CType resolvedType =
+          functionCallExpression.getFunctionNameExpression().getExpressionType().getCanonicalType();
+      if (resolvedType instanceof CFunctionType) {
+        pointerType = (CFunctionType) resolvedType;
+      } else {
+        throw new IllegalArgumentException(resolvedType + " is not a function pointer type.");
+      }
+    }
+
     // check if the number of function parameters are right
     int declaredParameters = functionType.getParameters().size();
     int actualParameters = parameters.size();
+    int pointerParameters = pointerType.getParameters().size();
 
-    if (actualParameters < declaredParameters) {
+    if (actualParameters < declaredParameters || pointerParameters < declaredParameters) {
       logger.log(
           Level.FINEST,
           "Function call",
@@ -526,7 +598,8 @@ public class CFunctionPointerResolver {
       return false;
     }
 
-    if (!functionType.takesVarArgs() && actualParameters > declaredParameters) {
+    if ((!functionType.takesVarArgs() && actualParameters > declaredParameters)
+        || pointerParameters > declaredParameters) {
       logger.log(
           Level.FINEST,
           "Function call",

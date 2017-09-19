@@ -23,18 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.java;
 
-
-
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-import java.util.Optional;
-
 public class JDeclarationEdge extends ADeclarationEdge {
 
 
+
+  private static final long serialVersionUID = -3744160417799490039L;
 
   public JDeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,
       final CFANode pPredecessor, final CFANode pSuccessor, final JDeclaration pDeclaration) {

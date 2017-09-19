@@ -26,7 +26,13 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
@@ -49,6 +55,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanConstant;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.BooleanFormula;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.CompoundIntervalFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.Constant;
@@ -62,14 +69,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import java.math.BigInteger;
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.Set;
 
 enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
 
@@ -364,7 +363,10 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                                 cim.add(
                                     ((Constant<CompoundInterval>) op1).getValue(),
                                     cim.negate(cim.singleton(BigInteger.ONE))));
-                        builder.add(cifm.lessThan(newOp1, op2));
+                        BooleanFormula<CompoundInterval> newLT = cifm.lessThan(newOp1, op2);
+                        if (!(newLT instanceof BooleanConstant)) {
+                          builder.add(newLT);
+                        }
                       } else if (op2 instanceof Constant) {
                         NumeralFormula<CompoundInterval> newOp2 =
                             InvariantsFormulaManager.INSTANCE.asConstant(
@@ -372,7 +374,10 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
                                 cim.add(
                                     ((Constant<CompoundInterval>) op2).getValue(),
                                     cim.singleton(BigInteger.ONE)));
-                        builder.add(cifm.lessThan(op1, newOp2));
+                        BooleanFormula<CompoundInterval> newLT = cifm.lessThan(op1, newOp2);
+                        if (!(newLT instanceof BooleanConstant)) {
+                          builder.add(newLT);
+                        }
                       }
                     }
                   }
@@ -433,8 +438,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
             public String toString() {
               return String.format(
                   "Widening targets: %s; Visited edges: %s",
-                  wideningTargets,
-                  visitedEdges.toString());
+                  wideningTargets, visitedEdges.toString());
             }
 
             @Override

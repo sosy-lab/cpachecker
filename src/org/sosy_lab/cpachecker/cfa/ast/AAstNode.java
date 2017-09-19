@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast;
 
+import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
 
-public interface AAstNode {
+public interface AAstNode extends Serializable {
 
   public FileLocation getFileLocation();
 

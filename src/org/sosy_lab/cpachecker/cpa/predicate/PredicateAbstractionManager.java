@@ -34,14 +34,31 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
@@ -49,7 +66,7 @@ import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackState.CallstackWrapper;
+import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -71,26 +88,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.ProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
-
-import javax.annotation.Nullable;
 
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
@@ -257,7 +254,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula buildAbstraction(
       final CFANode location,
-      Optional<CallstackWrapper> callstackInformation,
+      Optional<CallstackStateEqualsWrapper> callstackInformation,
       final BooleanFormula f,
       final PathFormula blockFormula,
       final Collection<AbstractionPredicate> predicates)
@@ -292,7 +289,7 @@ public class PredicateAbstractionManager {
    */
   public AbstractionFormula buildAbstraction(
       final CFANode location,
-      Optional<CallstackWrapper> callstackInformation,
+      Optional<CallstackStateEqualsWrapper> callstackInformation,
       final AbstractionFormula abstractionFormula,
       final PathFormula pathFormula,
       final Collection<AbstractionPredicate> pPredicates)
@@ -307,14 +304,15 @@ public class PredicateAbstractionManager {
 
     final BooleanFormula absFormula = abstractionFormula.asInstantiatedFormula();
     final BooleanFormula symbFormula = getFormulaFromPathFormula(pathFormula);
-    final BooleanFormula f = bfmgr.and(absFormula, symbFormula);
+    final BooleanFormula f;
+    BooleanFormula primaryFormula = bfmgr.and(absFormula, symbFormula);
     final SSAMap ssa = pathFormula.getSsa();
 
     // Try to reuse stored abstractions
     if (reuseAbstractionsFrom != null
         && !abstractionReuseDisabledBecauseOfAmbiguity) {
       AbstractionFormula reused =
-          reuseAbstractionIfPossible(abstractionFormula, pathFormula, f, location);
+          reuseAbstractionIfPossible(abstractionFormula, pathFormula, primaryFormula, location);
       if (reused != null) {
         return reused;
       }
@@ -334,7 +332,15 @@ public class PredicateAbstractionManager {
     // Each step of our abstraction computation may be able to handle some predicates,
     // and should remove those from this set afterwards.
     final Collection<AbstractionPredicate> remainingPredicates =
-        getRelevantPredicates(pPredicates, f, instantiator);
+        getRelevantPredicates(pPredicates, primaryFormula, instantiator);
+
+    if (fmgr.useBitwiseAxioms()) {
+      for (AbstractionPredicate predicate : remainingPredicates) {
+        primaryFormula = pfmgr.addBitwiseAxiomsIfNeeded(primaryFormula, predicate.getSymbolicAtom());
+      }
+    }
+
+    f = primaryFormula;
 
     // caching
     Pair<BooleanFormula, ImmutableSet<AbstractionPredicate>> absKey = null;
@@ -482,16 +488,7 @@ public class PredicateAbstractionManager {
   private BooleanFormula getFormulaFromPathFormula(PathFormula pathFormula) {
     BooleanFormula symbFormula = pathFormula.getFormula();
 
-    if (fmgr.useBitwiseAxioms()) {
-      BooleanFormula bitwiseAxioms = fmgr.getBitwiseAxioms(symbFormula);
-      if (!bfmgr.isTrue(bitwiseAxioms)) {
-        symbFormula = bfmgr.and(symbFormula, bitwiseAxioms);
-
-        logger.log(Level.ALL, "DEBUG_3", "ADDED BITWISE AXIOMS:", bitwiseAxioms);
-      }
-    }
-
-    return symbFormula;
+    return pfmgr.addBitwiseAxiomsIfNeeded(symbFormula, symbFormula);
   }
 
   private @Nullable AbstractionFormula reuseAbstractionIfPossible(
@@ -1052,7 +1049,7 @@ public class PredicateAbstractionManager {
 
     dumpFile =
         fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
-    try (Writer w = MoreFiles.openOutputFile(dumpFile, Charset.defaultCharset())) {
+    try (Writer w = IO.openOutputFile(dumpFile, Charset.defaultCharset())) {
       Joiner.on('\n').appendTo(w, predicates);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");

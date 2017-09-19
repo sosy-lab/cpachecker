@@ -24,15 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import java.io.PrintStream;
-
 import javax.annotation.Nullable;
-
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.LogicalNotExpression;
@@ -110,10 +108,7 @@ public class ConstraintsMergeOperator implements MergeOperator, Statistics {
 
   @Override
   public void printStatistics(
-      final PrintStream pOut,
-      final Result pResult,
-      final ReachedSet pReached
-  ) {
+      final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
     pOut.println("Number of constraints removed in merge: " + removedConstraints);
   }
 

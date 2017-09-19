@@ -23,12 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -49,33 +56,25 @@ import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.logging.Level;
 
 /**
  * This class implements an AutomatonAnalysis as described in the related Documentation.
  */
 @Options(prefix="cpa.automaton")
-public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, StatisticsProvider, ConfigurableProgramAnalysisWithBAM, ProofChecker {
+public class ControlAutomatonCPA
+    implements StatisticsProvider,
+        ConfigurableProgramAnalysisWithBAM,
+        ProofCheckerCPA {
 
   @Option(secure=true, name="dotExport",
       description="export automaton to file")
@@ -108,14 +107,22 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   @Option(secure=true, description="Merge two automata states if one of them is TOP.")
   private boolean mergeOnTop  = false;
 
+  @Option(
+    secure = true,
+    name = "prec.topOnFinalSelfLoopingState",
+    description =
+        "An implicit precision: consider states with a self-loop and no other outgoing edges as TOP."
+  )
+  private boolean topOnFinalSelfLoopingState = false;
+
   private final Automaton automaton;
   private final AutomatonState topState = new AutomatonState.TOP(this);
   private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
 
   private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
-  private final AutomatonTransferRelation transferRelation;
-  private final PrecisionAdjustment precisionAdjustment;
-  private final Statistics stats = new AutomatonStatistics(this);
+  final AutomatonStatistics stats = new AutomatonStatistics(this);
+  private final CFA cfa;
+  private final LogManager logger;
 
   protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
       Configuration pConfig, LogManager pLogger, CFA pCFA)
@@ -123,9 +130,8 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     pConfig.inject(this, ControlAutomatonCPA.class);
 
-    this.transferRelation = new AutomatonTransferRelation(this, pLogger);
-    this.precisionAdjustment = composePrecisionAdjustmentOp(pConfig);
-
+    cfa = pCFA;
+    logger = pLogger;
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
 
@@ -140,8 +146,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
     if (export && exportFile != null) {
       try (Writer w =
-          MoreFiles.openOutputFile(
-              exportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
+          IO.openOutputFile(exportFile.getPath(automaton.getName()), Charset.defaultCharset())) {
         automaton.writeDotFile(w);
       } catch (IOException e) {
         pLogger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
@@ -170,23 +175,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
     return lst.get(0);
   }
 
-  private PrecisionAdjustment composePrecisionAdjustmentOp(Configuration pConfig)
-      throws InvalidConfigurationException {
-
-    final PrecisionAdjustment lPrecisionAdjustment;
-
-    if (breakOnTargetState > 0) {
-      final int pFoundTargetLimit = breakOnTargetState;
-      final int pExtraIterationsLimit = extraIterationsLimit;
-      lPrecisionAdjustment = new BreakOnTargetsPrecisionAdjustment(pFoundTargetLimit, pExtraIterationsLimit);
-
-    } else {
-      lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
-    }
-
-    return new ControlAutomatonPrecisionAdjustment(pConfig, topState, lPrecisionAdjustment);
-  }
-
   Automaton getAutomaton() {
     return this.automaton;
   }
@@ -206,11 +194,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   }
 
   @Override
-  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
-    return SingletonPrecision.getInstance();
-  }
-
-  @Override
   public MergeOperator getMergeOperator() {
     if (mergeOnTop) {
       return new AutomatonTopMergeOperator(automatonDomain, topState);
@@ -221,7 +204,17 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    final PrecisionAdjustment lPrecisionAdjustment;
+
+    if (breakOnTargetState > 0) {
+      lPrecisionAdjustment =
+          new BreakOnTargetsPrecisionAdjustment(breakOnTargetState, extraIterationsLimit);
+    } else {
+      lPrecisionAdjustment = StaticPrecisionAdjustment.getInstance();
+    }
+
+    return new ControlAutomatonPrecisionAdjustment(
+        topState, lPrecisionAdjustment, topOnFinalSelfLoopingState);
   }
 
   @Override
@@ -231,7 +224,7 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
 
   @Override
   public AutomatonTransferRelation getTransferRelation() {
-    return transferRelation ;
+    return new AutomatonTransferRelation(this, logger, cfa.getMachineModel());
   }
 
   public AutomatonState getBottomState() {
@@ -251,11 +244,6 @@ public class ControlAutomatonCPA implements ConfigurableProgramAnalysis, Statist
   public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     return pSuccessors.equals(getTransferRelation().getAbstractSuccessorsForEdge(
         pElement, SingletonPrecision.getInstance(), pCfaEdge));
-  }
-
-  @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
-    return getAbstractDomain().isLessOrEqual(pElement, pOtherElement);
   }
 
   boolean isTreatingErrorsAsTargets() {

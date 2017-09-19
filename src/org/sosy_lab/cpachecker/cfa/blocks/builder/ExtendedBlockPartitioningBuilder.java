@@ -27,13 +27,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
-import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -43,6 +36,12 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
+import org.sosy_lab.cpachecker.cfa.blocks.ReferencedVariable;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 /**
  *  Class implements more intelligent partitioning building,
@@ -53,7 +52,7 @@ import java.util.Set;
 public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
 
   @Override
-  public BlockPartitioning build(CFANode mainFunction) {
+  public BlockPartitioning build(CFA cfa) {
 
     SetMultimap<CFANode, FunctionEntryNode> workCopyOfInnerFunctionCalls = HashMultimap.create();
 
@@ -184,7 +183,7 @@ public class ExtendedBlockPartitioningBuilder extends BlockPartitioningBuilder {
             returnNodesEntry.getValue(), ImmutableSet.copyOf(blockNodesMap.get(key))));
       }
     }
-    return new BlockPartitioning(blocks, mainFunction);
+    return new BlockPartitioning(blocks, cfa.getMainFunction());
   }
 
   private void joinFunctionPartitioning(CFANode node, CFANode caller) {

@@ -9,8 +9,12 @@
   <option name="-heap">25000M</option>
   <option name="-ldv"/>
 
-  <tasks name="Validator">
-    <include>../programs/ldv-benchmarks/validator/*/*.c</include>
+  <tasks name="Validator-klever">
+    <include>../programs/ldv-benchmarks/validator/klever-v0.1/*.c</include>
+    <propertyfile>../programs/ldv-benchmarks/validator/klever-v0.1/ALL.prp</propertyfile>
+  </tasks>
+  <tasks name="Validator-v0.7">
+    <include>../programs/ldv-benchmarks/validator/v0.7/*.c</include>
     <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
   </tasks>
   <tasks name="Unsafes">
@@ -23,7 +27,6 @@
   </tasks>
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
     <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
   </tasks>
 

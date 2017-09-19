@@ -25,11 +25,10 @@ package org.sosy_lab.cpachecker.cpa.monitor;
 
 import java.io.PrintStream;
 import java.util.concurrent.TimeUnit;
-
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 class MonitorStatistics implements Statistics {
 
@@ -45,8 +44,7 @@ class MonitorStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result pResult,
-      ReachedSet pReached) {
+  public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
 
     MonitorTransferRelation trans = mCpa.getTransferRelation();
 

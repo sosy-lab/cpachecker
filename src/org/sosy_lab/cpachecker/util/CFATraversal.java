@@ -27,19 +27,17 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
  * This class provides strategies for iterating through a CFA
@@ -257,7 +255,7 @@ public class CFATraversal {
     private final Set<CFANode> visitedNodes = new HashSet<>();
 
     /**
-     * A Node where the visitor should stop calling the visit methed of its
+     * A Node where the visitor should stop calling the visit method of its
      * super class. This is used by {@link CFATraversal#collectNodesReachableFromTo(CFANode, CFANode)}.
      */
     private CFANode stopVisitingNode = null;
@@ -358,7 +356,7 @@ public class CFATraversal {
    * and ABORT is returned.
    * If one visitor returns SKIP, the other visitors will still be called,
    * and SKIP is returned if none of them returned ABORT.
-   * Otherweise CONTINUE is returned.
+   * Otherwise CONTINUE is returned.
    */
   public static class CompositeCFAVisitor implements CFAVisitor {
 

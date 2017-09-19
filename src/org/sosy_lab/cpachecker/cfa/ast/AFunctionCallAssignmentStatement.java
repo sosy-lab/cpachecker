@@ -31,6 +31,7 @@ import java.util.Objects;
 public abstract class AFunctionCallAssignmentStatement extends AbstractStatement implements AAssignment, AFunctionCall {
 
 
+  private static final long serialVersionUID = 715848925972223832L;
   private final ALeftHandSide leftHandSide;
   private final AFunctionCallExpression rightHandSide;
 

@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.blocks.builder;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -32,8 +34,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
-
-import java.util.Set;
 
 
 /**
@@ -61,6 +61,13 @@ public class FunctionPartitioning extends PartitioningHeuristic {
   )
   private int minFunctionCalls = 0;
 
+  @Option(
+      secure = true,
+      description =
+          "only consider functions with a matching name, i.e., select only some functions directly."
+    )
+  private ImmutableSet<String> matchFunctions = null;
+
   /** Do not change signature! Constructor will be created with Reflections. */
   public FunctionPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig)
       throws InvalidConfigurationException {
@@ -76,6 +83,11 @@ public class FunctionPartitioning extends PartitioningHeuristic {
       // main function
       if (pBlockHead.getNumEnteringEdges() == 0) {
         return nodes;
+      }
+
+      // consider only build blocks for matching functions
+      if (matchFunctions != null && !matchFunctions.contains(pBlockHead.getFunctionName())) {
+        return null;
       }
 
       // heuristics based on function metrics

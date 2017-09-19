@@ -23,16 +23,16 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
-
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-
-import com.google.common.collect.Maps;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
     justification = "consistent Unix-style line endings")
@@ -41,15 +41,15 @@ public class Automaton {
   /* The internal variables used by the actions/ assignments of this automaton.
    * This reference of the Map is unused because the actions/assignments get their reference from the parser.
    */
-  private final Map<String, AutomatonVariable> initVars;
-  private final List<AutomatonInternalState> states;
+  private final ImmutableMap<String, AutomatonVariable> initVars;
+  private final ImmutableList<AutomatonInternalState> states;
   private final AutomatonInternalState initState;
 
   public Automaton(String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
       String pInitialStateName) throws InvalidAutomatonException {
     this.name = pName;
-    this.initVars = pVars;
-    this.states = pStates;
+    this.initVars = ImmutableMap.copyOf(pVars);
+    this.states = ImmutableList.copyOf(pStates);
 
     Map<String, AutomatonInternalState> statesMap = Maps.newHashMapWithExpectedSize(pStates.size());
     for (AutomatonInternalState s : pStates) {
@@ -129,7 +129,7 @@ public class Automaton {
   }
 
 
-  public Map<String, AutomatonVariable> getInitialVariables() {
+  public ImmutableMap<String, AutomatonVariable> getInitialVariables() {
     return initVars;
   }
 
@@ -148,4 +148,35 @@ public class Automaton {
         }
       }
     }
+
+  @Override
+  public String toString() {
+    final StringBuilder str = new StringBuilder();
+
+    str.append("CONTROL AUTOMATON ").append(getName()).append("\n\n");
+
+    for (Entry<String, AutomatonVariable> e : initVars.entrySet()) {
+      str.append(String.format("LOCAL int %s = %s;%n%n", e.getKey(), e.getValue()));
+    }
+
+    str.append("INITIAL STATE ").append(initState).append(";\n\n");
+
+    for (AutomatonInternalState s : states) {
+      str.append("STATE ").append(s.getName()).append(":\n");
+      for (AutomatonTransition transition : s.getTransitions()) {
+
+        // remove ugly symbol '"' before and after the transitionStr.
+        // TODO fix AutomatonTransition#toString() ?
+        String transitionStr = transition.toString();
+        transitionStr = transitionStr.substring(1, transitionStr.length() - 1);
+
+        str.append("    ").append(transitionStr).append("\n");
+      }
+      str.append("\n");
+    }
+
+    str.append("END AUTOMATON\n");
+
+    return str.toString();
+  }
 }

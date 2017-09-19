@@ -73,7 +73,7 @@ public abstract class OctagonDelegatingRefiner implements Refiner {
         new ValueAnalysisPathInterpolator(
             valueChecker,
             valuePostOp,
-            new ValueAnalysisPrefixProvider(logger, cfa, config),
+            new ValueAnalysisPrefixProvider(logger, cfa, config, shutdownNotifier),
             config,
             logger,
             shutdownNotifier,

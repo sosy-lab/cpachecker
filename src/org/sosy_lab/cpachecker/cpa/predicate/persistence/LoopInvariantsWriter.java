@@ -28,21 +28,6 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Maps;
-
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
-import org.sosy_lab.cpachecker.util.predicates.regions.Region;
-import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -53,6 +38,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 
 public class LoopInvariantsWriter {
@@ -72,7 +70,7 @@ public class LoopInvariantsWriter {
     this.rmgr = pRegMgr;
   }
 
-  private Map<CFANode, Region> getLoopHeadInvariants(ReachedSet reached) {
+  private Map<CFANode, Region> getLoopHeadInvariants(UnmodifiableReachedSet reached) {
     if (!cfa.getAllLoopHeads().isPresent()) {
       logger.log(Level.WARNING, "Cannot dump loop invariants because loop-structure information is not available.");
       return null;
@@ -98,13 +96,13 @@ public class LoopInvariantsWriter {
     return regions;
   }
 
-  public void exportLoopInvariants(Path invariantsFile, ReachedSet reached) {
+  public void exportLoopInvariants(Path invariantsFile, UnmodifiableReachedSet reached) {
     Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
     if (regions == null) {
       return;
     }
 
-    try (Writer writer = MoreFiles.openOutputFile(invariantsFile, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(invariantsFile, Charset.defaultCharset())) {
       for (CFANode loc :
           from(cfa.getAllLoopHeads().get())
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
@@ -125,7 +123,7 @@ public class LoopInvariantsWriter {
     }
   }
 
-  public void exportLoopInvariantsAsPrecision(Path invariantPrecisionsFile, ReachedSet reached) {
+  public void exportLoopInvariantsAsPrecision(Path invariantPrecisionsFile, UnmodifiableReachedSet reached) {
     Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
     if (regions == null) {
       return;
@@ -134,8 +132,7 @@ public class LoopInvariantsWriter {
     Set<String> uniqueDefs = new HashSet<>();
     StringBuilder asserts = new StringBuilder();
 
-    try (Writer writer =
-        MoreFiles.openOutputFile(invariantPrecisionsFile, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(invariantPrecisionsFile, Charset.defaultCharset())) {
       for (CFANode loc :
           from(cfa.getAllLoopHeads().get())
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {

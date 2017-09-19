@@ -24,37 +24,84 @@
 package org.sosy_lab.cpachecker.cpa.singleSuccessorCompactor;
 
 import com.google.common.collect.Iterables;
-
+import java.util.Collection;
+import java.util.List;
+import javax.annotation.Nullable;
+import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import java.util.Collection;
+import org.sosy_lab.cpachecker.util.statistics.StatHist;
 
 public class SingleSuccessorCompactorTransferRelation implements TransferRelation {
 
   private final TransferRelation delegate;
+  @Nullable private final BlockPartitioning partitioning;
+  private final StatHist chainSizes;
+  private final int maxChainLength;
 
-  SingleSuccessorCompactorTransferRelation(TransferRelation pDelegate) {
+  SingleSuccessorCompactorTransferRelation(
+      TransferRelation pDelegate,
+      BlockPartitioning pPartitioning,
+      StatHist pChainSizes,
+      int pMaxChainLength) {
     delegate = pDelegate;
+    partitioning = pPartitioning;
+    chainSizes = pChainSizes;
+    maxChainLength = pMaxChainLength;
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState state, Precision precision) throws CPATransferException, InterruptedException {
+      final AbstractState state, final Precision precision)
+      throws CPATransferException, InterruptedException {
+    return getAbstractSuccessorsWithList(state, precision, null);
+  }
+
+  /**
+   * Computes successors and optionally adds all intermediate states to the given list. The list
+   * includes the first state (given as parameter) until (exclusive) the last states that are
+   * returned directly.
+   */
+  Collection<? extends AbstractState> getAbstractSuccessorsWithList(
+      AbstractState state, final Precision precision, final @Nullable List<AbstractState> lst)
+      throws CPATransferException, InterruptedException {
 
     // this is the main core of this CPA:
     // iterate as long as there is only one successor, abort on target, zero or multiple successors.
 
     Collection<? extends AbstractState> states;
+    int chainSize = 0;
     do {
+      chainSize++;
+      if (lst != null) {
+        lst.add(state);
+      }
       states = delegate.getAbstractSuccessors(state, precision);
       state = Iterables.getFirst(states, null);
-    } while (states.size() == 1 && !AbstractStates.isTargetState(state));
+    } while (canExpandChain(state, states, chainSize));
+    chainSizes.insertValue(chainSize);
     return states;
+  }
+
+  private boolean canExpandChain(
+      AbstractState state, Collection<? extends AbstractState> states, int chainSize) {
+    return states.size() == 1
+        && (maxChainLength == -1 || chainSize <= maxChainLength)
+        && !AbstractStates.isTargetState(state)
+        && !isAtBlockBorder(state);
+  }
+
+  private boolean isAtBlockBorder(AbstractState pState) {
+    if (partitioning == null) {
+      return false;
+    }
+    CFANode node = AbstractStates.extractLocation(pState);
+    return partitioning.isCallNode(node) || partitioning.isReturnNode(node);
   }
 
   @Override

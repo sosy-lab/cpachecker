@@ -23,16 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.cwriter;
 
-import com.google.common.base.Joiner;
-
+import java.util.List;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
-
-import java.util.List;
 
 /**
  * Class for converting a formula to a C expression.
@@ -133,12 +131,9 @@ public class FormulaToCExpressionConverter {
       }
 
       private String joinWithSeparator(String separator, List<Formula> args) {
-        return "("
-            + Joiner.on(separator).join(
-              args.stream().map(c ->
-                  String.format("%s", recFormulaToCExpression(c))).iterator()
-            )
-            + ")";
+        return args.stream()
+            .map(c -> recFormulaToCExpression(c).toString())
+            .collect(Collectors.joining(separator, "(", ")"));
       }
     });
   }

@@ -35,7 +35,24 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.LazyFutureTask;
 import org.sosy_lab.common.ShutdownManager;
@@ -81,6 +98,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -96,25 +114,6 @@ import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
-
-import java.io.PrintStream;
-import java.nio.file.Path;
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Generate invariants using k-induction.
@@ -154,7 +153,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     private int numberOfConfirmedCandidates = 0;
 
     @Override
-    public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
       StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
       writer.put("Time for invariant generation", invariantGeneration);
       if (totalNumberOfCandidates != null) {
@@ -493,7 +492,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       CFA pCFA,
       final ShutdownManager pShutdownManager,
       TargetLocationProvider pTargetLocationProvider,
-      Specification specification)
+      Specification pSpecification)
       throws InvalidConfigurationException, CPAException {
 
     final Set<CandidateInvariant> candidates = Sets.newLinkedHashSet();
@@ -502,14 +501,15 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
       for (AssumeEdge assumeEdge :
           getRelevantAssumeEdges(
               pTargetLocationProvider.tryGetAutomatonTargetLocations(
-                  pCFA.getMainFunction(), specification))) {
+                  pCFA.getMainFunction(), pSpecification))) {
         candidates.add(new EdgeFormulaNegation(pCFA.getLoopStructure().get().getAllLoopHeads(), assumeEdge));
       }
     }
 
     final Multimap<String, CFANode> candidateGroupLocations = HashMultimap.create();
     if (pOptions.invariantsAutomatonFile != null) {
-      ReachedSet reachedSet = analyzeWitness(pConfig, pLogger, pCFA, pShutdownManager, pOptions);
+      ReachedSet reachedSet =
+          analyzeWitness(pConfig, pSpecification, pLogger, pCFA, pShutdownManager, pOptions);
       extractCandidatesFromReachedSet(pShutdownManager, candidates, candidateGroupLocations,
           reachedSet);
     }
@@ -584,6 +584,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
 
   private static ReachedSet analyzeWitness(
       Configuration pConfig,
+      Specification pSpecification,
       LogManager pLogger,
       CFA pCFA,
       final ShutdownManager pShutdownManager,
@@ -594,9 +595,12 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
             .loadFromResource(KInductionInvariantGenerator.class, "witness-analysis.properties");
     List<String> copyOptions = Arrays.asList(
         "analysis.machineModel",
+        "analysis.programNames",
         "cpa.callstack.skipRecursion",
         "cpa.callstack.skipVoidRecursion",
-        "cpa.callstack.skipFunctionPointerRecursion");
+        "cpa.callstack.skipFunctionPointerRecursion",
+        "witness.strictChecking",
+        "witness.checkProgramHash");
     for (String copyOption : copyOptions) {
       configBuilder.copyOptionFromIfPresent(pConfig, copyOption);
     }
@@ -607,7 +611,11 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator imp
     CPABuilder builder = new CPABuilder(config, pLogger, notifier, reachedSetFactory);
     Specification automatonAsSpec =
         Specification.fromFiles(
-            ImmutableList.of(options.invariantsAutomatonFile), pCFA, config, pLogger);
+            pSpecification.getProperties(),
+            ImmutableList.of(options.invariantsAutomatonFile),
+            pCFA,
+            config,
+            pLogger);
     ConfigurableProgramAnalysis cpa =
         builder.buildCPAs(pCFA, automatonAsSpec, new AggregatedReachedSets());
     CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, notifier);

@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This class collects some configurations options for
@@ -65,7 +63,7 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Set of functions that non-deterministically provide new memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctions = ImmutableSet.of(
-      "malloc", "__kmalloc", "kmalloc"
+      "malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca"
       );
 
   @Option(secure=true, description = "Set of functions that non-deterministically provide new zeroed memory on the heap, " +
@@ -80,6 +78,13 @@ public class FormulaEncodingOptions {
 
   @Option(secure=true, description = "Whether to track values stored in variables of function-pointer type.")
   private boolean trackFunctionPointers = true;
+
+  @Option(
+    secure = true,
+    description =
+        "Whether to give up immediately if a very large array is encountered (heuristic, often we would just waste time otherwise)"
+  )
+  private boolean abortOnLargeArrays = true;
 
   @Option(secure=true, description = "Insert tmp-variables for parameters at function-entries. " +
           "The variables are similar to return-variables at function-exit.")
@@ -97,6 +102,10 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Replace possible overflows with an ITE-structure, "
       + "which returns either the normal value or an UF representing the overflow.")
   private boolean encodeOverflowsWithUFs = false;
+
+  @Option(secure=true,
+      description = "For multithreaded programs this is an overapproximation of possible values of shared variables.")
+  private boolean useHavocAbstraction = false;
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
@@ -135,6 +144,10 @@ public class FormulaEncodingOptions {
     return trackFunctionPointers;
   }
 
+  public boolean shouldAbortOnLargeArrays() {
+    return abortOnLargeArrays;
+  }
+
   public boolean useParameterVariables() {
     return useParameterVariables;
   }
@@ -149,5 +162,9 @@ public class FormulaEncodingOptions {
 
   public boolean encodeOverflowsWithUFs() {
     return encodeOverflowsWithUFs;
+  }
+
+  public boolean useHavocAbstraction() {
+    return useHavocAbstraction;
   }
 }

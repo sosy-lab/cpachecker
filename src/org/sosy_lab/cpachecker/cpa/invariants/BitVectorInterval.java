@@ -28,8 +28,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Preconditions;
-
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -499,6 +500,40 @@ public class BitVectorInterval implements BitVectorType {
     if (isSingleton()) { return getLowerBound(); }
     if (getUpperBound().signum() < 0) { return getUpperBound(); }
     return BigInteger.ONE.negate();
+  }
+
+  /**
+   * Gets the bounds of the interval as well as the positive value closest to
+   * zero the negative value closest to zero.
+   *
+   * @return the bounds of the interval as well as the positive value closest
+   * to zero the negative value closest to zero.
+   */
+  public List<BigInteger> getSplitZeroBounds() {
+    List<BigInteger> divisors = new ArrayList<>(
+        (containsPositive()
+            ? (closestPositiveToZero().equals(getUpperBound())
+                ? 1
+                : 2)
+            : 0)
+        + (containsNegative()
+            ? (closestNegativeToZero().equals(getLowerBound())
+                ? 1
+                : 2)
+            : 0));
+    if (containsPositive()) {
+      divisors.add(closestPositiveToZero());
+      if (!closestPositiveToZero().equals(getUpperBound())) {
+        divisors.add(getUpperBound());
+      }
+    }
+    if (containsNegative()) {
+      divisors.add(closestNegativeToZero());
+      if (!closestNegativeToZero().equals(getLowerBound())) {
+        divisors.add(getLowerBound());
+      }
+    }
+    return divisors;
   }
 
   /**

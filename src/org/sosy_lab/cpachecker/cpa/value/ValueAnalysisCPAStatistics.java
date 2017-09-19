@@ -23,28 +23,29 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.MoreFiles;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.statistics.StatInt;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix="cpa.value")
 public class ValueAnalysisCPAStatistics implements Statistics {
@@ -53,6 +54,10 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path precisionFile = null;
 
+  private LongAdder iterations = new LongAdder();
+  private StatCounter assumptions = new StatCounter("Number of Assumptions");
+  private StatCounter deterministicAssumptions =
+      new StatCounter("Number of deterministic Assumptions");
   private final ValueAnalysisCPA cpa;
 
   public ValueAnalysisCPAStatistics(ValueAnalysisCPA cpa, Configuration config) throws InvalidConfigurationException {
@@ -67,7 +72,7 @@ public class ValueAnalysisCPAStatistics implements Statistics {
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatInt numberOfVariables       = new StatInt(StatKind.COUNT, "Number of variables");
     StatInt numberOfGlobalVariables = new StatInt(StatKind.COUNT, "Number of global variables");
 
@@ -85,6 +90,11 @@ public class ValueAnalysisCPAStatistics implements Statistics {
     if (precisionFile != null) {
       exportPrecision(reached);
     }
+
+    writer
+        .put(assumptions)
+        .put(deterministicAssumptions)
+        .put("Level of Determinism", getCurrentLevelOfDeterminism() + "%");
   }
 
   /**
@@ -92,13 +102,39 @@ public class ValueAnalysisCPAStatistics implements Statistics {
    *
    * @param reached the set of reached states.
    */
-  private void exportPrecision(ReachedSet reached) {
+  private void exportPrecision(UnmodifiableReachedSet reached) {
     VariableTrackingPrecision consolidatedPrecision =
         VariableTrackingPrecision.joinVariableTrackingPrecisionsInReachedSet(reached);
-    try (Writer writer = MoreFiles.openOutputFile(precisionFile, Charset.defaultCharset())) {
+    try (Writer writer = IO.openOutputFile(precisionFile, Charset.defaultCharset())) {
       consolidatedPrecision.serialize(writer);
     } catch (IOException e) {
       cpa.getLogger().logUserException(Level.WARNING, e, "Could not write value-analysis precision to file");
+    }
+  }
+
+
+  void incrementIterations() {
+    iterations.increment();
+  }
+
+  void incrementAssumptions() {
+    assumptions.inc();
+  }
+
+  void incrementDeterministicAssumptions() {
+    assumptions.inc();
+  }
+
+  int getCurrentNumberOfIterations() {
+    return iterations.intValue();
+  }
+
+  int getCurrentLevelOfDeterminism() {
+    if (assumptions.getValue() == 0) {
+      return 100;
+    } else {
+      return (int)
+          Math.round((deterministicAssumptions.getValue() * 100) / (double) assumptions.getValue());
     }
   }
 }

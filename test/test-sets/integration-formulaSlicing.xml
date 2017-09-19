@@ -6,11 +6,10 @@
     <option name="-formula-slicing"/>
     <option name="-setprop">cpa.reportFalseAsUnknown=true</option>
 
-    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
-
     <rundefinition>
         <tasks>
-            <includesfile>../programs/benchmarks/Loops.set</includesfile>
+            <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+            <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
         </tasks>
     </rundefinition>
 

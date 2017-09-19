@@ -25,17 +25,17 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static org.junit.Assert.assertEquals;
 
-import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
-
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.ASTLiteralConverter.Suffix;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 public class ASTConverterTest {
 
-  private final ASTLiteralConverter converter32 = new ASTLiteralConverter(MachineModel.LINUX32, Functions.<String>identity());
-  private final ASTLiteralConverter converter64 = new ASTLiteralConverter(MachineModel.LINUX64, Functions.<String>identity());
+  private final ASTLiteralConverter converter32 =
+      new ASTLiteralConverter(MachineModel.LINUX32, ParseContext.dummy());
+  private final ASTLiteralConverter converter64 =
+      new ASTLiteralConverter(MachineModel.LINUX64, ParseContext.dummy());
 
   @Test
   public final void testCharacterExpression() {

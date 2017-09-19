@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.constraints.refiner;
 
+import com.google.common.base.Function;
 import java.io.PrintStream;
 import java.util.Collection;
-
+import java.util.Optional;
 import javax.annotation.Nullable;
-
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -38,15 +38,11 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
-import com.google.common.base.Function;
-import java.util.Optional;
 
 /**
  * {@link PrecisionAdjustment} for
@@ -124,7 +120,7 @@ public class ConstraintsPrecisionAdjustment implements PrecisionAdjustment, Stat
     statsCollection.add(new Statistics() {
 
       @Override
-      public void printStatistics(PrintStream out, Result result, ReachedSet reached) {
+      public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
         out.println("Most constraints after refinement in state: " + maxRealConstraintNumber);
         out.println("Most constraints before refinement in state: " + maxFullConstraintNumber);
         out.println("Constraints after refinement in state: " + overallRealConstraintNumber);

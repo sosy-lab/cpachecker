@@ -6,28 +6,24 @@
 
   <tasks name="ControlFlowInteger">
     <includesfile>../programs/benchmarks/ControlFlow.set</includesfile>
-    <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-  </tasks>
-  <tasks name="Simple">
-    <includesfile>../programs/benchmarks/Simple.set</includesfile>
-    <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <propertyfile>../programs/benchmarks/ControlFlow.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks name="Sequentialized">
     <includesfile>../programs/benchmarks/Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/Sequentialized.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
   <tasks name="Nested">
     <includesfile>nested.set</includesfile>
+    <propertyfile>../programs/benchmarks/PropertyUnreachCall.prp</propertyfile>
   </tasks>
   <tasks name="Linux-Kernel">
     <include>../programs/linux-kernel/*.cil.c</include>
+    <propertyfile>../programs/benchmarks/PropertyUnreachCall.prp</propertyfile>
   </tasks>
-
-  <propertyfile>../programs/benchmarks/PropertyERROR.prp</propertyfile>
 
   <rundefinition name="bam">
     <option name="-predicateAnalysis-bam"/>
