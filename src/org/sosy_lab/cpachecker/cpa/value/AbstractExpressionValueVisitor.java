@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.primitives.UnsignedLongs;
 
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -140,9 +139,6 @@ public abstract class AbstractExpressionValueVisitor
     implements CRightHandSideVisitor<Value, UnrecognizedCCodeException>,
     JRightHandSideVisitor<Value, RuntimeException>,
     JExpressionVisitor<Value, RuntimeException> {
-
-  @Option(secure=true, description="When an unknown function value is disabled")
-  private boolean ignoreFunctionValue = true;
 
   /** length of type LONG in Java (in bit). */
   private final static int SIZE_OF_JAVA_LONG = 64;
@@ -933,7 +929,7 @@ public abstract class AbstractExpressionValueVisitor
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
     }
     if (unaryOperator == UnaryOperator.AMPER) {
-      if (unaryOperand.getExpressionType() instanceof CFunctionType /* && !ignoreFunctionValue */) {
+      if (unaryOperand.getExpressionType() instanceof CFunctionType) {
         return new FunctionValue(unaryOperand.toString());
       }
       return Value.UnknownValue.getInstance();

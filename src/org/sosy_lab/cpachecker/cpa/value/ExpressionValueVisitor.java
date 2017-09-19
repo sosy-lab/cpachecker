@@ -255,7 +255,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
             return null;
           } else {
             if (((CPointerType) pIastFieldReference.getExpressionType()).getType() instanceof CFunctionType) {
-              return PointerToMemoryLocation.valueOf(null, pIastFieldReference.getFieldName());
+              return PointerToMemoryLocation.valueOf(pIastFieldReference.getFieldName());
             } else {
               evv.missingPointer = true;
               return null;
@@ -270,7 +270,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (pIastFieldReference.getExpressionType() instanceof CPointerType
           && ((CPointerType) pIastFieldReference.getExpressionType()).getType() instanceof CFunctionType)
       {
-        return PointerToMemoryLocation.valueOf(null, pIastFieldReference.getFieldName());
+        return PointerToMemoryLocation.valueOf(pIastFieldReference.getFieldName());
       }
 
       CLeftHandSide fieldOwner = (CLeftHandSide) pIastFieldReference.getFieldOwner();
@@ -300,14 +300,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       if (pStartLocation.isOnFunctionStack()) {
 
-        if(pOwnerType instanceof CPointerType) {
-          return PointerToMemoryLocation.valueOf(
-              pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset);
-        }
-        else {
-          return MemoryLocation.valueOf(
-              pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset);
-        }
+        return MemoryLocation.valueOf(
+            pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset);
       } else {
 
         return MemoryLocation.valueOf(pStartLocation.getIdentifier(), baseOffset + offset);
@@ -374,10 +368,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     public MemoryLocation visit(CIdExpression idExp) throws UnrecognizedCCodeException {
 
       if (idExp.getDeclaration() != null) {
-        CType expType = idExp.getExpressionType();
-        if (expType instanceof CPointerType && ((CPointerType)expType).getType() instanceof CFunctionType) {
-            return PointerToMemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName());
-        }
         return MemoryLocation.valueOf(idExp.getDeclaration().getQualifiedName());
       }
 

@@ -31,49 +31,11 @@ public class PointerToMemoryLocation extends MemoryLocation implements Comparabl
 
   private static final long serialVersionUID = -8910967707373729035L;
 
-  private PointerToMemoryLocation(String pFunctionName, String pIdentifier, @Nullable Long pOffset) {
-    super(pFunctionName, pIdentifier, pOffset);
-  }
-
   private PointerToMemoryLocation(String pIdentifier, @Nullable Long pOffset) {
     super(pIdentifier, pOffset);
   }
 
-  public static PointerToMemoryLocation valueOf(String pFunctionName, String pIdentifier) {
-    if (pFunctionName == null) {
+  public static PointerToMemoryLocation valueOf(String pIdentifier) {
       return new PointerToMemoryLocation(pIdentifier, null);
-    } else {
-      return new PointerToMemoryLocation(pFunctionName, pIdentifier, null);
-    }
-  }
-
-  public static PointerToMemoryLocation valueOf(String pFunctionName, String pIdentifier, long pOffset) {
-    return new PointerToMemoryLocation(pFunctionName, pIdentifier, pOffset);
-  }
-
-  public static PointerToMemoryLocation valueOf(String pVariableName) {
-
-    String[] nameParts    = pVariableName.split("::");
-    String[] offsetParts  = pVariableName.split("/");
-
-    boolean isScoped  = nameParts.length == 2;
-    boolean hasOffset = offsetParts.length == 2;
-
-    @Nullable Long offset =
-        hasOffset ? Long.parseLong(offsetParts[1]) : null;
-
-    if (isScoped) {
-      if (hasOffset) {
-        nameParts[1] = nameParts[1].replace("/" + offset, "");
-      }
-      nameParts[1] = "(*" + nameParts[1] + ")";
-      return new PointerToMemoryLocation(nameParts[0], nameParts[1], offset);
-
-    } else {
-      if (hasOffset) {
-        nameParts[0] = nameParts[0].replace("/" + offset, "");
-      }
-      return new PointerToMemoryLocation(nameParts[0].replace("/" + offset, ""), offset);
-    }
   }
 }
