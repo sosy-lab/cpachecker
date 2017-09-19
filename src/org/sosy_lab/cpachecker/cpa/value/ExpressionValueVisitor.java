@@ -321,7 +321,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       } else if (ownerType instanceof CCompositeType) {
         return getFieldOffset((CCompositeType) ownerType, fieldName);
       } else if (ownerType instanceof CPointerType) {
-        return getFieldReferenseOffset((CPointerType) ownerType, fieldName);
+        return getFieldOffset((CCompositeType) ((CPointerType ) ownerType).getType(), fieldName);
       }
 
       throw new AssertionError();
@@ -347,31 +347,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
           offset = (int) (offset + evv.getSizeof(fieldType));
         }
       }
-      return null;
-    }
-
-    private Integer getFieldReferenseOffset(CPointerType ownerType, String fieldName) {
-
-      CCompositeType compositOwnerType = (CCompositeType) ownerType.getType();
-      List<CCompositeTypeMemberDeclaration> membersOfType = compositOwnerType.getMembers();
-
-      int offset = 0;
-
-      for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
-        String memberName = typeMember.getName();
-
-        if (memberName.equals(fieldName)) {
-          return offset;
-        }
-
-        if (!(compositOwnerType.getKind() == ComplexTypeKind.UNION)) {
-
-          CType fieldType = typeMember.getType().getCanonicalType();
-
-          offset = (int) (offset + evv.getSizeof(fieldType));
-        }
-      }
-
       return null;
     }
 

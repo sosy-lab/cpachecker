@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.primitives.UnsignedLongs;
 
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
@@ -119,7 +120,6 @@ import java.util.logging.Level;
 
 import javax.annotation.Nonnull;
 
-
 /**
  * This Visitor implements an evaluation strategy
  * of simply typed expressions. An expression is
@@ -140,6 +140,9 @@ public abstract class AbstractExpressionValueVisitor
     implements CRightHandSideVisitor<Value, UnrecognizedCCodeException>,
     JRightHandSideVisitor<Value, RuntimeException>,
     JExpressionVisitor<Value, RuntimeException> {
+
+  @Option(secure=true, description="When an unknown function value is disabled")
+  private boolean ignoreFunctionValue = true;
 
   /** length of type LONG in Java (in bit). */
   private final static int SIZE_OF_JAVA_LONG = 64;
@@ -200,6 +203,19 @@ public abstract class AbstractExpressionValueVisitor
     return calculateBinaryOperation(lVal, rVal, pE, machineModel, logger);
   }
 
+  public static NumericValue calculateOperationWithFunctionValue(BinaryOperator binaryOperator, Value val1, Value val2) {
+    switch (binaryOperator) {
+    case EQUALS:
+      return new NumericValue(((FunctionValue) val1).equals((val2)) ? 1 : 0);
+
+    case NOT_EQUALS:
+      return new NumericValue(((FunctionValue) val1).equals((val2)) ? 0 : 1);
+
+    default:
+      throw new AssertionError("unhandled binary operator");
+    }
+  }
+
   /**
    * This method calculates the exact result for a binary operation.
    *
@@ -233,30 +249,12 @@ public abstract class AbstractExpressionValueVisitor
           castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
     }
 
-    if (lVal instanceof FunctionValue && (rVal instanceof FunctionValue || rVal instanceof NumericValue)) {
-      switch (binaryOperator) {
-      case EQUALS:
-        return new NumericValue(((FunctionValue) lVal).equals((rVal)) ? 1 : 0);
-
-      case NOT_EQUALS:
-        return new NumericValue(((FunctionValue) lVal).equals((rVal)) ? 0 : 1);
-
-      default:
-        throw new AssertionError("unhandled binary operator");
-      }
+    if (lVal instanceof FunctionValue && (rVal instanceof FunctionValue || rVal.isNumericValue())) {
+      return calculateOperationWithFunctionValue(binaryOperator, lVal, rVal);
     }
 
-    if (lVal instanceof NumericValue && rVal instanceof FunctionValue) {
-      switch (binaryOperator) {
-      case EQUALS:
-        return new NumericValue(((FunctionValue) rVal).equals((lVal)) ? 1 : 0);
-
-      case NOT_EQUALS:
-        return new NumericValue(((FunctionValue) rVal).equals((lVal)) ? 0 : 1);
-
-      default:
-        throw new AssertionError("unhandled binary operator");
-      }
+    if (lVal.isNumericValue() && rVal instanceof FunctionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, rVal, lVal);
     }
 
     if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
@@ -929,7 +927,7 @@ public abstract class AbstractExpressionValueVisitor
       return new NumericValue(machineModel.getAlignof(unaryOperand.getExpressionType()));
     }
     if (unaryOperator == UnaryOperator.AMPER) {
-      if (unaryOperand.getExpressionType() instanceof CFunctionType) {
+      if (unaryOperand.getExpressionType() instanceof CFunctionType /* && !ignoreFunctionValue */) {
         return new FunctionValue(unaryOperand.toString());
       }
       return Value.UnknownValue.getInstance();
