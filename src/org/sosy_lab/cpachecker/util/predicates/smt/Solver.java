@@ -30,9 +30,13 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -56,14 +60,6 @@ import org.sosy_lab.java_smt.api.SolverContext;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
 /**
  * Encapsulation of an SMT solver.
  * This class is the central entry point to everything related to an SMT solver:
@@ -83,7 +79,7 @@ public final class Solver implements AutoCloseable {
   private boolean checkUFs = false;
 
   @Option(secure = true, description = "Which SMT solver to use.")
-  private Solvers solver = Solvers.SMTINTERPOL;
+  private Solvers solver = Solvers.MATHSAT5;
 
   @Option(
       secure = true,

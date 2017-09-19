@@ -2892,7 +2892,7 @@ solver.interpolationSolver = no default value
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # Which SMT solver to use.
-solver.solver = SMTINTERPOL
+solver.solver = MATHSAT5
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS]
 
 # comma-separated list of files with specifications that should be checked
