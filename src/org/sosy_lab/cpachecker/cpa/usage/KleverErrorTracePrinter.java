@@ -167,6 +167,10 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       int forkThread = 0;
 
       while (firstEdge.equals(secondEdge)) {
+        if (isThreadCreateNFunction(firstEdge)) {
+          break;
+        }
+
         printEdge(builder, firstEdge);
 
         if (!firstIterator.hasNext()) {
@@ -302,6 +306,19 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       CFunctionCall fCall = sEdge.getExpression();
       if (fCall instanceof CThreadCreateStatement) {
         return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean isThreadCreateNFunction(CFAEdge pEdge) {
+    if (pEdge instanceof CFunctionCallEdge) {
+      CFunctionSummaryEdge sEdge = ((CFunctionCallEdge)pEdge).getSummaryEdge();
+      CFunctionCall fCall = sEdge.getExpression();
+      if (fCall instanceof CThreadCreateStatement) {
+        if (((CThreadCreateStatement)fCall).isSelfParallel()) {
+          return true;
+        }
       }
     }
     return false;
