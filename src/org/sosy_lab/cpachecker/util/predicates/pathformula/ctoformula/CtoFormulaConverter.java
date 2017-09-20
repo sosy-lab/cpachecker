@@ -742,18 +742,27 @@ public class CtoFormulaConverter {
       ret = pFormula;
 
     } else if (fromType.isBitvectorType() && toType.isBitvectorType()) {
-      int fromSize = ((FormulaType.BitvectorType)fromType).getSize();
       int toSize = ((FormulaType.BitvectorType)toType).getSize();
-      if (fromSize > toSize) {
-        ret = fmgr.makeExtract(pFormula, toSize-1, 0, isSigned.test(pFromCType));
+      int fromSize = ((FormulaType.BitvectorType) fromType).getSize();
 
-      } else if (fromSize < toSize) {
-        ret = fmgr.makeExtend(pFormula, (toSize - fromSize), isSigned.test(pFromCType));
+      // Cf. C-Standard 6.3.1.2 (1)
+      if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)) {
+        Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0l);
+        Formula zeroToSize = efmgr.makeBitvector(toSize, 0l);
+        Formula oneToSize = efmgr.makeBitvector(toSize, 1l);
 
+        ret = bfmgr.ifThenElse(fmgr.makeEqual(zeroFromSize, pFormula), zeroToSize, oneToSize);
       } else {
-        ret = pFormula;
-      }
+        if (fromSize > toSize) {
+          ret = fmgr.makeExtract(pFormula, toSize - 1, 0, isSigned.test(pFromCType));
 
+        } else if (fromSize < toSize) {
+          ret = fmgr.makeExtend(pFormula, (toSize - fromSize), isSigned.test(pFromCType));
+
+        } else {
+          ret = pFormula;
+        }
+      }
     } else if (fromType.isFloatingPointType()) {
       // Cf. C-Standard 6.3.1.4 (1).
       ret =
