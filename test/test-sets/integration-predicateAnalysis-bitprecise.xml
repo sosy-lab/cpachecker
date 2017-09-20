@@ -71,6 +71,6 @@
       <exclude>../programs/benchmarks/floats-cdfpl/newton_1_8_false-unreach-call.i</exclude>
       <exclude>../programs/benchmarks/float-benchs/filter2_set_true-unreach-call.c</exclude>
     </tasks>
-    <option name="-predicateAnalysis-bitprecise"/>
+    <option name="-predicateAnalysis"/>
   </rundefinition>
 </benchmark>

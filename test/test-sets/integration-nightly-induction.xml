@@ -46,6 +46,6 @@
   </tasks>
 
   <rundefinition>
-    <option name="-bmc-induction"/>
+    <option name="-kInduction"/>
   </rundefinition>
 </benchmark>

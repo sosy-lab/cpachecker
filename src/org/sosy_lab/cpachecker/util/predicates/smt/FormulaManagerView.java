@@ -156,12 +156,12 @@ public class FormulaManagerView {
   @Option(secure=true, description="Theory to use as backend for bitvectors."
       + " If different from BITVECTOR, the specified theory is used to approximate bitvectors."
       + " This can be used for solvers that do not support bitvectors, or for increased performance.")
-  private Theory encodeBitvectorAs = Theory.INTEGER;
+  private Theory encodeBitvectorAs = Theory.BITVECTOR;
 
   @Option(secure=true, description="Theory to use as backend for floats."
       + " If different from FLOAT, the specified theory is used to approximate floats."
       + " This can be used for solvers that do not support floating-point arithmetic, or for increased performance.")
-  private Theory encodeFloatAs = Theory.RATIONAL;
+  private Theory encodeFloatAs = Theory.FLOAT;
 
   @Option(secure=true, description="Enable fallback to UFs if a solver does not "
       + "support non-linear arithmetics. This option only effects MULT, MOD and DIV.")

@@ -70,6 +70,5 @@
       <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--input--gameport--lightning.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.c</exclude>
     </tasks>
     <option name="-kInduction"/>
-    <option name="-setprop">solver.solver=SMTINTERPOL</option>
   </rundefinition>
 </benchmark>

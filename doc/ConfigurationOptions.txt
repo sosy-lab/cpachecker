@@ -1556,13 +1556,13 @@ cpa.predicate.enableBlockreducer = false
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
 # solvers that do not support bitvectors, or for increased performance.
-cpa.predicate.encodeBitvectorAs = INTEGER
+cpa.predicate.encodeBitvectorAs = BITVECTOR
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Theory to use as backend for floats. If different from FLOAT, the specified
 # theory is used to approximate floats. This can be used for solvers that do
 # not support floating-point arithmetic, or for increased performance.
-cpa.predicate.encodeFloatAs = RATIONAL
+cpa.predicate.encodeFloatAs = FLOAT
   enum:     [INTEGER, RATIONAL, BITVECTOR, FLOAT]
 
 # Replace possible overflows with an ITE-structure, which returns either the

@@ -68,6 +68,6 @@
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-block-loop.ko_false-unreach-call.cil.out.i.pp.cil.c</exclude>
       <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-sis900.ko_true-unreach-call.cil.out.i.pp.cil.c</exclude>
     </tasks>
-    <option name="-predicateAnalysis"/>
+    <option name="-predicateAnalysis-linear"/>
   </rundefinition>
 </benchmark>

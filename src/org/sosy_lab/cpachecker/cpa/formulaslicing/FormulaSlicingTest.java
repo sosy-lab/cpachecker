@@ -1,8 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
+import static com.google.common.truth.TruthJUnit.assume;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.truth.TruthJUnit;
 import java.nio.file.Paths;
 import java.util.Map;
 import org.junit.Test;
@@ -31,11 +31,13 @@ public class FormulaSlicingTest {
   private static final String TEST_DIR_PATH = "test/programs/formulaslicing/";
 
   @Test public void expand_equality_true_assert() throws Exception {
-    TruthJUnit.assume().that(weakeningStrategy).isNotEqualTo
-        (WEAKENING_STRATEGY.SYNTACTIC);
-    check("expand_equality_true_assert.c", ImmutableMap.of(
-        "rcnf.expandEquality", "true"
-    ));
+    assume().that(weakeningStrategy).isNotEqualTo(WEAKENING_STRATEGY.SYNTACTIC);
+    check(
+        "expand_equality_true_assert.c",
+        ImmutableMap.of(
+            "rcnf.expandEquality", "true",
+            // Program is unsafe if overflows are considered
+            "cpa.predicate.encodeBitvectorAs", "integer"));
   }
 
   @Test public void expand_equality_false_assert() throws Exception {
