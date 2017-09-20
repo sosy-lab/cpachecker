@@ -27,14 +27,15 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.math.LongMath;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -108,7 +109,7 @@ public class RCNFManager implements StatisticsProvider {
   private FormulaManagerView fmgr = null;
   private BooleanFormulaManager bfmgr = null;
   private final RCNFConversionStatistics statistics;
-  private final HashMap<BooleanFormula, Set<BooleanFormula>> conversionCache;
+  private final Map<BooleanFormula, ImmutableSet<BooleanFormula>> conversionCache;
 
   public RCNFManager(Configuration options)
       throws InvalidConfigurationException{
@@ -141,12 +142,12 @@ public class RCNFManager implements StatisticsProvider {
    *              Contains only latest SSA indexes.
    * @param pFmgr Formula manager which performs the conversion.
    */
-  public Set<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr) throws InterruptedException {
+  public ImmutableSet<BooleanFormula> toLemmas(BooleanFormula input, FormulaManagerView pFmgr) throws InterruptedException {
     Preconditions.checkNotNull(pFmgr);
     fmgr = pFmgr;
     bfmgr = pFmgr.getBooleanFormulaManager();
 
-    Set<BooleanFormula> out = conversionCache.get(input);
+    ImmutableSet<BooleanFormula> out = conversionCache.get(input);
     if (out != null) {
       statistics.conversionCacheHits++;
       return out;
@@ -291,11 +292,11 @@ public class RCNFManager implements StatisticsProvider {
     });
   }
 
-  private Set<BooleanFormula> convert(BooleanFormula input) {
+  private ImmutableSet<BooleanFormula> convert(BooleanFormula input) {
     BooleanFormula factorized = factorize(input);
     Set<BooleanFormula> factorizedLemmas =
         bfmgr.toConjunctionArgs(factorized, true);
-    Set<BooleanFormula> out = new HashSet<>();
+    ImmutableSet.Builder<BooleanFormula> out = ImmutableSet.builder();
     for (BooleanFormula lemma : factorizedLemmas) {
       Iterable<BooleanFormula> expandedLemmas = expandClause(lemma);
       for (BooleanFormula l : expandedLemmas) {
@@ -307,7 +308,7 @@ public class RCNFManager implements StatisticsProvider {
         }
       }
     }
-    return out;
+    return out.build();
   }
 
   /**
