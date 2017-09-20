@@ -76,19 +76,19 @@ public class ThreadCreateTransformer {
 
   @Option(secure=true, name="cfa.threads.threadCreate",
       description="A name of thread_create function")
-  private String threadCreate = "ldv_thread_create";
+  private String threadCreate = "pthread_create";
 
   @Option(secure=true, name="cfa.threads.threadSelfCreate",
       description="A name of thread_join function")
-  private String threadCreateN = "ldv_thread_create_N";
+  private String threadCreateN = "pthread_create_N";
 
   @Option(secure=true, name="cfa.threads.threadJoin",
       description="A name of thread_create_N function")
-  private String threadJoin = "ldv_thread_join";
+  private String threadJoin = "pthread_join";
 
   @Option(secure=true, name="cfa.threads.threadSelfJoin",
       description="A name of thread_join_N function")
-  private String threadJoinN = "ldv_thread_join_N";
+  private String threadJoinN = "pthread_join_N";
 
   public static class ThreadFinder implements CFATraversal.CFAVisitor {
 
