@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SortedSetMultimap;
@@ -37,8 +37,13 @@ import java.util.TreeMap;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -66,29 +71,55 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.NumeralFormulaManagerView;
+import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula;
-import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
-/**
- * Testing the custom SSA implementation.
- */
+/** Testing the custom SSA implementation. */
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
+@RunWith(Parameterized.class)
 public class PathFormulaManagerImplTest extends SolverBasedTest0 {
+
+  @Parameters(name = "{0}")
+  public static Object[] getAllSolvers() {
+    return Solvers.values();
+  }
+
+  @Parameter(0)
+  public Solvers solverUnderTest;
+
+  @Override
+  protected Solvers solverToUse() {
+    return solverUnderTest;
+  }
+
+  @Override
+  protected ConfigurationBuilder createTestConfigBuilder() {
+    ConfigurationBuilder config = super.createTestConfigBuilder();
+    if (solverToUse() == Solvers.PRINCESS || solverToUse() == Solvers.SMTINTERPOL) {
+      config.setOption("cpa.predicate.encodeFloatAs", "Integer");
+      config.setOption("cpa.predicate.encodeBitvectorAs", "Integer");
+    }
+    return config;
+  }
 
   private FormulaManagerView fmgrv;
   private PathFormulaManager pfmgrFwd;
   private PathFormulaManager pfmgrBwd;
 
   private CDeclarationEdge x_decl;
+
+  private static final CType variableType = CNumericTypes.INT;
+  private static final FormulaType<?> formulaType = FormulaType.getBitvectorTypeWithSize(32);
 
   @Before
   public void setup() throws Exception {
@@ -277,7 +308,12 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     pf = pfmgrBwd.makeAnd(pf, a_to_b);
 
-    Assert.assertEquals("(= x@10 (+ x@11 1))", pf.toString());
+    BooleanFormula expected =
+        fmgrv.makeEqual(
+            fmgrv.makeVariable(formulaType, "x", 10),
+            fmgrv.makePlus(
+                fmgrv.makeVariable(formulaType, "x", 11), fmgrv.makeNumber(formulaType, 1)));
+    assertThatFormula(pf.getFormula()).isEquivalentTo(expected);
   }
 
   @Test
@@ -324,7 +360,12 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     pf = pfmgrFwd.makeAnd(pf, a_to_b);
 
-    Assert.assertEquals("(= x@11 (+ x@10 1))", pf.toString());
+    BooleanFormula expected =
+        fmgrv.makeEqual(
+            fmgrv.makeVariable(formulaType, "x", 11),
+            fmgrv.makePlus(
+                fmgrv.makeVariable(formulaType, "x", 10), fmgrv.makeNumber(formulaType, 1)));
+    assertThatFormula(pf.getFormula()).isEquivalentTo(expected);
   }
 
 
@@ -344,7 +385,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
   }
 
   @Test
-  public void testEmpty() {
+  public void testEmpty() throws SolverException, InterruptedException {
     PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
     PathFormula expected =
         new PathFormula(
@@ -356,21 +397,19 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
   }
 
   private PathFormula makePathFormulaWithVariable(String var, int index) {
-    NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
-        fmgrv.getRationalFormulaManager();
+    BooleanFormula f =
+        fmgrv.makeEqual(
+            fmgrv.makeVariable(formulaType, var, index), fmgrv.makeNumber(formulaType, 0));
 
-    BooleanFormula f = rfmgr.equal(rfmgr.makeVariable(var, index), rfmgr.makeNumber(0));
-
-    SSAMap s = SSAMap.emptySSAMap().builder().setIndex(var, CNumericTypes.DOUBLE, index).build();
+    SSAMap s = SSAMap.emptySSAMap().builder().setIndex(var, variableType, index).build();
 
     return new PathFormula(f, s, PointerTargetSet.emptyPointerTargetSet(), 1);
   }
 
   private BooleanFormula makeVariableEquality(String var, int index1, int index2) {
-    NumeralFormulaManagerView<NumeralFormula, RationalFormula> rfmgr =
-        fmgrv.getRationalFormulaManager();
 
-    return rfmgr.equal(rfmgr.makeVariable(var, index2), rfmgr.makeVariable(var, index1));
+    return fmgrv.makeEqual(
+        fmgrv.makeVariable(formulaType, var, index2), fmgrv.makeVariable(formulaType, var, index1));
   }
 
   // The following tests test the disjunction of the Formulas
@@ -444,5 +483,13 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     PathFormula resultB = pfmgrFwd.makeOr(pf2, pf1);
 
     assertThatFormula(resultA.getFormula()).isEquivalentTo(resultB.getFormula());
+  }
+
+  private void assertEquals(PathFormula expected, PathFormula result)
+      throws SolverException, InterruptedException {
+    assertThatFormula(result.getFormula()).isEquivalentTo(expected.getFormula());
+    assertThat(result.getLength()).isEqualTo(expected.getLength());
+    assertThat(result.getSsa()).isEqualTo(result.getSsa());
+    assertThat(result.getPointerTargetSet()).isEqualTo(expected.getPointerTargetSet());
   }
 }
