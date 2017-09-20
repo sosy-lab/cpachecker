@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.After;
 import org.junit.Before;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -33,6 +34,7 @@ import org.sosy_lab.java_smt.test.SolverBasedTest0;
  * Abstract base class for tests that use an SMT solver just like {@link SolverBasedTest0}, but
  * additionally providing {@link Solver} and {@link FormulaManagerView} instances.
  */
+@SuppressFBWarnings(value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public class SolverViewBasedTest0 extends SolverBasedTest0 {
 
   protected Solver solver;
