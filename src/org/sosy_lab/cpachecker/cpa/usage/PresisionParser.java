@@ -84,7 +84,7 @@ public class PresisionParser {
             continue;
           }
           id = parseId(localSet[0], localSet[1], Integer.parseInt(localSet[2]));
-          Preconditions.checkNotNull(id, localSet + " can not be parsed, please, move all checks to shouldBeSkipped()");
+          Preconditions.checkNotNull(id, line + " can not be parsed, please, move all checks to shouldBeSkipped()");
           type = DataType.valueOf(localSet[3].toUpperCase());
           info.put(id, type);
         }

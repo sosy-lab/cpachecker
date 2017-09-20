@@ -2957,6 +2957,10 @@ residualprogram.file = "residualProgram.c"
 # write collected assumptions as automaton to file
 residualprogram.slice = true
 
+# if it's true, we always run other algorithm, even previous is sound and
+# finished correctly
+restartAlgorithm.alwaysrun = false
+
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
 restartAlgorithm.combineARGsAfterRestart = false
