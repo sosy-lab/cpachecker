@@ -35,51 +35,39 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
-/**
- * Test the semi-CNF conversion.
- */
+/** Test the semi-CNF conversion. */
 @RunWith(Parameterized.class)
-public class RCNFManagerTest extends SolverBasedTest0{
+public class RCNFManagerTest extends SolverViewBasedTest0 {
   @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
     return Solvers.values();
   }
 
   @Parameter(0)
-  public Solvers solver;
+  public Solvers solverToUse;
 
   @Override
   protected Solvers solverToUse() {
-    return solver;
+    return solverToUse;
   }
 
   @Override
   protected ConfigurationBuilder createTestConfigBuilder() {
-    ConfigurationBuilder config = super.createTestConfigBuilder();
-    if (solverToUse() == Solvers.PRINCESS || solverToUse() == Solvers.SMTINTERPOL) {
-      config.setOption("cpa.predicate.encodeFloatAs", "Integer");
-      config.setOption("cpa.predicate.encodeBitvectorAs", "Integer");
-    }
-    config.setOption("rcnf.boundVarsHandling", "drop");
-    return config;
+    return super.createTestConfigBuilder().setOption("rcnf.boundVarsHandling", "drop");
   }
 
   private RCNFManager RCNFManager;
   private BooleanFormulaManager bfmgr;
-  private FormulaManagerView mgrView;
 
   @Before
   public void setUp() throws InvalidConfigurationException {
-    mgrView = new FormulaManagerView(mgr, config, LogManager.createTestLogManager());
     RCNFManager = new RCNFManager(config);
-    bfmgr = mgrView.getBooleanFormulaManager();
+    bfmgr = bmgrv;
   }
 
   @Test
@@ -94,7 +82,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
     );
     BooleanFormula c = bfmgr.or(a, b);
 
-    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(c, mgrView));
+    BooleanFormula converted = bfmgr.and(RCNFManager.toLemmas(c, mgrv));
     assertThatFormula(converted).isEquivalentTo(c);
     assertThat(bfmgr.toConjunctionArgs(converted, false))
         .containsExactly(
@@ -113,7 +101,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
             )
         )
     );
-    Set<BooleanFormula> lemmas = RCNFManager.toLemmas(input, mgrView);
+    Set<BooleanFormula> lemmas = RCNFManager.toLemmas(input, mgrv);
     assertThatFormula(bmgr.and(lemmas)).isEquivalentTo(input);
     Truth.assertThat(lemmas).containsExactly(v("a"), v("b"), v("c"), v("d"));
   }
@@ -124,7 +112,7 @@ public class RCNFManagerTest extends SolverBasedTest0{
         bfmgr.and(v("a"), v("b"), v("c")),
         bfmgr.and(v("d"), v("e"), v("f"))
     );
-    Set<BooleanFormula> lemmas = RCNFManager.toLemmas(input, mgrView);
+    Set<BooleanFormula> lemmas = RCNFManager.toLemmas(input, mgrv);
     assertThatFormula(bfmgr.and(lemmas)).isEquivalentTo(input);
     Truth.assertThat(lemmas)
         .containsExactly(

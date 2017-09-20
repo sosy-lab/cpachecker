@@ -29,7 +29,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,7 +36,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -50,16 +48,15 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 @RunWith(Parameterized.class)
-public class PredicateTranslatorTest extends SolverBasedTest0 {
+public class PredicateTranslatorTest extends SolverViewBasedTest0 {
 
   @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
@@ -74,13 +71,6 @@ public class PredicateTranslatorTest extends SolverBasedTest0 {
     return solverUnderTest;
   }
 
-  @Override
-  protected ConfigurationBuilder createTestConfigBuilder() {
-    // for supporting Princess
-    return super.createTestConfigBuilder().setOption("cpa.predicate.encodeFloatAs", "Integer");
-  }
-
-  private Solver solver;
   private PredicateRequirementsTranslator pReqTrans;
   private PredicateAbstractState ptrueState;
   private PredicateAbstractState pf1State;
@@ -89,8 +79,7 @@ public class PredicateTranslatorTest extends SolverBasedTest0 {
 
   @Before
   public void init() throws Exception {
-    solver = new Solver(factory, config, logger);
-    FormulaManagerView fmv = solver.getFormulaManager();
+    FormulaManagerView fmv = mgrv;
     pReqTrans = new PredicateRequirementsTranslator(fmv);
 
     SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
@@ -141,11 +130,6 @@ public class PredicateTranslatorTest extends SolverBasedTest0 {
     pf2State =
         PredicateAbstractState.mkAbstractionState(
             pathFormula, aFormula, PathCopyingPersistentTreeMap.of());
-  }
-
-  @After
-  public void cleanup() {
-    solver.close();
   }
 
   @Test

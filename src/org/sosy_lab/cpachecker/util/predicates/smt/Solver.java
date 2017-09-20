@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.java_smt.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -124,16 +125,8 @@ public final class Solver implements AutoCloseable {
   public int trivialSatChecks = 0;
   public int cachedSatChecks = 0;
 
-  /**
-   * Please use {@link #create(Configuration, LogManager, ShutdownNotifier)} in normal code.
-   * This constructor is primarily for test code.
-   *
-   * Please note that calling {@link #close()} on the returned instance
-   * will also close the formula managers created by the passed {@link SolverContextFactory}.
-   */
-  @VisibleForTesting
-  public Solver(SolverContextFactory pSolverFactory,
-      Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  private Solver(SolverContextFactory pSolverFactory, Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     config.inject(this);
 
     if (solver.equals(interpolationSolver)) {
@@ -161,6 +154,51 @@ public final class Solver implements AutoCloseable {
 
     if (checkUFs) {
       ufCheckingProverOptions = new UFCheckingProverOptions(config);
+    } else {
+      ufCheckingProverOptions = null;
+    }
+  }
+
+  /**
+   * Please use {@link #create(Configuration, LogManager, ShutdownNotifier)} in normal code. This
+   * constructor is only for test code.
+   *
+   * <p>Please note that calling {@link #close()} on the returned instance will also close the
+   * formula managers created by the passed {@link SolverContextFactory}.
+   */
+  @VisibleForTesting
+  Solver(
+      SolverContextFactory pSolverFactory,
+      Solvers pSolver,
+      SolverContext pContext,
+      Configuration pConfig,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
+
+    if (solver.equals(interpolationSolver)) {
+      // If interpolationSolver is not null, we use SeparateInterpolatingProverEnvironment
+      // which copies formula from and to the main solver using string serialization.
+      // We don't need this if the solvers are the same anyway.
+      interpolationSolver = null;
+    }
+
+    checkArgument(solver.equals(pSolver), "mismatching configuration");
+    solvingContext = pContext;
+
+    // Instantiate another SMT solver for interpolation if requested.
+    if (interpolationSolver != null) {
+      interpolatingContext = pSolverFactory.generateContext(interpolationSolver);
+    } else {
+      interpolatingContext = solvingContext;
+    }
+
+    fmgr = new FormulaManagerView(pContext.getFormulaManager(), pConfig, pLogger);
+    bfmgr = fmgr.getBooleanFormulaManager();
+    logger = pLogger;
+
+    if (checkUFs) {
+      ufCheckingProverOptions = new UFCheckingProverOptions(pConfig);
     } else {
       ufCheckingProverOptions = null;
     }

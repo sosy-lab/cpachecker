@@ -43,7 +43,6 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -77,17 +76,16 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.test.SolverBasedTest0;
 
 /** Testing the custom SSA implementation. */
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 @RunWith(Parameterized.class)
-public class PathFormulaManagerImplTest extends SolverBasedTest0 {
+public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
   @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
@@ -102,17 +100,6 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     return solverUnderTest;
   }
 
-  @Override
-  protected ConfigurationBuilder createTestConfigBuilder() {
-    ConfigurationBuilder config = super.createTestConfigBuilder();
-    if (solverToUse() == Solvers.PRINCESS || solverToUse() == Solvers.SMTINTERPOL) {
-      config.setOption("cpa.predicate.encodeFloatAs", "Integer");
-      config.setOption("cpa.predicate.encodeBitvectorAs", "Integer");
-    }
-    return config;
-  }
-
-  private FormulaManagerView fmgrv;
   private PathFormulaManager pfmgrFwd;
   private PathFormulaManager pfmgrBwd;
 
@@ -128,15 +115,11 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
         .setOption("cpa.predicate.handlePointerAliasing", "false") // not yet supported by the backwards analysis
         .build();
 
-    fmgrv =
-        new FormulaManagerView(
-            context.getFormulaManager(), config, LogManager.createTestLogManager());
-
     pfmgrFwd =
         new PathFormulaManagerImpl(
-            fmgrv,
+            mgrv,
             config,
-            LogManager.createTestLogManager(),
+            logger,
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
             Optional.empty(),
@@ -144,9 +127,9 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     pfmgrBwd =
         new PathFormulaManagerImpl(
-            fmgrv,
+            mgrv,
             configBackwards,
-            LogManager.createTestLogManager(),
+            logger,
             ShutdownNotifier.createDummy(),
             MachineModel.LINUX32,
             Optional.empty(),
@@ -309,10 +292,10 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     pf = pfmgrBwd.makeAnd(pf, a_to_b);
 
     BooleanFormula expected =
-        fmgrv.makeEqual(
-            fmgrv.makeVariable(formulaType, "x", 10),
-            fmgrv.makePlus(
-                fmgrv.makeVariable(formulaType, "x", 11), fmgrv.makeNumber(formulaType, 1)));
+        mgrv.makeEqual(
+            mgrv.makeVariable(formulaType, "x", 10),
+            mgrv.makePlus(
+                mgrv.makeVariable(formulaType, "x", 11), mgrv.makeNumber(formulaType, 1)));
     assertThatFormula(pf.getFormula()).isEquivalentTo(expected);
   }
 
@@ -361,10 +344,10 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     pf = pfmgrFwd.makeAnd(pf, a_to_b);
 
     BooleanFormula expected =
-        fmgrv.makeEqual(
-            fmgrv.makeVariable(formulaType, "x", 11),
-            fmgrv.makePlus(
-                fmgrv.makeVariable(formulaType, "x", 10), fmgrv.makeNumber(formulaType, 1)));
+        mgrv.makeEqual(
+            mgrv.makeVariable(formulaType, "x", 11),
+            mgrv.makePlus(
+                mgrv.makeVariable(formulaType, "x", 10), mgrv.makeNumber(formulaType, 1)));
     assertThatFormula(pf.getFormula()).isEquivalentTo(expected);
   }
 
@@ -389,7 +372,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
     PathFormula empty = pfmgrFwd.makeEmptyPathFormula();
     PathFormula expected =
         new PathFormula(
-            fmgrv.getBooleanFormulaManager().makeTrue(),
+            mgrv.getBooleanFormulaManager().makeTrue(),
             SSAMap.emptySSAMap(),
             PointerTargetSet.emptyPointerTargetSet(),
             0);
@@ -398,8 +381,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
   private PathFormula makePathFormulaWithVariable(String var, int index) {
     BooleanFormula f =
-        fmgrv.makeEqual(
-            fmgrv.makeVariable(formulaType, var, index), fmgrv.makeNumber(formulaType, 0));
+        mgrv.makeEqual(mgrv.makeVariable(formulaType, var, index), mgrv.makeNumber(formulaType, 0));
 
     SSAMap s = SSAMap.emptySSAMap().builder().setIndex(var, variableType, index).build();
 
@@ -408,8 +390,8 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
   private BooleanFormula makeVariableEquality(String var, int index1, int index2) {
 
-    return fmgrv.makeEqual(
-        fmgrv.makeVariable(formulaType, var, index2), fmgrv.makeVariable(formulaType, var, index1));
+    return mgrv.makeEqual(
+        mgrv.makeVariable(formulaType, var, index2), mgrv.makeVariable(formulaType, var, index1));
   }
 
   // The following tests test the disjunction of the Formulas
@@ -432,7 +414,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     PathFormula expected =
         new PathFormula(
-            fmgrv.makeOr(makeVariableEquality("a", 1, 2), pf.getFormula()),
+            mgrv.makeOr(makeVariableEquality("a", 1, 2), pf.getFormula()),
             pf.getSsa(),
             pf.getPointerTargetSet(),
             1);
@@ -449,7 +431,7 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     PathFormula expected =
         new PathFormula(
-            fmgrv.makeOr(pf.getFormula(), makeVariableEquality("a", 1, 2)),
+            mgrv.makeOr(pf.getFormula(), makeVariableEquality("a", 1, 2)),
             pf.getSsa(),
             pf.getPointerTargetSet(),
             1);
@@ -464,12 +446,12 @@ public class PathFormulaManagerImplTest extends SolverBasedTest0 {
 
     PathFormula result = pfmgrFwd.makeOr(pf1, pf2);
 
-    BooleanFormula left = fmgrv.makeAnd(pf1.getFormula(), makeVariableEquality("a", 2, 3));
+    BooleanFormula left = mgrv.makeAnd(pf1.getFormula(), makeVariableEquality("a", 2, 3));
     BooleanFormula right = pf2.getFormula();
 
     PathFormula expected =
         new PathFormula(
-            fmgrv.makeOr(left, right), pf2.getSsa(), PointerTargetSet.emptyPointerTargetSet(), 1);
+            mgrv.makeOr(left, right), pf2.getSsa(), PointerTargetSet.emptyPointerTargetSet(), 1);
 
     assertEquals(expected, result);
   }
