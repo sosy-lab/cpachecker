@@ -23,7 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.math.LongMath;
 import java.io.PrintStream;
@@ -252,15 +255,15 @@ public class RCNFManager implements StatisticsProvider {
     });
   }
 
-  private BooleanFormula expandClause(final BooleanFormula input) {
-    return bfmgr.visit(input, new DefaultBooleanFormulaVisitor<BooleanFormula>() {
+  private Iterable<BooleanFormula> expandClause(final BooleanFormula input) {
+    return bfmgr.visit(input, new DefaultBooleanFormulaVisitor<Iterable<BooleanFormula>>() {
       @Override
-      protected BooleanFormula visitDefault() {
-        return input;
+      protected Iterable<BooleanFormula> visitDefault() {
+        return ImmutableList.of(input);
       }
 
       @Override
-      public BooleanFormula visitOr(List<BooleanFormula> operands) {
+      public Iterable<BooleanFormula> visitOr(List<BooleanFormula> operands) {
         long sizeAfterExpansion = 1;
 
         List<Set<BooleanFormula>> asConjunctions = new ArrayList<>();
@@ -280,9 +283,9 @@ public class RCNFManager implements StatisticsProvider {
         if (sizeAfterExpansion <= expansionResultSizeLimit) {
           // Perform recursive expansion.
           Set<List<BooleanFormula>> product = Sets.cartesianProduct(asConjunctions);
-          return product.stream().map(bfmgr::or).collect(bfmgr.toConjunction());
+          return from(product).transform(bfmgr::or);
         } else {
-          return bfmgr.or(operands);
+          return ImmutableList.of(bfmgr.or(operands));
         }
       }
     });
@@ -294,9 +297,7 @@ public class RCNFManager implements StatisticsProvider {
         bfmgr.toConjunctionArgs(factorized, true);
     Set<BooleanFormula> out = new HashSet<>();
     for (BooleanFormula lemma : factorizedLemmas) {
-      BooleanFormula expanded = expandClause(lemma);
-      Set<BooleanFormula> expandedLemmas =
-          bfmgr.toConjunctionArgs(expanded, true);
+      Iterable<BooleanFormula> expandedLemmas = expandClause(lemma);
       for (BooleanFormula l : expandedLemmas) {
         if (expandEquality) {
           out.addAll(bfmgr.toConjunctionArgs(
