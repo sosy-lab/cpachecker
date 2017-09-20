@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -122,6 +121,14 @@ public class FormulaManagerView {
     BITVECTOR,
     FLOAT,
     ;
+
+    String description() {
+      if (this == INTEGER) {
+        return "unbounded integers";
+      } else {
+        return name().toLowerCase() + "s";
+      }
+    }
   }
 
   private final LogManager logger;
@@ -171,6 +178,24 @@ public class FormulaManagerView {
 
     final BitvectorFormulaManager rawBitvectorFormulaManager = getRawBitvectorFormulaManager(config);
     final FloatingPointFormulaManager rawFloatingPointFormulaManager = getRawFloatingPointFormulaManager();
+
+    StringBuilder approximations = new StringBuilder();
+    if (encodeBitvectorAs != Theory.BITVECTOR) {
+      approximations.append("ints with ").append(encodeBitvectorAs.description());
+    }
+    if (encodeFloatAs != Theory.FLOAT) {
+      if (approximations.length() > 0) {
+        approximations.append(" and ");
+      }
+      approximations.append("floats with ").append(encodeFloatAs.description());
+    }
+    if (approximations.length() > 0) {
+      logger.log(
+          Level.WARNING,
+          "Using unsound approximation of",
+          approximations,
+          "for encoding program semantics.");
+    }
 
     bitvectorFormulaManager = new BitvectorFormulaManagerView(wrappingHandler, rawBitvectorFormulaManager, manager.getBooleanFormulaManager());
     floatingPointFormulaManager = new FloatingPointFormulaManagerView(wrappingHandler, rawFloatingPointFormulaManager);
