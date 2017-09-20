@@ -40,8 +40,8 @@ public class StructureIdentifier extends SingleIdentifier{
   @Override
   public String toString() {
     String info = Identifiers.getCharsOf(dereference);
-    info += "(" + owner.toString() + ").";
-    info += name;
+    info += "((" + owner.toString() + ").";
+    info += name + ")";
     return info;
   }
 
