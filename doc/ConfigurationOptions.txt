@@ -534,16 +534,16 @@ cfa.simplifyPointerExpressions = false
 cfa.skippedFunctionCalls = new HashSet<>()
 
 # A name of thread_create function
-cfa.threads.threadCreate = "ldv_thread_create"
+cfa.threads.threadCreate = "pthread_create"
 
 # A name of thread_create_N function
-cfa.threads.threadJoin = "ldv_thread_join"
+cfa.threads.threadJoin = "pthread_join"
 
 # A name of thread_join function
-cfa.threads.threadSelfCreate = "ldv_thread_create_N"
+cfa.threads.threadSelfCreate = "pthread_create_N"
 
 # A name of thread_join_N function
-cfa.threads.threadSelfJoin = "ldv_thread_join_N"
+cfa.threads.threadSelfJoin = "pthread_join_N"
 
 # This option causes the control flow automaton to be transformed into the
 # automaton of an equivalent program with one single loop and an artificial
@@ -2956,10 +2956,6 @@ residualprogram.file = "residualProgram.c"
 
 # write collected assumptions as automaton to file
 residualprogram.slice = true
-
-# if it's true, we always run other algorithm, even previous is sound and
-# finished correctly
-restartAlgorithm.alwaysrun = false
 
 # combine (partial) ARGs obtained by restarts of the analysis after an
 # unknown result with a different configuration
