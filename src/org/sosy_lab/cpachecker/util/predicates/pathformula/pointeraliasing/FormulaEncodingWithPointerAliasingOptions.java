@@ -57,10 +57,6 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
                         "of the allocation is figured out.")
   private boolean deferUntypedAllocations = true;
 
-  @Option(secure=true, description = "Maximum size of allocations for which all structure fields are regarded always essential, " +
-                        "regardless of whether they were ever really used in code.")
-  private int maxPreFilledAllocationSize = 0;
-
   @Option(secure=true, description = "The default size in bytes for memory allocations when the value cannot be determined.")
   private int defaultAllocationSize = 4;
 
@@ -166,10 +162,6 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   boolean deferUntypedAllocations() {
     return deferUntypedAllocations;
-  }
-
-  int maxPreFilledAllocationSize() {
-    return maxPreFilledAllocationSize;
   }
 
   int defaultAllocationSize() {

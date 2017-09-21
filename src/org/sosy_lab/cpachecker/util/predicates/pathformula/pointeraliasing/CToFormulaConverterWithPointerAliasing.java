@@ -411,20 +411,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
-   * Checks, whether a field is relevant in the composite type.
-   *
-   * @param compositeType The composite type to check.
-   * @param fieldName The field to check its relevance.
-   * @return Whether a field is relevant for the composite type.
-   */
-  @Override
-  protected boolean isRelevantField(final CCompositeType compositeType,
-                          final String fieldName) {
-    return super.isRelevantField(compositeType, fieldName)
-        || getSizeof(compositeType) <= options.maxPreFilledAllocationSize();
-  }
-
-  /**
    * Checks, whether a variable declaration is addressed or not.
    *
    * @param var The variable declaration to check.
@@ -478,8 +464,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     } else {
       pts.shareBase(base, type);
     }
-    if (forcePreFill ||
-        (options.maxPreFilledAllocationSize() > 0 && getSizeof(type) <= options.maxPreFilledAllocationSize())) {
+    if (forcePreFill) {
       addAllFields(type, pts);
     }
   }
@@ -1332,6 +1317,12 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected boolean isRelevantLeftHandSide(CLeftHandSide pLhs) {
     return super.isRelevantLeftHandSide(pLhs);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected boolean isRelevantField(CCompositeType pCompositeType, String pFieldName) {
+    return super.isRelevantField(pCompositeType, pFieldName);
   }
 
   /** {@inheritDoc} */

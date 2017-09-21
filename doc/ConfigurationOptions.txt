@@ -1679,10 +1679,6 @@ cpa.predicate.maxAbstractionReusePrescan = 1
 # this bound will be ignored completely. Use -1 to disable the limit.
 cpa.predicate.maxArrayLength = -1
 
-# Maximum size of allocations for which all structure fields are regarded
-# always essential, regardless of whether they were ever really used in code.
-cpa.predicate.maxPreFilledAllocationSize = 0
-
 # Set of functions that non-deterministically provide new memory on the heap,
 # i.e. they can return either a valid pointer or zero.
 cpa.predicate.memoryAllocationFunctions = {
