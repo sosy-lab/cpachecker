@@ -525,7 +525,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         conv.addPreFilledBase(base.getName(),
                               base.getType(),
                               pts.isPreparedBase(base.getName()),
-                              false,
                               constraints,
                               pts);
         return visit(e);

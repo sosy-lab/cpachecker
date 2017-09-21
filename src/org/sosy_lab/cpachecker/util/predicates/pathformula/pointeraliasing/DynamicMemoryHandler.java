@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
+
 import com.google.common.collect.ImmutableSortedSet;
 import java.math.BigInteger;
 import java.util.Collections;
@@ -47,6 +49,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -358,8 +362,32 @@ class DynamicMemoryHandler {
 
       constraints.addConstraint(initialization);
     }
-    conv.addPreFilledBase(base, type, false, isZeroing, constraints, pts);
+    conv.addPreFilledBase(base, type, false, constraints, pts);
+    if (isZeroing) {
+      addAllFields(type);
+    }
     return result;
+  }
+
+  /**
+   * Adds all fields of a C type to the pointer target set.
+   *
+   * @param type The type of the composite type.
+   */
+  private void addAllFields(final CType type) {
+    if (type instanceof CCompositeType) {
+      final CCompositeType compositeType = (CCompositeType) type;
+      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
+        if (conv.isRelevantField(compositeType, memberDeclaration.getName())) {
+          pts.addField(compositeType, memberDeclaration.getName());
+          final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
+          addAllFields(memberType);
+        }
+      }
+    } else if (type instanceof CArrayType) {
+      final CType elementType = checkIsSimplified(((CArrayType) type).getType());
+      addAllFields(elementType);
+    }
   }
 
   /**

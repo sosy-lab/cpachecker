@@ -422,50 +422,23 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
-   * Adds all fields of a C type to the pointer target set.
-   *
-   * @param type The type of the composite type.
-   * @param pts The underlying pointer target set.
-   */
-  private void addAllFields(final CType type, final PointerTargetSetBuilder pts) {
-    if (type instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) type;
-      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (isRelevantField(compositeType, memberDeclaration.getName())) {
-          pts.addField(compositeType, memberDeclaration.getName());
-          final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
-          addAllFields(memberType, pts);
-        }
-      }
-    } else if (type instanceof CArrayType) {
-      final CType elementType = checkIsSimplified(((CArrayType) type).getType());
-      addAllFields(elementType, pts);
-    }
-  }
-
-  /**
    * Adds a pre filled base to the pointer target set.
    *
    * @param base The name of the base.
    * @param type The type of the base.
    * @param prepared A flag indicating whether the base is prepared or not.
-   * @param forcePreFill A flag indicating whether we force the pre fill.
    * @param constraints Additional constraints
    * @param pts The underlying pointer target set.
    */
   void addPreFilledBase(final String base,
                         final CType type,
                         final boolean prepared,
-                        final boolean forcePreFill,
                         final Constraints constraints,
                         final PointerTargetSetBuilder pts) {
     if (!prepared) {
       constraints.addConstraint(pts.addBase(base, type));
     } else {
       pts.shareBase(base, type);
-    }
-    if (forcePreFill) {
-      addAllFields(type, pts);
     }
   }
 
@@ -487,7 +460,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final PointerTargetSetBuilder pts) {
     CType type = typeHandler.getSimplifiedType(declaration);
     if (shareImmediately) {
-      addPreFilledBase(declaration.getQualifiedName(), type, false, false, constraints, pts);
+      addPreFilledBase(declaration.getQualifiedName(), type, false, constraints, pts);
     } else if (isAddressedVariable(declaration)
         || CTypeUtils.containsArray(type, originalDeclaration)) {
       constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(), type));
@@ -984,7 +957,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     declareSharedBase(declaration, declaration, false, constraints, pts);
     if (CTypeUtils.containsArray(declarationType, declaration)) {
-      addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
+      addPreFilledBase(declaration.getQualifiedName(), declarationType, true, constraints, pts);
     }
 
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
