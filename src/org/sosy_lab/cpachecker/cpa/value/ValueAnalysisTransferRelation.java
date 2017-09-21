@@ -198,6 +198,9 @@ public class ValueAnalysisTransferRelation
     )
     private boolean trackJavaArrayValues = true;
 
+    @Option(secure=true, description="Track or not function pointer values")
+    private boolean ignoreFunctionValue = true;
+
     ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -212,6 +215,10 @@ public class ValueAnalysisTransferRelation
 
     boolean isOptimizeBooleanVariables() {
       return optimizeBooleanVariables;
+    }
+
+    boolean isIgnoreFunctionValue() {
+      return ignoreFunctionValue;
     }
   }
 
@@ -402,7 +409,7 @@ public class ValueAnalysisTransferRelation
       throws UnrecognizedCCodeException {
 
     // visitor must use the initial (previous) state, because there we have all information about variables
-    ExpressionValueVisitor evv = new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    ExpressionValueVisitor evv = getVisitor();
 
     // clone state, because will be changed through removing all variables of current function's scope.
     // The assignment of the global 'state' is safe, because the 'old state'
@@ -462,8 +469,7 @@ public class ValueAnalysisTransferRelation
 
       // we expect left hand side of the expression to be a variable
 
-      ExpressionValueVisitor v =
-          new ExpressionValueVisitor(newElement, callerFunctionName, machineModel, logger);
+      ExpressionValueVisitor v = getVisitor(newElement, callerFunctionName);
 
       Value newValue = null;
       boolean valueExists = returnVarName.isPresent() && state.contains(functionReturnVar);
@@ -1774,6 +1780,14 @@ public class ValueAnalysisTransferRelation
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor() {
-    return new ExpressionValueVisitor(state, functionName, machineModel, logger);
+    return getVisitor(state, functionName);
+  }
+
+  private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
+    if (options.isIgnoreFunctionValue()) {
+      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+    } else {
+      return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+    }
   }
 }

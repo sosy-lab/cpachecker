@@ -28,16 +28,13 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
-
-import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
-import org.sosy_lab.common.collect.PersistentMap;
-
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalLong;
-
 import javax.annotation.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 
 /**
 * This class describes a location in the memory.
@@ -58,7 +55,7 @@ public class MemoryLocation implements Comparable<MemoryLocation>, Serializable 
     offset = pOffset;
   }
 
-  private MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
+  protected MemoryLocation(String pIdentifier, @Nullable Long pOffset) {
     checkNotNull(pIdentifier);
 
     int separatorIndex = pIdentifier.indexOf("::");

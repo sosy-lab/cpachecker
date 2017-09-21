@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
+import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
@@ -230,6 +231,10 @@ public abstract class AbstractExpressionValueVisitor
           castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
     }
 
+    if (lVal instanceof FunctionValue || rVal instanceof FunctionValue) {
+      return calculateExpressionWithFunctionValue(binaryOperator, rVal, lVal);
+    }
+
     if (lVal instanceof SymbolicValue || rVal instanceof SymbolicValue) {
       return calculateSymbolicBinaryExpression(lVal, rVal, binaryExpr);
     }
@@ -300,6 +305,29 @@ public abstract class AbstractExpressionValueVisitor
 
     return createSymbolicExpression(pLValue, leftOperandType, pRValue, rightOperandType, operator,
         expressionType, calculationType);
+  }
+
+  public static Value calculateExpressionWithFunctionValue(BinaryOperator binaryOperator, Value val1, Value val2) {
+    if (val1 instanceof FunctionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val1, val2);
+    } else if (val2 instanceof FunctionValue) {
+      return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val2, val1);
+    } else {
+      return new Value.UnknownValue();
+    }
+  }
+
+  private static NumericValue calculateOperationWithFunctionValue(BinaryOperator binaryOperator, FunctionValue val1, Value val2) {
+    switch (binaryOperator) {
+    case EQUALS:
+      return new NumericValue(val1.equals(val2) ? 1 : 0);
+
+    case NOT_EQUALS:
+      return new NumericValue(val1.equals(val2) ? 0 : 1);
+
+    default:
+      throw new AssertionError("Operation " + binaryOperator + " is not supported for function values");
+    }
   }
 
   private static SymbolicValue createSymbolicExpression(Value pLeftValue, CType pLeftType, Value pRightValue,
