@@ -436,7 +436,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                         final Constraints constraints,
                         final PointerTargetSetBuilder pts) {
     if (!prepared) {
-      constraints.addConstraint(pts.addBase(base, type));
+      pts.addBase(base, type, constraints);
     } else {
       pts.shareBase(base, type);
     }
@@ -463,7 +463,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       addPreFilledBase(declaration.getQualifiedName(), type, false, constraints, pts);
     } else if (isAddressedVariable(declaration)
         || CTypeUtils.containsArray(type, originalDeclaration)) {
-      constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(), type));
+      pts.prepareBase(declaration.getQualifiedName(), type, constraints);
     }
   }
 

@@ -398,7 +398,7 @@ class DynamicMemoryHandler {
    * @param allocationId A unique ID for this allocation
    * @return A name for allocations.
    */
-  static String makeAllocVariableName(
+  private static String makeAllocVariableName(
       final String functionName, final CType type, final int allocationId) {
     return functionName
         + "_"

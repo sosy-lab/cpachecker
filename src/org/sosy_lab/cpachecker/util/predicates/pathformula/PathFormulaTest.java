@@ -53,10 +53,10 @@ public class PathFormulaTest {
     ptsConstructor.setAccessible(true);
     PointerTargetSet dummyPTS = (PointerTargetSet)ptsConstructor.newInstance(
         PathCopyingPersistentTreeMap.<String, CType>of().putAndCopy("foo", CVoidType.VOID),
-        null,
         PathCopyingPersistentTreeMap.of(),
         PersistentLinkedList.of(),
         PathCopyingPersistentTreeMap.of(),
+        PersistentLinkedList.of(),
         0
         );
 

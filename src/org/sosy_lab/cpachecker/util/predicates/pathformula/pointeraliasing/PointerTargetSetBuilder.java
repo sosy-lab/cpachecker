@@ -55,13 +55,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet.CompositeField;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public interface PointerTargetSetBuilder {
 
-  BooleanFormula prepareBase(String name, CType type);
+  void prepareBase(String name, CType type, Constraints constraints);
 
   void shareBase(String name, CType type);
 
@@ -69,7 +72,7 @@ public interface PointerTargetSetBuilder {
    * Adds the newly allocated base of the given type for tracking along with all its tracked (sub)fields
    * (if its a structure/union) or all its elements (if its an array).
    */
-  BooleanFormula addBase(String name, CType type);
+  void addBase(String name, CType type, Constraints constraints);
 
   boolean tracksField(CCompositeType compositeType, String fieldName);
 
@@ -135,10 +138,10 @@ public interface PointerTargetSetBuilder {
 
     // These fields all exist in PointerTargetSet and are documented there.
     private PersistentSortedMap<String, CType> bases;
-    private String lastBase;
     private PersistentSortedMap<CompositeField, Boolean> fields;
     private PersistentList<Pair<String, DeferredAllocation>> deferredAllocations;
     private PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+    private PersistentList<Formula> highestAllocatedAddresses;
     private int allocationCount;
 
     // Used in addEssentialFields()
@@ -192,10 +195,10 @@ public interface PointerTargetSetBuilder {
         final FormulaEncodingWithPointerAliasingOptions pOptions,
         final MemoryRegionManager pRegionMgr) {
       bases = pointerTargetSet.getBases();
-      lastBase = pointerTargetSet.getLastBase();
       fields = pointerTargetSet.getFields();
       deferredAllocations = pointerTargetSet.getDeferredAllocations();
       targets = pointerTargetSet.getTargets();
+      highestAllocatedAddresses = pointerTargetSet.getHighestAllocatedAddresses();
       allocationCount = pointerTargetSet.getAllocationCount();
       formulaManager = pFormulaManager;
       typeHandler = pTypeHandler;
@@ -222,22 +225,20 @@ public interface PointerTargetSetBuilder {
      *
      * @param name The name of the variable.
      * @param type The type of the variable.
-     * @return A boolean formula representing the base.
      */
     @Override
-    public BooleanFormula prepareBase(final String name, CType type) {
+    public void prepareBase(final String name, CType type, Constraints constraints) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
-        return formulaManager.getBooleanFormulaManager().makeTrue();
+        return;
       }
-      bases = bases.putAndCopy(name, type); // To get proper inequalities
-      final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
+
       // If type is incomplete, we can use a dummy size here because it is only used for the fake base.
       int size = type.isIncomplete() ? 0 : typeHandler.getSizeof(type);
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size)); // To prevent adding spurious targets when merging
-      lastBase = name;
-      return nextInequality;
+
+      makeNextBaseAddressInequality(name, type, constraints);
     }
 
     /**
@@ -271,28 +272,70 @@ public interface PointerTargetSetBuilder {
      *
      * @param name The name of the base
      * @param type The type of the base
-     * @return A formula representing the base
      */
     @Override
-    public BooleanFormula addBase(final String name, CType type) {
+    public void addBase(final String name, CType type, Constraints constraints) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
-        return formulaManager.getBooleanFormulaManager().makeTrue();
+        return;
       }
 
       addTargets(name, type);
       bases = bases.putAndCopy(name, type);
 
-      final BooleanFormula nextInequality = ptsMgr.getNextBaseAddressInequality(name, bases, lastBase);
-      lastBase = name;
+      makeNextBaseAddressInequality(name, type, constraints);
+    }
+
+    /**
+     * Create the constraints for inequality between existing bases and a new base
+     * (to prevent overlapping), and store the new base as highest allocated address
+     * for when the next base is created.
+     *
+     * @param newBase The name of the next base.
+     * @param type The type of the next base.
+     * @param constraints Where the constraints about addresses will be added to.
+     */
+    private void makeNextBaseAddressInequality(
+        final String newBase, final CType type, final Constraints constraints) {
+
       if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(type)) {
         // Avoid adding constraints about function addresses,
         // otherwise we might track facts about function pointers for code like "if (p == &f)".
-        return formulaManager.getBooleanFormulaManager().makeTrue();
-      } else {
-        return nextInequality;
+        return;
       }
+
+      final FormulaType<?> pointerType = typeHandler.getPointerType();
+      final Formula newBaseFormula =
+          formulaManager.makeVariableWithoutSSAIndex(
+              pointerType, PointerTargetSet.getBaseName(newBase));
+
+      // Create constraints for the new base address and store them
+      if (highestAllocatedAddresses.isEmpty()) {
+        constraints.addConstraint(makeGreaterZero(newBaseFormula));
+      } else {
+        for (Formula oldBaseFormula : highestAllocatedAddresses) {
+          constraints.addConstraint(
+              formulaManager.makeGreaterThan(newBaseFormula, oldBaseFormula, true));
+        }
+      }
+
+      final int typeSize =
+          type.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(type);
+      final Formula typeSizeF =
+          formulaManager.makeNumber(pointerType, typeSize * typeHandler.getBitsPerByte());
+      final Formula newBasePlusTypeSize = formulaManager.makePlus(newBaseFormula, typeSizeF);
+
+      // The condition newBasePlusTypeSize > 0 prevents overflows in case of bit-vector encoding
+      constraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
+
+      // Prepare highestAllocatedAddresses which we will use for the constraints of the next base.
+      highestAllocatedAddresses = PersistentLinkedList.of(newBasePlusTypeSize);
+    }
+
+    private BooleanFormula makeGreaterZero(Formula f) {
+      return formulaManager.makeGreaterThan(
+          f, formulaManager.makeNumber(typeHandler.getPointerType(), 0), true);
     }
 
     /**
@@ -716,7 +759,7 @@ public interface PointerTargetSetBuilder {
     public PointerTargetSet build() {
       PointerTargetSet result =
           new PointerTargetSet(
-              bases, lastBase, fields, deferredAllocations, targets, allocationCount);
+              bases, fields, deferredAllocations, targets, highestAllocatedAddresses, allocationCount);
       if (result.isEmpty()) {
         return PointerTargetSet.emptyPointerTargetSet();
       } else {
@@ -741,7 +784,7 @@ public interface PointerTargetSetBuilder {
     INSTANCE;
 
     @Override
-    public BooleanFormula prepareBase(String pName, CType pType) {
+    public void prepareBase(String pName, CType pType, Constraints constraints) {
       throw new UnsupportedOperationException();
     }
 
@@ -751,7 +794,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public BooleanFormula addBase(String pName, CType pType) {
+    public void addBase(String pName, CType pType, Constraints constraints) {
       throw new UnsupportedOperationException();
     }
 
