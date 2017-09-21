@@ -188,7 +188,7 @@ public class ValueAnalysisTransferRelation
     )
     private boolean trackJavaArrayValues = true;
 
-    @Option(secure=true, description="When an unknown function value is disabled")
+    @Option(secure=true, description="Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {

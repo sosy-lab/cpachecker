@@ -2280,7 +2280,7 @@ cpa.value.abstraction.onlyAtNonLinearCFA = false
 # 1, even if x is a symbolic expression).
 cpa.value.assignSymbolicAssumptionVars = false
 
-# When an unknown function value is disabled
+# Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
 
 # if there is an assumption like (x!=0), this option sets unknown
