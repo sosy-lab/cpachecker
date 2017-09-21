@@ -26,10 +26,11 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
 public abstract class AbstractCFAEdge implements CFAEdge {
 

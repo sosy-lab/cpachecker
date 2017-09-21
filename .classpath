@@ -16,10 +16,10 @@
 	<classpathentry kind="lib" path="lib/apron.jar" sourcepath="lib/apron.jar"/>
 	<classpathentry kind="lib" path="lib/gmp.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/guava-testlib.jar" sourcepath="lib/java-contrib/guava-testlib-sources.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/java/build/annotations.jar" sourcepath="lib/java/build/annotations.jar"/>
+	<classpathentry kind="lib" path="lib/java/build/annotations.jar" sourcepath="lib/java/build/annotations.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/truth.jar" sourcepath="lib/java-contrib/truth-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/smt-parser.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/java/build/error_prone_annotations.jar" sourcepath="lib/java-contrib/error_prone_annotations-sources.jar"/>
+	<classpathentry kind="lib" path="lib/java/build/error_prone_annotations.jar" sourcepath="lib/java-contrib/error_prone_annotations-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/lasso-ranker.jar" sourcepath="lib/java-contrib/lasso-ranker-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-model-checker-utils.jar" sourcepath="lib/java-contrib/ultimate-model-checker-utils-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/ultimate-model.jar" sourcepath="lib/java-contrib/ultimate-model-sources.jar"/>
