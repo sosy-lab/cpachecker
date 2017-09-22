@@ -427,21 +427,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @param declaration The declaration.
    * @param originalDeclaration the declaration used to determine if the base corresponds to a function parameter
    *        (needed to distinguish real (non-moving) arrays from pointers)
-   * @param shareImmediately A flag that indicates, if the base is shared immediately.
    * @param constraints Additional constraints.
    * @param pts The underlying pointer target set.
    */
   private void declareSharedBase(
       final CDeclaration declaration,
       final CSimpleDeclaration originalDeclaration,
-      final boolean shareImmediately,
       final Constraints constraints,
       final PointerTargetSetBuilder pts) {
+    assert declaration.getType().equals(originalDeclaration.getType());
     CType type = typeHandler.getSimplifiedType(declaration);
-    if (shareImmediately) {
+
+    if (CTypeUtils.containsArray(type, originalDeclaration)) {
       pts.addBase(declaration.getQualifiedName(), type, constraints);
-    } else if (isAddressedVariable(declaration)
-        || CTypeUtils.containsArray(type, originalDeclaration)) {
+    } else if (isAddressedVariable(declaration)) {
       pts.prepareBase(declaration.getQualifiedName(), type, constraints);
     }
   }
@@ -754,12 +753,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (assignment.isPresent()) {
       final CVariableDeclaration returnVariableDeclaraton =
           ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getReturnVariable().get();
-      final boolean containsArray =
-          CTypeUtils.containsArray(
-              typeHandler.getSimplifiedType(returnVariableDeclaraton), returnVariableDeclaraton);
 
-      declareSharedBase(
-          returnVariableDeclaraton, returnVariableDeclaraton, containsArray, constraints, pts);
+      declareSharedBase(returnVariableDeclaraton, returnVariableDeclaraton, constraints, pts);
     }
     return result;
   }
@@ -934,8 +929,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     }
 
-    final boolean containsArray = CTypeUtils.containsArray(declarationType, declaration);
-    declareSharedBase(declaration, declaration, containsArray, constraints, pts);
+    declareSharedBase(declaration, declaration, constraints, pts);
 
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
       globalDeclarations.add(declaration);
@@ -1046,7 +1040,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     BooleanFormula result = super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
 
     for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
-      final CType parameterType = typeHandler.getSimplifiedType(formalParameter);
       final CVariableDeclaration formalDeclaration = formalParameter.asVariableDeclaration();
       final CVariableDeclaration declaration;
       if (options.useParameterVariables()) {
@@ -1060,7 +1053,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       declareSharedBase(
           declaration,
           formalParameter,
-          CTypeUtils.containsArrayInFunctionParameter(parameterType),
           constraints,
           pts);
     }
