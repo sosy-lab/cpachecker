@@ -934,10 +934,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     }
 
-    declareSharedBase(declaration, declaration, false, constraints, pts);
-    if (CTypeUtils.containsArray(declarationType, declaration)) {
-      pts.shareBase(declaration.getQualifiedName(), declarationType);
-    }
+    final boolean containsArray = CTypeUtils.containsArray(declarationType, declaration);
+    declareSharedBase(declaration, declaration, containsArray, constraints, pts);
 
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
       globalDeclarations.add(declaration);
