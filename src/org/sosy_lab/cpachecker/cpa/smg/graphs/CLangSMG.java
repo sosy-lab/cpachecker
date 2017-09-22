@@ -1036,10 +1036,8 @@ public class CLangSMG extends SMG {
   }
 
   public void rememberEdges(SMGStateInformation pForgottenInformation) {
-    for(SMGEdgeHasValue edge : pForgottenInformation.getHvEdges()) {
-      if(!getHVEdges().contains(edge)) {
-        addHasValueEdge(edge);
-      }
+    for(SMGEdgeHasValue edge : Sets.difference(pForgottenInformation.getHvEdges(), getHVEdges())) {
+      addHasValueEdge(edge);
     }
 
     for (SMGEdgePointsTo pte : pForgottenInformation.getPtEdges()) {
