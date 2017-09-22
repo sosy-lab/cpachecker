@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
@@ -64,7 +65,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public interface PointerTargetSetBuilder {
 
-  void prepareBase(String name, CType type, Formula size, Constraints constraints);
+  void prepareBase(String name, CType type, @Nullable Formula size, Constraints constraints);
 
   void shareBase(String name, CType type);
 
@@ -72,7 +73,7 @@ public interface PointerTargetSetBuilder {
    * Adds the newly allocated base of the given type for tracking along with all its tracked (sub)fields
    * (if its a structure/union) or all its elements (if its an array).
    */
-  void addBase(String name, CType type, Formula size, Constraints constraints);
+  void addBase(String name, CType type, @Nullable Formula size, Constraints constraints);
 
   boolean tracksField(CCompositeType compositeType, String fieldName);
 
@@ -229,7 +230,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public void prepareBase(
-        final String name, CType type, final Formula sizeExp, Constraints constraints) {
+        final String name, CType type, final @Nullable Formula sizeExp, Constraints constraints) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
@@ -278,7 +279,7 @@ public interface PointerTargetSetBuilder {
      */
     @Override
     public void addBase(
-        final String name, CType type, final Formula size, Constraints constraints) {
+        final String name, CType type, final @Nullable Formula size, Constraints constraints) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
@@ -304,7 +305,7 @@ public interface PointerTargetSetBuilder {
     private void makeNextBaseAddressInequality(
         final String newBase,
         final CType type,
-        final Formula allocationSize,
+        final @Nullable Formula allocationSize,
         final Constraints constraints) {
 
       if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(type)) {
@@ -351,7 +352,8 @@ public interface PointerTargetSetBuilder {
       constraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
       highestAllocatedAddresses = PersistentLinkedList.of(newBasePlusTypeSize);
 
-      if (!allocationSize.equals(formulaManager.makeNumber(pointerType, typeSize))) {
+      if (allocationSize != null
+          && !allocationSize.equals(formulaManager.makeNumber(pointerType, typeSize))) {
         final Formula allocationSizeF =
             formulaManager.makeMultiply(
                 allocationSize,
@@ -801,7 +803,8 @@ public interface PointerTargetSetBuilder {
     INSTANCE;
 
     @Override
-    public void prepareBase(String pName, CType pType, Formula pSize, Constraints constraints) {
+    public void prepareBase(
+        String pName, CType pType, @Nullable Formula pSize, Constraints constraints) {
       throw new UnsupportedOperationException();
     }
 
@@ -811,7 +814,8 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public void addBase(String pName, CType pType, Formula pSize, Constraints constraints) {
+    public void addBase(
+        String pName, CType pType, @Nullable Formula pSize, Constraints constraints) {
       throw new UnsupportedOperationException();
     }
 

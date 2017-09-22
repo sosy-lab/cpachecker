@@ -441,7 +441,10 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (originalDeclaration instanceof CParameterDeclaration && decayedType instanceof CArrayType) {
       decayedType = new CPointerType(false, false, ((CArrayType) decayedType).getType());
     }
-    Formula size = fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
+    Formula size =
+        decayedType.isIncomplete()
+            ? null
+            : fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
 
     if (CTypeUtils.containsArray(type, originalDeclaration)) {
       pts.addBase(declaration.getQualifiedName(), type, size, constraints);
