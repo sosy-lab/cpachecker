@@ -70,8 +70,10 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialCombinedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolationWithSolver;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialReverseInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolationWithSolver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.WellScopedInterpolation;
@@ -87,7 +89,6 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
-
 
 @Options(prefix="cpa.predicate.refinement")
 public final class InterpolationManager {
@@ -152,7 +153,13 @@ public final class InterpolationManager {
   private InterpolationStrategy strategy = InterpolationStrategy.SEQ_CPACHECKER;
   private static enum InterpolationStrategy {
     SEQ, SEQ_CPACHECKER,
-    TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER}
+    TREE,
+    TREE_WELLSCOPED,
+    TREE_NESTED,
+    TREE_CPACHECKER,
+    SEQ_CPACHECKER_REVERSE,
+    SEQ_CPACHECKER_COMBINED
+  }
 
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -614,6 +621,12 @@ public final class InterpolationManager {
     switch (strategy) {
       case SEQ_CPACHECKER:
         itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+        break;
+      case SEQ_CPACHECKER_REVERSE:
+        itpStrategy = new SequentialReverseInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+        break;
+      case SEQ_CPACHECKER_COMBINED:
+        itpStrategy = new SequentialCombinedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
         break;
       case SEQ:
         itpStrategy = new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);

@@ -1855,7 +1855,8 @@ cpa.predicate.refinement.splitItpAtoms = false
 # - TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from
 # 'Tree Interpolation in Vampire'.
 cpa.predicate.refinement.strategy = SEQ_CPACHECKER
-  enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
+  enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER,
+             SEQ_CPACHECKER_REVERSE, SEQ_CPACHECKER_COMBINED]
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
