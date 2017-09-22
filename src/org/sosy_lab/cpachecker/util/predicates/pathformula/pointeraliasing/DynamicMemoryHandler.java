@@ -269,14 +269,19 @@ class DynamicMemoryHandler {
       }
     }
     final Formula sizeExp =
-        conv.buildTerm(
-            parameter,
-            edge,
-            edge.getPredecessor().getFunctionName(),
-            ssa,
-            pts,
+        conv.makeCast(
+            parameter.getExpressionType(),
+            conv.machineModel.getPointerDiffType(),
+            conv.buildTerm(
+                parameter,
+                edge,
+                edge.getPredecessor().getFunctionName(),
+                ssa,
+                pts,
+                constraints,
+                errorConditions),
             constraints,
-            errorConditions);
+            edge);
     Formula address;
     if (newType != null) {
       final String newBase =
