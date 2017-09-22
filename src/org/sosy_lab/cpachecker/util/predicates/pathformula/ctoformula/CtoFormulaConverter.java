@@ -764,11 +764,15 @@ public class CtoFormulaConverter {
         }
       }
     } else if (fromType.isFloatingPointType()) {
+      if (toType.isFloatingPointType()) {
+        ret = fmgr.getFloatingPointFormulaManager().castTo((FloatingPointFormula) pFormula, toType);
+      } else {
       // Cf. C-Standard 6.3.1.4 (1).
       ret =
           fmgr.getFloatingPointFormulaManager()
               .castTo(
                   (FloatingPointFormula) pFormula, toType, FloatingPointRoundingMode.TOWARD_ZERO);
+      }
 
     } else if (toType.isFloatingPointType()) {
       ret = fmgr.getFloatingPointFormulaManager().castFrom(pFormula,
