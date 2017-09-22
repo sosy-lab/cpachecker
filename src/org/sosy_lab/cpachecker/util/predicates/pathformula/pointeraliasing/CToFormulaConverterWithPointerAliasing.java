@@ -437,11 +437,16 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final PointerTargetSetBuilder pts) {
     assert declaration.getType().equals(originalDeclaration.getType());
     CType type = typeHandler.getSimplifiedType(declaration);
+    CType decayedType = typeHandler.getSimplifiedType(originalDeclaration);
+    if (originalDeclaration instanceof CParameterDeclaration && decayedType instanceof CArrayType) {
+      decayedType = new CPointerType(false, false, ((CArrayType) decayedType).getType());
+    }
+    Formula size = fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
 
     if (CTypeUtils.containsArray(type, originalDeclaration)) {
-      pts.addBase(declaration.getQualifiedName(), type, constraints);
+      pts.addBase(declaration.getQualifiedName(), type, size, constraints);
     } else if (isAddressedVariable(declaration)) {
-      pts.prepareBase(declaration.getQualifiedName(), type, constraints);
+      pts.prepareBase(declaration.getQualifiedName(), type, size, constraints);
     }
   }
 
@@ -1206,6 +1211,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Formula address = makeBaseAddress(pVarName, pType);
       return AliasedLocation.ofAddress(address);
     }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected Formula buildTerm(
+      CRightHandSide pExp,
+      CFAEdge pEdge,
+      String pFunction,
+      SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts,
+      Constraints pConstraints,
+      ErrorConditions pErrorConditions)
+      throws UnrecognizedCCodeException {
+    return super.buildTerm(pExp, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
   }
 
   /**

@@ -525,7 +525,10 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         if (pts.isPreparedBase(base.getName())) {
           pts.shareBase(base.getName(), base.getType());
         } else {
-          pts.addBase(base.getName(), base.getType(), constraints);
+          Formula size =
+              conv.fmgr.makeNumber(
+                  conv.voidPointerFormulaType, typeHandler.getSizeof(base.getType()));
+          pts.addBase(base.getName(), base.getType(), size, constraints);
         }
         return visit(e);
       }

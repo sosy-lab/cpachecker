@@ -64,7 +64,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public interface PointerTargetSetBuilder {
 
-  void prepareBase(String name, CType type, Constraints constraints);
+  void prepareBase(String name, CType type, Formula size, Constraints constraints);
 
   void shareBase(String name, CType type);
 
@@ -72,7 +72,7 @@ public interface PointerTargetSetBuilder {
    * Adds the newly allocated base of the given type for tracking along with all its tracked (sub)fields
    * (if its a structure/union) or all its elements (if its an array).
    */
-  void addBase(String name, CType type, Constraints constraints);
+  void addBase(String name, CType type, Formula size, Constraints constraints);
 
   boolean tracksField(CCompositeType compositeType, String fieldName);
 
@@ -81,7 +81,7 @@ public interface PointerTargetSetBuilder {
   void addEssentialFields(final List<Pair<CCompositeType, String>> fields);
 
   void addTemporaryDeferredAllocation(
-      boolean isZeroed, Optional<CIntegerLiteralExpression> size, String base);
+      boolean isZeroed, Optional<CIntegerLiteralExpression> size, Formula sizeExp, String base);
 
   void addDeferredAllocationPointer(String newPointer, String originalPointer);
 
@@ -225,9 +225,11 @@ public interface PointerTargetSetBuilder {
      *
      * @param name The name of the variable.
      * @param type The type of the variable.
+     * @param sizeExp An expression for the size in bytes of the new base.
      */
     @Override
-    public void prepareBase(final String name, CType type, Constraints constraints) {
+    public void prepareBase(
+        final String name, CType type, final Formula sizeExp, Constraints constraints) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
@@ -238,7 +240,7 @@ public interface PointerTargetSetBuilder {
       int size = type.isIncomplete() ? 0 : typeHandler.getSizeof(type);
       bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size)); // To prevent adding spurious targets when merging
 
-      makeNextBaseAddressInequality(name, type, constraints);
+      makeNextBaseAddressInequality(name, type, sizeExp, constraints);
     }
 
     /**
@@ -272,9 +274,11 @@ public interface PointerTargetSetBuilder {
      *
      * @param name The name of the base
      * @param type The type of the base
+     * @param size An expression for the size in bytes of the new base.
      */
     @Override
-    public void addBase(final String name, CType type, Constraints constraints) {
+    public void addBase(
+        final String name, CType type, final Formula size, Constraints constraints) {
       checkIsSimplified(type);
       if (bases.containsKey(name)) {
         // The base has already been added
@@ -284,7 +288,7 @@ public interface PointerTargetSetBuilder {
       addTargets(name, type);
       bases = bases.putAndCopy(name, type);
 
-      makeNextBaseAddressInequality(name, type, constraints);
+      makeNextBaseAddressInequality(name, type, size, constraints);
     }
 
     /**
@@ -294,10 +298,14 @@ public interface PointerTargetSetBuilder {
      *
      * @param newBase The name of the next base.
      * @param type The type of the next base.
+     * @param allocationSize An expression for the size in bytes of the new base.
      * @param constraints Where the constraints about addresses will be added to.
      */
     private void makeNextBaseAddressInequality(
-        final String newBase, final CType type, final Constraints constraints) {
+        final String newBase,
+        final CType type,
+        final Formula allocationSize,
+        final Constraints constraints) {
 
       if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(type)) {
         // Avoid adding constraints about function addresses,
@@ -326,16 +334,38 @@ public interface PointerTargetSetBuilder {
           formulaManager.makeNumber(pointerType, typeSize * typeHandler.getBitsPerByte());
       final Formula newBasePlusTypeSize = formulaManager.makePlus(newBaseFormula, typeSizeF);
 
-      // The condition newBasePlusTypeSize > 0 prevents overflows in case of bit-vector encoding
-      constraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
-
       // Prepare highestAllocatedAddresses which we will use for the constraints of the next base.
+      // We have two ways to compute the size: sizeof(type) and the allocationSize (e.g., the
+      // argument to malloc).
+      // We need both here: Only the allocation size is correct for allocations with dynamic size,
+      // and only the size of the type takes into account the default array length that we assume
+      // elsewhere and we must thus ensure here, too.
+      // Furthermore, in case of linear approximation we need a constraint that the size is
+      // positive, and using the type size takes care of this automatically.
+      // In cases where the precise size is known and correct, we need only one of the constraints.
+      // We use the one with typeSize instead of allocationSize, because the latter would add one
+      // multiplication to the formula.
+      // We also need to ensure that the highest allocated address (both variants) is greater than
+      // zero to prevent overflows with bitvector arithmetic.
+
+      constraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
       highestAllocatedAddresses = PersistentLinkedList.of(newBasePlusTypeSize);
+
+      if (!allocationSize.equals(formulaManager.makeNumber(pointerType, typeSize))) {
+        final Formula allocationSizeF =
+            formulaManager.makeMultiply(
+                allocationSize,
+                formulaManager.makeNumber(pointerType, typeHandler.getBitsPerByte()));
+        Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, allocationSizeF);
+        constraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
+
+        highestAllocatedAddresses = highestAllocatedAddresses.with(basePlusAllocationSize);
+      }
     }
 
     private BooleanFormula makeGreaterZero(Formula f) {
       return formulaManager.makeGreaterThan(
-          f, formulaManager.makeNumber(typeHandler.getPointerType(), 0), true);
+          f, formulaManager.makeNumber(typeHandler.getPointerType(), 0L), true);
     }
 
     /**
@@ -501,38 +531,25 @@ public interface PointerTargetSetBuilder {
     /**
      * Adds a new pointer(variable/field)-object mapping to the set of tracked pending objects with yet unknown type
      * to be allocated.
-     *
-     * @param pointer The name of the pointer variable or field.
-     * @param isZeroed A flag indicating if the allocated object is zeroed (e.g. allocated with kzalloc).
-     * @param size The size of the allocated memory (usually specified as allocation function argument).
-     * @param base The name of the corresponding base.
-     */
-    private void addDeferredAllocation(
-        final String pointer,
-        final boolean isZeroed,
-        final Optional<CIntegerLiteralExpression> size,
-        final String base) {
-      final Pair<String, DeferredAllocation> p =
-          Pair.of(pointer, new DeferredAllocation(base, size, isZeroed));
-      if (!deferredAllocations.contains(p)) {
-        deferredAllocations = deferredAllocations.with(p);
-      }
-    }
-
-    /**
-     * Adds a new pointer(variable/field)-object mapping to the set of tracked pending objects with yet unknown type
-     * to be allocated.
      * This version is specifically for temporary variables used
      * in between allocation in the RHS and (possibly) revealing the type from the LHS.
      *
-     * @param isZeroed A flag indicating if the allocation was zeroing (e.g. kzalloc)
-     * @param size The size of the allocated memory.
-     * @param base The name of the base variable.
+     * @param isZeroed A flag indicating if the allocated object is zeroed (e.g. allocated with kzalloc).
+     * @param size The size of the allocated memory (usually specified as allocation function argument).
+     * @param sizeExp A formula representing the size of the allocation.
+     * @param base The name of the corresponding base.
      */
     @Override
     public void addTemporaryDeferredAllocation(
-        final boolean isZeroed, final Optional<CIntegerLiteralExpression> size, final String base) {
-      addDeferredAllocation(base, isZeroed, size, base);
+        final boolean isZeroed,
+        final Optional<CIntegerLiteralExpression> size,
+        final Formula sizeExp,
+        final String base) {
+      final Pair<String, DeferredAllocation> p =
+          Pair.of(base, new DeferredAllocation(base, size, sizeExp, isZeroed));
+      if (!deferredAllocations.contains(p)) {
+        deferredAllocations = deferredAllocations.with(p);
+      }
     }
 
     /**
@@ -784,7 +801,7 @@ public interface PointerTargetSetBuilder {
     INSTANCE;
 
     @Override
-    public void prepareBase(String pName, CType pType, Constraints constraints) {
+    public void prepareBase(String pName, CType pType, Formula pSize, Constraints constraints) {
       throw new UnsupportedOperationException();
     }
 
@@ -794,7 +811,7 @@ public interface PointerTargetSetBuilder {
     }
 
     @Override
-    public void addBase(String pName, CType pType, Constraints constraints) {
+    public void addBase(String pName, CType pType, Formula pSize, Constraints constraints) {
       throw new UnsupportedOperationException();
     }
 
@@ -815,7 +832,10 @@ public interface PointerTargetSetBuilder {
 
     @Override
     public void addTemporaryDeferredAllocation(
-        boolean pIsZeroed, Optional<CIntegerLiteralExpression> pSize, String pBase) {
+        boolean pIsZeroed,
+        Optional<CIntegerLiteralExpression> pSize,
+        Formula pSizeExp,
+        String pBase) {
       throw new UnsupportedOperationException();
     }
 

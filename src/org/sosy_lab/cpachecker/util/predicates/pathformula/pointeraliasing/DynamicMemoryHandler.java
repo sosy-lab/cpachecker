@@ -268,13 +268,22 @@ class DynamicMemoryHandler {
         newType = null;
       }
     }
+    final Formula sizeExp =
+        conv.buildTerm(
+            parameter,
+            edge,
+            edge.getPredecessor().getFunctionName(),
+            ssa,
+            pts,
+            constraints,
+            errorConditions);
     Formula address;
     if (newType != null) {
       final String newBase =
           makeAllocVariableName(functionName, newType, pts.getFreshAllocationId());
-      address =  makeAllocation(conv.options.isSuccessfulZallocFunctionName(functionName),
-                                 newType,
-                                 newBase);
+      address =
+          makeAllocation(
+              conv.options.isSuccessfulZallocFunctionName(functionName), newType, newBase, sizeExp);
     } else {
       final String newBase =
           makeAllocVariableName(functionName, CVoidType.VOID, pts.getFreshAllocationId());
@@ -287,6 +296,7 @@ class DynamicMemoryHandler {
                           parameter.getFileLocation(),
                           parameter.getExpressionType(),
                           BigInteger.valueOf(s))),
+          sizeExp,
           newBase);
       address = conv.makeConstant(PointerTargetSet.getBaseName(newBase), CPointerType.POINTER_TO_VOID);
       constraints.addConstraint(
@@ -341,11 +351,13 @@ class DynamicMemoryHandler {
    * @param isZeroing A flag indicating if the variable is zeroing.
    * @param type The type.
    * @param base The name of the base.
+   * @param size An expression for the size in bytes of the new base.
    * @return A formula for the memory allocation.
    * @throws UnrecognizedCCodeException If the C code was unrecognizable.
    * @throws InterruptedException If the execution gets interrupted.
    */
-  private Formula makeAllocation(final boolean isZeroing, final CType type, final String base)
+  private Formula makeAllocation(
+      final boolean isZeroing, final CType type, final String base, final Formula size)
       throws UnrecognizedCCodeException, InterruptedException {
     final Formula result = conv.makeBaseAddress(base, type);
     if (isZeroing) {
@@ -362,7 +374,7 @@ class DynamicMemoryHandler {
 
       constraints.addConstraint(initialization);
     }
-    pts.addBase(base, type, constraints);
+    pts.addBase(base, type, size, constraints);
     if (isZeroing) {
       addAllFields(type);
     }
@@ -552,7 +564,8 @@ class DynamicMemoryHandler {
   private void handleDeferredAllocationTypeRevelation(final String pointer, final CType type)
       throws UnrecognizedCCodeException, InterruptedException {
     for (DeferredAllocation d : pts.removeDeferredAllocations(pointer)) {
-      makeAllocation(d.isZeroed(), getAllocationType(type, d.getSize()), d.getBase());
+      makeAllocation(
+          d.isZeroed(), getAllocationType(type, d.getSize()), d.getBase(), d.getSizeExpression());
     }
   }
 
