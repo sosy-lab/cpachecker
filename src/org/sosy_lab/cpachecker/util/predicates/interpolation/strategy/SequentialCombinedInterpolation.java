@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,7 +45,7 @@ public class SequentialCombinedInterpolation<T> extends ITPStrategy<T> {
   /**
    * This strategy returns a sequence of interpolants by computing
    * - each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n] ,
-   * - each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n] ,
+   * - each interpolant for i={0..n-1} for the partitions B=[0 .. i] and A=[i+1 .. n] ,
    * - combining them by some heuristic like conjunction or choose the best interpolant.
    *
    * If one of the sub-strategies fails, we directly return the other.
