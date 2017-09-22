@@ -422,27 +422,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
-   * Adds a pre filled base to the pointer target set.
-   *
-   * @param base The name of the base.
-   * @param type The type of the base.
-   * @param prepared A flag indicating whether the base is prepared or not.
-   * @param constraints Additional constraints
-   * @param pts The underlying pointer target set.
-   */
-  void addPreFilledBase(final String base,
-                        final CType type,
-                        final boolean prepared,
-                        final Constraints constraints,
-                        final PointerTargetSetBuilder pts) {
-    if (!prepared) {
-      pts.addBase(base, type, constraints);
-    } else {
-      pts.shareBase(base, type);
-    }
-  }
-
-  /**
    * Declares a shared base on a declaration.
    *
    * @param declaration The declaration.
@@ -460,7 +439,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final PointerTargetSetBuilder pts) {
     CType type = typeHandler.getSimplifiedType(declaration);
     if (shareImmediately) {
-      addPreFilledBase(declaration.getQualifiedName(), type, false, constraints, pts);
+      pts.addBase(declaration.getQualifiedName(), type, constraints);
     } else if (isAddressedVariable(declaration)
         || CTypeUtils.containsArray(type, originalDeclaration)) {
       pts.prepareBase(declaration.getQualifiedName(), type, constraints);
@@ -957,7 +936,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     declareSharedBase(declaration, declaration, false, constraints, pts);
     if (CTypeUtils.containsArray(declarationType, declaration)) {
-      addPreFilledBase(declaration.getQualifiedName(), declarationType, true, constraints, pts);
+      pts.shareBase(declaration.getQualifiedName(), declarationType);
     }
 
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {

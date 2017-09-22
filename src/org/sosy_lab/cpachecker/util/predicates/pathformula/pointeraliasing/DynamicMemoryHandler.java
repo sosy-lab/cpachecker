@@ -362,7 +362,7 @@ class DynamicMemoryHandler {
 
       constraints.addConstraint(initialization);
     }
-    conv.addPreFilledBase(base, type, false, constraints, pts);
+    pts.addBase(base, type, constraints);
     if (isZeroing) {
       addAllFields(type);
     }
