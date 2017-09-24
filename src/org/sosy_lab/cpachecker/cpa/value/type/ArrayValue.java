@@ -110,7 +110,7 @@ public class ArrayValue implements NumberInterface, Serializable {
    *
    * <p>
    * The given list of values may only contain values of types compatible with the given type
-   * (that is values of the type or subtypes of this type and instances of {@link Value.UnknownValue}).
+   * (that is values of the type or subtypes of this type and instances of {@link org.sosy_lab.cpachecker.cpa.interval.NumberInterface.UnknownValue}).
    * Otherwise, an <code>IllegalArgumentException</code> is thrown at runtime.
    * </p>
    *

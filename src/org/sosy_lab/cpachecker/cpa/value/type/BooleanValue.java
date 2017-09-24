@@ -66,7 +66,7 @@ public class BooleanValue implements NumberInterface, Serializable {
    * boolean meaning of the given value, if one exists.
    * If none exists, an <code>Optional</code> with no contained reference is returned.
    *
-   * @param pValue the {@link Value} whose boolean meaning should be returned
+   * @param pValue the {@link NumberInterface} whose boolean meaning should be returned
    * @return an <code>Optional</code> instance containing a reference to the
    * <code>BooleanValue</code> object representing the boolean meaning of the given value,
    * if one exists. An empty <code>Optional</code> instance, otherwise.
