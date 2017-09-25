@@ -322,15 +322,24 @@ public class CFunctionPointerResolver {
 
       } else if (expression instanceof CIdExpression) {
         String variableName = ((CIdExpression)expression).getName();
-        matchedFuncs = candidateFunctionsForGlobals.get(variableName);
+        CSimpleDeclaration cDecl = ((CIdExpression)expression).getDeclaration();
+        if (cDecl instanceof CVariableDeclaration &&
+            ((CVariableDeclaration)cDecl).isGlobal()) {
+          matchedFuncs = candidateFunctionsForGlobals.get(variableName);
+        } else {
+          matchedFuncs = null;
+        }
 
       } else {
-        matchedFuncs = Collections.emptySet();
+        matchedFuncs = null;
       }
 
-      if (matchedFuncs.isEmpty() && !ignoreUnknownAssignments) {
+      /* 'null means, that the heuristics can not be applied, use the origin procedure
+       * 'empty' means, we have found empty set of matched functions in case, when the heuristics may be applied
+       */
+      if (matchedFuncs != null && matchedFuncs.isEmpty() && !ignoreUnknownAssignments) {
         funcs = Collections.emptySet();
-      } else {
+      } else if (matchedFuncs != null) {
         funcs = from(funcs).
             filter(f -> matchedFuncs.contains(f.getFunctionName())).
             toSet();
