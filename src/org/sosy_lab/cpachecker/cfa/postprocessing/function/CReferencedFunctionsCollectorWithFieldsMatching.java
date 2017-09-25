@@ -29,8 +29,11 @@ import java.util.List;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -98,9 +101,21 @@ class CReferencedFunctionsCollectorWithFieldsMatching extends CReferencedFunctio
       //Structure found
       List<CCompositeTypeMemberDeclaration> list = ((CCompositeType) type).getMembers();
       List<CInitializer> initList = init.getInitializers();
-      for (int i = 0; i < list.size(); i++) {
+      //Important to traverse via initList to handle such cases as
+      // struct my_struct m = {.field = 1}
+      for (int i = 0; i < initList.size(); i++) {
         CCompositeTypeMemberDeclaration decl = list.get(i);
         CInitializer cInit = initList.get(i);
+        if (cInit instanceof CDesignatedInitializer) {
+          List<CDesignator> des = ((CDesignatedInitializer)cInit).getDesignators();
+          assert des.size() == 1;
+          CDesignator field = des.get(0);
+          CInitializer fieldInit = ((CDesignatedInitializer)cInit).getRightHandSide();
+          if (fieldInit instanceof CInitializerExpression && field instanceof CFieldDesignator) {
+            saveInitializerExpression(getFieldMatching(),
+                ((CInitializerExpression)fieldInit), ((CFieldDesignator)field).getFieldName());
+          }
+        }
         if (cInit instanceof CInitializerExpression) {
           saveInitializerExpression(getFieldMatching(), (CInitializerExpression) cInit, decl.getName());
         }
