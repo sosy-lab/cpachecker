@@ -124,8 +124,12 @@ public class ValueAnalysisRefiner
     final Configuration config = valueAnalysisCpa.getConfiguration();
     final CFA cfa = valueAnalysisCpa.getCFA();
 
+    Configuration emptyConfig = Configuration.builder()
+        .copyOptionFromIfPresent(config, "cpa.value.ignoreFunctionValue")
+        .build();
+
     final StrongestPostOperator<ValueAnalysisState> strongestPostOp =
-        new ValueAnalysisStrongestPostOperator(logger, Configuration.builder().build(), cfa);
+        new ValueAnalysisStrongestPostOperator(logger, emptyConfig, cfa);
 
     final ValueAnalysisFeasibilityChecker checker =
         new ValueAnalysisFeasibilityChecker(strongestPostOp, logger, cfa, config);

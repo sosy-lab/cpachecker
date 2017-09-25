@@ -62,7 +62,10 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
       final CFA pCfa
   ) throws InvalidConfigurationException {
 
-    transfer = new ValueAnalysisTransferRelation(pConfig, pLogger, pCfa);
+    Configuration config = Configuration.builder()
+        .copyOptionFromIfPresent(pConfig, "cpa.value.ignoreFunctionValue")
+        .build();
+    transfer = new ValueAnalysisTransferRelation(config, pLogger, pCfa);
   }
 
   @Override
