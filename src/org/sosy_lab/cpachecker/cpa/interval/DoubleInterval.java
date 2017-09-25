@@ -542,7 +542,7 @@ public class DoubleInterval implements NumberInterface {
 
     @Override
     public boolean isUnbound() {
-        return !isEmpty() && low == -Double.MIN_VALUE && high == Double.MAX_VALUE;
+        return !isEmpty() && low == -Double.MAX_VALUE && high == Double.MAX_VALUE;
     }
 
     /*
