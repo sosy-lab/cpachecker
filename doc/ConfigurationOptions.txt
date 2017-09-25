@@ -203,6 +203,10 @@ analysis.machineModel = LINUX32
 # particular expression (structure field).
 analysis.matchAssignedFunctionPointers = false
 
+# If a no target function was assigned to a function pointer, use the origin
+# heuristic instead of replacing with empty calls
+analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments = false
+
 # memorize previously used (incomplete) reached sets after a restart of the
 # analysis
 analysis.memorizeReachedAfterRestart = false

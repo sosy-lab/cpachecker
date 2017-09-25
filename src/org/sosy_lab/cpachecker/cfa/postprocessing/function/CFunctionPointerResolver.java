@@ -110,6 +110,11 @@ public class CFunctionPointerResolver {
       description="Use as targets for call edges only those shich are assigned to the particular expression (structure field).")
   private boolean matchAssignedFunctionPointers = false;
 
+  @Option(secure=true, name="analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments",
+      description="If a no target function was assigned to a function pointer,"
+          + " use the origin heuristic instead of replacing with empty calls")
+  private boolean ignoreUnknownAssignments = false;
+
   private enum FunctionSet {
     // The items here need to be declared in the order they should be used when checking function.
     ALL, //all defined functions considered (Warning: some CPAs require at least EQ_PARAM_SIZES)
@@ -322,7 +327,7 @@ public class CFunctionPointerResolver {
         matchedFuncs = Collections.emptySet();
       }
 
-      if (matchedFuncs.isEmpty()) {
+      if (matchedFuncs.isEmpty() && !ignoreUnknownAssignments) {
         funcs = Collections.emptySet();
       } else {
         funcs = from(funcs).
