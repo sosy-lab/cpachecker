@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -54,9 +56,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
-import java.util.HashSet;
-import java.util.Set;
-
 
 /**
  * Helper class that collects all functions referenced by some CFAEdges,
@@ -66,7 +65,7 @@ import java.util.Set;
 class CReferencedFunctionsCollector {
 
   final Set<String> collectedFunctions = new HashSet<>();
-  private final CollectFunctionsVisitor collector;
+  protected CollectFunctionsVisitor collector;
 
   public CReferencedFunctionsCollector() {
     collector = new CollectFunctionsVisitor(collectedFunctions);
