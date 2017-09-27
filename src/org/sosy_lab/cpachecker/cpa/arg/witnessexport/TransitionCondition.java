@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg.graphexport;
+package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import java.util.EnumMap;
 import java.util.Iterator;

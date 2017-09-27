@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg.graphexport;
+package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
