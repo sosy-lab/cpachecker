@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMlBuilder;
 
-public enum GraphBuilder {
+enum GraphBuilder {
 
   ARG_PATH {
 

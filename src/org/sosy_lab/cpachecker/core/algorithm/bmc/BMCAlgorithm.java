@@ -76,9 +76,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.GraphBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -395,7 +394,6 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                     rootState,
                     Predicates.alwaysTrue(),
                     Predicates.alwaysTrue(),
-                    GraphBuilder.CFA_FROM_ARG,
                     new InvariantProvider() {
 
                       @Override

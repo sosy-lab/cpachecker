@@ -126,7 +126,6 @@ public class WitnessExporter {
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,
-        GraphBuilder.CFA_FROM_ARG,
         new InvariantProvider() {
 
           @Override
@@ -177,14 +176,12 @@ public class WitnessExporter {
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       Predicate<? super Pair<ARGState, ARGState>> pIsRelevantEdge,
-      GraphBuilder pGraphBuilder,
       InvariantProvider pInvariantProvider)
       throws IOException {
     Preconditions.checkNotNull(pTarget);
     Preconditions.checkNotNull(pRootState);
     Preconditions.checkNotNull(pIsRelevantState);
     Preconditions.checkNotNull(pIsRelevantEdge);
-    Preconditions.checkNotNull(pGraphBuilder);
     Preconditions.checkNotNull(pInvariantProvider);
 
     String defaultFileName = getInitialFileName(pRootState);
@@ -204,7 +201,7 @@ public class WitnessExporter {
         pIsRelevantState,
         pIsRelevantEdge,
         Optional.empty(),
-        pGraphBuilder);
+        GraphBuilder.CFA_FROM_ARG);
   }
 
   private String getInitialFileName(ARGState pRootState) {
