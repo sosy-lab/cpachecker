@@ -134,7 +134,7 @@ public class ARGStatistics implements Statistics {
     logger = pLogger;
     cpa = pCpa;
     assumptionToEdgeAllocator =
-        new AssumptionToEdgeAllocator(config, logger, cfa.getMachineModel());
+        AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel());
     cexExporter = new CEXExporter(config, logger, cfa, pSpecification, cpa);
     argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
 

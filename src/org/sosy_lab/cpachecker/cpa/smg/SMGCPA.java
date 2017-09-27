@@ -109,7 +109,7 @@ public class SMGCPA
     options = new SMGOptions(config);
     exportOptions = new SMGExportDotOption(options.getExportSMGFilePattern(), options.getExportSMGLevel());
 
-    assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(config, logger, machineModel);
+    assumptionToEdgeAllocator = AssumptionToEdgeAllocator.create(config, logger, machineModel);
 
     blockOperator = new BlockOperator();
     pConfig.inject(blockOperator);

@@ -158,25 +158,41 @@ public class AssumptionToEdgeAllocator {
       + " allow division and modulo by constants.")
   private boolean allowDivisionAndModuloByConstants = false;
 
-  @Option(secure=true, description=
-      "Whether or not to include concrete address values.")
-  private boolean includeConstantsForPointers = false;
+  private final boolean includeConstantsForPointers;
 
   /**
-   * Creates an instance of the allocator that takes an {@link CFAEdge} edge
-   * along an error path and a {@link ConcreteState} state that contains the concrete
-   * values of the variables and of the memory at that edge and creates concrete assumptions
-   * for the variables at the given edge.
+   * Creates an instance of the allocator that takes an {@link CFAEdge} edge along an error path and
+   * a {@link ConcreteState} state that contains the concrete values of the variables and of the
+   * memory at that edge and creates concrete assumptions for the variables at the given edge.
    *
    * @param pConfig the configuration.
    * @param pLogger logger for logging purposes.
    * @param pMachineModel the machine model that holds for the error path of the given edge.
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  public AssumptionToEdgeAllocator(
+  public static AssumptionToEdgeAllocator create(
+      Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+    return new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel, true);
+  }
+
+  /**
+   * Like {@link #create(Configuration, LogManager, MachineModel)}, but ensures that no assumptions
+   * about concrete pointer values are produced. This is better if the resulting assumptions are
+   * passed to external tools, which might have different assumptions about pointer values.
+   */
+  public static AssumptionToEdgeAllocator createWithoutPointerConstants(
+      Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+    return new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel, false);
+  }
+
+  private AssumptionToEdgeAllocator(
       Configuration pConfig,
       LogManager pLogger,
-      MachineModel pMachineModel) throws InvalidConfigurationException {
+      MachineModel pMachineModel,
+      boolean pIncludeConstantsForPointers)
+      throws InvalidConfigurationException {
 
     Preconditions.checkNotNull(pLogger);
     Preconditions.checkNotNull(pMachineModel);
@@ -185,6 +201,7 @@ public class AssumptionToEdgeAllocator {
 
     logger = pLogger;
     machineModel = pMachineModel;
+    includeConstantsForPointers = pIncludeConstantsForPointers;
   }
 
   /**

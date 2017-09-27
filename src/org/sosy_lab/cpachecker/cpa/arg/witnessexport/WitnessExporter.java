@@ -83,7 +83,8 @@ public class WitnessExporter {
     pConfig.inject(options);
     this.cfa = pCFA;
     this.assumptionToEdgeAllocator =
-        new AssumptionToEdgeAllocator(pConfig, pLogger, pCFA.getMachineModel());
+        AssumptionToEdgeAllocator.createWithoutPointerConstants(
+            pConfig, pLogger, pCFA.getMachineModel());
     this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
   }
 
