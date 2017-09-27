@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg;
+package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
@@ -117,8 +117,7 @@ import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -147,7 +146,7 @@ import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.w3c.dom.Element;
 
 @Options(prefix = "cpa.arg.witness")
-public class ARGPathExporter {
+public class WitnessExporter {
 
   private static final EnumSet<KeyDef> INSUFFICIENT_KEYS =
       EnumSet.of(
@@ -216,7 +215,7 @@ public class ARGPathExporter {
 
   private final VerificationTaskMetaData verificationTaskMetaData;
 
-  public ARGPathExporter(
+  public WitnessExporter(
       final Configuration pConfig,
       final LogManager pLogger,
       final Specification pSpecification,

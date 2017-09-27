@@ -74,11 +74,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPathExporter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.GraphBuilder;
-import org.sosy_lab.cpachecker.cpa.arg.InvariantProvider;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.GraphBuilder;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -125,7 +125,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final CFA cfa;
   private final AssignmentToPathAllocator assignmentToPathAllocator;
 
-  private final ARGPathExporter argPathExporter;
+  private final WitnessExporter argWitnessExporter;
 
   public BMCAlgorithm(
       Algorithm pAlgorithm,
@@ -167,7 +167,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     MachineModel machineModel = pCFA.getMachineModel();
 
     assignmentToPathAllocator = new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);
-    argPathExporter = new ARGPathExporter(config, logger, specification, cfa);
+    argWitnessExporter = new WitnessExporter(config, logger, specification, cfa);
   }
 
   @Override
@@ -390,7 +390,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               final ExpressionTreeSupplier expSup = tmpExpressionTreeSupplier;
 
               try (Writer w = IO.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
-                argPathExporter.writeProofWitness(
+                argWitnessExporter.writeProofWitness(
                     w,
                     rootState,
                     Predicates.alwaysTrue(),

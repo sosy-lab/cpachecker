@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -115,7 +116,7 @@ public class ARGStatistics implements Statistics {
   private Writer refinementGraphUnderlyingWriter = null;
   private ARGToDotWriter refinementGraphWriter = null;
   private final @Nullable CEXExporter cexExporter;
-  private final ARGPathExporter argPathExporter;
+  private final WitnessExporter argWitnessExporter;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ARGToCTranslator argToCExporter;
 
@@ -135,7 +136,7 @@ public class ARGStatistics implements Statistics {
     assumptionToEdgeAllocator =
         new AssumptionToEdgeAllocator(config, logger, cfa.getMachineModel());
     cexExporter = new CEXExporter(config, logger, cfa, pSpecification, cpa);
-    argPathExporter = new ARGPathExporter(config, logger, pSpecification, cfa);
+    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
 
     if (argFile == null && simplifiedArgFile == null && refinementGraphFile == null && proofWitness == null) {
       exportARG = false;
@@ -274,7 +275,7 @@ public class ARGStatistics implements Statistics {
       try (Writer w =
           IO.openOutputFile(
               adjustPathNameForPartitioning(rootState, proofWitness), StandardCharsets.UTF_8)) {
-        argPathExporter.writeProofWitness(w, rootState,
+        argWitnessExporter.writeProofWitness(w, rootState,
             Predicates.alwaysTrue(),
             Predicates.alwaysTrue());
       } catch (IOException e) {

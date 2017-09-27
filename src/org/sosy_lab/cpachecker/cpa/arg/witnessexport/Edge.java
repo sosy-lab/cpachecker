@@ -30,13 +30,13 @@ import com.google.common.collect.ComparisonChain;
  * An edge corresponds to the transfer from one node to another.
  * This class is intended to be immutable.
  */
-public class Edge implements Comparable<Edge> {
+class Edge implements Comparable<Edge> {
 
-  public final String source;
+  final String source;
 
-  public final String target;
+  final String target;
 
-  public final TransitionCondition label;
+  final TransitionCondition label;
 
   private int hashCode = 0;
 

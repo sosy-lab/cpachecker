@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2015  Dirk Beyer
+ *  Copyright (C) 2007-2016  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,27 +21,29 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg;
+package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
-import com.google.common.collect.Multimap;
 import java.util.Collection;
-import java.util.Optional;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-interface EdgeAppender {
+import java.util.Optional;
 
-  void appendNewEdge(
-      String pFrom,
-      String pTo,
-      CFAEdge pEdge,
-      Optional<Collection<ARGState>> pFromState,
-      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap);
+public interface InvariantProvider {
 
-  void appendNewEdgeToSink(
-      String pFrom,
-      CFAEdge pEdge,
-      Optional<Collection<ARGState>> pFromState,
-      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap);
+  ExpressionTree<Object> provideInvariantFor(
+      CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates);
 
+  static enum TrueInvariantProvider implements InvariantProvider {
+    INSTANCE;
+
+    @Override
+    public ExpressionTree<Object> provideInvariantFor(
+        CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
+      return ExpressionTrees.getTrue();
+    }
+  }
 }

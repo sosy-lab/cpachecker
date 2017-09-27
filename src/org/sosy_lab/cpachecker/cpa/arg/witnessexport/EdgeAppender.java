@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2015  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,28 +21,28 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.arg;
+package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import com.google.common.collect.Multimap;
 import java.util.Collection;
-
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-
 import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-public interface InvariantProvider {
+interface EdgeAppender {
 
-  ExpressionTree<Object> provideInvariantFor(
-      CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates);
+  void appendNewEdge(
+      String pFrom,
+      String pTo,
+      CFAEdge pEdge,
+      Optional<Collection<ARGState>> pFromState,
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap);
 
-  static enum TrueInvariantProvider implements InvariantProvider {
-    INSTANCE;
+  void appendNewEdgeToSink(
+      String pFrom,
+      CFAEdge pEdge,
+      Optional<Collection<ARGState>> pFromState,
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap);
 
-    @Override
-    public ExpressionTree<Object> provideInvariantFor(
-        CFAEdge pCFAEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
-      return ExpressionTrees.getTrue();
-    }
-  }
 }

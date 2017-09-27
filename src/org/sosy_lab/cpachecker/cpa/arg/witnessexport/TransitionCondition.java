@@ -31,7 +31,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
 /** an immutable map of facts about the transition. */
-public class TransitionCondition implements Comparable<TransitionCondition> {
+class TransitionCondition implements Comparable<TransitionCondition> {
 
   private static final TransitionCondition EMPTY = new TransitionCondition();
 
