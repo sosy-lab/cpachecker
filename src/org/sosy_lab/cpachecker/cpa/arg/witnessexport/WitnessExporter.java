@@ -203,7 +203,7 @@ public class WitnessExporter {
         pIsRelevantState,
         pIsRelevantEdge,
         Optional.empty(),
-        GraphBuilder.CFA_FROM_ARG);
+        GraphBuilder.CFA_FULL);
   }
 
   private String getInitialFileName(ARGState pRootState) {
