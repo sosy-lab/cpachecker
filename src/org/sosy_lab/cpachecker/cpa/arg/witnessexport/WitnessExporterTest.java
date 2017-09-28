@@ -79,7 +79,7 @@ public class WitnessExporterTest {
         .performTest();
   }
 
-  @Test(timeout=20000)
+  @Test(timeout = 20000)
   public void main1_false() throws Exception {
     newWitnessTester("main1_false-unreach-call_drivers-vhost-vhost_net-ko--32_7a--linux-3.7.3.c")
       .performTest();
