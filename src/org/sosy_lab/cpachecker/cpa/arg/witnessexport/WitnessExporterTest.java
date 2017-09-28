@@ -202,11 +202,14 @@ public class WitnessExporterTest {
               .suffix(pSuffix + compressedSuffix)
               .create()
               .toAbsolutePath();
-      String violationWitnessFileName = compressedFilePath.getFileName().toString();
-      String uncompressedWitnessFileName =
-          violationWitnessFileName.substring(
-              0, violationWitnessFileName.length() - compressedSuffix.length());
-      uncompressedFilePath = compressedFilePath.resolveSibling(uncompressedWitnessFileName);
+      Path compressedFileNamePath = compressedFilePath.getFileName();
+      if (compressedFilePath == null) {
+        throw new AssertionError("Files obtained from TempFile.builder().create() should always have a file name.");
+      }
+      String fileName = compressedFileNamePath.toString();
+      String uncompressedFileName =
+          fileName.substring(0, fileName.length() - compressedSuffix.length());
+      uncompressedFilePath = compressedFilePath.resolveSibling(uncompressedFileName);
       uncompressedFilePath.toFile().deleteOnExit();
     }
 
