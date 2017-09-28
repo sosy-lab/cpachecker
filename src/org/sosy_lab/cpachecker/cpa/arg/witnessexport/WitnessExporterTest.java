@@ -115,7 +115,7 @@ public class WitnessExporterTest {
 
     TestResults results = CPATestRunner.run(generationConfig, pFilePath);
     // Trigger statistics so that the witness is written to the file
-    results.getCheckerResult().printStatistics(new PrintStream(ByteStreams.nullOutputStream()));
+    results.getCheckerResult().printStatistics(new PrintStream(ByteStreams.nullOutputStream(), true, "UTF-8"));
 
     if (isSupposedToBeSafe(pFilePath)) {
       results.assertIsSafe();
