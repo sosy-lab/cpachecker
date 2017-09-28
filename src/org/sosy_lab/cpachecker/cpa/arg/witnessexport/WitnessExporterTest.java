@@ -71,7 +71,7 @@ public class WitnessExporterTest {
         .performTest();
   }
 
-  @Test(timeout = 10000)
+  @Test(timeout = 20000)
   public void minepump_spec1_product33_false() throws Exception {
     newWitnessTester("minepump_spec1_product33_false-unreach-call_false-termination.cil.c")
         .performTest()
