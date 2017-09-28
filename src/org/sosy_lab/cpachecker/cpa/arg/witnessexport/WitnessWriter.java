@@ -44,11 +44,13 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.Queues;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -72,10 +74,27 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -87,6 +106,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -144,6 +167,191 @@ class WitnessWriter implements EdgeAppender {
       return child;
     }
 
+  };
+
+  static final Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions> ASSUMPTION_FILTER =
+      new Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions>() {
+
+        @Override
+        @Nullable
+        public CFAEdgeWithAssumptions apply(@Nullable CFAEdgeWithAssumptions pEdgeWithAssumptions) {
+          int originalSize = pEdgeWithAssumptions.getExpStmts().size();
+          List<AExpressionStatement> expressionStatements = Lists.newArrayListWithCapacity(originalSize);
+          for (AExpressionStatement expressionStatement : pEdgeWithAssumptions.getExpStmts()) {
+            AExpression assumption = expressionStatement.getExpression();
+            if (!(assumption instanceof CBinaryExpression)) {
+              expressionStatements.add(expressionStatement);
+            } else {
+              CBinaryExpression binExpAssumption = (CBinaryExpression) assumption;
+              CExpression leftSide = binExpAssumption.getOperand1();
+              CExpression rightSide = binExpAssumption.getOperand2();
+
+              final CType leftType = leftSide.getExpressionType().getCanonicalType();
+              final CType rightType = rightSide.getExpressionType().getCanonicalType();
+
+              if (!(leftType instanceof CVoidType) || !(rightType instanceof CVoidType)) {
+
+                boolean equalTypes = leftType.equals(rightType);
+
+                FluentIterable<Class<? extends CType>> acceptedTypes =
+                    FluentIterable.from(Collections.<Class<? extends CType>>singleton(CSimpleType.class));
+
+                boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(
+                    pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
+
+                boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(
+                    pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
+
+                if (leftIsAccepted && rightIsAccepted) {
+                  boolean leftIsConstant = isConstant(leftSide);
+                  boolean leftIsPointer = !leftIsConstant && isEffectivelyPointer(leftSide);
+                  boolean rightIsConstant = isConstant(rightSide);
+                  boolean rightIsPointer = !rightIsConstant && isEffectivelyPointer(rightSide);
+                  if (!(leftIsPointer && rightIsConstant) && !(leftIsConstant && rightIsPointer)) {
+                    expressionStatements.add(expressionStatement);
+                  }
+                }
+              }
+            }
+          }
+
+          if (expressionStatements.size() == originalSize) {
+            return pEdgeWithAssumptions;
+          }
+          return new CFAEdgeWithAssumptions(
+              pEdgeWithAssumptions.getCFAEdge(),
+              expressionStatements,
+              pEdgeWithAssumptions.getComment());
+        }
+
+        private boolean isConstant(CExpression pLeftSide) {
+          return pLeftSide.accept(new CExpressionVisitor<Boolean, RuntimeException>() {
+
+            @Override
+            public Boolean visit(CArraySubscriptExpression pIastArraySubscriptExpression)
+                throws RuntimeException {
+              return false;
+            }
+
+            @Override
+            public Boolean visit(CFieldReference pIastFieldReference) throws RuntimeException {
+              return false;
+            }
+
+            @Override
+            public Boolean visit(CIdExpression pIastIdExpression) throws RuntimeException {
+              return false;
+            }
+
+            @Override
+            public Boolean visit(CPointerExpression pPointerExpression) throws RuntimeException {
+              return false;
+            }
+
+            @Override
+            public Boolean visit(CComplexCastExpression pComplexCastExpression)
+                throws RuntimeException {
+              return pComplexCastExpression.getOperand().accept(this);
+            }
+
+            @Override
+            public Boolean visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
+              return pIastBinaryExpression.getOperand1().accept(this)
+                  && pIastBinaryExpression.getOperand2().accept(this);
+            }
+
+            @Override
+            public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
+              return pIastCastExpression.getOperand().accept(this);
+            }
+
+            @Override
+            public Boolean visit(CCharLiteralExpression pIastCharLiteralExpression)
+                throws RuntimeException {
+              return true;
+            }
+
+            @Override
+            public Boolean visit(CFloatLiteralExpression pIastFloatLiteralExpression)
+                throws RuntimeException {
+              return true;
+            }
+
+            @Override
+            public Boolean visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+                throws RuntimeException {
+              return true;
+            }
+
+            @Override
+            public Boolean visit(CStringLiteralExpression pIastStringLiteralExpression)
+                throws RuntimeException {
+              return true;
+            }
+
+            @Override
+            public Boolean visit(CTypeIdExpression pIastTypeIdExpression) throws RuntimeException {
+              return false;
+            }
+
+            @Override
+            public Boolean visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
+              return pIastUnaryExpression.getOperand().accept(this);
+            }
+
+            @Override
+            public Boolean visit(CImaginaryLiteralExpression PIastLiteralExpression)
+                throws RuntimeException {
+              return true;
+            }
+
+            @Override
+            public Boolean visit(CAddressOfLabelExpression pAddressOfLabelExpression)
+                throws RuntimeException {
+              return false;
+            }
+
+          });
+        }
+
+        private boolean isEffectivelyPointer(CExpression pLeftSide) {
+          return pLeftSide.accept(new DefaultCExpressionVisitor<Boolean, RuntimeException>() {
+
+            @Override
+            public Boolean visit(CComplexCastExpression pComplexCastExpression)
+                throws RuntimeException {
+              return pComplexCastExpression.getOperand().accept(this);
+            }
+
+            @Override
+            public Boolean visit(CBinaryExpression pIastBinaryExpression) throws RuntimeException {
+              return pIastBinaryExpression.getOperand1().accept(this)
+                  || pIastBinaryExpression.getOperand2().accept(this);
+            }
+
+            @Override
+            public Boolean visit(CCastExpression pIastCastExpression) throws RuntimeException {
+              return pIastCastExpression.getOperand().accept(this);
+            }
+
+            @Override
+            public Boolean visit(CUnaryExpression pIastUnaryExpression) throws RuntimeException {
+              if (Arrays.asList(UnaryOperator.MINUS, UnaryOperator.TILDE).contains(pIastUnaryExpression.getOperator())) {
+                return pIastUnaryExpression.getOperand().accept(this);
+              }
+              if (pIastUnaryExpression.getOperator().equals(UnaryOperator.AMPER)) {
+                return true;
+              }
+              return visitDefault(pIastUnaryExpression);
+            }
+
+            @Override
+            protected Boolean visitDefault(CExpression pExp) throws RuntimeException {
+              return pExp.getExpressionType().getCanonicalType() instanceof CPointerType;
+            }
+
+          });
+        }
   };
 
   private final WitnessOptions witnessOptions;
@@ -735,7 +943,10 @@ class WitnessWriter implements EdgeAppender {
 
     if (pCounterExample.isPresent()) {
       if (pCounterExample.get().isPreciseCounterExample()) {
-        valueMap = pCounterExample.get().getExactVariableValues();
+        valueMap = Multimaps
+            .transformValues(
+                pCounterExample.get().getExactVariableValues(),
+                ASSUMPTION_FILTER);
       } else {
         isRelevantEdge = edge -> pIsRelevantState.apply(edge.getFirst()) && pIsRelevantState.apply(edge.getSecond());
       }

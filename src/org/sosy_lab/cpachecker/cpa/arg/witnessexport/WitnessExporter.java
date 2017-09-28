@@ -144,10 +144,11 @@ public class WitnessExporter {
               if (valueAnalysisState != null) {
                 ConcreteState concreteState =
                     ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
-                for (AExpressionStatement expressionStatement :
-                    assumptionToEdgeAllocator
-                        .allocateAssumptionsToEdge(pEdge, concreteState)
-                        .getExpStmts()) {
+                Iterable<AExpressionStatement> invariants =
+                    WitnessWriter.ASSUMPTION_FILTER.apply(
+                        assumptionToEdgeAllocator.allocateAssumptionsToEdge(pEdge, concreteState))
+                    .getExpStmts();
+                for (AExpressionStatement expressionStatement : invariants) {
                   stateInvariant =
                       factory.and(
                           stateInvariant,
