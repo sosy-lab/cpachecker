@@ -1829,7 +1829,7 @@ cpa.predicate.refinement.reuseInterpolationEnvironment = false
 # fallback to the other if one does not succeed, or even combine the
 # interpolants.
 cpa.predicate.refinement.sequentialStrategy = FWD
-  enum:     [FWD, FWD_FALLBACK, BWD, BWD_FALLBACK, CONJUNCTION]
+  enum:     [FWD, FWD_FALLBACK, BWD, BWD_FALLBACK, CONJUNCTION, WEIGHTED, RANDOM]
 
 # During refinement, add all new predicates to the precisions of all abstract
 # states in the reached set.

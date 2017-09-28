@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2017  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +35,12 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
+import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 public class SequentialInterpolation<T> extends ITPStrategy<T> {
 
@@ -51,7 +56,9 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
     FWD_FALLBACK,
     BWD,
     BWD_FALLBACK,
-    CONJUNCTION
+    CONJUNCTION,
+    WEIGHTED,
+    RANDOM
   }
 
   private final SeqInterpolationStrategy sequentialStrategy;
@@ -75,14 +82,13 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
     final List<T> formulas = Lists.transform(formulasWithStateAndGroupId, Triple::getThird);
 
     switch (sequentialStrategy) {
-
       case FWD_FALLBACK:
         try {
           return getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
           logger.log(Level.ALL, FALLBACK_BWD_MSG, e);
         }
-        //$FALL-THROUGH$
+        // $FALL-THROUGH$
       case BWD:
         return getBwdInterpolants(interpolator, formulas);
 
@@ -92,11 +98,13 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         } catch (SolverException e) {
           logger.log(Level.ALL, FALLBACK_FWD_MSG, e);
         }
-        //$FALL-THROUGH$
+        // $FALL-THROUGH$
       case FWD:
         return getFwdInterpolants(interpolator, formulas);
 
       case CONJUNCTION:
+      case WEIGHTED:
+      case RANDOM:
         List<BooleanFormula> forward = null;
         try {
           forward = getFwdInterpolants(interpolator, formulas);
@@ -169,10 +177,77 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
     Preconditions.checkNotNull(forward);
     Preconditions.checkNotNull(backward);
 
-    final List<BooleanFormula> interpolants = Lists.newArrayListWithExpectedSize(forward.size());
-    for (int i = 0; i < forward.size(); i++) {
-      interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
+    switch (sequentialStrategy) {
+      case CONJUNCTION:
+        final List<BooleanFormula> interpolants =
+            Lists.newArrayListWithExpectedSize(forward.size());
+        for (int i = 0; i < forward.size(); i++) {
+          interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
+        }
+        return interpolants;
+
+      case WEIGHTED:
+        long weightFwd = getWeight(forward);
+        long weightBwd = getWeight(backward);
+        return weightFwd <= weightBwd ? forward : backward;
+
+      case RANDOM:
+        return Math.random() <= 0.5 ? forward : backward;
+
+      default:
+        throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
     }
-    return interpolants;
+  }
+
+  /**
+   * Just a simple heuristic for weighting formulas depending on their structure. We assume
+   * something like less variables and less operations are good, equalities are bad, comparisons are
+   * better (loop invariants!), and we ignore quantifiers.
+   */
+  private long getWeight(List<BooleanFormula> formulas) {
+    long weight = 0;
+    for (BooleanFormula formula : formulas) {
+      Visitor fv = new Visitor();
+      fmgr.visitRecursively(formula, fv);
+      weight += fv.getWeight();
+    }
+    return weight;
+  }
+
+  private static final class Visitor extends DefaultFormulaVisitor<TraversalProcess> {
+
+    private long weight = 0;
+
+    private long getWeight() {
+      return weight;
+    }
+
+    @Override
+    protected TraversalProcess visitDefault(Formula pF) {
+      return TraversalProcess.CONTINUE;
+    }
+
+    @Override
+    public TraversalProcess visitFreeVariable(Formula f, String name) {
+      weight += 5;
+      return visitDefault(f);
+    }
+
+    @Override
+    public TraversalProcess visitConstant(Formula f, Object value) {
+      weight += 1;
+      return visitDefault(f);
+    }
+
+    @Override
+    public TraversalProcess visitFunction(
+        Formula f, List<Formula> args, FunctionDeclaration<?> functionDeclaration) {
+      if (functionDeclaration.getType().isBooleanType()) {
+        weight += (functionDeclaration.getKind() == FunctionDeclarationKind.EQ ? 30 : 20);
+      } else {
+        weight += 50;
+      }
+      return visitDefault(f);
+    }
   }
 }
