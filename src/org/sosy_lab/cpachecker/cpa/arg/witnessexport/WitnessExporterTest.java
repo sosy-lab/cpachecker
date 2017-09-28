@@ -64,7 +64,7 @@ public class WitnessExporterTest {
 
   private static final String TEST_DIR_PATH = "test/programs/witnessValidation/";
 
-  @Test(timeout = 10000)
+  @Test(timeout = 20000)
   public void minepump_spec1_product05_true() throws Exception {
     newWitnessTester("minepump_spec1_product05_true-unreach-call_false-termination.cil.c")
         .useGenerationConfig(WitnessGenerationConfig.K_INDUCTION)
