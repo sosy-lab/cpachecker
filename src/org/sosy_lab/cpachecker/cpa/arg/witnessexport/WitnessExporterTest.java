@@ -64,14 +64,14 @@ public class WitnessExporterTest {
 
   private static final String TEST_DIR_PATH = "test/programs/witnessValidation/";
 
-  @Test(timeout = 20000)
+  @Test(timeout = 90000)
   public void multivar_true() throws Exception {
     newWitnessTester("multivar_true-unreach-call1_true-termination.i")
         .useGenerationConfig(WitnessGenerationConfig.K_INDUCTION)
         .performTest();
   }
 
-  @Test(timeout = 20000)
+  @Test(timeout = 90000)
   public void minepump_spec1_product33_false() throws Exception {
     newWitnessTester("minepump_spec1_product33_false-unreach-call_false-termination.cil.c")
         .performTest()
@@ -79,9 +79,9 @@ public class WitnessExporterTest {
         .performTest();
   }
 
-  @Test(timeout = 20000)
-  public void main1_false() throws Exception {
-    newWitnessTester("main1_false-unreach-call_drivers-vhost-vhost_net-ko--32_7a--linux-3.7.3.c")
+  @Test(timeout = 90000)
+  public void rule60_list2_false() throws Exception {
+    newWitnessTester("rule60_list2.c_false-unreach-call_1.i")
       .performTest();
   }
 
