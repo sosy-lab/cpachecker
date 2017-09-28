@@ -1824,6 +1824,13 @@ cpa.predicate.refinement.restartAfterRefinements = 0
 # Use a single SMT solver environment for several interpolation queries
 cpa.predicate.refinement.reuseInterpolationEnvironment = false
 
+# In case we apply sequential interpolation, forward and backward directions
+# return valid interpolants. We can either choose one of the directions,
+# fallback to the other if one does not succeed, or even combine the
+# interpolants.
+cpa.predicate.refinement.sequentialStrategy = FWD
+  enum:     [FWD, FWD_FALLBACK, BWD, BWD_FALLBACK, CONJUNCTION]
+
 # During refinement, add all new predicates to the precisions of all abstract
 # states in the reached set.
 cpa.predicate.refinement.sharePredicates = false
@@ -1852,8 +1859,7 @@ cpa.predicate.refinement.splitItpAtoms = false
 # - TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from
 # 'Tree Interpolation in Vampire'.
 cpa.predicate.refinement.strategy = SEQ_CPACHECKER
-  enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER,
-             SEQ_CPACHECKER_REVERSE, SEQ_CPACHECKER_COMBINED]
+  enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)

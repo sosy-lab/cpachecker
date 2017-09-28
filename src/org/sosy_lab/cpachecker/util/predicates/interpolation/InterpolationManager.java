@@ -70,10 +70,9 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialCombinedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
+import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation.SeqInterpolationStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolationWithSolver;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialReverseInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolationWithSolver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.WellScopedInterpolation;
@@ -157,9 +156,13 @@ public final class InterpolationManager {
     TREE_WELLSCOPED,
     TREE_NESTED,
     TREE_CPACHECKER,
-    SEQ_CPACHECKER_REVERSE,
-    SEQ_CPACHECKER_COMBINED
   }
+
+  @Option(secure = true, description = "In case we apply sequential interpolation, "
+      + "forward and backward directions return valid interpolants. "
+      + "We can either choose one of the directions, fallback to the other "
+      + "if one does not succeed, or even combine the interpolants.")
+  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD;
 
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -620,13 +623,7 @@ public final class InterpolationManager {
     final  ITPStrategy<T> itpStrategy;
     switch (strategy) {
       case SEQ_CPACHECKER:
-        itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      case SEQ_CPACHECKER_REVERSE:
-        itpStrategy = new SequentialReverseInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-        break;
-      case SEQ_CPACHECKER_COMBINED:
-        itpStrategy = new SequentialCombinedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr, sequentialStrategy);
         break;
       case SEQ:
         itpStrategy = new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
