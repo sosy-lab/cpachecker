@@ -158,8 +158,6 @@ public class AssumptionToEdgeAllocator {
       + " allow division and modulo by constants.")
   private boolean allowDivisionAndModuloByConstants = false;
 
-  private final boolean includeConstantsForPointers;
-
   /**
    * Creates an instance of the allocator that takes an {@link CFAEdge} edge along an error path and
    * a {@link ConcreteState} state that contains the concrete values of the variables and of the
@@ -173,25 +171,13 @@ public class AssumptionToEdgeAllocator {
   public static AssumptionToEdgeAllocator create(
       Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
       throws InvalidConfigurationException {
-    return new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel, true);
-  }
-
-  /**
-   * Like {@link #create(Configuration, LogManager, MachineModel)}, but ensures that no assumptions
-   * about concrete pointer values are produced. This is better if the resulting assumptions are
-   * passed to external tools, which might have different assumptions about pointer values.
-   */
-  public static AssumptionToEdgeAllocator createWithoutPointerConstants(
-      Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
-      throws InvalidConfigurationException {
-    return new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel, false);
+    return new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel);
   }
 
   private AssumptionToEdgeAllocator(
       Configuration pConfig,
       LogManager pLogger,
-      MachineModel pMachineModel,
-      boolean pIncludeConstantsForPointers)
+      MachineModel pMachineModel)
       throws InvalidConfigurationException {
 
     Preconditions.checkNotNull(pLogger);
@@ -201,7 +187,6 @@ public class AssumptionToEdgeAllocator {
 
     logger = pLogger;
     machineModel = pMachineModel;
-    includeConstantsForPointers = pIncludeConstantsForPointers;
   }
 
   /**
@@ -580,22 +565,16 @@ public class AssumptionToEdgeAllocator {
 
     FluentIterable<Class<? extends CType>> acceptedTypes =
         FluentIterable.from(Collections.<Class<? extends CType>>singleton(CSimpleType.class));
-    if (includeConstantsForPointers) {
-      acceptedTypes = acceptedTypes.append(
+    acceptedTypes = acceptedTypes.append(
           Arrays.asList(
               CArrayType.class,
               CPointerType.class));
-    }
 
     boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(
         pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
 
     boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(
         pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
-
-    if (!includeConstantsForPointers && (!leftIsAccepted || !rightIsAccepted)) {
-      return null;
-    }
 
     if (leftType instanceof CSimpleType && !rightIsAccepted) {
       rightSide = new CCastExpression(rightSide.getFileLocation(), leftType, rightSide);
