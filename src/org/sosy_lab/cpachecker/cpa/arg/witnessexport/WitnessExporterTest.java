@@ -203,7 +203,7 @@ public class WitnessExporterTest {
               .create()
               .toAbsolutePath();
       Path compressedFileNamePath = compressedFilePath.getFileName();
-      if (compressedFilePath == null) {
+      if (compressedFileNamePath == null) {
         throw new AssertionError("Files obtained from TempFile.builder().create() should always have a file name.");
       }
       String fileName = compressedFileNamePath.toString();
