@@ -65,8 +65,8 @@ public class WitnessExporterTest {
   private static final String TEST_DIR_PATH = "test/programs/witnessValidation/";
 
   @Test(timeout = 20000)
-  public void minepump_spec1_product05_true() throws Exception {
-    newWitnessTester("minepump_spec1_product05_true-unreach-call_false-termination.cil.c")
+  public void multivar_true() throws Exception {
+    newWitnessTester("multivar_true-unreach-call1_true-termination.i")
         .useGenerationConfig(WitnessGenerationConfig.K_INDUCTION)
         .performTest();
   }
@@ -82,7 +82,7 @@ public class WitnessExporterTest {
   private static void performTest(
       String pFilename,
       String pSpecification,
-      String pGenerationConfig,
+      WitnessGenerationConfig pGenerationConfig,
       Map<String, String> pOverrideOptions)
       throws Exception {
     String fullPath = Paths.get(TEST_DIR_PATH, pFilename).toString();
@@ -97,7 +97,7 @@ public class WitnessExporterTest {
 
   private static WitnessType generateWitness(
       String pFilePath,
-      String pGenerationConfig,
+      WitnessGenerationConfig pGenerationConfig,
       String pSpecification,
       Map<String, String> pOverrideOptions,
       TempCompressedFilePath pWitnessPath)
@@ -105,10 +105,13 @@ public class WitnessExporterTest {
     Map<String, String> overrideOptions = Maps.newHashMap(pOverrideOptions);
     overrideOptions.put(
         "counterexample.export.graphml", pWitnessPath.uncompressedFilePath.toString());
-    overrideOptions.put("cpa.arg.proofWitness", pWitnessPath.uncompressedFilePath.toString());
-    overrideOptions.put("bmc.invariantsExport", pWitnessPath.uncompressedFilePath.toString());
+    if (pGenerationConfig.equals(WitnessGenerationConfig.K_INDUCTION)) {
+      overrideOptions.put("bmc.invariantsExport", pWitnessPath.uncompressedFilePath.toString());
+    } else {
+      overrideOptions.put("cpa.arg.proofWitness", pWitnessPath.uncompressedFilePath.toString());
+    }
     Configuration generationConfig =
-        getProperties(pGenerationConfig, overrideOptions, pSpecification);
+        getProperties(pGenerationConfig.fileName, overrideOptions, pSpecification);
 
     TestResults results = CPATestRunner.run(generationConfig, pFilePath);
     // Trigger statistics so that the witness is written to the file
@@ -266,7 +269,7 @@ public class WitnessExporterTest {
       WitnessExporterTest.performTest(
           programFile,
           specificationFile,
-          generationConfig.fileName,
+          generationConfig,
           overrideOptionsBuilder.build());
       return this;
     }
