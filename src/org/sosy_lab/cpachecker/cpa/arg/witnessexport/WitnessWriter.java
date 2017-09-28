@@ -1330,8 +1330,6 @@ class WitnessWriter implements EdgeAppender {
   private void putEdge(Edge pEdge) {
     assert leavingEdges.size() == enteringEdges.size();
     assert !pEdge.source.equals(SINK_NODE_ID);
-    assert !enteringEdges.get(pEdge.source).isEmpty()
-      || nodeFlags.get(pEdge.source).contains(NodeFlag.ISENTRY);
     leavingEdges.put(pEdge.source, pEdge);
     enteringEdges.put(pEdge.target, pEdge);
     assert leavingEdges.size() == enteringEdges.size();
