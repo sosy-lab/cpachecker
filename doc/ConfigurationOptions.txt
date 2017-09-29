@@ -2087,7 +2087,7 @@ cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
 # Memory allocation functions
-cpa.smg.memoryAllocationFunctions = {"malloc"}
+cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc"}
 
 # Size parameter of memory allocation functions
 cpa.smg.memoryAllocationFunctionsSizeParameter = 0
@@ -2140,7 +2140,7 @@ cpa.smg.unknownOnUndefined = true
 cpa.smg.verifyPredicates = false
 
 # Allocation functions which set memory to zero
-cpa.smg.zeroingMemoryAllocation = {"calloc"}
+cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 
 # set this to true when you only want to do a code analysis. If StatisticsCPA
 # is combined with other CPAs to do queries use false.
