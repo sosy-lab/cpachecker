@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util;
 
+import static com.google.common.base.Verify.verify;
 import static org.sosy_lab.cpachecker.util.AbstractStates.asIterable;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.filterLocation;
@@ -116,39 +117,44 @@ public class StateToFormulaWriter implements StatisticsProvider {
       ShutdownNotifier shutdownNotifier, CFA pCfa)
           throws InvalidConfigurationException {
     config.inject(this);
-    Solver solver = Solver.create(config, pLogger, shutdownNotifier);
     logger = pLogger;
-    fmgr = solver.getFormulaManager();
     cfa = pCfa;
+    if (exportFile != null) {
+      Solver solver = Solver.create(config, pLogger, shutdownNotifier);
+      fmgr = solver.getFormulaManager();
+    } else {
+      fmgr = null;
+    }
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(
-        new Statistics() {
+    if (exportFile != null) {
+      pStatsCollection.add(
+          new Statistics() {
 
-          @Override
-          public void printStatistics(
-              PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-            if (exportFile != null) {
+            @Override
+            public void printStatistics(
+                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+              verify(fmgr != null);
               try (Writer w = IO.openOutputFile(exportFile, Charset.defaultCharset())) {
                 write(pReached, w);
               } catch (IOException e) {
                 logger.logUserException(Level.WARNING, e, "Could not write formulas to file");
               }
             }
-          }
 
-          @Override
-          public String getName() {
-            return null;
-          }
-        });
+            @Override
+            public String getName() {
+              return null;
+            }
+          });
+    }
   }
 
-
   /** write all formulas for the whole reached-set. */
-  public void write(UnmodifiableReachedSet pReachedSet, Appendable pAppendable) throws IOException {
+  private void write(UnmodifiableReachedSet pReachedSet, Appendable pAppendable)
+      throws IOException {
     SetMultimap<CFANode, FormulaReportingState> locationPredicates = HashMultimap.create();
     for (AbstractState state : pReachedSet) {
       CFANode location = extractLocation(state);
@@ -181,7 +187,10 @@ public class StateToFormulaWriter implements StatisticsProvider {
   }
 
   /** write all formulas for a single program location. */
-  public void write(final CFANode pCfaNode, UnmodifiableReachedSet pReachedSet, Appendable pAppendable) throws IOException {
+  @SuppressWarnings("unused") // Could be useful if this class was used outside statistics
+  private void write(
+      final CFANode pCfaNode, UnmodifiableReachedSet pReachedSet, Appendable pAppendable)
+      throws IOException {
     SetMultimap<CFANode, FormulaReportingState> statesToNode = HashMultimap.create();
     statesToNode.putAll(pCfaNode, projectToType(filterLocation(pReachedSet, pCfaNode), FormulaReportingState.class));
     write(statesToNode, pAppendable);
