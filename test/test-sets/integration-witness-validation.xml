@@ -8,9 +8,7 @@
   If one file is changed, please also update the other one.
   -->
 
-  <option name="-disable-java-assertions"/>
   <option name="-heap">6000M</option>
-  <option name="-heap">10000m</option>
 
   <rundefinition name="witness-validation">
     <option name="-witnessValidation"/>
@@ -18,8 +16,6 @@
     <!-- special directory to search for witnesses -->
     <requiredfiles>../results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/violation-witness.graphml.gz</requiredfiles>
   </rundefinition>
-
-  <resultfiles>**.graphml</resultfiles>
 
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
@@ -80,12 +76,6 @@
   </tasks>
   <tasks name="DeviceDriversLinux64">
     <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
-    <option name="-64"/>
-  </tasks>
-  <tasks name="BusyBox">
-    <includesfile>../programs/benchmarks/Systems_BusyBox_ReachSafety.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-64"/>

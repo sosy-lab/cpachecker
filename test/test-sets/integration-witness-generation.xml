@@ -35,7 +35,7 @@
   </tasks>
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-valid-memsafety-call*</exclude>
+    <exclude>../programs/benchmarks/*/*true-valid-memsafety*</exclude>
     <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
   </tasks>
   <tasks name="Floats">
@@ -78,12 +78,6 @@
     <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
     <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
-    <option name="-64"/>
-  </tasks>
-  <tasks name="BusyBox">
-    <includesfile>../programs/benchmarks/Systems_BusyBox_MemSafety.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
 </benchmark>
