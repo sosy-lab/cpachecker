@@ -6,26 +6,27 @@
        to be checked out at test/programs/ldv-benchmarks. -->
 
   <option name="-noout"/>
-  <option name="-setprop">statistics.memory=true</option>
   <option name="-heap">3000M</option>
-  <option name="-ldv"/>
+  <option name="-setprop">statistics.memory=true</option>
 
   <rundefinition>
-    <tasks>
-      <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
-
-      <include>../programs/ldv-benchmarks/validator/v0.7/*.c</include>
-      <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
-    </tasks>
-
-    <tasks>
-      <propertyfile>../programs/ldv-benchmarks/validator/klever-v0.1/ALL.prp</propertyfile>
-      <include>../programs/ldv-benchmarks/validator/klever-v0.1/*.c</include>
-    </tasks>
-
-    <tasks>
-      <propertyfile>../programs/ldv-benchmarks/bnb/ALL.prp</propertyfile>
-      <includesfile>../programs/ldv-benchmarks/bnb/bnb.set</includesfile>
-    </tasks>
+    <option name="-ldv"/>
   </rundefinition>
+
+  <tasks>
+    <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
+
+    <include>../programs/ldv-benchmarks/validator/v0.7/*.c</include>
+    <include>../programs/ldv-benchmarks/unsafes/*/*/*.c</include>
+  </tasks>
+
+  <tasks>
+    <propertyfile>../programs/ldv-benchmarks/validator/klever-v0.1/ALL.prp</propertyfile>
+    <include>../programs/ldv-benchmarks/validator/klever-v0.1/*.c</include>
+  </tasks>
+
+  <tasks>
+    <propertyfile>../programs/ldv-benchmarks/bnb/ALL.prp</propertyfile>
+    <includesfile>../programs/ldv-benchmarks/bnb/bnb.set</includesfile>
+  </tasks>
 </benchmark>

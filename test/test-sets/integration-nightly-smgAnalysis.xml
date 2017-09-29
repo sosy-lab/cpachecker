@@ -1,8 +1,13 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="150 s" hardtimelimit="200 s" memlimit="7 GB" cpuCores="2">
-  <option name="-heap">10000M</option>
+
   <option name="-noout"/>
+  <option name="-heap">10000M</option>
+
+  <rundefinition>
+    <option name="-smg"/>
+  </rundefinition>
 
   <tasks name="MemSafety-Arrays">
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
@@ -18,9 +23,4 @@
     <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
-
-  <rundefinition>
-    <option name="-smg"/>
-  </rundefinition>
-
 </benchmark>

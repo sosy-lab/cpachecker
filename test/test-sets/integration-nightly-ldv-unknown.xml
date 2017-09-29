@@ -5,16 +5,16 @@
        It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
        to be checked out at test/programs/ldv-benchmarks. -->
 
-  <option name="-heap">13000M</option>
   <option name="-noout"/>
+  <option name="-heap">13000M</option>
   <option name="-setprop">statistics.memory=true</option>
+
+  <rundefinition>
+    <option name="-ldv"/>
+  </rundefinition>
 
   <tasks>
     <include>../programs/ldv-benchmarks/unknown/*/*/*.c</include>
     <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
   </tasks>
-
-  <rundefinition>
-    <option name="-ldv"/>
-  </rundefinition>
 </benchmark>

@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="7 GB" cpuCores="2">
-  <option name="-heap">6000M</option>
 
   <!--
   The benchmarks "integration-witness-generation" and
@@ -9,13 +8,14 @@
   If one file is changed, please also update the other one.
   -->
 
-  <resultfiles>**.graphml.gz</resultfiles>
+  <option name="-heap">6000M</option>
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
 
   <rundefinition name="witness-generation">
     <option name="-sv-comp17"/>
   </rundefinition>
 
-  <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <resultfiles>**.graphml.gz</resultfiles>
 
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
@@ -86,5 +86,4 @@
     <propertyfile>../programs/benchmarks/MemSafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
-
 </benchmark>

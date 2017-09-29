@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.4//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.4.dtd">
 <benchmark tool="cpachecker" timelimit="90 s" hardtimelimit="120 s" memlimit="7 GB" cpuCores="2">
-  <option name="-heap">6000M</option>
 
   <!--
   The benchmarks "integration-witness-generation" and
@@ -9,17 +8,18 @@
   If one file is changed, please also update the other one.
   -->
 
-  <resultfiles>**.graphml</resultfiles>
+  <option name="-disable-java-assertions"/>
+  <option name="-heap">6000M</option>
+  <option name="-heap">10000m</option>
 
   <rundefinition name="witness-validation">
+    <option name="-witnessValidation"/>
+    <option name="-witness">test/results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/violation-witness.graphml.gz</option>
     <!-- special directory to search for witnesses -->
     <requiredfiles>../results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/violation-witness.graphml.gz</requiredfiles>
   </rundefinition>
 
-  <option name="-witnessValidation"/>
-  <option name="-disable-java-assertions"/>
-  <option name="-heap">10000m</option>
-  <option name="-witness">test/results/integration-witness-generation.logfiles/witness-generation.${inputfile_name}.files/output/violation-witness.graphml.gz</option>
+  <resultfiles>**.graphml</resultfiles>
 
   <tasks name="BitVectorsReach">
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
@@ -90,5 +90,4 @@
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <option name="-64"/>
   </tasks>
-
 </benchmark>
