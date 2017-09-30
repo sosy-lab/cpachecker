@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.sign;
 import org.sosy_lab.cpachecker.cpa.interval.Creator;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 
-public class CreatorSIGN implements Creator{
+public class SIGNCreator implements Creator{
 
     @Override
     //I am not sure if it has good performance???

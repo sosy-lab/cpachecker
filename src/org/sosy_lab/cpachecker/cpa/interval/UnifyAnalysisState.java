@@ -58,15 +58,14 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
-import org.sosy_lab.cpachecker.cpa.sign.CreatorSIGN;
-import org.sosy_lab.cpachecker.cpa.sign.SIGN;
+import org.sosy_lab.cpachecker.cpa.sign.SIGNCreator;
 import org.sosy_lab.cpachecker.cpa.sign.SignTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisInformation;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValueCreator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
@@ -301,7 +300,7 @@ public class UnifyAnalysisState
         NumberInterface value = unifyElements.get(variableName);
         switch (numericalType) {
         case SIGN:
-            return value == null ? new CreatorSIGN().factoryMethod(7) : value;
+            return value == null ? new SIGNCreator().factoryMethod(7) : value;
         case INTERVAL:
             return value == null ? new IntegerIntervalCreator().factoryMethod(null) : value;
         default:
@@ -709,14 +708,14 @@ public class UnifyAnalysisState
             case SIGN:
                 // pProperty = value <= varName
                 if (CheckTypesOfStringsUtil.isSIGN(parts.get(0))) {
-                    NumberInterface value = SIGN.valueOf(parts.get(0));
+                    NumberInterface value = new SIGNCreator().factoryMethod(parts.get(0));
                     NumberInterface varName = getElement(MemoryLocation.valueOf(parts.get(1)));
                     return (varName.covers(value));
                 }
                 // pProperty = varName <= value
                 else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))) {
                     NumberInterface varName = getElement(MemoryLocation.valueOf(parts.get(0)));
-                    NumberInterface value = SIGN.valueOf(parts.get(1));
+                    NumberInterface value = new SIGNCreator().factoryMethod(parts.get(1));
                     return (value.covers(varName));
                 }
                 // pProperty = varName1 <= varName2
@@ -805,7 +804,7 @@ public class UnifyAnalysisState
     public UnifyAnalysisState enterFunction(ImmutableMap<MemoryLocation, NumberInterface> pArguments) {
         PersistentMap<MemoryLocation, NumberInterface> newMap = unifyElements;
         for (MemoryLocation var : pArguments.keySet()) {
-            if (!pArguments.get(var).equals(new CreatorSIGN().factoryMethod(7))) {
+            if (!pArguments.get(var).equals(new SIGNCreator().factoryMethod(7))) {
                 newMap = newMap.putAndCopy(var, pArguments.get(var));
             }
         }
@@ -1043,7 +1042,7 @@ public class UnifyAnalysisState
                 } else {
                     String varName = assignmentParts[0].trim();
                     try {
-                        NumberInterface newValue = new NumericValue(Long.parseLong(assignmentParts[1].trim()));
+                        NumberInterface newValue = new NumericValueCreator().factoryMethod(Long.parseLong(assignmentParts[1].trim()));
                         this.assignElement(MemoryLocation.valueOf(varName), newValue, null);
                     } catch (NumberFormatException e) {
                         throw new InvalidQueryException("The Query \"" + pModification

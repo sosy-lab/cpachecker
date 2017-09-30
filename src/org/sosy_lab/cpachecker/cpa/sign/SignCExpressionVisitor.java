@@ -68,7 +68,7 @@ public class SignCExpressionVisitor
 
   private SignTransferRelation transferRel;
 
-  private static Creator creatorSign = new CreatorSIGN();
+  private static Creator creatorSign = new SIGNCreator();
 
   public SignCExpressionVisitor(CFAEdge pEdgeOfExpr, UnifyAnalysisState pState, SignTransferRelation pTransferRel) {
     edgeOfExpr = pEdgeOfExpr;
