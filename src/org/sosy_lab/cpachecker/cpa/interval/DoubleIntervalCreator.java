@@ -1,7 +1,7 @@
 
 package org.sosy_lab.cpachecker.cpa.interval;
 
-public class CreatorDoubleInterval implements Creator {
+public class DoubleIntervalCreator implements Creator {
 
     @Override
     public NumberInterface factoryMethod(Object o) {
