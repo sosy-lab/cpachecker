@@ -424,7 +424,7 @@ public class ValueAnalysisConcreteErrorPathAllocator {
         continue;
       }
 
-      Number value = valueAsValue.asNumericValue().getNumber();
+      Number value = valueAsValue.getNumber();
       LeftHandSide lhs = createBaseIdExpresssion(heapLoc);
       assert pVariableAddressMap.containsKey(lhs);
       Address baseAddress = pVariableAddressMap.get(lhs);

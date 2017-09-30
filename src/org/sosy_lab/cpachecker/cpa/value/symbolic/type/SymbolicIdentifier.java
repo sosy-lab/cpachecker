@@ -31,7 +31,6 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -149,11 +148,6 @@ public class SymbolicIdentifier implements SymbolicValue, Comparable<SymbolicIde
     @Override
     public boolean isExplicitlyKnown() {
         return false;
-    }
-
-    @Override
-    public NumericValue asNumericValue() {
-        return null;
     }
 
     @Override

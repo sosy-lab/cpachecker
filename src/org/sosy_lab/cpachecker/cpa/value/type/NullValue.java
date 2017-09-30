@@ -80,20 +80,6 @@ public class NullValue implements NumberInterface, Serializable {
     }
 
     /**
-     * This method always returns <code>null</code>.
-     *
-     * <p>
-     * This object always represents <code>null</code>, which can't be represented
-     * by a specific numeric value.
-     * </p>
-     *
-     */
-    @Override
-    public NumericValue asNumericValue() {
-        return null;
-    }
-
-    /**
      * This method is not implemented and will lead to an
      * <code>AssertionError</code>. <code>Null</code> can't be represented by a
      * specific number.

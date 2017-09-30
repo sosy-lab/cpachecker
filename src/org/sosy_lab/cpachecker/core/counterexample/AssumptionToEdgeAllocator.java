@@ -702,7 +702,7 @@ public class AssumptionToEdgeAllocator {
         return null;
       }
 
-      return addressV.asNumericValue().getNumber();
+      return addressV.getNumber();
     }
 
     private Address evaluateNumericalValueAsAddress(CExpression exp) {
@@ -1141,12 +1141,12 @@ public class AssumptionToEdgeAllocator {
               .getInstance();
           }
 
-          Number addressValueNumber = addressValueV.asNumericValue().getNumber();
+          Number addressValueNumber = addressValueV.getNumber();
 
           BigDecimal addressValue = new BigDecimal(addressValueNumber.toString());
 
           // Because address and offset value may be interchanged, use BigDecimal for both
-          Number offsetValueNumber = offsetValueV.asNumericValue().getNumber();
+          Number offsetValueNumber = offsetValueV.getNumber();
 
           BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
 
@@ -1539,7 +1539,7 @@ public class AssumptionToEdgeAllocator {
                 machineModel,
                 logManager,
                 FileLocation.DUMMY);
-        Number number = value.asNumericValue().getNumber();
+        Number number = value.getNumber();
         final BigInteger valueAsBigInt;
         if (number instanceof BigInteger) {
           valueAsBigInt = (BigInteger) number;

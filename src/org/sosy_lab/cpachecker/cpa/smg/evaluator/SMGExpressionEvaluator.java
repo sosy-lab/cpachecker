@@ -334,7 +334,7 @@ public class SMGExpressionEvaluator {
         result.add(deriveExplicitValueFromSymbolicValue(symbolicValueAndState));
       }
     } else {
-      long longValue = value.asNumericValue().longValue();
+      long longValue = value.getNumber().longValue();
       result.add(SMGExplicitValueAndState.of(newState, SMGKnownExpValue.valueOf(longValue)));
     }
 

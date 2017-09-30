@@ -160,7 +160,6 @@ public class BooleanValue implements NumberInterface, Serializable {
    *         <code>1</code>, if this object's value is <code>true</code>.
    *         Returns an object with value <code>0</code> otherwise.
    */
-  @Override
   public NumericValue asNumericValue() {
     if (value) {
       return new NumericValue(1L);

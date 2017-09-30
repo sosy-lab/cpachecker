@@ -235,7 +235,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
       long typeSize = evv.getBitSizeof(elementType);
 
-      long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
+      long subscriptOffset = subscriptValue.getNumber().longValue() * typeSize;
 
       if (arrayLoc.isOnFunctionStack()) {
 

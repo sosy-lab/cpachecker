@@ -87,15 +87,6 @@ public class EnumConstantValue implements NumberInterface, Serializable {
   }
 
   /**
-   * This method is not implemented and will lead to an <code>AssertionError</code>.
-   * Enum constants can't be represented by a number.
-   */
-  @Override
-  public NumericValue asNumericValue() {
-    throw new AssertionError("Enum constant cannot be represented as NumericValue");
-  }
-
-  /**
    * This method always returns <code>null</code>.
    * Enum constants can't be represented by a number.
    */

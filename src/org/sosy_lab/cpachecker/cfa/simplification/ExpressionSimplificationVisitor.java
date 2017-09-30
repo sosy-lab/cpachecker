@@ -92,7 +92,7 @@ public class ExpressionSimplificationVisitor extends DefaultCExpressionVisitor
    */
   private CExpression convertExplicitValueToExpression(final CExpression expr, NumberInterface value) {
     // TODO: handle cases other than numeric values
-    NumericValue numericResult = value.asNumericValue();
+    NumericValue numericResult = (NumericValue)value;
     if (numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
       CSimpleType type = (CSimpleType) expr.getExpressionType();
       if (type.getType().isIntegerType()) {

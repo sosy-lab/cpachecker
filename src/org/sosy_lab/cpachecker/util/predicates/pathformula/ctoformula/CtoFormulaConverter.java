@@ -781,7 +781,7 @@ public class CtoFormulaConverter {
           intValue, targetType, machineModel,
           logger, e.getFileLocation());
       return new CFloatLiteralExpression(e.getFileLocation(), targetType,
-          floatValue.asNumericValue().bigDecimalValue());
+          ((NumericValue)floatValue).bigDecimalValue());
     }
 
     if (e instanceof CFloatLiteralExpression) {
@@ -789,7 +789,7 @@ public class CtoFormulaConverter {
       if (negative) {
         floatValue = floatValue.negate();
       }
-      return new CFloatLiteralExpression(e.getFileLocation(), targetType, floatValue.asNumericValue().bigDecimalValue());
+      return new CFloatLiteralExpression(e.getFileLocation(), targetType, floatValue.bigDecimalValue());
     }
 
     return pExp;

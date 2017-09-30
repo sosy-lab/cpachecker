@@ -56,12 +56,12 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
     List<String> list = new ArrayList<>();
     for (MemoryLocation memLoc : pRequirement.getConstantsMapView().keySet()) {
       NumberInterface integerValue = pRequirement.getConstantsMapView().get(memLoc);
-        if (!integerValue.isNumericValue() || !(integerValue.asNumericValue().getNumber() instanceof Integer)) {
+        if (!integerValue.isNumericValue() || !(integerValue.getNumber() instanceof Integer)) {
           logger.log(Level.SEVERE, "The value " + integerValue + " of the MemoryLocation " + memLoc + " is not an Integer.");
         } else {
           if (pRequiredVars == null || pRequiredVars.contains(memLoc.getAsSimpleString())) {
             list.add("(= " + getVarWithIndex(memLoc.getAsSimpleString(), pIndices) + " "
-                + integerValue.asNumericValue().getNumber() + ")");
+                + integerValue.getNumber() + ")");
           }
         }
     }

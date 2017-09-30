@@ -692,7 +692,7 @@ public abstract class AbstractExpressionValueVisitor
 
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
-              Number number = parameter.asNumericValue().getNumber();
+              Number number = parameter.getNumber();
               if (number instanceof BigDecimal) {
                 return new NumericValueCreator()
                     .factoryMethod(((BigDecimal) number).setScale(0, BigDecimal.ROUND_FLOOR));
@@ -709,7 +709,7 @@ public abstract class AbstractExpressionValueVisitor
 
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
-              Number number = parameter.asNumericValue().getNumber();
+              Number number = parameter.getNumber();
               if (number instanceof BigDecimal) {
                 return new NumericValueCreator()
                     .factoryMethod(((BigDecimal) number).setScale(0, BigDecimal.ROUND_CEILING));
@@ -727,7 +727,7 @@ public abstract class AbstractExpressionValueVisitor
             NumberInterface parameter = parameterValues.get(0);
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
-              Number number = parameter.asNumericValue().getNumber();
+              Number number = parameter.getNumber();
               if (number instanceof BigDecimal) {
                 return numericValueCreator.factoryMethod(
                     ((BigDecimal) number).setScale(0, BigDecimal.ROUND_HALF_UP));
@@ -747,7 +747,7 @@ public abstract class AbstractExpressionValueVisitor
             NumberInterface parameter = parameterValues.get(0);
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
-              Number number = parameter.asNumericValue().getNumber();
+              Number number = parameter.getNumber();
               if (number instanceof BigDecimal) {
                 return new NumericValueCreator()
                     .factoryMethod(((BigDecimal) number).setScale(0, BigDecimal.ROUND_DOWN));
@@ -783,8 +783,8 @@ public abstract class AbstractExpressionValueVisitor
               assert operand1.isNumericValue();
               assert operand2.isNumericValue();
 
-              Number op1 = operand1.asNumericValue().getNumber();
-              Number op2 = operand2.asNumericValue().getNumber();
+              Number op1 = operand1.getNumber();
+              Number op2 = operand2.getNumber();
 
               NumberInterface result = fdim(op1, op2, functionName);
               if (!UnknownValue.getInstance().equals(result)) { return result; }
@@ -799,8 +799,8 @@ public abstract class AbstractExpressionValueVisitor
               assert operand1.isNumericValue();
               assert operand2.isNumericValue();
 
-              Number op1 = operand1.asNumericValue().getNumber();
-              Number op2 = operand2.asNumericValue().getNumber();
+              Number op1 = operand1.getNumber();
+              Number op2 = operand2.getNumber();
 
               return fmax(op1, op2);
             }
@@ -814,8 +814,8 @@ public abstract class AbstractExpressionValueVisitor
               assert operand1.isNumericValue();
               assert operand2.isNumericValue();
 
-              Number op1 = operand1.asNumericValue().getNumber();
-              Number op2 = operand2.asNumericValue().getNumber();
+              Number op1 = operand1.getNumber();
+              Number op2 = operand2.getNumber();
 
               return fmin(op1, op2);
             }
@@ -826,7 +826,7 @@ public abstract class AbstractExpressionValueVisitor
 
             if (parameter.isExplicitlyKnown()) {
               assert parameter.isNumericValue();
-              Number number = parameter.asNumericValue().getNumber();
+              Number number = parameter.getNumber();
               Optional<Boolean> isNegative = isNegative(number);
               if (isNegative.isPresent()) { return new NumericValueCreator()
                   .factoryMethod(isNegative.get() ? 1 : 0); }
@@ -839,14 +839,14 @@ public abstract class AbstractExpressionValueVisitor
             if (target.isExplicitlyKnown() && source.isExplicitlyKnown()) {
               assert target.isNumericValue();
               assert source.isNumericValue();
-              Number targetNumber = target.asNumericValue().getNumber();
-              Number sourceNumber = source.asNumericValue().getNumber();
+              Number targetNumber = target.getNumber();
+              Number sourceNumber = source.getNumber();
               Optional<Boolean> sourceNegative = isNegative(sourceNumber);
               Optional<Boolean> targetNegative = isNegative(targetNumber);
               if (sourceNegative.isPresent() && targetNegative.isPresent()) {
                 if (sourceNegative.get() == targetNegative
                     .get()) { return numericValueCreator.factoryMethod(targetNumber); }
-                return target.asNumericValue().negate();
+                return target.negate();
               }
             }
           }
@@ -974,48 +974,48 @@ public abstract class AbstractExpressionValueVisitor
           NumberInterface op1 = parameterValues.get(0);
           NumberInterface op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
+            double num1 = op1.getNumber().doubleValue();
+            double num2 = op2.getNumber().doubleValue();
             return numericValueCreator.factoryMethod(num1 > num2 ? 1 : 0);
           }
         } else if (BuiltinFloatFunctions.matchesIsgreaterequal(functionName)) {
           NumberInterface op1 = parameterValues.get(0);
           NumberInterface op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
+            double num1 = op1.getNumber().doubleValue();
+            double num2 = op2.getNumber().doubleValue();
             return numericValueCreator.factoryMethod(num1 >= num2 ? 1 : 0);
           }
         } else if (BuiltinFloatFunctions.matchesIsless(functionName)) {
           NumberInterface op1 = parameterValues.get(0);
           NumberInterface op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
+            double num1 = op1.getNumber().doubleValue();
+            double num2 = op2.getNumber().doubleValue();
             return numericValueCreator.factoryMethod(num1 < num2 ? 1 : 0);
           }
         } else if (BuiltinFloatFunctions.matchesIslessequal(functionName)) {
           NumberInterface op1 = parameterValues.get(0);
           NumberInterface op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
+            double num1 = op1.getNumber().doubleValue();
+            double num2 = op2.getNumber().doubleValue();
             return numericValueCreator.factoryMethod(num1 <= num2 ? 1 : 0);
           }
         } else if (BuiltinFloatFunctions.matchesIslessgreater(functionName)) {
           NumberInterface op1 = parameterValues.get(0);
           NumberInterface op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
+            double num1 = op1.getNumber().doubleValue();
+            double num2 = op2.getNumber().doubleValue();
             return numericValueCreator.factoryMethod(num1 > num2 || num1 < num2 ? 1 : 0);
           }
         } else if (BuiltinFloatFunctions.matchesIsunordered(functionName)) {
           NumberInterface op1 = parameterValues.get(0);
           NumberInterface op2 = parameterValues.get(1);
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
-            double num1 = op1.asNumericValue().doubleValue();
-            double num2 = op2.asNumericValue().doubleValue();
+            double num1 = op1.getNumber().doubleValue();
+            double num2 = op2.getNumber().doubleValue();
             return new NumericValueCreator()
                 .factoryMethod(Double.isNaN(num1) || Double.isNaN(num2) ? 1 : 0);
           }

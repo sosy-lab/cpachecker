@@ -24,7 +24,7 @@
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.interval.CreatorIntegerInterval;
+import org.sosy_lab.cpachecker.cpa.interval.IntegerIntervalCreator;
 import org.sosy_lab.cpachecker.cpa.interval.IntegerInterval;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
@@ -82,7 +82,7 @@ public class RedundantRequirementsRemoverIntervalStateImplementation extends
 
     try {
       long constant = Long.parseLong(pVarOrConst);
-      return new CreatorIntegerInterval().factoryMethod(constant);
+      return new IntegerIntervalCreator().factoryMethod(constant);
     } catch (NumberFormatException e) {
       if (pAbstractState.contains(MemoryLocation.valueOf(pVarOrConst))) {
         return pAbstractState.getElement(MemoryLocation.valueOf(pVarOrConst));

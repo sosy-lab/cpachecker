@@ -5,7 +5,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableSet;
 import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 
 public interface NumberInterface {
 
@@ -309,15 +308,6 @@ public interface NumberInterface {
         throw new AssertionError("trying to perform default function");
     }
 
-    /**
-     * Returns the NumericValue if the stored value can be explicitly
-     * represented by a numeric value, null otherwise.
-     **/
-
-    default NumericValue asNumericValue() {
-        throw new AssertionError("trying to perform default function");
-    }
-
     public Long asLong(CType type);
 
     default Number getNumber() {
@@ -357,11 +347,6 @@ public interface NumberInterface {
         @Override
         public boolean isNumericValue() {
             return false;
-        }
-
-        @Override
-        public NumericValue asNumericValue() {
-            return null;
         }
 
         @Override

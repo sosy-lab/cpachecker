@@ -49,8 +49,8 @@ class ExpressionValueVisitor extends DefaultCExpressionVisitor<NumberInterface, 
 
     private final CFAEdge cfaEdge;
 
-    private static Creator creatorIntegerInterval = new CreatorIntegerInterval();
-    private static Creator creatorDoubleInterval = new CreatorDoubleInterval();
+    private static Creator creatorIntegerInterval = new IntegerIntervalCreator();
+    private static Creator creatorDoubleInterval = new DoubleIntervalCreator();
 
     public ExpressionValueVisitor(UnifyAnalysisState pState, CFAEdge edge) {
         readableState = pState;

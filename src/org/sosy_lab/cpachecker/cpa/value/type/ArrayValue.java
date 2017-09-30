@@ -305,11 +305,6 @@ public class ArrayValue implements NumberInterface, Serializable {
   }
 
   @Override
-  public NumericValue asNumericValue() {
-    return null;
-  }
-
-  @Override
   public Long asLong(CType type) {
     return null;
   }

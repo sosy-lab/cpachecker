@@ -183,11 +183,6 @@ public class NumericValue implements NumberInterface, Serializable {
     }
 
     @Override
-    public NumericValue asNumericValue() {
-        return this;
-    }
-
-    @Override
     public Long asLong(CType type) {
         checkNotNull(type);
         type = type.getCanonicalType();

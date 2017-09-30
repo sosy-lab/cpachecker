@@ -240,8 +240,8 @@ public class ValueAnalysisInterpolant implements Interpolant<UnifyAnalysisState>
 
       } else {
         verify(
-            valueState.getElement(itp.getKey()).asNumericValue().longValue()
-                == itp.getValue().asNumericValue().longValue(),
+            valueState.getElement(itp.getKey()).getNumber().longValue()
+                == itp.getValue().getNumber().longValue(),
             "state and interpolant do not match in value for variable %s [state = %s != %s = itp] for state %s",
             itp.getKey(),
             valueState.getElement(itp.getKey()),

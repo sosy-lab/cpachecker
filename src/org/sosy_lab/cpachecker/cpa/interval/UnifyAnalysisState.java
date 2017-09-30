@@ -303,7 +303,7 @@ public class UnifyAnalysisState
         case SIGN:
             return value == null ? new CreatorSIGN().factoryMethod(7) : value;
         case INTERVAL:
-            return value == null ? new CreatorIntegerInterval().factoryMethod(null) : value;
+            return value == null ? new IntegerIntervalCreator().factoryMethod(null) : value;
         default:
             return checkNotNull(value);
         }
@@ -376,7 +376,7 @@ public class UnifyAnalysisState
             BitvectorFormulaManagerView bitvectorFMGR = pManager.getBitvectorFormulaManager();
             FloatingPointFormulaManagerView floatFMGR = pManager.getFloatingPointFormulaManager();
             for (Map.Entry<MemoryLocation, NumberInterface> entry : unifyElements.entrySet()) {
-                NumericValue num = entry.getValue().asNumericValue();
+                NumberInterface num = entry.getValue();
 
                 if (num != null) {
                     MemoryLocation memoryLocation = entry.getKey();
@@ -393,7 +393,7 @@ public class UnifyAnalysisState
                             if (value instanceof BigInteger) {
                                 val = bitvectorFMGR.makeBitvector(bitSize, (BigInteger) value);
                             } else {
-                                val = bitvectorFMGR.makeBitvector(bitSize, num.longValue());
+                                val = bitvectorFMGR.makeBitvector(bitSize, num.getNumber().longValue());
                             }
                             result.add(bitvectorFMGR.equal(var, val));
                         } else if (simpleType.getType().isFloatingPointType()) {
@@ -410,7 +410,7 @@ public class UnifyAnalysisState
                             }
                             FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getAsSimpleString(),
                                     fpType);
-                            FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
+                            FloatingPointFormula val = floatFMGR.makeNumber(num.getNumber().doubleValue(), fpType);
                             result.add(floatFMGR.equalWithFPSemantics(var, val));
                         } else {
                             // ignore in formula-approximation

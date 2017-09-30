@@ -123,6 +123,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.interval.Creator;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
@@ -135,7 +136,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NullValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValueCreator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -151,6 +152,7 @@ public class ValueAnalysisTransferRelation
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
+  private Creator numericValueCreator = new NumericValueCreator();
 
   @Options(prefix = "cpa.value")
   public static class ValueTransferOptions {
@@ -540,7 +542,7 @@ public class ValueAnalysisTransferRelation
     if (indexValue.isUnknown()) {
       return OptionalInt.empty();
     } else {
-      return OptionalInt.of((int) ((NumericValue) indexValue).longValue());
+      return OptionalInt.of((int)  indexValue.getNumber().longValue());
     }
   }
 
@@ -665,7 +667,7 @@ public class ValueAnalysisTransferRelation
       return ((BooleanValue) value).isTrue() == bool;
 
     } else if (value.isNumericValue()) {
-      return ((NumericValue) value).equals(new NumericValue(bool ? 1L : 0L));
+      return (value).equals(numericValueCreator.factoryMethod(bool ? 1L : 0L));
 
     } else {
       return false;
@@ -771,7 +773,7 @@ public class ValueAnalysisTransferRelation
           case LONG:
           case FLOAT:
           case DOUBLE:
-            return new NumericValue(defaultNumericValue);
+            return numericValueCreator.factoryMethod(defaultNumericValue);
           case UNSPECIFIED:
             return NumberInterface.UnknownValue.getInstance();
           default:
@@ -940,7 +942,7 @@ public class ValueAnalysisTransferRelation
           assignUnknownValueToEnclosingInstanceOfArray(arrayExpression);
 
         } else {
-          long concreteIndex = ((NumericValue) maybeIndex).longValue();
+          long concreteIndex = maybeIndex.getNumber().longValue();
 
           if (concreteIndex < 0 || concreteIndex >= arrayToChange.getArraySize()) {
             throw new UnrecognizedCodeException("Invalid index " + concreteIndex + " for array "
@@ -1401,7 +1403,7 @@ public class ValueAnalysisTransferRelation
               throw new AssertionError("unknown righthandside-expression: " + exp);
             }
             if (value.isExplicitlyKnown()) {
-              NumericValue numericValue = value.asNumericValue();
+//              NumericValue numericValue = value.asNumericValue();
               CSimpleType paramType =
                   BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(functionName);
               if (ImmutableList.of(CBasicType.FLOAT, CBasicType.DOUBLE)
@@ -1409,10 +1411,10 @@ public class ValueAnalysisTransferRelation
                 final BigDecimal integralPartValue;
                 switch (paramType.getType()) {
                   case FLOAT:
-                    integralPartValue = BigDecimal.valueOf((float) ((long) numericValue.floatValue()));
+                    integralPartValue = BigDecimal.valueOf((float) ((long) value.getNumber().floatValue()));
                     break;
                   case DOUBLE:
-                    integralPartValue = BigDecimal.valueOf((double) ((long) numericValue.doubleValue()));
+                    integralPartValue = BigDecimal.valueOf((double) ((long) value.getNumber().doubleValue()));
                     break;
                   default:
                     throw new AssertionError("Unsupported float type: " + paramType);
@@ -1430,7 +1432,7 @@ public class ValueAnalysisTransferRelation
                         target.getExpressionType(),
                         target,
                         null,
-                        new NumericValue(integralPartValue));
+                        numericValueCreator.factoryMethod(integralPartValue));
               }
             }
           }

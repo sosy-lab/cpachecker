@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.interval.Creator;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
@@ -44,7 +45,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValueCreator;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 
@@ -103,6 +104,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   protected void setSmgState(SMGState pSmgState) {
     smgState = pSmgState;
   }
+  private Creator numericValueCreator = new NumericValueCreator();
 
   @Override
   public NumberInterface visit(CBinaryExpression binaryExp)
@@ -140,9 +142,9 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
       smgState = symValueAndState.getSmgState();
 
       if (symValue.equals(SMGKnownSymValue.TRUE)) {
-        return new NumericValue(1);
+        return numericValueCreator.factoryMethod(1);
       } else if (symValue.equals(SMGKnownSymValue.FALSE)) {
-        return new NumericValue(0);
+        return numericValueCreator.factoryMethod(0);
       }
     }
 
@@ -186,7 +188,7 @@ public class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
     if (expValue.isUnknown()) {
       return NumberInterface.UnknownValue.getInstance();
     } else {
-      return new NumericValue(expValue.getAsLong());
+      return numericValueCreator.factoryMethod(expValue.getAsLong());
     }
   }
 

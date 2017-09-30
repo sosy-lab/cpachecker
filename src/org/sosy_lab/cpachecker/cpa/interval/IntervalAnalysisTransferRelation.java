@@ -207,8 +207,8 @@ public class IntervalAnalysisTransferRelation
     protected Collection<UnifyAnalysisState> handleAssumption(CAssumeEdge cfaEdge, CExpression expression,
             boolean truthValue) throws UnrecognizedCCodeException {
 
-        if ((truthValue ? new CreatorIntegerInterval().factoryMethod(null).ZERO()
-                : new CreatorIntegerInterval().factoryMethod(null).ONE())
+        if ((truthValue ? new IntegerIntervalCreator().factoryMethod(null).ZERO()
+                : new IntegerIntervalCreator().factoryMethod(null).ONE())
                         .equals(evaluateInterval(state, expression, cfaEdge))) {
             // the assumption is unsatisfiable
             return noSuccessors();
@@ -241,9 +241,9 @@ public class IntervalAnalysisTransferRelation
         // a < b, a < 1
         case LESS_THAN: {
             newState = addInterval(newState, operand1,
-                    interval1.limitUpperBoundBy(interval2.minus(new CreatorIntegerInterval().factoryMethod(1L))));
+                    interval1.limitUpperBoundBy(interval2.minus(new IntegerIntervalCreator().factoryMethod(1L))));
             newState = addInterval(newState, operand2,
-                    interval2.limitLowerBoundBy(interval1.plus(new CreatorIntegerInterval().factoryMethod(1L))));
+                    interval2.limitLowerBoundBy(interval1.plus(new IntegerIntervalCreator().factoryMethod(1L))));
             return soleSuccessor(newState);
         }
 
@@ -257,9 +257,9 @@ public class IntervalAnalysisTransferRelation
         // a > b, a > 1
         case GREATER_THAN: {
             newState = addInterval(newState, operand1,
-                    interval1.limitLowerBoundBy(interval2.plus(new CreatorIntegerInterval().factoryMethod(1L))));
+                    interval1.limitLowerBoundBy(interval2.plus(new IntegerIntervalCreator().factoryMethod(1L))));
             newState = addInterval(newState, operand2,
-                    interval2.limitUpperBoundBy(interval1.minus(new CreatorIntegerInterval().factoryMethod(1L))));
+                    interval2.limitUpperBoundBy(interval1.minus(new IntegerIntervalCreator().factoryMethod(1L))));
             return soleSuccessor(newState);
         }
 
@@ -388,7 +388,7 @@ public class IntervalAnalysisTransferRelation
                 CExpression exp = ((CInitializerExpression) init).getExpression();
                 interval = evaluateInterval(state, exp, declarationEdge);
             } else {
-                interval = new CreatorIntegerInterval().factoryMethod(null).UNBOUND();
+                interval = new IntegerIntervalCreator().factoryMethod(null).UNBOUND();
             }
 
             newState = newState.assignElement(MemoryLocation.valueOf(decl.getQualifiedName()), interval, null);

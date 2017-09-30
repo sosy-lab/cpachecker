@@ -28,7 +28,6 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -97,12 +96,6 @@ public abstract class SymbolicExpression implements SymbolicValue {
   @Override
   public boolean isExplicitlyKnown() {
     return false;
-  }
-
-  @Override
-  public NumericValue asNumericValue() {
-    throw new UnsupportedOperationException(
-        "Symbolic expressions can't be expressed as numeric values");
   }
 
   @Override

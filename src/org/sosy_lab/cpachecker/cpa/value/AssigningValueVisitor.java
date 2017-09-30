@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.interval.Creator;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 import org.sosy_lab.cpachecker.cpa.interval.UnifyAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
@@ -53,7 +54,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpressio
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValueCreator;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -61,6 +62,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * Visitor that derives further information from an assume edge
  */
 class AssigningValueVisitor extends ExpressionValueVisitor {
+
+  private Creator numericValueCreator = new NumericValueCreator();
 
   private UnifyAnalysisState assignableState;
 
@@ -128,7 +131,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
             && (booleans.contains(leftMemLoc.getAsSimpleString())
                 || options.isInitAssumptionVars())) {
           assignableState.assignElement(
-              leftMemLoc, new NumericValue(1L), pE.getOperand1().getExpressionType());
+              leftMemLoc, numericValueCreator.factoryMethod(1L), pE.getOperand1().getExpressionType());
         }
 
       } else if (options.isOptimizeBooleanVariables()
@@ -137,7 +140,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
 
         if (booleans.contains(rightMemLoc.getAsSimpleString()) || options.isInitAssumptionVars()) {
           assignableState.assignElement(
-              rightMemLoc, new NumericValue(1L), pE.getOperand2().getExpressionType());
+              rightMemLoc, numericValueCreator.factoryMethod(1L), pE.getOperand2().getExpressionType());
         }
       }
     }
@@ -179,7 +182,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   }
 
   private static boolean assumingUnknownToBeZero(NumberInterface value1, NumberInterface value2) {
-    return value1.isUnknown() && value2.equals(new NumericValue(BigInteger.ZERO));
+    return value1.isUnknown() && value2.equals(new NumericValueCreator().factoryMethod(BigInteger.ZERO));
   }
 
   private boolean isEqualityAssumption(BinaryOperator binaryOperator) {
