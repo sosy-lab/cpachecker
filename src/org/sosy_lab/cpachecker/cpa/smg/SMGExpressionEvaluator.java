@@ -792,7 +792,7 @@ public class SMGExpressionEvaluator {
 
           SMGExplicitValue sizeOfType = SMGKnownExpValue.valueOf(typeSize);
 
-          SMGExplicitValue offset = arrayOffset.add(subscriptValue).multiply(sizeOfType);
+          SMGExplicitValue offset = arrayOffset.add(subscriptValue.multiply(sizeOfType));
 
           SMGAddressValueAndStateList resultAddressAndState = createAddress(newState, arrayAddress.getObject(), offset);
           result.addAll(resultAddressAndState.asAddressValueAndStateList());
