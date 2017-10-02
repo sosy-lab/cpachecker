@@ -87,16 +87,17 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
   }
 
   @Override
-  public void registerInitialState(AbstractState pState, ReachedSet pReachedSet) {
+  public void registerInitialState(
+      AbstractState pState, AbstractState pExitState, ReachedSet pReachedSet) {
     synchronized (this) {
-      manager.registerInitialState(pState, pReachedSet);
+      manager.registerInitialState(pState, pExitState, pReachedSet);
     }
   }
 
   @Override
-  public ReachedSet getReachedSetForInitialState(AbstractState pState) {
+  public ReachedSet getReachedSetForInitialState(AbstractState pState, AbstractState pExitState) {
     synchronized (this) {
-      return manager.getReachedSetForInitialState(pState);
+      return manager.getReachedSetForInitialState(pState, pExitState);
     }
   }
 
