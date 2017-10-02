@@ -392,8 +392,12 @@ public class ARGSubtreeRemover {
     ARGState initialState = (ARGState) rootState.getWrappedState();
     Precision rootPrecision = outerReachedSet.getPrecision(initialState);
     for (Precision pNewPrecision : pNewPrecisions) {
-      rootPrecision = Precisions.replaceByType(rootPrecision, pNewPrecision, Predicates.instanceOf(pNewPrecision.getClass()));
+      Precision tmp = Precisions.replaceByType(rootPrecision, pNewPrecision, Predicates.instanceOf(pNewPrecision.getClass()));
+      if (tmp != null) { // precision changed
+        rootPrecision = tmp;
+      }
     }
+    assert rootPrecision != null;
 
     // reduce the new precision and add a precise key for the new precision if needed
     CFANode node = extractLocation(rootState);
