@@ -292,9 +292,13 @@ public final class SMGPlotter {
   private String smgHVEdgeAsDot(SMGEdgeHasValue pEdge, CLangSMG pSMG) {
     if (pEdge.getValue() == 0) {
       String newNull = newNullLabel();
-      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject()).getName() + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel())) + "b]\"];";
+      return newNull + "[shape=plaintext, label=\"NULL\"];" + objectIndex.get(pEdge.getObject())
+          .getName() + " -> " + newNull + "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge
+          .getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel())) + "b]\"];";
     } else {
-      return objectIndex.get(pEdge.getObject()).getName() + " -> value_" + pEdge.getValue() + "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge.getOffset() + pEdge.getSizeInBits(pSMG.getMachineModel())) + "b]\"];";
+      return objectIndex.get(pEdge.getObject()).getName() + " -> value_" + pEdge.getValue() +
+          "[label=\"[" + pEdge.getOffset() + "b-" + (pEdge.getOffset() + pEdge.getSizeInBits
+          (pSMG.getMachineModel())) + "b]\"];";
     }
   }
 

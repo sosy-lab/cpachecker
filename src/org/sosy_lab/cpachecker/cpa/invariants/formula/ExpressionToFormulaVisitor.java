@@ -23,6 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import java.math.BigInteger;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -63,7 +67,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JThisExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -86,11 +89,6 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.math.BigInteger;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 /**
  * Instances of this class are c expression visitors used to convert c
  * expressions to compound state invariants formulae.
@@ -112,8 +110,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
   private final CompoundIntervalFormulaManager compoundIntervalFormulaManager;
-
-  private final BaseSizeofVisitor sizeofVisitor;
 
   /**
    * Creates a new visitor for converting c expressions to compound state
@@ -152,7 +148,6 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     this.environment = pEnvironment;
     this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
     this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
-    sizeofVisitor = new BaseSizeofVisitor(machineModel);
   }
 
   private CompoundIntervalManager getIntervalManager(Type pType) {
@@ -278,20 +273,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
     return t;
   }
 
-  /**
-   * Returns the size in bytes of the given type.
-   * Always use this method instead of machineModel.getSizeOf,
-   * because this method can handle dereference-types.
-   * @param pType the type to calculate the size of.
-   * @return the size in bytes of the given type.
-   */
-  private int getSizeof(CType pType) {
-    return pType.accept(sizeofVisitor);
-  }
-
   private NumeralFormula<CompoundInterval> getPointerTargetSizeLiteral(
       final CPointerType pointerType, final CType implicitType) {
-    final int pointerTargetSize = getSizeof(pointerType.getType());
+    final int pointerTargetSize = machineModel.getSizeof(pointerType.getType());
     return asConstant(implicitType, pointerTargetSize);
   }
 

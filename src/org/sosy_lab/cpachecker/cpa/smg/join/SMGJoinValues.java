@@ -483,7 +483,7 @@ final class SMGJoinValues {
       if(destSmgSourceObject.isAbstract()) {
 
         /*Pick arbitrary offset of edges to see if you should increase the level.*/
-        int arbitraryOffset = edges.iterator().next().getOffset();
+        long arbitraryOffset = edges.iterator().next().getOffset();
 
         switch (destSmgSourceObject.getKind()) {
           case DLL:
@@ -690,11 +690,11 @@ final class SMGJoinValues {
     SMGNodeMapping mapping1 = pMapping1;
     SMGNodeMapping mapping2 = pMapping2;
 
-    int nf;
+    long nf;
     int length;
-    int hfo;
-    int nfo;
-    int pfo;
+    long hfo;
+    long nfo;
+    long pfo;
 
     switch (ptEdge.getTargetSpecifier()) {
       case FIRST:
@@ -860,12 +860,12 @@ final class SMGJoinValues {
     return Pair.of(true, true);
   }
 
-  private CType getType(SMGObject pTarget, int pNf, SMG inputSMG1) {
+  private CType getType(SMGObject pTarget, long pNf, SMG inputSMG1) {
     Set<SMGEdgeHasValue> oldNfEdge =
         inputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
 
     if (oldNfEdge.isEmpty()) {
-      return new SMGEdgeHasValue(inputSMG1.getMachineModel().getBitSizeofPtr(), pNf, pTarget, 0)
+      return new SMGEdgeHasValue(inputSMG1.getMachineModel().getSizeofPtrInBits(), pNf, pTarget, 0)
           .getType();
     } else {
       return Iterables.getOnlyElement(oldNfEdge).getType();
@@ -882,11 +882,11 @@ final class SMGJoinValues {
     SMGNodeMapping mapping1 = pMapping1;
     SMGNodeMapping mapping2 = pMapping2;
 
-    int nf;
+    long nf;
     int length;
-    int hfo;
-    int nfo;
-    int pfo;
+    long hfo;
+    long nfo;
+    long pfo;
 
     switch (ptEdge.getTargetSpecifier()) {
       case FIRST:
@@ -1056,8 +1056,8 @@ final class SMGJoinValues {
     int listLevel = pList.getLevel() + pLevelDiff;
 
     SMGObject listCopy;
-    int nfo = -1;
-    int pfo = -1;
+    long nfo = -1;
+    long pfo = -1;
 
     if (pMapping.containsKey(pList)) {
       listCopy = pMapping.get(pList);
@@ -1067,7 +1067,7 @@ final class SMGJoinValues {
         case DLL:
           nfo = ((SMGDoublyLinkedList) pList).getNfo();
           pfo = ((SMGDoublyLinkedList) pList).getPfo();
-          int hfo = ((SMGDoublyLinkedList) pList).getHfo();
+          long hfo = ((SMGDoublyLinkedList) pList).getHfo();
           listCopy = new SMGDoublyLinkedList(pList.getSize(), hfo, nfo, pfo,
               0, listLevel);
           break;

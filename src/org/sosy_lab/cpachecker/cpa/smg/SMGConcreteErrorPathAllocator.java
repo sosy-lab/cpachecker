@@ -344,7 +344,7 @@ public class SMGConcreteErrorPathAllocator {
     private Address nextAlloc = Address.valueOf(BigInteger.valueOf(100));
     private Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
 
-    public Address calculateAddress(SMGObject pObject, int pOffset,
+    public Address calculateAddress(SMGObject pObject, long pOffset,
         SMGState pSMGState) {
 
       // Create a new base address for the object if necessary

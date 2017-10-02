@@ -90,7 +90,7 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
   }
 
   protected void addPointsToEdges(CLangSMG pSMG, SMGObject targetObject, SMGObject newAbsObj, SMGTargetSpecifier direction) {
-    Map<Integer, Integer> reached = new HashMap<>();
+    Map<Long, Integer> reached = new HashMap<>();
     for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(targetObject, pSMG)) {
       pSMG.removePointsToEdge(pte.getValue());
 

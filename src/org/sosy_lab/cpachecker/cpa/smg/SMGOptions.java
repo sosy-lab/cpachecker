@@ -57,7 +57,12 @@ public class SMGOptions {
       name = "handleUnknownFunctions",
       description = "Sets how unknown functions are handled.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
-  public static enum UnknownFunctionHandling {STRICT, ASSUME_SAFE}
+
+  public static enum UnknownFunctionHandling {
+    STRICT,
+    ASSUME_SAFE,
+    ASSUME_EXTERNAL_ALLOCATED
+  }
 
   @Option(
       secure = true,
@@ -76,7 +81,7 @@ public class SMGOptions {
       secure = true,
       name = "memoryAllocationFunctions",
       description = "Memory allocation functions")
-  private ImmutableSet<String> memoryAllocationFunctions = ImmutableSet.of("malloc");
+  private ImmutableSet<String> memoryAllocationFunctions = ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
 
   @Option(
       secure = true,
@@ -106,7 +111,7 @@ public class SMGOptions {
       secure = true,
       name = "zeroingMemoryAllocation",
       description = "Allocation functions which set memory to zero")
-  private ImmutableSet<String> zeroingMemoryAllocation = ImmutableSet.of("calloc");
+  private ImmutableSet<String> zeroingMemoryAllocation = ImmutableSet.of("calloc", "kzalloc");
 
   @Option(secure = true, name = "deallocationFunctions", description = "Deallocation functions")
   private ImmutableSet<String> deallocationFunctions = ImmutableSet.of("free");
@@ -166,7 +171,18 @@ public class SMGOptions {
       description = "Describes when SMG graphs should be dumped.")
   private SMGExportLevel exportSMG = SMGExportLevel.NEVER;
 
-  public static enum SMGExportLevel {NEVER, LEAF, INTERESTING, EVERY}
+  @Option(
+      secure = true,
+      name = "handleExternVariableAsExternalAllocation",
+      description = "Handle extern variables with incomplete type (extern int array[]) as external allocation")
+  private boolean handleExternVariableAsExternalAllocation = false;
+
+  public static enum SMGExportLevel {
+    NEVER,
+    LEAF,
+    INTERESTING,
+    EVERY
+  }
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -258,5 +274,9 @@ public class SMGOptions {
 
   public SMGExportLevel getExportSMGLevel() {
     return exportSMG;
+  }
+
+  public boolean isHandleExternVariableAsExternalAllocation() {
+    return handleExternVariableAsExternalAllocation;
   }
 }

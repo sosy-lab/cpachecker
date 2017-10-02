@@ -52,12 +52,13 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
     PowerSetState states = (PowerSetState) pState;
     Action action = Action.CONTINUE;
 
-    Set<AbstractState> newStates = Sets.newHashSetWithExpectedSize(states.getSet().size());
+    Set<AbstractState> newStates =
+        Sets.newHashSetWithExpectedSize(states.getWrappedStates().size());
 
     boolean present = false, changed = false;
     Optional<PrecisionAdjustmentResult> wrappedRes;
 
-    for (AbstractState state : states.getSet()) {
+    for (AbstractState state : states.getWrappedStates()) {
       wrappedRes = wrappedPrec.prec(state, pPrecision, pStates,
           Functions.compose(abstractState -> state, pStateProjection), pFullState);
       if (wrappedRes.isPresent()) {
@@ -79,16 +80,8 @@ public class PowerSetPrecisionAdjustment implements PrecisionAdjustment {
 
     if (!present) { return Optional.empty(); }
 
-
-    PrecisionAdjustmentResult adjustRes;
-
-    if (changed) {
-      adjustRes = PrecisionAdjustmentResult.create(new PowerSetState(newStates), pPrecision, action);
-    } else {
-      adjustRes = PrecisionAdjustmentResult.create(pState, pPrecision, action);
-    }
-
-    return Optional.of(adjustRes);
+    PowerSetState newState = changed ? new PowerSetState(newStates) : states;
+    return Optional.of(PrecisionAdjustmentResult.create(newState, pPrecision, action));
   }
 
 }

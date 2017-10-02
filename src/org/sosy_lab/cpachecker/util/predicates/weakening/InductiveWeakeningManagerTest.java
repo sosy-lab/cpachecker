@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.predicates.weakening;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.junit.Before;
@@ -35,30 +34,32 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.test.TestDataTools;
+import org.sosy_lab.cpachecker.util.predicates.smt.SolverViewBasedTest0;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 @RunWith(Parameterized.class)
-public class InductiveWeakeningManagerTest {
+public class InductiveWeakeningManagerTest extends SolverViewBasedTest0 {
+
   @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
     return Solvers.values();
   }
 
   @Parameter(0)
-  public Solvers solver;
+  public Solvers solverToUse;
+
+  @Override
+  protected Solvers solverToUse() {
+    return solverToUse;
+  }
 
   private InductiveWeakeningManager inductiveWeakeningManager;
   private IntegerFormulaManagerView ifmgr;
@@ -66,22 +67,10 @@ public class InductiveWeakeningManagerTest {
 
   @Before
   public void setUp() throws Exception {
-    Configuration config = TestDataTools.configurationForTest().setOptions(
-        ImmutableMap.of(
-            "solver.solver", solver.toString(),
-
-            // Just to please Princess.
-            "cpa.predicate.encodeFloatAs", "integer"
-        )
-    ).build();
     ShutdownNotifier notifier = ShutdownNotifier.createDummy();
-    LogManager logger = LogManager.createTestLogManager();
-    Solver solver = Solver.create(config, logger, notifier);
-    FormulaManagerView fmgr = solver.getFormulaManager();
-    inductiveWeakeningManager = new InductiveWeakeningManager(
-        config, solver, logger, notifier);
-    ifmgr = fmgr.getIntegerFormulaManager();
-    bfmgr = fmgr.getBooleanFormulaManager();
+    inductiveWeakeningManager = new InductiveWeakeningManager(config, solver, logger, notifier);
+    ifmgr = mgrv.getIntegerFormulaManager();
+    bfmgr = mgrv.getBooleanFormulaManager();
 
   }
 

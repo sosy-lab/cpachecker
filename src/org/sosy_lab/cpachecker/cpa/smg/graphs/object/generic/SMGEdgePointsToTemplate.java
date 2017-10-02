@@ -28,7 +28,7 @@ public class SMGEdgePointsToTemplate extends SMGEdgeTemplate {
 
   public SMGEdgePointsToTemplate(SMGObjectTemplate pAbstractObject,
       int pAbstractPointerValue,
-      int pOffset) {
+      long pOffset) {
     super(pAbstractObject, pAbstractPointerValue, pOffset);
   }
 

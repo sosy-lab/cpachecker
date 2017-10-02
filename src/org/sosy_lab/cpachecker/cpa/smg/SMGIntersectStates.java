@@ -264,23 +264,23 @@ public final class SMGIntersectStates {
     Set<SMGEdgeHasValue> hves1 = pSmg1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject1));
     Set<SMGEdgeHasValue> hves2 = pSmg2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
-    Map<Integer, SMGEdgeHasValue> offsetToHve1Map =
+    Map<Long, SMGEdgeHasValue> offsetToHve1Map =
         FluentIterable.from(hves1).uniqueIndex(
             (SMGEdgeHasValue hve) -> {
               return hve.getOffset();
             });
 
-    Map<Integer, SMGEdgeHasValue> offsetToHve2Map =
+    Map<Long, SMGEdgeHasValue> offsetToHve2Map =
         FluentIterable.from(hves2).uniqueIndex(
             (SMGEdgeHasValue hve) -> {
               return hve.getOffset();
             });
 
-    Set<Integer> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
+    Set<Long> offsetSet = new HashSet<>(offsetToHve1Map.size() + offsetToHve2Map.size());
     offsetSet.addAll(offsetToHve1Map.keySet());
     offsetSet.addAll(offsetToHve2Map.keySet());
 
-    for (Integer offset : offsetSet) {
+    for (long offset : offsetSet) {
       if (offsetToHve1Map.containsKey(offset)) {
         if (offsetToHve2Map.containsKey(offset)) {
           SMGEdgeHasValue hve1 = offsetToHve1Map.get(offset);
@@ -416,8 +416,8 @@ public final class SMGIntersectStates {
       BiMap<SMGKnownSymValue, SMGKnownExpValue> pExplicitValues2,
       BiMap<SMGKnownSymValue, SMGKnownExpValue> pDestExplicitValues) {
 
-    int offset1 = pPte1.getOffset();
-    int offset2 = pPte2.getOffset();
+    long offset1 = pPte1.getOffset();
+    long offset2 = pPte2.getOffset();
 
     if (offset1 != offset2) {
       return false;

@@ -50,7 +50,7 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
   @Override
   public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException {
     SMGObject prevObject = candidate.getStartObject();
-    int nfo = candidate.getShape().getNfo();
+    long nfo = candidate.getShape().getNfo();
 
     pSmgState.pruneUnreachable();
 

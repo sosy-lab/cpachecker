@@ -63,7 +63,7 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Set of functions that non-deterministically provide new memory on the heap, " +
                         "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctions = ImmutableSet.of(
-      "malloc", "__kmalloc", "kmalloc"
+      "malloc", "__kmalloc", "kmalloc", "alloca", "__builtin_alloca"
       );
 
   @Option(secure=true, description = "Set of functions that non-deterministically provide new zeroed memory on the heap, " +

@@ -24,25 +24,22 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
-import org.sosy_lab.java_smt.test.SolverBasedTest0;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @RunWith(Parameterized.class)
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
-public class SolverQuantifierTest extends SolverBasedTest0 {
+public class SolverQuantifierTest extends SolverViewBasedTest0 {
 
   @Parameters(name="{0}")
   public static Object[] getAllSolvers() {
@@ -70,9 +67,8 @@ public class SolverQuantifierTest extends SolverBasedTest0 {
     requireQuantifiers();
     requireRationals();
 
-    FormulaManagerView mgrv = new FormulaManagerView(mgr, config, LogManager.createTestLogManager());
     this.qfm = mgrv.getQuantifiedFormulaManager();
-    imgr = mgrv.getIntegerFormulaManager();
+    imgr = imgrv;
 
     _x = imgr.makeVariable("x");
     _b = amgr.makeArray("b", FormulaType.IntegerType, FormulaType.IntegerType);

@@ -86,14 +86,10 @@ public class SMG {
     pt_edges = new SMGPointsToMap();
     object_validity = PathCopyingPersistentTreeMap.of();
     objectAllocationIdentity = PathCopyingPersistentTreeMap.of();
-
-    addObject(SMGNullObject.INSTANCE);
-    object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
-
-    addValue(NULL_ADDRESS);
-    addPointsToEdge(NULL_POINTER);
-
     machine_model = pMachineModel;
+
+    initializeNullObject();
+    initializeNullAddress();
   }
 
   /**
@@ -482,24 +478,23 @@ public class SMG {
    * @return A TreeMap offsets to size which are covered by a HasValue edge leading from an
    * object to null value
    */
-  public TreeMap<Integer, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
-    Set<SMGEdgeHasValue> edges = hv_edges.getEdgesForObject(pObj);
-    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterHavingValue(SMG.NULL_ADDRESS);
-
-    TreeMultimap<Integer, Integer> offsetToSize = TreeMultimap.create();
-    for (SMGEdgeHasValue edge : objectFilter.filter(edges)) {
+  public TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
+    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterByObject(pObj).filterHavingValue(SMG.NULL_ADDRESS);
+    TreeMultimap<Long, Integer> offsetToSize = TreeMultimap.create();
+    for (SMGEdgeHasValue edge : objectFilter.filter(hv_edges)) {
       offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
     }
 
-    TreeMap<Integer, Integer> resultOffsetToSize = new TreeMap<>();
+    TreeMap<Long, Integer> resultOffsetToSize = new TreeMap<>();
     if (!offsetToSize.isEmpty()) {
-      Iterator<Integer> offsetsIterator = offsetToSize.keySet().iterator();
-      Integer resultOffset = offsetsIterator.next();
+      Iterator<Long> offsetsIterator = offsetToSize.keySet().iterator();
+      long resultOffset = offsetsIterator.next();
       Integer resultSize = offsetToSize.get(resultOffset).last();
       while (offsetsIterator.hasNext()) {
-        Integer nextOffset = offsetsIterator.next();
+        long nextOffset = offsetsIterator.next();
         if (nextOffset <= resultOffset + resultSize) {
-          resultSize = Integer.max(offsetToSize.get(nextOffset).last() + nextOffset - resultOffset, resultSize);
+          resultSize = Math.toIntExact(Long.max(offsetToSize.get(nextOffset).last() + nextOffset -
+              resultOffset, resultSize));
         } else {
           resultOffsetToSize.put(resultOffset, resultSize);
           resultOffset = nextOffset;
@@ -540,15 +535,15 @@ public class SMG {
     return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBits(machine_model));
   }
 
-  public boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, CType pType ) {
-    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getBitSizeof(pType));
+  public boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, CType pType ) {
+    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeofInBits(pType));
   }
 
-  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, int pOffset, int size) {
-    int expectedMinClear = pOffset + size;
+  private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, int size) {
+    long expectedMinClear = pOffset + size;
 
-    TreeMap<Integer, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
-    Entry<Integer, Integer> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
+    TreeMap<Long, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
+    Entry<Long, Integer> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
     return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }
 
@@ -616,6 +611,10 @@ public class SMG {
     pt_edges = new SMGPointsToMap();
     neq = new NeqRelation();
     pathPredicate.clear();
+    initializeNullAddress();
+  }
+
+  private void initializeNullAddress() {
     addValue(NULL_ADDRESS);
     addPointsToEdge(NULL_POINTER);
   }
@@ -623,8 +622,10 @@ public class SMG {
   public void clearObjects() {
     objects = PersistentSet.of();
     object_validity = PathCopyingPersistentTreeMap.of();
+    initializeNullObject();
+  }
 
-    /*May not clear null objects*/
+  private void initializeNullObject() {
     addObject(SMGNullObject.INSTANCE);
     object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
   }

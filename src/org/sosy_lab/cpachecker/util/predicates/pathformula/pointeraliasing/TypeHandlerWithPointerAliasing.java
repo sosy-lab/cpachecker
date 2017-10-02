@@ -46,7 +46,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 
 public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
-  private final CSizeofVisitor sizeofVisitor;
+  private final MachineModel model;
+  private final FormulaEncodingWithPointerAliasingOptions options;
   private final CachingCanonizingCTypeVisitor canonizingVisitor =
       new CachingCanonizingCTypeVisitor(true, true);
 
@@ -58,13 +59,14 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * modifiable integers instead of the immutable Integer class.
    */
   private final Multiset<CCompositeType> sizes = HashMultiset.create();
-  private final Map<CCompositeType, Multiset<String>> offsets = new HashMap<>();
+  private final Map<CCompositeType, HashMap<String, Long>> offsets = new HashMap<>();
 
   public TypeHandlerWithPointerAliasing(LogManager pLogger, MachineModel pMachineModel,
       FormulaEncodingWithPointerAliasingOptions pOptions) {
     super(pLogger, pMachineModel);
 
-    sizeofVisitor = new CSizeofVisitor(pMachineModel, pOptions);
+    model = pMachineModel;
+    options = pOptions;
   }
 
   /**
@@ -81,10 +83,21 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       if (sizes.contains(cType)) {
         return sizes.count(cType);
       } else {
-        return cType.accept(sizeofVisitor);
+        return getSizeofUncached(cType);
       }
     } else {
-      return cType.accept(sizeofVisitor);
+      return getSizeofUncached(cType);
+    }
+  }
+
+  private int getSizeofUncached(CType cType) {
+    if (cType instanceof CArrayType && cType.isIncomplete()) {
+      CArrayType t = (CArrayType) cType;
+      int length = t.getLengthAsInt().orElse(options.defaultArrayLength());
+      final int sizeOfType = getSizeofUncached(t.getType());
+      return length * sizeOfType;
+    } else {
+      return model.getSizeof(cType);
     }
   }
 
@@ -139,45 +152,46 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * @param memberName The name of the member of the composite type.
    * @return The offset of the member in the composite type in bits.
    */
-  int getBitOffset(CCompositeType compositeType, final String memberName) {
+  long getBitOffset(CCompositeType compositeType, final String memberName) {
     checkIsSimplified(compositeType);
     assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
-    Multiset<String> multiset = offsets.get(compositeType);
+    HashMap<String, Long> multiset = offsets.get(compositeType);
     if (multiset == null) {
       addCompositeTypeToCache(compositeType);
       multiset = offsets.get(compositeType);
       assert multiset != null : "Failed adding composite type to cache: " + compositeType;
     }
-    return multiset.count(memberName);
+    return multiset.get(memberName);
   }
 
   /**
    * Adds the declared composite type to the cache saving its size as well as the offset of every
    * member of the composite.
    */
+  @SuppressWarnings("deprecation")
   void addCompositeTypeToCache(CCompositeType compositeType) {
     checkIsSimplified(compositeType);
     if (offsets.containsKey(compositeType)) {
       // Support for empty structs though it's a GCC extension
-      assert sizes.contains(compositeType) || Integer.valueOf(0).equals(compositeType.accept(sizeofVisitor)) :
+      assert sizes.contains(compositeType) || Integer.valueOf(0).equals(getSizeofUncached(compositeType)) :
         "Illegal state of PointerTargetSet: no size for type:" + compositeType;
       return; // The type has already been added
     }
 
-    final int size = compositeType.accept(sizeofVisitor);
+    final int size = getSizeofUncached(compositeType);
     final int sizeOfByte = machineModel.getSizeofCharInBits();
 
     assert compositeType.getKind() != ComplexTypeKind.ENUM
         : "Enums are not composite: " + compositeType;
 
-    final Multiset<String> members = HashMultiset.create();
-    int offset = 0;
-    int bitFieldsSize = 0;
+    final HashMap<String, Long> members = new HashMap<>();
+    long offset = 0;
+    long bitFieldsSize = 0;
     Iterator<CCompositeTypeMemberDeclaration> memberIt = compositeType.getMembers().iterator();
     while (memberIt.hasNext()) {
       final CCompositeTypeMemberDeclaration memberDeclaration = memberIt.next();
-      int bitPreciseOffset = offset * sizeOfByte + bitFieldsSize;
-      members.setCount(memberDeclaration.getName(), bitPreciseOffset);
+      long bitPreciseOffset = offset * sizeOfByte + bitFieldsSize;
+      members.put(memberDeclaration.getName(), bitPreciseOffset);
       final CType memberType = getSimplifiedType(memberDeclaration);
       final CCompositeType memberCompositeType;
       if (memberType instanceof CCompositeType) {
@@ -195,7 +209,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
       }
       if (compositeType.getKind() == ComplexTypeKind.STRUCT) {
         if (memberCompositeType != null) {
-          offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
+          offset += calculateByteSize(bitFieldsSize);
           bitFieldsSize = 0;
           offset += machineModel.getPadding(offset, memberCompositeType);
           offset += sizes.count(memberCompositeType);
@@ -203,7 +217,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
           // Last member of a struct can be an incomplete array.
           // In this case we need only padding according to the element type of the array and no size.
           CType elementType = ((CArrayType) memberType).getType();
-          offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
+          offset += calculateByteSize(bitFieldsSize);
           bitFieldsSize = 0;
           offset += machineModel.getPadding(offset, elementType);
         } else {
@@ -215,7 +229,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
             if (memberSize == 0) {
               bitFieldsSize =
-                  machineModel.calculatePaddedBitsize(0, bitFieldsSize, innerType, sizeOfByte);
+                  machineModel.calculatePaddedBitsize(0L, bitFieldsSize, innerType, sizeOfByte);
             } else {
               bitFieldsSize =
                   machineModel.calculateNecessaryBitfieldOffset(
@@ -223,15 +237,15 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
               bitFieldsSize += memberSize;
             }
           } else {
-            offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
+            offset += calculateByteSize(bitFieldsSize);
             bitFieldsSize = 0;
             offset += machineModel.getPadding(offset, memberDeclaration.getType());
-            offset += memberDeclaration.getType().accept(sizeofVisitor);
+            offset += getSizeofUncached(memberDeclaration.getType());
           }
         }
       }
     }
-    offset += sizeofVisitor.calculateByteSize(bitFieldsSize);
+    offset += calculateByteSize(bitFieldsSize);
     offset += machineModel.getPadding(offset, compositeType);
 
     assert compositeType.getKind() != ComplexTypeKind.STRUCT || offset == size :
@@ -239,5 +253,13 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
     sizes.setCount(compositeType, size);
     offsets.put(compositeType, members);
+  }
+
+  private int calculateByteSize(long pBitFieldsSize) {
+    int result = Math.toIntExact(pBitFieldsSize / model.getSizeofCharInBits());
+    if (pBitFieldsSize % model.getSizeofCharInBits() > 0) {
+      result++;
+    }
+    return result;
   }
 }

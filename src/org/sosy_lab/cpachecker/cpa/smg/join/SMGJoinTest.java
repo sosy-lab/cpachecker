@@ -115,7 +115,7 @@ public class SMGJoinTest {
   }
 
   //Testing condition: adds an identical value to both SMGs
-  private void addValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var, int pOffset,
+  private void addValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var, long pOffset,
       int pValue, int pSizeInBits) {
 
     if(!smg1.getValues().contains(pValue)) {
@@ -134,7 +134,7 @@ public class SMGJoinTest {
   }
 
   //Testing condition: adds a pointer to both SMGs
-  private void addPointerToBoth(Pair<? extends SMGObject, ? extends SMGObject> target, int pOffset,
+  private void addPointerToBoth(Pair<? extends SMGObject, ? extends SMGObject> target, long pOffset,
       int pValue) {
 
     if(!smg1.getValues().contains(pValue)) {
@@ -154,8 +154,8 @@ public class SMGJoinTest {
 
   //Testing condition: adds a pointer to both SMGs
   private void addPointerValueToBoth(Pair<? extends SMGObject, ? extends SMGObject> var,
-      int pOffset, int pValue, int pSize,
-      Pair<? extends SMGObject, ? extends SMGObject> target, int pTargetOffset) {
+      long pOffset, int pValue, int pSize,
+      Pair<? extends SMGObject, ? extends SMGObject> target, long pTargetOffset) {
 
     addValueToBoth(var, pOffset, pValue, pSize);
     addPointerToBoth(target, pTargetOffset, pValue);

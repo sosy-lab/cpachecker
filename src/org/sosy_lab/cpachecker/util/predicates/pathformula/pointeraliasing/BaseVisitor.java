@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing.getFieldAccessName;
+
+import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -36,8 +39,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import javax.annotation.Nullable;
 
 class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCCodeException> {
 
@@ -81,8 +82,8 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCCodeE
 
     final Variable base = e.getFieldOwner().accept(this);
     if (base != null) {
-      return Variable.create(base.getName()  + CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR + e.getFieldName(),
-                             typeHandler.getSimplifiedType(e));
+      return Variable.create(
+          getFieldAccessName(base.getName(), e), typeHandler.getSimplifiedType(e));
     } else {
       return null;
     }

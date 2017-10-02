@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa.types;
 
-import static com.google.common.truth.Truth8.assertThat;
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
-import java.util.OptionalInt;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -115,21 +114,6 @@ public class MachineModelGetOffsetTest {
       new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS,
           TEST_STRUCT, TEST_STRUCT);
 
-
-  private static final ImmutableList<CCompositeTypeMemberDeclaration> BOUND_TO_FAIL_FIELDS =
-      ImmutableList.of(
-          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12),
-              FIRST_BITFIELD_12),
-          new CCompositeTypeMemberDeclaration(
-              new CArrayType(false, false, CNumericTypes.LONG_LONG_INT, null),
-              LAST_INCOMPLETEARRAY),
-          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 10),
-              SECOND_BITFIELD_10),
-          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT));
-
-  private static final CCompositeType BOUND_TO_FAIL_STRUCT = new CCompositeType(false, false,
-      ComplexTypeKind.STRUCT, BOUND_TO_FAIL_FIELDS, TEST_STRUCT, TEST_STRUCT);
-
   @Parameter(0)
   public String testField;
 
@@ -141,22 +125,6 @@ public class MachineModelGetOffsetTest {
 
   @Test
   public void testGetFieldOffsetInStruct() {
-    assertThat(model.getFieldOffsetInBits(STRUCT, testField)).hasValue(expectedOffset);
-  }
-
-  @Test
-  public void testFailingGetFieldOffsetInStructDueToIntermediateIncompleteType() {
-    assertThat(model.getFieldOffsetInBits(BOUND_TO_FAIL_STRUCT, testField))
-        .isAnyOf(OptionalInt.of(0), OptionalInt.empty());
-    // Offset-calculation does not fail, if we lookup a field in front of
-    // an erroneous intermediately inserted incomplete type.
-    //
-    // Perhaps it would be more elegant to filter in this case for the failing
-    // fields only, since the correct return of 0 for the first field is already
-    // known due to the residual tests.
-    //
-    // Also I can't utilize the convenience of Truth8 fully in this example, since
-    // there is no neat way to check an OptionalIntSubject to be either empty or have
-    // a particular value.
+    assertThat(model.getFieldOffsetInBits(STRUCT, testField)).isEqualTo(expectedOffset);
   }
 }

@@ -82,7 +82,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 public class ValueAnalysisConcreteErrorPathAllocator {
 
   private static final String MEMORY_NAME = "Value_Analysis_Heap";
@@ -90,7 +89,8 @@ public class ValueAnalysisConcreteErrorPathAllocator {
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   public ValueAnalysisConcreteErrorPathAllocator(Configuration pConfig, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
-    this.assumptionToEdgeAllocator = new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel);
+    this.assumptionToEdgeAllocator =
+        AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
   }
 
   public ConcreteStatePath allocateAssignmentsToPath(ARGPath pPath) {

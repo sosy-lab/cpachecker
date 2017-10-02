@@ -49,8 +49,8 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
   public CLangSMG execute(CLangSMG pSMG, SMGState pSmgState) throws SMGInconsistentException {
 
     SMGObject prevObject = candidate.getStartObject();
-    int nfo = candidate.getShape().getNfo();
-    int pfo = candidate.getShape().getPfo();
+    long nfo = candidate.getShape().getNfo();
+    long pfo = candidate.getShape().getPfo();
 
     pSmgState.pruneUnreachable();
 
