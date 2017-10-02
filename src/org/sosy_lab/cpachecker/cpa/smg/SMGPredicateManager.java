@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import java.math.BigInteger;
+import java.util.Map.Entry;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -38,14 +41,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-
-import java.math.BigInteger;
-import java.util.Map.Entry;
-import java.util.logging.Level;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.smg")
 public class SMGPredicateManager {
@@ -117,7 +116,13 @@ public class SMGPredicateManager {
     } else {
       BitvectorFormula explicitValueFormula = efmgr.makeBitvector(symbolicSize, explicitValue);
       String name = SYM_NAME + pRelation.getSymbolicValue();
-      Formula symbolicValue = efmgr.makeVariable(symbolicSize, name);
+      Formula symbolicValue;
+      if (pRelation.getSymbolicValue() == 0) {
+        //Special case for NULL value
+        symbolicValue = efmgr.makeBitvector(symbolicSize, 0);
+      } else {
+        symbolicValue = efmgr.makeVariable(symbolicSize, name);
+      }
       result = createBooleanFormula(symbolicValue, explicitValueFormula, op);
     }
     if (conjunction) {
@@ -129,22 +134,28 @@ public class SMGPredicateManager {
   }
 
   private BooleanFormula addPredicateToFormula(BooleanFormula pFormula, SymbolicRelation
-      pRelation, PredRelation pPredRelationRelation, boolean conjunction) {
+      pRelation, PredRelation pPredRelation, boolean conjunction) {
     BooleanFormula result;
     String nameOne = SYM_NAME + pRelation.getFirstValue();
     String nameTwo = SYM_NAME + pRelation.getSecondValue();
-    Integer firstSize = pPredRelationRelation.getSymbolicSize(pRelation.getFirstValue());
-    Integer secondSize = pPredRelationRelation.getSymbolicSize(pRelation.getSecondValue());
+    Integer firstSize = pPredRelation.getSymbolicSize(pRelation.getFirstValue());
+    Integer secondSize = pPredRelation.getSymbolicSize(pRelation.getSecondValue());
+    BitvectorFormula formulaOne;
+    BitvectorFormula formulaTwo;
     //Special case for NULL value
     if (pRelation.getFirstValue() == 0) {
       firstSize = secondSize;
+      formulaOne = efmgr.makeBitvector(firstSize, 0);
+    } else {
+      formulaOne = efmgr.makeVariable(firstSize, nameOne);
     }
     if (pRelation.getSecondValue() == 0) {
       secondSize = firstSize;
+      formulaTwo = efmgr.makeBitvector(firstSize, 0);
+    } else {
+      formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
     }
-    BitvectorFormula formulaOne = efmgr.makeVariable(firstSize, nameOne);
-    BitvectorFormula formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
-    if (firstSize != secondSize) {
+    if (!firstSize.equals(secondSize)) {
       if (firstSize > secondSize) {
         formulaTwo = efmgr.extend(formulaTwo, firstSize - secondSize, true);
       } else {
