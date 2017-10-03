@@ -263,6 +263,9 @@ analysis.restartAlgorithmWithARGReplay = false
 # stop after the first error has been found
 analysis.stopAfterError = true
 
+# specify postfix to find the stub for a function e.g. f --> f_stub
+analysis.stubPostfix = "___stub"
+
 # create functin call edges for both the function and the stub
 analysis.stubs = false
 
@@ -1538,6 +1541,9 @@ cpa.predicate.blk.join = false
 # threshold = 0)
 cpa.predicate.blk.loops = false
 
+# specify postfix to find the stub for a function e.g. f --> f_stub
+cpa.predicate.blk.stubPostfix = "___stub"
+
 # maximum blocksize before abstraction is forced
 # (non-negative number, special values: 0 = don't check threshold, 1 = SBE)
 cpa.predicate.blk.threshold = 0
@@ -1547,6 +1553,10 @@ cpa.predicate.blk.useCache = true
 
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
+
+# An analogue of __VERIFIER_nondet_long_long with datadependency
+# approximation provided through variadic arguments
+cpa.predicate.chooseFunctionName = "__VERIFIER_choose"
 
 # The default size in bytes for memory allocations when the value cannot be
 # determined.
@@ -1565,6 +1575,9 @@ cpa.predicate.direction = FORWARD
 
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
+
+# Disables encoding fields of unaddressed structures asvariables
+cpa.predicate.enablePureStructOptimization = true
 
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
 # specified theory is used to approximate bitvectors. This can be used for
@@ -1609,6 +1622,13 @@ cpa.predicate.handlePointerAliasing = true
 # of the char array with the contents of the string literal instead of just
 # assigning a fresh non-det address to it
 cpa.predicate.handleStringLiteralInitializers = false
+
+# Specify function that allows to update an SSA index for amemory region
+# (effectively havoc all values in the region); unlike _nondet_ functinos,
+# the havoc should NOT be entirely non-deterministic, the data dependency
+# approximationshould be (and actually is) provided through the variadic
+# arguments
+cpa.predicate.havocRegionFunctionName = "__VERIFIER_havoc_region"
 
 # Allows to ignore Concat and Extract Calls when Bitvector theory was
 # replaced with Integer or Rational.
@@ -2008,6 +2028,17 @@ cpa.reachdef.stop = "SEP"
 # incomplete analysis with no counterexample checking.
 cpa.reportFalseAsUnknown = false
 
+# Add at list this number of edges (if available) to CFA foreach unrolled
+# function
+cpa.scopebounded.refiner.edgeIncrement = 50
+
+# Give up and unroll everything if more than this fraction of stubs have to
+# be unrolled
+cpa.scopebounded.refiner.maxUnrollFraction = 3
+
+# Postfix used to detect function stubs (summaries)
+cpa.scopebounded.stubPostfix = "___stub"
+
 # which merge operator to use for SignCPA
 cpa.sign.merge = "JOIN"
   allowed values: [SEP, JOIN]
@@ -2282,10 +2313,18 @@ cpa.value.abstraction.iterationThreshold = -1
 # leaving edge
 cpa.value.abstraction.onlyAtNonLinearCFA = false
 
+# specify postfix to find the stub for a function e.g. f --> f_stub
+cpa.value.abstraction.stubPostfix = "___stub"
+
 # Whether to replace symbolic values with a concrete value when only one
 # value is possible for an assumption to be true (e.g. for (x == 1) set x to
 # 1, even if x is a symbolic expression).
 cpa.value.assignSymbolicAssumptionVars = false
+
+# Explicit-value counterpart of __VERIFIER_havoc_region, tobe used for
+# scope-bounded verification; implemented as crude over-approximation, havocs
+# the entire heap
+cpa.value.havocRegionFunctionName = "__VERIFIER_havoc_region"
 
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.

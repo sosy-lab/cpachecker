@@ -191,7 +191,7 @@ public class ValueAnalysisTransferRelation
     @Option(
       secure = true,
       description =
-          "Explicit-value counterpart of __VERIFIER_havoc_region, to"
+          "Explicit-value counterpart of __VERIFIER_havoc_region, to "
               + "be used for scope-bounded verification; implemented as crude over-approximation, "
               + "havocs the entire heap"
     )

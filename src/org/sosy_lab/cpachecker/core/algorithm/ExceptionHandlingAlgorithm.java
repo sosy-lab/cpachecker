@@ -51,6 +51,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
+import org.sosy_lab.cpachecker.cpa.scopebounded.ScopeBoundedCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
@@ -122,7 +123,7 @@ public class ExceptionHandlingAlgorithm
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    if (!(pCpa instanceof ARGCPA || pCpa instanceof BAMCPA)) {
+    if (!(pCpa instanceof ARGCPA || pCpa instanceof BAMCPA || pCpa instanceof ScopeBoundedCPA)) {
       throw new InvalidConfigurationException("ARG CPA needed for counterexample check");
     }
   }

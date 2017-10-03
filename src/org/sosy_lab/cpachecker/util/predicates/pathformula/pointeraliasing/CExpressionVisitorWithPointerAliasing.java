@@ -645,16 +645,38 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           final CExpression regionExp = args.get(0);
           final Expression regionLoc = regionExp.accept(this);
           if (regionLoc instanceof AliasedLocation) {
-            final MemoryRegion region = ((AliasedLocation) regionLoc).getMemoryRegion();
+            MemoryRegion region = ((AliasedLocation) regionLoc).getMemoryRegion();
+            if (region == null) {
+              CType type = typeHandler.simplifyType(regionExp.getExpressionType());
+              if (type instanceof CPointerType) {
+                type = ((CPointerType) type).getType();
+              } else if (type instanceof CArrayType) {
+                type = ((CArrayType) type).getType();
+              }
+              region = regionMgr.makeMemoryRegion(type);
+            }
             final String ufName = regionMgr.getPointerAccessName(region);
             conv.makeFreshIndex(ufName, region.getType(), ssa);
             if (conv.options.addRangeConstraintsForNondet()) {
               conv.addHavocRegionRangeConstraints(region, ssa, constraints, pts);
             }
+            return Value.nondetValue();
+          } else if (regionLoc instanceof UnaliasedLocation) {
+            final String varName = ((UnaliasedLocation) regionLoc).getVariableName();
+            if (varName.contains(CToFormulaConverterWithPointerAliasing.FIELD_NAME_SEPARATOR)) {
+              throw new IllegalStateException(
+                  "Unaliased fields optimization should not be enabled "
+                      + "when scope-bouned verification with region-based summaries is used!");
+            }
+            final CType type = typeHandler.simplifyType(regionExp.getExpressionType());
+            conv.makeFreshIndex(varName, type, ssa);
+            final Formula formula = conv.makeVariable(varName, type, ssa);
+            if (conv.options.addRangeConstraintsForNondet()) {
+              conv.addRangeConstraint(formula, type, constraints);
+            }
+            return Value.nondetValue();
           } else {
-            throw new IllegalStateException(
-                "Unaliased fields optimization should not be enabled "
-                    + "when scope-bouned verification with region-based summaries is used!");
+            throw new IllegalStateException("Region havoc function arguments should be lvalues!");
           }
         } else {
           throw new UnrecognizedCCodeException(
