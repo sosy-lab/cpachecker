@@ -639,6 +639,34 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         } catch (InterruptedException exc) {
           throw CtoFormulaConverter.propagateInterruptedException(exc);
         }
+      } else if (conv.options.isHavocRegionFunctionName(functionName)) {
+        final List<CExpression> args = e.getParameterExpressions();
+        if (!args.isEmpty()) {
+          final CExpression regionExp = args.get(0);
+          final Expression regionLoc = regionExp.accept(this);
+          if (regionLoc instanceof AliasedLocation) {
+            final MemoryRegion region = ((AliasedLocation) regionLoc).getMemoryRegion();
+            final String ufName = regionMgr.getPointerAccessName(region);
+            conv.makeFreshIndex(ufName, region.getType(), ssa);
+            if (conv.options.addRangeConstraintsForNondet()) {
+              conv.addHavocRegionRangeConstraints(region, ssa, constraints, pts);
+            }
+          } else {
+            throw new IllegalStateException(
+                "Unaliased fields optimization should not be enabled "
+                    + "when scope-bouned verification with region-based summaries is used!");
+          }
+        } else {
+          throw new UnrecognizedCCodeException(
+              "Region havoc function should be called with at least one argument", edge);
+        }
+      } else if (conv.options.isChooseFunctionName(functionName)) {
+        final CType returnType = e.getExpressionType();
+        final Formula newVariable = conv.makeFreshVariable(functionName, returnType, ssa);
+        if (conv.options.addRangeConstraintsForNondet()) {
+          conv.addRangeConstraint(newVariable, returnType, constraints);
+        }
+        return Value.ofValue(newVariable);
       }
     }
 

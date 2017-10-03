@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.isSimpleType;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMultimap;
@@ -245,6 +246,31 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
   }
 
+  void addHavocRegionRangeConstraints(
+      final MemoryRegion region,
+      final SSAMapBuilder ssa,
+      final Constraints constraints,
+      final PointerTargetSetBuilder pts) {
+    addRangeConstraints(region, pts::getAllTargets, ssa, constraints);
+  }
+
+  private void addRangeConstraints(
+      final MemoryRegion region,
+      final Function<MemoryRegion, ? extends Iterable<PointerTarget>> targetLookup,
+      final SSAMapBuilder ssa,
+      final Constraints constraints) {
+    final CType regionType = region.getType();
+
+    targetLookup
+        .apply(region)
+        .forEach(
+            target -> {
+              final Formula targetAddress = makeFormulaForTarget(target);
+              final Formula val = makeSafeDereference(regionType, targetAddress, ssa, region);
+              addRangeConstraint(val, regionType, constraints);
+            });
+  }
+
   @Override
   public BooleanFormula makeSsaUpdateTerm(
       final String symbolName,
@@ -384,6 +410,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return fmgr.assignment(
         ptsMgr.makePointerDereference(targetName, type, newIndex, targetAddress),
         ptsMgr.makePointerDereference(targetName, type, oldIndex, targetAddress));
+  }
+
+  protected @Override void addRangeConstraint(
+      Formula pVariable, CType pType, Constraints pConstraints) {
+    super.addRangeConstraint(pVariable, pType, pConstraints);
   }
 
   /**
@@ -971,7 +1002,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     }
 
     declareSharedBase(declaration, declaration, false, constraints, pts);
-    if (CTypeUtils.containsArray(declarationType, declaration)) {
+    if ((!options.isPureStructOptimizationEnabled() && isAddressedVariable(declaration))
+        || CTypeUtils.containsArray(declarationType, declaration)) {
       addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
     }
 

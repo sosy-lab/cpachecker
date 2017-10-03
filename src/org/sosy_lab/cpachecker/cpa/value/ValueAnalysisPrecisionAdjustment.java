@@ -96,6 +96,12 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
   @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
   private int determinismThreshold = 85;
 
+  @Option(
+    secure = true,
+    description = "specify postfix to find the stub for a function e.g. f --> f_stub"
+  )
+  private String stubPostfix = "___stub";
+
   private final ValueAnalysisCPAStatistics stats;
 
   private final ImmutableSet<CFANode> loopHeads;
@@ -298,8 +304,20 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment, St
   }
 
   private boolean abstractAtFunction(LocationState location) {
-    return alwaysAtFunction && (location.getLocationNode() instanceof FunctionEntryNode
-        || location.getLocationNode().getEnteringSummaryEdge() != null);
+    final CFANode locationNode = location.getLocationNode();
+    final boolean isFunctionEntry = locationNode instanceof FunctionEntryNode;
+    return alwaysAtFunction
+        && (isFunctionEntry || locationNode.getEnteringSummaryEdge() != null)
+        && !((isFunctionEntry
+                && stubPostfix != null
+                && ((FunctionEntryNode) locationNode).getFunctionName().endsWith(stubPostfix))
+            || (locationNode.getEnteringSummaryEdge() != null
+                && stubPostfix != null
+                && locationNode
+                    .getEnteringSummaryEdge()
+                    .getFunctionEntry()
+                    .getFunctionName()
+                    .endsWith(stubPostfix)));
   }
 
   private boolean abstractAtLoop(LocationState location) {

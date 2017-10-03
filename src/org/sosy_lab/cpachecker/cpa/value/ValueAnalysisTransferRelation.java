@@ -188,6 +188,15 @@ public class ValueAnalysisTransferRelation
     )
     private boolean trackJavaArrayValues = true;
 
+    @Option(
+      secure = true,
+      description =
+          "Explicit-value counterpart of __VERIFIER_havoc_region, to"
+              + "be used for scope-bounded verification; implemented as crude over-approximation, "
+              + "havocs the entire heap"
+    )
+    private String havocRegionFunctionName = "__VERIFIER_havoc_region";
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -202,6 +211,10 @@ public class ValueAnalysisTransferRelation
 
     boolean isOptimizeBooleanVariables() {
       return optimizeBooleanVariables;
+    }
+
+    boolean isHavocRegionFunctionName(final String name) {
+      return havocRegionFunctionName.equals(name);
     }
   }
 
@@ -846,6 +859,18 @@ public class ValueAnalysisTransferRelation
     final ExpressionValueVisitor evv = getVisitor();
 
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+
+    if (options.isHavocRegionFunctionName(functionCallExp.getDeclaration().getName())) {
+      newElement
+          .getConstantsMapView()
+          .forEach(
+              (loc, _val) -> {
+                if (loc.isReference()) {
+                  newElement.forget(loc);
+                }
+              });
+      return newElement;
+    }
 
     Value newValue = evv.evaluate(functionCallExp, leftSideType);
 

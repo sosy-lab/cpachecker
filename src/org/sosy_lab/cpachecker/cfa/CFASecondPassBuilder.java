@@ -103,6 +103,13 @@ public class CFASecondPassBuilder {
 
   @Option(
     secure = true,
+    name = "analysis.stubPostfix",
+    description = "specify postfix to find the stub for a function e.g. f --> f_stub"
+  )
+  private String stubPostfix = "___stub";
+
+  @Option(
+    secure = true,
     name = "cfa.assumeFunctions",
     description = "Which functions should be interpreted as encoding assumptions"
   )
@@ -158,8 +165,8 @@ public class CFASecondPassBuilder {
       final FunctionExitNode funcExit = cfa.getFunctionHead(funcName).getExitNode();
       // don't approximate knowingly non-terminating functions
       // this should not be unsound, but may result in significantly different CFA
-      if (stubEdges && funcExit.getNumEnteringEdges() != 0) {
-        final String stubName = callExpression.getDeclaration().getName() + "_stub";
+      if (stubEdges && stubPostfix != null && funcExit.getNumEnteringEdges() != 0) {
+        final String stubName = callExpression.getDeclaration().getName() + stubPostfix;
         final CFunctionEntryNode stubEntry = (CFunctionEntryNode) cfa.getFunctionHead(stubName);
         if (stubEntry != null
             && checkParamSizes(callExpression, stubEntry.getFunctionDefinition().getType())) {

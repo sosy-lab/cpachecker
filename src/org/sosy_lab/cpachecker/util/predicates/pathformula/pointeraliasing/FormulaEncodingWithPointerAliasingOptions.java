@@ -82,6 +82,30 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
   @Option(secure=true, description = "Function that is used to free allocated memory.")
   private String memoryFreeFunctionName = "free";
 
+  @Option(
+    secure = true,
+    description =
+        "Specify function that allows to update an SSA index for a "
+            + "memory region (effectively havoc all values in the region); unlike _nondet_ functinos, "
+            + "the havoc should NOT be entirely non-deterministic, the data dependency approximation "
+            + "should be (and actually is) provided through the variadic arguments"
+  )
+  private String havocRegionFunctionName = "__VERIFIER_havoc_region";
+
+  @Option(
+    secure = true,
+    description =
+        "An analogue of __VERIFIER_nondet_long_long with data "
+            + "dependency approximation provided through variadic arguments"
+  )
+  private String chooseFunctionName = "__VERIFIER_choose";
+
+  @Option(
+    secure = true,
+    description = "Disables encoding fields of unaddressed structures as variables"
+  )
+  private boolean enablePureStructOptimization = true;
+
   @Option(secure = true, description = "Use quantifiers when encoding heap accesses. "
       + "This requires an SMT solver that is capable of quantifiers (e.g. Z3 or PRINCESS).")
   private boolean useQuantifiersOnArrays = false;
@@ -120,6 +144,18 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   boolean hasSuperfluousParameters(final String name) {
     return memoryAllocationFunctionsWithSuperfluousParameters.contains(name);
+  }
+
+  boolean isHavocRegionFunctionName(final String name) {
+    return havocRegionFunctionName.equals(name);
+  }
+
+  boolean isChooseFunctionName(final String name) {
+    return chooseFunctionName.equals(name);
+  }
+
+  boolean isPureStructOptimizationEnabled() {
+    return enablePureStructOptimization;
   }
 
   boolean isDynamicMemoryFunction(final String name) {

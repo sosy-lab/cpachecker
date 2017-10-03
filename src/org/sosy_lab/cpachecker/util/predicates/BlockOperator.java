@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -33,8 +34,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * This class implements the blk operator from the paper
@@ -94,6 +93,12 @@ public class BlockOperator {
   @Option(secure=true, description="abstraction always at explicitly computed abstraction nodes.")
   private boolean alwaysAtExplicitNodes = false;
 
+  @Option(
+    secure = true,
+    description = "specify postfix to find the stub for a function e.g. f --> f_stub"
+  )
+  private String stubPostfix = "___stub";
+
   private ImmutableSet<CFANode> explicitAbstractionNodes = null;
   private ImmutableSet<CFANode> loopHeads = null;
 
@@ -113,6 +118,18 @@ public class BlockOperator {
    */
   public boolean isBlockEnd(final CFANode loc, final int thresholdValue) {
     // If you change this function, make sure to adapt alwaysReturnsFalse(), too!
+
+    if (stubPostfix != null) {
+      if (loc instanceof FunctionEntryNode
+              && ((FunctionEntryNode) loc).getFunctionName().endsWith(stubPostfix)
+          || loc.getEnteringSummaryEdge() != null
+              && loc.getEnteringSummaryEdge()
+                  .getFunctionEntry()
+                  .getFunctionName()
+                  .endsWith(stubPostfix)) {
+        return false;
+      }
+    }
 
     if (alwaysAndOnlyAtExplicitNodes) {
       assert (explicitAbstractionNodes != null);
