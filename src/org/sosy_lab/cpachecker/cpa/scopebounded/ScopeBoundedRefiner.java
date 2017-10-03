@@ -206,7 +206,7 @@ public final class ScopeBoundedRefiner implements ARGBasedRefiner {
         new ScopeBoundedRefiner(wrapped, cpa, cpa.getConfig()), cpa);
   }
 
-  private class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
+  private static class FunctionCallCollector extends CFATraversal.DefaultCFAVisitor {
     private final List<CFunctionCallEdge> functionCalls = new ArrayList<>();
     private int numEdges = 0;
 
