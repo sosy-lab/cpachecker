@@ -70,13 +70,13 @@ public final class ScopeBoundedRefiner implements ARGBasedRefiner {
     description =
         "Add at least this number of edges (if available) to CFA for each unrolled function"
   )
-  final int edgeIncrement = 50;
+  int edgeIncrement = 50;
 
   @Option(
     description =
         "Give up and unroll everything if more than this fraction of stubs have to be unrolled"
   )
-  final int maxUnrollFraction = 3;
+  int maxUnrollFraction = 5;
 
   // Intermediate variable equal to nStubs / maxUnrollFraction
   final int maxUnroll;
