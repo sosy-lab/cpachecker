@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -43,6 +44,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
@@ -68,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.IAFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.JParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -80,12 +87,25 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 @Options
 public class CFASecondPassBuilder {
 
-  @Option(secure=true, name="analysis.summaryEdges",
-      description="create summary call statement edges")
+  @Option(
+    secure = true,
+    name = "analysis.summaryEdges",
+    description = "create summary call statement edges"
+  )
   private boolean summaryEdges = false;
 
-  @Option(secure=true, name="cfa.assumeFunctions",
-      description="Which functions should be interpreted as encoding assumptions")
+  @Option(
+    secure = true,
+    name = "analysis.stubs",
+    description = "create functin call edges for both the function and the stub"
+  )
+  private boolean stubEdges = false;
+
+  @Option(
+    secure = true,
+    name = "cfa.assumeFunctions",
+    description = "Which functions should be interpreted as encoding assumptions"
+  )
   private Set<String> assumeFunctions = ImmutableSet.of("__VERIFIER_assume");
 
   protected final MutableCFA cfa;
@@ -126,12 +146,30 @@ public class CFASecondPassBuilder {
   }
 
   /**
-   * Inserts call edges and return edges from the call site and to the return site of the function call.
+   * Inserts call edges and return edges from the call site and to the return site of the function
+   * call.
    */
   private void insertCallEdges(final AStatementEdge statementEdge) throws ParserException {
-    final AFunctionCall call = (AFunctionCall)statementEdge.getStatement();
-    if (shouldCreateCallEdges(call)) {
-      createCallAndReturnEdges(statementEdge, call);
+    final AFunctionCall call = (AFunctionCall) statementEdge.getStatement();
+    if (shouldCreateCallEdges(call) && language.equals(Language.C)) {
+      final CFunctionCall cCall = (CFunctionCall) call;
+      final CFunctionCallExpression callExpression = cCall.getFunctionCallExpression();
+      final String funcName = callExpression.getDeclaration().getName();
+      final FunctionExitNode funcExit = cfa.getFunctionHead(funcName).getExitNode();
+      // don't approximate knowingly non-terminating functions
+      // this should not be unsound, but may result in significantly different CFA
+      if (stubEdges && funcExit.getNumEnteringEdges() != 0) {
+        final String stubName = callExpression.getDeclaration().getName() + "_stub";
+        final CFunctionEntryNode stubEntry = (CFunctionEntryNode) cfa.getFunctionHead(stubName);
+        if (stubEntry != null
+            && checkParamSizes(callExpression, stubEntry.getFunctionDefinition().getType())) {
+          createCallAndReturnEdgesWithStub((CStatementEdge) statementEdge, cCall, stubEntry);
+        } else {
+          createCallAndReturnEdges(statementEdge, call);
+        }
+      } else {
+        createCallAndReturnEdges(statementEdge, call);
+      }
     } else {
       replaceBuiltinFunction(statementEdge, call);
     }
@@ -143,18 +181,178 @@ public class CFASecondPassBuilder {
 
     // If we have a function declaration, it is a normal call to this function,
     // and neither a call to an undefined function nor a function pointer call.
-    return (functionDecl != null)
-            && cfa.getAllFunctionNames().contains(functionDecl.getName());
+    return (functionDecl != null) && cfa.getAllFunctionNames().contains(functionDecl.getName());
   }
 
-  /**
-   * inserts call, return and summary edges from a node to its successor node.
-   * @param edge The function call edge.
-   * @param functionCall If the call was an assignment from the function call
-   * this keeps only the function call expression, e.g. if statement is a = call(b);
-   * then functionCall is call(b).
-   */
-  private void createCallAndReturnEdges(AStatementEdge edge, AFunctionCall functionCall) throws ParserException {
+  private void createCallAndReturnEdgesWithStub(
+      final CStatementEdge funcEdge,
+      final CFunctionCall funcCall,
+      final CFunctionEntryNode stubEntry)
+      throws ParserException {
+
+    final CFANode predecessorNode = funcEdge.getPredecessor();
+    assert predecessorNode.getLeavingSummaryEdge() == null;
+
+    final CFANode directSuccessorNode = funcEdge.getSuccessor();
+    final CFANode successorNode;
+
+    if (directSuccessorNode.getEnteringSummaryEdge() == null) {
+      successorNode = directSuccessorNode;
+    } else {
+      // Control flow merging directly after two function calls.
+      // Our CFA structure currently does not support this,
+      // so insert a dummy node and a blank edge.
+      CFANode tmp = new CFANode(directSuccessorNode.getFunctionName());
+      cfa.addNode(tmp);
+      CFAEdge tmpEdge = new BlankEdge("", FileLocation.DUMMY, tmp, directSuccessorNode, "");
+      CFACreationUtils.addEdgeUnconditionallyToCFA(tmpEdge);
+      successorNode = tmp;
+    }
+
+    final CFunctionCallExpression funcCallExpression = funcCall.getFunctionCallExpression();
+    final String functionName = funcCallExpression.getDeclaration().getName();
+    final FileLocation fileLocation = funcEdge.getFileLocation();
+    final CFunctionEntryNode funcEntry = (CFunctionEntryNode) cfa.getFunctionHead(functionName);
+    final FunctionExitNode funcExit = funcEntry.getExitNode();
+
+    final CFunctionDeclaration stubDeclaration = stubEntry.getFunctionDefinition();
+    final CExpression stubFunctionNameExpression = new CIdExpression(fileLocation, stubDeclaration);
+    final CFunctionCallExpression stubCallExpression =
+        new CFunctionCallExpression(
+            fileLocation,
+            funcCallExpression.getExpressionType(),
+            stubFunctionNameExpression,
+            funcCallExpression.getParameterExpressions(),
+            stubDeclaration);
+    final CFunctionCall stubCall =
+        funcCall instanceof CFunctionCallAssignmentStatement
+            ? new CFunctionCallAssignmentStatement(
+                fileLocation,
+                ((CFunctionCallAssignmentStatement) funcCall).getLeftHandSide(),
+                stubCallExpression)
+            : new CFunctionCallStatement(fileLocation, stubCallExpression);
+    // the following variable is just for symmetry, could as well be removed
+    final CStatementEdge stubEdge =
+        new CStatementEdge(
+            funcEdge.getRawStatement(),
+            stubCall,
+            fileLocation,
+            predecessorNode,
+            directSuccessorNode);
+    final FunctionExitNode stubExit = stubEntry.getExitNode();
+
+    // get the parameter expression
+    // check if the number of function parameters are right
+    if (!checkParamSizes(funcCallExpression, funcEntry.getFunctionDefinition().getType())) {
+      int declaredParameters = funcEntry.getFunctionDefinition().getType().getParameters().size();
+      int actualParameters = funcCallExpression.getParameterExpressions().size();
+      throw new CParserException(
+          "Function "
+              + functionName
+              + " takes "
+              + declaredParameters
+              + " parameter(s) but is called with "
+              + actualParameters
+              + " parameter(s)",
+          funcEdge);
+    }
+
+    // delete old edge
+    CFACreationUtils.removeEdgeFromNodes(funcEdge);
+
+    // create two intermediate nodes and assumption edges for calls to func & stub
+    final CFANode beforeFuncCall = new CFANode(directSuccessorNode.getFunctionName());
+    final CFANode beforeStubCall = new CFANode(directSuccessorNode.getFunctionName());
+    cfa.addNode(beforeFuncCall);
+    cfa.addNode(beforeStubCall);
+    final CIntegerLiteralExpression constOne =
+        new CIntegerLiteralExpression(fileLocation, CNumericTypes.INT, BigInteger.ONE);
+    final CIntegerLiteralExpression constZero =
+        new CIntegerLiteralExpression(fileLocation, CNumericTypes.INT, BigInteger.ZERO);
+    final CBinaryExpression trueExpr =
+        new CBinaryExpression(
+            fileLocation,
+            CNumericTypes.BOOL,
+            CNumericTypes.INT,
+            constZero,
+            constZero,
+            BinaryOperator.EQUALS);
+    final CBinaryExpression falseExpr =
+        new CBinaryExpression(
+            fileLocation,
+            CNumericTypes.BOOL,
+            CNumericTypes.INT,
+            constZero,
+            constOne,
+            BinaryOperator.EQUALS);
+    final CFAEdge assumeFuncEdge =
+        new CAssumeEdge("*unroll*", fileLocation, predecessorNode, beforeFuncCall, trueExpr, true);
+    final CFAEdge assumeStubEdge =
+        new CAssumeEdge("*stub*", fileLocation, predecessorNode, beforeStubCall, falseExpr, false);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(assumeFuncEdge);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(assumeStubEdge);
+
+    final CFunctionSummaryEdge funcSummaryEdge =
+        new CFunctionSummaryEdge(
+            funcEdge.getRawStatement(),
+            fileLocation,
+            beforeFuncCall,
+            successorNode,
+            funcCall,
+            funcEntry);
+    beforeFuncCall.addLeavingSummaryEdge(funcSummaryEdge);
+    successorNode.addEnteringSummaryEdge(funcSummaryEdge);
+
+    final CFANode stubNode = new CFANode(directSuccessorNode.getFunctionName());
+    cfa.addNode(stubNode);
+    final CFunctionSummaryEdge stubSummaryEdge =
+        new CFunctionSummaryEdge(
+            stubEdge.getRawStatement(),
+            fileLocation,
+            beforeStubCall,
+            stubNode,
+            stubCall,
+            stubEntry);
+    beforeStubCall.addLeavingSummaryEdge(stubSummaryEdge);
+    CFAEdge stubDummyEdge = new BlankEdge("*dummy*", fileLocation, stubNode, successorNode, "");
+    CFACreationUtils.addEdgeUnconditionallyToCFA(stubDummyEdge);
+    stubNode.addEnteringSummaryEdge(stubSummaryEdge);
+
+    final CFunctionCallEdge funcCallEdge =
+        new CFunctionCallEdge(
+            funcEdge.getRawStatement(),
+            fileLocation,
+            beforeFuncCall,
+            funcEntry,
+            funcCall,
+            funcSummaryEdge);
+    beforeFuncCall.addLeavingEdge(funcCallEdge);
+    funcEntry.addEnteringEdge(funcCallEdge);
+
+    final CFunctionCallEdge stubCallEdge =
+        new CFunctionCallEdge(
+            stubEdge.getRawStatement(),
+            fileLocation,
+            beforeStubCall,
+            stubEntry,
+            stubCall,
+            stubSummaryEdge);
+    beforeStubCall.addLeavingEdge(stubCallEdge);
+    stubEntry.addEnteringEdge(stubCallEdge);
+
+    final CFunctionReturnEdge funcReturnEdge =
+        new CFunctionReturnEdge(fileLocation, funcExit, successorNode, funcSummaryEdge);
+    funcExit.addLeavingEdge(funcReturnEdge);
+    successorNode.addEnteringEdge(funcReturnEdge);
+
+    final CFunctionReturnEdge stubReturnEdge =
+        new CFunctionReturnEdge(fileLocation, stubExit, stubNode, stubSummaryEdge);
+    stubExit.addLeavingEdge(stubReturnEdge);
+    stubNode.addEnteringEdge(stubReturnEdge);
+  }
+
+  private void createCallAndReturnEdges(AStatementEdge edge, AFunctionCall functionCall)
+      throws ParserException {
 
     CFANode predecessorNode = edge.getPredecessor();
     assert predecessorNode.getLeavingSummaryEdge() == null;

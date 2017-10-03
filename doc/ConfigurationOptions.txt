@@ -263,6 +263,9 @@ analysis.restartAlgorithmWithARGReplay = false
 # stop after the first error has been found
 analysis.stopAfterError = true
 
+# create functin call edges for both the function and the stub
+analysis.stubs = false
+
 # create summary call statement edges
 analysis.summaryEdges = false
 
