@@ -120,13 +120,13 @@ public class BlockOperator {
     // If you change this function, make sure to adapt alwaysReturnsFalse(), too!
 
     if (stubPostfix != null) {
-      if (loc instanceof FunctionEntryNode
-              && ((FunctionEntryNode) loc).getFunctionName().endsWith(stubPostfix)
-          || loc.getEnteringSummaryEdge() != null
+      if ((loc instanceof FunctionEntryNode
+              && ((FunctionEntryNode) loc).getFunctionName().endsWith(stubPostfix))
+          || (loc.getEnteringSummaryEdge() != null
               && loc.getEnteringSummaryEdge()
                   .getFunctionEntry()
                   .getFunctionName()
-                  .endsWith(stubPostfix)) {
+                  .endsWith(stubPostfix))) {
         return false;
       }
     }
