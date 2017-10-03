@@ -120,13 +120,16 @@ public class BlockOperator {
     // If you change this function, make sure to adapt alwaysReturnsFalse(), too!
 
     if (stubPostfix != null) {
-      if ((loc instanceof FunctionEntryNode
-              && ((FunctionEntryNode) loc).getFunctionName().endsWith(stubPostfix))
-          || (loc.getEnteringSummaryEdge() != null
-              && loc.getEnteringSummaryEdge()
-                  .getFunctionEntry()
-                  .getFunctionName()
-                  .endsWith(stubPostfix))) {
+      final boolean isStubEntry = loc instanceof FunctionEntryNode
+                                  && ((FunctionEntryNode) loc)
+                                       .getFunctionName()
+                                       .endsWith(stubPostfix);
+      final boolean isStubExit = loc.getEnteringSummaryEdge() != null
+                                 && loc.getEnteringSummaryEdge()
+                                      .getFunctionEntry()
+                                      .getFunctionName()
+                                      .endsWith(stubPostfix);
+      if (isStubEntry || isStubExit) {
         return false;
       }
     }

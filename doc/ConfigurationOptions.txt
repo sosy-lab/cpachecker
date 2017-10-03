@@ -1554,7 +1554,7 @@ cpa.predicate.blk.useCache = true
 # always check satisfiability at end of block, even if precision is empty
 cpa.predicate.checkBlockFeasibility = false
 
-# An analogue of __VERIFIER_nondet_long_long with datadependency
+# An analogue of __VERIFIER_nondet_long_long with data dependency
 # approximation provided through variadic arguments
 cpa.predicate.chooseFunctionName = "__VERIFIER_choose"
 
@@ -1576,7 +1576,7 @@ cpa.predicate.direction = FORWARD
 # Enable the possibility to precompute explicit abstraction locations.
 cpa.predicate.enableBlockreducer = false
 
-# Disables encoding fields of unaddressed structures asvariables
+# Disables encoding fields of unaddressed structures as variables
 cpa.predicate.enablePureStructOptimization = true
 
 # Theory to use as backend for bitvectors. If different from BITVECTOR, the
@@ -1623,10 +1623,10 @@ cpa.predicate.handlePointerAliasing = true
 # assigning a fresh non-det address to it
 cpa.predicate.handleStringLiteralInitializers = false
 
-# Specify function that allows to update an SSA index for amemory region
+# Specify function that allows to update an SSA index for a memory region
 # (effectively havoc all values in the region); unlike _nondet_ functinos,
 # the havoc should NOT be entirely non-deterministic, the data dependency
-# approximationshould be (and actually is) provided through the variadic
+# approximation should be (and actually is) provided through the variadic
 # arguments
 cpa.predicate.havocRegionFunctionName = "__VERIFIER_havoc_region"
 
@@ -2028,13 +2028,13 @@ cpa.reachdef.stop = "SEP"
 # incomplete analysis with no counterexample checking.
 cpa.reportFalseAsUnknown = false
 
-# Add at list this number of edges (if available) to CFA foreach unrolled
+# Add at least this number of edges (if available) to CFA for each unrolled
 # function
 cpa.scopebounded.refiner.edgeIncrement = 50
 
 # Give up and unroll everything if more than this fraction of stubs have to
 # be unrolled
-cpa.scopebounded.refiner.maxUnrollFraction = 3
+cpa.scopebounded.refiner.maxUnrollFraction = 5
 
 # Postfix used to detect function stubs (summaries)
 cpa.scopebounded.stubPostfix = "___stub"
@@ -2321,7 +2321,7 @@ cpa.value.abstraction.stubPostfix = "___stub"
 # 1, even if x is a symbolic expression).
 cpa.value.assignSymbolicAssumptionVars = false
 
-# Explicit-value counterpart of __VERIFIER_havoc_region, tobe used for
+# Explicit-value counterpart of __VERIFIER_havoc_region, to be used for
 # scope-bounded verification; implemented as crude over-approximation, havocs
 # the entire heap
 cpa.value.havocRegionFunctionName = "__VERIFIER_havoc_region"
