@@ -53,7 +53,7 @@ public class ScopeBoundedCPA extends AbstractSingleWrapperCPA {
   private final CFA cfa;
   private final Configuration config;
 
-  @Option(description = "Postfix used to detect function stubs (summaries)")
+  @Option(secure = true, description = "Postfix used to detect function stubs (summaries)")
   private String stubPostfix = "___stub";
 
   public static CPAFactory factory() {

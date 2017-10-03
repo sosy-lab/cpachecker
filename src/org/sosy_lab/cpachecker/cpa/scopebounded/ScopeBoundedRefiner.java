@@ -67,12 +67,14 @@ public final class ScopeBoundedRefiner implements ARGBasedRefiner {
   final ARGBasedRefiner refiner;
 
   @Option(
+    secure = true,
     description =
         "Add at least this number of edges (if available) to CFA for each unrolled function"
   )
   int edgeIncrement = 50;
 
   @Option(
+    secure = true,
     description =
         "Give up and unroll everything if more than this fraction of stubs have to be unrolled"
   )
