@@ -25,18 +25,27 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.util.predicates.interfaces.Region;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
 
 public class TestCase {
 
+  private int id;
   private List<BigInteger> inputs;
   private List<CFAEdge> path;
   private List<CFAEdge> errorPath;
   private NamedRegionManager bddCpaNamedRegionManager;
   private Region presenceCondition;
+  private List<TestStep> testSteps;
+  private ARGPath argPath;
+  private Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs;
 
   public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath, List<CFAEdge> pShrinkedErrorPath,
       Region pPresenceCondition, NamedRegionManager pBddCpaNamedRegionManager) {
@@ -47,8 +56,30 @@ public class TestCase {
     presenceCondition = pPresenceCondition;
   }
 
+  public TestCase(int pI, List<TestStep> pTestSteps, ARGPath pTargetPath, List<CFAEdge> pList,
+      Region pPresenceCondition, NamedRegionManager pBddCpaNamedRegionManager,
+      List<BigInteger> pInputValues,
+      Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> pInputsAndOutputs) {
+    id = pI;
+    testSteps = pTestSteps;
+    argPath = pTargetPath;
+    errorPath = pList;
+    presenceCondition = pPresenceCondition;
+    bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
+    inputs = pInputValues;
+    inputsAndOutputs = pInputsAndOutputs;
+  }
+
+  public int getId() {
+    return id;
+  }
+
   public List<CFAEdge> getPath() {
     return path;
+  }
+
+  public ARGPath getArgPath() {
+    return argPath;
   }
 
   public List<CFAEdge> getErrorPath() {

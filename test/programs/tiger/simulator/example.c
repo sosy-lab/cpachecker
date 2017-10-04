@@ -5,21 +5,8 @@ int foobar(int x, int y, int z) {
 	
 	if (x < y) {
 		G1: a = x;
-	} else {
-		if (x < y) {
-			G2: a = x;
-		}
-		G3: a = y;
-	}
-	
-	if (z < y) {
-		if (z < x) {
-			G4: a = y;
-		}
-		G5: z = a;
-	}
-	
-	G6: return z;
+	} 
+	return z;
 }
 
 

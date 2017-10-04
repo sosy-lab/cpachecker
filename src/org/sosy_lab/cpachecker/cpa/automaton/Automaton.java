@@ -89,7 +89,7 @@ public class Automaton {
    * Prints the contents of a DOT file representing this automaton to the PrintStream.
    * @param pOut the appendable to write to
    */
-  void writeDotFile(Appendable pOut) throws IOException {
+  public void writeDotFile(Appendable pOut) throws IOException {
     pOut.append("digraph " + name + "{\n");
 
     boolean errorState = false;

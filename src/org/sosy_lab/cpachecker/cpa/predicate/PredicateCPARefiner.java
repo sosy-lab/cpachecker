@@ -210,7 +210,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   /**
    * Create list of formulas on path.
    */
-  private List<BooleanFormula> createFormulasOnPath(final ARGPath allStatesTrace,
+  public List<BooleanFormula> createFormulasOnPath(final ARGPath allStatesTrace,
                                                       final List<ARGState> abstractionStatesTrace)
                                                       throws CPAException, InterruptedException {
     List<BooleanFormula> formulas = (isRefinementSelectionEnabled())
