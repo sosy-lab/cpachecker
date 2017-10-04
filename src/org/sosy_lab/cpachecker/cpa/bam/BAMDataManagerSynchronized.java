@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
 public class BAMDataManagerSynchronized implements BAMDataManager {
 
@@ -51,6 +52,13 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
       AbstractState pInitialState, Precision pInitialPrecision, Block pContext) {
     synchronized (this) {
       return manager.createAndRegisterNewReachedSet(pInitialState, pInitialPrecision, pContext);
+    }
+  }
+
+  @Override
+  public ReachedSetFactory getReachedSetFactory() {
+    synchronized (this) {
+      return manager.getReachedSetFactory();
     }
   }
 
@@ -112,6 +120,13 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
   public AbstractState getReducedStateForExpandedState(AbstractState pState) {
     synchronized (this) {
       return manager.getReducedStateForExpandedState(pState);
+    }
+  }
+
+  @Override
+  public Block getInnerBlockForExpandedState(AbstractState pState) {
+    synchronized (this) {
+      return manager.getInnerBlockForExpandedState(pState);
     }
   }
 

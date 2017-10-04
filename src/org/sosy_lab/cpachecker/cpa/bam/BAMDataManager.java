@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
 public interface BAMDataManager {
 
@@ -47,6 +48,8 @@ public interface BAMDataManager {
    **/
   ReachedSet createAndRegisterNewReachedSet(
       AbstractState initialState, Precision initialPrecision, Block context);
+
+  ReachedSetFactory getReachedSetFactory();
 
   /**
    * Register an expanded state in our data-manager,
@@ -101,6 +104,9 @@ public interface BAMDataManager {
    * given abstract state was registered as expanded state.
    */
   AbstractState getReducedStateForExpandedState(AbstractState state);
+
+  /** Returns the block from where the expanded state is an exit-state. */
+  Block getInnerBlockForExpandedState(AbstractState state);
 
   /** Check whether any abstract state was expanded to the given abstract state. */
   boolean hasExpandedState(AbstractState state);

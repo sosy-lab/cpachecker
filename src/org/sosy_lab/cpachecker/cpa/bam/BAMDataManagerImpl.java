@@ -131,6 +131,11 @@ public class BAMDataManagerImpl implements BAMDataManager {
     return reached;
   }
 
+  @Override
+  public ReachedSetFactory getReachedSetFactory() {
+    return reachedSetFactory;
+  }
+
   /**
    * Register an expanded state in our data-manager,
    * such that we know later, which state in which block was expanded to the state.
@@ -232,6 +237,13 @@ public class BAMDataManagerImpl implements BAMDataManager {
   public AbstractState getReducedStateForExpandedState(AbstractState state) {
     assert expandedStateToReducedState.containsKey(state) : "no match for state: " + state;
     return expandedStateToReducedState.get(state);
+  }
+
+  @Override
+  public Block getInnerBlockForExpandedState(AbstractState state) {
+    assert expandedStateToReducedState.containsKey(state);
+    assert expandedStateToBlock.containsKey(state);
+    return expandedStateToBlock.get(state);
   }
 
   @Override
