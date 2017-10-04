@@ -937,6 +937,10 @@ cpa.bam.blockHeuristic.functionPartitioning.minFunctionSize = 0
 # necessary to re-explore the program along the error-path.
 cpa.bam.doPrecisionRefinementForAllStates = false
 
+# Heuristic: This flag determines which precisions should be updated during
+# refinement. This flag also updates the precision of the most inner block.
+cpa.bam.doPrecisionRefinementForMostInnerBlock = false
+
 # export blocks
 cpa.bam.exportBlocksPath = "block_cfa.dot"
 
@@ -961,6 +965,10 @@ cpa.bam.maximalDepthForExplicitRecursion = -1
 
 # export used parts of blocked ARG as .dot file
 cpa.bam.simplifiedArgFile = "BlockedARGSimplified.dot"
+
+# This flag determines which refinement procedure we should use. We can
+# choose between an in-place refinement and a copy-on-write refinement.
+cpa.bam.useCopyOnWriteRefinement = false
 
 # Use more fast partitioning builder, which can not handle loops
 cpa.bam.useExtendedPartitioningBuilder = false

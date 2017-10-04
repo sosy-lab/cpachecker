@@ -56,12 +56,14 @@ public class BAMSubgraphComputer {
   private final Reducer reducer;
   private final BAMDataManager data;
   private final LogManager logger;
+  private final boolean useCopyOnWriteRefinement;
 
   BAMSubgraphComputer(AbstractBAMCPA bamCpa) {
     this.partitioning = bamCpa.getBlockPartitioning();
     this.reducer = bamCpa.getReducer();
     this.data = bamCpa.getData();
     this.logger = bamCpa.getLogger();
+    useCopyOnWriteRefinement = bamCpa.useCopyOnWriteRefinement();
   }
 
   /**
@@ -161,7 +163,9 @@ public class BAMSubgraphComputer {
         try {
           computeCounterexampleSubgraphForBlock(newCurrentState, childrenInSubgraph);
         } catch (MissingBlockException e) {
-          ARGSubtreeRemover.removeSubtree(reachedSet, currentState);
+          assert !useCopyOnWriteRefinement
+              : "CopyOnWrite-refinement should never cause missing blocks: " + e;
+          ARGInPlaceSubtreeRemover.removeSubtree(reachedSet, currentState);
           throw new MissingBlockException();
         }
 

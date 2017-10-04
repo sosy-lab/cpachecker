@@ -303,7 +303,7 @@ public class ARGState extends AbstractSingleWrapperState implements Comparable<A
     return wasExpanded;
   }
 
-  void markExpanded() {
+  public void markExpanded() {
     wasExpanded = true;
   }
 
