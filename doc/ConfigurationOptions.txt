@@ -1992,6 +1992,9 @@ cpa.smg.externalAllocationFunction = {
 # Default size of externally allocated memory
 cpa.smg.externalAllocationSize = Integer.MAX_VALUE
 
+# Allocation size of memory that cannot be calculated.
+cpa.smg.guessSize = 2
+
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg.guessSizeOfUnknownMemorySize = false
 

@@ -148,6 +148,9 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
   @Option(secure=true, name="guessSizeOfUnknownMemorySize", description = "Size of memory that cannot be calculated will be guessed.")
   private boolean guessSizeOfUnknownMemorySize = false;
 
+  @Option(secure=true, name="guessSize", description = "Allocation size of memory that cannot be calculated.")
+  private int guessSize = 2;
+
   @Option(secure=true, name="memoryAllocationFunctions", description = "Memory allocation functions")
   private ImmutableSet<String> memoryAllocationFunctions = ImmutableSet.of(
       "malloc");
@@ -2473,7 +2476,7 @@ public class SMGTransferRelation extends SingleEdgeTransferRelation {
     private class ForceExplicitValueVisitor extends
         SMGExpressionEvaluator.ExplicitValueVisitor {
 
-      private final SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(2);
+      private final SMGKnownExpValue GUESS = SMGKnownExpValue.valueOf(guessSize);
 
       public ForceExplicitValueVisitor(SMGState pSmgState, String pFunctionName, MachineModel pMachineModel,
           LogManagerWithoutDuplicates pLogger, CFAEdge pEdge) {
