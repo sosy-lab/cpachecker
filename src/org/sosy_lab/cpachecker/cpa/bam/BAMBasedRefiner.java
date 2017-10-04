@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Preconditions;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -125,7 +126,9 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       Pair<BackwardARGState, BackwardARGState> rootAndTargetOfSubgraph;
       try {
         try {
-          rootAndTargetOfSubgraph = computeCounterexampleSubgraph(pLastElement, pMainReachedSet);
+          final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
+          rootAndTargetOfSubgraph = Preconditions.checkNotNull(
+              cexSubgraphComputer.computeCounterexampleSubgraph(pLastElement, pMainReachedSet));
         } catch (MissingBlockException e) {
           // We return NULL, such that the method performRefinementForPath can handle it.
           return null;
@@ -144,15 +147,5 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
     } finally {
       computePathTimer.stop();
     }
-  }
-
-  //returns root of a subtree leading from the root element of the given reachedSet to the target state
-  //subtree is represented using children and parents of ARGElements, where newTreeTarget is the ARGState
-  //in the constructed subtree that represents target
-  private Pair<BackwardARGState, BackwardARGState> computeCounterexampleSubgraph(ARGState target, ARGReachedSet pMainReachedSet)
-      throws MissingBlockException, InterruptedException {
-    assert pMainReachedSet.asReachedSet().contains(target);
-    final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa);
-    return cexSubgraphComputer.computeCounterexampleSubgraph(target, pMainReachedSet);
   }
 }
