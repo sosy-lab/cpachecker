@@ -81,7 +81,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
         "Heuristic: This flag determines which precisions should be updated during "
             + "refinement. This flag also updates the precision of the most inner block."
   )
-  private boolean doPrecisionRefinementForMostInnerBlock = false;
+  private boolean doPrecisionRefinementForMostInnerBlock = true;
 
   @Option(
     secure = true,
