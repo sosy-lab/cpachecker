@@ -310,6 +310,20 @@ public class CFASecondPassBuilder {
     beforeFuncCall.addLeavingSummaryEdge(funcSummaryEdge);
     successorNode.addEnteringSummaryEdge(funcSummaryEdge);
 
+    if (summaryEdges) {
+      final CFunctionSummaryStatementEdge funcSummaryStatementEdge =
+          new CFunctionSummaryStatementEdge(
+              funcEdge.getRawStatement(),
+              funcCall,
+              fileLocation,
+              beforeFuncCall,
+              successorNode,
+              funcCall,
+              funcEntry.getFunctionName());
+      beforeFuncCall.addLeavingEdge(funcSummaryStatementEdge);
+      successorNode.addEnteringEdge(funcSummaryStatementEdge);
+    }
+
     final CFANode stubNode = new CFANode(directSuccessorNode.getFunctionName());
     cfa.addNode(stubNode);
     final CFunctionSummaryEdge stubSummaryEdge =
