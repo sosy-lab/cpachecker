@@ -95,8 +95,10 @@ public class PredRelation {
                                   SMGExplicitValue pExplicitValue, Integer pCType2,
                                   BinaryOperator pOp) {
     assert(pCType1.equals(pCType2));
-    addExplicitRelation(pSymbolicValue.getAsInt(), pExplicitValue, pOp);
-    addValueSize(pSymbolicValue.getAsInt(), pCType1);
+    if (!pSymbolicValue.isUnknown() && !pExplicitValue.isUnknown()) {
+      addExplicitRelation(pSymbolicValue.getAsInt(), pExplicitValue, pOp);
+      addValueSize(pSymbolicValue.getAsInt(), pCType1);
+    }
   }
 
   public void addExplicitRelation(Integer pSymbolicValue, SMGExplicitValue pExplicitValue,
