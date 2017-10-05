@@ -33,7 +33,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -61,9 +61,10 @@ public class ScopeBoundedTransferRelation implements TransferRelation {
 
     shutdownNotifier.shutdownIfNecessary();
     final CFANode node = extractLocation(pState);
+    final FunctionSummaryEdge summaryEdge = node.getLeavingSummaryEdge();
     final boolean shouldProceed;
-    if (node instanceof FunctionEntryNode) {
-      final String name = ((FunctionEntryNode) node).getFunctionName();
+    if (summaryEdge != null) {
+      final String name = summaryEdge.getFunctionEntry().getFunctionName();
       final boolean isStub = cpa.isStub(name);
       final boolean hasStub = cpa.hasStub(name);
       shouldProceed =
