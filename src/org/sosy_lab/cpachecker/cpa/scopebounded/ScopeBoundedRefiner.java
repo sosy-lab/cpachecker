@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.scopebounded;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
@@ -47,10 +48,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
@@ -71,7 +74,7 @@ public final class ScopeBoundedRefiner implements ARGBasedRefiner {
     description =
         "Add at least this number of edges (if available) to CFA for each unrolled function"
   )
-  int edgeIncrement = 50;
+  int edgeIncrement = 100;
 
   @Option(
     secure = true,
@@ -168,6 +171,7 @@ public final class ScopeBoundedRefiner implements ARGBasedRefiner {
         // Known issue: already unrolled functions called from former stubs are counted twice, but
         // this is just a heuristic anyway
         if (ScopeBoundedPrecision.nUnrolledFunctions() + stubNames.size() > maxUnroll) {
+          logger.log(Level.INFO, "Giving up and unrolling ALL summarized functions");
           stubNames.addAll(
               cfa.getAllFunctionNames().stream().filter(cpa::isStub).collect(Collectors.toSet()));
         }
@@ -178,15 +182,29 @@ public final class ScopeBoundedRefiner implements ARGBasedRefiner {
 
         logger.log(
             Level.INFO,
-            "Expanding verification scope. " + "Will unroll the following functions:\n ",
+            "Expanding verification scope. Will unroll the following functions:\n ",
             ScopeBoundedPrecision.unrolledFunctions());
 
+        pReached.clearWaitlist();
+        pReached.updatePrecisionGlobally(
+            cpa.getInitialPrecision(
+                cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+            Predicates.alwaysTrue());
         info.getTargetPath()
             .asStatesList()
             .stream()
-            .filter(s -> stubNames.contains(extractLocation(s).getFunctionName()))
+            .filter(
+                s -> {
+                  final CFANode loc = extractLocation(s);
+                  if (loc instanceof CFunctionEntryNode
+                      && loc.getFunctionName().equals(cfa.getMainFunction().getFunctionName())) {
+                    return true;
+                  } else {
+                    return false;
+                  }
+                })
             .findFirst()
-            .ifPresent(s -> ImmutableList.copyOf(s.getParents()).forEach(pReached::removeSubtree));
+            .ifPresent(s -> ImmutableList.copyOf(s.getChildren()).forEach(pReached::removeSubtree));
 
         return CounterexampleInfo.spurious();
       } else {
