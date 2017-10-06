@@ -84,7 +84,7 @@ public enum MachineModel {
       1, // void
       1, //bool
       4 //pointer
-      ),
+  ),
 
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
@@ -922,10 +922,6 @@ public enum MachineModel {
             return bitOffset;
           }
 
-          if (outParameterMap != null) {
-            outParameterMap.put(typeMember, bitOffset + sizeOfConsecutiveBitFields);
-          }
-
           CType innerType = ((CBitFieldType) type).getType();
 
           if (fieldSizeInBits == 0) {
@@ -963,6 +959,11 @@ public enum MachineModel {
                 calculateNecessaryBitfieldOffset(
                     sizeOfConsecutiveBitFields, innerType, sizeOfByte, fieldSizeInBits);
             sizeOfConsecutiveBitFields += fieldSizeInBits;
+          }
+
+          // Put start offset of bitField to outParameterMap
+          if (outParameterMap != null) {
+            outParameterMap.put(typeMember, bitOffset + sizeOfConsecutiveBitFields - fieldSizeInBits);
           }
         } else {
           bitOffset =
