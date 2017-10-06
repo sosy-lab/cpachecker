@@ -344,7 +344,7 @@ public class TigerAlgorithm implements Algorithm {
         Goal goal = pGoalsToCover.poll();
         int goalIndex = goal.getIndex();
 
-        if (checkCoverage && isCovered(goal.getIndex(), goal)) {
+        if (checkCoverage && testsuite.isGoalCovered(goal)) {
           continue;
         }
 
@@ -383,7 +383,7 @@ public class TigerAlgorithm implements Algorithm {
     boolean isFullyCovered = false;
     for (TestCase testcase : testsuite.getTestCases()) {
       ThreeValuedAnswer isCovered =
-          TigerAlgorithm.accepts(lGoal.getAutomaton(), testcase.getPath());
+          TigerAlgorithm.accepts(lGoal, testcase);
       if (isCovered.equals(ThreeValuedAnswer.UNKNOWN)) {
         logger.logf(Level.WARNING,
             "Coverage check for goal %d could not be performed in a precise way!", goalIndex);
@@ -438,22 +438,22 @@ public class TigerAlgorithm implements Algorithm {
     return isFullyCovered;
   }
 
-  private static ThreeValuedAnswer accepts(
-      NondeterministicFiniteAutomaton<GuardedEdgeLabel> pAutomaton, List<CFAEdge> pCFAPath) {
+  private static ThreeValuedAnswer accepts(Goal pGoal, TestCase pTestCase) {
+    NondeterministicFiniteAutomaton<GuardedEdgeLabel> lAutomaton = pGoal.getAutomaton();
     Set<NondeterministicFiniteAutomaton.State> lCurrentStates = new HashSet<>();
     Set<NondeterministicFiniteAutomaton.State> lNextStates = new HashSet<>();
 
-    lCurrentStates.add(pAutomaton.getInitialState());
+    lCurrentStates.add(lAutomaton.getInitialState());
 
     boolean lHasPredicates = false;
 
-    for (CFAEdge lCFAEdge : pCFAPath) {
+    for (CFAEdge lCFAEdge : pTestCase.getArgPath().asEdgesList()) {
       for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
         // Automaton accepts as soon as it sees a final state (implicit self-loop)
-        if (pAutomaton.getFinalStates()
+        if (lAutomaton.getFinalStates()
             .contains(lCurrentState)) { return ThreeValuedAnswer.ACCEPT; }
 
-        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : pAutomaton
+        for (NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge lOutgoingEdge : lAutomaton
             .getOutgoingEdges(lCurrentState)) {
           GuardedEdgeLabel lLabel = lOutgoingEdge.getLabel();
 
@@ -476,7 +476,7 @@ public class TigerAlgorithm implements Algorithm {
 
     for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
       // Automaton accepts as soon as it sees a final state (implicit self-loop)
-      if (pAutomaton.getFinalStates().contains(lCurrentState)) { return ThreeValuedAnswer.ACCEPT; }
+      if (lAutomaton.getFinalStates().contains(lCurrentState)) { return ThreeValuedAnswer.ACCEPT; }
     }
 
     if (lHasPredicates) {
