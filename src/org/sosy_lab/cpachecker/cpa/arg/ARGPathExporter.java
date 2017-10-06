@@ -513,9 +513,9 @@ public class ARGPathExporter {
 
       if (exportOffset && minFileLocation.isPresent()) {
         FileLocation min = minFileLocation.get();
-        if (!min.getFileName().equals(defaultSourcefileName)) {
+//        if (!min.getFileName().equals(defaultSourcefileName)) {
           result = result.putAndCopy(KeyDef.ORIGINFILE, min.getFileName());
-        }
+//        }
         result = result.putAndCopy(KeyDef.OFFSET, Integer.toString(min.getNodeOffset()));
       }
 
