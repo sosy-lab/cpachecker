@@ -61,7 +61,7 @@ public class AlternationElement extends GuardedEdgeAutomatonStateElement
 
   @Override
   public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
-    return new HashSet<Property>();
+    return new HashSet<>();
   }
 
 }

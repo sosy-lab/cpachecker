@@ -79,6 +79,7 @@ public class TestSuite {
     return !timedOutGoals.isEmpty();
   }
 
+  @SuppressWarnings("unused")
   public void addTimedOutGoal(int index, Goal goal, Region presenceCondition) {
     // timedOutGoals.put(index, Pair.of(goal, presenceCondition));
   }
@@ -89,8 +90,6 @@ public class TestSuite {
 
   public void addInfeasibleGoal(Goal goal, Region presenceCondition) {
     if (presenceCondition != null && infeasibleGoals.containsKey(goal)) {
-      Region constraints = infeasibleGoals.get(goal);
-      // infeasibleGoals.put(goal, bddCpaNamedRegionManager.makeOr(constraints, presenceCondition));
     } else {
       infeasibleGoals.put(goal, presenceCondition);
     }
@@ -257,6 +256,7 @@ public class TestSuite {
    * @param goal
    * @return
    */
+  @SuppressWarnings("javadoc")
   private String getTestGoalLabel(Goal goal) {
     String label = "";
 

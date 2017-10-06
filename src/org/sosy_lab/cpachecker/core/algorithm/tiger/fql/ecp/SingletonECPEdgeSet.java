@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
@@ -156,6 +155,12 @@ public class SingletonECPEdgeSet implements ECPEdgeSet {
   @Override
   public String toString() {
     return mCFAEdge.toString();
+  }
+
+  @Override
+  public int hashCode() {
+    // TODO Auto-generated method stub
+    return super.hashCode();
   }
 
 }

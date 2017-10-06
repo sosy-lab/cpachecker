@@ -109,7 +109,7 @@ public class TestGoalUtils {
     }
 
     int goalIndex = 1;
-    Set<Goal> pGoalsToCover = new LinkedHashSet<Goal>();
+    Set<Goal> pGoalsToCover = new LinkedHashSet<>();
     for (Pair<ElementaryCoveragePattern, Region> pair : pTestGoalPatterns) {
       Goal lGoal =
           constructGoal(goalIndex, pair.getFirst(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,

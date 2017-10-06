@@ -137,7 +137,7 @@ public class AssignmentToEdgeAllocator {
     return new CFAEdgeWithAssignments(cfaEdge, assignmentsAtEdge, comment);
   }
 
-  private String createComment(CFAEdge pCfaEdge) {
+  private String createComment(@SuppressWarnings("unused") CFAEdge pCfaEdge) {
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       return handleAssume((AssumeEdge) cfaEdge);
     } else if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
@@ -182,7 +182,7 @@ public class AssignmentToEdgeAllocator {
     return null;
   }
 
-  private String addressOfDcl(CSimpleDeclaration dcl, CFAEdge edge) {
+  private String addressOfDcl(CSimpleDeclaration dcl, @SuppressWarnings("unused") CFAEdge edge) {
 
     String functionName = cfaEdge.getPredecessor().getFunctionName();
 
@@ -1158,6 +1158,7 @@ public class AssignmentToEdgeAllocator {
       return valueLiterals;
     }
 
+    @SuppressWarnings("incomplete-switch")
     protected ValueLiteral getValueLiteral(CSimpleType pSimpleType, Object pValue) {
       CSimpleType simpleType = pSimpleType.getCanonicalType();
       CBasicType basicType = simpleType.getType();
@@ -1373,7 +1374,7 @@ public class AssignmentToEdgeAllocator {
       }
 
       private void handleMemberField(CCompositeTypeMemberDeclaration pType, Address fieldAddress,
-          CCompositeType structType) {
+          @SuppressWarnings("unused") CCompositeType structType) {
         CType expectedType = pType.getType().getCanonicalType();
 
         assert isStructOrUnionType(subExpression.getExpressionType().getCanonicalType());
@@ -1811,7 +1812,7 @@ public class AssignmentToEdgeAllocator {
       }
     }
 
-    protected ExplicitValueLiteral(CLiteralExpression pValueLiteral, CCastExpression pCastedValue) {
+    protected ExplicitValueLiteral(CLiteralExpression pValueLiteral, @SuppressWarnings("unused") CCastExpression pCastedValue) {
       explicitValueLiteral = pValueLiteral;
     }
 

@@ -93,7 +93,7 @@ public class GuardedEdgeAutomatonPredicateElement extends GuardedEdgeAutomatonSt
 
   @Override
   public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
-    return new HashSet<Property>();
+    return new HashSet<>();
   }
 
 }

@@ -35,7 +35,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -73,7 +72,6 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.ecp.translators.ToGuarde
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.CoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.translators.ecp.IncrementalCoverageSpecificationTranslator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ARTReuse;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestCase;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.TestSuite;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
@@ -200,8 +198,6 @@ public class TigerAlgorithm implements Algorithm {
   private Specification stats;
   private TestSuite testsuite;
 
-  private int statistics_numberOfProcessedTestGoals = 0;
-
   enum ReachabilityAnalysisResult {
     SOUND,
     UNSOUND,
@@ -300,96 +296,22 @@ public class TigerAlgorithm implements Algorithm {
   @SuppressWarnings("unchecked")
   private boolean testGeneration(LinkedList<Goal> pGoalsToCover)
       throws CPAException, InterruptedException {
-
     boolean wasSound = true;
-
+    boolean retry = false;
     int numberOfTestGoals = pGoalsToCover.size();
-
-    NondeterministicFiniteAutomaton<GuardedEdgeLabel> previousAutomaton = null;
-
-    while (!pGoalsToCover.isEmpty()) {
-      statistics_numberOfProcessedTestGoals++;
-
-      Goal goal = pGoalsToCover.poll();
-      Region remainingPCforGoalCoverage = null;
-
-      Boolean stop = false;
-
-      while (!stop
-          && (remainingPCforGoalCoverage != null ? !remainingPCforGoalCoverage.isFalse() : true)) {
-        if (true/*!useTigerAlgorithm_with_pc*/) {
-          stop = true;
-        }
-
-        logger.logf(Level.INFO, "Processing test goal %d of %d.", goal.getIndex(),
-            numberOfTestGoals);
-
-
-        NondeterministicFiniteAutomaton<GuardedEdgeLabel> currentAutomaton = goal.getAutomaton();
-
-        if (ARTReuse.isDegeneratedAutomaton(currentAutomaton)) {
-          logger.logf(Level.INFO, "Test goal infeasible.");
-          testsuite.addInfeasibleGoal(goal, remainingPCforGoalCoverage);
-          continue; // we do not want to modify the ARG for the degenerated automaton to keep more reachability information
-        }
-
-        if (checkCoverage && isCovered(goal.getIndex(), goal)) {
-          continue;
-        }
-
-        // goal is uncovered so far; run CPAchecker to cover it
-        ReachabilityAnalysisResult result =
-            runReachabilityAnalysis(goal, goal.getIndex());
-
-        //remove goals that are covered by this testcase from goal-list
-        LinkedList<Goal> tempGoalList = new LinkedList<>(pGoalsToCover);
-        for (Goal g : tempGoalList) {
-          if (testsuite.isGoalCovered(g)) {
-            pGoalsToCover.remove(g);
-          }
-        }
-
-        if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
-          logger.logf(Level.WARNING, "Analysis run was unsound!");
-          wasSound = false;
-        }
-
-        previousAutomaton = currentAutomaton;
-
-        if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
-          stop = true;
-          continue;
-        }
-      }
-    }
-    // reprocess timed-out goals
-    if (testsuite.getTimedOutGoals().isEmpty()) {
-      logger.logf(Level.INFO, "There were no timed out goals.");
-    } else {
-      if (!timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
-        logger.logf(Level.INFO,
-            "There were timed out goals but retry after timeout strategy is disabled.");
-      } else {
+    do {
+      if (retry) {
         // retry timed-out goals
-        // TODO move to upper loop
-        Map<Goal, Integer> coverageCheckOpt = new HashMap<>();
-
-        //int previousNumberOfTestCases = 0;
-        //int previousPreviousNumberOfTestCases = testsuite.getNumberOfTestCases();
-
         boolean order = true;
 
-        do {
-          if (timeoutIncrement > 0) {
-            long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
-            cpuTimelimitPerGoal += timeoutIncrement;
-            logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.",
-                oldCPUTimeLimitPerGoal,
-                cpuTimelimitPerGoal);
-          }
+        if (timeoutIncrement > 0) {
+          long oldCPUTimeLimitPerGoal = cpuTimelimitPerGoal;
+          cpuTimelimitPerGoal += timeoutIncrement;
+          logger.logf(Level.INFO, "Incremented timeout from %d to %d seconds.",
+              oldCPUTimeLimitPerGoal,
+              cpuTimelimitPerGoal);
 
           Collection<Entry<Integer, Pair<Goal, Region>>> set;
-
           if (useOrder) {
             if (inverseOrder) {
               order = !order;
@@ -410,40 +332,53 @@ public class TigerAlgorithm implements Algorithm {
                 .getTimedOutGoals().entrySet());
           }
 
-          testsuite.getTimedOutGoals().clear();
-
+          pGoalsToCover.clear();
           for (Entry<Integer, Pair<Goal, Region>> entry : set) {
-            int goalIndex = entry.getKey();
-            Goal lGoal = entry.getValue().getFirst();
-            Region lRegion = entry.getValue().getSecond();
-            logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
-
-            ReachabilityAnalysisResult result =
-                runReachabilityAnalysis(lGoal, goalIndex);
-
-            //remove goals that are covered by this testcase from goal-list
-            LinkedList<Goal> tempGoalList = new LinkedList<>(pGoalsToCover);
-            for (Goal g : tempGoalList) {
-              if (testsuite.isGoalCovered(g)) {
-                pGoalsToCover.remove(g);
-              }
-            }
-
-            if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
-              logger.logf(Level.WARNING, "Analysis run was unsound!");
-              wasSound = false;
-            }
-
-            previousAutomaton = lGoal.getAutomaton();
+            pGoalsToCover.add(entry.getValue().getFirst());
           }
-          logger.log(Level.INFO, "Running retry-loop");
-        } while (testsuite.hasTimedoutTestGoals());
+          testsuite.getTimedOutGoals().size();
+          testsuite.getTimedOutGoals().clear();
+        }
       }
-    }
+      while (!pGoalsToCover.isEmpty()) {
+        Goal goal = pGoalsToCover.poll();
+        int goalIndex = goal.getIndex();
+
+        if (checkCoverage && isCovered(goal.getIndex(), goal)) {
+          continue;
+        }
+
+        logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
+
+        ReachabilityAnalysisResult result =
+            runReachabilityAnalysis(goal, goalIndex);
+
+        if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
+          logger.logf(Level.WARNING, "Analysis run was unsound!");
+          wasSound = false;
+        }
+        if (result.equals(ReachabilityAnalysisResult.TIMEDOUT)) {
+          break;
+        }
+      }
+
+      if (testsuite.getTimedOutGoals().isEmpty()) {
+        logger.logf(Level.INFO, "There were no timed out goals.");
+        retry = false;
+      } else {
+        if (!timeoutStrategy.equals(TimeoutStrategy.RETRY_AFTER_TIMEOUT)) {
+          logger.logf(Level.INFO,
+              "There were timed out goals but retry after timeout strategy is disabled.");
+        } else {
+          retry = true;
+        }
+      }
+    } while (retry);
     return wasSound;
   }
 
   private boolean isCovered(int goalIndex, Goal lGoal) {
+    @SuppressWarnings("unused")
     Region remainingPCforGoalCoverage = lGoal.getPresenceCondition();
     boolean isFullyCovered = false;
     for (TestCase testcase : testsuite.getTestCases()) {
@@ -456,7 +391,50 @@ public class TigerAlgorithm implements Algorithm {
       } else if (isCovered.equals(ThreeValuedAnswer.REJECT)) {
         continue;
       }
+
+      // test goal is already covered by an existing test case
+      /*if (useTigerAlgorithm_with_pc) {
+        boolean goalCoveredByTestCase = false;
+        for (Goal goal : testsuite.getTestGoalsCoveredByTestCase(testcase)) {
+          if (lGoal.getIndex() == goal.getIndex()) {
+            goalCoveredByTestCase = true;
+            break;
+          }
+        }
+        if (!goalCoveredByTestCase) {
+          Region coveringRegion = testcase.getPresenceCondition();
+
+          if (!bddCpaNamedRegionManager.makeAnd(lGoal.getPresenceCondition(), coveringRegion).isFalse()) { // configurations in testGoalPCtoCover and testcase.pc have a non-empty intersection
+            Goal newGoal =
+                constructGoal(lGoal.getIndex(), lGoal.getPattern(), mAlphaLabel, mInverseAlphaLabel, mOmegaLabel,
+                    optimizeGoalAutomata, coveringRegion);
+            remainingPCforGoalCoverage =
+                bddCpaNamedRegionManager.makeAnd(remainingPCforGoalCoverage,
+                    bddCpaNamedRegionManager.makeNot(coveringRegion));
+
+            testsuite.addTestCase(testcase, newGoal);
+
+            if (remainingPCforGoalCoverage.isFalse()) {
+              logger.logf(Level.INFO, "Test goal %d is already fully covered by an existing test case.", goalIndex);
+              isFullyCovered = true;
+              break;
+            } else {
+              logger.logf(Level.INFO, "Test goal %d is already partly covered by an existing test case.", goalIndex,
+                  " Remaining PC: ", bddCpaNamedRegionManager.dumpRegion(remainingPCforGoalCoverage));
+            }
+
+          } else {
+            // test goal is already covered by an existing test case
+            logger.logf(Level.INFO, "Test goal %d is already covered by an existing test case.", goalIndex);
+
+            testsuite.addTestCase(testcase, lGoal);
+
+            return true;
+          }
+        }
+      }*/
     }
+
     return isFullyCovered;
   }
 
@@ -604,6 +582,7 @@ public class TigerAlgorithm implements Algorithm {
           }
           //...........
 
+          @SuppressWarnings("unused")
           Map<ARGState, CounterexampleInfo> counterexamples = lARTCPA.getCounterexamples();
 
           if (!cexi.isPresent()/*counterexamples.isEmpty()*/) {
@@ -624,12 +603,12 @@ public class TigerAlgorithm implements Algorithm {
                   new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
               TestCase testcase =
                   new TestCase(inputValues, cex.getTargetPath().asEdgesList(), shrinkedErrorPath,
-                      null, null);
+                      null);
               testsuite.addTestCase(testcase, pGoal);
 
             }
 
-           /* assert counterexamples.size() == 1;
+            /* assert counterexamples.size() == 1;
 
             for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
 
@@ -838,7 +817,6 @@ public class TigerAlgorithm implements Algorithm {
     List<BigInteger> inputValues = new ArrayList<>();
 
     return new TestCase(inputValues, trace, shrinkedErrorPath,
-        null,
         null);
   }
 }

@@ -96,6 +96,7 @@ public class ARTReuse {
    * @return
    * @throws InterruptedException
    */
+  @SuppressWarnings("javadoc")
   public static Set<AbstractState> modifyReachedSet2(ReachedSet pReachedSet, FunctionEntryNode pEntryNode, ARGCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) throws InterruptedException {
     Set<AbstractState> set = new HashSet<>();
 
@@ -180,6 +181,7 @@ public class ARTReuse {
    * @param pFrontierEdges
    * @return
    */
+  @SuppressWarnings("javadoc")
   private static Set<AbstractState> modifyART2(ReachedSet pReachedSet, ARGReachedSet pARTReachedSet, int pProductAutomatonIndex,
       Set<NondeterministicFiniteAutomaton<GuardedEdgeLabel>.Edge> pFrontierEdges) {
     //Set<Pair<ARTElement, ARTElement>> lPathEdges = Collections.emptySet();
@@ -303,6 +305,7 @@ public class ARTReuse {
    * @param lARTElement
    * @param pARTReachedSet
    */
+  @SuppressWarnings("javadoc")
   private static void removeElement(ARGState lARTElement, ARGReachedSet pARTReachedSet) {
     while (!lARTElement.getChildren().isEmpty()) {
       ARGState lChildElement = lARTElement.getChildren().iterator().next();
@@ -331,6 +334,7 @@ public class ARTReuse {
    * @param pCurrentAutomaton
    * @return
    */
+  @SuppressWarnings("javadoc")
   private static Set<AbstractState> modifyART2(ReachedSet pReachedSet, ARGCPA pARTCPA, int pProductAutomatonIndex, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pPreviousAutomaton, NondeterministicFiniteAutomaton<GuardedEdgeLabel> pCurrentAutomaton) {
     Set<AbstractState> set = new HashSet<>();
 

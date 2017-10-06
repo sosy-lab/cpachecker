@@ -38,14 +38,11 @@ import java.io.IOException;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.Appenders.AbstractAppender;
-import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -1098,7 +1095,7 @@ public class ARGPath extends AbstractAppender {
     }
   }
 
-  public void toJSON(Appendable sb) {
+  /*public void toJSON(Appendable sb) {
     List<Map<?, ?>> path = new ArrayList<>(size());
     for (Pair<ARGState, CFAEdge> pair : Pair.zipWithPadding(states, edges)) {
       Map<String, Object> elem = new HashMap<>();
@@ -1118,7 +1115,7 @@ public class ARGPath extends AbstractAppender {
     }
     JSON.writeJSONString(path, sb);
 
-  }
+  }*/
 
   public List<CFAEdge> asEdgesList() {
     return edges;

@@ -32,14 +32,11 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.predicates.AssignableTerm;
 
 /**
@@ -88,9 +85,9 @@ public class RichModel extends ForwardingMap<AssignableTerm, Object> implements 
     assignableTermsPerCFAEdge = ImmutableListMultimap.of();
   }
 
-  public static RichModel of(Model model) {
+  /*public static RichModel of(Model model) {
     return new RichModel(model.getData());
-  }
+  }*/
 
   /**
    * Return a new model that is equal to the current one,
@@ -121,7 +118,7 @@ public class RichModel extends ForwardingMap<AssignableTerm, Object> implements 
     return assignableTermsPerCFAEdge.get(pEdge);
   }
 
-  @Nullable
+  /*  @Nullable
   public Map<ARGState, CFAEdgeWithAssumptions> getExactVariableValues(ARGPath pPath) {
 
     if (assignments.isEmpty()) {
@@ -129,9 +126,9 @@ public class RichModel extends ForwardingMap<AssignableTerm, Object> implements 
     }
 
     return assignments.getExactVariableValues(pPath);
-  }
+  }*/
 
-  @Nullable
+  /* @Nullable
   public CFAPathWithAssumptions getExactVariableValuePath(List<CFAEdge> pPath) {
 
     if (assignments.isEmpty()) {
@@ -139,11 +136,11 @@ public class RichModel extends ForwardingMap<AssignableTerm, Object> implements 
     }
 
     return assignments.getExactVariableValues(pPath);
-  }
+  }*/
 
   @Override
   public void appendTo(Appendable output) throws IOException {
-    Model.appendModel(output, mModel);
+    // Model.appendModel(output, mModel);
   }
 
   @Override

@@ -81,7 +81,7 @@ public class ProgressElement implements Targetable, AbstractState, IGuardedEdgeA
 
   @Override
   public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
-    return new HashSet<Property>();
+    return new HashSet<>();
   }
 
 }

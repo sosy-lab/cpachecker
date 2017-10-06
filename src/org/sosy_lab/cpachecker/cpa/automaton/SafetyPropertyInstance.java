@@ -46,6 +46,7 @@ public class SafetyPropertyInstance implements PropertyInstance<CFANode, SafetyP
     return targetLocation;
   }
 
+  @SuppressWarnings("unused")
   public static <P extends SafetyProperty> SafetyPropertyInstance of(SafetyProperty pProperty,
       @Nullable CFANode pTargetLocation) {
     return new SafetyPropertyInstance(pProperty, Optional.ofNullable(pTargetLocation));

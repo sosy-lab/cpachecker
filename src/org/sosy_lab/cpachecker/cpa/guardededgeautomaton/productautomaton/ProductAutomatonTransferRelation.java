@@ -29,8 +29,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -45,9 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class ProductAutomatonTransferRelation extends CompositeTransferRelation {
 
   public ProductAutomatonTransferRelation(
-      ImmutableList<TransferRelation> pTransferRelations,
-      Configuration pConfig)
-      throws InvalidConfigurationException {
+      ImmutableList<TransferRelation> pTransferRelations) {
 
     super(pTransferRelations, null, false); // TODO is true correct here?
   }

@@ -41,33 +41,25 @@ public class TestCase {
   private List<BigInteger> inputs;
   private List<CFAEdge> path;
   private List<CFAEdge> errorPath;
-  private NamedRegionManager bddCpaNamedRegionManager;
   private Region presenceCondition;
-  private List<TestStep> testSteps;
   private ARGPath argPath;
-  private Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> inputsAndOutputs;
-
   public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath, List<CFAEdge> pShrinkedErrorPath,
-      Region pPresenceCondition, NamedRegionManager pBddCpaNamedRegionManager) {
+      Region pPresenceCondition) {
     inputs = pInputs;
     path = pPath;
     errorPath = pShrinkedErrorPath;
-    bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
     presenceCondition = pPresenceCondition;
   }
 
-  public TestCase(int pI, List<TestStep> pTestSteps, ARGPath pTargetPath, List<CFAEdge> pList,
-      Region pPresenceCondition, NamedRegionManager pBddCpaNamedRegionManager,
+  public TestCase(int pI, @SuppressWarnings("unused") List<TestStep> pTestSteps, ARGPath pTargetPath, List<CFAEdge> pList,
+      Region pPresenceCondition, @SuppressWarnings("unused") NamedRegionManager pBddCpaNamedRegionManager,
       List<BigInteger> pInputValues,
-      Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> pInputsAndOutputs) {
+      @SuppressWarnings("unused") Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> pInputsAndOutputs) {
     id = pI;
-    testSteps = pTestSteps;
     argPath = pTargetPath;
     errorPath = pList;
     presenceCondition = pPresenceCondition;
-    bddCpaNamedRegionManager = pBddCpaNamedRegionManager;
     inputs = pInputValues;
-    inputsAndOutputs = pInputsAndOutputs;
   }
 
   public int getId() {

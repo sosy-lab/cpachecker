@@ -75,7 +75,7 @@ public class GuardedEdgeAutomatonStandardElement extends GuardedEdgeAutomatonSta
 
   @Override
   public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
-    return new HashSet<Property>();
+    return new HashSet<>();
   }
 
 }

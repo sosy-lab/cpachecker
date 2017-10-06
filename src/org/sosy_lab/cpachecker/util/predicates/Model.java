@@ -23,18 +23,16 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import java.io.IOException;
-import java.util.Map;
-
-import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.Appenders;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.ForwardingMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
+import java.io.IOException;
+import java.util.Map;
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
 
 /**
  * This class represents a model returned from an SMT solver:
@@ -45,8 +43,9 @@ import com.google.common.collect.Ordering;
  * you might be after
  * {@link org.sosy_lab.cpachecker.core.counterexample.RichModel}.
  */
+@SuppressWarnings("javadoc")
 public class Model extends ForwardingMap<AssignableTerm, Object> implements Appender {
-  
+
   public class Variable {
 
   }

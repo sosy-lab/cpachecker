@@ -25,20 +25,6 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
-import javax.annotation.Nullable;
-
-import org.sosy_lab.common.Appender;
-import org.sosy_lab.common.Appenders;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
-import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
 import com.google.common.base.Joiner;
 import com.google.common.base.Joiner.MapJoiner;
 import com.google.common.collect.ForwardingMap;
@@ -48,6 +34,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.Appender;
+import org.sosy_lab.common.Appenders;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.counterexample.Model.AssignableTerm;
+import org.sosy_lab.cpachecker.cpa.arg.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 /**
  * This class represents an assignment of concrete values to program variables
@@ -299,7 +296,7 @@ public class Model extends ForwardingMap<AssignableTerm, Object> implements Appe
    * @see Model#getAssignedTermsPerEdge()
    */
   public Model withAssignmentInformation(CFAPathWithAssignments pAssignments,
-      Multimap<CFAEdge, AssignableTerm> pAssignableTermsPerCFAEdge) {
+      @SuppressWarnings("unused") Multimap<CFAEdge, AssignableTerm> pAssignableTermsPerCFAEdge) {
     checkState(assignments.isEmpty());
     return new Model(mModel, pAssignments);
   }

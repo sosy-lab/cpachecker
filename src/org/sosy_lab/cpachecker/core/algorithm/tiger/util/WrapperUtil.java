@@ -108,6 +108,7 @@ public class WrapperUtil {
     File f = File.createTempFile(CPAtiger_MAIN, ".c", null);
     f.deleteOnExit();
 
+    @SuppressWarnings("resource")
     Writer writer = null;
 
     try {
