@@ -234,12 +234,14 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
             if (memberSize == 0) {
               bitFieldsSize =
-                  machineModel.calculatePaddedBitsize(0L, bitFieldsSize, innerType, sizeOfByte);
+                  machineModel.calculatePaddedBitsize(offset * sizeOfByte, bitFieldsSize, innerType,
+                      sizeOfByte) - offset * sizeOfByte;
               setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
             } else {
               bitFieldsSize =
                   machineModel.calculateNecessaryBitfieldOffset(
-                      bitFieldsSize, innerType, sizeOfByte, memberSize);
+                      offset * sizeOfByte + bitFieldsSize, innerType, sizeOfByte, memberSize)
+                      - offset * sizeOfByte;
               setMemberBitOffset(members, bitFieldsSize, offset, memberDeclaration, sizeOfByte);
               bitFieldsSize += memberSize;
             }

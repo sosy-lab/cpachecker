@@ -951,13 +951,18 @@ public enum MachineModel {
             // will be aligned to size of char and occupy 2 Bytes
             // in memory, while the same struct without the
             // 'char : 0;' member would just occupy 1 Byte.
-            bitOffset +=
-                calculatePaddedBitsize(0L, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
+            bitOffset =
+                calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
             sizeOfConsecutiveBitFields = 0;
           } else {
+            if (sizeOfConsecutiveBitFields == 0) {
+              // Align first bitfield in consecutive
+              bitOffset += getPaddingInBits(bitOffset, innerType, sizeOfByte);
+            }
             sizeOfConsecutiveBitFields =
                 calculateNecessaryBitfieldOffset(
-                    sizeOfConsecutiveBitFields, innerType, sizeOfByte, fieldSizeInBits);
+                    sizeOfConsecutiveBitFields + bitOffset, innerType, sizeOfByte, fieldSizeInBits)
+                    - bitOffset;
             sizeOfConsecutiveBitFields += fieldSizeInBits;
           }
 
