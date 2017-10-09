@@ -785,10 +785,6 @@ cpa.apron.mergeop.type = "SEP"
 # target file to hold the exported precision
 cpa.apron.precisionFile = no default value
 
-# whether or not to check for repeated refinements, to then reset the
-# refinement root
-cpa.apron.refiner.checkForRepeatedRefinements = true
-
 # Timelimit for the backup feasibility check with the apron analysis.(use
 # seconds or specify a unit; 0 for infinite)
 cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
@@ -1380,10 +1376,6 @@ cpa.octagon.mergeop.type = "SEP"
 # between floats and ints.
 cpa.octagon.octagonLibrary = "INT"
   allowed values: [INT, FLOAT]
-
-# whether or not to check for repeated refinements, to then reset the
-# refinement root
-cpa.octagon.refiner.checkForRepeatedRefinements = true
 
 # Timelimit for the backup feasibility check with the octagon analysis.(use
 # seconds or specify a unit; 0 for infinite)
