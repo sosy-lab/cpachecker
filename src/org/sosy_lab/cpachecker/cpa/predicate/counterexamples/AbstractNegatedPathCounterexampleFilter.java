@@ -65,11 +65,7 @@ abstract class AbstractNegatedPathCounterexampleFilter<T> extends AbstractSetBas
       ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     super(pConfig, pLogger, pCpa);
 
-    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(InterpolantPredicatesCounterexampleFilter.class.getSimpleName() + " needs a PredicateCPA");
-    }
-
+    PredicateCPA predicateCpa = CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, InterpolantPredicatesCounterexampleFilter.class);
     logger = pLogger;
     pfmgr = predicateCpa.getPathFormulaManager();
   }

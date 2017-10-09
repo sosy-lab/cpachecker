@@ -168,8 +168,8 @@ public class SMGRefiner implements Refiner {
   public static final SMGRefiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
-    ARGCPA argCpa = retrieveCPA(pCpa, ARGCPA.class);
-    SMGCPA smgCpa = retrieveCPA(pCpa, SMGCPA.class);
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SMGRefiner.class);
+    SMGCPA smgCpa = CPAs.retrieveCPAOrFail(pCpa, SMGCPA.class, SMGRefiner.class);
     Set<ControlAutomatonCPA> automatonCpas =
         CPAs.asIterable(pCpa).filter(ControlAutomatonCPA.class).toSet();
 
@@ -439,17 +439,6 @@ public class SMGRefiner implements Refiner {
     }
 
     return Iterables.getOnlyElement(path.getFirstState().getChildren());
-  }
-
-  /** retrieve the wrapped CPA or throw an exception. */
-  private static final <T extends ConfigurableProgramAnalysis> T retrieveCPA(
-      ConfigurableProgramAnalysis pCpa, Class<T> retrieveCls)
-          throws InvalidConfigurationException {
-    final T extractedCPA = CPAs.retrieveCPA(pCpa, retrieveCls);
-    if (extractedCPA == null) {
-      throw new InvalidConfigurationException(retrieveCls.getSimpleName() + " cannot be retrieved.");
-    }
-    return extractedCPA;
   }
 
   private SMGPrecision mergeSMGPrecisionsForSubgraph(

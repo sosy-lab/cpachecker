@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
@@ -84,10 +85,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       throw new InvalidConfigurationException("BAM CPA needed for BAM-based refinement");
     }
     AbstractBAMCPA bamCpa = (AbstractBAMCPA) pCpa;
-    ARGCPA argCpa = bamCpa.retrieveWrappedCpa(ARGCPA.class);
-    if (argCpa == null) {
-      throw new InvalidConfigurationException("ARG CPA needed for refinement");
-    }
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
     return new BAMBasedRefiner(pRefiner, argCpa, bamCpa, bamCpa.getLogger());
   }
 

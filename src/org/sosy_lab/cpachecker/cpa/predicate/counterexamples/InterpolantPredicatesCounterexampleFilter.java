@@ -69,11 +69,7 @@ public class InterpolantPredicatesCounterexampleFilter extends AbstractNegatedPa
     super(pConfig, pLogger, pCpa);
     logger = pLogger;
 
-    PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(InterpolantPredicatesCounterexampleFilter.class.getSimpleName() + " needs a PredicateCPA");
-    }
-
+    PredicateCPA predicateCpa = CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, InterpolantPredicatesCounterexampleFilter.class);
     solver = predicateCpa.getSolver();
     predAbsMgr = predicateCpa.getPredicateManager();
   }

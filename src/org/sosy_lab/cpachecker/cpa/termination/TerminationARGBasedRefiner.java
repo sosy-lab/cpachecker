@@ -76,11 +76,7 @@ public class TerminationARGBasedRefiner extends AbstractARGBasedRefiner {
 
   public static TerminationARGBasedRefiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, CPAException {
-    TerminationCPA terminationCPA = CPAs.retrieveCPA(pCpa, TerminationCPA.class);
-    if (terminationCPA == null) {
-      throw new InvalidConfigurationException("Termination CPA needed for refinement");
-    }
-
+    TerminationCPA terminationCPA = CPAs.retrieveCPAOrFail(pCpa, TerminationCPA.class, TerminationCPA.class);
     Refiner.Factory refinerFactory =
         new TerminationARGBasedRefinerConfig(terminationCPA.getConfig()).refinerFactory;
     Refiner refiner = refinerFactory.create(pCpa);

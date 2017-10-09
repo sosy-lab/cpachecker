@@ -28,6 +28,9 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeTraverser;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
@@ -46,7 +49,9 @@ public class CPAs {
    * @param cls The type to search for.
    * @return The found CPA, or null if none was found.
    */
-  public static <T extends ConfigurableProgramAnalysis> T retrieveCPA(ConfigurableProgramAnalysis cpa, Class<T> cls) {
+  @Nullable
+  public static <T extends ConfigurableProgramAnalysis> T retrieveCPA(
+      ConfigurableProgramAnalysis cpa, Class<T> cls) {
     if (cls.isInstance(cpa)) {
       return cls.cast(cpa);
     } else if (cpa instanceof WrapperCPA) {
@@ -54,6 +59,26 @@ public class CPAs {
     } else {
       return null;
     }
+  }
+
+  /**
+   * Retrieve a specific CPA out of a structure of wrapper and composite CPAs.
+   *
+   * @param cpa The root of the tree of CPAs where to search.
+   * @param cls The type to search for.
+   * @param callee Used for the message of the exception if needed.
+   * @return The found CPA, or InvalidConfigurationException if no matching CPA was found.
+   */
+  @Nonnull
+  public static <T extends ConfigurableProgramAnalysis, C> T retrieveCPAOrFail(
+      ConfigurableProgramAnalysis cpa, Class<T> cls, Class<C> callee)
+      throws InvalidConfigurationException {
+    T result = CPAs.retrieveCPA(cpa, cls);
+    if (result == null) {
+      throw new InvalidConfigurationException(
+          callee.getSimpleName() + " needs a " + cls.getSimpleName());
+    }
+    return result;
   }
 
   /**
