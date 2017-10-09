@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg.SMGPredicateManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGInterpolant.SMGPrecisionIncrement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
@@ -92,11 +91,6 @@ public class SMGRefiner implements Refiner {
   private final StatInt numberOfTargets = new StatInt(StatKind.SUM, "Number of targets found");
 
   private final ShutdownNotifier shutdownNotifier;
-
-  /**
-   * keep log of previous refinements to identify repeated one
-   */
-  private final Set<Integer> previousRefinementIds = new HashSet<>();
 
   private Set<Integer> previousErrorPathIds = Sets.newHashSet();
 
@@ -372,12 +366,6 @@ public class SMGRefiner implements Refiner {
 
     for (ARGState root : refinementRoots) {
       shutdownNotifier.shutdownIfNecessary();
-
-      if (refinementRoots.size() == 1 && isSimilarRepeatedRefinement(
-          pInterpolationTree.extractPrecisionIncrement(root).values())) {
-        root = relocateRepeatedRefinementRoot(root);
-      }
-
       List<Precision> precisions = new ArrayList<>(2);
       // merge the value precisions of the subtree, and refine it
       precisions.add(mergeSMGPrecisionsForSubgraph(root, pReached)
@@ -400,45 +388,6 @@ public class SMGRefiner implements Refiner {
 
       pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
     }
-  }
-
-  /**
-   * A simple heuristic to detect similar repeated refinements.
-   */
-  private boolean isSimilarRepeatedRefinement(Collection<SMGPrecisionIncrement> currentIncrement) {
-
-    boolean isSimilar = false;
-    int currentRefinementId = new HashSet<>(currentIncrement).hashCode();
-
-    previousRefinementIds.add(currentRefinementId);
-
-    return isSimilar;
-  }
-
-  /**
-   * This method chooses a new refinement root, in a bottom-up fashion along the error path.
-   * It either picks the next state on the path sharing the same CFA location, or the (only)
-   * child of the ARG root, what ever comes first.
-   *
-   * @param currentRoot the current refinement root
-   * @return the relocated refinement root
-   */
-  private ARGState relocateRepeatedRefinementRoot(final ARGState currentRoot) {
-    int currentRootNumber = AbstractStates.extractLocation(currentRoot).getNodeNumber();
-
-    ARGPath path = ARGUtils.getOnePathTo(currentRoot);
-    for (ARGState currentState : path.asStatesList().reverse()) {
-      // skip identity, because a new root has to be found
-      if (currentState == currentRoot) {
-        continue;
-      }
-
-      if (currentRootNumber == AbstractStates.extractLocation(currentState).getNodeNumber()) {
-        return currentState;
-      }
-    }
-
-    return Iterables.getOnlyElement(path.getFirstState().getChildren());
   }
 
   private SMGPrecision mergeSMGPrecisionsForSubgraph(
