@@ -14,7 +14,12 @@
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>*_false-unreach-call*</exclude> <!-- only tasks which fulfill property -->
+    <!-- only tasks which fulfill property -->
+    <exclude>../programs/benchmarks/ntdrivers-simplified/*_false-unreach-call*.cil.c</exclude> 
+    <exclude>../programs/benchmarks/ssh-simplified/*_false-unreach-call*.cil.c</exclude>
+    <exclude>../programs/benchmarks/locks/*_false-unreach-call*.c</exclude>
+    <exclude>../programs/benchmarks/ntdrivers/*_false-unreach-call*.i.cil.c</exclude>
+    <exclude>../programs/benchmarks/ssh/*_false-unreach-call*.i.cil.c</exclude>
   </tasks>
   
   <!-- need to test if these work at all -->
@@ -23,14 +28,28 @@
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>*_false-unreach-call*</exclude> <!-- only tasks which fulfill property -->
+    <!-- only tasks which fulfill property -->
+    <exclude>../programs/benchmarks/heap-manipulation/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/list-properties/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/ldv-regression/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/ldv-regression/test[0-9][0-9]_false-unreach-call*.c</exclude>
+    <exclude>../programs/benchmarks/ddv-machzwd/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/forester-heap/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/list-ext-properties/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/ldv-sets/*_true-unreach-call*.i</exclude>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
-    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>*_false-unreach-call*</exclude> <!-- only tasks which fulfill property -->
+    <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>  
+    <!-- only tasks which fulfill property -->
+    <exclude>../programs/benchmarks/loops/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/loop-acceleration/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/loop-invgen/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/loop-lit/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/loops/compact_false-unreach-call.c</exclude>
+    <exclude>../programs/benchmarks/loops/heavy_false-unreach-call.c</exclude>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
@@ -40,7 +59,10 @@
     <exclude>../programs/benchmarks/seq-mthreaded/*_true-unreach-call*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/seq-mthreaded/rek*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude> <!-- only timeouts -->
-    <exclude>*_false-unreach-call*</exclude> <!-- only tasks which fulfill property -->
+    <!-- only tasks which fulfill property -->
+    <exclude>../programs/benchmarks/systemc/*_false-unreach-call*.cil.c</exclude>
+    <exclude>../programs/benchmarks/seq-mthreaded/*_false-unreach-call.*.c</exclude>
+    <exclude>../programs/benchmarks/seq-pthread/*_false-unreach-call*.i</exclude>
   </tasks>
   <tasks>
     <includesfile>integration-DeviceDriversLinux64.set</includesfile>
@@ -49,7 +71,9 @@
     <option name="-64"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>*_false-unreach-call*</exclude> <!-- only tasks which fulfill property -->
+    <!-- only tasks which fulfill property -->
+    <exclude>../programs/benchmarks/ldv-linux-3.0/*_false-unreach-call*.c</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*false-unreach-call*.cil.out.c</exclude>
   </tasks>
 
   <columns>
