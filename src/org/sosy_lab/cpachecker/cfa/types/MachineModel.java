@@ -955,10 +955,6 @@ public enum MachineModel {
                 calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
             sizeOfConsecutiveBitFields = 0;
           } else {
-            if (sizeOfConsecutiveBitFields == 0) {
-              // Align first bitfield in consecutive
-              bitOffset += getPaddingInBits(bitOffset, innerType, sizeOfByte);
-            }
             sizeOfConsecutiveBitFields =
                 calculateNecessaryBitfieldOffset(
                     sizeOfConsecutiveBitFields + bitOffset, innerType, sizeOfByte, fieldSizeInBits)

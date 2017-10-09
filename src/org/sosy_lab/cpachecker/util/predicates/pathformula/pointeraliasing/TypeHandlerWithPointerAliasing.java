@@ -227,10 +227,6 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
             CBitFieldType currentType = (CBitFieldType) memberDeclaration.getType();
             int memberSize = currentType.getBitFieldSize();
             CType innerType = currentType.getType();
-            if (bitFieldsSize == 0) {
-              // First bitField is aligned
-              offset += machineModel.getPadding(offset, innerType);
-            }
 
             if (memberSize == 0) {
               bitFieldsSize =
