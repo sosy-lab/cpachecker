@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -73,7 +74,6 @@ import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
-
 
 @Options(prefix = "cpa.smg.refinement")
 public class SMGRefiner implements Refiner {
@@ -214,21 +214,13 @@ public class SMGRefiner implements Refiner {
   }
 
   private int obtainErrorPathId(ARGPath path) {
-
-    Predicate<? super AutomatonState> automatonStateIsTarget = (AutomatonState state) -> {
-      return state.isTarget() ? true : false;
-    };
-
-    Function<AutomatonState, String> toNameFunction = (AutomatonState state) -> {
-      return state.getOwningAutomatonName();
-    };
-
     Set<String> automatonNames =
-        AbstractStates.asIterable(path.getLastState()).filter(AutomatonState.class)
-            .filter(automatonStateIsTarget).transform(toNameFunction).toSet();
-
+        AbstractStates.asIterable(path.getLastState())
+            .filter(AutomatonState.class)
+            .filter(AutomatonState::isTarget)
+            .transform(AutomatonState::getOwningAutomatonName)
+            .toSet();
     int id = path.toString().hashCode() + automatonNames.hashCode();
-
     return id;
   }
 
@@ -376,16 +368,8 @@ public class SMGRefiner implements Refiner {
 
     for (Entry<ARGState, List<Precision>> info : refinementInformation.entrySet()) {
       shutdownNotifier.shutdownIfNecessary();
-      List<Predicate<? super Precision>> precisionTypes = new ArrayList<>(2);
-
-      precisionTypes.add(new Predicate<Precision>() {
-
-        @Override
-        public boolean apply(Precision pPrecision) {
-          return pPrecision instanceof SMGPrecision;
-        }
-      });
-
+      List<Predicate<? super Precision>> precisionTypes =
+          Lists.newArrayList(Predicates.instanceOf(SMGPrecision.class));
       pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
     }
   }
