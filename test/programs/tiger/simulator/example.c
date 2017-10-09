@@ -2,10 +2,15 @@ extern int __VERIFIER_nondet_int();
 
 int foobar(int x, int y, int z) {
 	int a = 0;
-	
+	int b = 0;
+
 	if (x < y) {
 		G1: a = x;
+		G2: b = y;
 	} 
+	
+	int z = a + b;
+
 	return z;
 }
 

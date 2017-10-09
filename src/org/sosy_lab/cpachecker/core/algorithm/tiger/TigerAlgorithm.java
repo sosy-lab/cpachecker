@@ -344,14 +344,10 @@ public class TigerAlgorithm implements Algorithm {
         Goal goal = pGoalsToCover.poll();
         int goalIndex = goal.getIndex();
 
-        if (checkCoverage && testsuite.isGoalCovered(goal)) {
-          continue;
-        }
-
         logger.logf(Level.INFO, "Processing test goal %d of %d.", goalIndex, numberOfTestGoals);
 
         ReachabilityAnalysisResult result =
-            runReachabilityAnalysis(goal, goalIndex);
+            runReachabilityAnalysis(goal, goalIndex, pGoalsToCover);
 
         if (result.equals(ReachabilityAnalysisResult.UNSOUND)) {
           logger.logf(Level.WARNING, "Analysis run was unsound!");
@@ -377,6 +373,7 @@ public class TigerAlgorithm implements Algorithm {
     return wasSound;
   }
 
+  @SuppressWarnings("unused")
   private boolean isCovered(int goalIndex, Goal lGoal) {
     @SuppressWarnings("unused")
     Region remainingPCforGoalCoverage = lGoal.getPresenceCondition();
@@ -447,7 +444,7 @@ public class TigerAlgorithm implements Algorithm {
 
     boolean lHasPredicates = false;
 
-    for (CFAEdge lCFAEdge : pTestCase.getArgPath().asEdgesList()) {
+    for (CFAEdge lCFAEdge : pTestCase.getPath()) {
       for (NondeterministicFiniteAutomaton.State lCurrentState : lCurrentStates) {
         // Automaton accepts as soon as it sees a final state (implicit self-loop)
         if (lAutomaton.getFinalStates()
@@ -528,7 +525,8 @@ public class TigerAlgorithm implements Algorithm {
     return lGoalPatterns;
   }
 
-  private ReachabilityAnalysisResult runReachabilityAnalysis(Goal pGoal, int goalIndex)
+  private ReachabilityAnalysisResult runReachabilityAnalysis(Goal pGoal, int goalIndex,
+      LinkedList<Goal> pGoalsToCover)
       throws CPAException, InterruptedException {
 
     //build CPAs for the goal
@@ -605,7 +603,9 @@ public class TigerAlgorithm implements Algorithm {
                   new TestCase(inputValues, cex.getTargetPath().asEdgesList(), shrinkedErrorPath,
                       null);
               testsuite.addTestCase(testcase, pGoal);
-
+              if (checkCoverage) {
+                removeAllGoalsCoveredByTestcase(pGoalsToCover, testcase);
+              }
             }
 
             /* assert counterexamples.size() == 1;
@@ -643,6 +643,19 @@ public class TigerAlgorithm implements Algorithm {
       return ReachabilityAnalysisResult.SOUND;
     } else {
       return ReachabilityAnalysisResult.UNSOUND;
+    }
+  }
+
+  private void removeAllGoalsCoveredByTestcase(LinkedList<Goal> pGoalsToCover, TestCase pTestcase) {
+    LinkedList<Goal> temp = new LinkedList<>(pGoalsToCover);
+    for (Goal goal : temp) {
+      ThreeValuedAnswer answer = TigerAlgorithm.accepts(goal, pTestcase);
+      if (answer.equals(ThreeValuedAnswer.ACCEPT)) {
+        pGoalsToCover.remove(goal);
+        testsuite.addTestCase(pTestcase, goal);
+        logger.log(Level.INFO, "Goal " + goal.getName() + " is allready covered by testcase "
+            + pTestcase.getId() + " and is removed from goal list");
+      }
     }
   }
 
