@@ -133,7 +133,16 @@ public class ConfigurationFilesTest {
           "solver.z3.requireProofs",
           // present in many config files that explicitly disable counterexample checks
           "counterexample.checker",
-          "counterexample.checker.config");
+          "counterexample.checker.config",
+          // present in config files that derive their PCC validation configuration from the analysis configuration
+          "ARGCPA.cpa",
+          "cegar.refiner",
+          "cpa.predicate.refinement.performInitialStaticRefinement",
+          // options set with inject(...,...)
+          "pcc.proof",
+          "pcc.partial.stopAddingAtReachedSetSize"
+
+          );
 
   @Options
   private static class OptionsWithSpecialHandlingInTest {
