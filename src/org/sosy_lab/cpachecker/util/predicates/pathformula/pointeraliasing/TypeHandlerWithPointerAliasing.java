@@ -23,9 +23,12 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CTypeUtils.checkIsSimplified;
 
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -271,11 +274,11 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     offsets.put(compositeType, members);
 
     long machineModelSize = model.getSizeof(compositeType);
-//    Map<String, Long> machineModelOffsets = ImmutableMap.copyOf(from(model.getAllFieldOffsetsInBits(compositeType).entrySet()).transform(entry -> Maps.immutableEntry(entry.getKey().getName(), entry.getValue())));
+    Map<String, Long> machineModelOffsets = ImmutableMap.copyOf(from(model.getAllFieldOffsetsInBits(compositeType).entrySet()).transform(entry -> Maps.immutableEntry(entry.getKey().getName(), entry.getValue())));
     assert size == machineModelSize
         : "Mismatching sizes " + size + " and " + machineModelSize + " for " + compositeType;
-//    assert members.equals(machineModelOffsets)
-//        : "Mismatching offsets for " + compositeType + ": " + Maps.difference(members, machineModelOffsets);
+    assert members.equals(machineModelOffsets)
+        : "Mismatching offsets for " + compositeType + ": " + Maps.difference(members, machineModelOffsets);
   }
 
   private void setMemberBitOffset(
