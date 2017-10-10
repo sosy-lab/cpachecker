@@ -191,7 +191,7 @@ public class BAMTransferRelation implements TransferRelation {
             .equals(stack.isEmpty() ? null : stack.peek().getThird());
 
     if (result) {
-      if (prec.shouldBeSkipped(node)) {
+      if (data.shouldBeSkipped(node)) {
         return false;
       }
     }
@@ -405,11 +405,10 @@ public class BAMTransferRelation implements TransferRelation {
       if (!needToSkip && AbstractStates.extractStateByType(reducedState, PredicateAbstractState.class).hasDeferedAllocations()) {
         needToSkip = true;
       }
-      BAMPrec.copyUncachedBlocks((BAMPrecision) expandedPrecision);
     }
 
     if (needToSkip) {
-      BAMPrec.addUncachedBlock(innerSubtree.getCallNode());
+      data.addUncachedBlock(innerSubtree.getCallNode());
     }
 
     logger.log(Level.FINEST, "Expanded results:", expandedResult);

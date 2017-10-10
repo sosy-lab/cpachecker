@@ -25,13 +25,16 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -82,6 +85,8 @@ public class BAMDataManager {
    **/
   final Map<AbstractState, Precision> expandedStateToExpandedPrecision = new LinkedHashMap<>();
 
+  final Set<CFANode> uncachedBlockEntries;
+
   public BAMDataManager(
       BAMCache pArgCache,
       ReachedSetFactory pReachedSetFactory,
@@ -89,6 +94,7 @@ public class BAMDataManager {
     bamCache = pArgCache;
     reachedSetFactory = pReachedSetFactory;
     logger = pLogger;
+    uncachedBlockEntries = new HashSet<>();
   }
 
   /**
@@ -223,6 +229,14 @@ public class BAMDataManager {
 
   boolean hasExpandedState(AbstractState state) {
     return expandedStateToReducedState.containsKey(state);
+  }
+
+  public void addUncachedBlock(CFANode node) {
+    uncachedBlockEntries.add(node);
+  }
+
+  public boolean shouldBeSkipped(CFANode node) {
+    return uncachedBlockEntries.contains(node);
   }
 
   static int getId(AbstractState state) {
