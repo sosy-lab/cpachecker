@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Arrays;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -53,44 +52,33 @@ public class MachineModelGetOffsetTest {
   private final static String SECOND_BITFIELD_10 = "secondBitfield";
   private final static String THIRD_INT = "thirdInt";
   private final static String LAST_INCOMPLETEARRAY = "lastIncomplete";
+  private static final String LONG_BITFIELD_15 = "long_bitfield_15";
+  private static final String LONG_BITFIELD_18 = "long_bitfield_18";
+  private static final String CHAR = "char";
+
+  private static final MachineModel MODEL64 = MachineModel.LINUX64;
+  private static final MachineModel MODEL32 = MachineModel.LINUX32;
 
   @Parameters(name = "{2}: {0}")
   public static Object[][] machineModels() {
-    // XXX: Note that this only holds as long as
-    // the available MachineModels have a Byte-size
-    // of 8 Bits and the used types ('int' and 'long long int')
-    // have the same size in all of them.
-    //
-    // This premise holds for the currently (May 4th, 2017)
-    // implemented MachineModels LINUX32 and LINUX64.
-    // If a new MachineModel is introduced, which primitives
-    // vary stronger in respect to the already implemented ones
-    // or you want to test more exhaustively for more types,
-    // say 'long int', that vary in size between LINUX32 and
-    // LINUX64, you have to either implement the respective scenarios
-    // separately or to think of a clever way to determine in-line
-    // which expectation to apply.
     Object[][] types =
         new Object[][] {
           // fieldname          // expected offset in bits
-          {FIRST_BITFIELD_12, 0},
-          {SECOND_BITFIELD_10, 12},
-          {THIRD_INT, 32},
-          {LAST_INCOMPLETEARRAY, 64}
+          {STRUCT, FIRST_BITFIELD_12, 0, MODEL32},
+          {STRUCT, FIRST_BITFIELD_12, 0, MODEL64},
+          {STRUCT, SECOND_BITFIELD_10, 12, MODEL32},
+          {STRUCT, SECOND_BITFIELD_10, 12, MODEL64},
+          {STRUCT, THIRD_INT, 32, MODEL32},
+          {STRUCT, THIRD_INT, 32, MODEL64},
+          {STRUCT, LAST_INCOMPLETEARRAY, 64, MODEL32},
+          {STRUCT, LAST_INCOMPLETEARRAY, 64, MODEL64},
+          {STRUCT_2, CHAR, 88, MODEL32},
+          {STRUCT_2, CHAR, 88, MODEL64},
+          {STRUCT_3, CHAR, 80, MODEL32},
+          {STRUCT_3, CHAR, 80, MODEL64}
         };
 
-    // Create a copy of types for each MachineModel and append the MachineModel instance in each row
-    MachineModel[] machineModels = MachineModel.values();
-    Object[][] result = new Object[machineModels.length * types.length][];
-    for (int m = 0; m < machineModels.length; m++) {
-      int offset = m * types.length;
-      for (int t = 0; t < types.length; t++) {
-        result[offset + t] = Arrays.copyOf(types[t], types[t].length + 1);
-        result[offset + t][types[t].length] = machineModels[m];
-      }
-    }
-
-    return result;
+    return types;
   }
 
   // If you plan on expanding this memberlist for more
@@ -114,17 +102,44 @@ public class MachineModelGetOffsetTest {
       new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS,
           TEST_STRUCT, TEST_STRUCT);
 
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_2 =
+      ImmutableList.of(
+          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 15), LONG_BITFIELD_15),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 18), LONG_BITFIELD_18),
+          new CCompositeTypeMemberDeclaration(CNumericTypes.CHAR, CHAR));
+
+  private static final CCompositeType STRUCT_2 =
+      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_2, TEST_STRUCT, TEST_STRUCT);
+
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_3 =
+      ImmutableList.of(
+          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 17), LONG_BITFIELD_15),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 16), LONG_BITFIELD_18),
+          new CCompositeTypeMemberDeclaration(CNumericTypes.CHAR, CHAR));
+
+  private static final CCompositeType STRUCT_3 =
+      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_3, TEST_STRUCT, TEST_STRUCT);
+
   @Parameter(0)
-  public String testField;
+  public CCompositeType testStruct;
 
   @Parameter(1)
-  public int expectedOffset;
+  public String testField;
 
   @Parameter(2)
+  public int expectedOffset;
+
+  @Parameter(3)
   public MachineModel model;
 
   @Test
   public void testGetFieldOffsetInStruct() {
-    assertThat(model.getFieldOffsetInBits(STRUCT, testField)).isEqualTo(expectedOffset);
+    assertThat(model.getFieldOffsetInBits(testStruct, testField)).isEqualTo(expectedOffset);
   }
 }

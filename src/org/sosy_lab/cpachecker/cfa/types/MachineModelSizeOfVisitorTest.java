@@ -60,6 +60,9 @@ public class MachineModelSizeOfVisitorTest {
   private static final String CHAR_BITFIELD_5 = "char_bitfield_5";
   private static final String CHAR_BITFIELD_4_1 = "char_bitfield_4_1";
   private static final String CHAR_BITFIELD_4_0 = "char_bitfield_4_0";
+  private static final String LONG_BITFIELD_0 = "long_bitfield_0";
+  private static final String LONG_BITFIELD_15 = "long_bitfield_15";
+  private static final String LONG_BITFIELD_18 = "long_bitfield_18";
 
   private static final MachineModel MODEL64 = MachineModel.LINUX64;
   private static final MachineModel MODEL32 = MachineModel.LINUX32;
@@ -134,22 +137,49 @@ public class MachineModelSizeOfVisitorTest {
   private static final CCompositeType STRUCT_5 =
       new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_5, TEST_STRUCT, TEST_STRUCT);
 
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_6 =
+      ImmutableList.of(
+          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 15), LONG_BITFIELD_15),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 0), LONG_BITFIELD_0));
+
+  private static final CCompositeType STRUCT_6 =
+      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_6, TEST_STRUCT, TEST_STRUCT);
+
+  private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_7 =
+      ImmutableList.of(
+          new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 15), LONG_BITFIELD_15),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.LONG_INT, 18), LONG_BITFIELD_18),
+          new CCompositeTypeMemberDeclaration(CNumericTypes.CHAR, CHAR));
+
+  private static final CCompositeType STRUCT_7 =
+      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_7, TEST_STRUCT, TEST_STRUCT);
+
   @Parameters(name = "{3}: {1}")
   public static Object[][] machineModels() {
     Object[][] types =
         new Object[][] {
           // struct   // machinemodel // expected size            // name
-                                      // according to gcc, c11
-          {STRUCT_1,     MODEL64,        8,                       "Struct_1"},
-          {STRUCT_1,     MODEL32,        8,                       "Struct_1"},
-          {STRUCT_2,     MODEL64,        8,                       "Struct_2"},
-          {STRUCT_2,     MODEL32,        8,                       "Struct_2"},
-          {STRUCT_3,     MODEL64,        12,                      "Struct_3"},
-          {STRUCT_3,     MODEL32,        12,                      "Struct_3"},
-          {STRUCT_4,     MODEL64,        8,                       "Struct_4"},
-          {STRUCT_4,     MODEL32,        4,                       "Struct_4"},
-          {STRUCT_5,     MODEL64,        40,                      "Struct_5"},
-          {STRUCT_5,     MODEL32,        24,                      "Struct_5"}
+          // according to gcc, c11
+          {STRUCT_1, MODEL64, 8, "Struct_1"},
+          {STRUCT_1, MODEL32, 8, "Struct_1"},
+          {STRUCT_2, MODEL64, 8, "Struct_2"},
+          {STRUCT_2, MODEL32, 8, "Struct_2"},
+          {STRUCT_3, MODEL64, 12, "Struct_3"},
+          {STRUCT_3, MODEL32, 12, "Struct_3"},
+          {STRUCT_4, MODEL64, 8, "Struct_4"},
+          {STRUCT_4, MODEL32, 4, "Struct_4"},
+          {STRUCT_5, MODEL64, 40, "Struct_5"},
+          {STRUCT_5, MODEL32, 24, "Struct_5"},
+          {STRUCT_6, MODEL64, 8, "Struct_6"},
+          {STRUCT_6, MODEL32, 8, "Struct_6"},
+          {STRUCT_7, MODEL64, 16, "Struct_7"},
+          {STRUCT_7, MODEL32, 12, "Struct_7"}
         };
 
     return types;
