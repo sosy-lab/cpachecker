@@ -28,8 +28,10 @@
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <!-- only tasks which fulfill property -->
     <exclude>../programs/benchmarks/floats-cdfpl/*_false-unreach-call*.i</exclude> 
-    <exclude>../programs/benchmarks/float-benchs/*_false-unreach-call.</exclude>
+    <exclude>../programs/benchmarks/float-benchs/*_false-unreach-call.c</exclude>
     <exclude>../programs/benchmarks/floats-esbmc-regression/*_false-unreach-call*.i</exclude> 
+    <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
+    <exclude>../programs/benchmarks/floats-cdfpl/*</exclude>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
@@ -42,21 +44,21 @@
     <exclude>../programs/benchmarks/locks/*_false-unreach-call*.c</exclude>
     <exclude>../programs/benchmarks/ntdrivers/*_false-unreach-call*.i.cil.c</exclude>
     <exclude>../programs/benchmarks/ssh/*_false-unreach-call*.i.cil.c</exclude>
+    <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
+    <exclude>../programs/benchmarks/ssh/*</exclude>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <!-- only tasks which fulfill property -->
-    <exclude>../programs/benchmarks/heap-manipulation/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/list-properties/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/ldv-regression/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/ldv-regression/test[0-9][0-9]_false-unreach-call*.c</exclude>
-    <exclude>../programs/benchmarks/ddv-machzwd/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/forester-heap/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/list-ext-properties/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/ldv-sets/*_true-unreach-call*.i</exclude>
+    <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
+    <exclude>../programs/benchmarks/heap-manipulation/*</exclude>
+    <exclude>../programs/benchmarks/list-properties/*</exclude>
+    <exclude>../programs/benchmarks/ldv-regression/test*</exclude>
+    <exclude>../programs/benchmarks/forester-heap/*</exclude>
+    <exclude>../programs/benchmarks/list-ext2-properties/*</exclude>
+    <exclude>../programs/benchmarks/ldv-sets/*</exclude>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
@@ -68,6 +70,18 @@
     <exclude>../programs/benchmarks/systemc/*_false-unreach-call*.cil.c</exclude>
     <exclude>../programs/benchmarks/seq-mthreaded/*_false-unreach-call.*.c</exclude>
     <exclude>../programs/benchmarks/seq-pthread/*_false-unreach-call*.i</exclude>
+    <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
+    <exclude>../programs/benchmarks/systemc/t*</exclude>
+    <exclude>../programs/benchmarks/seq-pthread/*</exclude>
+    <!-- only tasks which fulfill property -->
+    <exclude>../programs/benchmarks/heap-manipulation/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/list-properties/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/ldv-regression/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/ldv-regression/test[0-9][0-9]_false-unreach-call*.c</exclude>
+    <exclude>../programs/benchmarks/ddv-machzwd/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/forester-heap/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/list-ext-properties/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/ldv-sets/*_true-unreach-call*.i</exclude>
   </tasks>
   <tasks>
     <includesfile>integration-DeviceDriversLinux64.set</includesfile>

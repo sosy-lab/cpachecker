@@ -36,7 +36,12 @@
     <exclude>../programs/benchmarks/ddv-machzwd/*_false-unreach-call*.i</exclude>
     <exclude>../programs/benchmarks/forester-heap/*_false-unreach-call*.i</exclude>
     <exclude>../programs/benchmarks/list-ext-properties/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/ldv-sets/*_true-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/list-ext2-properties/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/ldv-sets/*_false-unreach-call*.i</exclude>
+    <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
+    <exclude>../programs/benchmarks/heap-manipulation/*</exclude>
+    <exclude>../programs/benchmarks/forester-heap/*</exclude>
+    <exclude>../programs/benchmarks/list-ext2-properties/*</exclude>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
@@ -50,6 +55,9 @@
     <exclude>../programs/benchmarks/loop-lit/*_false-unreach-call*.i</exclude>
     <exclude>../programs/benchmarks/loops/compact_false-unreach-call.c</exclude>
     <exclude>../programs/benchmarks/loops/heavy_false-unreach-call.c</exclude>
+    <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
+    <exclude>../programs/benchmarks/loop-new/*</exclude>
+    <exclude>../programs/benchmarks/loop-industry-pattern/*</exclude>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
