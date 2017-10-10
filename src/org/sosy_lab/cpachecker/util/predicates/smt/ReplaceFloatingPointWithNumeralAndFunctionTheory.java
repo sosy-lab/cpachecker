@@ -316,9 +316,9 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   @Override
   public FloatingPointFormula round(
       FloatingPointFormula pNumber, FloatingPointRoundingMode pRoundingMode) {
-    FormulaType<FloatingPointFormula> type = getFormulaType(pNumber);
-    FunctionDeclaration<FloatingPointFormula> roundFunction =
+    FormulaType<T> type = numericFormulaManager.getFormulaType();
+    FunctionDeclaration<T> roundFunction =
         functionManager.declareUF("__round_" + pRoundingMode, type, type);
-    return functionManager.callUF(roundFunction, ImmutableList.of(pNumber));
+    return wrap(getFormulaType(pNumber), functionManager.callUF(roundFunction, unwrap(pNumber)));
   }
 }

@@ -142,10 +142,9 @@ public class PDRAlgorithm implements Algorithm, StatisticsProvider {
     config = Objects.requireNonNull(pConfig);
     optionsCollection = new PDROptions(config);
 
-    predCPA = CPAs.retrieveCPA(Objects.requireNonNull(pCPA), PredicateCPA.class);
-    if (predCPA == null) {
-      throw new InvalidConfigurationException("PredicateCPA needed for PDRAlgorithm");
-    }
+    predCPA =
+        CPAs.retrieveCPAOrFail(
+            Objects.requireNonNull(pCPA), PredicateCPA.class, PDRAlgorithm.class);
     solver = predCPA.getSolver();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();

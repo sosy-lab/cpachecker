@@ -225,10 +225,7 @@ abstract class AbstractBMCAlgorithm implements StatisticsProvider {
             pAggregatedReachedSets,
             targetLocationProvider);
 
-    PredicateCPA predCpa = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-    if (predCpa == null) {
-      throw new InvalidConfigurationException("PredicateCPA needed for BMCAlgorithm");
-    }
+    PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
     solver = predCpa.getSolver();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();

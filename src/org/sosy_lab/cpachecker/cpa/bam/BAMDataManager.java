@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 
 public interface BAMDataManager {
 
@@ -48,6 +48,8 @@ public interface BAMDataManager {
    **/
   ReachedSet createAndRegisterNewReachedSet(
       AbstractState initialState, Precision initialPrecision, Block context);
+
+  ReachedSetFactory getReachedSetFactory();
 
   /**
    * Register an expanded state in our data-manager,
@@ -82,16 +84,17 @@ public interface BAMDataManager {
   List<AbstractState> getExpandedStatesList(AbstractState state);
 
   /**
-   * Add a mapping of a non-reduced abstract state to a reached-set whose first state is the
-   * matching reduced abstract state.
+   * Add a mapping of a non-reduced abstract state and reduced exit state to a reached-set whose
+   * first state is the matching reduced abstract state. The exit state should be contained in the
+   * reached-set.
    */
-  void registerInitialState(AbstractState state, ReachedSet reachedSet);
+  void registerInitialState(AbstractState state, AbstractState exitState, ReachedSet reachedSet);
 
   /**
    * Receive the reached-set for a non-reduced initial state. We expect that the given abstract
    * state has a matching reached-set.
    */
-  ReachedSet getReachedSetForInitialState(AbstractState state);
+  ReachedSet getReachedSetForInitialState(AbstractState state, AbstractState exitState);
 
   /** CHech whether the given abstract state is the non-reduced initial state of a reached-set. */
   boolean hasInitialState(AbstractState state);
@@ -101,6 +104,9 @@ public interface BAMDataManager {
    * given abstract state was registered as expanded state.
    */
   AbstractState getReducedStateForExpandedState(AbstractState state);
+
+  /** Returns the block from where the expanded state is an exit-state. */
+  Block getInnerBlockForExpandedState(AbstractState state);
 
   /** Check whether any abstract state was expanded to the given abstract state. */
   boolean hasExpandedState(AbstractState state);

@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
@@ -38,14 +40,10 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public abstract class ITPStrategy<T> {
 
@@ -202,8 +200,12 @@ public abstract class ITPStrategy<T> {
     logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A);
 
     getInterpolantTimer.start();
-    final BooleanFormula itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));
-    getInterpolantTimer.stop();
+    final BooleanFormula itp;
+    try {
+      itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));
+    } finally {
+      getInterpolantTimer.stop();
+    }
 
     logger.log(Level.ALL, "Received interpolant", itp);
     return itp;

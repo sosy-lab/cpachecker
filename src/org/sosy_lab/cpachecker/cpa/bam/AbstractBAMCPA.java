@@ -77,9 +77,25 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   @Option(
     secure = true,
+    description =
+        "Heuristic: This flag determines which precisions should be updated during "
+            + "refinement. This flag also updates the precision of the most inner block."
+  )
+  private boolean doPrecisionRefinementForMostInnerBlock = true;
+
+  @Option(
+    secure = true,
     description = "Use more fast partitioning builder, which can not handle loops"
   )
   private boolean useExtendedPartitioningBuilder = false;
+
+  @Option(
+    secure = true,
+    description =
+        "This flag determines which refinement procedure we should use. "
+            + "We can choose between an in-place refinement and a copy-on-write refinement."
+  )
+  private boolean useCopyOnWriteRefinement = false;
 
   final Timer blockPartitioningTimer = new Timer();
 
@@ -174,5 +190,13 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   boolean doPrecisionRefinementForAllStates() {
     return doPrecisionRefinementForAllStates;
+  }
+
+  boolean doPrecisionRefinementForMostInnerBlock() {
+    return doPrecisionRefinementForMostInnerBlock;
+  }
+
+  boolean useCopyOnWriteRefinement() {
+    return useCopyOnWriteRefinement;
   }
 }

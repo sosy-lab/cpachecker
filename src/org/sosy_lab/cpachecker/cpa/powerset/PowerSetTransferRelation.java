@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-
 public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
 
   private final TransferRelation wrapperTransfer;
@@ -49,9 +48,10 @@ public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(AbstractState pState,
       Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
     PowerSetState state = (PowerSetState) pState;
-    Set<AbstractState> successors = Sets.newHashSetWithExpectedSize(state.getSet().size());
+    Set<AbstractState> successors =
+        Sets.newHashSetWithExpectedSize(state.getWrappedStates().size());
 
-    for (AbstractState wrappedState : state.getSet()) {
+    for (AbstractState wrappedState : state.getWrappedStates()) {
       successors.addAll(wrapperTransfer.getAbstractSuccessorsForEdge(wrappedState, pPrecision, pCfaEdge));
     }
 
@@ -68,11 +68,12 @@ public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
 
     PowerSetState setStates = (PowerSetState) state;
     Collection<? extends AbstractState> strengtheningRes;
-    Set<AbstractState> newStates = Sets.newHashSetWithExpectedSize(setStates.getSet().size());
+    Set<AbstractState> newStates =
+        Sets.newHashSetWithExpectedSize(setStates.getWrappedStates().size());
 
     boolean changed = false;
 
-    for (AbstractState stateInSet : setStates.getSet()) {
+    for (AbstractState stateInSet : setStates.getWrappedStates()) {
       strengtheningRes = wrapperTransfer.strengthen(stateInSet,
           Collections.singletonList(stateInSet), cfaEdge, precision);
       if (strengtheningRes != null && strengtheningRes.size() > 0) {

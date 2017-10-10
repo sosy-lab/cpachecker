@@ -34,7 +34,6 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import com.google.common.math.IntMath;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -86,8 +85,6 @@ class PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
   private static final String UNITED_BASE_FIELD_NAME_PREFIX = "__VERIFIER_united_base_field";
-
-  private static final String FAKE_ALLOC_FUNCTION_NAME = "__VERIFIER_fake_alloc";
 
   /**
    * Returns a fake base type of a given size, i.e. an array of {@code size} voids.
@@ -352,51 +349,18 @@ class PointerTargetSetManager {
         mergeLists(pts1.getDeferredAllocations(), pts2.getDeferredAllocations());
     shutdownNotifier.shutdownIfNecessary();
 
+    final PersistentList<Formula> highestAllocatedAddresses =
+        mergeLists(pts1.getHighestAllocatedAddresses(), pts2.getHighestAllocatedAddresses());
+
     int allocationCount = Math.max(pts1.getAllocationCount(), pts2.getAllocationCount());
-
-    final String lastBase;
-    final BooleanFormula basesMergeFormula;
-    if (pts1.getLastBase() == null ||
-        pts2.getLastBase() == null ||
-        pts1.getLastBase().equals(pts2.getLastBase())) {
-      // Trivial case: either no allocations on one branch at all, or no difference.
-      // Just take the first non-null value, the second is either equal or null.
-      lastBase = (pts1.getLastBase() != null) ? pts1.getLastBase() : pts2.getLastBase();
-      basesMergeFormula = bfmgr.makeTrue();
-
-    } else if (basesOnlyPts1.isEmpty()) {
-      assert pts2.getBases().keySet().containsAll(pts1.getBases().keySet());
-      // One branch has a strict superset of the allocations of the other.
-      lastBase = pts2.getLastBase();
-      basesMergeFormula = bfmgr.makeTrue();
-
-    } else if (basesOnlyPts2.isEmpty()) {
-      assert pts1.getBases().keySet().containsAll(pts2.getBases().keySet());
-      // One branch has a strict superset of the allocations of the other.
-      lastBase = pts1.getLastBase();
-      basesMergeFormula = bfmgr.makeTrue();
-
-    } else {
-      // Otherwise we have no possibility to determine which base to use as lastBase,
-      // so we create an additional fake one.
-      final CType fakeBaseType = getFakeBaseType(0);
-      allocationCount = IntMath.checkedAdd(allocationCount, 1);
-      final String fakeBaseName =
-          DynamicMemoryHandler.makeAllocVariableName(
-              FAKE_ALLOC_FUNCTION_NAME, fakeBaseType, allocationCount);
-      mergedBases = mergedBases.putAndCopy(fakeBaseName, fakeBaseType);
-      lastBase = fakeBaseName;
-      basesMergeFormula = formulaManager.makeAnd(getNextBaseAddressInequality(fakeBaseName, pts1.getBases(), pts1.getLastBase()),
-                                                 getNextBaseAddressInequality(fakeBaseName, pts2.getBases(), pts2.getLastBase()));
-    }
 
     PointerTargetSet resultPTS =
         new PointerTargetSet(
             mergedBases,
-            lastBase,
             mergedFields,
             mergedDeferredAllocations,
             mergedTargets,
+            highestAllocatedAddresses,
             allocationCount);
 
     final List<Pair<CCompositeType, String>> sharedFields = new ArrayList<>();
@@ -414,7 +378,7 @@ class PointerTargetSetManager {
       resultPTS = resultPTSBuilder.build();
     }
 
-    return new MergeResult<>(resultPTS, mergeFormula1, mergeFormula2, basesMergeFormula);
+    return new MergeResult<>(resultPTS, mergeFormula1, mergeFormula2, bfmgr.makeTrue());
   }
 
   /**
@@ -560,39 +524,6 @@ class PointerTargetSetManager {
         Sets.difference(ssaBuilder.allVariables(), ssa.allVariables()));
 
     return constraints.get();
-  }
-
-  /**
-   * Gets the next base address.
-   *
-   * @param newBase The name of the next base.
-   * @param bases A map of existing bases.
-   * @param lastBase The name of the last added base.
-   * @return A formula for the next base address.
-   */
-  BooleanFormula getNextBaseAddressInequality(
-      final String newBase, final PersistentSortedMap<String, CType> bases, final String lastBase) {
-    final FormulaType<?> pointerType = typeHandler.getPointerType();
-    final Formula newBaseFormula =
-        formulaManager.makeVariableWithoutSSAIndex(
-            pointerType, PointerTargetSet.getBaseName(newBase));
-    if (lastBase != null) {
-      final CType lastType = bases.get(lastBase);
-      final int lastSize =
-          lastType.isIncomplete()
-              ? options.defaultAllocationSize()
-              : typeHandler.getSizeof(lastType);
-      final Formula rhs =
-          formulaManager.makePlus(
-              formulaManager.makeVariableWithoutSSAIndex(
-                  pointerType, PointerTargetSet.getBaseName(lastBase)),
-              formulaManager.makeNumber(pointerType, lastSize * typeHandler.getBitsPerByte()));
-      // The condition rhs > 0 prevents overflows in case of bit-vector encoding
-      return formulaManager.makeAnd(formulaManager.makeGreaterThan(rhs, formulaManager.makeNumber(pointerType, 0L), true),
-                                    formulaManager.makeGreaterOrEqual(newBaseFormula, rhs, true));
-    } else {
-      return formulaManager.makeGreaterThan(newBaseFormula, formulaManager.makeNumber(pointerType, 0L), true);
-    }
   }
 
   /**

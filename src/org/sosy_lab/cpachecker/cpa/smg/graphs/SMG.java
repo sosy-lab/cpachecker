@@ -86,14 +86,10 @@ public class SMG {
     pt_edges = new SMGPointsToMap();
     object_validity = PathCopyingPersistentTreeMap.of();
     objectAllocationIdentity = PathCopyingPersistentTreeMap.of();
-
-    addObject(SMGNullObject.INSTANCE);
-    object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
-
-    addValue(NULL_ADDRESS);
-    addPointsToEdge(NULL_POINTER);
-
     machine_model = pMachineModel;
+
+    initializeNullObject();
+    initializeNullAddress();
   }
 
   /**
@@ -483,11 +479,9 @@ public class SMG {
    * object to null value
    */
   public TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
-    Set<SMGEdgeHasValue> edges = hv_edges.getEdgesForObject(pObj);
-    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterHavingValue(SMG.NULL_ADDRESS);
-
+    SMGEdgeHasValueFilter objectFilter = new SMGEdgeHasValueFilter().filterByObject(pObj).filterHavingValue(SMG.NULL_ADDRESS);
     TreeMultimap<Long, Integer> offsetToSize = TreeMultimap.create();
-    for (SMGEdgeHasValue edge : objectFilter.filter(edges)) {
+    for (SMGEdgeHasValue edge : objectFilter.filter(hv_edges)) {
       offsetToSize.put(edge.getOffset(), edge.getSizeInBits(machine_model));
     }
 
@@ -542,7 +536,7 @@ public class SMG {
   }
 
   public boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, CType pType ) {
-    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getBitSizeof(pType));
+    return isCoveredByNullifiedBlocks(pObject, pOffset, machine_model.getSizeofInBits(pType));
   }
 
   private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, int size) {
@@ -617,6 +611,10 @@ public class SMG {
     pt_edges = new SMGPointsToMap();
     neq = new NeqRelation();
     pathPredicate.clear();
+    initializeNullAddress();
+  }
+
+  private void initializeNullAddress() {
     addValue(NULL_ADDRESS);
     addPointsToEdge(NULL_POINTER);
   }
@@ -624,8 +622,10 @@ public class SMG {
   public void clearObjects() {
     objects = PersistentSet.of();
     object_validity = PathCopyingPersistentTreeMap.of();
+    initializeNullObject();
+  }
 
-    /*May not clear null objects*/
+  private void initializeNullObject() {
     addObject(SMGNullObject.INSTANCE);
     object_validity = object_validity.putAndCopy(SMGNullObject.INSTANCE, false);
   }

@@ -186,7 +186,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     return locationEvaluator.getArraySlotLocationFromArrayStart(pArrayStartLocation, pSlotNumber, pArrayType);
   }
 
-  private static class MemoryLocationEvaluator extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCCodeException> {
+  protected static class MemoryLocationEvaluator extends DefaultCExpressionVisitor<MemoryLocation, UnrecognizedCCodeException> {
 
     private final ExpressionValueVisitor evv;
 
@@ -230,7 +230,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      long typeSize = evv.getBitSizeof(elementType);
+      long typeSize = evv.getMachineModel().getSizeofInBits(elementType);
 
       long subscriptOffset = subscriptValue.asNumericValue().longValue() * typeSize;
 
@@ -321,7 +321,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         final int pSlotNumber,
         final CArrayType pArrayType) {
 
-      long typeSize = evv.getBitSizeof(pArrayType.getType());
+      long typeSize = evv.getMachineModel().getSizeofInBits(pArrayType.getType());
       long offset = typeSize * pSlotNumber;
       long baseOffset = pArrayStartLocation.isReference() ? pArrayStartLocation.getOffset() : 0;
 

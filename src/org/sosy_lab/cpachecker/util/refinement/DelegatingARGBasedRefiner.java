@@ -105,8 +105,21 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
           throw e; // propagate exception
         } else {
           // ignore and try the next refiner
-          logger.logf(Level.FINE, "refinement %d of %d reported repeated counterexample, "
-              + "restarting refinement with next refiner", i + 1, refiners.size());
+          if (i == refiners.size() - 1) {
+            logger.logf(
+                Level.FINE,
+                "refinement %d of %d reported repeated counterexample, "
+                    + "exiting refiner and possibly using cex from previous refiner",
+                i + 1,
+                refiners.size());
+          } else {
+            logger.logf(
+                Level.FINE,
+                "refinement %d of %d reported repeated counterexample, "
+                    + "restarting refinement with next refiner",
+                i + 1,
+                refiners.size());
+          }
         }
       }
     }

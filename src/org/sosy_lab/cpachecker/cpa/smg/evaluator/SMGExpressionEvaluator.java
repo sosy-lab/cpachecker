@@ -170,7 +170,7 @@ public class SMGExpressionEvaluator {
       SMGAddressValue fieldOwnerAddress = fieldOwnerAddressAndState.getObject();
       SMGState newState = fieldOwnerAddressAndState.getSmgState();
       String fieldName = fieldReference.getFieldName();
-      SMGField field = getField(cfaEdge, ownerType, fieldName, newState, fieldReference);
+      SMGField field = getField(ownerType, fieldName);
 
       if (field.isUnknown() || fieldOwnerAddress.isUnknown()) {
         if (fieldReference.isPointerDereference()) {
@@ -217,9 +217,7 @@ public class SMGExpressionEvaluator {
     return SMGValueAndState.of(pSmgState, value);
   }
 
-  private SMGField getField(
-      CFAEdge pEdge, CType pOwnerType, String pFieldName, SMGState pState, CExpression pExp)
-      throws UnrecognizedCCodeException {
+  private SMGField getField(CType pOwnerType, String pFieldName) throws UnrecognizedCCodeException {
 
     if (pOwnerType instanceof CElaboratedType) {
 
@@ -229,9 +227,9 @@ public class SMGExpressionEvaluator {
         return SMGField.getUnknownInstance();
       }
 
-      return getField(pEdge, realType, pFieldName, pState, pExp);
+      return getField(realType, pFieldName);
     } else if (pOwnerType instanceof CCompositeType) {
-      return getField(pEdge, (CCompositeType) pOwnerType, pFieldName, pState, pExp);
+      return getField((CCompositeType) pOwnerType, pFieldName);
     } else if (pOwnerType instanceof CPointerType) {
 
       /* We do not explicitly transform x->b,
@@ -242,24 +240,18 @@ public class SMGExpressionEvaluator {
 
       type = getRealExpressionType(type);
 
-      return getField(pEdge, type, pFieldName, pState, pExp);
+      return getField(type, pFieldName);
     }
 
     throw new AssertionError();
   }
 
-  private SMGField getField(
-      CFAEdge pEdge,
-      CCompositeType pOwnerType,
-      String pFieldName,
-      SMGState pState,
-      CExpression pExpression) {
+  private SMGField getField(CCompositeType pOwnerType, String pFieldName) {
 
     List<CCompositeTypeMemberDeclaration> membersOfType = pOwnerType.getMembers();
     CType resultType = pOwnerType;
 
-    CSizeOfVisitor sizeofVisitor = getSizeOfVisitor(pEdge, pState, Optional.of(pExpression));
-    long offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
+    long offset = machineModel.getFieldOffsetInBits(pOwnerType, pFieldName);
 
     for (CCompositeTypeMemberDeclaration typeMember : membersOfType) {
       if (typeMember.getName().equals(pFieldName)) {

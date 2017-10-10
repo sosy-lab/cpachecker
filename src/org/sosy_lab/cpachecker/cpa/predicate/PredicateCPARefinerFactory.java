@@ -78,12 +78,7 @@ public class PredicateCPARefinerFactory {
   @SuppressWarnings("options")
   public PredicateCPARefinerFactory(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    predicateCpa = CPAs.retrieveCPA(checkNotNull(pCpa), PredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(
-          PredicateCPARefiner.class.getSimpleName() + " needs a PredicateCPA");
-    }
-
+    predicateCpa = CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
     predicateCpa.getConfiguration().inject(this);
   }
 

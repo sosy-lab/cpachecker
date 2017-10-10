@@ -65,8 +65,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableClassification;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CToFormulaConverterWithArrays;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.arrays.CtoFormulaTypeHandlerWithArrays;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
@@ -93,9 +91,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description = "Handle aliasing of pointers. "
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
-
-  @Option(secure=true, description = "Handle arrays using the theory of arrays.")
-  private boolean handleArrays = false;
 
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
@@ -143,17 +138,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
-    if (handleArrays) {
-      final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
-      CtoFormulaTypeHandler typeHandler =
-          new CtoFormulaTypeHandlerWithArrays(pLogger, pMachineModel);
-      converter = new CToFormulaConverterWithArrays(options, fmgr, pMachineModel,
-          pVariableClassification, logger, shutdownNotifier, typeHandler, pDirection);
-
-      logger.log(Level.WARNING,
-          "Handling of pointer aliasing is disabled, analysis is unsound if aliased pointers exist.");
-
-    } else if (handlePointerAliasing) {
+    if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       if (options.useQuantifiersOnArrays()) {
         try {

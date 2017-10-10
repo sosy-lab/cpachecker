@@ -232,6 +232,16 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
     return expandedResult;
   }
 
+  protected void registerInitalAndExitStates(
+      final AbstractState initialState,
+      final Collection<AbstractState> exitStates,
+      final ReachedSet reached) {
+    assert reached != null;
+    for (AbstractState exitState : exitStates) {
+      data.registerInitialState(initialState, exitState, reached);
+    }
+  }
+
   protected boolean isCacheHit(
       ReachedSet cachedReached, Collection<AbstractState> cachedReturnStates) {
     if (cachedReturnStates != null && !cachedReached.hasWaitingState()) {

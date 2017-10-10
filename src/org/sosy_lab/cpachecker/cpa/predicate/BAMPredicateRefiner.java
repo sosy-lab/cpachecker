@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
-import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -64,6 +63,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
 
 /**
  * This is a small extension of {@link PredicateCPARefiner} that supplies it with a special
@@ -100,15 +99,8 @@ public abstract class BAMPredicateRefiner implements Refiner {
 
   public static ARGBasedRefiner create0(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    if (!(pCpa instanceof WrapperCPA)) {
-      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " could not find the PredicateCPA");
-    }
-
-    BAMPredicateCPA predicateCpa = ((WrapperCPA)pCpa).retrieveWrappedCpa(BAMPredicateCPA.class);
-    if (predicateCpa == null) {
-      throw new InvalidConfigurationException(BAMPredicateRefiner.class.getSimpleName() + " needs an BAMPredicateCPA");
-    }
-
+    BAMPredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(pCpa, BAMPredicateCPA.class, BAMPredicateRefiner.class);
     Configuration config = predicateCpa.getConfiguration();
     LogManager logger = predicateCpa.getLogger();
     Solver solver = predicateCpa.getSolver();

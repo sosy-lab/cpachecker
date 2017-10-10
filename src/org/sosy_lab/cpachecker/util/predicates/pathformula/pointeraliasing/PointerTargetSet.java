@@ -31,11 +31,10 @@ import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
@@ -43,6 +42,7 @@ import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.java_smt.api.Formula;
 
 @Immutable
 public final class PointerTargetSet implements Serializable {
@@ -127,8 +127,8 @@ public final class PointerTargetSet implements Serializable {
   boolean isEmpty() {
     return bases.isEmpty()
         && fields.isEmpty()
-        && lastBase == null
         && deferredAllocations.isEmpty()
+        && highestAllocatedAddresses.isEmpty()
         && allocationCount == 0;
   }
 
@@ -143,8 +143,8 @@ public final class PointerTargetSet implements Serializable {
     int result = 1;
     result = prime * result + bases.hashCode();
     result = prime * result + fields.hashCode();
-    result = prime * result + Objects.hashCode(lastBase);
     result = prime * result + deferredAllocations.hashCode();
+    result = prime * result + highestAllocatedAddresses.hashCode();
     result = prime * result + Integer.hashCode(allocationCount);
     return result;
   }
@@ -159,28 +159,28 @@ public final class PointerTargetSet implements Serializable {
       PointerTargetSet other = (PointerTargetSet) obj;
       // No need to check for equality of targets
       // because if bases and fields are equal, targets is equal, too.
-      return Objects.equals(lastBase, other.lastBase)
-          && bases.equals(other.bases)
+      return bases.equals(other.bases)
           && fields.equals(other.fields)
           && deferredAllocations.equals(other.deferredAllocations)
+          && highestAllocatedAddresses.equals(other.getHighestAllocatedAddresses())
           && allocationCount == other.allocationCount;
     }
   }
 
   PointerTargetSet(
       final PersistentSortedMap<String, CType> bases,
-      final @Nullable String lastBase,
       final PersistentSortedMap<CompositeField, Boolean> fields,
       final PersistentList<Pair<String, DeferredAllocation>> deferredAllocations,
       final PersistentSortedMap<String, PersistentList<PointerTarget>> targets,
+      final PersistentList<Formula> pHighestAllocatedAddresess,
       final int pAllocationCount) {
     this.bases = bases;
-    this.lastBase = lastBase;
     this.fields = fields;
 
     this.deferredAllocations = deferredAllocations;
 
     this.targets = targets;
+    highestAllocatedAddresses = pHighestAllocatedAddresess;
     allocationCount = pAllocationCount;
 
     if (isEmpty()) {
@@ -216,23 +216,25 @@ public final class PointerTargetSet implements Serializable {
     return targets;
   }
 
+  /** Get the highest allocated addresses, i.e., which guarantee that a fresh address that is
+   * larger than all addresses returned here was previously not yet allocated.
+   */
+  PersistentList<Formula> getHighestAllocatedAddresses() {
+    return highestAllocatedAddresses;
+  }
+
   /** Get the number of allocations of memory on the heap. */
   int getAllocationCount() {
     return allocationCount;
   }
 
-  @Nullable
-  String getLastBase() {
-    return lastBase;
-  }
-
   private static final PointerTargetSet EMPTY_INSTANCE =
       new PointerTargetSet(
           PathCopyingPersistentTreeMap.<String, CType>of(),
-          null,
           PathCopyingPersistentTreeMap.<CompositeField, Boolean>of(),
           PersistentLinkedList.<Pair<String, DeferredAllocation>>of(),
           PathCopyingPersistentTreeMap.<String, PersistentList<PointerTarget>>of(),
+          PersistentLinkedList.of(),
           0);
 
   private static final Joiner joiner = Joiner.on(" ");
@@ -243,9 +245,6 @@ public final class PointerTargetSet implements Serializable {
   // There are also "fake" bases in the map for variables that have their address
   // taken somewhere but are not yet tracked.
   private final PersistentSortedMap<String, CType> bases;
-
-  // The last added memory region (used to create the chain of inequalities between bases).
-  private final @Nullable String lastBase;
 
   // The set of "shared" fields that are accessed directly via pointers,
   // so they are represented with UFs instead of as variables.
@@ -261,6 +260,8 @@ public final class PointerTargetSet implements Serializable {
   // This means that when a location is not present in this map,
   // its value is not tracked and might get lost.
   private final PersistentSortedMap<String, PersistentList<PointerTarget>> targets;
+
+  private final PersistentList<Formula> highestAllocatedAddresses;
 
   private final int allocationCount;
 
@@ -284,31 +285,31 @@ public final class PointerTargetSet implements Serializable {
 
     private static final long serialVersionUID = 8022025017590667769L;
     private final PersistentSortedMap<String, CType> bases;
-    private final String lastBase;
     private final PersistentSortedMap<CompositeField, Boolean> fields;
     private final List<Pair<String, DeferredAllocation>> deferredAllocations;
     private final Map<String, List<PointerTarget>> targets;
+    private final List<Formula> highestAllocatedAddresses;
     private final int allocationCount;
 
     private SerializationProxy(PointerTargetSet pts) {
       bases = pts.bases;
-      lastBase = pts.lastBase;
       fields = pts.fields;
       List<Pair<String, DeferredAllocation>> deferredAllocations =
           Lists.newArrayList(pts.deferredAllocations);
       this.deferredAllocations = deferredAllocations;
       this.targets = new HashMap<>(Maps.transformValues(pts.targets, Lists::newArrayList));
+      highestAllocatedAddresses = new ArrayList<>(pts.highestAllocatedAddresses);
       allocationCount = pts.allocationCount;
     }
 
     private Object readResolve() {
       return new PointerTargetSet(
           bases,
-          lastBase,
           fields,
           PersistentLinkedList.copyOf(deferredAllocations),
           PathCopyingPersistentTreeMap.copyOf(
               Maps.transformValues(this.targets, PersistentLinkedList::copyOf)),
+          PersistentLinkedList.copyOf(highestAllocatedAddresses),
           allocationCount);
     }
   }

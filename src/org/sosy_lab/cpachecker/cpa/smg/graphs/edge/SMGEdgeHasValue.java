@@ -65,7 +65,7 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public int getSizeInBits(MachineModel pMachineModel) {
-    return pMachineModel.getBitSizeof(type);
+    return pMachineModel.getSizeofInBits(type);
   }
 
   @Override
@@ -90,7 +90,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     long otStart = other.getOffset();
 
-    long otEnd = otStart + pModel.getBitSizeof(other.getType());
+    long otEnd = otStart + pModel.getSizeofInBits(other.getType());
 
     return overlapsWith(otStart, otEnd, pModel);
   }
@@ -99,7 +99,7 @@ public class SMGEdgeHasValue extends SMGEdge {
 
     long myStart = getOffset();
 
-    long myEnd = myStart + pModel.getBitSizeof(type);
+    long myEnd = myStart + pModel.getSizeofInBits(type);
 
     if (myStart < pOtStart) {
       return (myEnd > pOtStart);
@@ -117,7 +117,7 @@ public class SMGEdgeHasValue extends SMGEdge {
   }
 
   public boolean isCompatibleFieldOnSameObject(SMGEdgeHasValue other, MachineModel pModel) {
-    return pModel.getBitSizeof(type) == pModel.getBitSizeof(other.type)
+    return pModel.getSizeofInBits(type) == pModel.getSizeofInBits(other.type)
         && (getOffset() == other.getOffset())
         && object == other.object;
   }

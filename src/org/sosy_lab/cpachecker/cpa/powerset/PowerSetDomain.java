@@ -50,14 +50,14 @@ public class PowerSetDomain implements AbstractDomain {
     PowerSetState state1 = (PowerSetState) pState1;
     PowerSetState state2 = (PowerSetState) pState2;
 
-    Collection<AbstractState> coverSet = state2.getSet();
+    Collection<AbstractState> coverSet = state2.getWrappedStates();
 
     Set<AbstractState> stateSet =
-        Sets.newHashSetWithExpectedSize(coverSet.size() + state1.getSet().size());
+        Sets.newHashSetWithExpectedSize(coverSet.size() + state1.getWrappedStates().size());
 
-    for (AbstractState state : state1.getSet()) {
+    for (AbstractState state : state1.getWrappedStates()) {
 
-      if (!state2.contains(state) && !stop.stop(state, coverSet, prec)) {
+      if (!coverSet.contains(state) && !stop.stop(state, coverSet, prec)) {
         stateSet.add(state);
       }
 
@@ -77,21 +77,18 @@ public class PowerSetDomain implements AbstractDomain {
     PowerSetState state1 = (PowerSetState) pState1;
     PowerSetState state2 = (PowerSetState) pState2;
 
-    return isLessOrEqual(state1, state2);
-  }
-
-  private boolean isLessOrEqual(final PowerSetState state1, final PowerSetState state2) {
     return state1.isMergedInto(state2) || isCoverage(state1, state2);
   }
 
   private boolean isCoverage(final PowerSetState pCovered, final PowerSetState pCovering) {
     if (prec == null) { return false; }
-    Collection<AbstractState> coverSet = pCovering.getSet();
+    Collection<AbstractState> coverSet = pCovering.getWrappedStates();
     try {
-      for (AbstractState state : pCovered.getSet()) {
+      for (AbstractState state : pCovered.getWrappedStates()) {
 
-        if (!pCovering.contains(state) && !stop.stop(state, coverSet, prec)) { return false; }
-
+        if (!coverSet.contains(state) && !stop.stop(state, coverSet, prec)) {
+          return false;
+        }
       }
     } catch (CPAException | InterruptedException e) {
       return false;

@@ -27,11 +27,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableMap;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -430,36 +430,6 @@ public enum MachineModel {
     return alignofPtr;
   }
 
-  public int getAlignof(CSimpleType type) {
-    switch (type.getType()) {
-      case BOOL:
-        return getAlignofBool();
-      case CHAR:
-        return getAlignofChar();
-      case FLOAT:
-        return getAlignofFloat();
-      case UNSPECIFIED: // unspecified is the same as int
-      case INT:
-        if (type.isLongLong()) {
-          return getAlignofLongLongInt();
-        } else if (type.isLong()) {
-          return getAlignofLongInt();
-        } else if (type.isShort()) {
-          return getAlignofShort();
-        } else {
-          return getAlignofInt();
-        }
-      case DOUBLE:
-        if (type.isLong()) {
-          return getAlignofLongDouble();
-        } else {
-          return getAlignofDouble();
-        }
-      default:
-        throw new AssertionError("Unrecognized CBasicType " + type.getType());
-    }
-  }
-
   /** returns INT, if the type is smaller than INT, else the type itself. */
   public CSimpleType getPromotedCType(CSimpleType pType) {
 
@@ -516,6 +486,7 @@ public enum MachineModel {
     return result;
   }
 
+  @SuppressFBWarnings("SE_BAD_FIELD")
   @SuppressWarnings("ImmutableEnumChecker")
   private final BaseSizeofVisitor sizeofVisitor =
       new BaseSizeofVisitor(this);
@@ -570,17 +541,8 @@ public enum MachineModel {
       return result;
     }
 
-    public int calculateByteSize(long pBitFieldsSize) {
-      int result = Math.toIntExact(pBitFieldsSize / model.getSizeofCharInBits());
-      if (pBitFieldsSize % model.getSizeofCharInBits() > 0) {
-        result++;
-      }
-      return result;
-    }
-
     private Integer handleSizeOfStruct(CCompositeType pCompositeType) {
-      long size =
-          model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, this, null);
+      long size = model.getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pCompositeType, null, null);
 
       return Math.toIntExact(size);
     }
@@ -667,15 +629,15 @@ public enum MachineModel {
     return pType.accept(pSizeofVisitor);
   }
 
-  public int getBitSizeofPtr() {
+  public int getSizeofPtrInBits() {
     return getSizeofPtr() * getSizeofCharInBits();
   }
 
-  public int getBitSizeof(CType pType) {
-    return getBitSizeof(pType, sizeofVisitor);
+  public int getSizeofInBits(CType pType) {
+    return getSizeofInBits(pType, sizeofVisitor);
   }
 
-  public int getBitSizeof(CType pType, BaseSizeofVisitor pSizeofVisitor) {
+  public int getSizeofInBits(CType pType, BaseSizeofVisitor pSizeofVisitor) {
     checkNotNull(pSizeofVisitor);
     if (pType instanceof CBitFieldType) {
       return ((CBitFieldType) pType).getBitFieldSize();
@@ -684,6 +646,7 @@ public enum MachineModel {
     }
   }
 
+  @SuppressFBWarnings("SE_BAD_FIELD_STORE")
   @SuppressWarnings("ImmutableEnumChecker")
   private final CTypeVisitor<Integer, IllegalArgumentException> alignofVisitor =
       new BaseAlignofVisitor(this);
@@ -762,7 +725,33 @@ public enum MachineModel {
 
     @Override
     public Integer visit(CSimpleType pSimpleType) throws IllegalArgumentException {
-      return model.getAlignof(pSimpleType);
+      switch (pSimpleType.getType()) {
+        case BOOL:
+          return model.getAlignofBool();
+        case CHAR:
+          return model.getAlignofChar();
+        case FLOAT:
+          return model.getAlignofFloat();
+        case UNSPECIFIED: // unspecified is the same as int
+        case INT:
+          if (pSimpleType.isLongLong()) {
+            return model.getAlignofLongLongInt();
+          } else if (pSimpleType.isLong()) {
+            return model.getAlignofLongInt();
+          } else if (pSimpleType.isShort()) {
+            return model.getAlignofShort();
+          } else {
+            return model.getAlignofInt();
+          }
+        case DOUBLE:
+          if (pSimpleType.isLong()) {
+            return model.getAlignofLongDouble();
+          } else {
+            return model.getAlignofDouble();
+          }
+        default:
+          throw new AssertionError("Unrecognized CBasicType " + pSimpleType.getType());
+      }
     }
 
     @Override
@@ -799,8 +788,7 @@ public enum MachineModel {
     ImmutableMap.Builder<CCompositeTypeMemberDeclaration, Long> outParameterMap =
         ImmutableMap.builder();
 
-    getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
-        pOwnerType, null, sizeofVisitor, outParameterMap);
+    getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, null, outParameterMap);
 
     return outParameterMap.build();
   }
@@ -810,29 +798,11 @@ public enum MachineModel {
    *
    * @param pOwnerType a {@link CCompositeType} to calculate its field offset
    * @param pFieldName the name of the field to calculate its offset
-   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
-   *     not be calculated properly
+   * @return the offset of the given field
    */
   public long getFieldOffsetInBits(CCompositeType pOwnerType, String pFieldName) {
-    return getFieldOffsetInBits(pOwnerType, pFieldName, sizeofVisitor);
-  }
-
-  /**
-   * Does the same as {@link MachineModel#getFieldOffsetInBits(CCompositeType, String)}, but accepts
-   * a {@link BaseSizeofVisitor}
-   *
-   * @param pOwnerType a {@link CCompositeType} to calculate its field offset
-   * @param pFieldName the name of the field to calculate its offset
-   * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
-   *     relevant applications model
-   * @return an {@link OptionalInt} containing either the result value or nothing if some size could
-   *     not be calculated properly
-   */
-  public long getFieldOffsetInBits(
-      CCompositeType pOwnerType, String pFieldName, BaseSizeofVisitor pSizeofVisitor) {
     checkNotNull(pFieldName);
-    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
-        pOwnerType, pFieldName, pSizeofVisitor, null);
+    return getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, pFieldName, null);
   }
 
   /**
@@ -843,8 +813,6 @@ public enum MachineModel {
    * @param pOwnerType a {@link CCompositeType} to calculate its a field offset or its overall size
    * @param pFieldName the name of the field to calculate its offset; <code>null</code> for
    *     composites size
-   * @param pSizeofVisitor a {@link BaseSizeofVisitor} used to calculate type sizes according to the
-   *     relevant applications model
    * @param outParameterMap a {@link Map} given as both, input and output, to store the mapping of
    *     fields to offsets in; may be <code>null</code> if not required
    * @return a long that is either the offset of the given field or the size of the whole type
@@ -852,9 +820,7 @@ public enum MachineModel {
   private long getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(
       CCompositeType pOwnerType,
       @Nullable String pFieldName,
-      BaseSizeofVisitor pSizeofVisitor,
       @Nullable ImmutableMap.Builder<CCompositeTypeMemberDeclaration, Long> outParameterMap) {
-    checkNotNull(pSizeofVisitor);
     checkArgument(
         (pFieldName == null) || (outParameterMap == null),
         "Call of this method does only make sense if either pFieldName or outParameterMap "
@@ -912,7 +878,7 @@ public enum MachineModel {
             fieldSizeInBits = 0;
           }
         } else {
-          fieldSizeInBits = getBitSizeof(type, pSizeofVisitor);
+          fieldSizeInBits = getSizeofInBits(type);
         }
 
         if (type instanceof CBitFieldType) {
@@ -993,6 +959,7 @@ public enum MachineModel {
     return calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1);
   }
 
+  @Deprecated
   public long calculateNecessaryBitfieldOffset(
       long pBitFieldOffset, CType pType, int pSizeOfByte, int pBitFieldLength) {
     // gcc -std=c11 implements bitfields such, that it only positions a bitfield 'B'
@@ -1013,6 +980,7 @@ public enum MachineModel {
     return pBitFieldOffset;
   }
 
+  @Deprecated
   public long calculatePaddedBitsize(
       long pBitOffset, long pSizeOfConsecutiveBitFields, CType pType, int pSizeOfByte) {
     pBitOffset += pSizeOfConsecutiveBitFields;
@@ -1023,6 +991,7 @@ public enum MachineModel {
     return (pBitOffset + getPadding(pBitOffset, pType)) * pSizeOfByte;
   }
 
+  @Deprecated
   public int getPadding(long pOffset, CType pType) {
     return getPaddingInBits(pOffset, pType, 1);
   }

@@ -194,6 +194,7 @@ class BAMReachedSetExporter implements Statistics {
    */
   private Set<ReachedSet> getConnections(
       final ARGState rootState, final Multimap<ARGState, ARGState> connections) {
+    final BAMDataManager data = bamcpa.getData();
     final Set<ReachedSet> referencedReachedSets = new HashSet<>();
     final Set<ARGState> finished = new HashSet<>();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
@@ -203,18 +204,22 @@ class BAMReachedSetExporter implements Statistics {
       if (!finished.add(state)) {
         continue;
       }
-      if (bamcpa.getData().hasInitialState(state)) {
+      if (data.hasInitialState(state)) {
         for (ARGState child : state.getChildren()) {
-          assert bamcpa.getData().hasExpandedState(child);
-          ReachedSet target = bamcpa.getData().getReachedSetForInitialState(state);
+          assert data.hasExpandedState(child);
+          ARGState reducedExitState = (ARGState) data.getReducedStateForExpandedState(child);
+          if (reducedExitState.isDestroyed()) {
+            continue; // skip deleted reached-set, TODO why is reached-set deleted?
+          }
+          ReachedSet target = data.getReachedSetForInitialState(state, reducedExitState);
 
           referencedReachedSets.add(target);
           ARGState targetState = (ARGState) target.getFirstState();
           connections.put(state, targetState);
         }
       }
-      if (bamcpa.getData().hasExpandedState(state)) {
-        AbstractState sourceState = bamcpa.getData().getReducedStateForExpandedState(state);
+      if (data.hasExpandedState(state)) {
+        AbstractState sourceState = data.getReducedStateForExpandedState(state);
         connections.put((ARGState) sourceState, state);
       }
       waitlist.addAll(state.getChildren());

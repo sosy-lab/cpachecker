@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.java_smt.api.FormulaType;
 
@@ -90,24 +89,6 @@ public class CtoFormulaTypeHandler {
       return ((CBitFieldType) pType).getBitFieldSize();
     }
     return getSizeof(pType) * machineModel.getSizeofCharInBits();
-  }
-
-  public FormulaType<?> getFormulaTypeFromCType(CType type) {
-    if (type instanceof CSimpleType) {
-      CSimpleType simpleType = (CSimpleType)type;
-      switch (simpleType.getType()) {
-      case FLOAT:
-        return FormulaType.getSinglePrecisionFloatingPointType();
-      case DOUBLE:
-        return FormulaType.getDoublePrecisionFloatingPointType();
-      default:
-        break;
-      }
-    }
-
-    int bitSize = getBitSizeof(type);
-
-    return FormulaType.getBitvectorTypeWithSize(bitSize);
   }
 
   public FormulaType<?> getPointerType() {

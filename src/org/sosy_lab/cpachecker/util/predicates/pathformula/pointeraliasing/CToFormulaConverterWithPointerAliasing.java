@@ -167,7 +167,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         new PointerTargetSetManager(this, options, fmgr, typeHandler, shutdownNotifier, regionMgr);
     afmgr = options.useArraysForHeap() ? fmgr.getArrayFormulaManager() : null;
 
-    voidPointerFormulaType = typeHandler.getFormulaTypeFromCType(CPointerType.POINTER_TO_VOID);
+    voidPointerFormulaType = typeHandler.getPointerType();
     nullPointer = fmgr.makeNumber(voidPointerFormulaType, 0);
   }
 
@@ -411,20 +411,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
-   * Checks, whether a field is relevant in the composite type.
-   *
-   * @param compositeType The composite type to check.
-   * @param fieldName The field to check its relevance.
-   * @return Whether a field is relevant for the composite type.
-   */
-  @Override
-  protected boolean isRelevantField(final CCompositeType compositeType,
-                          final String fieldName) {
-    return super.isRelevantField(compositeType, fieldName)
-        || getSizeof(compositeType) <= options.maxPreFilledAllocationSize();
-  }
-
-  /**
    * Checks, whether a variable declaration is addressed or not.
    *
    * @param var The variable declaration to check.
@@ -436,76 +422,34 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   }
 
   /**
-   * Adds all fields of a C type to the pointer target set.
-   *
-   * @param type The type of the composite type.
-   * @param pts The underlying pointer target set.
-   */
-  private void addAllFields(final CType type, final PointerTargetSetBuilder pts) {
-    if (type instanceof CCompositeType) {
-      final CCompositeType compositeType = (CCompositeType) type;
-      for (CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
-        if (isRelevantField(compositeType, memberDeclaration.getName())) {
-          pts.addField(compositeType, memberDeclaration.getName());
-          final CType memberType = typeHandler.getSimplifiedType(memberDeclaration);
-          addAllFields(memberType, pts);
-        }
-      }
-    } else if (type instanceof CArrayType) {
-      final CType elementType = checkIsSimplified(((CArrayType) type).getType());
-      addAllFields(elementType, pts);
-    }
-  }
-
-  /**
-   * Adds a pre filled base to the pointer target set.
-   *
-   * @param base The name of the base.
-   * @param type The type of the base.
-   * @param prepared A flag indicating whether the base is prepared or not.
-   * @param forcePreFill A flag indicating whether we force the pre fill.
-   * @param constraints Additional constraints
-   * @param pts The underlying pointer target set.
-   */
-  void addPreFilledBase(final String base,
-                        final CType type,
-                        final boolean prepared,
-                        final boolean forcePreFill,
-                        final Constraints constraints,
-                        final PointerTargetSetBuilder pts) {
-    if (!prepared) {
-      constraints.addConstraint(pts.addBase(base, type));
-    } else {
-      pts.shareBase(base, type);
-    }
-    if (forcePreFill ||
-        (options.maxPreFilledAllocationSize() > 0 && getSizeof(type) <= options.maxPreFilledAllocationSize())) {
-      addAllFields(type, pts);
-    }
-  }
-
-  /**
    * Declares a shared base on a declaration.
    *
    * @param declaration The declaration.
    * @param originalDeclaration the declaration used to determine if the base corresponds to a function parameter
    *        (needed to distinguish real (non-moving) arrays from pointers)
-   * @param shareImmediately A flag that indicates, if the base is shared immediately.
    * @param constraints Additional constraints.
    * @param pts The underlying pointer target set.
    */
   private void declareSharedBase(
       final CDeclaration declaration,
       final CSimpleDeclaration originalDeclaration,
-      final boolean shareImmediately,
       final Constraints constraints,
       final PointerTargetSetBuilder pts) {
+    assert declaration.getType().equals(originalDeclaration.getType());
     CType type = typeHandler.getSimplifiedType(declaration);
-    if (shareImmediately) {
-      addPreFilledBase(declaration.getQualifiedName(), type, false, false, constraints, pts);
-    } else if (isAddressedVariable(declaration)
-        || CTypeUtils.containsArray(type, originalDeclaration)) {
-      constraints.addConstraint(pts.prepareBase(declaration.getQualifiedName(), type));
+    CType decayedType = typeHandler.getSimplifiedType(originalDeclaration);
+    if (originalDeclaration instanceof CParameterDeclaration && decayedType instanceof CArrayType) {
+      decayedType = new CPointerType(false, false, ((CArrayType) decayedType).getType());
+    }
+    Formula size =
+        decayedType.isIncomplete()
+            ? null
+            : fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
+
+    if (CTypeUtils.containsArray(type, originalDeclaration)) {
+      pts.addBase(declaration.getQualifiedName(), type, size, constraints);
+    } else if (isAddressedVariable(declaration)) {
+      pts.prepareBase(declaration.getQualifiedName(), type, size, constraints);
     }
   }
 
@@ -817,12 +761,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if (assignment.isPresent()) {
       final CVariableDeclaration returnVariableDeclaraton =
           ((CFunctionEntryNode) returnEdge.getSuccessor().getEntryNode()).getReturnVariable().get();
-      final boolean containsArray =
-          CTypeUtils.containsArray(
-              typeHandler.getSimplifiedType(returnVariableDeclaraton), returnVariableDeclaraton);
 
-      declareSharedBase(
-          returnVariableDeclaraton, returnVariableDeclaraton, containsArray, constraints, pts);
+      declareSharedBase(returnVariableDeclaraton, returnVariableDeclaraton, constraints, pts);
     }
     return result;
   }
@@ -997,10 +937,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       }
     }
 
-    declareSharedBase(declaration, declaration, false, constraints, pts);
-    if (CTypeUtils.containsArray(declarationType, declaration)) {
-      addPreFilledBase(declaration.getQualifiedName(), declarationType, true, false, constraints, pts);
-    }
+    declareSharedBase(declaration, declaration, constraints, pts);
 
     if (options.useParameterVariablesForGlobals() && declaration.isGlobal()) {
       globalDeclarations.add(declaration);
@@ -1111,7 +1048,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     BooleanFormula result = super.makeFunctionCall(edge, callerFunction, ssa, pts, constraints, errorConditions);
 
     for (CParameterDeclaration formalParameter : entryNode.getFunctionParameters()) {
-      final CType parameterType = typeHandler.getSimplifiedType(formalParameter);
       final CVariableDeclaration formalDeclaration = formalParameter.asVariableDeclaration();
       final CVariableDeclaration declaration;
       if (options.useParameterVariables()) {
@@ -1125,7 +1061,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       declareSharedBase(
           declaration,
           formalParameter,
-          CTypeUtils.containsArrayInFunctionParameter(parameterType),
           constraints,
           pts);
     }
@@ -1267,7 +1202,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return formula;
   }
 
-  protected Expression makeFormulaForVariable(
+  private Expression makeFormulaForVariable(
       String pVarName, CType pType, PointerTargetSet pts, boolean forceDereference) {
     if (forceDereference) {
       final Formula address = makeConstant(pVarName, CTypeUtils.getBaseType(pType));
@@ -1279,6 +1214,20 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final Formula address = makeBaseAddress(pVarName, pType);
       return AliasedLocation.ofAddress(address);
     }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected Formula buildTerm(
+      CRightHandSide pExp,
+      CFAEdge pEdge,
+      String pFunction,
+      SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts,
+      Constraints pConstraints,
+      ErrorConditions pErrorConditions)
+      throws UnrecognizedCCodeException {
+    return super.buildTerm(pExp, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
   }
 
   /**
@@ -1305,12 +1254,22 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return super.getFreshIndex(pName, pType, pSsa);
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  /** {@inheritDoc} */
+  @Override
+  protected int makeFreshIndex(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.makeFreshIndex(pName, pType, pSsa);
+  }
+
+  /** {@inheritDoc} */
   @Override
   protected int getSizeof(CType pType) {
     return super.getSizeof(pType);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected int getBitSizeof(CType pType) {
+    return super.getBitSizeof(pType);
   }
 
   /**
@@ -1326,9 +1285,21 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
+  protected boolean isRelevantField(CCompositeType pCompositeType, String pFieldName) {
+    return super.isRelevantField(pCompositeType, pFieldName);
+  }
+
+  /** {@inheritDoc} */
+  @Override
   protected Formula makeNondet(
       String pVarName, CType pType, SSAMapBuilder pSsa, Constraints pConstraints) {
     return super.makeNondet(pVarName, pType, pSsa, pConstraints);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  protected CExpression convertLiteralToFloatIfNecessary(CExpression pExp, CType pTargetType) {
+    return super.convertLiteralToFloatIfNecessary(pExp, pTargetType);
   }
 
   @Override

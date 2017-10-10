@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.Lists;
-import java.util.List;
+import com.google.common.collect.Queues;
+import java.util.Deque;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
@@ -183,11 +183,10 @@ final class SMGConsistencyVerifier {
    * @return True, if all edges in pEdges satisfy consistency criteria. False otherwise.
    */
   static private boolean verifyEdgeConsistency(LogManager pLogger, SMG pSmg, Iterable<? extends SMGEdge> pEdges) {
-    List<SMGEdge> to_verify = Lists.newArrayList(pEdges);
+    Deque<SMGEdge> to_verify = Queues.newArrayDeque(pEdges);
 
-    while (to_verify.size() > 0) {
-      SMGEdge edge = to_verify.get(0);
-      to_verify.remove(0);
+    while (!to_verify.isEmpty()) {
+      SMGEdge edge = to_verify.pop();
 
       // Verify that the object assigned to the edge exists in the SMG
       if (!pSmg.getObjects().contains(edge.getObject())) {

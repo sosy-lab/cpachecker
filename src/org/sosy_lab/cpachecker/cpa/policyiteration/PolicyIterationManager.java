@@ -321,7 +321,7 @@ public class PolicyIterationManager {
     if (((isTarget) || shouldAbstract)
         && isUnreachable(iState, extraInvariant, isTarget)) {
 
-      logger.log(Level.INFO, "Returning bottom state");
+      logger.log(Level.FINE, "Returning bottom state");
       return Optional.empty();
     }
 
@@ -399,7 +399,7 @@ public class PolicyIterationManager {
 
     if (isUnreachable(iState, strengthening, false)) {
 
-      logger.log(Level.INFO, "Returning bottom state");
+      logger.log(Level.FINE, "Returning bottom state");
       return Optional.empty();
     }
 

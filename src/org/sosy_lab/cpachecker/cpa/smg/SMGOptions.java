@@ -81,7 +81,7 @@ public class SMGOptions {
       secure = true,
       name = "memoryAllocationFunctions",
       description = "Memory allocation functions")
-  private ImmutableSet<String> memoryAllocationFunctions = ImmutableSet.of("malloc");
+  private ImmutableSet<String> memoryAllocationFunctions = ImmutableSet.of("malloc", "__kmalloc", "kmalloc");
 
   @Option(
       secure = true,
@@ -111,7 +111,7 @@ public class SMGOptions {
       secure = true,
       name = "zeroingMemoryAllocation",
       description = "Allocation functions which set memory to zero")
-  private ImmutableSet<String> zeroingMemoryAllocation = ImmutableSet.of("calloc");
+  private ImmutableSet<String> zeroingMemoryAllocation = ImmutableSet.of("calloc", "kzalloc");
 
   @Option(secure = true, name = "deallocationFunctions", description = "Deallocation functions")
   private ImmutableSet<String> deallocationFunctions = ImmutableSet.of("free");

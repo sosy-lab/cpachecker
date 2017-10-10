@@ -1,28 +1,21 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="70 s" memlimit="5 GB" cpuCores="2">
-  <option name="-heap">4000M</option>
-  <option name="-noout"/>
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
 
+  <option name="-noout"/>
+  <option name="-heap">2000M</option>
+
+  <rundefinition>
+    <option name="-terminationAnalysis"/>
+  </rundefinition>
 
   <tasks>
     <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/Termination.prp</propertyfile>
-    <exclude reason="flapping timeout">../programs/benchmarks/termination-memory-alloca/array02-alloca_true-termination.c.i</exclude>
-    <exclude reason="flapping timeout">../programs/benchmarks/termination-restricted-15/DivWithoutMinus_false-termination.c</exclude>
-    <exclude reason="flapping timeout">../programs/benchmarks/termination-15/array11_alloca_true-termination.c.i</exclude>
-    <exclude reason="timeout">../programs/benchmarks/termination-memory-alloca/b.*</exclude>
-    <exclude reason="timeout">../programs/benchmarks/termination-memory-alloca/c.*</exclude>
     <option name="-64"/>
-  </tasks>
-
-  <rundefinition>
-    <option name="-terminationAnalysis"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <!-- __builtin_alloca is usedby some of the tasks-->
-    <option name="-setprop">cpa.predicate.memoryAllocationFunctions=malloc,__kmalloc,kmalloc,alloca,__builtin_alloca</option>
-  </rundefinition>
+  </tasks>
 
   <columns>
     <column title="time for safety analysis">Total time for safety analysis</column>
@@ -31,5 +24,4 @@
     <column title="time for termination analysis">Total time for termination analysis</column>
     <column title="lassos">Number of analysed lassos</column>
   </columns>
-
 </benchmark>

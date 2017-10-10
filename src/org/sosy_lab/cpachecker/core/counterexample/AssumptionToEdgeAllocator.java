@@ -158,25 +158,27 @@ public class AssumptionToEdgeAllocator {
       + " allow division and modulo by constants.")
   private boolean allowDivisionAndModuloByConstants = false;
 
-  @Option(secure=true, description=
-      "Whether or not to include concrete address values.")
-  private boolean includeConstantsForPointers = false;
-
   /**
-   * Creates an instance of the allocator that takes an {@link CFAEdge} edge
-   * along an error path and a {@link ConcreteState} state that contains the concrete
-   * values of the variables and of the memory at that edge and creates concrete assumptions
-   * for the variables at the given edge.
+   * Creates an instance of the allocator that takes an {@link CFAEdge} edge along an error path and
+   * a {@link ConcreteState} state that contains the concrete values of the variables and of the
+   * memory at that edge and creates concrete assumptions for the variables at the given edge.
    *
    * @param pConfig the configuration.
    * @param pLogger logger for logging purposes.
    * @param pMachineModel the machine model that holds for the error path of the given edge.
    * @throws InvalidConfigurationException if the configuration is invalid.
    */
-  public AssumptionToEdgeAllocator(
+  public static AssumptionToEdgeAllocator create(
+      Configuration pConfig, LogManager pLogger, MachineModel pMachineModel)
+      throws InvalidConfigurationException {
+    return new AssumptionToEdgeAllocator(pConfig, pLogger, pMachineModel);
+  }
+
+  private AssumptionToEdgeAllocator(
       Configuration pConfig,
       LogManager pLogger,
-      MachineModel pMachineModel) throws InvalidConfigurationException {
+      MachineModel pMachineModel)
+      throws InvalidConfigurationException {
 
     Preconditions.checkNotNull(pLogger);
     Preconditions.checkNotNull(pMachineModel);
@@ -563,22 +565,16 @@ public class AssumptionToEdgeAllocator {
 
     FluentIterable<Class<? extends CType>> acceptedTypes =
         FluentIterable.from(Collections.<Class<? extends CType>>singleton(CSimpleType.class));
-    if (includeConstantsForPointers) {
-      acceptedTypes = acceptedTypes.append(
+    acceptedTypes = acceptedTypes.append(
           Arrays.asList(
               CArrayType.class,
               CPointerType.class));
-    }
 
     boolean leftIsAccepted = equalTypes || acceptedTypes.anyMatch(
         pArg0 -> pArg0.isAssignableFrom(leftType.getClass()));
 
     boolean rightIsAccepted = equalTypes || acceptedTypes.anyMatch(
         pArg0 -> pArg0.isAssignableFrom(rightType.getClass()));
-
-    if (!includeConstantsForPointers && (!leftIsAccepted || !rightIsAccepted)) {
-      return null;
-    }
 
     if (leftType instanceof CSimpleType && !rightIsAccepted) {
       rightSide = new CCastExpression(rightSide.getFileLocation(), leftType, rightSide);
@@ -952,7 +948,7 @@ public class AssumptionToEdgeAllocator {
 
         BigDecimal typeSize =
             BigDecimal.valueOf(
-                machineModel.getBitSizeof(
+                machineModel.getSizeofInBits(
                     pIastArraySubscriptExpression.getExpressionType().getCanonicalType()));
 
         BigDecimal subscriptOffset = subscriptValue.multiply(typeSize);
@@ -1145,7 +1141,7 @@ public class AssumptionToEdgeAllocator {
 
           BigDecimal offsetValue = new BigDecimal(offsetValueNumber.toString());
 
-              BigDecimal typeSize = BigDecimal.valueOf(getBitSizeof(elementType));
+          BigDecimal typeSize = BigDecimal.valueOf(machineModel.getSizeofInBits(elementType));
 
           BigDecimal pointerOffsetValue = offsetValue.multiply(typeSize);
 
@@ -1739,13 +1735,13 @@ public class AssumptionToEdgeAllocator {
           return false;
         }
 
-        int typeSize = machineModel.getBitSizeof(pExpectedType);
+        int typeSize = machineModel.getSizeofInBits(pExpectedType);
         int subscriptOffset = pSubscript * typeSize;
 
         // Check if we are already out of array bound, if we have an array length.
         // FIXME Imprecise due to imprecise getSizeOf method
         if (!pArrayType.isIncomplete()
-            && machineModel.getBitSizeof(pArrayType) <= subscriptOffset) {
+            && machineModel.getSizeofInBits(pArrayType) <= subscriptOffset) {
           return false;
         }
         if (pArrayType.getLength() == null) {
