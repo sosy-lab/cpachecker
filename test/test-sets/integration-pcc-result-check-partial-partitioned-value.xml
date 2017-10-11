@@ -64,7 +64,7 @@
     <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/heap-manipulation/*</exclude>
     <exclude>../programs/benchmarks/list-properties/*</exclude>
-    <exclude>../programs/benchmarks/ldv-regression/test*</exclude>
+    <exclude>../programs/benchmarks/ldv-regression/test[0-9][0-9]*</exclude>
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
     <exclude>../programs/benchmarks/list-ext2-properties/*</exclude>
     <exclude>../programs/benchmarks/ldv-sets/*</exclude>

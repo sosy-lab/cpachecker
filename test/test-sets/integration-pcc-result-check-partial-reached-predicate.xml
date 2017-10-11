@@ -20,6 +20,8 @@
     <exclude>../programs/benchmarks/locks/*_false-unreach-call*.c</exclude>
     <exclude>../programs/benchmarks/ntdrivers/*_false-unreach-call*.i.cil.c</exclude>
     <exclude>../programs/benchmarks/ssh/*_false-unreach-call*.i.cil.c</exclude>
+    <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
+    <exclude>../programs/benchmarks/ssh/*</exclude>
   </tasks>
   
   <!-- need to test if these work at all -->

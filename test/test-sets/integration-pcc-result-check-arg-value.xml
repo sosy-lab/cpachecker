@@ -52,10 +52,19 @@
     <propertyfile>../programs/benchmarks/ReachSafety.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+    <!-- only tasks which fulfill property -->
+    <exclude>../programs/benchmarks/heap-manipulation/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/list-properties/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/ldv-regression/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/ldv-regression/test[0-9][0-9]_false-unreach-call*.c</exclude>
+    <exclude>../programs/benchmarks/ddv-machzwd/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/forester-heap/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/list-ext-properties/*_false-unreach-call*.i</exclude>
+    <exclude>../programs/benchmarks/ldv-sets/*_true-unreach-call*.i</exclude>
     <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/heap-manipulation/*</exclude>
     <exclude>../programs/benchmarks/list-properties/*</exclude>
-    <exclude>../programs/benchmarks/ldv-regression/test*</exclude>
+    <exclude>../programs/benchmarks/ldv-regression/test[0-9][0-9]*</exclude>
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
     <exclude>../programs/benchmarks/list-ext2-properties/*</exclude>
     <exclude>../programs/benchmarks/ldv-sets/*</exclude>
