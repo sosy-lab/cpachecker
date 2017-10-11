@@ -697,7 +697,9 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
             FloatingPointFormula param1 = (FloatingPointFormula)processOperand(parameters.get(1), paramType, paramType);
 
             FloatingPointFormula zero = fpfmgr.makeNumber(0.0, (FormulaType.FloatingPointType)formulaType);
-            FloatingPointFormula nan = fpfmgr.makeNaN((FormulaType.FloatingPointType) formulaType);
+            FloatingPointFormula anything =
+                (FloatingPointFormula)
+                    conv.makeNondet(functionName + "_NondetAnything", paramType, ssa, constraints);
 
             BooleanFormula isFirstNegative =
                 mgr.makeOr(
@@ -706,9 +708,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
                         fpfmgr.isZero(param0),
                         mgr.makeOr(
                             conv.bfmgr.not(fpfmgr.assignment(param0, zero)),
-                            mgr.makeAnd(
-                                fpfmgr.isNaN(param0),
-                                conv.bfmgr.not(fpfmgr.assignment(param0, nan))))));
+                            mgr.makeAnd(fpfmgr.isNaN(param0), fpfmgr.assignment(anything, zero)))));
             BooleanFormula isSecondNegative =
                 mgr.makeOr(
                     mgr.makeLessThan(param1, zero, true),
@@ -716,9 +716,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
                         fpfmgr.isZero(param1),
                         mgr.makeOr(
                             conv.bfmgr.not(fpfmgr.assignment(param1, zero)),
-                            mgr.makeAnd(
-                                fpfmgr.isNaN(param1),
-                                conv.bfmgr.not(fpfmgr.assignment(param1, nan))))));
+                            mgr.makeAnd(fpfmgr.isNaN(param1), fpfmgr.assignment(anything, zero)))));
             BooleanFormula haveSameSign = conv.bfmgr.equivalence(isFirstNegative, isSecondNegative);
 
             return conv.bfmgr.ifThenElse(haveSameSign, param0, fpfmgr.negate(param0));
@@ -895,12 +893,16 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
             FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FloatingPointType)formulaType);
-            FloatingPointFormula fp_nan = fpfmgr.makeNaN((FloatingPointType)formulaType);
 
             FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
             Formula zero = mgr.makeNumber(resultType, 0);
             Formula not_zero =
                 conv.makeNondet(functionName + "_NonZero", CNumericTypes.INT, ssa, constraints);
+            // Since the SMT-Solvers we use do not differentiate between NaN and -NaN we prefer to
+            // label, in doubt, a case involving a NaN/-NaN to be an alarm
+            Formula anything =
+                conv.makeNondet(
+                    functionName + "_NondetAnything", CNumericTypes.INT, ssa, constraints);
             constraints.addConstraint(mgr.makeNot(mgr.makeEqual(not_zero, zero)));
 
             return conv.bfmgr.ifThenElse(
@@ -908,7 +910,7 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Formul
                 conv.bfmgr.ifThenElse(fpfmgr.assignment(param, fp_zero), zero, not_zero),
                 conv.bfmgr.ifThenElse(
                     fpfmgr.isNaN(param),
-                    conv.bfmgr.ifThenElse(fpfmgr.assignment(param, fp_nan), zero, not_zero),
+                    anything,
                     conv.bfmgr.ifThenElse(fpfmgr.lessThan(param, fp_zero), not_zero, zero)));
           }
         }
