@@ -3,7 +3,7 @@
 <benchmark tool="cpachecker" timelimit="150 s" hardtimelimit="200 s" memlimit="7 GB" cpuCores="2">
 
   <option name="-noout"/>
-  <option name="-heap">10000M</option>
+  <option name="-heap">6000M</option>
 
   <rundefinition>
     <option name="-smg"/>
