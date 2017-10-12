@@ -89,8 +89,7 @@ public class TestSuite {
   }
 
   public void addInfeasibleGoal(Goal goal, Region presenceCondition) {
-    if (presenceCondition != null && infeasibleGoals.containsKey(goal)) {
-    } else {
+    if (presenceCondition != null && infeasibleGoals.containsKey(goal)) {} else {
       infeasibleGoals.put(goal, presenceCondition);
     }
   }
@@ -119,6 +118,12 @@ public class TestSuite {
     testcases.add(testcase);
 
     return testcaseExisted;
+  }
+
+  public void updateTestcaseToGoalMapping(TestCase testcase, Goal goal) {
+    List<Goal> goals = mapping.get(testcase);
+    goals.add(goal);
+    mapping.put(testcase, goals);
   }
 
   private boolean testSuiteAlreadyContrainsTestCase(TestCase pTestcase, Goal pGoal) {
@@ -187,14 +192,16 @@ public class TestSuite {
   @Override
   public String toString() {
     StringBuffer str = new StringBuffer();
-
+    str.append("Number of Testcases: ").append(mapping.entrySet().size()).append("\n");
     for (Map.Entry<TestCase, List<Goal>> entry : mapping.entrySet()) {
-      str.append(entry.getKey().toString() + "\n");
       List<CFAEdge> errorPath = entry.getKey().getErrorPath();
       if (errorPath != null) {
         str.append("Errorpath Length: " + entry.getKey().getErrorPath().size() + "\n");
       }
 
+      str.append(entry.getKey().toString() + "\n");
+
+      str.append("Covered goals {\n");
       for (Goal goal : entry.getValue()) {
         str.append("Goal ");
         str.append(getTestGoalLabel(goal));
@@ -206,6 +213,7 @@ public class TestSuite {
         }
         str.append("\n");
       }
+      str.append("}\n");
 
       str.append("\n");
     }
@@ -246,7 +254,6 @@ public class TestSuite {
 
       str.append("\n");
     }
-
     return str.toString();
   }
 

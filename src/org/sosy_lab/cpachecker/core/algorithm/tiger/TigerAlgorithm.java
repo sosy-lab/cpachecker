@@ -37,6 +37,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +57,20 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -78,6 +93,8 @@ import org.sosy_lab.cpachecker.core.algorithm.tiger.util.ThreeValuedAnswer;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorkerRunnable;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.WorklistEntryComparator;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.util.Wrapper;
+import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -179,6 +196,18 @@ public class TigerAlgorithm implements Algorithm {
       description = "Enforce the original order each time a new round of re-processing of timed-out goals begins.")
   private boolean useOrder = true;
 
+  @Option(
+      secure = true,
+      name = "inputInterface",
+      description = "List of input variables: v1,v2,v3...")
+  String inputInterface = "";
+
+  @Option(
+      secure = true,
+      name = "outputInterface",
+      description = "List of output variables: v1,v2,v3...")
+  String outputInterface = "";
+
   private FQLSpecification fqlSpecification;
   private final LogManager logger;
   private final CFA cfa;
@@ -197,6 +226,8 @@ public class TigerAlgorithm implements Algorithm {
   private String programDenotation;
   private Specification stats;
   private TestSuite testsuite;
+  private Set<String> inputVariables;
+  private Set<String> outputVariables;
 
   enum ReachabilityAnalysisResult {
     SOUND,
@@ -229,6 +260,14 @@ public class TigerAlgorithm implements Algorithm {
     this.programDenotation = programDenotation;
     this.stats = stats;
     testsuite = new TestSuite(null);
+    inputVariables = new TreeSet<>();
+    for (String variable : inputInterface.split(",")) {
+      inputVariables.add(variable.trim());
+    }
+    outputVariables = new TreeSet<>();
+    for (String variable : outputInterface.split(",")) {
+      outputVariables.add(variable.trim());
+    }
   }
 
   @Override
@@ -595,40 +634,35 @@ public class TigerAlgorithm implements Algorithm {
             if (cex.isSpurious()) {
               logger.logf(Level.WARNING, "Counterexample is spurious!");
             } else {
-              List<BigInteger> inputValues = new ArrayList<>(0);
-              // calcualte shrinked error path
-              List<CFAEdge> shrinkedErrorPath =
-                  new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
-              TestCase testcase =
-                  new TestCase(inputValues, cex.getTargetPath().asEdgesList(), shrinkedErrorPath,
-                      null);
+              TestCase testcase = createTestcase(cex, null);
               testsuite.addTestCase(testcase, pGoal);
               if (checkCoverage) {
                 removeAllGoalsCoveredByTestcase(pGoalsToCover, testcase);
               }
             }
 
-            /* assert counterexamples.size() == 1;
-
-            for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
-
-              CounterexampleInfo cex = lEntry.getValue();
-
-              if (cex.isSpurious()) {
-                logger.logf(Level.WARNING, "Counterexample is spurious!");
-              } else {
-                List<BigInteger> inputValues = new ArrayList<>(0);
-                // calcualte shrinked error path
-                List<CFAEdge> shrinkedErrorPath =
-                    new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
-                TestCase testcase =
-                    new TestCase(inputValues, cex.getTargetPath().asEdgesList(), shrinkedErrorPath,
-                        null, null);
-                testsuite.addTestCase(testcase, pGoal);
-
-              }
-            }*/
           }
+          /* assert counterexamples.size() == 1;
+
+          for (Map.Entry<ARGState, CounterexampleInfo> lEntry : counterexamples.entrySet()) {
+
+            CounterexampleInfo cex = lEntry.getValue();
+
+            if (cex.isSpurious()) {
+              logger.logf(Level.WARNING, "Counterexample is spurious!");
+            } else {
+              List<BigInteger> inputValues = new ArrayList<>(0);
+              // calcualte shrinked error path
+              List<CFAEdge> shrinkedErrorPath =
+                  new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
+              TestCase testcase =
+                  new TestCase(inputValues, cex.getTargetPath().asEdgesList(), shrinkedErrorPath,
+                      null, null);
+              testsuite.addTestCase(testcase, pGoal);
+
+            }
+          }*/
+
         } else {
           logger.logf(Level.INFO, "Test goal infeasible.");
           testsuite.addInfeasibleGoal(pGoal, null);
@@ -646,13 +680,175 @@ public class TigerAlgorithm implements Algorithm {
     }
   }
 
+  private TestCase createTestcase(final CounterexampleInfo cex, final Region pPresenceCondition) {
+    Map<String, BigInteger> inputValues = extractInputValues(cex);
+    Map<String, BigInteger> outputValus = extractOutputValues(cex);
+    // calcualte shrinked error path
+    List<CFAEdge> shrinkedErrorPath =
+        new ErrorPathShrinker().shrinkErrorPath(cex.getTargetPath());
+    TestCase testcase =
+        new TestCase(inputValues, outputValus, cex.getTargetPath().asEdgesList(), shrinkedErrorPath,
+            null);
+    return testcase;
+  }
+
+  private Map<String, BigInteger> extractOutputValues(CounterexampleInfo cex) {
+    Map<String, BigInteger> variableToValueAssignments = new LinkedHashMap<>();
+    CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
+    int index = 0;
+    for (CFAEdgeWithAssumptions edge : path) {
+      if (edge.getCFAEdge() instanceof CFunctionCallEdge) {
+        CFunctionCallEdge fEdge = (CFunctionCallEdge) edge.getCFAEdge();
+        if (fEdge.getRawAST().get() instanceof CFunctionCallAssignmentStatement) {
+          CFunctionCallAssignmentStatement functionCall =
+              (CFunctionCallAssignmentStatement) fEdge.getRawAST().get();
+          /*boolean setNewTestStep = createAndAddVariableAssignment(functionCall, index, path,
+              AssignmentType.OUTPUT, outputVariables, outputAssignments, "", false, false);*/
+          CLeftHandSide cLeft = functionCall.getLeftHandSide();
+          CIdExpression cld = cLeft instanceof CIdExpression ? (CIdExpression) cLeft : null;
+
+          if (cld != null && outputVariables.contains(cld.getName())) {
+
+            outputVariables.remove(cld.getName());
+
+            BigInteger value;
+
+            value = getVariableValueFromFunctionCall(index, path);
+
+            if (value != null) {
+              variableToValueAssignments.put(cld.getName(), value);
+            }
+          }
+        }
+      }
+      index++;
+    }
+    return variableToValueAssignments;
+  }
+
+  private Map<String, BigInteger> extractInputValues(CounterexampleInfo cex) {
+    Map<String, BigInteger> variableToValueAssignments = new LinkedHashMap<>();
+    Set<String> tempInputs = new LinkedHashSet<>(inputVariables);
+    CFAPathWithAssumptions path = cex.getCFAPathWithAssignments();
+    for (CFAEdgeWithAssumptions edge : path) {
+      Collection<AExpressionStatement> expStmts = edge.getExpStmts();
+      for (AExpressionStatement expStmt : expStmts) {
+        if (expStmt.getExpression() instanceof CBinaryExpression) {
+          CBinaryExpression exp = (CBinaryExpression) expStmt.getExpression();
+          if (tempInputs.contains(exp.getOperand1().toString())
+              && (edge.getCFAEdge().getCode().contains("__VERIFIER_nondet_"))) {
+            String variableName = exp.getOperand1().toString();
+            tempInputs.remove(variableName);
+            variableName = "relevant: " + variableName;
+            BigInteger value = new BigInteger(exp.getOperand2().toString());
+            variableToValueAssignments.put(variableName, value);
+          }
+        }
+      }
+    }
+
+    int index = 0;
+    for (CFAEdgeWithAssumptions edge : path) {
+      if (!edge.getCFAEdge().getCode().contains("__VERIFIER_nondet_")) {
+        if (edge.getCFAEdge() instanceof CFunctionCallEdge) {
+          CFunctionCallEdge fEdge = (CFunctionCallEdge) edge.getCFAEdge();
+          if (fEdge.getRawAST().get() instanceof CFunctionCallAssignmentStatement) {
+            CFunctionCallAssignmentStatement functionCall =
+                (CFunctionCallAssignmentStatement) fEdge.getRawAST().get();
+            /*boolean setNewTestStep =
+                createAndAddVariableAssignment(functionCall, index, path, AssignmentType.INPUT,
+                    remaining_inputVariables, inputAssignments, "relevant: ", false, true);*/
+            CLeftHandSide cLeft = functionCall.getLeftHandSide();
+            CIdExpression cld = cLeft instanceof CIdExpression ? (CIdExpression) cLeft : null;
+
+            if (cld != null && tempInputs.contains(cld.getName())) {
+
+              tempInputs.remove(cld.getName());
+
+              BigInteger value;
+
+              value = getVariableValueFromFunctionCall(index, path);
+
+              if (value != null) {
+                variableToValueAssignments.put("relevant: " + cld.getName(), value);
+              }
+            }
+          }
+
+        }
+        index++;
+        continue;
+      }
+      if (edge.getCFAEdge() instanceof CStatementEdge) {
+        CStatementEdge statementEdge = (CStatementEdge) edge.getCFAEdge();
+        if (statementEdge.getRawAST().get() instanceof CFunctionCallAssignmentStatement) {
+          CFunctionCallAssignmentStatement functionCall =
+              (CFunctionCallAssignmentStatement) statementEdge.getRawAST().get();
+          /* boolean setNewTestStep =
+              createAndAddVariableAssignment(functionCall, index, path, AssignmentType.INPUT,
+                  remaining_inputVariables, inputAssignments, "irrelevant: ", true, false);*/
+          CLeftHandSide cLeft = functionCall.getLeftHandSide();
+          CIdExpression cld = cLeft instanceof CIdExpression ? (CIdExpression) cLeft : null;
+
+          if (cld != null && tempInputs.contains(cld.getName())) {
+
+            tempInputs.remove(cld.getName());
+
+            BigInteger value;
+
+            value = new BigInteger("0");
+            variableToValueAssignments.put("irrelevant: " + cld.getName(), value);
+          }
+        }
+      }
+      index++;
+    }
+    return variableToValueAssignments;
+  }
+
+  private BigInteger getVariableValueFromFunctionCall(int index, CFAPathWithAssumptions path) {
+    Set<AExpressionStatement> expStmts = new HashSet<>();
+    int nesting = -1;
+    for (int i = index; i < path.size(); i++) {
+      CFAEdgeWithAssumptions edge = path.get(i);
+      CFAEdge cfaEdge = edge.getCFAEdge();
+      expStmts.addAll(edge.getExpStmts());
+      if (cfaEdge instanceof CFunctionCallEdge) {
+        nesting++;
+      }
+      if (cfaEdge instanceof CReturnStatementEdge) {
+        if (nesting == 0) {
+          CReturnStatementEdge returnEdge = (CReturnStatementEdge) cfaEdge;
+          CReturnStatement returnStatement = returnEdge.getRawAST().get();
+          CAssignment assignment = returnStatement.asAssignment().get();
+          CRightHandSide rightHand = assignment.getRightHandSide();
+          if (rightHand instanceof CIntegerLiteralExpression) {
+            CIntegerLiteralExpression rightSide =
+                (CIntegerLiteralExpression) rightHand;
+            return rightSide.getValue();
+          }
+          if (assignment instanceof CExpressionAssignmentStatement) { return getValueFromComment(
+              edge); }
+        }
+        nesting--;
+      }
+    }
+    return null;
+  }
+
+  private BigInteger getValueFromComment(CFAEdgeWithAssumptions edge) {
+    String comment = edge.getComment().replaceAll("\\s+", "");
+    String[] resArray = comment.split("=");
+    return new BigInteger(resArray[resArray.length - 1]);
+  }
+
   private void removeAllGoalsCoveredByTestcase(LinkedList<Goal> pGoalsToCover, TestCase pTestcase) {
     LinkedList<Goal> temp = new LinkedList<>(pGoalsToCover);
     for (Goal goal : temp) {
       ThreeValuedAnswer answer = TigerAlgorithm.accepts(goal, pTestcase);
       if (answer.equals(ThreeValuedAnswer.ACCEPT)) {
         pGoalsToCover.remove(goal);
-        testsuite.addTestCase(pTestcase, goal);
+        testsuite.updateTestcaseToGoalMapping(pTestcase, goal);
         logger.log(Level.INFO, "Goal " + goal.getName() + " is allready covered by testcase "
             + pTestcase.getId() + " and is removed from goal list");
       }
@@ -827,9 +1023,10 @@ public class TigerAlgorithm implements Algorithm {
       parents = argState.getParents();
     }
 
-    List<BigInteger> inputValues = new ArrayList<>();
+    Map<String, BigInteger> inputValues = new LinkedHashMap<>();
+    Map<String, BigInteger> outputValues = new LinkedHashMap<>();
 
-    return new TestCase(inputValues, trace, shrinkedErrorPath,
+    return new TestCase(inputValues, outputValues, trace, shrinkedErrorPath,
         null);
   }
 }

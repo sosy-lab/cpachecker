@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tiger.util;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -38,22 +39,29 @@ import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 public class TestCase {
 
   private int id;
-  private List<BigInteger> inputs;
+  private Map<String, BigInteger> inputs;
+  private Map<String, BigInteger> outputs;
   private List<CFAEdge> path;
   private List<CFAEdge> errorPath;
   private Region presenceCondition;
   private ARGPath argPath;
-  public TestCase(List<BigInteger> pInputs, List<CFAEdge> pPath, List<CFAEdge> pShrinkedErrorPath,
+
+  public TestCase(Map<String, BigInteger> pInputs, Map<String, BigInteger> pOutputs,
+      List<CFAEdge> pPath,
+      List<CFAEdge> pShrinkedErrorPath,
       Region pPresenceCondition) {
     inputs = pInputs;
+    outputs = pOutputs;
     path = pPath;
     errorPath = pShrinkedErrorPath;
     presenceCondition = pPresenceCondition;
   }
 
-  public TestCase(int pI, @SuppressWarnings("unused") List<TestStep> pTestSteps, ARGPath pTargetPath, List<CFAEdge> pList,
-      Region pPresenceCondition, @SuppressWarnings("unused") NamedRegionManager pBddCpaNamedRegionManager,
-      List<BigInteger> pInputValues,
+  public TestCase(int pI, @SuppressWarnings("unused") List<TestStep> pTestSteps,
+      ARGPath pTargetPath, List<CFAEdge> pList,
+      Region pPresenceCondition,
+      @SuppressWarnings("unused") NamedRegionManager pBddCpaNamedRegionManager,
+      Map<String, BigInteger> pInputValues,
       @SuppressWarnings("unused") Pair<TreeSet<Entry<AssignableTerm, Object>>, TreeSet<Entry<AssignableTerm, Object>>> pInputsAndOutputs) {
     id = pI;
     argPath = pTargetPath;
@@ -78,7 +86,7 @@ public class TestCase {
     return errorPath;
   }
 
-  public List<BigInteger> getInputs() {
+  public Map<String, BigInteger> getInputs() {
     return inputs;
   }
 
@@ -90,7 +98,7 @@ public class TestCase {
     String str = "int input() {\n  static int index = 0;\n  switch (index) {\n";
 
     int index = 0;
-    for (BigInteger input : inputs) {
+    for (BigInteger input : inputs.values()) {
       str += "  case " + index + ":\n    index++;\n    return " + input + ";\n";
       index++;
     }
@@ -102,8 +110,17 @@ public class TestCase {
 
   @Override
   public String toString() {
-    String returnStr = inputs.toString();
+    //String returnStr = inputs.toString();
 
+    String returnStr = "TestCase " + id + ":\n";
+    returnStr += "inputs and outputs {\n";
+    for (String variable : inputs.keySet()) {
+      returnStr += "-> " + variable + " = " + inputs.get(variable) + "\n";
+    }
+    for (String variable : outputs.keySet()) {
+      returnStr += "<- " + variable + " = " + outputs.get(variable) + "\n";
+    }
+    returnStr += "}";
     /* if (presenceCondition != null) {
       returnStr += " with configurations " + bddCpaNamedRegionManager.dumpRegion(getPresenceCondition());
     }*/

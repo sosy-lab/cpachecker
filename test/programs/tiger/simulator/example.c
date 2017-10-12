@@ -21,9 +21,6 @@ int main() {
 	int z = __VERIFIER_nondet_int();
 
 	int tmp = foobar(x, y, z);
-	int o = tmp;
-	
-	printf("%i", o);
 	
 	return 0;
 }
