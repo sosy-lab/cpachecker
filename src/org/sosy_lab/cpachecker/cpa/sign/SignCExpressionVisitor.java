@@ -57,254 +57,243 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+public class SignCExpressionVisitor extends DefaultCExpressionVisitor<NumberInterface, UnrecognizedCodeException>
+        implements CRightHandSideVisitor<NumberInterface, UnrecognizedCodeException> {
 
-public class SignCExpressionVisitor
-  extends DefaultCExpressionVisitor<NumberInterface, UnrecognizedCodeException>
-  implements CRightHandSideVisitor<NumberInterface, UnrecognizedCodeException> {
+    private CFAEdge edgeOfExpr;
 
-  private CFAEdge edgeOfExpr;
+    private UnifyAnalysisState state;
 
-  private UnifyAnalysisState state;
+    private SignTransferRelation transferRel;
 
-  private SignTransferRelation transferRel;
+    private static Creator creatorSign = new SIGNCreator();
 
-  private static Creator creatorSign = new SIGNCreator();
-
-  public SignCExpressionVisitor(CFAEdge pEdgeOfExpr, UnifyAnalysisState pState, SignTransferRelation pTransferRel) {
-    edgeOfExpr = pEdgeOfExpr;
-    state = pState;
-    transferRel = pTransferRel;
-  }
-
-  @Override
-  public NumberInterface visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCodeException {
-    // TODO possibly treat typedef types differently
-    // e.g. x = non_det() where non_det is extern, unknown function allways assume returns any value
-    if (pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType
-        || pIastFunctionCallExpression.getExpressionType() instanceof CTypedefType
-        || pIastFunctionCallExpression.getExpressionType() instanceof CPointerType) { return creatorSign.factoryMethod(SIGNCreator.ALL); }
-    throw new UnrecognizedCodeException("unsupported code found", edgeOfExpr);
-  }
-
-  @Override
-  protected NumberInterface visitDefault(CExpression pExp) throws UnrecognizedCodeException {
-    throw new UnrecognizedCodeException("unsupported code found", edgeOfExpr);
-  }
-
-  @Override
-  public NumberInterface visit(CCastExpression e) throws UnrecognizedCodeException {
-    return e.getOperand().accept(this); // TODO correct?
-  }
-
-  @Override
-  public NumberInterface visit(CFieldReference e) throws UnrecognizedCodeException {
-    return state.getElement(MemoryLocation.valueOf(transferRel.getScopedVariableName(e)));
-  }
-
-  @Override
-  public NumberInterface visit(CArraySubscriptExpression e) throws UnrecognizedCodeException {
-    // TODO possibly may become preciser
-    return creatorSign.factoryMethod(SIGNCreator.ALL);
-  }
-
-  @Override
-  public NumberInterface visit(CPointerExpression e) throws UnrecognizedCodeException {
-    // TODO possibly may become preciser
-    return creatorSign.factoryMethod(SIGNCreator.ALL);
-  }
-
-  @Override
-  public NumberInterface visit(CIdExpression pIastIdExpression) throws UnrecognizedCodeException {
-    return state.getElement(MemoryLocation.valueOf(transferRel.getScopedVariableName(pIastIdExpression)));
-  }
-
-  @Override
-  public NumberInterface visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCodeException {
-      NumberInterface left = pIastBinaryExpression.getOperand1().accept(this);
-      NumberInterface right = pIastBinaryExpression.getOperand2().accept(this);
-    Set<NumberInterface> leftAtomSigns = left.split();
-    Set<NumberInterface> rightAtomSigns = right.split();
-    NumberInterface result = creatorSign.factoryMethod(SIGNCreator.EMPTY);
-    for (List<NumberInterface> signCombi : Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
-      result = result.union(evaluateExpression(signCombi.get(0), pIastBinaryExpression, signCombi.get(1)));
+    public SignCExpressionVisitor(CFAEdge pEdgeOfExpr, UnifyAnalysisState pState, SignTransferRelation pTransferRel) {
+        edgeOfExpr = pEdgeOfExpr;
+        state = pState;
+        transferRel = pTransferRel;
     }
-    return result;
-  }
 
-  private NumberInterface evaluateExpression(NumberInterface pLeft, CBinaryExpression pExp, NumberInterface pRight) throws UnsupportedCCodeException {
-    NumberInterface result = creatorSign.factoryMethod(SIGNCreator.EMPTY);
-    switch (pExp.getOperator()) {
-    case PLUS:
-      result = evaluatePlusOperator(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
-      break;
-    case MINUS:
-      result = evaluateMinusOperator(pLeft, pRight, pExp.getOperand2());
-      break;
-    case MULTIPLY:
-      result = pLeft.minus(pRight);
-      break;
-    case DIVIDE:
-        if (pRight.getNumber().equals(SIGNCreator.ZERO)){// == SIGN.ZERO) {
-            transferRel.logger.log(Level.WARNING, "Possibly dividing by zero", edgeOfExpr);
-            return creatorSign.factoryMethod(SIGNCreator.ALL);//SIGN.ALL;
-          }
-      result = pLeft.divide(pRight);
-      break;
-    case MODULO:
-      result = pLeft.modulo(pRight);
-      break;
-    case BINARY_AND:
-      result = pLeft.binaryAnd(pRight);
-      break;
-    case LESS_EQUAL:
-      result = pLeft.evaluateLessEqualOperator(pRight);
-      break;
-    case GREATER_EQUAL:
-      result = pRight.evaluateLessEqualOperator(pLeft);
-      break;
-    case LESS_THAN:
-      result = pLeft.evaluateLessOperator(pRight);
-      break;
-    case GREATER_THAN:
-      result = pRight.evaluateLessOperator(pLeft);
-      break;
-    case EQUALS:
-      result = pLeft.evaluateEqualOperator(pRight);
-      break;
-    default:
-      throw new UnsupportedCCodeException(
-          "Not supported", edgeOfExpr);
+    @Override
+    public NumberInterface visit(CFunctionCallExpression pIastFunctionCallExpression) throws UnrecognizedCodeException {
+        // TODO possibly treat typedef types differently
+        // e.g. x = non_det() where non_det is extern, unknown function allways assume
+        // returns any value
+        if (pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType
+                || pIastFunctionCallExpression.getExpressionType() instanceof CTypedefType
+                || pIastFunctionCallExpression.getExpressionType() instanceof CPointerType) {
+            return creatorSign.factoryMethod(SIGNCreator.ALL);
+        }
+        throw new UnrecognizedCodeException("unsupported code found", edgeOfExpr);
     }
-    return result;
-  }
 
+    @Override
+    protected NumberInterface visitDefault(CExpression pExp) throws UnrecognizedCodeException {
+        throw new UnrecognizedCodeException("unsupported code found", edgeOfExpr);
+    }
 
-  @Override
-  public NumberInterface visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws UnrecognizedCodeException {
-    BigDecimal value = pIastFloatLiteralExpression.getValue();
-    int cResult = value.compareTo(BigDecimal.ZERO);
-    if (cResult == 1) {
-      return creatorSign.factoryMethod(SIGNCreator.PLUS);//SIGN.PLUS;
-    } else if (cResult == -1) {
-      return creatorSign.factoryMethod(SIGNCreator.MINUS);//SIGN.MINUS;
+    @Override
+    public NumberInterface visit(CCastExpression e) throws UnrecognizedCodeException {
+        return e.getOperand().accept(this); // TODO correct?
     }
-    return creatorSign.factoryMethod(SIGNCreator.ZERO);//SIGN.ZERO;
-  }
 
-  @Override
-  public NumberInterface visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) throws UnrecognizedCodeException {
-    BigInteger value = pIastIntegerLiteralExpression.getValue();
-    int cResult = value.compareTo(BigInteger.ZERO);
-    if (cResult == 1) {
-      return creatorSign.factoryMethod(SIGNCreator.PLUS);//SIGN.PLUS;
-    } else if (cResult == -1) {
-      return creatorSign.factoryMethod(SIGNCreator.MINUS);//SIGN.MINUS;
+    @Override
+    public NumberInterface visit(CFieldReference e) throws UnrecognizedCodeException {
+        return state.getElement(MemoryLocation.valueOf(transferRel.getScopedVariableName(e)));
     }
-    return creatorSign.factoryMethod(SIGNCreator.ZERO);//SIGN.ZERO;
-  }
 
-  @Override
-  public NumberInterface visit(CStringLiteralExpression e) throws UnrecognizedCodeException {
-    return creatorSign.factoryMethod(SIGNCreator.ALL);//SIGN.ALL;
-  }
+    @Override
+    public NumberInterface visit(CArraySubscriptExpression e) throws UnrecognizedCodeException {
+        // TODO possibly may become preciser
+        return creatorSign.factoryMethod(SIGNCreator.ALL);
+    }
 
-  @Override
-  public NumberInterface visit(CCharLiteralExpression e) throws UnrecognizedCodeException {
-    return creatorSign.factoryMethod(SIGNCreator.ALL);//SIGN.ALL;
-  }
+    @Override
+    public NumberInterface visit(CPointerExpression e) throws UnrecognizedCodeException {
+        // TODO possibly may become preciser
+        return creatorSign.factoryMethod(SIGNCreator.ALL);
+    }
 
-  @Override
-  public NumberInterface visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
-    switch (pIastUnaryExpression.getOperator()) {
-    case MINUS:
-      NumberInterface result = creatorSign.factoryMethod(SIGNCreator.EMPTY);//SIGN.EMPTY;
-      NumberInterface operandSign = pIastUnaryExpression.getOperand().accept(this);
-      for (NumberInterface atomSign : operandSign.split()) {
-        result = result.union(evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
-      }
-      return result;
-    default:
-      throw new UnsupportedCCodeException(
-          "Not supported", edgeOfExpr,
-          pIastUnaryExpression);
+    @Override
+    public NumberInterface visit(CIdExpression pIastIdExpression) throws UnrecognizedCodeException {
+        return state.getElement(MemoryLocation.valueOf(transferRel.getScopedVariableName(pIastIdExpression)));
     }
-  }
 
-  private static NumberInterface evaluateUnaryExpression(UnaryOperator operator, NumberInterface operand) {
-    if (operand.getNumber().equals(SIGNCreator.ZERO)){// == SIGN.ZERO) {
-      return creatorSign.factoryMethod(SIGNCreator.ZERO);//SIGN.ZERO;
+    @Override
+    public NumberInterface visit(CBinaryExpression pIastBinaryExpression) throws UnrecognizedCodeException {
+        NumberInterface left = pIastBinaryExpression.getOperand1().accept(this);
+        NumberInterface right = pIastBinaryExpression.getOperand2().accept(this);
+        Set<NumberInterface> leftAtomSigns = left.split();
+        Set<NumberInterface> rightAtomSigns = right.split();
+        NumberInterface result = creatorSign.factoryMethod(SIGNCreator.EMPTY);
+        for (List<NumberInterface> signCombi : Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
+            result = result.union(evaluateExpression(signCombi.get(0), pIastBinaryExpression, signCombi.get(1)));
+        }
+        return result;
     }
-    if (operator == UnaryOperator.MINUS && operand.getNumber().equals(1)){// == SIGN.PLUS) {
-      return creatorSign.factoryMethod(SIGNCreator.MINUS);//SIGN.MINUS;
-    }
-    return creatorSign.factoryMethod(SIGNCreator.PLUS);//SIGN.MINUS;???
-  }
 
-  private NumberInterface evaluatePlusOperator(NumberInterface pLeft, CExpression pLeftExp, NumberInterface pRight, CExpression pRightExp) {
-    // Special case: - + 1 => -0, 1 + - => -0
-    if ((pLeft.getNumber().equals(SIGNCreator.MINUS)// == SIGN.MINUS
-            && (pRightExp instanceof CIntegerLiteralExpression)
-            && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE))
-        || ((pLeftExp instanceof CIntegerLiteralExpression)
-            && ((CIntegerLiteralExpression) pLeftExp).getValue().equals(BigInteger.ONE)
-            && pRight.getNumber().equals(SIGNCreator.MINUS))){// == SIGN.MINUS)) {
-      return creatorSign.factoryMethod(SIGNCreator.MINUS0);//SIGN.MINUS0;
+    private NumberInterface evaluateExpression(NumberInterface pLeft, CBinaryExpression pExp, NumberInterface pRight)
+            throws UnsupportedCCodeException {
+        switch (pExp.getOperator()) {
+        case PLUS:
+            return evaluatePlusOperator(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
+        case MINUS:
+            return evaluateMinusOperator(pLeft, pRight, pExp.getOperand2());
+        case MULTIPLY:
+            return pLeft.minus(pRight);
+        case DIVIDE:
+            if (pRight.getNumber().equals(SIGNCreator.ZERO)) {// == SIGN.ZERO) {
+                transferRel.logger.log(Level.WARNING, "Possibly dividing by zero", edgeOfExpr);
+                return creatorSign.factoryMethod(SIGNCreator.ALL);// SIGN.ALL;
+            }
+            return pLeft.divide(pRight);
+        case MODULO:
+            return pLeft.modulo(pRight);
+        case BINARY_AND:
+            return pLeft.binaryAnd(pRight);
+        case LESS_EQUAL:
+            return pLeft.evaluateLessEqualOperator(pRight);
+        case GREATER_EQUAL:
+            return pRight.evaluateLessEqualOperator(pLeft);
+        case LESS_THAN:
+            return pLeft.evaluateLessOperator(pRight);
+        case GREATER_THAN:
+            return pRight.evaluateLessOperator(pLeft);
+        case EQUALS:
+            return pLeft.evaluateEqualOperator(pRight);
+        default:
+            throw new UnsupportedCCodeException("Not supported", edgeOfExpr);
+        }
     }
-    // Special case: +0 + 1 => +, 1 + +0 => +
-    if ((pLeft.getNumber().equals(5)// == SIGN.PLUS0
-            && (pRightExp instanceof CIntegerLiteralExpression)
-            && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE))
-        || ((pLeftExp instanceof CIntegerLiteralExpression)
-            && ((CIntegerLiteralExpression) pLeftExp).getValue().equals(BigInteger.ONE)
-            && pRight.getNumber().equals(SIGNCreator.PLUS0))){// == SIGN.PLUS0)) {
-      return creatorSign.factoryMethod(SIGNCreator.PLUS);//SIGN.PLUS;
-    }
-    NumberInterface leftToRightResult = pLeft.plus(pRight);
-    NumberInterface rightToLeftResult = pRight.plus(pLeft);
-    return leftToRightResult.union(rightToLeftResult);
-  }
 
+    @Override
+    public NumberInterface visit(CFloatLiteralExpression pIastFloatLiteralExpression) throws UnrecognizedCodeException {
+        BigDecimal value = pIastFloatLiteralExpression.getValue();
+        int cResult = value.compareTo(BigDecimal.ZERO);
+        if (cResult == 1) {
+            return creatorSign.factoryMethod(SIGNCreator.PLUS);// SIGN.PLUS;
+        } else if (cResult == -1) {
+            return creatorSign.factoryMethod(SIGNCreator.MINUS);// SIGN.MINUS;
+        }
+        return creatorSign.factoryMethod(SIGNCreator.ZERO);// SIGN.ZERO;
+    }
 
-  private NumberInterface evaluateMinusOperator(NumberInterface pLeft, NumberInterface pRight, CExpression pRightExp) {
-    // Special case: + - 1 => +0
-    if (pLeft.getNumber().equals(1)// == SIGN.PLUS
-            && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
-      return creatorSign.factoryMethod(SIGNCreator.PLUS0);//SIGN.PLUS0;
+    @Override
+    public NumberInterface visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
+            throws UnrecognizedCodeException {
+        BigInteger value = pIastIntegerLiteralExpression.getValue();
+        int cResult = value.compareTo(BigInteger.ZERO);
+        if (cResult == 1) {
+            return creatorSign.factoryMethod(SIGNCreator.PLUS);// SIGN.PLUS;
+        } else if (cResult == -1) {
+            return creatorSign.factoryMethod(SIGNCreator.MINUS);// SIGN.MINUS;
+        }
+        return creatorSign.factoryMethod(SIGNCreator.ZERO);// SIGN.ZERO;
     }
-    // Special case: -0 - 1 => -
-    if (pLeft.getNumber().equals(6)// == SIGN.MINUS0
-            && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
-      return creatorSign.factoryMethod(SIGNCreator.MINUS);//SIGN.MINUS;
+
+    @Override
+    public NumberInterface visit(CStringLiteralExpression e) throws UnrecognizedCodeException {
+        return creatorSign.factoryMethod(SIGNCreator.ALL);// SIGN.ALL;
     }
-    if (pRight.getNumber().equals(4)){// == SIGN.ZERO) {
-      return pLeft;
+
+    @Override
+    public NumberInterface visit(CCharLiteralExpression e) throws UnrecognizedCodeException {
+        return creatorSign.factoryMethod(SIGNCreator.ALL);// SIGN.ALL;
     }
-    if(pLeft.getNumber().equals(4)){// == SIGN.ZERO) {
-      switch(pRight.getNumber().intValue()) {
-      case 1://PLUS
-          return creatorSign.factoryMethod(SIGNCreator.MINUS);//SIGN.MINUS;
-        case 2://MINUS
-          return creatorSign.factoryMethod(SIGNCreator.PLUS);//SIGN.PLUS;
-        case 5://PLUS0
-          return creatorSign.factoryMethod(SIGNCreator.MINUS0);//SIGN.MINUS0;
-        case 6://MINUS0
-          return creatorSign.factoryMethod(SIGNCreator.PLUS0);//SIGN.PLUS0;
-      default:
-        return pRight;
-      }
+
+    @Override
+    public NumberInterface visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
+        switch (pIastUnaryExpression.getOperator()) {
+        case MINUS:
+            NumberInterface result = creatorSign.factoryMethod(SIGNCreator.EMPTY);// SIGN.EMPTY;
+            NumberInterface operandSign = pIastUnaryExpression.getOperand().accept(this);
+            for (NumberInterface atomSign : operandSign.split()) {
+                result = result.union(evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
+            }
+            return result;
+        default:
+            throw new UnsupportedCCodeException("Not supported", edgeOfExpr, pIastUnaryExpression);
+        }
     }
-//    if (pLeft == SIGN.PLUS && pRight == SIGN.MINUS) {
-//      return SIGN.PLUS;
-//    }
-    if(pLeft.getNumber().equals(1) && pRight.getNumber().equals(SIGNCreator.MINUS)){
-        return creatorSign.factoryMethod(SIGNCreator.PLUS);
+
+    private static NumberInterface evaluateUnaryExpression(UnaryOperator operator, NumberInterface operand) {
+        if (operand.getNumber().equals(SIGNCreator.ZERO)) {// == SIGN.ZERO) {
+            return creatorSign.factoryMethod(SIGNCreator.ZERO);// SIGN.ZERO;
+        }
+        if (operator == UnaryOperator.MINUS && operand.getNumber().equals(1)) {// == SIGN.PLUS) {
+            return creatorSign.factoryMethod(SIGNCreator.MINUS);// SIGN.MINUS;
+        }
+        return creatorSign.factoryMethod(SIGNCreator.PLUS);// SIGN.MINUS;???
     }
-//    if (pLeft == SIGN.MINUS && pRight == SIGN.PLUS) {
-//      return SIGN.MINUS;
-//    }
-    if(pLeft.getNumber().equals(SIGNCreator.MINUS) && pRight.getNumber().equals(1)){
-        return creatorSign.factoryMethod(SIGNCreator.MINUS);
+
+    private NumberInterface evaluatePlusOperator(NumberInterface pLeft, CExpression pLeftExp, NumberInterface pRight,
+            CExpression pRightExp) {
+        // Special case: - + 1 => -0, 1 + - => -0
+        if ((pLeft.getNumber().equals(SIGNCreator.MINUS)// == SIGN.MINUS
+                && (pRightExp instanceof CIntegerLiteralExpression)
+                && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE))
+                || ((pLeftExp instanceof CIntegerLiteralExpression)
+                        && ((CIntegerLiteralExpression) pLeftExp).getValue().equals(BigInteger.ONE)
+                        && pRight.getNumber().equals(SIGNCreator.MINUS))) {// == SIGN.MINUS)) {
+            return creatorSign.factoryMethod(SIGNCreator.MINUS0);// SIGN.MINUS0;
+        }
+        // Special case: +0 + 1 => +, 1 + +0 => +
+        if ((pLeft.getNumber().equals(5)// == SIGN.PLUS0
+                && (pRightExp instanceof CIntegerLiteralExpression)
+                && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE))
+                || ((pLeftExp instanceof CIntegerLiteralExpression)
+                        && ((CIntegerLiteralExpression) pLeftExp).getValue().equals(BigInteger.ONE)
+                        && pRight.getNumber().equals(SIGNCreator.PLUS0))) {// == SIGN.PLUS0)) {
+            return creatorSign.factoryMethod(SIGNCreator.PLUS);// SIGN.PLUS;
+        }
+        NumberInterface leftToRightResult = pLeft.plus(pRight);
+        NumberInterface rightToLeftResult = pRight.plus(pLeft);
+        return leftToRightResult.union(rightToLeftResult);
     }
-    return creatorSign.factoryMethod(SIGNCreator.ALL);//SIGN.ALL;
-  }
+
+    private NumberInterface evaluateMinusOperator(NumberInterface pLeft, NumberInterface pRight,
+            CExpression pRightExp) {
+        // Special case: + - 1 => +0
+        if (pLeft.getNumber().equals(1)// == SIGN.PLUS
+                && (pRightExp instanceof CIntegerLiteralExpression)
+                && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE)) {
+            return creatorSign.factoryMethod(SIGNCreator.PLUS0);// SIGN.PLUS0;
+        }
+        // Special case: -0 - 1 => -
+        if (pLeft.getNumber().equals(6)// == SIGN.MINUS0
+                && (pRightExp instanceof CIntegerLiteralExpression)
+                && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE)) {
+            return creatorSign.factoryMethod(SIGNCreator.MINUS);// SIGN.MINUS;
+        }
+        if (pRight.getNumber().equals(4)) {// == SIGN.ZERO) {
+            return pLeft;
+        }
+        if (pLeft.getNumber().equals(4)) {// == SIGN.ZERO) {
+            switch (pRight.getNumber().intValue()) {
+            case 1:// PLUS
+                return creatorSign.factoryMethod(SIGNCreator.MINUS);// SIGN.MINUS;
+            case 2:// MINUS
+                return creatorSign.factoryMethod(SIGNCreator.PLUS);// SIGN.PLUS;
+            case 5:// PLUS0
+                return creatorSign.factoryMethod(SIGNCreator.MINUS0);// SIGN.MINUS0;
+            case 6:// MINUS0
+                return creatorSign.factoryMethod(SIGNCreator.PLUS0);// SIGN.PLUS0;
+            default:
+                return pRight;
+            }
+        }
+        // if (pLeft == SIGN.PLUS && pRight == SIGN.MINUS) {
+        // return SIGN.PLUS;
+        // }
+        if (pLeft.getNumber().equals(1) && pRight.getNumber().equals(SIGNCreator.MINUS)) {
+            return creatorSign.factoryMethod(SIGNCreator.PLUS);
+        }
+        // if (pLeft == SIGN.MINUS && pRight == SIGN.PLUS) {
+        // return SIGN.MINUS;
+        // }
+        if (pLeft.getNumber().equals(SIGNCreator.MINUS) && pRight.getNumber().equals(1)) {
+            return creatorSign.factoryMethod(SIGNCreator.MINUS);
+        }
+        return creatorSign.factoryMethod(SIGNCreator.ALL);// SIGN.ALL;
+    }
 }
