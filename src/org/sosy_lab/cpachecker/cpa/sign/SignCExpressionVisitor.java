@@ -82,7 +82,7 @@ public class SignCExpressionVisitor
     // e.g. x = non_det() where non_det is extern, unknown function allways assume returns any value
     if (pIastFunctionCallExpression.getExpressionType() instanceof CSimpleType
         || pIastFunctionCallExpression.getExpressionType() instanceof CTypedefType
-        || pIastFunctionCallExpression.getExpressionType() instanceof CPointerType) { return creatorSign.factoryMethod(7); }
+        || pIastFunctionCallExpression.getExpressionType() instanceof CPointerType) { return creatorSign.factoryMethod(SIGNCreator.ALL); }
     throw new UnrecognizedCodeException("unsupported code found", edgeOfExpr);
   }
 
@@ -104,13 +104,13 @@ public class SignCExpressionVisitor
   @Override
   public NumberInterface visit(CArraySubscriptExpression e) throws UnrecognizedCodeException {
     // TODO possibly may become preciser
-    return creatorSign.factoryMethod(7);
+    return creatorSign.factoryMethod(SIGNCreator.ALL);
   }
 
   @Override
   public NumberInterface visit(CPointerExpression e) throws UnrecognizedCodeException {
     // TODO possibly may become preciser
-    return creatorSign.factoryMethod(7);
+    return creatorSign.factoryMethod(SIGNCreator.ALL);
   }
 
   @Override
@@ -124,7 +124,7 @@ public class SignCExpressionVisitor
       NumberInterface right = pIastBinaryExpression.getOperand2().accept(this);
     Set<NumberInterface> leftAtomSigns = left.split();
     Set<NumberInterface> rightAtomSigns = right.split();
-    NumberInterface result = creatorSign.factoryMethod(0);
+    NumberInterface result = creatorSign.factoryMethod(SIGNCreator.EMPTY);
     for (List<NumberInterface> signCombi : Sets.cartesianProduct(ImmutableList.of(leftAtomSigns, rightAtomSigns))) {
       result = result.union(evaluateExpression(signCombi.get(0), pIastBinaryExpression, signCombi.get(1)));
     }
@@ -132,7 +132,7 @@ public class SignCExpressionVisitor
   }
 
   private NumberInterface evaluateExpression(NumberInterface pLeft, CBinaryExpression pExp, NumberInterface pRight) throws UnsupportedCCodeException {
-    NumberInterface result = creatorSign.factoryMethod(0);
+    NumberInterface result = creatorSign.factoryMethod(SIGNCreator.EMPTY);
     switch (pExp.getOperator()) {
     case PLUS:
       result = evaluatePlusOperator(pLeft, pExp.getOperand1(), pRight, pExp.getOperand2());
@@ -144,9 +144,9 @@ public class SignCExpressionVisitor
       result = pLeft.minus(pRight);
       break;
     case DIVIDE:
-        if (pRight.getNumber().equals(4)){// == SIGN.ZERO) {
+        if (pRight.getNumber().equals(SIGNCreator.ZERO)){// == SIGN.ZERO) {
             transferRel.logger.log(Level.WARNING, "Possibly dividing by zero", edgeOfExpr);
-            return creatorSign.factoryMethod(7);//SIGN.ALL;
+            return creatorSign.factoryMethod(SIGNCreator.ALL);//SIGN.ALL;
           }
       result = pLeft.divide(pRight);
       break;
@@ -184,11 +184,11 @@ public class SignCExpressionVisitor
     BigDecimal value = pIastFloatLiteralExpression.getValue();
     int cResult = value.compareTo(BigDecimal.ZERO);
     if (cResult == 1) {
-      return creatorSign.factoryMethod(1);//SIGN.PLUS;
+      return creatorSign.factoryMethod(SIGNCreator.PLUS);//SIGN.PLUS;
     } else if (cResult == -1) {
-      return creatorSign.factoryMethod(2);//SIGN.MINUS;
+      return creatorSign.factoryMethod(SIGNCreator.MINUS);//SIGN.MINUS;
     }
-    return creatorSign.factoryMethod(4);//SIGN.ZERO;
+    return creatorSign.factoryMethod(SIGNCreator.ZERO);//SIGN.ZERO;
   }
 
   @Override
@@ -196,28 +196,28 @@ public class SignCExpressionVisitor
     BigInteger value = pIastIntegerLiteralExpression.getValue();
     int cResult = value.compareTo(BigInteger.ZERO);
     if (cResult == 1) {
-      return creatorSign.factoryMethod(1);//SIGN.PLUS;
+      return creatorSign.factoryMethod(SIGNCreator.PLUS);//SIGN.PLUS;
     } else if (cResult == -1) {
-      return creatorSign.factoryMethod(2);//SIGN.MINUS;
+      return creatorSign.factoryMethod(SIGNCreator.MINUS);//SIGN.MINUS;
     }
-    return creatorSign.factoryMethod(4);//SIGN.ZERO;
+    return creatorSign.factoryMethod(SIGNCreator.ZERO);//SIGN.ZERO;
   }
 
   @Override
   public NumberInterface visit(CStringLiteralExpression e) throws UnrecognizedCodeException {
-    return creatorSign.factoryMethod(7);//SIGN.ALL;
+    return creatorSign.factoryMethod(SIGNCreator.ALL);//SIGN.ALL;
   }
 
   @Override
   public NumberInterface visit(CCharLiteralExpression e) throws UnrecognizedCodeException {
-    return creatorSign.factoryMethod(7);//SIGN.ALL;
+    return creatorSign.factoryMethod(SIGNCreator.ALL);//SIGN.ALL;
   }
 
   @Override
   public NumberInterface visit(CUnaryExpression pIastUnaryExpression) throws UnrecognizedCodeException {
     switch (pIastUnaryExpression.getOperator()) {
     case MINUS:
-      NumberInterface result = creatorSign.factoryMethod(0);//SIGN.EMPTY;
+      NumberInterface result = creatorSign.factoryMethod(SIGNCreator.EMPTY);//SIGN.EMPTY;
       NumberInterface operandSign = pIastUnaryExpression.getOperand().accept(this);
       for (NumberInterface atomSign : operandSign.split()) {
         result = result.union(evaluateUnaryExpression(pIastUnaryExpression.getOperator(), atomSign));
@@ -231,24 +231,24 @@ public class SignCExpressionVisitor
   }
 
   private static NumberInterface evaluateUnaryExpression(UnaryOperator operator, NumberInterface operand) {
-    if (operand.getNumber().equals(4)){// == SIGN.ZERO) {
-      return creatorSign.factoryMethod(4);//SIGN.ZERO;
+    if (operand.getNumber().equals(SIGNCreator.ZERO)){// == SIGN.ZERO) {
+      return creatorSign.factoryMethod(SIGNCreator.ZERO);//SIGN.ZERO;
     }
     if (operator == UnaryOperator.MINUS && operand.getNumber().equals(1)){// == SIGN.PLUS) {
-      return creatorSign.factoryMethod(2);//SIGN.MINUS;
+      return creatorSign.factoryMethod(SIGNCreator.MINUS);//SIGN.MINUS;
     }
-    return creatorSign.factoryMethod(1);//SIGN.MINUS;
+    return creatorSign.factoryMethod(SIGNCreator.PLUS);//SIGN.MINUS;???
   }
 
   private NumberInterface evaluatePlusOperator(NumberInterface pLeft, CExpression pLeftExp, NumberInterface pRight, CExpression pRightExp) {
     // Special case: - + 1 => -0, 1 + - => -0
-    if ((pLeft.getNumber().equals(2)// == SIGN.MINUS
+    if ((pLeft.getNumber().equals(SIGNCreator.MINUS)// == SIGN.MINUS
             && (pRightExp instanceof CIntegerLiteralExpression)
             && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE))
         || ((pLeftExp instanceof CIntegerLiteralExpression)
             && ((CIntegerLiteralExpression) pLeftExp).getValue().equals(BigInteger.ONE)
-            && pRight.getNumber().equals(2))){// == SIGN.MINUS)) {
-      return creatorSign.factoryMethod(6);//SIGN.MINUS0;
+            && pRight.getNumber().equals(SIGNCreator.MINUS))){// == SIGN.MINUS)) {
+      return creatorSign.factoryMethod(SIGNCreator.MINUS0);//SIGN.MINUS0;
     }
     // Special case: +0 + 1 => +, 1 + +0 => +
     if ((pLeft.getNumber().equals(5)// == SIGN.PLUS0
@@ -256,40 +256,25 @@ public class SignCExpressionVisitor
             && ((CIntegerLiteralExpression) pRightExp).getValue().equals(BigInteger.ONE))
         || ((pLeftExp instanceof CIntegerLiteralExpression)
             && ((CIntegerLiteralExpression) pLeftExp).getValue().equals(BigInteger.ONE)
-            && pRight.getNumber().equals(5))){// == SIGN.PLUS0)) {
-      return creatorSign.factoryMethod(1);//SIGN.PLUS;
+            && pRight.getNumber().equals(SIGNCreator.PLUS0))){// == SIGN.PLUS0)) {
+      return creatorSign.factoryMethod(SIGNCreator.PLUS);//SIGN.PLUS;
     }
     NumberInterface leftToRightResult = pLeft.plus(pRight);
     NumberInterface rightToLeftResult = pRight.plus(pLeft);
     return leftToRightResult.union(rightToLeftResult);
   }
 
-//  private SIGN evaluateNonCommutativePlusOperator(SIGN pLeft, SIGN pRight) {
-//    if (pRight == SIGN.ZERO) {
-//      return pLeft;
-//    }
-//    if (pLeft == SIGN.PLUS && pRight == SIGN.MINUS) {
-//      return SIGN.ALL;
-//    }
-//    if (pLeft == SIGN.MINUS && pRight == SIGN.MINUS) {
-//      return SIGN.MINUS;
-//    }
-//    if (pLeft == SIGN.PLUS && pRight == SIGN.PLUS) {
-//      return SIGN.PLUS;
-//    }
-//    return SIGN.EMPTY;
-//  }
 
   private NumberInterface evaluateMinusOperator(NumberInterface pLeft, NumberInterface pRight, CExpression pRightExp) {
     // Special case: + - 1 => +0
     if (pLeft.getNumber().equals(1)// == SIGN.PLUS
             && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
-      return creatorSign.factoryMethod(5);//SIGN.PLUS0;
+      return creatorSign.factoryMethod(SIGNCreator.PLUS0);//SIGN.PLUS0;
     }
     // Special case: -0 - 1 => -
     if (pLeft.getNumber().equals(6)// == SIGN.MINUS0
             && (pRightExp instanceof CIntegerLiteralExpression) && ((CIntegerLiteralExpression)pRightExp).getValue().equals(BigInteger.ONE)) {
-      return creatorSign.factoryMethod(2);//SIGN.MINUS;
+      return creatorSign.factoryMethod(SIGNCreator.MINUS);//SIGN.MINUS;
     }
     if (pRight.getNumber().equals(4)){// == SIGN.ZERO) {
       return pLeft;
@@ -297,13 +282,13 @@ public class SignCExpressionVisitor
     if(pLeft.getNumber().equals(4)){// == SIGN.ZERO) {
       switch(pRight.getNumber().intValue()) {
       case 1://PLUS
-          return creatorSign.factoryMethod(2);//SIGN.MINUS;
+          return creatorSign.factoryMethod(SIGNCreator.MINUS);//SIGN.MINUS;
         case 2://MINUS
-          return creatorSign.factoryMethod(1);//SIGN.PLUS;
+          return creatorSign.factoryMethod(SIGNCreator.PLUS);//SIGN.PLUS;
         case 5://PLUS0
-          return creatorSign.factoryMethod(6);//SIGN.MINUS0;
+          return creatorSign.factoryMethod(SIGNCreator.MINUS0);//SIGN.MINUS0;
         case 6://MINUS0
-          return creatorSign.factoryMethod(5);//SIGN.PLUS0;
+          return creatorSign.factoryMethod(SIGNCreator.PLUS0);//SIGN.PLUS0;
       default:
         return pRight;
       }
@@ -311,157 +296,15 @@ public class SignCExpressionVisitor
 //    if (pLeft == SIGN.PLUS && pRight == SIGN.MINUS) {
 //      return SIGN.PLUS;
 //    }
-    if(pLeft.getNumber().equals(1) && pRight.getNumber().equals(2)){
-        return creatorSign.factoryMethod(1);
+    if(pLeft.getNumber().equals(1) && pRight.getNumber().equals(SIGNCreator.MINUS)){
+        return creatorSign.factoryMethod(SIGNCreator.PLUS);
     }
 //    if (pLeft == SIGN.MINUS && pRight == SIGN.PLUS) {
 //      return SIGN.MINUS;
 //    }
-    if(pLeft.getNumber().equals(2) && pRight.getNumber().equals(1)){
-        return creatorSign.factoryMethod(2);
+    if(pLeft.getNumber().equals(SIGNCreator.MINUS) && pRight.getNumber().equals(1)){
+        return creatorSign.factoryMethod(SIGNCreator.MINUS);
     }
-    return creatorSign.factoryMethod(7);//SIGN.ALL;
+    return creatorSign.factoryMethod(SIGNCreator.ALL);//SIGN.ALL;
   }
-
-//  private SIGN evaluateMulOperator(SIGN pLeft, SIGN pRight) {
-//    SIGN leftToRightResult = evaluateNonCommutativeMulOperator(pLeft, pRight);
-//    SIGN rightToLeftResult = evaluateNonCommutativeMulOperator(pRight, pLeft);
-//    return leftToRightResult.combineWith(rightToLeftResult);
-//  }
-//
-//  private SIGN evaluateNonCommutativeMulOperator(SIGN left, SIGN right) {
-//    if (right == SIGN.ZERO) {
-//      return SIGN.ZERO;
-//    }
-//    if (left == SIGN.PLUS && right == SIGN.MINUS) {
-//      return SIGN.MINUS;
-//    }
-//    if ((left == SIGN.PLUS && right == SIGN.PLUS) || (left == SIGN.MINUS && right == SIGN.MINUS)) {
-//      return SIGN.PLUS;
-//    }
-//    return SIGN.EMPTY;
-//  }
-//
-//  private SIGN evaluateDivideOperator(SIGN left, SIGN right) {
-//    if (right == SIGN.ZERO) {
-//      transferRel.logger.log(Level.WARNING, "Possibly dividing by zero", edgeOfExpr);
-//      return SIGN.ALL;
-//    }
-//    return evaluateMulOperator(left, right);
-//  }
-//
-//  private SIGN evaluateModuloOperator(SIGN pLeft, SIGN pRight) {
-//    if (pLeft == SIGN.ZERO) {
-//      return SIGN.ZERO;
-//    }
-//    if (pLeft == SIGN.PLUS && (pRight == SIGN.PLUS || pRight == SIGN.MINUS)) {
-//      return SIGN.PLUS0;
-//    }
-//    if (pLeft == SIGN.MINUS && (pRight == SIGN.MINUS || pRight == SIGN.PLUS)) {
-//      return SIGN.MINUS0;
-//    }
-//    return SIGN.ALL;
-//  }
-//
-//
-//  // assumes that indicator bit for negative numbers is 1
-//  private SIGN evaluateAndOperator(SIGN left, SIGN right) {
-//    if (left == SIGN.ZERO || right == SIGN.ZERO) {
-//      return SIGN.ZERO;
-//    }
-//    if (left == SIGN.PLUS || right == SIGN.PLUS) {
-//      return SIGN.PLUS0;
-//    }
-//    if (left == SIGN.MINUS && right == SIGN.MINUS) {
-//      return SIGN.MINUS0;
-//    }
-//    return SIGN.EMPTY;
-//  }
-//
-//  private SIGN evaluateLessOperator(SIGN pLeft, SIGN pRight) {
-//    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) { return SIGN.EMPTY; }
-//    switch (pLeft) {
-//      case PLUS:
-//        if (SIGN.MINUS0.covers(pRight)) {
-//          return SIGN.ZERO;
-//        }
-//        break;
-//      case MINUS:
-//        if (SIGN.PLUS0.covers(pRight)) {
-//          return SIGN.ZERO;
-//        }
-//        break;
-//      case ZERO:
-//        if (SIGN.MINUS0.covers(pRight)) {
-//          return SIGN.ZERO;
-//        }
-//        if(pRight == SIGN.ZERO) {
-//          return SIGN.PLUSMINUS;
-//        }
-//        break;
-//      case PLUS0:
-//        if(pRight == SIGN.MINUS) {
-//          return SIGN.ZERO;
-//        }
-//        if(pRight == SIGN.ZERO) {
-//          return SIGN.PLUSMINUS;
-//        }
-//        break;
-//      case MINUS0:
-//        if(pRight == SIGN.PLUS) {
-//          return SIGN.PLUSMINUS;
-//        }
-//        break;
-//      default:
-//        break;
-//    }
-//    return SIGN.ALL;
-//  }
-//
-//  private SIGN evaluateLessEqualOperator(SIGN pLeft, SIGN pRight) {
-//    if (pLeft == SIGN.EMPTY || pRight == SIGN.EMPTY) { return SIGN.EMPTY; }
-//    switch (pLeft) {
-//      case PLUS:
-//        if (SIGN.MINUS0.covers(pRight)) {
-//          return SIGN.ZERO;
-//        }
-//        break;
-//      case MINUS:
-//        if (SIGN.PLUS0.covers(pRight)) {
-//          return SIGN.ZERO;
-//        }
-//        break;
-//      case ZERO:
-//        if (SIGN.PLUS0.covers(pRight)) {
-//          return SIGN.PLUSMINUS;
-//        }
-//        if(pRight == SIGN.MINUS) {
-//          return SIGN.ZERO;
-//        }
-//        break;
-//      case PLUS0:
-//        if(pRight == SIGN.MINUS) {
-//          return SIGN.ZERO;
-//        }
-//        break;
-//      case MINUS0:
-//        if(pRight == SIGN.PLUS) {
-//          return SIGN.PLUSMINUS;
-//        }
-//        break;
-//      default:
-//        break;
-//    }
-//    return SIGN.ALL;
-//  }
-//
-//  private SIGN evaluateEqualOperator(SIGN pLeft, SIGN pRight) {
-//    if(pLeft==SIGN.EMPTY || pRight == SIGN.EMPTY) {
-//      return SIGN.EMPTY;
-//    }
-//    if(pLeft==SIGN.ZERO && pRight == SIGN.ZERO) {
-//      return SIGN.PLUSMINUS;
-//    }
-//    return SIGN.ALL;
-//  }
 }

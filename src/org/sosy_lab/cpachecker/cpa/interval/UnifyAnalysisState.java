@@ -300,11 +300,11 @@ public class UnifyAnalysisState
         NumberInterface value = unifyElements.get(variableName);
         switch (numericalType) {
         case SIGN:
-            return value == null ? new SIGNCreator().factoryMethod(7) : value;
+            return value == null ? new SIGNCreator().factoryMethod(SIGNCreator.ALL) : value;
         case INTERVAL:
             return value == null ? new IntegerIntervalCreator().factoryMethod(null) : value;
         default:
-            return checkNotNull(value);
+            return value; //checkNotNull(value);
         }
     }
 
@@ -804,7 +804,7 @@ public class UnifyAnalysisState
     public UnifyAnalysisState enterFunction(ImmutableMap<MemoryLocation, NumberInterface> pArguments) {
         PersistentMap<MemoryLocation, NumberInterface> newMap = unifyElements;
         for (MemoryLocation var : pArguments.keySet()) {
-            if (!pArguments.get(var).equals(new SIGNCreator().factoryMethod(7))) {
+            if (!pArguments.get(var).equals(new SIGNCreator().factoryMethod(SIGNCreator.ALL))) {
                 newMap = newMap.putAndCopy(var, pArguments.get(var));
             }
         }

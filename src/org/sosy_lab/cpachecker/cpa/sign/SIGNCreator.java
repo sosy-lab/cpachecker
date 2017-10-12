@@ -27,9 +27,16 @@ import org.sosy_lab.cpachecker.cpa.interval.Creator;
 import org.sosy_lab.cpachecker.cpa.interval.NumberInterface;
 
 public class SIGNCreator implements Creator{
+    public final static int PLUS = 1;
+    public final static int MINUS = 2;
+    public final static int PLUSMINUS = 3;
+    public final static int ZERO = 4;
+    public final static int PLUS0 = 5;
+    public final static int MINUS0 = 6;
+    public final static int ALL = 7;
+    public final static int EMPTY = 0;
 
     @Override
-    //I am not sure if it has good performance???
     public NumberInterface factoryMethod(Object pO) {
         Integer enumNumber = (Integer) pO;
         switch(enumNumber.intValue()){
