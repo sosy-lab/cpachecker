@@ -27,6 +27,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -83,7 +84,8 @@ class OverflowState implements AbstractStateWithAssumptions,
 
   @Override
   public String toString() {
-    return "OverflowState{" + ", assumeEdges=" + assumptions + ", hasOverflow=" + hasOverflow + '}';
+    return "OverflowState{" + ", assumeEdges=" + getReadableAssumptions() + ", hasOverflow="
+        + hasOverflow + '}';
   }
 
   @Override
@@ -107,7 +109,7 @@ class OverflowState implements AbstractStateWithAssumptions,
   @Override
   public String toDOTLabel() {
     if (hasOverflow) {
-      return Joiner.on('\n').join(assumptions);
+      return Joiner.on('\n').join(getReadableAssumptions());
     }
     return "";
   }
@@ -115,5 +117,9 @@ class OverflowState implements AbstractStateWithAssumptions,
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  private List<String> getReadableAssumptions() {
+    return assumptions.stream().map(x -> x.toASTString()).collect(Collectors.toList());
   }
 }
