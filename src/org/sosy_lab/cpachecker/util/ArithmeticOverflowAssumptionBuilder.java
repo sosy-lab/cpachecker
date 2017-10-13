@@ -217,21 +217,108 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       }
     }
 
-    if (lowerBounds.get(typ) != null) {
-      result.add(cBinaryExpressionBuilder.buildBinaryExpression(
-          exp,
-          lowerBounds.get(typ),
-          BinaryOperator.GREATER_EQUAL
-      ));
+    if (exp instanceof CBinaryExpression) {
+      CBinaryExpression binexp = (CBinaryExpression) exp;
+      BinaryOperator binop = binexp.getOperator();
+      CExpression op1 = binexp.getOperand1();
+      CExpression op2 = binexp.getOperand2();
+      if (lowerBounds.get(typ) != null) {
+        result.add(getLowerAssumption(op1, op2, binop, lowerBounds.get(typ)));
+      }
+      if (upperBounds.get(typ) != null) {
+        result.add(getUpperAssumption(op1, op2, binop, upperBounds.get(typ)));
+      }
+    } else if (exp instanceof CUnaryExpression) {
+      // TODO: implement
+    } else {
+      // TODO: check out and implement in case this happens
     }
 
-    if (upperBounds.get(typ) != null) {
-      result.add(cBinaryExpressionBuilder.buildBinaryExpression(
-          exp,
-          upperBounds.get(typ),
-          BinaryOperator.LESS_EQUAL
-      ));
-    }
+  }
+
+  /**
+   * see {@link ArithmeticOverflowAssumptionBuilder#getAdditiveAssumption(CExpression, CExpression, BinaryOperator, CLiteralExpression, boolean)}
+   */
+  private CExpression getUpperAssumption(CExpression operand1, CExpression operand2, BinaryOperator operator,
+      CLiteralExpression max) throws UnrecognizedCCodeException {
+    return getAdditiveAssumption(operand1, operand2, operator, max, true);
+  }
+
+  /**
+   * see {@link ArithmeticOverflowAssumptionBuilder#getAdditiveAssumption(CExpression, CExpression, BinaryOperator, CLiteralExpression, boolean)}
+   */
+  private CExpression getLowerAssumption(CExpression operand1, CExpression operand2, BinaryOperator operator,
+      CLiteralExpression min) throws UnrecognizedCCodeException {
+    return getAdditiveAssumption(operand1, operand2, operator, min, false);
+  }
+
+  /**
+   * This helper method generates assumptions for checking overflows
+   * in signed integer additions/subtractions. Since the assumptions
+   * are {@link CExpression}s as well, they are structured in such a
+   * way that they do not contain overflows themselves (this is of
+   * particular importance e.g. if bit vector theory is used for
+   * representation!)
+   *
+   * For addition (operator = BinaryOperator.PLUS) these assumptions
+   * are lower and upper limits:
+   * (operand1 <= 0) | (operand1 <= limit - operand2) // upper limit
+   * (operand1 >= 0) | (operand1 >= limit - operand2) // lower limit
+   *
+   * For subtraction (operator = BinaryOperator.MINUS) the assumptions
+   * are lower and upper limits:
+   * (operand1 >= 0) | (operand1 <= limit + operand2) // upper limit
+   * (operand1 <= 0) | (operand1 >= limit + operand2) // lower limit
+   *
+   * @param operand1 first operand in the C Expression for which the
+   *        assumption should be generated
+   * @param operand2 second operand in the C Expression for which the
+   *        assumption should be generated
+   * @param operator either BinaryOperator.MINUS or BinaryOperator.PLUS
+   * @param limit the {@link CLiteralExpression} representing the
+   *        overflow bound for the type of the expression
+   * @param isUpperLimit whether the limit supplied is the upper bound
+   *        (otherwise it will be used as lower bound)
+   * @return an assumption that has to hold in order for the input
+   *         addition/subtraction NOT to have an overflow
+   */
+  private CExpression getAdditiveAssumption(CExpression operand1, CExpression operand2,
+      BinaryOperator operator, CLiteralExpression limit, boolean isUpperLimit)
+      throws UnrecognizedCCodeException {
+
+    boolean isMinusMode = (operator == BinaryOperator.MINUS);
+    assert (isMinusMode
+        || (operator == BinaryOperator.PLUS)) : "operator has to be either BinaryOperator.PLUS or BinaryOperator.MINUS!";
+
+    // We construct assumption by writing each of the 4 possible assumptions as:
+    // term1 | term3
+
+    // where term1 is structured this way:
+    // operand1 term1Operator 0
+    BinaryOperator term1Operator =
+        (isUpperLimit ^ isMinusMode) ? BinaryOperator.LESS_EQUAL : BinaryOperator.GREATER_EQUAL;
+    CExpression term1 = cBinaryExpressionBuilder.buildBinaryExpression(operand2,
+        CIntegerLiteralExpression.ZERO, term1Operator);
+
+    // and term2 is structured this way:
+    // limit term2Operator operand2
+    BinaryOperator term2Operator = isMinusMode ? BinaryOperator.PLUS : BinaryOperator.MINUS;
+    CExpression term2 =
+        cBinaryExpressionBuilder.buildBinaryExpression(limit, operand2, term2Operator);
+
+    // and term3 is structured this way:
+    // operand1 term3Operator term2
+    BinaryOperator term3Operator =
+        isUpperLimit ? BinaryOperator.LESS_EQUAL : BinaryOperator.GREATER_EQUAL;
+    CExpression term3 =
+        cBinaryExpressionBuilder.buildBinaryExpression(operand1, term2, term3Operator);
+
+    // the final assumption will look like this:
+    // (operand1 term1Operator 0) | ( operand1 term3Operator (limit term2Operator operand2) )
+    CExpression assumption =
+        cBinaryExpressionBuilder.buildBinaryExpression(term1, term3, BinaryOperator.BINARY_OR);
+
+    return assumption;
   }
 
   private class AssumptionsFinder
