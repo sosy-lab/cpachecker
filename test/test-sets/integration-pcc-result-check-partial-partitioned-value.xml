@@ -32,6 +32,8 @@
     <exclude>../programs/benchmarks/floats-esbmc-regression/*_false-unreach-call*.i</exclude>
     <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/floats-cdfpl/*</exclude>
+    <!-- exclude flipping between unknown and timeout -->
+    <exclude>../programs/benchmarks/floats-cbmc-regression/float4_true-unreach-call.i</exclude>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
