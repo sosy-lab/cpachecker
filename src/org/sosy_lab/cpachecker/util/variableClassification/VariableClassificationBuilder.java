@@ -47,7 +47,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -61,34 +60,22 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -137,12 +124,6 @@ public class VariableClassificationBuilder {
   public static final String FUNCTION_RETURN_VARIABLE = "__retval__";
 
   private static final String SCOPE_SEPARATOR = "::";
-
-  /** normally a boolean value would be 0 or 1,
-   * however there are cases, where the values are only 0 and 1,
-   * but the variable is not boolean at all: "int x; if(x!=0 && x!= 1){}".
-   * so we allow only 0 as boolean value, and not 1. */
-  private boolean allowOneAsBooleanValue = false;
 
   private final Set<String> allVars = new HashSet<>();
 
@@ -432,24 +413,24 @@ public class VariableClassificationBuilder {
   /** switch to edgeType and handle all expressions, that could be part of the edge. */
   private void handleEdge(CFAEdge edge, CFA cfa) throws UnrecognizedCCodeException {
     switch (edge.getEdgeType()) {
+      case AssumeEdge:
+        {
+          CExpression exp = ((CAssumeEdge) edge).getExpression();
+          CFANode pre = edge.getPredecessor();
 
-    case AssumeEdge: {
-      CExpression exp = ((CAssumeEdge) edge).getExpression();
-      CFANode pre = edge.getPredecessor();
+          VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
+          Set<String> vars = exp.accept(dcv);
+          if (vars != null) {
+            allVars.addAll(vars);
+            dependencies.addAll(vars, dcv.getValues(), edge, 0);
+          }
 
-      VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
-      Set<String> vars = exp.accept(dcv);
-      if (vars != null) {
-        allVars.addAll(vars);
-        dependencies.addAll(vars, dcv.getValues(), edge, 0);
-      }
+          exp.accept(new BoolCollectingVisitor(pre, nonIntBoolVars));
+          exp.accept(new IntEqualCollectingVisitor(pre, nonIntEqVars));
+          exp.accept(new IntAddCollectingVisitor(pre, nonIntAddVars));
 
-      exp.accept(new BoolCollectingVisitor(pre));
-      exp.accept(new IntEqualCollectingVisitor(pre));
-      exp.accept(new IntAddCollectingVisitor(pre));
-
-      break;
-    }
+          break;
+        }
 
     case DeclarationEdge: {
       handleDeclarationEdge((CDeclarationEdge) edge);
@@ -622,9 +603,9 @@ public class VariableClassificationBuilder {
           dependencies.addAll(vars, dcv.getValues(), edge, i);
         }
 
-        param.accept(new BoolCollectingVisitor(pre));
-        param.accept(new IntEqualCollectingVisitor(pre));
-        param.accept(new IntAddCollectingVisitor(pre));
+        param.accept(new BoolCollectingVisitor(pre, nonIntBoolVars));
+        param.accept(new IntEqualCollectingVisitor(pre, nonIntEqVars));
+        param.accept(new IntAddCollectingVisitor(pre, nonIntAddVars));
       }
     }
   }
@@ -706,15 +687,15 @@ public class VariableClassificationBuilder {
     allVars.addAll(vars);
     dependencies.addAll(vars, dcv.getValues(), edge, id);
 
-    BoolCollectingVisitor bcv = new BoolCollectingVisitor(pre);
+    BoolCollectingVisitor bcv = new BoolCollectingVisitor(pre, nonIntBoolVars);
     Set<String> possibleBoolean = exp.accept(bcv);
     handleResult(varName, possibleBoolean, nonIntBoolVars);
 
-    IntEqualCollectingVisitor ncv = new IntEqualCollectingVisitor(pre);
+    IntEqualCollectingVisitor ncv = new IntEqualCollectingVisitor(pre, nonIntEqVars);
     Set<String> possibleIntEqualVars = exp.accept(ncv);
     handleResult(varName, possibleIntEqualVars, nonIntEqVars);
 
-    IntAddCollectingVisitor icv = new IntAddCollectingVisitor(pre);
+    IntAddCollectingVisitor icv = new IntAddCollectingVisitor(pre, nonIntAddVars);
     Set<String> possibleIntAddVars = exp.accept(icv);
     handleResult(varName, possibleIntAddVars, nonIntAddVars);
   }
@@ -726,11 +707,11 @@ public class VariableClassificationBuilder {
     }
   }
 
-  private static String scopeVar(@Nullable final String function, final String var) {
+  static String scopeVar(@Nullable final String function, final String var) {
     return (function == null) ? (var) : (function + SCOPE_SEPARATOR + var);
   }
 
-  private static boolean isGlobal(CExpression exp) {
+  static boolean isGlobal(CExpression exp) {
     if (exp instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
       if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
@@ -759,469 +740,6 @@ public class VariableClassificationBuilder {
       return getNumber(((CCastExpression) exp).getOperand());
 
     } else {
-      return null;
-    }
-  }
-
-  /** returns true, if the expression contains a casted binaryExpression. */
-  private static boolean isNestedBinaryExp(CExpression exp) {
-    if (exp instanceof CBinaryExpression) {
-      return true;
-
-    } else if (exp instanceof CCastExpression) {
-      return isNestedBinaryExp(((CCastExpression) exp).getOperand());
-
-    } else {
-      return false;
-    }
-  }
-
-  /** This Visitor evaluates an Expression. It collects all variables.
-   * a visit of IdExpression or CFieldReference returns a collection containing the varName,
-   * other visits return the inner visit-results.
-  * The Visitor also collects all numbers used in the expression. */
-  private static class VariablesCollectingVisitor implements
-      CExpressionVisitor<Set<String>, RuntimeException> {
-
-    private CFANode predecessor;
-    private Set<BigInteger> values = new TreeSet<>();
-
-    public VariablesCollectingVisitor(CFANode pre) {
-      this.predecessor = pre;
-    }
-
-    public Set<BigInteger> getValues() {
-      return values;
-    }
-
-    @Override
-    public Set<String> visit(CArraySubscriptExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CBinaryExpression exp) {
-
-      // for numeral values
-      BigInteger val1 = getNumber(exp.getOperand1());
-      Set<String> operand1;
-      if (val1 == null) {
-        operand1 = exp.getOperand1().accept(this);
-      } else {
-        values.add(val1);
-        operand1 = null;
-      }
-
-      // for numeral values
-      BigInteger val2 = getNumber(exp.getOperand2());
-      Set<String> operand2;
-      if (val2 == null) {
-        operand2 = exp.getOperand2().accept(this);
-      } else {
-        values.add(val2);
-        operand2 = null;
-      }
-
-      // handle vars from operands
-      if (operand1 == null) {
-        return operand2;
-      } else if (operand2 == null) {
-        return operand1;
-      } else {
-        operand1.addAll(operand2);
-        return operand1;
-      }
-    }
-
-    @Override
-    public Set<String> visit(CCastExpression exp) {
-      BigInteger val = getNumber(exp.getOperand());
-      if (val == null) {
-        return exp.getOperand().accept(this);
-      } else {
-        values.add(val);
-        return null;
-      }
-    }
-
-    @Override
-    public Set<String> visit(CComplexCastExpression exp) {
-      // TODO complex numbers are not supported for evaluation right now, this
-      // way of handling the variables my be wrong
-
-      BigInteger val = getNumber(exp.getOperand());
-      if (val == null) {
-        return exp.getOperand().accept(this);
-      } else {
-        values.add(val);
-        return null;
-      }
-    }
-
-    @Override
-    public Set<String> visit(CFieldReference exp) {
-      String varName = exp.toASTString(); // TODO "(*p).x" vs "p->x"
-      String function = isGlobal(exp) ? "" : predecessor.getFunctionName();
-      Set<String> ret = Sets.newHashSetWithExpectedSize(1);
-      ret.add(scopeVar(function, varName));
-      return ret;
-    }
-
-    @Override
-    public Set<String> visit(CIdExpression exp) {
-      Set<String> ret = Sets.newHashSetWithExpectedSize(1);
-      ret.add(exp.getDeclaration().getQualifiedName());
-      return ret;
-    }
-
-    @Override
-    public Set<String> visit(CCharLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CFloatLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CImaginaryLiteralExpression exp) {
-      return exp.getValue().accept(this);
-    }
-
-    @Override
-    public Set<String> visit(CIntegerLiteralExpression exp) {
-      values.add(exp.getValue());
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CStringLiteralExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CTypeIdExpression exp) {
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CUnaryExpression exp) {
-      BigInteger val = getNumber(exp);
-      if (val == null) {
-        return exp.getOperand().accept(this);
-      } else {
-        values.add(val);
-        return null;
-      }
-    }
-
-    @Override
-    public Set<String> visit(CPointerExpression exp) {
-      BigInteger val = getNumber(exp);
-      if (val == null) {
-        return exp.getOperand().accept(this);
-      } else {
-        values.add(val);
-        return null;
-      }
-    }
-
-    @Override
-    public Set<String> visit(CAddressOfLabelExpression exp) {
-      return null;
-    }
-  }
-
-
-  /** This Visitor evaluates an Expression. It also collects all variables.
-   * Each visit-function returns
-   * - null, if the expression is not boolean
-   * - a collection, if the expression is boolean.
-   * The collection contains all boolean vars. */
-  private class BoolCollectingVisitor extends VariablesCollectingVisitor {
-
-    public BoolCollectingVisitor(CFANode pre) {
-      super(pre);
-    }
-
-    @Override
-    public Set<String> visit(CFieldReference exp) {
-      nonIntBoolVars.addAll(super.visit(exp));
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CBinaryExpression exp) {
-      Set<String> operand1 = exp.getOperand1().accept(this);
-      Set<String> operand2 = exp.getOperand2().accept(this);
-
-      if (operand1 == null || operand2 == null) { // a+123 --> a is not boolean
-        if (operand1 != null) {
-          nonIntBoolVars.addAll(operand1);
-        }
-        if (operand2 != null) {
-          nonIntBoolVars.addAll(operand2);
-        }
-        return null;
-      }
-
-      switch (exp.getOperator()) {
-
-      case EQUALS:
-      case NOT_EQUALS: // ==, != work with boolean operands
-        if (operand1.isEmpty() || operand2.isEmpty()) {
-          // one operand is Zero (or One, if allowed)
-          operand1.addAll(operand2);
-          return operand1;
-        }
-        // We compare 2 variables. There is no guarantee, that they are boolean!
-        // Example: (a!=b) && (b!=c) && (c!=a)
-        // -> FALSE for boolean, but TRUE for {1,2,3}
-
-        //$FALL-THROUGH$
-
-      default: // +-*/ --> no boolean operators, a+b --> a and b are not boolean
-        nonIntBoolVars.addAll(operand1);
-        nonIntBoolVars.addAll(operand2);
-        return null;
-      }
-    }
-
-    @Override
-    public Set<String> visit(CIntegerLiteralExpression exp) {
-      BigInteger value = exp.getValue();
-      if (BigInteger.ZERO.equals(value)
-          || (allowOneAsBooleanValue && BigInteger.ONE.equals(value))) {
-        return new HashSet<>(0);
-      } else {
-        return null;
-      }
-    }
-
-    @Override
-    public Set<String> visit(CUnaryExpression exp) {
-      Set<String> inner = exp.getOperand().accept(this);
-
-      if (inner == null) {
-        return null;
-      } else { // PLUS, MINUS, etc --> not boolean
-        nonIntBoolVars.addAll(inner);
-        return null;
-      }
-    }
-
-    @Override
-    public Set<String> visit(CPointerExpression exp) {
-      Set<String> inner = exp.getOperand().accept(this);
-
-      if (inner == null) {
-        return null;
-      } else {
-        nonIntBoolVars.addAll(inner);
-        return null;
-      }
-    }
-  }
-
-
-  /** This Visitor evaluates an Expression.
-   * Each visit-function returns
-   * - null, if the expression contains calculations
-   * - a collection, if the expression is a number, unaryExp, == or != */
-  private class IntEqualCollectingVisitor extends VariablesCollectingVisitor {
-
-    public IntEqualCollectingVisitor(CFANode pre) {
-      super(pre);
-    }
-
-    @Override
-    public Set<String> visit(CCastExpression exp) {
-      BigInteger val = getNumber(exp.getOperand());
-      if (val == null) {
-        return exp.getOperand().accept(this);
-      } else {
-        return new HashSet<>(0);
-      }
-    }
-
-    @Override
-    public Set<String> visit(CFieldReference exp) {
-      nonIntEqVars.addAll(super.visit(exp));
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CBinaryExpression exp) {
-
-      // for numeral values
-      BigInteger val1 = getNumber(exp.getOperand1());
-      Set<String> operand1;
-      if (val1 == null) {
-        operand1 = exp.getOperand1().accept(this);
-      } else {
-        operand1 = new HashSet<>(0);
-      }
-
-      // for numeral values
-      BigInteger val2 = getNumber(exp.getOperand2());
-      Set<String> operand2;
-      if (val2 == null) {
-        operand2 = exp.getOperand2().accept(this);
-      } else {
-        operand2 = new HashSet<>(0);
-      }
-
-      // handle vars from operands
-      if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
-        if (operand1 != null) {
-          nonIntEqVars.addAll(operand1);
-        }
-        if (operand2 != null) {
-          nonIntEqVars.addAll(operand2);
-        }
-        return null;
-      }
-
-      switch (exp.getOperator()) {
-
-      case EQUALS:
-      case NOT_EQUALS: // ==, != work with numbers
-        operand1.addAll(operand2);
-        return operand1;
-
-      default: // +-*/ --> no simple operators
-        nonIntEqVars.addAll(operand1);
-        nonIntEqVars.addAll(operand2);
-        return null;
-      }
-    }
-
-    @Override
-    public Set<String> visit(CIntegerLiteralExpression exp) {
-      return new HashSet<>(0);
-    }
-
-    @Override
-    public Set<String> visit(CUnaryExpression exp) {
-
-      // if exp is numeral
-      BigInteger val = getNumber(exp);
-      if (val != null) { return new HashSet<>(0); }
-
-      // if exp is binary expression
-      Set<String> inner = exp.getOperand().accept(this);
-      if (isNestedBinaryExp(exp)) { return inner; }
-
-      if (inner != null) {
-        nonIntEqVars.addAll(inner);
-      }
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CPointerExpression exp) {
-
-      // if exp is numeral
-      BigInteger val = getNumber(exp);
-      if (val != null) { return new HashSet<>(0); }
-
-      // if exp is binary expression
-      Set<String> inner = exp.getOperand().accept(this);
-      if (isNestedBinaryExp(exp)) { return inner; }
-
-      // if exp is unknown
-      if (inner == null) { return null; }
-
-      nonIntEqVars.addAll(inner);
-      return null;
-    }
-  }
-
-
-  /** This Visitor evaluates an Expression.
-   * Each visit-function returns
-   * - a collection, if the expression is a var or a simple mathematical
-   *   calculation (add, sub, <, >, <=, >=, ==, !=, !),
-   * - else null */
-  private class IntAddCollectingVisitor extends VariablesCollectingVisitor {
-
-    public IntAddCollectingVisitor(CFANode pre) {
-      super(pre);
-    }
-
-    @Override
-    public Set<String> visit(CCastExpression exp) {
-      return exp.getOperand().accept(this);
-    }
-
-    @Override
-    public Set<String> visit(CFieldReference exp) {
-      nonIntAddVars.addAll(super.visit(exp));
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CBinaryExpression exp) {
-      Set<String> operand1 = exp.getOperand1().accept(this);
-      Set<String> operand2 = exp.getOperand2().accept(this);
-
-      if (operand1 == null || operand2 == null) { // a+0.2 --> no simple number
-        if (operand1 != null) {
-          nonIntAddVars.addAll(operand1);
-        }
-        if (operand2 != null) {
-          nonIntAddVars.addAll(operand2);
-        }
-        return null;
-      }
-
-      switch (exp.getOperator()) {
-
-      case PLUS:
-      case MINUS:
-      case LESS_THAN:
-      case LESS_EQUAL:
-      case GREATER_THAN:
-      case GREATER_EQUAL:
-      case EQUALS:
-      case NOT_EQUALS:
-      case BINARY_AND:
-      case BINARY_XOR:
-      case BINARY_OR:
-        // this calculations work with all numbers
-        operand1.addAll(operand2);
-        return operand1;
-
-      default: // *, /, %, shift --> no simple calculations
-        nonIntAddVars.addAll(operand1);
-        nonIntAddVars.addAll(operand2);
-        return null;
-      }
-    }
-
-    @Override
-    public Set<String> visit(CIntegerLiteralExpression exp) {
-      return new HashSet<>(0);
-    }
-
-    @Override
-    public Set<String> visit(CUnaryExpression exp) {
-      Set<String> inner = exp.getOperand().accept(this);
-      if (inner == null) { return null; }
-      if (exp.getOperator() == UnaryOperator.MINUS) { return inner; }
-
-      // *, ~, etc --> not simple
-      nonIntAddVars.addAll(inner);
-      return null;
-    }
-
-    @Override
-    public Set<String> visit(CPointerExpression exp) {
-      Set<String> inner = exp.getOperand().accept(this);
-      if (inner == null) { return null; }
-
-      nonIntAddVars.addAll(inner);
       return null;
     }
   }
