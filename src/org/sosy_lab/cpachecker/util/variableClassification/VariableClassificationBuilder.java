@@ -114,7 +114,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableAndFieldRelevancyComputer;
 import org.sosy_lab.cpachecker.util.VariableAndFieldRelevancyComputer.VarFieldDependencies;
-import org.sosy_lab.cpachecker.util.variableClassification.VariableClassification.Partition;
 
 @Options(prefix = "cfa.variableClassification")
 public class VariableClassificationBuilder {

@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision
 import org.sosy_lab.cpachecker.util.predicates.regions.NamedRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.variableClassification.VariableClassification;
+import org.sosy_lab.cpachecker.util.variableClassification.Partition;
 
 /** This class guarantees a fixed order of variables in the BDD,
  * that should be good for the operations in the BitvectorManager. */
@@ -99,7 +99,7 @@ public class PredicateManager {
    *  This function declares those vars in the beginning of the analysis,
    *  so that we can choose between some orders. */
   protected void initVars(CFA cfa) {
-    Collection<VariableClassification.Partition> partitions;
+    Collection<Partition> partitions;
     if (initPartitionsOrdered) {
       BDDPartitionOrderer d = new BDDPartitionOrderer(cfa);
       partitions = d.getOrderedPartitions();
@@ -109,7 +109,7 @@ public class PredicateManager {
     }
 
     MachineModel machineModel = cfa.getMachineModel();
-    for (VariableClassification.Partition partition : partitions) {
+    for (Partition partition : partitions) {
       // maxBitSize is too much for most variables. we only create an order here, so this should not matter.
       createPredicates(partition.getVars(), machineModel.getSizeofLongLongInt() * machineModel.getSizeofCharInBits());
     }
