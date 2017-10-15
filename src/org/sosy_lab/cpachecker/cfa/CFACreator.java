@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -106,6 +107,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.variableClassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableClassification.VariableClassificationBuilder;
+import org.sosy_lab.cpachecker.util.variableClassification.VariableClassificationBuilder.VariableClassificationStatistics;
 
 /**
  * Class that encapsulates the whole CFA creation process.
@@ -241,6 +243,7 @@ private boolean classifyNodes = false;
     private final Timer processingTime = new Timer();
     private final Timer variableClassificationTime = new Timer();
     private final Timer exportTime = new Timer();
+    private @Nullable VariableClassificationStatistics varClassificationStats;
 
     @Override
     public String getName() {
@@ -257,6 +260,9 @@ private boolean classifyNodes = false;
       out.println("    Time for post-processing: " + processingTime);
       if (variableClassificationTime.getNumberOfIntervals() > 0) {
         out.println("      Time for var class.:    " + variableClassificationTime);
+        if (varClassificationStats != null) {
+          varClassificationStats.printStatistics(out, pResult, pReached);
+        }
       }
       if (exportTime.getNumberOfIntervals() > 0) {
         out.println("    Time for CFA export:      " + exportTime);
@@ -455,7 +461,9 @@ private boolean classifyNodes = false;
     if (language == Language.C) {
       try {
         stats.variableClassificationTime.start();
-        varClassification = Optional.of(new VariableClassificationBuilder(config, logger).build(cfa));
+        VariableClassificationBuilder builder = new VariableClassificationBuilder(config, logger);
+        varClassification = Optional.of(builder.build(cfa));
+        stats.varClassificationStats = builder.getStatistics();
       } catch (UnrecognizedCCodeException e) {
         throw new CParserException(e);
       } finally {

@@ -37,6 +37,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.math.BigInteger;
@@ -92,11 +93,15 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.VariableAndFieldRelevancyComputer;
 import org.sosy_lab.cpachecker.util.VariableAndFieldRelevancyComputer.VarFieldDependencies;
+import org.sosy_lab.cpachecker.util.statistics.AbstractStatistics;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 @Options(prefix = "cfa.variableClassification")
 public class VariableClassificationBuilder {
@@ -139,10 +144,38 @@ public class VariableClassificationBuilder {
   private Optional<Set<String>> addressedVariables = Optional.absent();
 
   private final LogManager logger;
+  private final VariableClassificationStatistics stats = new VariableClassificationStatistics();
+
+  public static class VariableClassificationStatistics extends AbstractStatistics {
+
+    private final StatTimer collectTimer = new StatTimer("Time for collecting variables");
+    private final StatTimer dependencyTimer = new StatTimer("Time for solving dependencies");
+    private final StatTimer hierarchyTimer = new StatTimer("Time for building hierarchy");
+    private final StatTimer buildTimer = new StatTimer("Time for building classification");
+    private final StatTimer exportTimer = new StatTimer("Time for exporting data");
+
+    @Override
+    public String getName() {
+      return "";
+    }
+
+    @Override
+    public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
+      put(out, 4, collectTimer);
+      put(out, 4, dependencyTimer);
+      put(out, 4, hierarchyTimer);
+      put(out, 4, buildTimer);
+      put(out, 4, exportTimer);
+    }
+  }
 
   public VariableClassificationBuilder(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     config.inject(this);
+  }
+
+  public VariableClassificationStatistics getStatistics() {
+    return stats;
   }
 
   /** This function does the whole work:
@@ -152,12 +185,16 @@ public class VariableClassificationBuilder {
     checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
 
     // fill maps
+    stats.collectTimer.start();
     collectVars(cfa);
+    stats.collectTimer.stop();
 
     // if a value is not boolean, all dependent vars are not boolean and viceversa
+    stats.dependencyTimer.start();
     dependencies.solve(nonIntBoolVars);
     dependencies.solve(nonIntEqVars);
     dependencies.solve(nonIntAddVars);
+    stats.dependencyTimer.stop();
 
     // Now build the opposites of each non-x-vars-collection.
     // This is responsible for the hierarchy of the variables.
@@ -168,6 +205,7 @@ public class VariableClassificationBuilder {
     final Set<Partition> intEqualPartitions = new HashSet<>();
     final Set<Partition> intAddPartitions = new HashSet<>();
 
+    stats.hierarchyTimer.start();
     for (final String var : allVars) {
       // we have this hierarchy of classes for variables:
       //        IntBool < IntEqBool < IntAddEqBool < AllInt
@@ -190,6 +228,7 @@ public class VariableClassificationBuilder {
         intAddPartitions.add(dependencies.getPartitionForVar(var));
       }
     }
+    stats.hierarchyTimer.stop();
 
     // add last vars to dependencies,
     // this allows to get partitions for all vars,
@@ -200,6 +239,7 @@ public class VariableClassificationBuilder {
 
     boolean hasRelevantNonIntAddVars = !Sets.intersection(relevantVariables.get(), nonIntAddVars).isEmpty();
 
+    stats.buildTimer.start();
     VariableClassification result = new VariableClassification(
         hasRelevantNonIntAddVars,
         intBoolVars,
@@ -217,7 +257,9 @@ public class VariableClassificationBuilder {
         extractAssumedVariables(cfa.getAllNodes()),
         extractAssignedVariables(cfa.getAllNodes()),
         logger);
+    stats.buildTimer.stop();
 
+    stats.exportTimer.start();
     if (printStatsOnStartup) {
       printStats(result);
     }
@@ -244,6 +286,7 @@ public class VariableClassificationBuilder {
     if (domainTypeStatisticsFile != null) {
       dumpDomainTypeStatistics(domainTypeStatisticsFile, result);
     }
+    stats.exportTimer.stop();
 
     return result;
   }
