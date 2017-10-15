@@ -25,14 +25,13 @@ package org.sosy_lab.cpachecker.util.variableClassification;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -44,8 +43,8 @@ public class Partition implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  private final Set<String> vars = new HashSet<>();
-  private final Set<BigInteger> values = Sets.newTreeSet();
+  private final Set<String> vars = new TreeSet<>();
+  private final Set<BigInteger> values = new TreeSet<>();
   private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
   private final Map<String, Partition> varToPartition;
