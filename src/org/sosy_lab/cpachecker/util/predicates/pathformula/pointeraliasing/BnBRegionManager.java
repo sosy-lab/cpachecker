@@ -30,7 +30,7 @@ import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.util.VariableClassification;
+import org.sosy_lab.cpachecker.util.variableClassification.VariableClassification;
 
 /**
  * Class implements so called B&B memory model.
