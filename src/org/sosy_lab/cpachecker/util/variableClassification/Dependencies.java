@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.util.variableClassification;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Iterator;
@@ -152,7 +152,7 @@ class Dependencies {
     for (Partition partition : partitions) {
 
       // is at least one var from the partition part of vars
-      if (!Sets.intersection(partition.getVars(), vars).isEmpty()) {
+      if (Iterables.any(partition.getVars(), v -> vars.contains(v))) {
         // add all dependend vars to vars
         vars.addAll(partition.getVars());
       }
