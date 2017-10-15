@@ -71,7 +71,7 @@
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="2.10.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="2.11.0" conf="test->default"/>
 
         <!-- Truth
              Library for writing literal assertions. -->
