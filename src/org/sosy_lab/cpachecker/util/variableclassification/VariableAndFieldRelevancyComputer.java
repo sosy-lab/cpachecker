@@ -40,11 +40,7 @@ import org.sosy_lab.common.annotations.FieldsAreNonnullByDefault;
 import org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.common.collect.PersistentList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -53,18 +49,11 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
@@ -433,179 +422,7 @@ final class VariableAndFieldRelevancyComputer {
             0);
   }
 
-  private static final class CollectingLHSVisitor
-      extends DefaultCExpressionVisitor<
-          Pair<VariableOrField, VarFieldDependencies>, RuntimeException> {
-
-    private CollectingLHSVisitor() {}
-
-    public static CollectingLHSVisitor instance() {
-      return INSTANCE;
-    }
-
-    @Override
-    public Pair<VariableOrField, VarFieldDependencies> visit(final CArraySubscriptExpression e) {
-      final Pair<VariableOrField, VarFieldDependencies> r = e.getArrayExpression().accept(this);
-      return Pair.of(
-          r.getFirst(),
-          r.getSecond()
-              .withDependencies(
-                  e.getSubscriptExpression().accept(CollectingRHSVisitor.create(r.getFirst()))));
-    }
-
-    @Override
-    public Pair<VariableOrField, VarFieldDependencies> visit(final CFieldReference e) {
-      final VariableOrField result =
-          VariableOrField.newField(getCanonicalFieldOwnerType(e), e.getFieldName());
-      // Do not remove explicit type inference, otherwise build fails with IntelliJ
-      return Pair.of(
-          result,
-          e.getFieldOwner()
-              .<VarFieldDependencies, RuntimeException>accept(CollectingRHSVisitor.create(result)));
-    }
-
-    @Override
-    public Pair<VariableOrField, VarFieldDependencies> visit(final CPointerExpression e) {
-      // Do not remove explicit type inference, otherwise build fails with IntelliJ
-      return Pair.of(
-          VariableOrField.unknown(),
-          e.getOperand()
-              .<VarFieldDependencies, RuntimeException>accept(
-                  CollectingRHSVisitor.create(VariableOrField.unknown())));
-    }
-
-    @Override
-    public Pair<VariableOrField, VarFieldDependencies> visit(final CComplexCastExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public Pair<VariableOrField, VarFieldDependencies> visit(final CCastExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public Pair<VariableOrField, VarFieldDependencies> visit(final CIdExpression e) {
-      return Pair.of(
-          VariableOrField.newVariable(e.getDeclaration().getQualifiedName()),
-          VarFieldDependencies.emptyDependencies());
-    }
-
-    @Override
-    protected Pair<VariableOrField, VarFieldDependencies> visitDefault(final CExpression e) {
-      if (e instanceof CUnaryExpression && UnaryOperator.AMPER == ((CUnaryExpression)e).getOperator()) {
-        // TODO dependency between address and variable?
-        return ((CUnaryExpression)e).getOperand().accept(this);
-      }
-
-      throw new AssertionError(
-          String.format(
-              "The expression %s from %s should not occur in the left hand side",
-              e, e.getFileLocation()));
-    }
-
-    private static final CollectingLHSVisitor INSTANCE = new CollectingLHSVisitor();
-  }
-
-  private static final class CollectingRHSVisitor
-      extends DefaultCExpressionVisitor<VarFieldDependencies, RuntimeException>
-      implements CRightHandSideVisitor<VarFieldDependencies, RuntimeException> {
-
-    private CollectingRHSVisitor(final VariableOrField lhs, final boolean addressed) {
-      this.lhs = lhs;
-      this.addressed = addressed;
-    }
-
-    public static CollectingRHSVisitor create(final VariableOrField lhs) {
-      return new CollectingRHSVisitor(lhs, false);
-    }
-
-    private CollectingRHSVisitor createAddressed() {
-      return new CollectingRHSVisitor(lhs, true);
-    }
-
-    @Override
-    public VarFieldDependencies visit(final CArraySubscriptExpression e) {
-      return e.getSubscriptExpression()
-          .accept(this)
-          .withDependencies(e.getArrayExpression().accept(this));
-    }
-
-    @Override
-    public VarFieldDependencies visit(final CFieldReference e) {
-      VariableOrField.Field field = VariableOrField.newField(getCanonicalFieldOwnerType(e), e.getFieldName());
-      VarFieldDependencies result = e.getFieldOwner()
-          .accept(this)
-          .withDependency(
-              lhs, field);
-      if (addressed) {
-        return result.withAddressedField(field);
-      } else {
-        return result;
-      }
-    }
-
-    @Override
-    public VarFieldDependencies visit(final CBinaryExpression e) {
-      return e.getOperand1().accept(this).withDependencies(e.getOperand2().accept(this));
-    }
-
-    @Override
-    public VarFieldDependencies visit(final CUnaryExpression e) {
-      if (e.getOperator() != UnaryOperator.AMPER) {
-        return e.getOperand().accept(this);
-      } else {
-        return e.getOperand().accept(createAddressed());
-      }
-    }
-
-    @Override
-    public VarFieldDependencies visit(final CPointerExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public VarFieldDependencies visit(final CComplexCastExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public VarFieldDependencies visit(final CCastExpression e) {
-      return e.getOperand().accept(this);
-    }
-
-    @Override
-    public VarFieldDependencies visit(final CIdExpression e) {
-      final CSimpleDeclaration decl = e.getDeclaration();
-      final VariableOrField.Variable variable =
-          VariableOrField.newVariable(decl != null ? decl.getQualifiedName() : e.getName());
-      final VarFieldDependencies result =
-          VarFieldDependencies.emptyDependencies().withDependency(lhs, variable);
-      if (addressed) {
-        return result.withAddressedVariable(variable);
-      }
-      return result;
-    }
-
-    @Override
-    public VarFieldDependencies visit(CFunctionCallExpression e) {
-      VarFieldDependencies result = e.getFunctionNameExpression().accept(this);
-      for (CExpression param : e.getParameterExpressions()) {
-        result = result.withDependencies(param.accept(this));
-      }
-      return result;
-    }
-
-    @Override
-    protected VarFieldDependencies visitDefault(final CExpression e) {
-      return VarFieldDependencies.emptyDependencies();
-    }
-
-    private final VariableOrField lhs;
-    private final boolean addressed;
-  }
-
-  private static CCompositeType getCanonicalFieldOwnerType(final CFieldReference fieldReference) {
+  static CCompositeType getCanonicalFieldOwnerType(final CFieldReference fieldReference) {
     CType fieldOwnerType = fieldReference.getFieldOwner().getExpressionType().getCanonicalType();
 
     if (fieldOwnerType instanceof CPointerType) {
