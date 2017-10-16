@@ -970,8 +970,10 @@ interface AutomatonBoolExpr extends AutomatonExpression {
         if (modifiedQueryString == null) {
           return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.ALLCPAQuery");
         }
+        int exceptionFreeCallCount = 0;
         for (AbstractState ae : pArgs.getAbstractStates()) {
           if (ae instanceof AbstractQueryableState) {
+            exceptionFreeCallCount = exceptionFreeCallCount + 1;
             AbstractQueryableState aqe = (AbstractQueryableState) ae;
             try {
               Object result = aqe.evaluateProperty(modifiedQueryString);
@@ -989,11 +991,19 @@ interface AutomatonBoolExpr extends AutomatonExpression {
                 }
               }
             } catch (InvalidQueryException e) {
-              // do nothing;
+              exceptionFreeCallCount = exceptionFreeCallCount - 1;
             }
           }
         }
-        return CONST_FALSE;
+        if (exceptionFreeCallCount == 0) {
+          // No CPA feels responsible => returning CONST_FALSE would not be right here
+          return new ResultValue<>(
+              "None of the states sees \"" + modifiedQueryString + "\" as a valid query!",
+              "AutomatonBoolExpr.ALLCPAQuery");
+        } else {
+          // At least one CPA considers the query valid, but none answered with true
+          return CONST_FALSE;
+        }
       }
     }
 
