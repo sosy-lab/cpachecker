@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.util.variableClassification;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
@@ -75,33 +75,33 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- *<p>
- * The class computes global control-flow and context-insensitive over-approximation of sets of relevant variables and
- * structure/union fields. Relevance is determined by usage of variables/fields in assumption CFA edges.
- * It is transitively closed under data flow dependencies and is approximated over pointer dereferences,
- * i.e. assignment to a pointer dereference always makes all the variables occurring in the RHS relevant.
- *</p>
- *<p>
- * Dependencies on the addresses of variables/fields are treated as dependencies on the variables/fields themselves.
- * So pointer variables/fields transitively depend on all variables/fields possibly addressed by them. In cases when
- * some parts of the LHS may depend on the values of other parts (e.g. {@code a[i]}, {@code g->f->h}), the former
- * are treated as RHSs.
- *</p>
- * The class implements functional interface through a single function {@link #handleEdge(CFAEdge)}. It should be
- * called for all CFA edges needed to be counted in relevance computation (both for data dependencies and variable/field
- * usage). The returned {@link VarFieldDependencies} instances should be merged with
- * {@link VarFieldDependencies#withDependencies(VarFieldDependencies)}. Then the resulting sets can be obtained by
- * invoking {@link VarFieldDependencies#computeRelevantVariablesAndFields()}.
+ * The class computes global control-flow and context-insensitive over-approximation of sets of
+ * relevant variables and structure/union fields. Relevance is determined by usage of
+ * variables/fields in assumption CFA edges. It is transitively closed under data flow dependencies
+ * and is approximated over pointer dereferences, i.e. assignment to a pointer dereference always
+ * makes all the variables occurring in the RHS relevant.
  *
- * The class also collects a set of all explicitly addressed variables that is returned by
- * {@link VarFieldDependencies#computeAddressedVariables()}.
+ * <p>Dependencies on the addresses of variables/fields are treated as dependencies on the
+ * variables/fields themselves. So pointer variables/fields transitively depend on all
+ * variables/fields possibly addressed by them. In cases when some parts of the LHS may depend on
+ * the values of other parts (e.g. {@code a[i]}, {@code g->f->h}), the former are treated as RHSs.
+ * The class implements functional interface through a single function {@link #handleEdge(CFAEdge)}.
+ * It should be called for all CFA edges needed to be counted in relevance computation (both for
+ * data dependencies and variable/field usage). The returned {@link VarFieldDependencies} instances
+ * should be merged with {@link VarFieldDependencies#withDependencies(VarFieldDependencies)}. Then
+ * the resulting sets can be obtained by invoking {@link
+ * VarFieldDependencies#computeRelevantVariablesAndFields()}.
+ *
+ * <p>The class also collects a set of all explicitly addressed variables that is returned by {@link
+ * VarFieldDependencies#computeAddressedVariables()}.
  */
 @ParametersAreNonnullByDefault
 @ReturnValuesAreNonnullByDefault
 @FieldsAreNonnullByDefault
-public final class VariableAndFieldRelevancyComputer {
+final class VariableAndFieldRelevancyComputer {
   /** Represents an approximation of a node in dependency graph i.e. variable, field or `top' (unknown location). */
   private abstract static class VariableOrField implements Comparable<VariableOrField> {
     private static final class Unknown extends VariableOrField {
