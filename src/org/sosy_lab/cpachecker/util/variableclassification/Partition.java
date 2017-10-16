@@ -33,15 +33,21 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
  * A Partition is a Wrapper for a Collection of vars, values and edges. The Partitions are disjunct,
  * so no variable and no edge is in 2 Partitions.
  */
-public class Partition implements Serializable {
+public class Partition implements Comparable<Partition>, Serializable {
 
   private static final long serialVersionUID = 1L;
+
+  private transient static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+
+  /** we use an index to track the "age" of a partition. */
+  private final int index;
 
   private final Set<String> vars = new TreeSet<>();
   private final Set<BigInteger> values = new TreeSet<>();
@@ -55,6 +61,7 @@ public class Partition implements Serializable {
       HashBasedTable<CFAEdge, Integer, Partition> edgeToPartition) {
     this.varToPartition = varToPartition;
     this.edgeToPartition = edgeToPartition;
+    index = idGenerator.getFreshId();
   }
 
   public Set<String> getVars() {
@@ -105,21 +112,21 @@ public class Partition implements Serializable {
 
   @Override
   public boolean equals(Object other) {
-    if (other instanceof Partition) {
-      Partition p = (Partition) other;
-      return this.vars == p.vars;
-    } else {
-      return false;
-    }
+    return other instanceof Partition && index == ((Partition) other).index;
   }
 
   @Override
   public int hashCode() {
-    return vars.hashCode();
+    return index;
   }
 
   @Override
   public String toString() {
     return vars.toString() + " --> " + Arrays.toString(values.toArray());
+  }
+
+  @Override
+  public int compareTo(Partition other) {
+    return Integer.compare(this.index, other.index);
   }
 }

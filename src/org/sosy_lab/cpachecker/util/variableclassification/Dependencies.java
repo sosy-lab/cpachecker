@@ -26,12 +26,11 @@ package org.sosy_lab.cpachecker.util.variableclassification;
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -43,7 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 class Dependencies {
 
   /** partitions, each of them contains vars */
-  final List<Partition> partitions = Lists.newArrayList();
+  final Set<Partition> partitions = new LinkedHashSet<>();
 
   /** map to get partition of a var */
   private final Map<String, Partition> varToPartition = Maps.newHashMap();
@@ -70,7 +69,7 @@ class Dependencies {
     if (partition1 != null && partition2 != null) {
 
       // swap partitions, we create partitions in the order they are used
-      if (partitions.lastIndexOf(partition1) > partitions.lastIndexOf(partition2)) {
+      if (partition1.compareTo(partition2) > 0) {
         Partition tmp = partition2;
         partition2 = partition1;
         partition1 = tmp;
