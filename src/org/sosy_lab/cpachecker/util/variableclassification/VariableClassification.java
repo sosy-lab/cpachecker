@@ -27,15 +27,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Table;
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -45,7 +45,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 public class VariableClassification implements Serializable {
@@ -82,11 +81,12 @@ public class VariableClassification implements Serializable {
   private final Set<Partition> intEqualPartitions;
   private final Set<Partition> intAddPartitions;
 
-  private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartitions;
+  private final Table<CFAEdge, Integer, Partition> edgeToPartitions;
 
   private final transient LogManagerWithoutDuplicates logger;
 
-  VariableClassification(boolean pHasRelevantNonIntAddVars,
+  VariableClassification(
+      boolean pHasRelevantNonIntAddVars,
       Set<String> pIntBoolVars,
       Set<String> pIntEqualVars,
       Set<String> pIntAddVars,
@@ -98,10 +98,10 @@ public class VariableClassification implements Serializable {
       Set<Partition> pIntBoolPartitions,
       Set<Partition> pIntEqualPartitions,
       Set<Partition> pIntAddPartitions,
-      Map<Pair<CFAEdge, Integer>, Partition> pEdgeToPartitions,
+      Table<CFAEdge, Integer, Partition> pEdgeToPartitions,
       Multiset<String> pAssumedVariables,
       Multiset<String> pAssignedVariables,
-    LogManager pLogger) {
+      LogManager pLogger) {
     hasRelevantNonIntAddVars = pHasRelevantNonIntAddVars;
     intBoolVars = ImmutableSet.copyOf(pIntBoolVars);
     intEqualVars = ImmutableSet.copyOf(pIntEqualVars);
@@ -114,7 +114,7 @@ public class VariableClassification implements Serializable {
     intBoolPartitions = ImmutableSet.copyOf(pIntBoolPartitions);
     intEqualPartitions = ImmutableSet.copyOf(pIntEqualPartitions);
     intAddPartitions = ImmutableSet.copyOf(pIntAddPartitions);
-    edgeToPartitions = ImmutableMap.copyOf(pEdgeToPartitions);
+    edgeToPartitions = ImmutableTable.copyOf(pEdgeToPartitions);
     assumedVariables = ImmutableMultiset.copyOf(pAssumedVariables);
     assignedVariables = ImmutableMultiset.copyOf(pAssignedVariables);
     logger = new LogManagerWithoutDuplicates(pLogger);
@@ -122,7 +122,8 @@ public class VariableClassification implements Serializable {
 
   @VisibleForTesting
   public static VariableClassification empty(LogManager pLogger) {
-    return new VariableClassification(false,
+    return new VariableClassification(
+        false,
         ImmutableSet.<String>of(),
         ImmutableSet.<String>of(),
         ImmutableSet.<String>of(),
@@ -134,7 +135,7 @@ public class VariableClassification implements Serializable {
         ImmutableSet.<Partition>of(),
         ImmutableSet.<Partition>of(),
         ImmutableSet.<Partition>of(),
-        ImmutableMap.<Pair<CFAEdge, Integer>, Partition>of(),
+        ImmutableTable.<CFAEdge, Integer, Partition>of(),
         ImmutableMultiset.<String>of(),
         ImmutableMultiset.<String>of(),
         pLogger);
@@ -293,7 +294,7 @@ public class VariableClassification implements Serializable {
    * where it is the position of the param.
    * For the left-hand-side of the assignment of external functionCalls use -1. */
   private Partition getPartitionForEdge(CFAEdge edge, int index) {
-    return edgeToPartitions.get(Pair.of(edge, index));
+    return edgeToPartitions.get(edge, index);
   }
 
   /**

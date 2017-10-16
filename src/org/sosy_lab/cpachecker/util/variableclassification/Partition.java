@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.variableclassification;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.Serializable;
@@ -33,7 +34,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * A Partition is a Wrapper for a Collection of vars, values and edges. The Partitions are disjunct,
@@ -48,11 +48,11 @@ public class Partition implements Serializable {
   private final Multimap<CFAEdge, Integer> edges = HashMultimap.create();
 
   private final Map<String, Partition> varToPartition;
-  private final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition;
+  private final HashBasedTable<CFAEdge, Integer, Partition> edgeToPartition;
 
   Partition(
       Map<String, Partition> varToPartition,
-      Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition) {
+      HashBasedTable<CFAEdge, Integer, Partition> edgeToPartition) {
     this.varToPartition = varToPartition;
     this.edgeToPartition = edgeToPartition;
   }
@@ -81,7 +81,7 @@ public class Partition implements Serializable {
 
   void addEdge(CFAEdge edge, int index) {
     edges.put(edge, index);
-    edgeToPartition.put(Pair.of(edge, index), this);
+    edgeToPartition.put(edge, index, this);
   }
 
   /** copies all data from other to current partition */
@@ -99,7 +99,7 @@ public class Partition implements Serializable {
 
     // update mapping of edges
     for (Entry<CFAEdge, Integer> edge : other.edges.entries()) {
-      edgeToPartition.put(Pair.of(edge.getKey(), edge.getValue()), this);
+      edgeToPartition.put(edge.getKey(), edge.getValue(), this);
     }
   }
 

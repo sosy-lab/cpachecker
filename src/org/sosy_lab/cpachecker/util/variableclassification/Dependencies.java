@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.variableclassification;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * This class stores dependencies between variables. It sorts vars into partitions. Dependent vars
@@ -49,7 +49,8 @@ class Dependencies {
   private final Map<String, Partition> varToPartition = Maps.newHashMap();
 
   /** table to get a partition for a edge. */
-  final Map<Pair<CFAEdge, Integer>, Partition> edgeToPartition = Maps.newHashMap();
+  // we use subtype, because we might serialize the table, and FindBugs complains.
+  final HashBasedTable<CFAEdge, Integer, Partition> edgeToPartition = HashBasedTable.create();
 
   /**
    * This function returns a partition containing all vars, that are dependent with the given
