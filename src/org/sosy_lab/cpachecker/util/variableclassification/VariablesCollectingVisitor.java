@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.variableClassification;
+package org.sosy_lab.cpachecker.util.variableclassification;
 
 import com.google.common.collect.Sets;
 import java.math.BigInteger;

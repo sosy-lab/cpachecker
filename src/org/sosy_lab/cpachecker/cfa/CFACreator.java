@@ -105,9 +105,9 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.variableClassification.VariableClassification;
-import org.sosy_lab.cpachecker.util.variableClassification.VariableClassificationBuilder;
-import org.sosy_lab.cpachecker.util.variableClassification.VariableClassificationBuilder.VariableClassificationStatistics;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder.VariableClassificationStatistics;
 
 /**
  * Class that encapsulates the whole CFA creation process.

@@ -24,4 +24,4 @@
 /**
  * This package contains classes to classify variables of a CFA according to their usage, type or behavior.
  */
-package org.sosy_lab.cpachecker.util.variableClassification;
+package org.sosy_lab.cpachecker.util.variableclassification;

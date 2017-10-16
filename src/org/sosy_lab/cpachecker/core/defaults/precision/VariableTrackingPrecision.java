@@ -41,7 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.util.variableClassification.VariableClassification;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public abstract class VariableTrackingPrecision implements Precision {
 

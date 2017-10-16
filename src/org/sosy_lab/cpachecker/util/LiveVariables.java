@@ -85,7 +85,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
-import org.sosy_lab.cpachecker.util.variableClassification.VariableClassification;
+import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
