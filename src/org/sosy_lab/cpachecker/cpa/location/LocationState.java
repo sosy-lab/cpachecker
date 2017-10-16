@@ -147,6 +147,18 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       } else if (parts[0].toLowerCase().equals("label")) {
         return this.locationNode instanceof CLabelNode ?
             ((CLabelNode) this.locationNode).getLabel().equals(parts[1]) : false;
+      } else if (parts[0].toLowerCase().equals("nodenumber")) {
+        try {
+          int queryNumber = Integer.parseInt(parts[1]);
+          return this.locationNode.getNodeNumber() == queryNumber;
+        } catch (NumberFormatException nfe) {
+          throw new InvalidQueryException(
+              "The Query \""
+                  + pProperty
+                  + "\" is invalid. Could not parse the integer \""
+                  + parts[1]
+                  + "\"");
+        }
       } else {
         throw new InvalidQueryException("The Query \"" + pProperty
             + "\" is invalid. \"" + parts[0] + "\" is no valid keyword");
