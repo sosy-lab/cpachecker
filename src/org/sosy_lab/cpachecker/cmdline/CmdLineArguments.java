@@ -340,9 +340,11 @@ class CmdLineArguments {
       final Map<String, String> properties, final String key, final String value)
       throws InvalidCmdlineArgumentException {
 
-    if (properties.containsKey(key)) {
+    if (properties.containsKey(key) && !properties.get(key).equals(value)) {
       throw new InvalidCmdlineArgumentException(
-          "Duplicate option " + key + " specified on command-line.");
+          String.format(
+              "Option %s specified twice on command-line with values '%s' and '%s'.",
+              key, properties.get(key), value));
     }
 
     properties.put(key, value);
