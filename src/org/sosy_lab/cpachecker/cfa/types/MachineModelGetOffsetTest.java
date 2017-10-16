@@ -98,9 +98,9 @@ public class MachineModelGetOffsetTest {
               new CArrayType(false, false, CNumericTypes.LONG_LONG_INT, null),
               LAST_INCOMPLETEARRAY));
 
+  // struct s { unsigned int a : 12; unsigned int b : 10; int c; long long d[]; };
   private static final CCompositeType STRUCT =
-      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS,
-          TEST_STRUCT, TEST_STRUCT);
+      new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS, TEST_STRUCT, TEST_STRUCT);
 
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS_2 =
       ImmutableList.of(
@@ -111,6 +111,7 @@ public class MachineModelGetOffsetTest {
               new CBitFieldType(CNumericTypes.LONG_INT, 18), LONG_BITFIELD_18),
           new CCompositeTypeMemberDeclaration(CNumericTypes.CHAR, CHAR));
 
+  // struct s { int a; long b : 15; long c : 18; char d; };
   private static final CCompositeType STRUCT_2 =
       new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_2, TEST_STRUCT, TEST_STRUCT);
 
@@ -123,6 +124,7 @@ public class MachineModelGetOffsetTest {
               new CBitFieldType(CNumericTypes.LONG_INT, 16), LONG_BITFIELD_18),
           new CCompositeTypeMemberDeclaration(CNumericTypes.CHAR, CHAR));
 
+  // struct s { int a; long b : 18; long c : 15; char d; };
   private static final CCompositeType STRUCT_3 =
       new CCompositeType(false, false, ComplexTypeKind.STRUCT, FIELDS_3, TEST_STRUCT, TEST_STRUCT);
 
