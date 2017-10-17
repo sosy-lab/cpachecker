@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableSet;
 
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -39,13 +40,15 @@ import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
 /**
  * Abstract state for tracking overflows.
  */
 class OverflowState implements AbstractStateWithAssumptions,
-                               Targetable,
-                               Graphable {
+    Targetable,
+    Graphable,
+    AbstractQueryableState {
 
   private final ImmutableList<? extends AExpression> assumptions;
   private final boolean hasOverflow;
@@ -121,5 +124,16 @@ class OverflowState implements AbstractStateWithAssumptions,
 
   private List<String> getReadableAssumptions() {
     return assumptions.stream().map(x -> x.toASTString()).collect(Collectors.toList());
+  }
+
+  @Override
+  public String getCPAName() {
+    return "OverflowCPA";
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    if (pProperty.equals(PROPERTY_OVERFLOW)) { return hasOverflow; }
+    throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
 }
