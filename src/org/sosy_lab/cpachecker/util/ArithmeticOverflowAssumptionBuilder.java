@@ -242,7 +242,12 @@ public final class ArithmeticOverflowAssumptionBuilder implements
         }
       }
     } else if (exp instanceof CUnaryExpression) {
-      // TODO: implement
+      if (lowerBounds.get(typ) != null) {
+        CUnaryExpression unaryexp = (CUnaryExpression) exp;
+        CExpression operand = unaryexp.getOperand();
+        result.add(cBinaryExpressionBuilder.buildBinaryExpression(operand, lowerBounds.get(typ),
+            BinaryOperator.NOT_EQUALS));
+      }
     } else {
       // TODO: check out and implement in case this happens
     }
@@ -386,6 +391,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     @Override
     public Void visit(CUnaryExpression pIastUnaryExpression)
         throws UnrecognizedCCodeException {
+      if (resultCanOverflow(pIastUnaryExpression)) {
+        addAssumptionOnBounds(pIastUnaryExpression, assumptions, node);
+      }
       return pIastUnaryExpression.getOperand().accept(this);
     }
 
@@ -497,27 +505,37 @@ public final class ArithmeticOverflowAssumptionBuilder implements
   /**
    * Whether the given operator can create new expression.
    */
-  private boolean resultCanOverflow(CBinaryExpression expr) {
-    switch (expr.getOperator()) {
-      case MULTIPLY:
-      case DIVIDE:
-      case PLUS:
-      case MINUS:
-      case SHIFT_LEFT:
-      case SHIFT_RIGHT:
-        return true;
-      case LESS_THAN:
-      case GREATER_THAN:
-      case LESS_EQUAL:
-      case GREATER_EQUAL:
-      case BINARY_AND:
-      case BINARY_XOR:
-      case BINARY_OR:
-      case EQUALS:
-      case NOT_EQUALS:
-      default:
-        return false;
+  private boolean resultCanOverflow(CExpression expr) {
+    if (expr instanceof CBinaryExpression) {
+      switch (((CBinaryExpression) expr).getOperator()) {
+        case MULTIPLY:
+        case DIVIDE:
+        case PLUS:
+        case MINUS:
+        case SHIFT_LEFT:
+        case SHIFT_RIGHT:
+          return true;
+        case LESS_THAN:
+        case GREATER_THAN:
+        case LESS_EQUAL:
+        case GREATER_EQUAL:
+        case BINARY_AND:
+        case BINARY_XOR:
+        case BINARY_OR:
+        case EQUALS:
+        case NOT_EQUALS:
+        default:
+          return false;
+      }
+    } else if (expr instanceof CUnaryExpression) {
+      switch (((CUnaryExpression) expr).getOperator()) {
+        case MINUS:
+          return true;
+        default:
+          return false;
+      }
     }
+    return false;
   }
 
 }
