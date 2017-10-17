@@ -25,21 +25,13 @@ package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
-
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-
-import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
@@ -47,7 +39,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
  * Abstract state for tracking overflows.
  */
 class OverflowState implements AbstractStateWithAssumptions,
-    Targetable,
     Graphable,
     AbstractQueryableState {
 
@@ -103,24 +94,6 @@ class OverflowState implements AbstractStateWithAssumptions,
   public String toString() {
     return "OverflowState{" + ", assumeEdges=" + getReadableAssumptions() + ", hasOverflow="
         + hasOverflow + '}';
-  }
-
-  @Override
-  public boolean isTarget() {
-    return hasOverflow;
-  }
-
-  @Nonnull
-  @Override
-  public Set<Property> getViolatedProperties() throws IllegalStateException {
-    return ImmutableSet.of(
-        new Property() {
-          @Override
-          public String toString() {
-            return PROPERTY_OVERFLOW;
-          }
-        }
-    );
   }
 
   @Override
