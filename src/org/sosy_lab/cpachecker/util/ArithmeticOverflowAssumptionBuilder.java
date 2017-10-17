@@ -27,7 +27,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -42,35 +46,42 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.assumptions.genericassumptions.GenericAssumptionBuilder;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
 
 /**
  * Generate assumptions related to over/underflow
@@ -171,8 +182,8 @@ public final class ArithmeticOverflowAssumptionBuilder implements
         stmtEdge.getStatement().accept(finder);
         break;
       case DeclarationEdge:
-
-        // No overflows in declaration.
+        CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
+        declarationEdge.getDeclaration().accept(finder);
         break;
       case ReturnStatementEdge:
         CReturnStatementEdge returnEdge = (CReturnStatementEdge) pEdge;
@@ -325,7 +336,9 @@ public final class ArithmeticOverflowAssumptionBuilder implements
 
   private class AssumptionsFinder
       extends DefaultCExpressionVisitor<Void,UnrecognizedCCodeException>
-      implements CStatementVisitor<Void, UnrecognizedCCodeException> {
+      implements CStatementVisitor<Void, UnrecognizedCCodeException>,
+      CSimpleDeclarationVisitor<Void, UnrecognizedCCodeException>,
+      CInitializerVisitor<Void, UnrecognizedCCodeException> {
 
     private final Set<CExpression> assumptions;
     private final CFANode node;
@@ -413,6 +426,70 @@ public final class ArithmeticOverflowAssumptionBuilder implements
           .getParameterExpressions()) {
         arg.accept(this);
       }
+      return null;
+    }
+
+    @Override
+    public Void visit(CFunctionDeclaration pDecl) throws UnrecognizedCCodeException {
+      // no overflows in CFunctionDeclaration
+      return null;
+    }
+
+    @Override
+    public Void visit(CComplexTypeDeclaration pDecl) throws UnrecognizedCCodeException {
+      // no overflows in CComplexTypeDeclaration
+      return null;
+    }
+
+    @Override
+    public Void visit(CTypeDefDeclaration pDecl) throws UnrecognizedCCodeException {
+      // no overflows in CTypeDefDeclaration
+      return null;
+    }
+
+    @Override
+    public Void visit(CVariableDeclaration pDecl) throws UnrecognizedCCodeException {
+      // rhs of CVariableDeclaration can contain overflows!
+      if (pDecl.getInitializer() != null) {
+        pDecl.getInitializer().accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public Void visit(CParameterDeclaration pDecl) throws UnrecognizedCCodeException {
+      // no overflows in CParameterDeclaration
+      return null;
+    }
+
+    @Override
+    public Void visit(CEnumerator pDecl) throws UnrecognizedCCodeException {
+      // no overflows in CEnumerator
+      return null;
+    }
+
+    @Override
+    public Void visit(CInitializerExpression pInitializerExpression)
+        throws UnrecognizedCCodeException {
+      // CInitializerExpression has a CExpression that can contain an overflow:
+      pInitializerExpression.getExpression().accept(this);
+      return null;
+    }
+
+    @Override
+    public Void visit(CInitializerList pInitializerList) throws UnrecognizedCCodeException {
+      // check each CInitializer for overflow:
+      for (CInitializer initializer : pInitializerList.getInitializers()) {
+        initializer.accept(this);
+      }
+      return null;
+    }
+
+    @Override
+    public Void visit(CDesignatedInitializer pCStructInitializerPart)
+        throws UnrecognizedCCodeException {
+      // CDesignatedInitializer has a CInitializer on the rhs that can contain an overflow:
+      pCStructInitializerPart.getRightHandSide().accept(this);
       return null;
     }
   }
