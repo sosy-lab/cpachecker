@@ -28,6 +28,8 @@ import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import javax.annotation.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -51,6 +53,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCCodeException;
 import org.sosy_lab.cpachecker.util.ArithmeticOverflowAssumptionBuilder;
@@ -95,7 +98,7 @@ public class OverflowCPA
 
     List<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge);
     if (assumptions.isEmpty()) {
-      return ImmutableList.of(new OverflowState(ImmutableList.of(), false));
+      return ImmutableList.of(new OverflowState(ImmutableList.of(), false, prev));
     }
 
     // No overflows <=> all assumptions hold.
@@ -111,8 +114,8 @@ public class OverflowCPA
         Lists.transform(
             assumptions,
             // Overflow <=> there exists a violating assumption.
-            a -> new OverflowState(ImmutableList.of(mkNot(a)), true)));
-    outStates.add(new OverflowState(noOverflows, false));
+            a -> new OverflowState(ImmutableList.of(mkNot(a)), true, prev)));
+    outStates.add(new OverflowState(noOverflows, false, prev));
     return outStates.build();
   }
 
@@ -148,5 +151,24 @@ public class OverflowCPA
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition) throws InterruptedException {
     return new OverflowState(ImmutableList.of(), false);
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      List<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    Optional<AbstractState> optionalPredicateState =
+        otherStates.stream().filter(x -> x instanceof PredicateAbstractState).findFirst();
+    if (optionalPredicateState.isPresent()) {
+      PredicateAbstractState predicateState = (PredicateAbstractState) optionalPredicateState.get();
+      OverflowState overflowState = (OverflowState) state;
+      overflowState.updatePathFormulas(predicateState.getPathFormula());
+      return Collections.singleton(overflowState);
+    } else {
+      return Collections.singleton(state);
+    }
   }
 }

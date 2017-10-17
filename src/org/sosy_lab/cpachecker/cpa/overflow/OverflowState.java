@@ -41,6 +41,7 @@ import java.util.Set;
 
 import javax.annotation.Nonnull;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 /**
  * Abstract state for tracking overflows.
@@ -53,10 +54,23 @@ class OverflowState implements AbstractStateWithAssumptions,
   private final ImmutableList<? extends AExpression> assumptions;
   private final boolean hasOverflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
+  private PathFormula previousPathFormula;
+  private PathFormula currentPathFormula;
 
   public OverflowState(List<? extends AExpression> pAssumptions, boolean pHasOverflow) {
+    this(pAssumptions, pHasOverflow, null);
+  }
+
+  public OverflowState(List<? extends AExpression> pAssumptions, boolean pHasOverflow, OverflowState parent) {
     assumptions = ImmutableList.copyOf(pAssumptions);
     hasOverflow = pHasOverflow;
+    if (parent != null) {
+      previousPathFormula = parent.previousPathFormula;
+      currentPathFormula = parent.currentPathFormula;
+    } else {
+      previousPathFormula = null;
+      currentPathFormula = null;
+    }
   }
 
   public boolean hasOverflow() {
@@ -65,7 +79,7 @@ class OverflowState implements AbstractStateWithAssumptions,
 
   @Override
   public List<? extends AExpression> getAssumptions() {
-    return assumptions;
+    return ImmutableList.of();
   }
 
   @Override
@@ -135,5 +149,26 @@ class OverflowState implements AbstractStateWithAssumptions,
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals(PROPERTY_OVERFLOW)) { return hasOverflow; }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+  }
+
+  @Override
+  public PathFormula getPreviousPathFormula(PathFormula pPathFormula) {
+    // TODO: The following assertion is needed because this is a hack and needs refactoring.
+    // For now we need to get the previous path formula somehow,
+    // and communicating it via strengthening operators allows to do this
+    // locally here where it is needed, separating concerns
+    assert pPathFormula.equals(currentPathFormula) : "supplied path formula does not match!" +
+        " Most likely this means strenghten of the PredicateCPA is called before strengthen of the OverflowCPA!";
+    return previousPathFormula;
+  }
+
+  @Override
+  public List<? extends AExpression> getPreconditionAssumptions() {
+    return assumptions;
+  }
+
+  public void updatePathFormulas(PathFormula newPathFormula) {
+    previousPathFormula = currentPathFormula;
+    currentPathFormula = newPathFormula;
   }
 }
