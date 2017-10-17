@@ -47,6 +47,7 @@ class OverflowState implements AbstractStateWithAssumptions,
   private static final String PROPERTY_OVERFLOW = "overflow";
   private PathFormula previousPathFormula;
   private PathFormula currentPathFormula;
+  private boolean alreadyStrengthened;
 
   public OverflowState(List<? extends AExpression> pAssumptions, boolean pHasOverflow) {
     this(pAssumptions, pHasOverflow, null);
@@ -55,6 +56,7 @@ class OverflowState implements AbstractStateWithAssumptions,
   public OverflowState(List<? extends AExpression> pAssumptions, boolean pHasOverflow, OverflowState parent) {
     assumptions = ImmutableList.copyOf(pAssumptions);
     hasOverflow = pHasOverflow;
+    alreadyStrengthened = false;
     if (parent != null) {
       previousPathFormula = parent.previousPathFormula;
       currentPathFormula = parent.currentPathFormula;
@@ -130,8 +132,9 @@ class OverflowState implements AbstractStateWithAssumptions,
     // For now we need to get the previous path formula somehow,
     // and communicating it via strengthening operators allows to do this
     // locally here where it is needed, separating concerns
-    assert pPathFormula.equals(currentPathFormula) : "supplied path formula does not match!" +
-        " Most likely this means strenghten of the PredicateCPA is called before strengthen of the OverflowCPA!";
+    assert pPathFormula.getSsa()
+        .equals(currentPathFormula.getSsa()) : "supplied path formula does not match!" +
+            " Most likely this means strengthen of the PredicateCPA is called before strengthen of the OverflowCPA!";
     return previousPathFormula;
   }
 
@@ -141,7 +144,10 @@ class OverflowState implements AbstractStateWithAssumptions,
   }
 
   public void updatePathFormulas(PathFormula newPathFormula) {
-    previousPathFormula = currentPathFormula;
-    currentPathFormula = newPathFormula;
+    if (!alreadyStrengthened) {
+      previousPathFormula = currentPathFormula;
+      currentPathFormula = newPathFormula;
+      alreadyStrengthened = true;
+    }
   }
 }
