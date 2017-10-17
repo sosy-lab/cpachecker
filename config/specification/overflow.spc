@@ -6,6 +6,6 @@ CONTROL AUTOMATON Overflows
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK(InvariantsCPA, "overflow") -> ERROR("no-overflow: integer overflow in $location");
+  CHECK("overflow") -> ERROR("no-overflow: integer overflow in $location");
 
 END AUTOMATON
