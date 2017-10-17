@@ -60,8 +60,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableReleva
 import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
-import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
@@ -311,7 +309,7 @@ public abstract class BAMPredicateRefiner implements Refiner {
           if (newRelevantPredicatesComputer.equals(relevantPredicatesComputer)) {
             // repeated CEX && relevantPredicatesComputer was refined && refinement does not produce progress -> error
             // TODO if this happens, there might be a bug in the analysis!
-            throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+            // throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
 
           } else {
             // we have a better relevantPredicatesComputer, thus update it.
@@ -325,8 +323,8 @@ public abstract class BAMPredicateRefiner implements Refiner {
             furtherCEXTrackingNeeded = false;
           }
 
-        } else {
-          throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
+          // } else {
+          // throw new RefinementFailedException(Reason.RepeatedCounterexample, null);
         }
       }
 
