@@ -1514,6 +1514,10 @@ cpa.predicate.blk.alwaysAtJoin = false
 # force abstractions at loop heads, regardless of threshold
 cpa.predicate.blk.alwaysAtLoops = true
 
+# force abstractions at program exit (program end, abort, etc.), regardless
+# of threshold
+cpa.predicate.blk.alwaysAtProgramExit = false
+
 # abstractions at function calls/returns if threshold has been reached (no
 # effect if threshold = 0)
 cpa.predicate.blk.functions = false
