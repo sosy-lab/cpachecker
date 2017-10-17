@@ -222,11 +222,13 @@ public final class ArithmeticOverflowAssumptionBuilder implements
       BinaryOperator binop = binexp.getOperator();
       CExpression op1 = binexp.getOperand1();
       CExpression op2 = binexp.getOperand2();
-      if (lowerBounds.get(typ) != null) {
-        result.add(getLowerAssumption(op1, op2, binop, lowerBounds.get(typ)));
-      }
-      if (upperBounds.get(typ) != null) {
-        result.add(getUpperAssumption(op1, op2, binop, upperBounds.get(typ)));
+      if (binop.equals(BinaryOperator.PLUS) || binop.equals(BinaryOperator.MINUS)) {
+        if (lowerBounds.get(typ) != null) {
+          result.add(getLowerAssumption(op1, op2, binop, lowerBounds.get(typ)));
+        }
+        if (upperBounds.get(typ) != null) {
+          result.add(getUpperAssumption(op1, op2, binop, upperBounds.get(typ)));
+        }
       }
     } else if (exp instanceof CUnaryExpression) {
       // TODO: implement
