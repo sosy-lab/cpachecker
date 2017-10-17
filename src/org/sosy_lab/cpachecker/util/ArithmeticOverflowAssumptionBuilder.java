@@ -275,13 +275,13 @@ public final class ArithmeticOverflowAssumptionBuilder implements
    *
    * For addition (operator = BinaryOperator.PLUS) these assumptions
    * are lower and upper limits:
-   * (operand1 <= 0) | (operand1 <= limit - operand2) // upper limit
-   * (operand1 >= 0) | (operand1 >= limit - operand2) // lower limit
+   * (operand2 <= 0) | (operand1 <= limit - operand2) // upper limit
+   * (operand2 >= 0) | (operand1 >= limit - operand2) // lower limit
    *
    * For subtraction (operator = BinaryOperator.MINUS) the assumptions
    * are lower and upper limits:
-   * (operand1 >= 0) | (operand1 <= limit + operand2) // upper limit
-   * (operand1 <= 0) | (operand1 >= limit + operand2) // lower limit
+   * (operand2 >= 0) | (operand1 <= limit + operand2) // upper limit
+   * (operand2 <= 0) | (operand1 >= limit + operand2) // lower limit
    *
    * @param operand1 first operand in the C Expression for which the
    *        assumption should be generated
@@ -307,7 +307,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
     // term1 | term3
 
     // where term1 is structured this way:
-    // operand1 term1Operator 0
+    // operand2 term1Operator 0
     BinaryOperator term1Operator =
         (isUpperLimit ^ isMinusMode) ? BinaryOperator.LESS_EQUAL : BinaryOperator.GREATER_EQUAL;
     CExpression term1 = cBinaryExpressionBuilder.buildBinaryExpression(operand2,
