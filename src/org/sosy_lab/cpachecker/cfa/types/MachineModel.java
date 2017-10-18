@@ -84,7 +84,7 @@ public enum MachineModel {
       1, // void
       1, //bool
       4 //pointer
-      ),
+  ),
 
   /** Machine model representing a 64bit Linux machine with alignment: */
   LINUX64(
@@ -832,7 +832,7 @@ public enum MachineModel {
     long bitOffset = 0L;
     long sizeOfConsecutiveBitFields = 0;
 
-    int sizeOfByte = getSizeofCharInBits();
+    long sizeOfByte = getSizeofCharInBits();
 
     if (ownerTypeKind == ComplexTypeKind.UNION) {
       if (outParameterMap == null) {
@@ -854,7 +854,7 @@ public enum MachineModel {
         CCompositeTypeMemberDeclaration typeMember = iterator.next();
         CType type = typeMember.getType();
 
-        int fieldSizeInBits = -1;
+        long fieldSizeInBits = -1;
         // If incomplete type at end of struct, just assume 0 for its size
         // and compute its offset as usual, since it isn't affected.
         //
@@ -888,10 +888,6 @@ public enum MachineModel {
             return bitOffset;
           }
 
-          if (outParameterMap != null) {
-            outParameterMap.put(typeMember, bitOffset + sizeOfConsecutiveBitFields);
-          }
-
           CType innerType = ((CBitFieldType) type).getType();
 
           if (fieldSizeInBits == 0) {
@@ -921,19 +917,28 @@ public enum MachineModel {
             // will be aligned to size of char and occupy 2 Bytes
             // in memory, while the same struct without the
             // 'char : 0;' member would just occupy 1 Byte.
-            bitOffset +=
-                calculatePaddedBitsize(0L, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
-            sizeOfConsecutiveBitFields = 0;
+            bitOffset =
+                calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, innerType, sizeOfByte);
+            sizeOfConsecutiveBitFields = 0L;
           } else {
             sizeOfConsecutiveBitFields =
                 calculateNecessaryBitfieldOffset(
-                    sizeOfConsecutiveBitFields, innerType, sizeOfByte, fieldSizeInBits);
+                        sizeOfConsecutiveBitFields + bitOffset,
+                        innerType,
+                        sizeOfByte,
+                        fieldSizeInBits)
+                    - bitOffset;
             sizeOfConsecutiveBitFields += fieldSizeInBits;
+          }
+
+          // Put start offset of bitField to outParameterMap
+          if (outParameterMap != null) {
+            outParameterMap.put(typeMember, bitOffset + sizeOfConsecutiveBitFields - fieldSizeInBits);
           }
         } else {
           bitOffset =
               calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, type, sizeOfByte);
-          sizeOfConsecutiveBitFields = 0;
+          sizeOfConsecutiveBitFields = 0L;
 
           if (typeMember.getName().equals(pFieldName)) {
             // just escape the loop and return the current offset
@@ -954,12 +959,12 @@ public enum MachineModel {
     }
 
     // call with byte size of 1 to return size in bytes instead of bits
-    return calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1);
+    return calculatePaddedBitsize(bitOffset, sizeOfConsecutiveBitFields, pOwnerType, 1L);
   }
 
   @Deprecated
   public long calculateNecessaryBitfieldOffset(
-      long pBitFieldOffset, CType pType, int pSizeOfByte, int pBitFieldLength) {
+      long pBitFieldOffset, CType pType, long pSizeOfByte, long pBitFieldLength) {
     // gcc -std=c11 implements bitfields such, that it only positions a bitfield 'B'
     // directly adjacent to its preceding bitfield 'A', if 'B' fits into the
     // remainder of its own alignment unit that is already partially occupied by
@@ -970,7 +975,7 @@ public enum MachineModel {
     // On the other hand, in 'struct s { char a: 7; int b: 26; };', the 25 remaining
     // bits int the first integer alignment of 'struct s' are padded and 'b' is pushed
     // to the next integer-aligned unit, resulting in 'struct s' having 8 bytes size.
-    int paddingBitSpace = getPaddingInBits(pBitFieldOffset, pType, pSizeOfByte);
+    long paddingBitSpace = getPaddingInBits(pBitFieldOffset, pType, pSizeOfByte);
 
     if (paddingBitSpace < pBitFieldLength) {
       pBitFieldOffset += paddingBitSpace;
@@ -980,7 +985,7 @@ public enum MachineModel {
 
   @Deprecated
   public long calculatePaddedBitsize(
-      long pBitOffset, long pSizeOfConsecutiveBitFields, CType pType, int pSizeOfByte) {
+      long pBitOffset, long pSizeOfConsecutiveBitFields, CType pType, long pSizeOfByte) {
     pBitOffset += pSizeOfConsecutiveBitFields;
     // once pad the bits to full bytes, then pad bytes to the
     // alignment of the current type
@@ -990,15 +995,15 @@ public enum MachineModel {
   }
 
   @Deprecated
-  public int getPadding(long pOffset, CType pType) {
-    return getPaddingInBits(pOffset, pType, 1);
+  public long getPadding(long pOffset, CType pType) {
+    return getPaddingInBits(pOffset, pType, 1L);
   }
 
-  private int getPaddingInBits(long pOffset, CType pType, int pSizeOfByte) {
-    int alignof = getAlignof(pType) * pSizeOfByte;
+  private long getPaddingInBits(long pOffset, CType pType, long pSizeOfByte) {
+    long alignof = getAlignof(pType) * pSizeOfByte;
     long padding = alignof - (pOffset % alignof);
     if (padding < alignof) {
-      return Long.valueOf(padding).intValue();
+      return padding;
     }
     return 0;
   }

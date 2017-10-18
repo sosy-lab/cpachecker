@@ -96,6 +96,7 @@ import org.eclipse.cdt.core.dom.ast.gnu.IGNUASTCompoundStatementExpression;
 import org.eclipse.cdt.core.dom.ast.gnu.c.IGCCASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTCompositeTypeSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTDesignatedInitializer;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
@@ -1671,6 +1672,9 @@ class ASTConverter {
   }
 
   private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final IASTDeclaration d, int nofMember) {
+    if (d.getParent() instanceof CASTCompositeTypeSpecifier) {
+      // FIXME: remove conditional after debugging
+    }
     if (d instanceof IASTProblemDeclaration) {
       throw parseContext.parseError((IASTProblemDeclaration) d);
     }
@@ -1732,7 +1736,7 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    if (name == null) {
+    if (name == null || name.equals("")) {
       name = "__anon_type_member_" + nofMember;
     }
 

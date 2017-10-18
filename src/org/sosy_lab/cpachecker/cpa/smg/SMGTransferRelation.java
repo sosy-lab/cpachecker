@@ -1236,7 +1236,7 @@ public class SMGTransferRelation
             offset += machineModel.getSizeofCharInBits() - overByte;
           }
           @SuppressWarnings("deprecation") // replace with machineModel.getAllFieldOffsetsInBits
-          int padding =
+          long padding =
               machineModel.getPadding(offset / machineModel.getSizeofCharInBits(), memberType);
           offset += padding * machineModel.getSizeofCharInBits();
         }
