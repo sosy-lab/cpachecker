@@ -43,13 +43,13 @@ public class SIGNCreator implements Creator{
        // EMPTY(0), PLUS(1), MINUS(2), ZERO(4), PLUSMINUS(3), PLUS0(5), MINUS0(6), ALL(7);
 
 
-        case 1: return SIGN.PLUS;
-        case 2: return SIGN.MINUS;
-        case 3: return SIGN.PLUSMINUS;
-        case 4: return SIGN.ZERO;
-        case 5: return SIGN.PLUS0;
-        case 6: return SIGN.MINUS0;
-        case 7: return SIGN.ALL;
+        case PLUS: return SIGN.PLUS;
+        case MINUS: return SIGN.MINUS;
+        case PLUSMINUS: return SIGN.PLUSMINUS;
+        case ZERO: return SIGN.ZERO;
+        case PLUS0: return SIGN.PLUS0;
+        case MINUS0: return SIGN.MINUS0;
+        case ALL: return SIGN.ALL;
         default: return SIGN.EMPTY;
         }
 
